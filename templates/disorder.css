@@ -45,7 +45,7 @@ th {
 
 /* ordinary cells in tables */
 td {
-  vertical-align: center
+  vertical-align: middle
 }
 
 /* the headings <tr> of the table */
