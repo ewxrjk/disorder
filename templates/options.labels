@@ -1,0 +1,201 @@
+# Labels used by the web interface.
+#
+# Rather then editing this file, edit options.user instead.
+#
+# Where there is 'short and long' text this means that the short text
+# will appear in the ALT attribute, and so appear in a text-only browser
+# (or if images are disabled); usually this should be a single short word.
+# The long text will appear in the TITLE attribute, and so appear for
+# instance if the user hovers over whatever the widget is.
+
+# <TITLE> for the 'Playing' screen
+label	playing.title		"Now Playing"
+
+label	playing.randomtrack	&nbsp;
+label	queue.randomtrack	random
+
+# Short and long text for scratch (remove playing track) button
+label	playing.scratch		Scratch
+label	playing.scratchverbose	"stop playing this track"
+
+# Short and long text for remove queued track button
+label	playing.remove		Remove
+label	playing.removeverbose	"remove track from queue"
+
+# Text for banner above currently playing track
+label	playing.now		"Now playing"
+
+# Text for banner above queue
+label	playing.next		"Next"
+
+# Short and long text for queue management buttons
+label	playing.up		Up
+label	playing.down		Down
+label	playing.upall		Head
+label	playing.downall		Tail
+label	playing.upverbose	"move track earlier in queue"
+label	playing.downverbose	"move track later in queue"
+label	playing.upallverbose	"move track to head of queue"
+label	playing.downallverbose	"move track to end of queue"
+
+# Short and long text for play control buttons
+label	playing.random		"Random play"
+label	playing.playing		"Playing"
+label	playing.pause           Pause
+label	playing.randomdisableverbose	"disable random play"
+label	playing.randomenableverbose	"enable random play"
+label	playing.playingdisableverbose	"disable playing"
+label	playing.playingenableverbose	"enable playing"
+label	playing.pauseverbose    "Pause the current track"
+label	playing.resumeverbose   "Resume play"
+
+# Text for volume control
+label	playing.volume		"Volume:"
+
+# <TITLE> for volume control page
+label	volume.title		"Volume control"
+
+# Volume control set button
+label	volume.set		Set
+
+# Text preceding left/right fields
+label	volume.left		""
+label	volume.right		""
+
+# Short and long text for volume down/up buttons
+label	volume.reduce		Down
+label	volume.increase		Up
+label	volume.reduceverbose	"reduce volume"
+label	volume.increaseverbose	"increase volume"
+
+# Amount to increase/reduce volume by
+label	volume.resolution	4
+
+# Long text for linsk to album/artist
+label	playing.artistverbose	"more tracks by this artist"
+label	playing.albumverbose	"more tracks from this album"
+
+# <TITLE> for recently played page
+label	recent.title		"Recently Played"
+
+# <TITLE> for choose track page
+label	choose.title		"Pick track"
+
+# Text for play all button
+label	choose.playall		"Play all"
+
+# Heading for directory list
+label	choose.directories	Directories
+
+# Heading for track list
+label	choose.files		Tracks
+
+# Short and long text for edit prefs button (both recent and choose pages)
+label	choose.prefs		Edit
+label	choose.prefsverbose	"edit track information"
+
+# Same, for edit all prefs
+label	choose.allprefs		"Edit all"
+label	choose.allprefsverbose	"edit all track information"
+
+# <TITLE> for search page
+label	search.title		Search
+
+# Text for search button
+label	search.search		Search
+
+# <TITLE> for about page
+label	about.title		"About DisOrder"
+
+# <TITLE> for edit prefs page
+label	prefs.title		"Edit Track Preferences"
+
+# Text for set/add/delete preference buttons
+label	prefs.set		Change
+label	prefs.new		Set
+label	prefs.delete		Delete
+
+# Headings for preferences table
+label	prefs.name		Name
+label	prefs.value		Value
+
+# Legend for prefs controls that don't correspond to a heading
+label	prefs.random		"Random play"
+label	prefs.tags		"Tags"
+
+# <TITLE> for help page
+label	help.title		"DisOrder help"
+
+# <TITLE> for error page.  Note that in this page the 'error' label is set
+# to a string indicating the type of error.
+label	error.title		"DisOrder error"
+
+# Text used when cannot connect to server
+label	error.connect		"Cannot connect to server."
+
+# Text used when cannot become right user
+label	error.become		"Unauthorized user."
+
+# Text appended to all error pages
+label	error.generic		""
+
+# Displayed text for links in the sidebar (or other menu)
+label	sidebar.playing		Playing
+label	sidebar.choose		Choose
+label	sidebar.random		Random
+label	sidebar.search		Search
+label	sidebar.recent		Recent
+label	sidebar.about		About
+label	sidebar.volume		Volume
+label	sidebar.help		Help
+label	sidebar.manage		Manage
+
+# Long (i.e. TITLE=) text for sidebar links
+label	sidebar.playingverbose	"current and queued tracks"
+label	sidebar.chooseverbose	"choose tracks"
+label	sidebar.searchverbose	"word search among track names"
+label	sidebar.recentverbose	"recently played tracks"
+label	sidebar.aboutverbose	"about DisOrder"
+label	sidebar.volumeverbose	"volume control"
+label	sidebar.helpverbose	"basic user guide"
+label	sidebar.manageverbose	"queue management and volume control"
+
+# This should be 'topbar' or 'sidebar'.  If 'topbar' then the menu appears
+# across the top of the screen, otherwise down the side.
+label	menu			topbar
+
+# This should be 'choose' or 'choosealpha'.  If 'choose' then all artists
+# appear on the same page, otherwise they are broken up by initial letter
+# (which can be more convenient if you have huge numbers).
+label	sidebar.choosewhich	choose
+
+# Column headings for tables of tracks (playing, queue, recent)
+label	heading.when		When
+label	heading.who		Who
+label	heading.artist		Artist
+label	heading.album		Album
+label	heading.title		Title
+label	heading.length		Length
+
+# Images.  These are (possibly relative) URLs.  In the factory configuration
+# DisOrder assumes that you have arranged for 'static' relative to the base
+# URL (i.e. the URL of the CGI) to point somewhere useful, but it's not
+# the only way.  The .deb for instance uses /disorder instead.
+label	images.enabled		static/tick.png
+label	images.disabled		static/cross.png
+label	images.scratch		static/cross.png
+label	images.noscratch	static/nocross.png
+label	images.up		static/up.png
+label	images.noup		static/noup.png
+label	images.down		static/down.png
+label	images.nodown		static/nodown.png
+label	images.edit		static/edit.png
+label	images.upall		static/upup.png
+label	images.noupall		static/noupup.png
+label	images.downall		static/downdown.png
+label	images.nodownall	static/nodowndown.png
+
+# Stylesheet.  As above, a (possibly relative) URL.
+label	links.css		static/disorder.css
+
+# arch-tag:1c90ecc78e3d1a4ceaca2f0c0e6ee558

@@ -1,0 +1,112 @@
+* Upgrading DisOrder
+
+The general procedure is:
+
+ * stop the old daemon, e.g. with
+     /etc/init.d/disorder stop
+ * build and install the new version as described in the README
+ * update the configuration files (see below)
+ * start the new daemon, e.g. with
+     /etc/init.d/disorder start
+
+The rest of this file describes things you must pay attention to when
+upgrading between particular versions.  Minor versions are not
+explicitly mentioned; a version number like 1.1 implicitly includes
+all 1.1.x versions.
+
+* 1.5 -> 1.6
+
+** 'transform' and 'namepart' directives
+
+'transform' has moved from the web options to the main configuration file, so
+that they can be used by other interfaces.  The syntax and semantics are
+unchanged.
+
+More importantly however both 'transform' and 'namepart' are now optional, with
+sensible defaults being built in.  So if you were already using the default
+values you can just delete all instances of both.
+
+** enabled' and 'random_enabled' directives
+
+These have been removed.  Instead the state persists from one run of the server
+to the next.
+
+* 1.3 -> 1.4
+
+** Raw Format Decoders
+
+You will probably want reconfigure your install to use the new facilities
+(although the old way works fine).  See the example configuration file and
+README.raw for more details.
+
+Depending on how your system is configured you may need to link the disorder
+libao driver into the right directory:
+
+   ln -s /usr/local/lib/ao/plugins-2/libdisorder.so /usr/lib/ao/plugins-2/.
+
+* 1.2 -> 1.3
+
+** Server Environment
+
+It is important that $sbindir is on the server's path.  The example init script
+guarantees this.  You may need to modify the installed one.  You will get
+"deadlock manager unexpectedly terminated" if you get this wrong.
+
+** namepart directives
+
+These have changed in three ways.
+
+Firstly they have changed to substitute in a more convenient way.  Instead of
+matches for the regexp being substituted back into the original track name, the
+replacement string now completely replaces it.  Given the usual uses of
+namepart, this is much more convenient.  If you've stuck with the defaults no
+changes should be needed for this.
+
+Secondly they are matched against the track name with the collection root
+stripped off.
+
+Finally you will need to add an extra line to your config file as follows for
+the new track aliasing mechanisms to work properly:
+
+namepart        ext     "(\\.[a-zA-Z0-9]+)$"                   "$1"    *
+
+* 1.1 -> 1.2
+
+** Web Interface Changes
+
+The web interface now includes static content as well as templates.
+The static content must be given a name visible to HTTP clients which
+maps to its location in the real filesystem.
+
+The README suggests using a rule in httpd.conf to make /static in the
+HTTP namespace point to /usr/local/share/disorder/static, which is
+where DisOrder installs its static content (by default).
+Alternatively you can set the url.static label to the base URL of the
+static content.
+
+** Configuration File Changes
+
+The trackname-part web interface directive has now gone, and the
+options.trackname file with it.
+
+It is replaced by a new namepart directive in the main configuration
+file.  This has exactly the same syntax as trackname-part, only the
+name and location have changed.
+
+The reason for the change is to allow track name parsing to be
+centrally configured, rather than every interface to DisOrder having
+to implement it locally.
+
+If you do not install new namepart directives into the main
+configuration file then track titles will show up blank.
+
+If you do not remove the trackname-part directives from the web
+interface configuration then you will get error messages in the web
+server's error log.
+
+Local Variables:
+mode:outline
+fill-column:79
+End:
+
+# arch-tag:j+OBlcYYyUdGBVbVXVgXew

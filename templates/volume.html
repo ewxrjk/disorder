@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2004, 2005 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@include:stdhead@
+  <title>@label:volume.title@</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+   <h1 class=title>@label:volume.title@</h1>
+
+   <form class=volume action="@url@" method=POST>
+    <p class=volume>
+     <a class=imgbutton
+      href="@url@?action=volume&#38;delta=-@label:volume.resolution@">
+      <img class=button src="@label:images.down@"
+       alt="@label:volume.reduce@" title="@label:volume.reduceverbose@">
+     </a>
+     @label:volume.left@ <input size=3 name=left type=text value="@volume:left@">
+     @label:volume.right@ <input size=3 name=right type=text value="@volume:right@">
+     <input name=nonce type=hidden value="@nonce@">
+     <button class=search name=action type=submit value=volume>
+      @label:volume.set@
+     </button>
+     <a class=imgbutton
+      href="@url@?action=volume&#38;delta=@label:volume.resolution@">
+      <img class=button src="@label:images.up@"
+       alt="@label:volume.increase@" title="@label:volume.increaseverbose@">
+     </a>
+    </p>
+   </form>
+
+@include{@label{menu}@end}@
+ </body>
+</html>
+@@
+<!--
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+End:
+-->
+<!-- arch-tag:2aa86adb876245eb10d501168f30db07 -->

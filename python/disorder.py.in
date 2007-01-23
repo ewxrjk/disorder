@@ -1,0 +1,1045 @@
+#
+# Copyright (C) 2004, 2005 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+"""Python support for DisOrder
+
+Provides disorder.client, a class for accessing a DisOrder server.
+
+Example 1:
+
+  #! /usr/bin/env python
+  import disorder
+  d = disorder.client()
+  p = d.playing()
+  if p:
+    print p['track']
+
+Example 2:
+
+  #! /usr/bin/env python
+  import disorder
+  import sys
+  d = disorder.client()
+  for path in sys.argv[1:]:
+    d.play(path)
+
+"""
+
+import re
+import string
+import os
+import pwd
+import socket
+import binascii
+import sha
+import sys
+import locale
+
+_configfile = "pkgconfdir/config"
+_dbhome = "pkgstatedir"
+
+# various regexps we'll use
+_ws = re.compile(r"^[ \t\n\r]+")
+_squote = re.compile("'(([^\\\\']|\\\\[\\\\\"'n])+)'")
+_dquote = re.compile("\"(([^\\\\\"]|\\\\[\\\\\"'n])+)\"")
+_unquoted = re.compile("[^\"' \\t\\n\\r][^ \t\n\r]*")
+
+_response = re.compile("([0-9]{3}) ?(.*)")
+
+version = "_version_"
+
+########################################################################
+# exception classes
+
+class Error(Exception):
+  """Base class for DisOrder exceptions."""
+
+class _splitError(Error):
+  # _split failed
+  def __init__(self, value):
+    self.value = value
+  def __str__(self):
+    return str(self.value)
+
+class parseError(Error):
+  """Error parsing the configuration file."""
+  def __init__(self, path, line, details):
+    self.path = path
+    self.line = line
+    self.details = details
+  def __str__(self):
+    return "%s:%d: %s" % (self.path, self.line, self.details)
+
+class protocolError(Error):
+  """DisOrder control protocol error.
+
+  Indicates a mismatch between the client and server's understanding of
+  the control protocol.
+  """
+  def __init__(self, who, error):
+    self.who = who
+    self.error = error
+  def __str__(self):
+    return "%s: %s" % (self.who, str(self.error))
+
+class operationError(Error):
+  """DisOrder control protocol error response.
+
+  Indicates that an operation failed (e.g. an attempt to play a
+  nonexistent track).  The connection should still be usable.
+  """
+  def __init__(self, res, details):
+    self.res_ = int(res)
+    self.details_ = details
+  def __str__(self):
+    """Return the complete response string from the server.
+
+    Excludes the final newline.
+    """
+    return "%d %s" % (self.res_, self.details_)
+  def response(self):
+    """Return the response code from the server."""
+    return self.res_
+  def details(self):
+    """Returns the detail string from the server."""
+    return self.details_
+
+class communicationError(Error):
+  """DisOrder control protocol communication error.
+
+  Indicates that communication with the server went wrong, perhaps
+  because the server was restarted.  The caller could report an error to
+  the user and wait for further user instructions, or even automatically
+  retry the operation.
+  """
+  def __init__(self, who, error):
+    self.who = who
+    self.error = error
+  def __str__(self):
+    return "%s: %s" % (self.who, str(self.error))
+
+########################################################################
+# DisOrder-specific text processing
+
+def _unescape(s):
+  # Unescape the contents of a string
+  #
+  # Arguments:
+  #
+  # s -- string to unescape
+  #
+  s = re.sub("\\\\n", "\n", s)
+  s = re.sub("\\\\(.)", "\\1", s)
+  return s
+
+def _split(s, *comments):
+  # Split a string into fields according to the usual Disorder string splitting
+  # conventions.
+  #
+  # Arguments:
+  #
+  # s        -- string to parse
+  # comments -- if present, parse comments
+  #
+  # Return values:
+  #
+  # On success, a list of fields is returned.
+  #
+  # On error, disorder.parseError is thrown.
+  #
+  fields = []
+  while s != "":
+    # discard comments
+    if comments and s[0] == '#':
+      break
+    # strip spaces
+    m = _ws.match(s)
+    if m:
+      s = s[m.end():]
+      continue
+    # pick of quoted fields of both kinds
+    m = _squote.match(s)
+    if not m:
+      m = _dquote.match(s)
+    if m:
+      fields.append(_unescape(m.group(1)))
+      s = s[m.end():]
+      continue
+    # and unquoted fields
+    m = _unquoted.match(s)
+    if m:
+      fields.append(m.group(0))
+      s = s[m.end():]
+      continue
+    # anything left must be in error
+    if s[0] == '"' or s[0] == '\'':
+      raise _splitError("invalid quoted string")
+    else:
+      raise _splitError("syntax error")
+  return fields
+
+def _escape(s):
+  # Escape the contents of a string
+  #
+  # Arguments:
+  #
+  # s -- string to escape
+  #
+  if re.search("[\\\\\"'\n \t\r]", s) or s == '':
+    s = re.sub(r'[\\"]', r'\\\g<0>', s)
+    s = re.sub("\n", r"\\n", s)
+    return '"' + s + '"'
+  else:
+    return s
+
+def _quote(list):
+  # Quote a list of values
+  return ' '.join(map(_escape, list))
+
+def _sanitize(s):
+  # Return the value of s in a form suitable for writing to stderr
+  return s.encode(locale.nl_langinfo(locale.CODESET), 'replace')
+
+def _list2dict(l):
+  # Convert a list of the form [k1, v1, k2, v2, ..., kN, vN]
+  # to a dictionary {k1:v1, k2:v2, ..., kN:vN}
+  d = {}
+  i = iter(l)
+  try:
+    while True:
+      k = i.next()
+      v = i.next()
+      d[k] = v
+  except StopIteration:
+    pass
+  return d
+
+def _queueEntry(s):
+  # parse a queue entry
+  return _list2dict(_split(s))
+
+########################################################################
+# The client class
+
+class client:
+  """DisOrder client class.
+
+  This class provides access to the DisOrder server either on this
+  machine or across the internet.
+
+  The server to connect to, and the username and password to use, are
+  determined from the configuration files as described in 'man
+  disorder_config'.
+
+  All methods will connect if necessary, as soon as you have a
+  disorder.client object you can start calling operational methods on
+  it.
+
+  However if the server is restarted then the next method called on a
+  connection will throw an exception.  This may be considered a bug.
+
+  All methods block until they complete.
+
+  Operation methods raise communicationError if the connection breaks,
+  protocolError if the response from the server is malformed, or
+  operationError if the response is valid but indicates that the
+  operation failed.
+  """
+
+  debug_proto = 0x0001
+  debug_body = 0x0002
+
+  def __init__(self):
+    """Constructor for DisOrder client class.
+
+    The constructor reads the configuration file, but does not connect
+    to the server.
+
+    If the environment variable DISORDER_PYTHON_DEBUG is set then the
+    debug flags are initialised to that value.  This can be overridden
+    with the debug() method below.
+
+    The constructor Raises parseError() if the configuration file is not
+    valid.
+    """
+    pw = pwd.getpwuid(os.getuid())
+    self.debugging = int(os.getenv("DISORDER_PYTHON_DEBUG", 0))
+    self.config = { 'collections': [],
+                    'username': pw.pw_name,
+                    'home': _dbhome }
+    home = os.getenv("HOME")
+    if not home:
+      home = pw.pw_dir
+    privconf = _configfile + "." + pw.pw_name
+    passfile = home + os.sep + ".disorder" + os.sep + "passwd"
+    self._readfile(_configfile)
+    if os.path.exists(privconf):
+      self._readfile(privconf)
+    if os.path.exists(passfile):
+      self._readfile(passfile)
+    self.state = 'disconnected'
+
+  def debug(self, bits):
+    """Enable or disable protocol debugging.  Debug messages are written
+    to sys.stderr.
+
+    Arguments:
+    bits -- bitmap of operations that should generate debug information
+
+    Bitmap values:
+    debug_proto -- dump control protocol messages (excluding bodies)
+    debug_body -- dump control protocol message bodies
+    """
+    self.debugging = bits
+
+  def _debug(self, bit, s):
+    # debug output
+    if self.debugging & bit:
+      sys.stderr.write(_sanitize(s))
+      sys.stderr.write("\n")
+      sys.stderr.flush()
+
+  def connect(self):
+    """Connect to the DisOrder server and authenticate.
+
+    Raises communicationError if connection fails and operationError if
+    authentication fails (in which case disconnection is automatic).
+
+    May be called more than once to retry connections (e.g. when the
+    server is down).  If we are already connected and authenticated,
+    this is a no-op.
+
+    Other operations automatically connect if we're not already
+    connected, so it is not strictly necessary to call this method.
+    """
+    if self.state == 'disconnected':
+      try:
+        self.state = 'connecting'
+        if 'connect' in self.config and len(self.config['connect']) > 0:
+          c = self.config['connect']
+          self.who = repr(c)            # temporarily
+          if len(c) == 1:
+            a = socket.getaddrinfo(None, c[0],
+                                   socket.AF_INET,
+                                   socket.SOCK_STREAM,
+                                   0,
+                                   0)
+          else:
+            a = socket.getaddrinfo(c[0], c[1],
+                                   socket.AF_INET,
+                                   socket.SOCK_STREAM,
+                                   0,
+                                   0)
+          a = a[0]
+          s = socket.socket(a[0], a[1], a[2]);
+          s.connect(a[4])
+          self.who = "%s" % a[3]
+        else:
+          s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM);
+          self.who = self.config['home'] + os.sep + "socket"
+          s.connect(self.who)
+        self.w = s.makefile("wb")
+        self.r = s.makefile("rb")
+        (res, challenge) = self._simple()
+        h = sha.sha()
+        h.update(self.config['password'])
+        h.update(binascii.unhexlify(challenge))
+        self._simple("user", self.config['username'], h.hexdigest())
+        self.state = 'connected'
+      except socket.error, e:
+        self._disconnect()
+        raise communicationError(self.who, e)
+      except:
+        self._disconnect()
+        raise
+
+  def _disconnect(self):
+    # disconnect from the server, whatever state we are in
+    try:
+      del self.w
+      del self.r
+    except:
+      pass
+    self.state = 'disconnected'
+    
+  ########################################################################
+  # Operations
+
+  def become(self, who):
+    """Become another user.
+
+    Arguments:
+    who -- the user to become.
+
+    Only trusted users can perform this operation.
+    """
+    self._simple("become", who)
+
+  def play(self, track):
+    """Play a track.
+
+    Arguments:
+    track -- the path of the track to play.
+    """
+    self._simple("play", track)
+
+  def remove(self, track):
+    """Remove a track from the queue.
+
+    Arguments:
+    track -- the path or ID of the track to remove.
+    """
+    self._simple("remove", track)
+
+  def enable(self):
+    """Enable playing."""
+    self._simple("enable")
+
+  def disable(self, *now):
+    """Disable playing.
+
+    Arguments:
+    now -- if present (with any value), the current track is stopped
+           too.
+    """
+    if now:
+      self._simple("disable", "now")
+    else:
+      self._simple("disable")
+
+  def scratch(self, *id):
+    """Scratch the currently playing track.
+
+    Arguments:
+    id -- if present, the ID of the track to scratch.
+    """
+    if id:
+      self._simple("scratch", id[0])
+    else:
+      self._simple("scratch")
+
+  def shutdown(self):
+    """Shut down the server.
+
+    Only trusted users can perform this operation.
+    """
+    self._simple("shutdown")
+
+  def reconfigure(self):
+    """Make the server reload its configuration.
+
+    Only trusted users can perform this operation.
+    """
+    self._simple("reconfigure")
+
+  def rescan(self, pattern):
+    """Rescan one or more collections.
+
+    Arguments:
+    pattern -- glob pattern matching collections to rescan.
+
+    Only trusted users can perform this operation.
+    """
+    self._simple("rescan", pattern)
+
+  def version(self):
+    """Return the server's version number."""
+    return self._simple("version")[1]
+
+  def playing(self):
+    """Return the currently playing track.
+
+    If a track is playing then it is returned as a dictionary.
+    If no track is playing then None is returned."""
+    res, details = self._simple("playing")
+    if res % 10 != 9:
+      try:
+        return _queueEntry(details)
+      except _splitError, s:
+        raise protocolError(self.who, s.str())
+    else:
+      return None
+
+  def _somequeue(self, command):
+    self._simple(command)
+    try:
+      return map(lambda s: _queueEntry(s), self._body())
+    except _splitError, s:
+      raise protocolError(self.who, s.str())
+
+  def recent(self):
+    """Return a list of recently played tracks.
+
+    The return value is a list of dictionaries corresponding to
+    recently played tracks.  The oldest track comes first."""
+    return self._somequeue("recent")
+
+  def queue(self):
+    """Return the current queue.
+
+    The return value is a list of dictionaries corresponding to
+    recently played tracks.  The next track to be played comes first."""
+    return self._somequeue("queue")
+
+  def _somedir(self, command, dir, re):
+    if re:
+      self._simple(command, dir, re[0])
+    else:
+      self._simple(command, dir)
+    return self._body()
+
+  def directories(self, dir, *re):
+    """List subdirectories of a directory.
+
+    Arguments:
+    dir -- directory to list, or '' for the whole root.
+    re -- regexp that results must match.  Optional.
+
+    The return value is a list of the (nonempty) subdirectories of dir.
+    If dir is '' then a list of top-level directories is returned.
+
+    If a regexp is specified then the basename of each result must
+    match.  Matching is case-independent.  See pcrepattern(3).
+    """
+    return self._somedir("dirs", dir, re)
+  
+  def files(self, dir, *re):
+    """List files within a directory.
+
+    Arguments:
+    dir -- directory to list, or '' for the whole root.
+    re -- regexp that results must match.  Optional.
+
+    The return value is a list of playable files in dir.  If dir is ''
+    then a list of top-level files is returned.
+
+    If a regexp is specified then the basename of each result must
+    match.  Matching is case-independent.  See pcrepattern(3).
+    """
+    return self._somedir("files", dir, re)
+
+  def allfiles(self, dir, *re):
+    """List subdirectories and files within a directory.
+
+    Arguments:
+    dir -- directory to list, or '' for the whole root.
+    re -- regexp that results must match.  Optional.
+
+    The return value is a list of all (nonempty) subdirectories and
+    files within dir.  If dir is '' then a list of top-level files and
+    directories is returned.
+    
+    If a regexp is specified then the basename of each result must
+    match.  Matching is case-independent.  See pcrepattern(3).
+    """
+    return self._somedir("allfiles", dir, re)
+
+  def set(self, track, key, value):
+    """Set a preference value.
+
+    Arguments:
+    track -- the track to modify
+    key -- the preference name
+    value -- the new preference value
+    """
+    self._simple("set", track, key, value)
+
+  def unset(self, track, key):
+    """Unset a preference value.
+
+    Arguments:
+    track -- the track to modify
+    key -- the preference to remove
+    """
+    self._simple("set", track, key, value)
+
+  def get(self, track, key):
+    """Get a preference value.
+
+    Arguments:
+    track -- the track to query
+    key -- the preference to remove
+
+    The return value is the preference 
+    """
+    ret, details = self._simple("get", track, key)
+    return details
+
+  def prefs(self, track):
+    """Get all the preferences for a track.
+
+    Arguments:
+    track -- the track to query
+
+    The return value is a dictionary of all the track's preferences.
+    Note that even nominally numeric values remain encoded as strings.
+    """
+    self._simple("prefs", track)
+    r = {}
+    for line in self._body():
+      try:
+        kv = _split(line)
+      except _splitError, s:
+        raise protocolError(self.who, s.str())
+      if len(kv) != 2:
+        raise protocolError(self.who, "invalid prefs body line")
+      r[kv[0]] = kv[1]
+    return r
+
+  def _boolean(self, s):
+    return s[1] == 'yes'
+
+  def exists(self, track):
+    """Return true if a track exists
+
+    Arguments:
+    track -- the track to check for"""
+    return self._boolean(self._simple("exists", track))
+
+  def enabled(self):
+    """Return true if playing is enabled"""
+    return self._boolean(self._simple("enabled"))
+
+  def random_enabled(self):
+    """Return true if random play is enabled"""
+    return self._boolean(self._simple("random-enabled"))
+
+  def random_enable(self):
+    """Enable random play."""
+    self._simple("random-enable")
+
+  def random_disable(self):
+    """Disable random play."""
+    self._simple("random-disable")
+
+  def length(self, track):
+    """Return the length of a track in seconds.
+
+    Arguments:
+    track -- the track to query.
+    """
+    ret, details = self._simple("length", track)
+    return int(details)
+
+  def search(self, words):
+    """Search for tracks.
+
+    Arguments:
+    words -- the set of words to search for.
+
+    The return value is a list of track path names, all of which contain
+    all of the required words (in their path name, trackname
+    preferences, etc.)
+    """
+    self._simple("search", *words)
+    return self._body()
+
+  def stats(self):
+    """Get server statistics.
+
+    The return value is list of statistics.
+    """
+    self._simple("stats")
+    return self._body()
+
+  def dump(self):
+    """Get all preferences.
+
+    The return value is an encoded dump of the preferences database.
+    """
+    self._simple("dump")
+    return self._body()
+
+  def set_volume(self, left, right):
+    """Set volume.
+
+    Arguments:
+    left -- volume for the left speaker.
+    right --  volume for the right speaker.
+    """
+    self._simple("volume", left, right)
+
+  def get_volume(self):
+    """Get volume.
+
+    The return value a tuple consisting of the left and right volumes.
+    """
+    ret, details = self._simple("volume")
+    return map(int,string.split(details))
+
+  def move(self, track, delta):
+    """Move a track in the queue.
+
+    Arguments:
+    track -- the name or ID of the track to move
+    delta -- the number of steps towards the head of the queue to move
+    """
+    ret, details = self._simple("move", track, str(delta))
+    return int(details)
+
+  def log(self, callback):
+    """Read event log entries as they happen.
+
+    Each event log entry is handled by passing it to callback.
+
+    The callback takes two arguments, the first is the client and the
+    second the line from the event log.
+    
+    The callback should return True to continue or False to stop (don't
+    forget this, or your program will mysteriously misbehave).
+
+    It is suggested that you use the disorder.monitor class instead of
+    calling this method directly, but this is not mandatory.
+
+    See disorder_protocol(5) for the event log syntax.
+
+    Arguments:
+    callback -- function to call with log entry
+    """
+    ret, details = self._simple("log")
+    while True:
+      l = self._line()
+      self._debug(client.debug_body, "<<< %s" % l)
+      if l != '' and l[0] == '.':
+        if l == '.':
+          return
+        l = l[1:]
+      if not callback(self, l):
+        break
+    # tell the server to stop sending, eat the remains of the body,
+    # eat the response
+    self._send("version")
+    self._body()
+    self._response()
+
+  def pause(self):
+    """Pause the current track."""
+    self._simple("pause")
+
+  def resume(self):
+    """Resume after a pause."""
+    self._simple("resume")
+
+  def part(self, track, context, part):
+    """Get a track name part
+
+    Arguments:
+    track -- the track to query
+    context -- the context ('sort' or 'display')
+    part -- the desired part (usually 'artist', 'album' or 'title')
+
+    The return value is the preference 
+    """
+    ret, details = self._simple("part", track, context, part)
+    return details
+
+  ########################################################################
+  # I/O infrastructure
+
+  def _line(self):
+    # read one response line and return as some suitable string object
+    #
+    # If an I/O error occurs, disconnect from the server.
+    #
+    # XXX does readline() DTRT regarding character encodings?
+    try:
+      l = self.r.readline()
+      if not re.search("\n", l):
+        raise communicationError(self.who, "peer disconnected")
+      l = l[:-1]
+    except:
+      self._disconnect()
+      raise
+    return unicode(l, "UTF-8")
+
+  def _response(self):
+    # read a response as a (code, details) tuple
+    l = self._line()
+    self._debug(client.debug_proto, "<== %s" % l)
+    m = _response.match(l)
+    if m:
+      return int(m.group(1)), m.group(2)
+    else:
+      raise protocolError(self.who, "invalid response %s")
+
+  def _send(self, *command):
+    quoted = _quote(command)
+    self._debug(client.debug_proto, "==> %s" % quoted)
+    encoded = quoted.encode("UTF-8")
+    try:
+      self.w.write(encoded)
+      self.w.write("\n")
+      self.w.flush()
+    except IOError, e:
+      # e.g. EPIPE
+      self._disconnect()
+      raise communicationError(self.who, e)
+    except:
+      self._disconnect()
+      raise
+
+  def _simple(self, *command):
+    # Issue a simple command, throw an exception on error
+    #
+    # If an I/O error occurs, disconnect from the server.
+    #
+    # On success returns response as a (code, details) tuple
+    #
+    # On error raise operationError
+    if self.state == 'disconnected':
+      self.connect()
+    if command:
+      self._send(*command)
+    res, details = self._response()
+    if res / 100 == 2:
+      return res, details
+    raise operationError(res, details)
+
+  def _body(self):
+    # Fetch a dot-stuffed body
+    result = []
+    while True:
+      l = self._line()
+      self._debug(client.debug_body, "<<< %s" % l)
+      if l != '' and l[0] == '.':
+        if l == '.':
+          return result
+        l = l[1:]
+      result.append(l)
+
+  ########################################################################
+  # Configuration file parsing
+
+  def _readfile(self, path):
+    # Read a configuration file
+    #
+    # Arguments:
+    #
+    # path -- path of file to read
+
+    # handlers for various commands
+    def _collection(self, command, args):
+      if len(args) != 3:
+        return "'%s' takes three args" % command
+      self.config["collections"].append(args)
+      
+    def _unary(self, command, args):
+      if len(args) != 1:
+        return "'%s' takes only one arg" % command
+      self.config[command] = args[0]
+
+    def _include(self, command, args):
+      if len(args) != 1:
+        return "'%s' takes only one arg" % command
+      self._readfile(args[0])
+
+    def _any(self, command, args):
+      self.config[command] = args
+
+    # mapping of options to handlers
+    _options = { "collection": _collection,
+                 "username": _unary,
+                 "password": _unary,
+                 "home": _unary,
+                 "connect": _any,
+                 "include": _include }
+
+    # the parser
+    for lno, line in enumerate(file(path, "r")):
+      try:
+        fields = _split(line, 'comments')
+      except _splitError, s:
+        raise parseError(path, lno + 1, str(s))
+      if fields:
+        command = fields[0]
+        # we just ignore options we don't know about, so as to cope gracefully
+        # with version skew (and nothing to do with implementor laziness)
+        if command in _options:
+          e = _options[command](self, command, fields[1:])
+          if e:
+            self._parseError(path, lno + 1, e)
+
+  def _parseError(self, path, lno, s):
+    raise parseError(path, lno, s)
+
+########################################################################
+# monitor class
+
+class monitor:
+  """DisOrder event log monitor class
+
+  Intended to be subclassed with methods corresponding to event log messages
+  the implementor cares about over-ridden."""
+
+  def __init__(self, c=None):
+    """Constructor for the monitor class
+
+    Can be passed a client to use.  If none is specified then one
+    will be created specially for the purpose.
+
+    Arguments:
+    c -- client"""
+    if c == None:
+      c = client();
+    self.c = c
+
+  def run(self):
+    """Start monitoring logs.  Continues monitoring until one of the
+    message-specific methods returns False.  Can be called more than once
+    (but not recursively!)"""
+    self.c.log(self._callback)
+
+  def when(self):
+    """Return the timestamp of the current (or most recent) event log entry"""
+    return self.timestamp
+
+  def _callback(self, c, line):
+    try:
+      bits = _split(line)
+    except:
+      return self.invalid(line)
+    if(len(bits) < 2):
+      return self.invalid(line)
+    self.timestamp = int(bits[0], 16)
+    keyword = bits[1]
+    bits = bits[2:]
+    if keyword == 'completed':
+      if len(bits) == 1:
+        return self.completed(bits[0])
+    elif keyword == 'failed':
+      if len(bits) == 2:
+        return self.failed(bits[0], bits[1])
+    elif keyword == 'moved':
+      if len(bits) == 3:
+        try:
+          n = int(bits[1])
+        except:
+          return self.invalid(line)
+        return self.moved(bits[0], n, bits[2])
+    elif keyword == 'playing':
+      if len(bits) == 1:
+        return self.playing(bits[0], None)
+      elif len(bits) == 2:
+        return self.playing(bits[0], bits[1])
+    elif keyword == 'queue' or keyword == 'recent-added':
+      try:
+        q = _list2dict(bits)
+      except:
+        return self.invalid(line)
+      if keyword == 'queue':
+        return self.queue(q)
+      if keyword == 'recent-added':
+        return self.recent_added(q)
+    elif keyword == 'recent-removed':
+      if len(bits) == 1:
+        return self.recent_removed(bits[0])
+    elif keyword == 'removed':
+      if len(bits) == 1:
+        return self.removed(bits[0], None)
+      elif len(bits) == 2:
+        return self.removed(bits[0], bits[1])
+    elif keyword == 'scratched':
+      if len(bits) == 2:
+        return self.scratched(bits[0], bits[1])
+    return self.invalid(line)
+
+  def completed(self, track):
+    """Called when a track completes.
+
+    Arguments:
+    track -- track that completed"""
+    return True
+
+  def failed(self, track, error):
+    """Called when a player suffers an error.
+
+    Arguments:
+    track -- track that failed
+    error -- error indicator"""
+    return True
+
+  def moved(self, id, offset, user):
+    """Called when a track is moved in the queue.
+
+    Arguments:
+    id -- queue entry ID
+    offset -- distance moved
+    user -- user responsible"""
+    return True
+
+  def playing(self, track, user):
+    """Called when a track starts playing.
+
+    Arguments:
+    track -- track that has started
+    user -- user that submitted track, or None"""
+    return True
+
+  def queue(self, q):
+    """Called when a track is added to the queue.
+
+    Arguments:
+    q -- dictionary of new queue entry"""
+    return True
+
+  def recent_added(self, q):
+    """Called when a track is added to the recently played list
+
+    Arguments:
+    q -- dictionary of new queue entry"""
+    return True
+
+  def recent_removed(self, id):
+    """Called when a track is removed from the recently played list
+
+    Arguments:
+    id -- ID of removed entry (always the oldest)"""
+    return True
+
+  def removed(self, id, user):
+    """Called when a track is removed from the queue, either manually
+    or in order to play it.
+
+    Arguments:
+    id -- ID of removed entry
+    user -- user responsible (or None if we're playing this track)"""
+    return True
+
+  def scratched(self, track, user):
+    """Called when a track is scratched
+
+    Arguments:
+    track -- track that was scratched
+    user -- user responsible"""
+    return True
+
+  def invalid(self, line):
+    """Called when an event log line cannot be interpreted
+
+    Arguments:
+    line -- line that could not be understood"""
+    return True
+
+# Local Variables:
+# mode:python
+# py-indent-offset:2
+# comment-column:40
+# fill-column:72
+# End:
+# arch-tag:eea975737c837febf73a000630b5ecc4

@@ -1,0 +1,27 @@
+# debian-specific disorder options
+include options.labels
+
+# default columns
+include options.columns
+
+# trackname transformations - supply your own or keep the default
+include options.transform
+
+label	images.enabled		/disorder/tick.png
+label	images.disabled		/disorder/cross.png
+label	images.scratch		/disorder/cross.png
+label	images.noscratch	/disorder/nocross.png
+label	images.up		/disorder/up.png
+label	images.noup		/disorder/noup.png
+label	images.down		/disorder/down.png
+label	images.nodown		/disorder/nodown.png
+label	images.edit		/disorder/edit.png
+label	images.upall		/disorder/upup.png
+label	images.noupall		/disorder/noupup.png
+label	images.downall		/disorder/downdown.png
+label	images.nodownall	/disorder/nodowndown.png
+label	links.css		/disorder/disorder.css
+
+# user overrides - you supply this
+include options.user
+# arch-tag:N/cCdPUdzmiFgcl69+Gj4g

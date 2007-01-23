@@ -1,0 +1,84 @@
+#
+# This file is part of DisOrder.
+# Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
+	      disorder-speaker
+noinst_PROGRAMS=disorder.cgi trackname
+
+AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
+
+disorderd_SOURCES=disorderd.c				\
+	api.c api-server.c				\
+	daemonize.c daemonize.h				\
+	play.c play.h 					\
+	server.c server.h     				\
+	state.c state.h					\
+	trackdb.c trackdb.h trackdb-int.h
+disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBPCRE) $(LIBDB) $(LIBAO)
+disorderd_LDFLAGS=-export-dynamic
+disorderd_DEPENDENCIES=../lib/libdisorder.la
+
+disorder_deadlock_SOURCES=deadlock.c                    \
+	trackdb.c trackdb.h
+disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBDB)
+disorder_deadlock_DEPENDENCIES=../lib/libdisorder.la
+
+disorder_speaker_SOURCES=speaker.c
+disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBASOUND)
+disorder_speaker_DEPENDENCIES=../lib/libdisorder.la
+
+disorder_rescan_SOURCES=rescan.c                        \
+	api.c api-server.c				\
+	trackdb.c trackdb.h
+disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBDB)
+disorder_rescan_LDFLAGS=-export-dynamic
+disorder_rescan_DEPENDENCIES=../lib/libdisorder.la
+
+disorder_dump_SOURCES=dump.c                           \
+        trackdb.c trackdb.h
+disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBPCRE) $(LIBDB)
+disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+
+disorder_cgi_SOURCES=dcgi.c dcgi.h			\
+	api.c api-client.c api-client.h			\
+	cgi.c cgi.h cgimain.c
+disorder_cgi_LDADD=../lib/libdisorder.la $(LIBPCRE)
+disorder_cgi_LDFLAGS=-export-dynamic
+disorder_cgi_DEPENDENCIES=../lib/libdisorder.la
+
+trackname_SOURCES=trackname.c
+trackname_LDADD=../lib/libdisorder.la
+trackname_DEPENDENCIES=../lib/libdisorder.la
+
+install-exec-hook:
+	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
+
+check: check-help
+
+# check everything has working --help
+check-help: all
+	./disorderd --help > /dev/null
+	./disorder-dump --help > /dev/null
+	./disorder-deadlock --help > /dev/null
+	./trackname --help > /dev/null
+	./disorder-speaker --help > /dev/null
+
+cgi.o: ../lib/definitions.h
+# arch-tag:f36fc0fa65dd5143a80874c1c83f595f

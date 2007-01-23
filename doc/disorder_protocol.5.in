@@ -1,0 +1,444 @@
+.\"
+.\" Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder_protocol 5
+.SH NAME
+disorder_protocol \- DisOrder communication protocol
+.SH DESCRIPTION
+The DisOrder client and server communicate via the protocol described
+in this man page.
+.PP
+The protocol is liable to change without notice.  You are recommended to check
+the implementation before believing this document.
+.SH "GENERAL SYNTAX"
+Everything is encoded using UTF-8.
+.PP
+Commands and responses consist of a line followed (depending on the
+command or response) by a message.
+.PP
+The line syntax is the same as described in \fBdisorder_config\fR(5) except
+that comments are prohibited.
+.PP
+Bodies borrow their syntax from RFC821; they consist of zero or more ordinary
+lines, with any initial full stop doubled up, and are terminated by a line
+consisting of a full stop and a line feed.
+.SH COMMANDS
+Commands always have a command name as the first field of the line; responses
+always have a 3-digit response code as the first field.  See below for more
+details about this field.
+.PP
+All commands require the connection to have been already authenticated unless
+stated otherwise.
+.PP
+Neither commands nor responses have a body unless stated otherwise.
+.TP
+.B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
+Lists all the files and directories in \fIDIRECTORY\fR in a response body.
+If \fIREGEXP\fR is present only matching files and directories are returned.
+.TP
+.B become \fIUSER\fR
+Instructs the server to treat the connection as if \fIUSER\fR had
+authenticated it.  Only trusted users may issue this command.
+.TP
+.B dirs \fIDIRECTORY\fR [\fIREGEXP\fR]
+Lists all the directories in \fIDIRECTORY\fR in a response body.
+If \fIREGEXP\fR is present only matching directories are returned.
+.TP
+.B disable \fR[\fBnow\fR]
+Disables further playing.  If the optional \fBnow\fR argument is present then
+the current track is stopped.
+.TP
+.B enable
+Re-enables further playing, and is the opposite of \fBdisable\fR.
+.TP
+.B enabled
+Reports whether playing is enabled.  The second field of the response line will
+be \fByes\fR or \fBno\fR.
+.TP
+.B exists \fITRACK\fR
+Reports whether the named track exists.  The second field of the response line
+will be \fByes\fR or \fBno\fR.
+.TP
+.B files \fIDIRECTORY\fR [\fIREGEXP\fR]
+Lists all the files in \fIDIRECTORY\fR in a response body.
+If \fIREGEXP\fR is present only matching files are returned.
+.TP
+.B get \fITRACK\fR \fIPREF\fR
+Gets a preference value.  On success the second field of the response line will
+have the value.
+.TP
+.B get-global \fIKEY\fR
+Get a global preference.
+.TP
+.B length \fITRACK\fR
+Gets the length of the track in seconds.  On success the second field of the
+response line will have the value.
+.TP
+.B log
+Sends event log messages in a response body.  The command will only terminate (and
+close the response body with a final dot) when a further command is readable on
+the control connection.
+.IP
+See \fBEVENT LOG\fR below for more details.
+.TP
+.B move \fITRACK\fR \fIDELTA\fR
+Move a track in the queue.  The track may be identified by ID (preferred) or
+name (which might cause confusion if it's there twice).  \fIDELTA\fR should be
+an negative or positive integer and indicates how many steps towards the head
+of the queue the track should be moved.
+.TP
+.B moveafter \fITARGET\fR \fIID\fR ...
+Move all the tracks in the \fIID\fR list after ID \fITARGET\fR.  If
+\fITARGET\fR is the empty string then the listed tracks are put at the head of
+the queue.  If \fITARGET\fR is listed in the ID list then the tracks are moved
+to just after the first non-listed track before it, or to the head if there is
+no such track.
+.TP
+.B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
+Get a track name part.  Returns an empty string if a name part cannot be
+constructed.
+.IP
+.I CONTEXT
+is one of
+.B sort
+or
+.B display
+and
+.I PART
+is usually one of
+.BR artist ,
+.B album
+or
+.BR title .
+.TP
+.B pause
+Pause the current track.
+.TP
+.B play \fITRACK\fR
+Add a track to the queue.
+.TP
+.B playing
+Reports what track is playing.
+.IP
+If the response is \fB252\fR then the rest of the response line consists of
+track information (see below).
+.IP
+If the response is \fB259\fR then nothing is playing.
+.TP
+.B prefs \fBTRACK\fR
+Sends back the preferences for \fITRACK\fR in a response body.
+Each line of the response has the usual line syntax, the first field being the
+name of the pref and the second the value.
+.TP
+.B queue
+Sends back the current queue in a response body, one track to a line, the track
+at the head of the queue (i.e. next to be be played) first.  See below for the
+track information syntax.
+.TP
+.B random-disable
+Disable random play (but don't stop the current track).
+.TP
+.B random-enable
+Enable random play.
+.TP
+.B random-enabled
+Reports whether random play is enabled.  The second field of the response line
+will be \fByes\fR or \fBno\fR.
+.TP
+.B recent
+Sends back the current recently-played list in a response body, one track to a
+line, the track most recently played last.  See below for the track
+information syntax.
+.TP
+.B reconfigure
+Request that DisOrder reconfigure itself.  Only trusted users may issue this
+command.
+.TP
+.B remove \fIID\fR
+Remove the track identified by \fIID\fR.  If \fBrestrict remove\fR is enabled
+in the server's configuration then only the user that submitted the track may
+remove it.
+.TP
+.B rescan
+Rescan all roots for new or obsolete tracks.
+.TP
+.B resolve \fITRACK\fR
+Resolve a track name, i.e. if this is an alias then return the real track name.
+.TP
+.B resume
+Resume the current track after a \fBpause\fR command.
+.TP
+.B scratch \fR[\fIID\fR]
+Remove the track identified by \fIID\fR, or the currently playing track if no
+\fIID\fR is specified.  If \fBrestrict scratch\fR is enabled in the server's
+configuration then only the user that submitted the track may scratch it.
+.TP
+.B search \fITERMS\fR
+Search for tracks matching the search terms.  The results are put in a response
+body, one to a line.
+.IP
+The search string is split in the usual way, with quoting supported, into a
+list of terms.  Only tracks matching all terms are included in the results.
+.IP
+Any terms of the form \fBtag:\fITAG\fR limits the search to tracks with that
+tag.
+.IP
+All other terms are interpreted as individual words which must be present in
+the track name.
+.IP
+Spaces in terms don't currently make sense, but may one day be interpreted to
+allow searching for phrases.
+.TP
+.B \fBset\fR \fITRACK\fR \fIPREF\fR \fIVALUE\fR
+Set a preference.
+.TP
+.B set-global \fIKEY\fR \fIVALUE\fR
+Set a global preference.
+.TP
+.B stats
+Send server statistics in plain text in a response body.
+.TP
+.B \fBtags\fR
+Send the list of currently known tags in a response body.
+.TP
+.B \fBunset\fR \fITRACK\fR \fIPREF\fR
+Unset a preference.
+.TP
+.B \fBunset-global\fR \fIKEY\fR
+Unset a global preference.
+.TP
+.B user \fIUSER\fR \fIRESPONSE\fR
+Authenticate as \fIUSER\fR.
+.IP
+When a connection is made the server sends a \fB221\fR response before any
+command is received.  As its first field this contains a challenge string
+encoded in hex.
+.IP
+The \fIRESPONSE\fR consists of the SHA-1 hash of the user's password
+concatenated with the challenge, encoded in hex.
+.TP
+.B version
+Send back a response with the server version as the second field.
+.TP
+.B volume \fR[\fILEFT\fR [\fIRIGHT\fR]]
+Get or set the volume.
+.IP
+With zero parameters just gets the volume and reports the left and right sides
+as the 2nd and 3rd fields of the response.
+.IP
+With one parameter sets both sides to the same value.  With two parameters sets
+each side independently.
+.SH RESPONSES
+Responses are three-digit codes.  The first digit distinguishes errors from
+succesful responses:
+.TP
+.B 2
+Operation succeeded.
+.TP
+.B 5
+Operation failed.
+.PP
+The second digit breaks down the origin of the response:
+.TP
+.B 0
+Generic responses not specific to the handling of the command.  Mostly this is
+parse errors.
+.TP
+.B 3
+Authentication responses.
+.TP
+.B 5
+Responses specific to the handling of the command.
+.PP
+The third digit provides extra information about the response:
+.TP
+.B 0
+Text part is just commentary.
+.TP
+.B 1
+Text part is a constant result e.g. \fBversion\fR.
+.TP
+.B 2
+Text part is a potentially variable result.
+.TP
+.B 3
+Text part is just commentary; a dot-stuffed body follows.
+.TP
+.B 4
+Text part is just commentary; an indefinite dot-stuffed body follows.  (Used
+for \fBlog\fR.)
+.TP
+.B 4
+Text part is just commentary; an indefinite dot-stuffed body follows.  (Used
+for \fBlog\fR.)
+.TP
+.B 9
+The text part is just commentary (but would normally be a response for this
+command) e.g. \fBplaying\fR.
+.SH AUTHENTICATION
+The server starts by issuing a challenge line, with response code 231.  This
+contains a random challenge encoded in hex.
+.PP
+The client should send back a \fBuser\fR command with username and a
+hex-encoded response.  The response is the SHA-1 hash of the user's password
+and the challenge.
+.SH "TRACK INFORMATION"
+Track information is encoded in a line (i.e. using the usual line syntax) as
+pairs of fields.  The first is a name, the second a value.  The names have the
+following meanings:
+.TP 12
+.B expected
+The time the track is expected to be played at.
+.TP
+.B id
+A string uniquely identifying this queue entry.
+.TP
+.B played
+The time the track was played at.
+.TP
+.B scratched
+The user that scratched the track.
+.TP
+.B state
+The current track state.  Valid states are:
+.RS
+.TP 12
+.B failed
+The player failed (exited with nonzero status but wasn't scratched).
+.TP
+.B isscratch
+The track is actually a scratch.
+.TP
+.B no_player
+No player could be found for the track.
+.TP
+.B ok
+The track was played without any problems.
+.TP
+.B scratched
+The track was scratched.
+.TP
+.B started
+The track is currently playing.
+.TP
+.B unplayed
+In the queue, hasn't been played yet.
+.TP
+.B quitting
+The track was terminated because the server is shutting down.
+.RE
+.TP
+.B submitter
+The user that submitted the track.
+.TP
+.B track
+The filename of the track.
+.TP
+.B when
+The time the track was added to the queue.
+.TP
+.B wstat
+The wait status of the player in decimal.
+.SH NOTES
+Times are decimal integers using the server's \fBtime_t\fR.
+.PP
+For file listings, the regexp applies to the basename of the returned file, not
+the whole filename, and letter case is ignored.  \fBpcrepattern\fR(3) describes
+the regexp syntax.
+.PP
+Filenames are in UTF-8 even if the collection they come from uses some other
+encoding - if you want to access the real file (in such cases as the filenames
+actually correspond to a real file) you'll have to convert to whatever the
+right encoding is.
+.SH "EVENT LOG"
+The event log consists of lines starting with a hexadecimal timestamp and a
+keyword followed by (optionally) parameters.  The parameters are quoted in the
+usual DisOrder way.  Currently the following keywords are used:
+.TP
+.B completed \fITRACK\fR
+Completed playing \fITRACK\fR
+.TP
+.B failed \fITRACK\fR \fIERROR\fR
+Completed playing \fITRACK\fR with an error status
+.TP
+.B moved \fIUSER\fR
+User \fIUSER\fR moved some track(s).  Further details aren't included any
+more.
+.TP
+.B playing \fITRACK\fR [\fIUSER\fR]
+Started playing \fITRACK\fR.
+.TP
+.B queue \fIQUEUE-ENTRY\fR...
+Added \fITRACK\fR to the queue.
+.TP
+.B recent_added \fIQUEUE-ENTRY\fR...
+Added \fIID\fR to the recently played list.
+.TP
+.B recent_removed \fIID\fR
+Removed \fIID\fR from the recently played list.
+.TP
+.B removed \fIID\fR [\fIUSER\fR]
+Queue entry \fIID\fR was removed.  This is used both for explicit removal (when
+\fIUSER\fR is present) and when playing a track (when it is absent).
+.TP
+.B scratched \fITRACK\fR \fIUSER\fR
+\fITRACK\fR was scratched by \fIUSER\fR.
+.TP
+.B state \fIKEYWORD\fR
+Some state change occurred.  The current set of keywords is:
+.RS
+.TP
+.B disable_play
+Playing was disabled.
+.TP
+.B disable_random
+Random play was disabled.
+.TP
+.B enable_play
+Playing was enabled.
+.TP
+.B enable_random
+Random play was enabled.
+.TP
+.B pause
+The current track was paused.
+.TP
+.B resume
+The current track was resumed.
+.RE
+.TP
+.B volume \fILEFT\fR \fIRIGHT\fR
+The volume changed.
+.PP
+.IR QUEUE-ENTRY ...
+is as defined in
+.B "TRACK INFORMATION"
+above.
+.SH "SEE ALSO"
+\fBdisorder\fR(1),
+\fBtime\fR(2),
+\fBdisorder\fR(3),
+\fBpcrepattern\fR(3)
+\fBdisorder_config\fR(5),
+\fBdisorderd\fR(8),
+\fButf8\fR(7)
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
+.\" arch-tag:7b6e9931e426d2b810422b20aef38601

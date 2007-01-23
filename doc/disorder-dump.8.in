@@ -1,0 +1,116 @@
+.\"
+.\" Copyright (C) 2004, 2005 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder-dump 8
+.SH NAME
+disorder-dump \- DisOrder dump/undump tool
+.SH SYNOPSIS
+.B disorder-dump
+.RI [ OPTIONS ]
+.BR --dump | --undump
+.I PATH
+.br
+.B disorder-dump
+.RI [ OPTIONS ]
+.BR --recompute-aliases
+.SH DESCRIPTION
+.B disorder-dump
+is used to dump and restore preferences data.
+.SH OPTIONS
+.TP
+.B --dump
+Write preferences data to \fIPATH\fR.  This can safely be used whether
+or not the server is running.
+.TP
+.B --undump
+Read preferences data from \fIPATH\fR, replacing (unrecoverably) the
+current settings.  This should normally only be done while the server
+is not running.
+.IP
+If the server is running then it may hang while the undump completes.
+.TP
+.B --recover
+Perform database recovery at startup.  The server should not be
+running if this option is used.
+.TP
+.B --recompute-aliases
+Recompute aliases without dumping or undumping the databases.  Under
+normal circumstances this is never necessary.
+.TP
+.B --remove-pathless
+Remove tracks with no associated path when undumping or when
+recomputing aliases.  In normal use such tracks are all aliases.
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.  The default is
+.IR /etc/disorder/config .
+.TP
+.B --debug\fR
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SH NOTES
+This program might be used for a number of purposes:
+.TP 2
+.B .
+Taking a backup of the non-regeneratable parts of DisOrder's databases.
+.TP
+.B .
+Indoctrinating one DisOrder server with the preference values of
+another.  
+.TP
+.B .
+Upgrading DisOrder across data format changes in the underlying
+database library.
+.PP
+The output file is versioned, so versions produced from a future
+version of DisOrder may be rejected by \fB--undump\fR.  It has an end
+marker so truncated inputs will also be rejected.
+.PP
+The input or output file must be a regular file, as it may be rewound
+and re-read or re-written multiple times.
+.PP
+The dump or undump operation is carried out inside a single
+transaction, so it should seem atomic from the point of view of
+anything else accessing the databases.
+.PP
+The server performs normal database recovery on startup.  However if
+the database needs normal recovery before an undump can succeed and
+you don't want to start the server for some reason then the
+.B --recover
+operation is available for this purpose.  No other process should be
+accessing the database at the time.
+.PP
+DisOrder does not currently support catastrophic recovery.
+.PP
+This program requires write access to DisOrder's databases.  Ideally
+therefore it should be run as the same user as the server or as root.
+.SH FILES
+.TP
+.I pkgconfdir/config
+Global configuration file.  See \fBdisorder_config\fR(5).
+.SH "SEE ALSO"
+\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorderd\fR(8)
+.\" Local Variables:
+.\" mode:nroff
+.\" End:
+.\" arch-tag:acbd58712d46b2a4559b49a099126acf

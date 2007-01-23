@@ -1,0 +1,28 @@
+Template: disorder/roots
+Type: string
+Default:
+Description: Audio directories
+ Enter the list of directories that contain audio files (e.g. MP3 or OGG
+ files) separated by spaces.
+
+Template: disorder/encoding
+Type: string
+Default: ISO-8859-1
+Description: Filesystem encoding
+ Enter your filesystem's character encoding.  Check rather than
+ guessing if you are not sure.
+
+Template: disorder/scratches
+Type: string
+Default: /usr/share/disorder/slap.ogg /usr/share/disorder/scratch.ogg
+Description: Scratch files
+ Enter a list of files to be played when a track is scratched, separated
+ by spaces.  Leave this blank if you don't want any scratch sounds.
+ All filenames should be absolute path names.
+
+Template: disorder/server-name
+Type: string
+Default: localhost
+Description: Web server hostname
+ Enter the hostname that the web interface will appear under.
+

@@ -1,0 +1,25 @@
+Package home page:
+  http://www.greenend.org.uk/rjk/disorder/
+
+DisOrder - select and play digital audio files
+Copyright (C) 2003, 2004, 2005 Richard Kettlewell
+Portions extracted from MPG321, http://mpg321.sourceforge.net/
+  Copyright (C) 2001 Joe Drew
+  Copyright (C) (C) 2000-2001 Robert Leslie
+Binaries may derive extra copyright owners through linkage
+(binary distributors are expected to do their own legwork)
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# arch-tag:5e1b9b57d7568564f88a0a7894c9ca99

@@ -1,0 +1,47 @@
+Setting up a standalone DisOrder client
+=======================================
+
+Although DisOrder can still only play from a single computer, it is possible to
+control it over the network if the server has a 'listen PORT' directive in its
+configuration file.
+
+There is currently no standard DisOrder port number.
+
+
+1. Configure the software with --without-server (and, optionally,
+--without-python) and build and install it.  Set up a stub config in
+/etc/disorder/config (or /usr/local/etc/disorder/config if you didn't
+set a nondefault --prefix) with the following contents:
+
+   connect jukebox PORT
+
+where PORT is the same as 'listen PORT' on the server.
+
+
+2. Copy the password file for each user to /etc/disorder/config.USER,
+the contents being:
+
+  password PASSWORD
+
+Alternatvely, each user can use ~/.disorder/passwd, with the same contents.  If
+the DisOrder username differs from the local username then use a 'username'
+directive.
+
+
+3. Test by issuing 'disorder playing'.
+
+
+4. Run 'disobedience' for the GUI client.
+
+
+The web interface could in principle be made to work on a separate
+machine from the main server, though it is unlikely to be efficient
+and at the moment it is built whenever the server is, so you will have
+to unpick them a bit yourself if you wish to do this.
+
+
+Local Variables:
+mode:text
+fill-column:79
+End:
+# arch-tag:jEmzIKHdvK6GSjnax7Kp5Q

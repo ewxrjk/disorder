@@ -1,0 +1,473 @@
+/* default colors */
+body {
+  color: black;
+  background-color: white
+}
+
+/* general link colors */
+a:link {
+  color: blue
+}
+
+a:visited {
+  color: blue
+}
+
+a:active {
+  color: red
+}
+
+h1.title {
+  font-family: sans-serif;
+  font-weight: bold;
+  text-align: center;
+  font-size: 18pt
+}
+
+/* playing and recent *********************************************************/
+
+/* table of current and future tracks */
+table.playing {
+  width: 100%;			/* use the full available width */
+  border-spacing: 0		/* no unsightly gaps between cells */
+}
+
+/* table of recently played tracks */
+table.recent {
+  width: 100%;			/* use the full available width */
+  border-spacing: 0		/* no unsightly gaps between cells */
+}
+
+/* titles in tables */
+th {
+  text-align: left
+}
+
+/* ordinary cells in tables */
+td {
+  vertical-align: center
+}
+
+/* the headings <tr> of the table */
+tr.headings {
+  background-color: black;
+  color: white
+}
+
+/* The 'now playing' heading */
+tr.nowplaying {
+}
+
+td.nowplaying {
+  background-color: #d0d0d0;
+  font-weight: bold;
+  text-align: center
+}
+
+/* the currently playing track */
+tr.playing {
+  background-color: #e0ffe0	/* pastel green */
+}
+
+/* the "next" heading */
+tr.next {
+}
+
+td.next {
+  background-color: #d0d0d0;
+  font-weight: bold;
+  text-align: center
+}
+
+/* even-numbered rows */
+tr.even {
+  background-color: #ffecec	/* faint pastel red */
+}
+
+/* odd-numbered rows */
+tr.odd {
+  background-color: #ffffff	/* white */
+}
+
+/* column titles */
+th.when {
+}
+
+th.who {
+}
+
+th.artist {
+}
+
+th.album {
+}
+
+th.title {
+}
+
+th.length {
+  text-align: right
+}
+
+th.button {
+}
+
+/* individual cells */
+
+td.when {
+}
+
+td.who {
+}
+
+td.artist {
+}
+
+td.album {
+}
+
+td.title {
+}
+
+td.length {
+  text-align: right;
+  font-size: small		/* because otherwise visually intrusive */
+}
+
+td.button {
+  text-align: center;
+  padding: 1px;
+  border-color: black;
+  border-width: 1px;
+  border-style: solid;
+  background-color: #c0c0c0;
+  color: #000000
+}
+
+p.mgmt,form.volume {
+  display: inline
+}
+
+/* choose *********************************************************************/
+
+/* first letter choice */
+p.choosealpha {
+  text-align: center
+}
+
+/* containing directory */
+p.directoryname {
+  font-weight: bold
+}
+
+/* directories */
+div.directories {
+}
+
+/* heading for directories */
+p.directories {
+  font-weight: bold
+}
+
+/* one directory */
+p.directory {
+  margin-left: 1em
+}
+
+a.directory {
+}
+
+a.directory:link {
+  color: black
+}
+
+a.directory:visited {
+  color: black
+}
+
+a.directory:active {
+  color: red
+}
+
+/* files */
+div.files {
+}
+
+/* heading for files */
+p.files {
+  font-weight: bold
+}
+
+/* one file */
+p.file {
+  margin-left: 1em
+}
+
+a.file {
+  text-decoration: none;
+}
+
+a.file:link {
+  color: black
+}
+
+a.file:visited {
+  color: black
+}
+
+a.file:active {
+  color: red
+}
+
+/* buttons ********************************************************************/
+
+/* a.allfiles turns up in track choice
+ * button is used e.g. in searching
+ */
+a.allfiles,a.prefs,button,span.button {
+  padding: 1px;
+  border-color: #fefefe;
+  border-style: inset;
+  background-color: #c0c0c0;
+  color: #000000;
+  text-decoration: none;
+  font-family: sans-serif
+}
+
+a.button {
+  text-decoration: none;
+  font-family: sans-serif
+}
+
+a.button:link,a.button:visited,a.allfiles:link,a.allfiles:visited {
+  background-color: #c0c0c0;
+  color: #000000
+}
+
+a.button:active,a.allfiles:active,button:active {
+  background-color: #c0c0c0;
+  color: #ffffff
+}
+
+img.button {
+  border-width: 0
+}
+
+/* searching ******************************************************************/
+
+div.searchresults {
+}
+
+div.search_artist {
+}
+
+p.search_artist {
+}
+
+span.search_artist {
+  font-weight: bold
+}
+
+div.search_album {
+  margin-left: 1em
+}
+
+p.search_album {
+}
+
+span.search_album {
+}
+
+div.search_title {
+  margin-left: 1em
+}
+
+p.search_title {
+  margin-top: 0;
+  margin-bottom: 0
+}
+
+a.search_title {
+  text-decoration: underline
+}
+
+a.search_title:link {
+  color: black
+}
+
+a.search_title:visited {
+  color: black
+}
+
+a.search_title:active {
+  color: red
+}
+
+/* sidebar ********************************************************************/
+
+div#sidebar {
+  margin: 1em;
+  position: absolute;
+  width: 10em;
+  top: 0;
+  right: auto;
+  left: 0;
+}
+
+div#content {
+  position: absolute;
+  width: auto;
+  top: 0;
+  right: 1em;
+  left: 6em;
+}
+
+.sidebarlink {
+  font-family: sans-serif
+}
+
+a.sidebarlink {
+  text-decoration: none;
+  color: black
+}
+
+a.sidebarlink:visited {
+  color: black
+}
+
+a.sidebarlink:active {
+  color: red
+}
+
+a.sidebarlink:visited {
+  color: black
+}
+
+/* topbar *********************************************************************/
+
+p.menubar {
+  word-spacing: 1em
+}
+
+.activemenu {
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 14pt
+}
+
+.inactivemenu {
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 14pt
+}
+
+a.inactivemenu,a.inactivemenu:visited {
+  text-decoration: none;
+  color: black
+}
+
+a.activemenu,a.activemenu:visited {
+  text-decoration: none;
+  color: red
+}
+
+a.activemenu:active,a.inactivemenu:active {
+  text-decoration: none;
+  color: red
+}
+
+/* prefs **********************************************************************/
+
+p.prefs_new,p.prefs_head {
+  font-weight: bold
+}
+
+table.prefs {
+  border-spacing: 0
+}
+
+tr.prefs_headings {
+  background-color: black;
+  color: white
+}
+
+th.prefs_name {
+}
+
+th.prefs_value {
+}
+
+td.prefs_name {
+  vertical-align: top
+}
+
+td.prefs_value {
+  vertical-align: top
+}
+
+td.prefs_delete {
+  vertical-align: top
+}
+
+input.prefs_name,input.prefs_value {
+  font-family: monospace
+}
+
+/* help ***********************************************************************/
+
+.helpbuttons,.helpprefs,.helpcontexts {
+  margin-left: 2em;
+  margin-right: 2em;
+  vertical-align: top
+}
+
+.helpsection {
+  margin-left: 1em;
+}
+
+.helppref {
+  font-family: monospace
+}
+
+.helpprefbit {
+  font-family: monospace;
+  font-style: italic
+}
+
+.helpcontext {
+  font-weight: bold
+}
+
+/* volume *********************************************************************/
+
+p.volume {
+  text-align: center
+}
+
+/* miscelleanous **************************************************************/
+
+/* credits */
+p.credits {
+  font-size: small;		/* because visually intrusive */
+  text-align: right
+}
+/*
+This file is part of DisOrder.
+Copyright (C) 2003, 2004, 2005 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+*/
+/* arch-tag:tlWcgChjjqNVaC/UmG9Zaw */

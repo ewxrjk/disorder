@@ -1,0 +1,164 @@
+.\"
+.\" Copyright (C) 2004, 2005 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorderd 8
+.SH NAME
+disorderd \- DisOrder jukebox daemon
+.SH SYNOPSIS
+.B disorderd
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B disorderd
+is a daemon which plays audio files and services requests from users
+concerning what is to be played.
+.SH OPTIONS
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.  The default is
+.IR pkgconfdir/config .
+See
+.BR disorder_config (5)
+for further information.
+.TP
+.B --pidfile \fIPATH\fR, \fB-P \fIPATH
+Write a pidfile.
+.TP
+.B --foreground, \fB-f
+Run in the foreground.  (By default,
+.B disorderd
+detaches from its terminal and runs in the background.)
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SH NOTES
+.SS "Environmental Dependencies"
+It is important that
+.B disorder-deadlock
+and
+.B disorder-rescan
+are available on the PATH.  The example "init" script attempts to
+ensure this by appending sbindir to the path, but if you have
+installed programs in unusual locations then this might not work.
+.SS "How To Configure Authentication"
+The administrator should create \fIpkgconfdir/config.private\fR, make sure it
+is not world-readable, and populate it with \fBallow\fR commands
+listing usernames and passwords.  Use
+e.g. \fBpwgen\fR(1) to generate random passwords.  Passwords should
+then be distributed to users.
+.PP
+Each user should create the file \fI~/.disorder/passwd\fR
+and make sure it is not world-readable.  Having done so
+they should add a \fBpassword\fR command to it giving their password (and
+optionally a \fBusername\fR command if their DisOrder username is not the
+same as their login name).
+.SS Locales
+.B disorderd
+is locale-aware.  If you do not set the locale correctly then it may
+not handle non-ASCII data properly.
+.PP
+Filenames and the configuration file are assumed to be encoded using the
+current locale.  The
+communication with the client happens in UTF-8 (since the client and the server
+don't know what locale each other might be using - in the future they might not
+even be on the same host.)
+.SS Backups
+DisOrder uses Berkeley DB but currently discards log files that are no longer
+in use.  This means that DB's catastrophic recovery cannot be used (normal
+recovery can be used, and indeed the server does this automatically on
+startup).
+.PP
+It is suggested that instead you just back up the output of
+.BR disorder-dump (8),
+which saves only the parts of the database that cannot be regenerated
+automatically, and thus has relatively modest storage requirements.
+.SH SIGNALS
+.TP 8
+.B SIGHUP
+Re-read the configuration file.
+.TP
+.B SIGTERM
+Terminate the daemon gracefully.
+.TP
+.B SIGINT
+Terminate the daemon gracefully.
+.PP
+It may be more convenient to perform these operations from the client
+\fBdisorder\fR(1).
+.SH FILES
+.TP
+.I pkgconfdir/config
+Global configuration file.  See \fBdisorder_config\fR(5).
+.TP
+.I pkgconfdir/config.private
+Private configuration (usernames and passwords).
+.TP
+.I ~/.disorder/passwd
+Per-user password file.
+.TP
+.I pkgstatedir/queue
+Saved copy of queue.  Do not edit while the daemon is running.
+.TP
+.I pkgstatedir/recent
+Saved copy of recently played track list.
+Do not edit while the daemon is running.
+.TP
+.I pkgstatedir/prefs.db
+Preferences database.
+.TP
+.I pkgstatedir/search.db
+Search database.
+.TP
+.I pkgstatedir/tracks.db
+Tracks database.
+.TP
+.I pkgstatedir/DB_CONFIG
+Berkeley DB configuration file.  This may be used to override database
+settings without recompiling DisOrder.  See the Berkeley DB
+documention for further details.
+.TP
+.I pkgstatedir/log.*
+Database log files.
+.TP
+.I pkgstatedir/socket
+Communication socket for \fBdisorder\fR(1).
+.TP
+.I pkgstatedir/lock
+Lockfile.  This prevents multiple instances of DisOrder running
+simultaneously.
+.TP
+.I sbindir/disorder-deadlock
+Deadlock manager.
+.TP
+.I sbindir/disorder-rescan
+Rescanner.
+.SH ENVIRONMENT
+.TP
+.B LC_ALL\fR, \fBLANG\fR, etc
+Current locale.  See \fBlocale\fR(7).
+.SH "SEE ALSO"
+\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder-dump\fR(8)
+.\" Local Variables:
+.\" mode:nroff
+.\" End:
+.\" arch-tag:90dfddb7692b5c7f621c81bd7852ebde

@@ -1,0 +1,70 @@
+#
+# This file is part of DisOrder.
+# Copyright (C) 2006 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+bin_PROGRAMS=disorder disorderfm
+noinst_PROGRAMS=test-eclient filename-bytes
+
+AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
+
+disorder_SOURCES=disorder.c authorize.c authorize.h
+disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.la
+disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+
+disorderfm_SOURCES=disorderfm.c
+disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.la
+disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+
+filename_bytes_SOURCES=filename-bytes.c
+
+test_eclient_SOURCES=test-eclient.c
+test_eclient_LDADD=../lib/libdisorder.la
+test_eclient_DEPENDENCIES=../lib/libdisorder.la
+
+install-exec-hook:
+	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
+
+check: check-help check-completions
+
+# check everything has working --help
+check-help: all
+	./disorder --version > /dev/null
+	./disorder --help > /dev/null
+	./disorder --help-commands > /dev/null
+
+# check that the command completions are up to date
+check-completions:
+	./disorder --help-commands \
+		| awk '/^  [a-z]/ { print $$1 }' \
+		| sort > ,commands
+	( set -e;completions() { \
+	    for x; do \
+	      case $$x in\
+		quack ) ;;\
+		[a-z]* ) echo $$x; ;;\
+	      esac;\
+	    done;\
+	   }; \
+	   complete() { if [ "$$7" = disorder ]; then completions $$6; fi }; \
+	   . ${top_srcdir}/scripts/completion.bash )\
+		| sort > ,completions
+	diff -u ,commands ,completions
+
+CLEANFILES=,commands ,completions
+# arch-tag:3wdM7iS0B+n8makCG+YcAg

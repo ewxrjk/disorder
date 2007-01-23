@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# Copyright (C) 2004, 2005 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_input high disorder/roots || true
+db_input high disorder/encoding || true
+db_input medium disorder/scratches || true
+db_input medium disorder/server-name || true
+db_go || true
+
+db_get disorder/roots || true
+roots="$RET"
+db_get disorder/scratches || true
+scratches="$RET"
+db_get disorder/encoding || true
+encoding="$RET"
+db_get disorder/server-name || true
+server_name="$RET"
+
+mkdir -p /etc/disorder
+cat > /etc/disorder/conf.debconf.new <<EOF
+# created automatically from debconf information
+# do not edit manually
+# run 'dpkg-reconfigure disorder' instead
+EOF
+for r in $roots; do
+  echo "collection fs $encoding $r" >> /etc/disorder/conf.debconf.new
+done
+for s in $scratches; do
+  echo "scratch $s" >> /etc/disorder/conf.debconf.new
+done
+echo "url http://$server_name/cgi-bin/disorder/disorder" >> /etc/disorder/conf.debconf.new
+
+mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf
+# arch-tag:80ca629b164394d9806d6e8378205951

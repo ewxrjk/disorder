@@ -1,0 +1,55 @@
+* DisOrder Raw Format Players
+
+** Purpose
+
+The purpose of raw format players is:
+
+   * Support pausing of playing tracks, with the audio device closed when not
+     in active use.
+
+   * Eliminate the inter-track gap.
+
+   * Perhaps in the future support network play.
+
+** Usage
+
+To use raw format, use the execraw module and make the command choose the
+"disorder" libao driver.
+
+You should pass the "fragile" option to ogg123.  This is because ogg123 ignores
+write errors!
+
+mpg321 does not appear to have this bug.
+
+For _non_ raw players it is advisable to use the new --wait-for-device option.
+This repeatedly tries to open the audio device before starting the player
+proper.  It times out after a couple of seconds.
+
+See disorder_config(5) and the example configuration file for further
+information and examples.
+
+** Low-Level Details
+
+Raw format players are started slightly differently to normal ones.  Before
+they are executed a pipe is created and one end passed to a special speaker
+process, which is spawned by the main server at startup.  The file descriptor
+of the player's end is identified by $DISORDER_RAW_FD.
+
+The expected data format is a ao_sample_format structure followed by the raw
+sample data.  However, this may be changed without notice in future versions of
+DisOrder.  If you need a stable interface here for some reason then get in
+touch.
+
+Raw format players may be started before the track is to be played, and (if the
+track is then removed from the queue before it reaches the head) terminated
+before the track ever reaches a physical speaker.  The point of this is to
+allow audio data to be ready to play the moment the previous track end, without
+having to wait for the player to start up.  There is no way for a player to
+tell that this is going on.
+
+Local Variables:
+mode:outline
+fill-column:79
+End:
+
+# arch-tag:FDgaJ8rznoa6TnmXxU1iPw

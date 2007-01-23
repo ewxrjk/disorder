@@ -1,0 +1,26 @@
+-*-outline-*-
+
+* plugins
+
+** configuration
+
+Allow plugins to be configured via the main config file somehow.
+
+* web interface
+
+** language choice
+
+Parse HTTP_ACCEPT_LANGUAGE and use it to choose template subdirectory.
+I might leave this until I hear that someone actually wants a
+multilingual jukebox.
+
+** rearrange queue
+
+Needs thought on how to design the interface.
+
+** improve volume control
+
+** templates
+
+Build defaults into program to save file IO.
+arch-tag:d8e9783460cc93d13e90d8b8e3f1d481

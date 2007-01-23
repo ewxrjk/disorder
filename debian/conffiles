@@ -1,0 +1,4 @@
+/etc/disorder/config
+/etc/disorder/options
+/etc/init.d/disorder
+/usr/lib/cgi-bin/disorder/.htaccess

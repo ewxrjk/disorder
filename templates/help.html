@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@include{stdhead}@
+  <title>@label{help.title}@</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+   <h1 class=title>@label{help.title}@</h1>
+
+   <h2 class=sidebarlink><a name=playing>Playing</a></h2>
+
+   <div class=helpsection>
+
+    <p>This screen displays the currently playing track (if there is one) and
+    lists all the tracks in the queue (the track that will be played soonest
+    being listed first.)  Where possible, estimated start times are
+    given.</p>
+
+    <p>Each track has a <img class=button
+       src="@label:images.scratch@"
+       title="@label:playing.scratch@"
+       alt="@label:playing.scratch@"> button next to it.  For the
+       currently playing track this can be used to stop playing the
+       track before it has finished.  For a track in the queue it
+       removes the track from the queue.</p>
+
+    <p>Depending on the server configuration, you may be able to do
+    this for any track, or only for tracks you submitted or that were
+    randomly picked.  See the "restrict" option in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for more
+    details.</p>
+
+   <p>Artist and album names are hyperlinks to the relevant locations
+   in the <a href="#choose">Choose</a> screen (see below).</p>
+
+   </div>
+
+   <h2 class=sidebarlink><a name=manage>Manage</a></h2>
+
+   <div class=helpsection>
+
+    <p>This screen is almost identical to <a
+    href="#playing">Playing</a> except that it includes extra
+    management features.</p>
+
+   <p>At the top of the screen are the following controls:</p>
+
+   <ul>
+    <li>Pause.  This button can be used to pause playing (provided the
+    player supports it).  <img width=16 height=16 class=imgbutton
+    src="@label:images.enabled@"> indicates that playing is paused,
+    <img width=16 height=16 class=imgbutton
+    src="@label:images.disabled@"> that it is not.</li>
+
+    <li>Enable/disable random play.  If disabled then queued tracks
+    will still be played but if the queue is empty nothing will be
+    picked at random.  <img width=16 height=16 class=imgbutton
+    src="@label:images.enabled@"> indicates that random play is
+    enabled, <img width=16 height=16 class=imgbutton
+    src="@label:images.disabled@"> that it is disabled.</li>
+
+    <li>Enable/disable play.  If disabled then tracks in the queue
+    will not be played, but will remain in the queue instead.  <img
+    width=16 height=16 class=imgbutton src="@label:images.enabled@">
+    indicates that play is enabled, <img width=16 height=16
+    class=imgbutton src="@label:images.disabled@"> that it is
+    disabled.</li>
+
+    <li>Volume control.  You can use the <img class=button
+       src="@label:images.up@"
+       title="@label:volume.increase@"
+       alt="@label:volume.increase@"> and <img
+       src="@label:images.down@"
+       title="@label:volume.reduce@"
+       alt="@label:volume.reduce@"> buttons to increase or
+    decrease the volume, or enter new volume settings for the left
+    and/or right speakers.</li>
+
+   </ul>
+
+   <p>Below this is the same table of current and queued tracks as for
+    the main playing screen, but with extra buttons for managing the
+    queue.
+    The <img class=button src="@label:images.up@"
+     title="@label:playing.up@" alt="@label:playing.up@"> and <img
+     src="@label:images.down@" title="@label:playing.down@"
+     alt="@label:playing.down@"> buttons on each track move that
+    track around in the queue.  Similarly the <img class=button
+     src="@label:images.upall@" title="@label:playing.upall@"
+     alt="@label:playing.upall@"> and <img
+     src="@label:images.downall@" title="@label:playing.downall@"
+     alt="@label:playing.downall@"> buttons move each track to the head or
+    tail of the queue.
+    Depending on server configuration, it may be that only trusted
+    users can move tracks around the queue.</p>
+
+   </div>
+
+   <h2 class=sidebarlink><a name=recent>Recent</a></h2>
+
+   <div class=helpsection>
+
+    <p>This screen displays recently played tracks, most recent first.
+    The <img class=button src="@label:images.edit@"
+    title="@label:choose.prefs@" alt="@label:choose.prefs@">
+    button can be used to edit the details for a track; see <a
+    href="#prefs">Editing Preferences</a> below.</p>
+
+    <p>The number of tracks remembered is controlled by the server
+    configuration.  See the "history" option in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for more
+    details.</p>
+
+   </div>
+
+   <h2 class=sidebarlink><a name=choose>Choose</a></h2>
+
+   <div class=helpsection>
+
+    <p>This screen allows you to choose a track to be played, by navigating
+     through the directory structure of the tracks filesystem.  The following
+     buttons appear:</p>
+
+    <table class=helpbuttons>
+     <tbody>
+      <tr>
+       <td class=helpbuttons><img
+       class=button src="@label:images.edit@"
+       title="@label:choose.prefs@"
+       alt="@label:choose.prefs@"></td>
+       <td class=helpbuttons>This button can be used to edit the details for a
+       track; see <a href="#prefs">Editing Preferences</a> below.</td>
+      </tr>
+      <tr>
+       <td class=helpbuttons><span class=button>@label{choose.playall}@</span></td>
+       <td class=helpbuttons>This button plays all the tracks in a directory,
+       in order.  This is used to efficiently play a whole album.</td>
+      </tr>
+     </tbody>
+    </table>
+
+    <p>This screen has two forms: <a
+    href="@url@?action=choose&#38;nonce=@nonce@">choose</a>, which give
+    you all the top-level directories at once, and <a
+    href="@url@?action=choosealpha&#38;nonce=@nonce@">choosealpha</a>,
+    which breaks them down by initial letter.</p>
+
+   </div>
+
+   <h2 class=sidebarlink><a name=prefs>Editing Preferences</a></h2>
+
+   <div class=helpsection>
+
+    <p>This screen, reached from <a href="#choose">Choose</a> or <a
+    href="#recent">Recent</a>, is used to edit a track's preferences.
+     Preferences can be edited in two ways.</p>
+    
+    <p>At the top appear "cooked" preferences.  These can be used to
+    edit artist, album and title fields for the track as displayed, or
+    to set the tags for a track, or to enable or disable random play
+    for the track.</p>
+
+    <p>Tags are separated by commas and can contain any other printing
+    characters (including spaces).  Leading and trailing spaces are
+    not significant.</p>
+
+    <p>Random play for any given track is enabled by default, but you
+    can use this screen to disable it for undesirable tracks.</p>
+
+    <p>Below this are "raw" preferences, which allow individual
+    database fields to be modified.</p>
+
+    <p>To change an existing preference, edit its value and press its
+    <span class=button>@label{prefs.set}@</span> button.</p>
+
+    <p>To delete an existing preference, press its
+    <span class=button>@label{prefs.delete}@</span> button.</p>
+
+    <p>To add a new preference, enter its name and value in the box at the
+    bottom and press the <span class=button>@label{prefs.new}@</span> button.
+    If the preference exists already it will be overwritten.</p>
+
+
+    <p>Preferences can have any name or value but certain names have special
+    significance:</p>
+
+    <table class=helpprefs>
+     <tbody>
+      <tr>
+       <td class=helpprefs><span class=helppref>pick_at_random</span></td>
+       <td class=helpprefs>If this preference is present and set to "0" then
+       the track will not be picked for random play.  Otherwise it may be.</td>
+      </tr>
+      <tr>
+       <td class=helpprefs><span class=helppref>trackname_<span class=helpprefbit>context</span>_<span class=helpprefbit>part</span></span></td>
+       <td class=helpprefs>These preferences can be used to override the
+       filename parsing rules to find a track name part.  <span
+       class=helppref>trackname_<span class=helpprefbit>part</span></span> will
+       be used if the full version is not present.</td>
+     </tbody>
+    </table>
+
+    <p><span class=helpprefbit>context</span> can be anything but standard
+    values are:</p>
+
+    <table class=helpcontexts>
+     <tbody>
+      <tr>
+       <td class=helpcontexts><span class=helpcontext>display</span></td>
+       <td class=helpcontexts>Displayed in a web page</td>
+      </tr>
+      <tr>
+       <td class=helpcontexts><span class=helpcontext>sort</span></td>
+       <td class=helpcontexts>Used when sorting track names</td>
+      </tr>
+     </tbody>
+    </table>
+
+    <p><span class=helpprefbit>part</span> can be anything too but standard
+    values are "artist", "album" and "title", with the obvious meanings.</p>
+
+    <p>See also <a href="@url@?action=disorder.1">disorder(1)</a> and <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
+    details.</p>
+
+   </div>
+
+   <h2 class=sidebarlink>Search</h2>
+
+   <div class=helpsection>
+
+    <p>This screen allows you to search for keywords in track names.  If you
+    specify more than one keyword then only tracks containing all of them are
+    listed.  Results are grouped by artist, album and title.</p>
+
+    <p>It is possible to limit results to tracks with a particular
+    tag, by using <b>tag:</b><i>TAG</i> among the search terms.</p>
+
+    <p>Some keywords, known as "stopwords", are excluded from the search, and
+    will never match.  See the "stopword" option in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
+    details about this.</p>
+
+   </div>
+
+  @if{@eq{@label:menu@}{sidebar}@}
+     {
+
+   <h2 class=sidebarlink>Volume</h2>
+
+   <div class=helpsection>
+
+    <p>This screen allows you to set the playback volume, if this is enabled in
+    the server configuration.  See the "channel" and "mixer" options in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
+    details about this.</p>
+
+   </div>
+
+     }{<!-- volume currently only linked in sidebar menu -->}@ 
+
+  <h2 class=sidebarlink>Troubleshooting</h2>
+
+  <div class=helpsection>
+
+   <p>If you cannot play a track, or it does not appear in the
+   database even after a rescan, check the following things:</p>
+
+   <ul>
+
+    <li>Are there any error messages in the system log?  The server
+    logs to <tt>LOG_DAEMON</tt>, which typically ends up in
+    <i>/var/log/daemon.log</i> or <i>/var/log/messages</i>, though
+    this depends on local configuration.
+
+    <li>Is the track in a known format?  Have a look at the
+    configuration file for the formats recognized by the local
+    installation.  The filename matching is case-sensitive.
+
+    <li>Do permissions on the track allow the server to read it?
+     
+    <li>Do the permissions on the containing directories allow the
+    server to read and execute them?
+
+   </ul>
+
+   <p>The user the server runs as is determined by the <tt>user</tt>
+   directive in the configuration file.  The README recommends using
+   <b>jukebox</b> for this purpose but it could be different
+   locally.</p>
+
+  </div>
+
+   <h2 class=sidebarlink>Man Pages</h2>
+
+   <div class=helpsection>
+
+    <p><a href="@url@?action=disorder_config.5">disorder_config(5)</a> -
+     configuration</p>
+
+    <p><a href="@url@?action=disorder.1">disorder(1)</a> - command line
+     client</p>
+
+    <p><a href="@url@?action=disobedience.1">disobedience(1)</a> - GTK+
+     client</p>
+
+    <p><a href="@url@?action=tkdisorder.1">tkdisorder(1)</a> - GUI
+     client</p>
+
+    <p><a href="@url@?action=disorderd.8">disorderd(8)</a> - server</p>
+
+    <p><a href="@url@?action=disorder-dump.8">disorder-dump(8)</a> -
+     dump/restore preferences database</p>
+
+    <p><a href="@url@?action=disorder.3">disorder(3)</a> - C API</p>
+
+    <p><a href="@url@?action=disorder_protocol.5">disorder_protocol(5)</a> -
+     DisOrder control protocol</p>
+
+   </div>
+
+@include{@label{menu}@end}@
+  </div>
+ </body>
+</html>
+@@
+<!--
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+End:
+-->
+<!-- arch-tag:eb6205dbb8596ff6fb3290e4625a2ada -->

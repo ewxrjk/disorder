@@ -1,0 +1,98 @@
+#! /bin/sh
+#
+# This file is part of DisOrder
+# Copyright (C) 2004 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+add_jukebox_user() {
+  adduser --quiet --system --group --shell /bin/sh --home /var/lib/disorder \
+    --no-create-home jukebox
+}
+
+configure_init_d() {
+  update-rc.d disorder defaults 92 19 > /dev/null
+}
+
+restart_server() {
+  /etc/init.d/disorder restart
+}
+
+case "$1" in
+configure )
+  if grep -q ^jukebox: /etc/passwd; then
+    :
+  else
+    add_jukebox_user
+  fi
+  if test ! -f /etc/disorder/config.private; then
+    # pwgen in debian stable has insane exit status
+    set +e
+    rootpw=`pwgen 16 1`
+    webpw=`pwgen 16 1`
+    set -e
+    if test -z "$rootpw" || test -z "$webpw"; then
+      echo "$0: pwgen failed" 1>&2
+      exit 1
+    fi
+    u=`umask`
+    umask 077
+
+    echo allow root "$rootpw" > /etc/disorder/config.private.new
+    echo allow www-data "$webpw" >> /etc/disorder/config.private.new
+    chgrp jukebox /etc/disorder/config.private.new
+    chmod 640 /etc/disorder/config.private.new
+    mv /etc/disorder/config.private.new /etc/disorder/config.private
+
+    if test ! -f /etc/disorder/config.www-data; then
+      echo password "$webpw" > /etc/disorder/config.www-data.new
+      chgrp www-data /etc/disorder/config.www-data.new
+      chmod 640 /etc/disorder/config.www-data.new
+      mv /etc/disorder/config.www-data.new /etc/disorder/config.www-data
+    fi
+    umask $u
+  fi
+
+  if test ! -f /etc/disorder/http.users; then
+    u=`umask`
+    umask 077
+    touch /etc/disorder/http.users
+    chgrp www-data /etc/disorder/http.users
+    chmod 640 /etc/disorder/http.users
+    umask $u
+  fi
+  chown jukebox:jukebox /var/lib/disorder
+  configure_init_d
+  restart_server
+  if test ! -e /etc/disorder/http.users; then
+    touch /etc/disorder/http.users
+  fi
+  db_stop
+  ldconfig -n /usr/lib
+  ;;
+abort-upgrade )
+  /etc/init.d/disorder restart
+  ;;
+reconfigure )
+  /etc/init.d/disorder reload
+  ;;
+esac
+# arch-tag:ec773fd84ef6c95eca2e7287d2db9878

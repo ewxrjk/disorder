@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@include:stdhead@
+  <title>@label:choose.title@</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+   <h1 class=title>@label:choose.title@</h1>
+
+   <p class=choosealpha>
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?a">A</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?b">B</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?c">C</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?d">D</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?e">E</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?f">F</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?g">G</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?h">H</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?i">I</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?j">J</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?k">K</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?l">L</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?m">M</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?n">N</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?o">O</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?p">P</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?q">Q</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?r">R</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?s">S</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(?!the [^t])t">T</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?u">U</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?v">V</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?w">W</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?x">X</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?y">Y</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?z">Z</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^[^a-z]">*</a>
+   </p>
+
+@include{@label{menu}@end}@
+ </body>
+</html>
+@@
+<!--
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+End:
+-->
+<!-- arch-tag:be6e8dfa8452199ee4f5aa988881ec03 -->

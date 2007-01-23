@@ -1,0 +1,52 @@
+#! /bin/sh
+#
+# This file is part of DisOrder
+# Copyright (C) 2004, 2005 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+set -e
+
+title=$(basename $1)
+
+cat <<EOF
+<html>
+ <head>
+@include{stdhead}@
+  <title>$title</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+EOF
+printf "   <pre class=manpage>"
+# this is kind of painful using only BREs
+nroff -man "$1" | sed 's/&/\&amp;/g;
+                       s/</\&lt;/g;
+                       s/>/\&gt;/g;
+                       s/@/\&#64;/g;
+                       s!\(.\)\1!<b>\1</b>!g;
+                       s!\(&[#0-9a-z][0-9a-z]*;\)\1!<b>\1</b>!g;
+                       s!_\(.\)!<i>\1</i>!g;
+                       s!_\(&[#0-9a-z][0-9a-z]*;\)!<i>\1</i>!g;
+                       s!</\([bi]\)><\1>!!g'
+cat <<EOF
+</pre>
+@include{@label{menu}@end}@
+ </body>
+</html>
+EOF
+# arch-tag:c0096f33b8a8f7d88236043ed970ae83

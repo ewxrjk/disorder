@@ -1,0 +1,70 @@
+#! /usr/bin/env python
+#
+# This file is part of DisOrder
+# Copyright (C) 2005 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+# Example use of disorder.monitor class
+
+import disorder
+
+class mymonitor(disorder.monitor):
+  def completed(self, track):
+    print "completed %s" % track
+    return True
+
+  def failed(self, track, error):
+    print "failed %s (%s)" % (track, error)
+    return True
+
+  def moved(self, id, offset, user):
+    print "%s moved by %s (%s)" % (id, offset, user)
+    return True
+
+  def playing(self, track, user):
+    print "%s playing" % track
+    return True
+
+  def queue(self, q):
+    print "queued %s" % str(q)
+    return True
+
+  def recent_added(self, q):
+    print "recent_added %s" % str(q)
+    return True
+
+  def recent_removed(self, id):
+    print "recent_removed %s" % id
+    return True
+
+  def removed(self, id, user):
+    print "removed %s" % id
+    return True
+
+  def scratched(self, track, user):
+    print "%s scratched %s" % (track, user)
+    return True
+
+  def invalid(self, line):
+    print "invalid line: %s" % line
+    return True
+
+m = mymonitor()
+m.run()
+
+# arch-tag:198M6M5uzq+f8AP1q+P1NA

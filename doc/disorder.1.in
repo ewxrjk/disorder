@@ -1,0 +1,346 @@
+.\"
+.\" Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder 1
+.SH NAME
+disorder \- DisOrder jukebox client
+.SH SYNOPSIS
+.B disorder
+.RI [ OPTIONS ]
+.RB [ -- ]
+.RI [ COMMANDS ...]
+.br
+.B disorder
+.B --length
+.RI [ OPTIONS ]
+.RB [ -- ]
+.IR PATH ...
+.SH DESCRIPTION
+Without the \fB--length\fR option,
+.B disorder
+is used to query the \fBdisorderd\fR(8) daemon from the command line.
+It may be used to request tracks, scratch tracks, query the current
+state, etc, and by an administrator to shutdown or reconfigure the
+daemon.
+.PP
+If no commands are specified then \fBdisorder\fR connects to the
+daemon and then immediately disconnects.  This can be used to test
+whether the daemon is running.  Otherwise, it executes the commands
+specified.
+.SH OPTIONS
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.  The default is
+.IR pkgconfdir/config .
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --length\fR, \fB-L
+Calculate the length in seconds of the files specified using the tracklength
+plugin.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.TP
+.B --help-commands\fR, \fB-H
+List all known commands.
+.SH COMMANDS
+.TP
+.B dirs \fIDIRECTORY\fR [\fB~\fIREGEXP\fR]
+List all the directories in \fIDIRECTORY\fR.
+.IP
+An optional regexp may be specified, marked with an initial \fB~\fR.  Only
+directories with a basename matching the regexp will be returned.
+.TP
+.B disable
+Disables playing after the current track finishes.
+.TP
+.B enable
+(Re-)enable playing.
+.TP
+.B files \fIDIRECTORY\fR [\fB~\fIREGEXP\fR]
+List all the files in \fIDIRECTORY\fR.
+.IP
+An optional regexp may be specified, marked with an initial \fB~\fR.  Only
+files with a basename matching the regexp will be returned.
+.TP
+.B get \fITRACK\fR \fIKEY\fR
+Display the preference \fIKEY\fR for \fITRACK\fR.
+.TP
+.B get-global \fIKEY\fR
+Get a global preference.
+.TP
+.B get-volume
+Displays the current volume settings.
+.TP
+.B length \fITRACK\fR
+Reports the length of \fITRACK\fR in seconds.
+.TP
+.B log
+Writes event log messages to standard output, until the server is terminated.
+See \fBdisorder_protocol\fR (5) for details of the output syntax.
+.TP
+.B move \fITRACK\fR \fIDELTA\fR
+Move
+.I TRACK
+by
+.I DELTA
+within the queue.  Positive values move towards the head of the queue, negative
+values towards the tail.
+.IP
+Note that if you specify a negative value then the
+.B --
+option separate (before all commands) becomes mandatory, as otherwise the
+negative value is misinterpreted an an option.
+.TP
+.B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
+Get a track name part.
+.IP
+\fICONTEXT\fR should be either \fBsort\fR or \fBdisplay\fR.  \fBpart\fR is the
+part of the name desired, typically \fBartist\fR, \fBalbum\fR or \fBtitle\fR.
+.TP
+.B pause
+Pause the current track.  (Note that not all players support pausing.)
+.TP
+.B play \fITRACKS\fR...
+Add \fITRACKS\fR to the end of the queue.
+.TP
+.B playing
+Report the currently playing track.
+.TP
+.B prefs \fITRACK\fR
+Display all the preferences for \fITRACK\fR.
+.TP
+.B queue
+List the current queue.  The first entry in the list is the next track to play.
+.TP
+.B random-disable
+Disable random play.
+.TP
+.B random-enable
+Enable random play.
+.TP
+.B recent
+List recently played tracks.  The first entry is the oldest track, the last
+entry is the most recently played one.
+.TP
+.B remove \fITRACK\fR
+Remove a track from the queue.
+.TP
+.B resolve \fITRACK\fR
+Resolve aliases for \fITRACK\fR and print out the real track name.
+.TP
+.B resume
+Resume the current track after a pause.
+.TP
+.B scratch
+Scratch the currently playing track.
+.TP
+.B scratch-id \fIID\fR
+Scratch the currently playing track, provided it has the given ID.
+.TP
+.B search \fITERMS\fR
+Search for tracks containing all of the listed terms.  The terms are
+separated by spaces and form a single argument, so must be quoted,
+for example:
+.IP
+.B "disorder search 'bowie china'"
+.IP
+You can limit the search to tracks with a particular tag, too, using the
+\fBtag:\fR modifier.  For example:
+.IP
+.B "disorder search 'love tag:depressing'
+.TP
+.B set \fITRACK\fR \fIKEY\fR \fIVALUE\fR
+Set the preference \fIKEY\fR for \fITRACK\fR to \fIVALUE\fR.
+.TP
+.B set-global \fIKEY\fR \fIVALUE\fR
+Set a global preference.
+.TP
+.B set-volume \fBLEFT\fR \fBRIGHT\fR
+Sets the volume.
+.TP
+.B stats
+List server statistics.
+.TP
+.B tags
+List known tags.
+.TP
+.B unset \fITRACK\fR \fIKEY\fR
+Unset the preference \fIKEY\fR for \fITRACK\fR.
+.TP
+.B unset-global \fIKEY\fR
+Unset the global preference \fIKEY\fR.
+.TP
+.B version
+Report the daemon's version number.
+.PP
+For
+.B move
+and
+.BR remove ,
+tracks may be specified by name or by ID.  If you use the name and a track
+appears twice in the queue it is undefined which is affected.
+.SS "Privileged Commands"
+These commands are only available to privileged users.
+.TP
+.B become \fIUSER\fR
+Become another user.
+.TP
+.B reconfigure
+Make the daemon reload its configuration file.
+.TP
+.B rescan
+Rescan the filesystem for new tracks.  There is an automatic daily rescan but
+if you've just added some tracks and want them to show up immediately, use this
+command.
+.TP
+.B shutdown
+Shut down the daemon.
+.SH PREFERENCES
+Currently the following preferences are supported.  Some are expected
+to be set by users, others updated automatically by plugins.
+.TP
+.B pick_at_random
+If this preference is present and set to "0" then the track will not
+be picked for random play.  Otherwise it may be.
+.TP
+.B played
+A decimal integer giving the number times the track was played.  This
+includes tracks that are scratched or were picked at random.
+.TP
+.B played_time
+The last time the track was played, as a \fBtime_t\fR converted to a
+decimal integer.
+.TP
+.B scratched
+The number of times the track has been scratched.
+.TP
+.B requested
+A decimal integer giving the number of times the track was requested.
+(Tracks that are removed before being played are not counted.)
+.TP
+.B tags
+Tags that apply to this track, separated by commas.  Tags can contain any
+printing character except comma.  Leading and trailing spaces are not
+significant but internal spaces are.
+.IP
+Using the
+.B required-tags
+and
+.B prohibited-tags
+global preferences, it is possible to limit the tracks that will be selected at
+random.
+.TP
+.B trackname_\fICONTEXT\fB_\fIPART\fR
+These preferences can be used to override the filename parsing rules
+to find a track name part.  For backwards compatibility,
+\fBtrackname_\fIPART\fR will be used if the full version
+is not present.
+.TP
+.B unscratched
+The number of times the track has been played to completion without
+being scratched.
+.SH "Superuser Commands"
+These commands will (generally) only work for root, who must be a privileged
+user.
+.TP
+.B authorize \fIUSER\fR
+Chooses a password for \fIUSER\fR and adds it to \fIconfig.private\fR.  Also
+creates an appropriate \fIconfig.USER\fR, be owned by the user.
+.IP
+If at least one \fBauthorize\fR command succeeds then the server is
+automatically told to re-read its configuration.
+.SH NOTES
+.B disorder
+is locale-aware.  If you do not set the locale correctly then it may
+not handle non-ASCII data properly.
+.PP
+The client determines which user to attempt to authenticate as by
+examining the current UID.
+.PP
+This program is not intended to run in a setuid environment.
+.PP
+The regexp syntax used by the \fBfiles\fR and \fBdirs\fR commands use the
+syntax described in \fBpcrepattern\fR(3).  Matching is case-independent.  It is
+strongly recommended that you quote regexps, since they often contain
+characters treated specially by the shell.  For example:
+.PP
+.B "disorder dirs /Music ~'^(?!the [^t])t'"
+.SH TROUBLESHOOTING
+If you cannot play a track, or it does not appear in the database even after a
+rescan, check the following things:
+.TP
+.B .
+Are there any error messages in the system log?  The server logs to
+\fBLOG_DAEMON\fR, which typically ends up in
+.I /var/log/daemon.log
+or
+.IR /var/log/messages ,
+though this depends on local configuration.
+.TP
+.B .
+Is the track in a known format?  Have a look at
+.I pkgconfdir/config
+for the formats recognized by the local installation.  The filename matching is
+case-sensitive.
+.TP
+.B .
+Do permissions on the track allow the server to read it?
+.TP
+.B .
+Do the permissions on the containing directories allow the server to read and
+execute them?
+.PP
+The user the server runs as is determined by the \fBuser\fR directive in the
+configuration file.  The README recommends using \fBjukebox\fR for this purpose
+but it could be different locally.
+.SH ENVIRONMENT
+.TP
+.B LOGNAME
+The default username.
+.TP
+.B HOME
+The user's home directory.
+.TP
+.B LC_ALL\fR, \fBLANG\fR, etc
+Current locale.  See \fBlocale\fR(7).
+.SH FILES
+.TP
+.I pkgconfdir/config
+Global configuration file.  See \fBdisorder_config\fR(5).
+.TP
+.I ~/.disorder/passwd
+Per-user password file
+.TP
+.I pkgstatedir/socket
+Communication socket for \fBdisorder\fR(1).
+.SH "SEE ALSO"
+\fBdisorderd\fR(8), \fBdisorder_config\fR(5), \fBsyslog\fR(3), \fBtime\fR(2),
+\fBpcrepattern\fR(3), \fBdisobedience\fR(1)
+.PP
+"\fBpydoc disorder\fR" for the Python API documentation.
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
+.\" arch-tag:f4ecee92157cdac8ee0f71c3fc14044d

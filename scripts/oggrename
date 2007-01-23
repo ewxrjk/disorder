@@ -1,0 +1,58 @@
+#! /usr/bin/perl -w
+#
+# This file is part of DisOrder
+# Copyright (C) 2006 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+use strict;
+
+my %rename = ();
+my $bad = 0;
+
+for my $path (@ARGV) {
+    local $_ = `ogginfo \Q$path\E`;
+    my ($title, $number);
+    if(/title=(.*)/) { $title = $1; }
+    if(/tracknumber=(\d+)/) { $number = $1; }
+    if(!defined $title || !defined $number) {
+	print STDERR "ERROR: cannot find details for $path\n";
+	++$bad;
+	next;
+    }
+    $rename{$path} = sprintf("%02d:%s.ogg", $number, $title);
+}
+exit 1 if $bad;
+
+while(scalar %rename) {
+    my $worked = 0;
+    while(my ($f, $t) = each %rename) {
+	if($f eq $t) {
+	    delete $rename{$f};
+	    $worked = 1;
+	} elsif(link($f, $t)) {
+	    unlink($f);
+	    delete $rename{$f};
+	    print "$f -> $t\n";
+	    $worked = 1;
+	} else {
+	    print "deferring $f -> $t\n";
+	}
+    }
+    die "stuck in a loop!\n" if !$worked;
+}
+# arch-tag:AU/Rh0oscz3GBqwzJYRy1w

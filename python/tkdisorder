@@ -1,0 +1,475 @@
+#! /usr/bin/env python
+#
+# Copyright (C) 2004, 2005 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+"""Graphical user interface for DisOrder"""
+
+from Tkinter import *
+import tkFont
+import Queue
+import threading
+import disorder
+import time
+import string
+import re
+import getopt
+import sys
+
+########################################################################
+
+# Architecture:
+#
+#  The main (initial) thread of the program runs all GUI code.  The GUI is only
+#  directly modified from inside this thread.  We sometimes call this the
+#  master thread.
+#
+#  We have a background thread, MonitorStateThread, which waits for changes to
+#  the server's state which we care about.  Whenever such a change occurs it
+#  notifies all the widgets which care about it (and possibly other widgets;
+#  the current implementation is unsophisticated.)
+#
+#  Widget poll() methods usually, but NOT ALWAYS, called in the
+#  MonitorStateThread.  Other widget methods are call in the master thread.
+#
+#  We have a separate disorder.client for each thread rather than locking a
+#  single client.  MonitorStateThread also has a private disorder.client that
+#  it uses to watch for server state changes.
+
+########################################################################
+
+class Intercom:
+  # communication queue into thread containing Tk event loop
+  #
+  # Sets up a callback on the event loop (in this thread) which periodically
+  # checks the queue for elements; if any are found they are executed.
+  def __init__(self, master):
+    self.q = Queue.Queue();
+    self.master = master
+    self.poll()
+
+  def poll(self):
+    try:
+      item = self.q.get_nowait()
+      item()
+      self.master.after_idle(self.poll)
+    except Queue.Empty:
+      self.master.after(100, self.poll)
+
+  def put(self, item):
+    self.q.put(item)
+
+########################################################################
+
+class ProgressBar(Canvas):
+  # progress bar widget
+  def __init__(self, master=None, **kw):
+    Canvas.__init__(self, master, highlightthickness=0, **kw)
+    self.outer = self.create_rectangle(0, 0, 0, 0,
+                                       outline="#000000",
+                                       width=1,
+                                       fill="#ffffff")
+    self.bar = self.create_rectangle(0, 0, 0, 0,
+                                     width=1,
+                                     fill="#ff0000",
+                                     outline='#ff0000')
+    self.current = None
+    self.total = None
+    self.bind("<Configure>", lambda e: self.redisplay())
+
+  def update(self, current, total):
+    self.current = current
+    if current > total:
+      current = total
+    elif current < 0:
+      current = 0
+    self.total = total
+    self.redisplay()
+
+  def clear(self):
+    self.current = None
+    self.total = None
+    self.redisplay()
+
+  def redisplay(self):
+    w, h = self.winfo_width(), self.winfo_height()
+    if w > 0 and h > 0:
+      self.coords(self.outer, 0, 0, w - 1, h - 1)
+      if self.total:
+        bw = int((w - 2) * self.current / self.total)
+        self.itemconfig(self.bar,
+                        fill="#ff0000",
+                        outline="#ff0000")
+        self.coords(self.bar, 1, 1, bw, h - 2)
+      else:
+        self.itemconfig(self.bar,
+                        fill="#909090",
+                        outline="#909090")
+        self.coords(self.bar, 1, 1, w - 2, h - 2)
+
+# look up a track's name part, using client c.  Maintains a cache.
+part_cache = {}
+def part(c, track, context, part):
+  key = "%s-%s-%s" % (part, context, track)
+  now = time.time()
+  if not part_cache.has_key(key) or part_cache[key]['when'] < now - 3600:
+    part_cache[key] = {'when': now,
+                       'what': c.part(track, context, part)}
+  return part_cache[key]['what']
+
+class PlayingWidget(Frame):
+  # widget that always displays information about what's
+  # playing
+  def __init__(self, master=None, **kw):
+    Frame.__init__(self, master, **kw)
+    # column 0 is descriptions, column 1 is the values
+    self.columnconfigure(0,weight=0)
+    self.columnconfigure(1,weight=1)
+    self.fields = {}
+    self.field(0, 0, "artist", "Artist")
+    self.field(1, 0, "album", "Album")
+    self.field(2, 0, "title", "Title")
+    # column 1 also has the progress bar in it
+    self.p = ProgressBar(self, height=20)
+    self.p.grid(row=3, column=1, sticky=E+W)
+    # column 2 has operation buttons
+    b = Button(self, text="Quit", command=self.quit)
+    b.grid(row=0, column=2, sticky=E+W)
+    b = Button(self, text="Scratch", command=self.scratch)
+    b.grid(row=1, column=2, sticky=E+W)
+    b = Button(self, text="Recent", command=self.recent)
+    b.grid(row=2, column=2, sticky=E+W)
+    self.length = 0
+    self.update_length()
+    self.last = None
+    self.recentw = None
+    
+  def field(self, row, column, name, label):
+    # create a field
+    Label(self, text=label).grid(row=row, column=column, sticky=E)
+    self.fields[name] = Text(self, height=1, state=DISABLED)
+    self.fields[name].grid(row=row, column=column + 1, sticky=W+E);
+
+  def set(self, name, value):
+    # set a field's value
+    f = self.fields[name]
+    f.config(state=NORMAL)
+    f.delete(1.0, END)
+    f.insert(END, value)
+    f.config(state=DISABLED)
+
+  def playing(self, p):
+    # called with new what's-playing information
+    values = {}
+    if p:
+      for tpart in ['artist', 'album', 'title']:
+        values[tpart] = part(client, p['track'], 'display', tpart)
+      try:
+        self.length = client.length(p['track'])
+      except disorder.operationError:
+        self.length = 0
+      self.started = int(p['played'])
+    else:
+      self.length = 0
+    for k in self.fields.keys():
+      if k in values:
+        self.set(k, values[k])
+      else:
+        self.set(k, "")
+    self.length_bar()
+
+  def length_bar(self):
+    if self.length and self.length > 0:
+      self.p.update(time.time() - self.started, self.length)
+    else:
+      self.p.clear()
+
+  def update_length(self):
+    self.length_bar()
+    self.after(1000, self.update_length)
+
+  def poll(self, c):
+    p = c.playing()
+    if p != self.last:
+      intercom.put(lambda: self.playing(p))
+      self.last = p
+
+  def quit(self):
+    sys.exit(0)
+
+  def scratch(self):
+    client.scratch()
+
+  def recent_close(self):
+    self.recentw.destroy()
+    self.recentw = None
+
+  def recent(self):
+    if self.recentw:
+      self.recentw.deiconify()
+      self.recentw.lift()
+    else:
+      w = 80*tracklistFont.measure('A')
+      h = 40*tracklistFont.metrics("linespace")
+      self.recentw = Toplevel()
+      self.recentw.protocol("WM_DELETE_WINDOW", self.recent_close)
+      self.recentw.title("Recently Played")
+      # XXX for some reason Toplevel(width=w,height=h) doesn't seem to work
+      self.recentw.geometry("%dx%d" % (w,h))
+      w = RecentWidget(self.recentw)
+      w.pack(fill=BOTH, expand=1)
+      mst.add(w);
+
+class TrackListWidget(Frame):
+  def __init__(self, master=None, **kw):
+    Frame.__init__(self, master, **kw)
+    self.yscrollbar = Scrollbar(self)
+    self.xscrollbar = Scrollbar(self, orient=HORIZONTAL)
+    self.canvas = Canvas(self,
+                         xscrollcommand=self.xscrollbar.set,
+                         yscrollcommand=self.yscrollbar.set)
+    self.xscrollbar.config(command=self.canvas.xview)
+    self.yscrollbar.config(command=self.canvas.yview)
+    self.canvas.grid(row=0, column=0, sticky=N+S+E+W)
+    self.yscrollbar.grid(row=0, column=1, sticky=N+S)
+    self.xscrollbar.grid(row=1, column=0, sticky=E+W)
+    self.columnconfigure(0,weight=1)
+    self.rowconfigure(0,weight=1)
+    self.last = None
+    self.default_cursor = self['cursor']
+    self.configure(cursor="watch")
+
+  def queue(self, q, w_artists, w_albums, w_titles, artists, albums, titles):
+    # called with new queue state
+    # delete old contents
+    try:
+      for i in self.canvas.find_all():
+        self.canvas.delete(i)
+    except TclError:
+      # if the call was queued but not received before the window was deleted
+      # we might get an error from Tcl/Tk, which no longer knows the window,
+      # here
+      return
+    w = tracklistHFont.measure("Artist")
+    if w > w_artists:
+      w_artists = w
+    w = tracklistHFont.measure("Album")
+    if w > w_albums:
+      w_albums = w
+    w = tracklistHFont.measure("Title")
+    if w > w_titles:
+      w_titles = w
+    hheading = tracklistHFont.metrics("linespace")
+    h = tracklistFont.metrics('linespace')
+    x_artist = 8
+    x_album = x_artist + w_artists + 16
+    x_title = x_album + w_albums + 16
+    w = x_title + w_titles + 8
+    self.canvas['scrollregion'] = (0, 0, w, h * len(artists) + hheading)
+    self.canvas.create_text(x_artist, 0, text="Artist",
+                            font=tracklistHFont,
+                            anchor='nw')
+    self.canvas.create_text(x_album, 0, text="Album",
+                            font=tracklistHFont,
+                            anchor='nw')
+    self.canvas.create_text(x_title, 0, text="Title",
+                            font=tracklistHFont,
+                            anchor='nw')
+    y = hheading
+    for n in range(0,len(artists)):
+      artist = artists[n]
+      album = albums[n]
+      title = titles[n]
+      if artist != "":
+        self.canvas.create_text(x_artist, y, text=artist,
+                                font=tracklistFont,
+                                anchor='nw')
+      if album != "":
+        self.canvas.create_text(x_album, y, text=album,
+                                font=tracklistFont,
+                                anchor='nw')
+      if title != "":
+        self.canvas.create_text(x_title, y, text=title,
+                                font=tracklistFont,
+                                anchor='nw')
+      y += h
+    self.last = q
+    self.configure(cursor=self.default_cursor)
+
+  def poll(self, c):
+    q = self.getqueue(c)
+    if q != self.last:
+      # we do the track name calculation in the background thread so that
+      # the gui can still be responsive
+      artists = []
+      albums = []
+      titles = []
+      w_artists = w_albums = w_titles = 16
+      for t in q:
+        artist = part(c, t['track'], 'display', 'artist')
+        album = part(c, t['track'], 'display', 'album')
+        title = part(c, t['track'], 'display', 'title')
+        w = tracklistFont.measure(artist)
+        if w > w_artists:
+          w_artists = w
+        w = tracklistFont.measure(album)
+        if w > w_albums:
+          w_albums = w
+        w = tracklistFont.measure(title)
+        if w > w_titles:
+          w_titles = w
+        artists.append(artist)
+        albums.append(album)
+        titles.append(title)
+      intercom.put(lambda: self.queue(q, w_artists, w_albums, w_titles,
+                                      artists, albums, titles))
+      self.last = q
+
+class QueueWidget(TrackListWidget):
+  def __init__(self, master=None, **kw):
+    TrackListWidget.__init__(self, master, **kw)
+
+  def getqueue(self, c):
+    return c.queue()
+
+class RecentWidget(TrackListWidget):
+  def __init__(self, master=None, **kw):
+    TrackListWidget.__init__(self, master, **kw)
+
+  def getqueue(self, c):
+    l = c.recent()
+    l.reverse()
+    return l
+
+class MonitorStateThread:
+  # thread to pick up current server state and publish it
+  #
+  # Creates a client and monitors it in a daemon thread for state changes.
+  # Whenever one occurs, call w.poll(c) for every member w of widgets with
+  # a client owned by the thread in which the call occurs.
+  def __init__(self, widgets, masterclient=None):
+    self.logclient = disorder.client()
+    self.client = disorder.client()
+    self.clientlock = threading.Lock()
+    if not masterclient:
+      masterclient = disorder.client()
+    self.masterclient = masterclient
+    self.widgets = widgets
+    self.lock = threading.Lock()
+    # the main thread
+    self.thread = threading.Thread(target=self.run)
+    self.thread.setDaemon(True)
+    self.thread.start()
+    # spare thread for processing additions
+    self.adderq = Queue.Queue()
+    self.adder = threading.Thread(target=self.runadder)
+    self.adder.setDaemon(True)
+    self.adder.start()
+
+  def notify(self, line):
+    self.lock.acquire()
+    widgets = self.widgets
+    self.lock.release()
+    for w in widgets:
+      self.clientlock.acquire()
+      w.poll(self.client)
+      self.clientlock.release()
+    return 1
+
+  def add(self, w):
+    self.lock.acquire()
+    self.widgets.append(w)
+    self.lock.release()
+    self.adderq.put(lambda client: w.poll(client))
+
+  def remove(self, what):
+    self.lock.acquire()
+    self.widgets.remove(what)    
+    self.lock.release()
+    
+  def run(self):
+    self.notify("")
+    self.logclient.log(lambda client, line: self.notify(line))
+
+  def runadder(self):
+    while True:
+      item = self.adderq.get()
+      self.clientlock.acquire()
+      item(self.client)
+      self.clientlock.release()
+
+########################################################################
+
+def usage(s):
+  # display usage on S
+  s.write(
+    """Usage:
+
+  tkdisorder [OPTIONS]
+
+Options:
+
+  -h, --help         Display this message
+  -V, --version      Display version number
+
+tkdisorder is copyright (c) 2004, 2005 Richard Kettlewell.
+""")
+
+########################################################################
+
+try:
+  opts, rest = getopt.getopt(sys.argv[1:], "Vh", ["version", "help"])
+except getopt.GetoptError, e:
+  sys.stderr.write("ERROR: %s, try --help for help\n" % e.msg)
+  sys.exit(1)
+for o, v in opts:
+  if o in ('-V', '--version'):
+    print "%s" % disorder.version
+    sys.stdout.close()
+    sys.exit(0)
+  if o in ('h', '--help'):
+    usage(sys.stdout)
+    sys.stdout.close()
+    sys.exit(0)
+
+client = disorder.client()              # master thread's client
+
+root = Tk()
+root.title("DisOrder")
+
+tracklistFont = tkFont.Font(family='Helvetica', size=10)
+tracklistHFont = tracklistFont.copy()
+tracklistHFont.config(weight="bold")
+
+p = PlayingWidget(root)
+p.pack(fill=BOTH, expand=1)
+
+q = QueueWidget(root)
+q.pack(fill=BOTH, expand=1)
+
+intercom = Intercom(root)               # only need a single intercom
+mst = MonitorStateThread([p, q], client)
+
+root.mainloop()
+
+# Local Variables:
+# py-indent-offset:2
+# comment-column:40
+# fill-column:79
+# End:
+# arch-tag:d2c64241856ce5b19824e848f26c674b

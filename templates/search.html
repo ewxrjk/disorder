@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2003, 2004, 2005 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@include:stdhead@
+  <title>@label:search.title@</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+   <h1 class=title>@label:search.title@</h1>
+
+   <form class=search action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+    <div class=search>
+     <input class=query name=query type=text value="@arg:query@"
+      size=32>
+     <button class=search name=action type=submit value=search>
+      @label:search.search@
+     </button>
+     <input name=nonce type=hidden value="@nonce@">
+    </div>
+   </form>
+
+   <div class=searchresults>
+    @search{artist}{display}{
+    <div class="search_artist">
+     <p class="search_artist">Artist:
+      <span class="search_artist">@part:artist@</span></p>
+     @search{album}{display}{
+     <div class="search_album">
+      <p class="search_album">Album:
+       <span class="search_album">@part:album@</span></p>
+      @search{title}{
+      <div class="search_title">
+       <p class="search_title">Title:
+	<a href="@url@/?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@">@part:title@</a>
+	@if{@eq{@trackstate{@file@}@}{playing}@}{[<b>playing</b>]}@
+	@if{@eq{@trackstate{@file@}@}{queued}@}{[<b>queued</b>]}@
+       </p>
+      </div>
+      }@
+     </div>
+     }@
+    </div>
+    }@
+   </div>
+
+@include{@label{menu}@end}@
+ </body>
+</html>
+@@
+<!--
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+End:
+-->
+<!-- arch-tag:a4f39935b0c2a424c601c796ebf1a023 -->

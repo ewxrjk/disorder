@@ -1,0 +1,80 @@
+* Server
+
+After an hour or so of play use lsof to check that only a reasonable
+number of FDs are used by the server; the speaker; the deadlock
+checker.
+
+* Playing
+
+Check that artist and album work.
+
+Scratch button should work.
+
+Queue some tracks, check they can be removed.
+
+Album link should show track as playing.
+
+Amount of track played should be correct (also 'disorder playing').
+
+* Recent
+
+Most recent should be at the top.
+
+Check that artist, album and prefs links work.
+
+* Choose
+
+Queue some tracks.  They should be marked as queued.
+
+Pick an album.  Try 'play all'.  Check order.  Remove all.
+
+Navigate around.  Go into albums, back out with the navigation links.
+
+Go up outside the collection.  Should work, produce directories you
+can go back into.
+
+* Search
+
+Try a large search, e.g. 'love'.
+
+Look for 'Various'.  It should be in the right order and say
+'Various', i.e. an alias artist name should not have leaked into it.
+
+* Manage
+
+Check pause and play controls.  Pause should _not crash_ for tracks
+that cannot be paused.
+
+Set the volume up and down.
+
+Set the volume to exact values (different for L and R), check that the
+proper speaker is affected.
+
+Add some tracks, rearrange them, remove them again.
+
+* Help
+
+Are all the man page links there?
+
+Are recent UI changes documented?
+
+* About
+
+Does the search league look plausible?
+
+Are there are any good candidates for additional stopwords?
+
+Is the copyright date right?  Also check credits.html.
+
+* Preferences
+
+Modify prefs for a track from 'recent'.
+
+Modify prefs for a single track from 'choose'.
+
+Modify prefs for a whole album from 'choose'.
+
+Local Variables:
+mode:outline
+End:
+# arch-tag:wuvzKmIxK6XShozQ9Bsuww

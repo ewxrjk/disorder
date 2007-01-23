@@ -1,0 +1,15 @@
+Source: disorder
+Maintainer: Richard Kettlewell <richard+disorder@sfere.greenend.org.uk>
+Priority: optional
+Standards-Version: 3.0.1.0
+Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libao-dev, python
+
+Package: disorder
+Architecture: any
+Section: sound
+Priority: extra
+Depends: httpd,pwgen,mpg321,vorbis-tools,sox,${shlibs:Depends}
+Conflicts: jukebox
+Description: Play random or selected digital audio files continuously
+  Controlled from the command line or via a web-based interface.
+# arch-tag:747c10dcef548c0ba4ac60fc8864f4fa

@@ -1,0 +1,881 @@
+2004-10-04 00:59:42 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: proper track ordering in search.
+        
+        * regsub.c, tracks.c: chattier error messages
+        
+        * utf8.h: stricter UTF-8 parsing
+        
+2004-09-26 10:47:45 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Makefile.am, plugins/Makefile.am: tidy up to build in separate
+          object directory
+        
+2004-09-25 17:47:23 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * version 0.11
+        
+2004-09-25 17:41:21 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * BUGS: some known bugs
+        
+2004-09-25 17:25:49 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: chattier errors
+        
+2004-09-25 17:17:25 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * api-client.c, cgi.c, cgimain.c, disorder.c, server.c: EXIT_FAILURE
+          pedantry
+        
+2004-09-18 17:28:32 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * client.c: rework handling of commands that get lists back,
+          unbreaking 'stats' in the process.
+        
+2004-09-18 16:54:58 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: add a lockfile to prevent concurrent access to databases.
+        
+2004-07-31 19:05:38 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * debian/postinst, prerm: hopefuly better upgrade handling
+        
+2004-07-31 18:44:52 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * queue.c: don't reverse the queue on restart
+        
+        * Document queue/recent ordering a bit better.
+        
+2004-07-20 20:22:09 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tkdisorder: primitive queue widget, simplify MonitorStateThread
+        
+2004-07-20 19:42:52 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tkdisorder: python + tkinter gui, still under development
+        
+2004-07-18 14:21:12 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Extra navigation links in 'Choose' screen allow easier navigation
+          back up the directory tree.  It's not quite right yet because
+          track names are relative to the filesystem root rather than the root
+          of their collection.
+        
+          New @navigate@, @fullname@, @dirname@, @basename@, @ne@ and @eq@
+          expansions.
+        
+2004-07-18 13:22:53 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * use new label sidebar.choosewhich to determine which 'Choose' screen
+          to pick, rather than making operator edit sidebar.html
+        
+        * mention config.USERNAME in README
+        
+2004-07-18 13:05:45 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * debian/control: more detailed build deps
+        
+2004-07-18 13:03:56 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * README: dependency version notes
+        
+2004-07-18 12:57:55 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * cope with gcrypt version skew
+        
+2004-07-18 02:46:07 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Control connections can go over the net (using anything that
+          getaddrinfo() knows about) using the new 'listen' and 'connect'
+          options.
+        
+2004-07-17 19:01:25 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Increase/decrease volume buttons
+        
+2004-07-17 16:35:18 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * templates/help.html: document 'Manage'
+        
+        * templates/playing.html: extra empty buttons
+        
+2004-07-17 16:24:12 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Any track that had a filesystem encoding that differed from itself
+          when converted to UTF-8 track (that is to say, any non-ASCII track in
+          a non-UTF-8 filesystem) would not be played, as only the UTF-8
+          version of the name was passed to the player.
+        
+        * The disorder_play_track plugin interface now takes both the path and
+          the track name (the former being the raw bytes from the filesystem,
+          the latter being the UTF-8 version).
+        
+        * Document that scratch names must be UTF-8 (or ASCII).
+        
+2004-07-17 16:11:21 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * 'move' command in control protocol to move tracks around
+        
+        * New 'Manage' page allows tracks to be moved around in the queue.
+        
+2004-07-17 14:56:04 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.c: teach 'disorder play' to take multile tracks.  Hence for
+          instance you could do:
+            disorder play /path/to/some/album/*.ogg
+        
+2004-07-17 14:45:55 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * templates/help.html: mention choosealpha
+        
+2004-07-17 14:37:18 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Use regexp-filtered file listings to implement choosealpha.html,
+          which split the top-level 'Choose' page up according to the initial
+          letter of the filenames.
+        
+2004-07-17 14:19:33 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * files and directory listings can now be filtered using regexps (you
+          could do this in your client anyway but now the server does it for
+          you, thus causing less data to be transferred from server to
+          client).
+        
+        * correct disorder.py's quoting of empty strings
+        
+2004-07-17 13:07:51 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.py.in: correct exception-to-string functions
+        
+2004-07-17 13:05:06 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.py.in: add another example
+        
+2004-07-17 12:57:57 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.py.in: better docs and error handling
+        
+2004-07-17 01:06:59 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.py.in: add a full set of methods
+        
+2004-07-17 01:06:31 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * plugins/tracklength.c: quieten compiler
+        
+2004-07-16 22:31:31 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * rudimentary Python client support
+        
+2004-07-15 00:55:08 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * configuration.c: stricter syntax check for 'url'
+        
+2004-07-15 00:41:22 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: clarify 'url' syntax
+        
+        * templates/help.html: link to DisOrder control protocol page
+        
+2004-07-14 19:46:38 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * config.sample.in, debian/disorder.config: play WAV files correctly
+        
+        * debian/control: depend on sox
+        
+        * scratches are now *.ogg files
+        
+2004-07-11 19:45:24 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * plugins/tracklength.c: build fix
+        
+2004-07-11 19:39:40 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * add notify_queue to notify plugin
+        
+2004-07-11 19:01:26 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: always sync log after replay, so that upgrade works
+        
+2004-07-11 18:54:33 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * new prefs.log file records all preferences in ASCII and guarantess
+          to be up to date.  So provided you back up this file the rest of the
+          databases can be lost completely.
+        
+        * document the use and properties of the various database files
+        
+        * new prefsync configuration command controls interval between
+          minimization of prefs.log.
+        
+        * event.c, event.h: timeouts get an associated handle which can be
+          used to cancel them.
+        
+        * don't remove the search database at the drop of a hat as that would
+          require it to be rebuilt more frequently than is sensible.
+        
+2004-07-11 18:38:52 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.c: missing 'break', oops!
+        
+2004-07-10 19:43:42 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * plugins/tracklength.c: binary search over extensions
+                                 round up WAV duration
+        
+2004-07-10 19:22:50 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * plugins/tracklength.c: tracklength plugin now knows about WAV files
+                                 remember to unmap files after parsing them!
+        
+        * sounds/slap.wav: correct broken encoding (was two WAVs concatenated,
+          is now a single WAV; it worked with 'cat > /dev/audio' but doesn't
+          work with things that expect a single correctly formatted WAV file.)
+        
+2004-07-10 18:11:26 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * 'disorder --length' allows command-line access to tracklength plugin
+        
+2004-07-10 14:47:41 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * server.c: use libgcrypt for random numbers
+        
+        * configure.ac: don't need dev/[u]random any more
+        
+2004-07-10 13:33:16 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * add log command to stream logs to clients
+        
+        * disorder_protocol.5.in: new man page documenting internal
+          communications protocol
+        
+2004-07-10 11:51:54 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * use URL-encoding in dumps because it's more convenient to duck
+          encoding issues that way.  It also looks more consistent with the
+          use of URL-encoding elsewhere in DisOrder.
+        
+        * change logging interface so that messages are formatted only once.
+        
+2004-07-10 11:40:13 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * printf.c: correct number bases!
+        
+2004-07-10 00:00:33 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * send back our URL in Refresh HTTP header to work around weird Apache
+          behaviour
+        
+        * log to (in theory) multiple outputs
+        
+        * '#define NO_MEMORY_ALLOCATION' allows us to enforce rules about
+          files that shouldn't perform memory allocation
+        
+        * split *printf frontends into separate files since some need memory
+          allocation and some do not
+        
+2004-06-12 11:37:37 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Use a sink to handle writing to an ev_writer
+        
+        * disorder-dump --dump now works against a running server, so it is
+          not necessary to take the server down to back up the preference
+          data.
+        
+        * printf.c: correct handling of flags (which were completely broken)
+        
+2004-05-24 15:56:30 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * new help page, plus HTML-ized versions of man pages
+        
+        * de-dupe code in Makefile
+        
+        * template names can't have / in and can't be dot-files
+          (previously they weren't allowed . in)
+        
+        * @ is &#64; not &#40;
+        
+2004-05-24 14:00:38 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * templates/playing.html: put track title in <TITLE> element
+        
+2004-05-24 13:58:29 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: remove dead code
+        
+2004-05-23 19:29:16 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Makefile.am: distribute missing files
+        
+        * dcgi.c: quiten compiler
+        
+        * printf.c: missing base and padding settings
+        
+2004-05-23 19:08:40 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.3: update for disorder_snprintf
+        
+2004-05-23 19:01:31 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * New *printf implementation, which is guaranteed to behave reliable
+          in the face of strange encoding games (standard *printf insist on
+          MBC strings in the current encoding, which isn't great for us).
+          We don't support floating point yet.
+        
+        * Log output is always ASCII (non-ASCII characters are escaped) so we
+          don't have to rely on the encoding of stderr or syslog.
+        
+        * No longer depend on the target providing a working snprintf.
+        
+        * Corrected a few broken *printf calls
+        
+2004-05-22 16:55:02 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * reach preferences edit from 'Recent'
+        
+2004-05-22 16:30:56 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * @search@ converted to new template infrastructure
+        
+2004-05-21 21:55:55 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * optionally restrict scratch and/or remove to submitting user
+        
+        * export 'become' command to command-line client
+        
+        * determine username from UID, not environment
+        
+2004-05-21 21:13:30 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: minor improvements
+        
+2004-05-21 21:00:05 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: rearrange into alpha order
+        
+2004-05-18 23:14:11 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.c: add {enable,disable}-random as synonyms for
+          random-{enable,disable}
+        
+2004-05-18 20:18:02 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: prevent rapid web refresh is all playing is disabled
+
+2004-05-18 00:30:28 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * support libdb 4.2 as well as 3.2.  Versions inbetween might well work
+          but this hasn't been tested.
+        
+2004-05-16 23:43:34 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+        
+        * debian/control: list build depends
+        
+2004-05-16 23:34:40 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * #include <db.h> when checking libdb, to cope with variants that
+          redefine all the symbols.
+        
+2004-05-16 23:28:55 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * new disorder-dump program to read/write prefs in text format
+          (e.g. for backup, database upgrade, replication)
+
+2004-05-16 10:37:10 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Makefile.am: clean generated files
+        
+        * debian/autorules.m4: fix clean target
+        
+        * debian/rules.m4: man pages in /usr/share/man
+        
+2004-04-26 23:28:18 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * eliminate dependency on <inttypes.h>
+        
+2004-04-26 20:59:20 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * convert UTF-8 -> UCS-4 directly, rather than relying on iconv (which
+          doesn't always know how to do it).
+        
+2004-04-26 20:47:12 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Do not expand dcgi-generated txet in expansion argument values (as
+          it'll get expanded properly later on anyway).
+        
+        * Add @urlquote@ expansion.
+        
+2004-04-25 20:47:26 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * arg:directory, not arg:dir
+          Include containing directory name in choose.html
+        
+2004-04-25 20:11:49 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: minor docs improvements.
+        
+2004-04-25 19:53:19 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * unify transform- web options, and make them available via the
+          @transform@ expansion.
+        
+2004-04-25 19:52:13 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: setting a trackname_ pref would cause a crash.
+        
+2004-04-25 18:51:56 +0100  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Bring documentation up to date a bit.
+        
+2004-04-25 18:29:49  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * @choose@ converted to new template infrastructure.
+        
+2004-04-25 17:14:56  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * @prefs@ now takes a template argument, shifting the preferences
+          table furniture into the template file.
+        
+2004-04-25 15:44:38  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Portability hacks of various degrees of nastiness in the interest of
+          building on FreeBSD.
+        
+2004-04-18 19:00:52  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: add some missing bits.
+        
+2004-04-18 18:05:17  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * @playing@ and @recent@ now take a template argument, allowing the
+          template file to contain the table furniture rather than having it
+          generated from inside dcgi.  Templates updated accordingly.
+          Documentation updated.
+        
+        * Moved the calculation of expected start times into the server.
+        
+2004-04-18 13:45:19  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: booleans for the expansion language
+        
+2004-04-18 13:13:46  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Expansions can now take multiple parameters using a new quoting
+          syntax.  Parameters are (for all current expansions, but not for
+          some future one) recursively expanded before use.
+        
+        * sink.c: interface for things that accept output (current
+          implementations being stdio and dynstrs)
+        
+        * vacopy.h: find a va_copy somewhere.
+        
+2004-04-17 16:48:00  Richard Kettlewell  <rjk@greenend.org.uk>
+
+	* version 0.10
+
+2004-04-17 16:25:59  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Typo fixes.
+        
+2004-04-17 16:03:45  Richard Kettlewell  <rjk@greenend.org.uk>
+        
+        * README: recommend basic authentication instead of digest auth, as
+          the latter seems too poorly supported.
+        
+        * configure.ac: don't check for things that are very standard
+        
+        * debian/control: add Section and Priority fields
+        
+2004-04-04 17:45:34  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Build GNU getopt for systems where libc doesn't have it
+        
+2004-04-04 15:11:49  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * configure.ac: check that various things are available and work at
+          configure time, rather than build or (worse still!) run time.  More
+          library checks.
+        
+        * charset.c: <wchar.h> no longer needed
+        
+2004-04-04 12:06:16  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * server.c: attempt to play tracks when they are added to the queue.
+          Otherwise they wouldn't be played at all nothing was already
+          playing.
+        
+2004-04-03 13:39:30  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Use libiconv if libc doesn't have iconv
+        
+2004-04-03 12:42:05  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * configure.ac: check for both libdb and libdb3
+                        report all missing libs at once
+        
+2004-04-02 23:42:13  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Only use __attribute__ syntax under GNU C.
+        
+2004-04-02 23:16:41  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * configure.ac: use whatever libdb the system defaults to.
+        
+2004-04-02 23:06:50  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.c: add a --help-commands option giving a one-line summary
+          of each command.
+        
+        * Updated documentation a bit.
+        
+2004-04-02 20:20:47  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Ship another scratch sound.
+        
+2004-04-02 20:10:10  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Debianization fixes:
+          + distribute postrm
+          + call Libtool correctly
+          + fix shared library dependencies
+        
+        * Quieten compiler when optimization turned on.
+        
+2004-04-02 19:27:59  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Tidy up appearance of preferences screen
+        
+2004-03-28 20:01:40  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Track prefs editor in web interface.  Rather rough-edged for now.
+        
+2004-03-28 17:41:43  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: add @shell@ expansion
+        
+2004-03-28 15:02:02  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: handle empty search result lists correctly.
+        
+2004-03-28 14:38:01  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * split.c: quote empty strings properly
+        
+2004-03-28 14:35:39  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * README.streams: how to play streams with DisOrder
+        
+2004-03-28 14:10:51  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * play.c: unpick wait status of failed players
+        
+2004-03-28 14:07:49  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * play.c: put players in their own process group and send SIGKILL
+          rather than SIGTERM (the latter because ogg123 doesn't seem to honor
+          SIGTERM when playing streams).
+        
+2004-03-28 13:57:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Handle directories that contain both files and directories better
+          + dcgi.c: headings for directory/track lists
+                    correct output for choose.playall label
+          + server.c: support file listing in the root
+          + Associated label and style sheet additions
+        
+2004-03-28 12:35:20  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * New 'shell' player plugin executes a shell command with an environment
+          variable identifying the track.  Optionally, the user can control what
+          shell is used.
+        
+        * The sample config file knows how to play .wav files now.
+        
+        * Ship a default scratch sound.
+        
+2004-03-27 20:48:13  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Play tracks via a plugin.  'exec' plugin module provides previous
+          behaviour.
+        
+2004-03-27 20:28:57  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * log interesting events if a username is attached (see previous
+          change)
+        
+2004-03-27 19:30:44  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * server.c: don't log auth data any more - with the Refresh: HTTP
+          header causing disorder.cgi to run every few seconds you end up with
+          vast amounts of useless information.  It would be more sensible to
+          log actions instead.
+        
+2004-03-27 18:41:22  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Add a sidebar to the web interface, making everything available from
+          everywhere.  Tidy up the default stylesheet.
+        
+2004-03-27 18:19:40  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: eliminate a spurious </div>
+        
+2004-03-27 17:17:16  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * When updating the track list, only process one track per select().
+          This makes the server much more responsive to clients during
+          rescans.
+        
+2004-03-27 16:20:30  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Don't need file extensions in stopword list by default any more.
+        
+2004-03-27 16:07:53  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Common code now lives in a shared library.
+          This library is not intended for other programs to link against,
+          so no ABI guarantees exist for it.
+        
+        * The disorder(3) API is now implemented by shim functions rather than
+          aliases.  These are always part of the executable that imports the
+          plugin, never the shared library.  Varargs functions are a bit messy
+          as you can't just write a forwarding function for them.
+        
+2004-03-27 14:22:22  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Volume control support.
+          + new 'mixer' and 'channel' configuration commands
+          + 'volume' server command
+          + disorder_set_volume and disorder_get_volume client functions
+          + get-volume and set-volume command-line client commands
+          + @volume:SPEAKER@ expansion to get current volumes
+          + 'volume' action to set volume
+          + volume.html template (a bit primitive still)
+        
+2004-03-26 19:15:09  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Bring back 'Play all' button in @choose@, and fix track selection
+        
+        * Scratch by ID, so that late scratches don't get the wrong track
+        
+2004-03-25 00:40:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: report top 10 search words in server stats
+        
+2004-03-24 23:24:45  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: de-dupe track/directory code in @choose@
+        
+2004-03-22 23:31:55  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * dcgi.c: fine-tune sort order.  Now we try the 'sort' transformation
+          or part context first - once case-folded, once raw; then we try the
+          'display' version, again case-folded then raw; and finally we use
+          the unprocessed track name as as tie-breaker.
+        
+          Repeated calls to casefold aren't very efficient, this should be
+          fixed.
+        
+        * templates/options.transform: correct transform-track replacement
+          string
+        
+2004-03-22 19:58:42  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Global and case-independent regexp replacement.
+        
+        * Strip out punctuation for sorting directories in @choose@.
+        
+2004-03-21 19:30:39  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: remove search database in track_sync().  It'll be removed
+          when we re-open anyway, and there's no point occupying the disk
+          space longer than necessary.
+        
+          By the same token, we don't bother syncing it in track_sync().
+        
+2004-03-21 18:47:31  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Sort strings are now case-folded before comparison.
+        
+        * words.c: casefold now returns the original string if it was
+          malformed, rather than a null pointer.
+        
+2004-03-21 17:04:48  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.h: new function disorder_track_set_data allows plugins to
+          set preferences as well as query them.
+        
+        * disorder.3: document the above and add some general notes
+        
+        * plugins/notify.c: record time and count tracks are played at
+        
+        * plugins/pick.c: don't pick recently played tracks
+        
+2004-03-21 16:06:21  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: server stats had the database types all wrong, leading to
+          a crash.  Fixed.
+        
+2004-03-21 15:14:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Separate sorting and display with new context arguments in
+          configuration and trackname_ preferences.
+        
+        * By default track numbers take part in sorting, but are not displayed
+        
+        * By default "The" is display unmodified but moved to the end for
+          sorting
+        
+2004-03-21 14:37:36  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Group search results according to 'columns search' configuration.
+        
+2004-03-21 14:25:35  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        cvs -Q up -j mergepoint-0-9-bugfixes-1 -j mergepoint-0-9-bugfixes-2
+        
+2004-03-21 14:21:34  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * templates/search.html: fix broken HTML.
+
+2004-03-20 21:11:30  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Include trackname_ preferences in searches, and rebuild search
+          database from scratch on startup (to completely eliminate any
+          contamination due to prior configuration).
+        
+2004-03-20 18:50:36  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * words.c: more characters are separators
+        
+2004-03-20 18:44:45  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Split preferences into a separate database, and automatically
+          convert the old one.
+
+2004-03-18 00:11:26  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: correct scanning for directories, to correctly handle
+          cases where you have <path>/<prefix> and <path>/<prefix><suffix>.
+        
+2004-03-17 00:20:55  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * config.sample.in: prefer mpg321 to mpg123
+        
+2004-03-16 23:45:54  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Server statistics support:
+          o track_stats() reports stats from databases
+          o disorder_stats() reports stats in client
+          o stats command to command line interface
+          o @stats@ expansion in web interface
+        
+        * about.html: provides information about DisOrder
+        
+        * client.c: correct list parsing in client interface
+        
+        * disorder_config.5.in: add missing docs for @arg@ and @search@
+        
+2004-03-16 23:16:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Do all database writes synchronously and add some missing
+          transaction IDs.  In fact the missing transaction IDs probably
+          ameliorated problems caused by the asynchronous writes (which leave
+          the database actually unusable, rather than merely with bits
+          missing).
+
+2004-03-16 20:30:00  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Improved track search:
+          o Instead of encoding all track names into a single db item, we use
+            sorted duplicate data items.  libdb does all the work for us.
+          o Strip collection root and extensions from filenames
+          o Delete stopwords from search db at startup (in case new ones have
+            been added)
+          o Rename search db to search2.db so it doesn't conflict with the old
+            one
+          o Always update search db even if we've seen the track, so that
+            database format/name changes don't trash searching
+        
+        * Add a few missing transaction ID arguments.
+        
+2004-03-16 20:24:25  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * rescan.c: rescan would crash on shut down
+        
+2004-03-16 12:43:54  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * quieten compiler when optimization turned on
+        
+2004-03-16 12:12:40  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder_config.5.in: complete renaming of trackinfo.* to heading.*
+        
+2004-03-15 23:18:02  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * version 0.9
+        
+2004-03-15 19:56:50  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Define table columns with a new 'columns' web option, rather than by
+          relying on the ordering of trackinfo.* labels.  trackinfo.* labels
+          are thus only used as headings and are renamed accordingly.  The
+          button column is no longer magical.
+        
+        * Always search the config directory and data directory for templates
+          and web options (after any explicitly configured directories).
+        
+2004-03-15 19:17:02  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * make table classes more consistent
+        
+2004-03-15 18:13:39  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: log closing databases.  Checkpoint database at shutdown.
+        
+2004-03-15 18:03:35  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * tracks.c: issue log messages from database checkpointing, since we
+          don't know how long they'll take.
+        
+2004-03-15 17:31:35  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * disorder.init.in: make 'stop' work even if server not running.
+        
+2004-03-15 14:37:59  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        Added debianization files.
+        
+2004-03-15 13:51:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * cgi.c: avoid UB if template path is empty
+        
+2004-03-14 16:33:12  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Makefile.am: correct dependencies on version script
+                       distribute version script
+        
+2004-03-14 16:30:56  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * eliminate zombie rescans.
+        
+2004-03-14 16:25:37  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * eliminate clash with glibc error().
+        
+2004-03-14 16:19:55  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * Use a version script to limit the exported symbols.  There's a glibc
+          naming clash with error() which should work around.  Also this
+          should be conditional on the linker actually supporting this
+          feature.
+        
+2004-03-14 15:37:56  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * configure.ac: correct wrong handling of <gc.h>
+        
+2004-03-14 15:04:44  Richard Kettlewell  <rjk@greenend.org.uk>
+
+        * DisOrder has been rewritten in C.
+        
+arch-tag:b64f2a539d1621207b46b5bd202244e9

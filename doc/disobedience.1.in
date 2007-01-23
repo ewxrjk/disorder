@@ -1,0 +1,223 @@
+.\"
+.\" Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disobedience 1
+.SH NAME
+disobedience \- GUI client for DisOrder jukebox
+.SH SYNOPSIS
+.B disobedience
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B disobedience
+is a graphical client for DisOrder.  It is a work in progress and many features
+are not implemented yet.  However everything in this man page is either
+implemented or marked as missing.
+.SH OPTIONS
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.  The default is
+.IR pkgconfdir/config .
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SS "GTK+ Options"
+Additional options are supported by the GTK+ library.  Refer to GTK+
+documentation for further information.  Under X11 they include:
+.TP
+.B --display \fIDISPLAY\fR
+The X display to use.
+.TP
+.B --screen \fISCREEN\fR
+The screen number to use.
+.\" If know enough to use it you know enough to find it
+.\" .TP
+.\" .B --sync
+.\" Make all X requests synchronously.
+.SH "WINDOWS AND ICONS"
+.SS "File Menu"
+This only has one option, "Quit", which terminates the program.
+.SS "Edit Menu"
+This has the following options:
+.TP
+.B "Select All"
+Select all tracks in whichever of the Queue or Recent tabs are showing.
+.TP
+.B Properties
+Edit the details of the selected tracks.
+.SS "Help Menu"
+This has only one option, "About DisOrder", which pops up a box giving the
+name, author and version number of the software.
+.SS "Controls"
+.TP
+.B "Pause button"
+The pause button can be used to pause and resume tracks.
+.TP
+.B "Scratch button"
+The scratch button, a red cross, can be used to interrupt the currently playing
+track.
+.TP
+.B "Random play button"
+The random play button can be used to enable and disable random play.  It does
+not take effect until the currently playing track finishes.
+.TP
+.B "Play button"
+The play button controls whether tracks will be played at all.  As above it
+does not take effect until the currently playing track finishes.
+.TP
+.B "Volume slider"
+The volume slider indicates the current volume level and can be used to adjust
+it.  0 is silent and 10 is maximum volume.
+.TP
+.B "Balance slider"
+The balance slider indicates the current balance and can be used to adjust it.
+-1 means only the left speaker, 0 means both speakers at equal volume and +1
+means the only the right speaker.
+.SS "Queue Tab"
+This displays the currently playing track and the queue.  The currently playing
+track is at the top and has a green background.  Queued tracks appear below it
+and have alternating red and white backgrounds.
+.PP
+The left button can be use to select and deselect tracks.  On its own it just
+selects the pointed track and deselects everything else.  With CTRL it flips
+the state of the pointed track without affecting anything else.  With SHIFT it
+selects every track from the last click to the current position and deselects
+everything else.  With both CTRL and SHIFT it selects everything from the last
+click to the current position without deselecting anything.
+.PP
+The right button pops up a menu.  This has the following options:
+.TP
+.B Properties
+Edit the details of the selected tracks.  See
+.B "Properties Window"
+below.
+.TP
+.B "Select All"
+Select all tracks.
+.TP
+.B Scratch
+Interrupt the currently playing track.  (Note that this appears even if you
+right click over a queued track rather than the currently playing track.)
+.TP
+.B Remove
+Remove the selected tracks from the queue.
+.SS "Recent Tab"
+This displays recently played tracks, the most recent at the top.
+.PP
+The left button functions as above.  The right button pops up a menu with the
+following options:
+.TP
+.B Properties
+Edit the details of the selected tracks.  See
+.B "Properties Window"
+below.
+.TP
+.B "Select All"
+Select all tracks.
+.SS "Choose Tab"
+This displays all the tracks known to the server in a tree structure.
+.PP
+Directories are represented with an arrow to their left.  This can be clicked
+to reveal or hide the contents of the directory.  The top level "directories"
+break up tracks by their first letter.
+.PP
+Playable files are represented by their name.  If they are playing or in the
+queue then a notes icon appears next to them.
+.PP
+Left clicking on a file will select it.  As with the queue tab you can use
+SHIFT and CTRL to select multiple files.
+.PP
+The text box at the top is a search form.  If you enter search terms here then
+the display will be limited to tracks containing all those words.  You can also
+limit the results to tracks with particular tags, by including \fBtag:\fITAG\fR
+for each tag.
+.PP
+To start a new search just edit the contents of the search box.  The cancel
+button to its right clears the current search.
+.PP
+Right clicking will pop up a menu with the following options:
+.TP
+.B Play
+Play selected tracks.
+.TP
+.B Properties
+Edit properties of selected tracks.
+.PP
+A middle click on a file will add it to the queue.
+.SS "Properties Window"
+This window contains details of one or more tracks and allows them to be
+edited.
+.PP
+The Artist, Album and Title fields determine how the tracks appear in
+the queue and recently played tabs.
+.PP
+The Tags field determine which tags apply to the track.  Tags are separated by
+commas and can contain any printing characters except comma.
+.PP
+The Random checkbox determines whether the track will be picked at random.
+Random play is enabled for every track by default, but it can be turned off
+here.
+.PP
+Press "OK" to confirm all changes and close the window, "Apply" to confirm
+changes but keep the window open and "Cancel" to close the window and discard
+all changes.
+.SH "KEYBOARD SHORTCUTS"
+.TP
+.B CTRL+A
+Select all tracks (queue/recent)
+.TP
+.B CTRL+Q
+Quit.
+.SH "GTK+ RESOURCES"
+You can override these resources in order to customize the appearance of
+Disobedience.  TODO example that actually works.
+.SS "Widget Names"
+.TP
+.B disobedience.*.choose
+This is the panel containing the track choice tree.
+.TP
+.B disobedience.*.queue
+This is the panel displaying the queue.
+.TP
+.B disobedience.*.choose
+This is the panel listing recently played tracks.
+.TP
+.B disobedience.*.row-playing
+This is the row listing the currently playing track.
+.TP
+.B disobedience.*.row-odd
+This an odd-numbered row in the queue or recently played track list.
+.TP
+.B disobedience.*.row-even
+This an even-numbered row in the queue or recently played track list.
+.SH "SEE ALSO"
+.BR disorder_config (5)
+.PP
+.B http://www.gtk.org/api/2.6/gtk/gtk-x11.html
+.br
+- Using GTK+ on the X Window System
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
+.\" arch-tag:PmkAKyNwF7gDXfzSQ9GnYg

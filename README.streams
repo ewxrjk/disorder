@@ -1,0 +1,32 @@
+DisOrder and Internet Streams
+=============================
+
+DisOrder doesn't have any built-in support for playing streams but you can make
+it do so.  I use the following in my configuration file:
+
+ player /export/radio/*.oggradio shell 'xargs ogg123 -q < "$TRACK"'
+ collection fs iso-8859-1 /export/radio
+
+After setting this up you'll need to re-read the config file and provoke a
+rescan:
+
+  disorder reconfigure rescan /export/radio
+
+/export/radio contains a file for each stream, containing the URL to use:
+
+ lyonesse$ cat /export/radio/CUR1350.oggradio
+ http://cur.chu.cam.ac.uk:8000/cur.ogg
+
+You'll probably want to prevent random play of streams:
+
+ disorder set /export/radio/CUR1350.oggradio pick_at_random 0
+
+You can then queue a stream like any other track.  It won't automatically
+interrupt the playing track, you have to scratch it manually.  Go back to
+normal play by scratching the stream.
+
+Local Variables:
+mode:text
+fill-column:79
+End:
+arch-tag:ae95108d51c55288c4f6da4102343cd5

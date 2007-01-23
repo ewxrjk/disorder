@@ -1,0 +1,42 @@
+* Compilation Bugs
+
+The configure script make pointless checks for C++ and Fortran compilers.  This
+is a bug in Libtool not in DisOrder.  See: http://bugs.debian.org/221873
+
+* Server Bugs
+
+* Other Problems
+
+** Wrongly Specified Character Encoding
+
+A problem was reported where DisOrder was misconfigured to believe a UTF-8
+filesystem was actually an ISO-8859-1 filesystem.  When it was reconfigured
+correctly, the old (mangled) filenames remain in the database.
+
+This is not a bug as such, it is a configuration error.  However recovering
+from it can be painful if many filenames are involved.  If this mistake is
+widespread then it may be worth adding support for automatic recovery, but for
+now the easiest answer is to stop the server, remove the databases and start
+again.
+
+** Poor Sound Quality
+
+Poor sound quality may be a result of (hitherto unknown!) bugs in DisOrder, or
+may be a problem with other software or hardware.  Specific combinations that
+have produced problems in the past are listed here.
+
+*** Stutter with VIA 82C686
+
+Hardware: "VT82C686 AC97 Audio Controller"
+Software: Linux via82cxxx_audio driver
+Symptom: Stuttering playback with raw format play.
+Solution: Use snd-via82xx driver instead (from ALSA).
+
+ALSA drivers can be found in Linux 2.6.x; for 2.4.x they must be built
+separately.
+
+Local Variables:
+mode:outline
+fill-column:79
+End:
+arch-tag:32a95f730a93f0073f62873ebae245f8

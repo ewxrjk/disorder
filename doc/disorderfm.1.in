@@ -1,0 +1,100 @@
+.\"
+.\" Copyright (C) 2006 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorderfm 1
+.SH NAME
+disorderfm \- DisOrder file management utility
+.SH SYNOPSIS
+.B disorderfm
+.RI [ OPTIONS ]
+.I SOURCE
+.I DESTINATION
+.SH DESCRIPTION
+.B disorderfm
+recursively links or copies files from
+.I SOURCE
+to
+.IR DESTINATION ,
+transforming filenames along the way.
+.SH OPTIONS
+.SS "Filename Format"
+.TP
+.B --from\fI ENCODING\fR, \fB-f\fI ENCODING
+Specifies the filename encoding used below
+.IR SOURCE .
+.TP
+.B --to\fI ENCODING\fR, \fB-t\fI ENCODING
+Specifies the filename encoding used below
+.IR DESTINATION .
+.PP
+If neither of \fB--from\fR or \fB--to\fR are specified then no encoding
+translation is performed.  If only one is specified then the other is set to
+the current locale.
+.TP
+.B --windows-friendly\fR, \fB-w
+Specifies that filenames below
+.I DESTINATION
+must be Windows-friendly.  This is achieved by replacing special characters
+with '_', prefixing device names with '_' and stripping trailing dots and
+spaces.
+.SS "File Selection"
+.TP
+.B --include\fI PATTERN\fR, \fB-i\fI PATTERN
+Include filenames matching the glob pattern \fIPATTERN\fR.
+.TP
+.B --exclude\fI PATTERN\fR, \fB-e\fI PATTERN
+Exclude filenames matching the glob pattern \fIPATTERN\fR.
+.PP
+These options may be used more than once.  They will be checked in order and
+the first that matches any given filename will determine whether that file is
+included or excluded.
+.PP
+If none of the options match and \fB--include\fR was used at all then the file
+is excluded.  If none of the options match and \fB--include\fR was never used
+then the file is included.
+.SS "File Copying"
+.TP
+.B --link\fR, \fB-l
+Files are hard-linked to their destination location.  This is the default
+action.
+.TP
+.B --symlink\fR, \fB-s
+Symlinks are made in the destination location pointing back into the source
+directory.
+.TP
+.B --copy\fR, \fB-c
+Files are copied into their destination location.
+.TP
+.B --no-action\fR, \fB-n
+The destination location is not modified in any way.  Instead a report is
+written to standard output saying what would be done.
+.SS "Other"
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
+.\" arch-tag:HqblI8GXJamh2oeBBgb1Ug

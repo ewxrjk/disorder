@@ -1,0 +1,334 @@
+DisOrder
+========
+
+This program is used to play random and chosen tracks from a collection of
+digital audio files (for instance MP3 and OGG files).  If you just set it going
+it plays random tracks from your collection, but you can also ask for specific
+tracks to be played, either via a command line program or a web interface, and
+you can 'scratch' the current track.
+
+See CHANGES for details of recent changes to DisOrder.
+
+Currently it only runs on Linux.  It could probably be ported to other UNIX
+variants in some cases without too much effort.  Things you will need:
+
+Build dependencies:
+  Name             Tested              Notes
+  libdb            4.3.21              4.2 and earlier won't work
+  libgc            6.3
+  libvorbisfile    1.0.1
+  libpcre          4.5                 need UTF-8 support
+  libmad           0.15.1b
+  libgcrypt        1.2.0
+  libao            0.8.6
+  libasound        1.0.8
+  Python           2.3                 (optional)
+  GNU C            3.3, 3.4
+
+"Tested" means I've built against that version; earlier or later versions will
+often work too.
+
+Runtime dependencies:
+ * Players:
+   + ogg123 and mpg321 work for me, but you could potentially use others.
+ * Web server:
+   + Apache 1.3.x works for me, but anything that supports CGI and
+     authentication should be suitable.
+
+Development dependencies (only developers will need these):
+  Automake         1.9.4               AM_PATH_PYTHON not good enough in 1.7
+  Autoconf         2.59
+  Libtool          1.5.6               1.4 not good enough
+  Arch             1.3-1
+
+Mailing lists:
+  http://www.chiark.greenend.org.uk/mailman/listinfo/sgo-software-discuss
+   - discussion of DisOrder (and other software), bug reports, etc
+  http://www.chiark.greenend.org.uk/mailman/listinfo/sgo-software-announce
+   - announcements of new versions of DisOrder
+
+
+Installation
+============
+
+   "This place'd be a paradise tomorrow, if every department had a supervisor
+   with a machine-gun"
+
+NOTE: If you are upgrading from an earlier version, see README.upgrades.
+
+1. Build the software.  Do something like this:
+
+     ./configure --sysconfdir=/etc --localstatedir=/var
+     make
+
+   See INSTALL for more details about driving configure.  The precise set of
+   options you pass to configure is up to you, if you like configuration being
+   in /usr/local/etc or wherever then that should work.
+
+   If you only want to build a subset of DisOrder, specify one or more of the
+   following options:
+     --without-server       Don't build server or web interface
+     --without-gtk          Don't build GTK+ client (Disobedience)
+     --without-python       Don't build Python support
+
+   See README.client for setting up a standalone client.
+
+2. Install it.  Most of the installation is done via the install target:
+
+     make installdirs install
+
+   The CGI interface has to be installed separately, and you must use Libtool
+   to install it.  For instance:
+
+     ./libtool --mode=install install -m 755 progs/disorder.cgi /usr/local/lib/cgi-bin/disorder
+
+   Depending on how your system is configured you may need to link the disorder
+   libao driver into the right directory:
+
+     ln -s /usr/local/lib/ao/plugins-2/libdisorder.so /usr/lib/ao/plugins-2/.
+
+3. Create a 'jukebox' user and group, with the jukebox group being the default
+   group of the jukebox user.  The server will run as this user and group.
+   Check that this user can read your music files and write to the audio
+   device, e.g. by playing a track.  The exact name doesn't matter, it could be
+   'jukebox' or 'disorder' or 'fred' or whatever.
+
+   Do not use a general-purpose user or group, you must create ones
+   specifically for DisOrder.
+
+4. Create /etc/disorder/config.  Start from examples/config.sample and adapt it
+   to your own requirements.  In particular, you should:
+    * edit the 'player' commands to reflect the software you have installed.
+    * edit the 'collection' command to identify the location(s) of your own
+      digital audio files.  These commands also specify the encoding of
+      filenames, which you should be sure to get right as recovery from an
+      error here can be painful (see BUGS).
+    * edit the 'scratch' commands to supply scratch sounds (or delete them if
+      you don't want any).
+    * edit the 'trust' command to reflect the user the web interface will
+      eventually run as.
+    * edit the 'url' command to give the URL of the web interface.
+    * add or remove 'stopword' entries as necessary (these words won't take
+      part in track name searches from the web interface).
+
+   See disorder_config(5) for more details.
+
+5. Create /etc/disorder/config.private.  This should be readable only by the
+   jukebox group:
+
+     touch /etc/disorder/config.private
+     chown root:jukebox /etc/disorder/config.private
+     chmod 640 /etc/disorder/config.private
+
+   Set up a username and password for root, for example with line like this:
+
+     allow root somepassword
+
+   Use (for instance) pwgen(1) to create the password.  DO NOT use your root
+   password - this is a password to give root access to the server, not to give
+   access to the root login.
+
+   See disorderd(8) and disorder_config(5) for more details.
+
+6. Make sure the server is started at boot time.  On many Linux systems,
+   examples/disorder.init should be more or less suitable; install it in
+   /etc/init.d, adapting it as necessary, and make appropriate links from
+   /etc/rc[0-6].d.  If you have a BSD style init then you are on your own.
+
+7. Make sure the state directory (/var/disorder or /usr/local/var/disorder or
+   as determined by configure) exists and is writable by the jukebox user.
+
+     mkdir -m 755 /var/disorder
+     chown disorder:root /var/disorder
+
+8. Start the server, for instance:
+
+     /etc/init.d/disorder start
+
+   By default disorderd logs to daemon.*; check your syslog.conf to see where
+   this ends up and look for log messages from disorderd there.  If it didn't
+   start up correctly there should be an error message.  Correct the problem
+   and try again.
+
+9. After a minute it should start to play something.  Try scratching it, as any
+   of the users you set up in step 5:
+
+     disorder scratch
+
+   The track should stop playing, and (if you set any up) a scratch sound play.
+
+10. Add any other users you want to config.private.  Each user's password
+    should be stored in a file in their home directory, ~/.disorder/passwd,
+    which should be readable only by them, and should take the form of a single
+    line:
+
+      password MYPASSWORD
+
+    (root doesn't need this as the client can read it out of config.private
+    when running as root.)
+
+    Note that the server must be reloaded (e.g. by 'disorder reconfigure')
+    when new users are added.
+
+    Alternatively the administrator can create /etc/disorder/config.USERNAME
+    containing the same thing as above.  It can either be owned by the user and
+    mode 400, or owned by root and the user's group (if you have per-user
+    groups) and mode 440.
+
+    You can use 'disorder authorize' to automatically pick passwords and
+    create these files.
+
+11. Optionally source completion.bash from /etc/profile or similar, for
+    example:
+
+      . /usr/local/share/disorder/completion.bash
+
+    This provides completion over disorder command and option names.
+
+
+Web Interface
+=============
+
+   "Thought I was a gonner baby, but I'm bullet proof"
+
+These instructions assumes you are using Apache 1.3.x.
+
+You need to configure a number of things to make this work:
+
+1. If you want to have a 'jukebox' virtual host, modify the DNS (or hosts file
+   if you are somehow reading this in the 1980s) accordingly and use a fragment
+   such as this one:
+
+     <VirtualHost HOSTNAME>
+     DocumentRoot /home/jukebox/public_html
+     ServerName jukebox.DOMAIN
+     ServerAlias jukebox
+     ServerAdmin webmaster@DOMAIN
+     ErrorLog /var/log/apache/jukebox/error.log
+     TransferLog /var/log/apache/jukebox/access.log
+     Alias /static/ /usr/local/share/disorder/static/
+     </VirtualHost>
+
+   /static/ should point to the 'static' directory installed by DisOrder.  If
+   you don't want to use the name 'static' then you can change the url.static
+   label in the web interface configuration to your preferred URL; see
+   disorder_config(5) for details.
+
+   Don't forget to reload Apache after modifying its configuration.
+
+   Separate logging is not required but I find it convenient.  Up to you.
+
+2. disorder.cgi assumes it is subject to access control (and in particular uses
+   the username to report who did what).  Here's how I configured Apache, given
+   the above VirtualHost settings:
+
+     <Directory /home/jukebox>
+     Require valid-user
+     AuthType basic
+     AuthName jukebox
+     AuthUserFile /home/jukebox/http.users
+     </Directory>
+
+   Adjust this according to wherever you're going to install disorder.cgi and
+   its expected URL.
+
+   Don't forget to reload apache after modifying its configuration.  If you got
+   it wrong, fix it and restart Apache.
+
+3. Create the password file configured above.  Something like this:
+
+     # htpasswd -b -c /home/jukebox/http.users myusername mypassword
+     Adding password for user myusername
+     # htpasswd -b /home/jukebox/http.users othername otherpass
+     Adding password for user othername
+
+4. The jukebox must be configured to trust the web user.  I added the following
+   line to my /etc/disorder/config:
+
+     trust www-data
+
+   This might not be the same on your system!  You have to specify the user
+   that the CGI script runs as, whatever that is.
+
+5. Install disorder.cgi in an appropriate location.  Remember to make it
+   executable.  With the above configuration I installed it as
+   ~jukebox/public_html/index.cgi.
+
+6. Give www-data (or whatever user it is) a password and edit
+   /etc/disorder/config.private accordingly.  This file should be mode 640 and
+   owned by root:jukebox.  The line should look something like this:
+
+     allow www-data MYPASSWORD
+
+   After editing the config file, you must make the daemon re-read it:
+
+     disorder reconfigure
+
+7. Teach www-data its password, by putting it in /etc/disorder/config.www-data.
+   This file should be mode 640 and owned by root:www-data.
+
+     password MYPASSWORD
+
+   (You could also use ~www-data/.disorder/passwd for this but on some systems
+   the web server user's home directory is inside the document root, which
+   would have rather unfortunate consequences.)
+
+8. Try it out.  You should be asked for a username and password that you
+   configured earlier, and be shown details of what is playing and what other
+   tracks have been configured for future play.
+
+9. Some features take time to start working, for instance those involving
+   reporting the length of tracks.  This is because the server starts up as
+   quickly as possible even if the full track data has not yet been gathered;
+   the track data is then calculated in the background.
+
+10. If you run into problems, always look at the appropriate error log; the
+    message you see in your web browser will usually not be sufficient to
+    diagnose the problem all by itself.
+
+11. If you have a huge number of top level directories, then you might find
+    that the 'Choose' page is unreasonably large.  If so add the following line
+    to /etc/disorder/options.user:
+      label sidebar.choosewhich choosealpha
+
+    This will make 'Choose' be a link for each letter of the 26-letter Roman
+    alphabet; follow the link and you just get the directories which start with
+    that letter.  The "*" link at the end gives you directories which don't
+    start with a letter.
+
+    You can copy choosealpha.html to /etc/disorder and edit it to change the
+    set of initial choices to anything that can be expressed with regexps.  The
+    regexps must be URL-encoded UTF-8 PCRE regexps.
+
+
+Copyright
+=========
+
+  "Nothing but another drug, a licence that you buy and sell"
+
+DisOrder - select and play digital audio files
+Copyright (C) 2003, 2004, 2005, 2006 Richard Kettlewell
+Portions extracted from MPG321, http://mpg321.sourceforge.net/
+  Copyright (C) 2001 Joe Drew
+  Copyright (C) 2000-2001 Robert Leslie
+Binaries may derive extra copyright owners through linkage (binary distributors
+are expected to do their own legwork)
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+Place, Suite 330, Boston, MA 02111-1307 USA
+
+Local Variables:
+mode:text
+fill-column:79
+End:
+arch-tag:e7058f9442f954f3dd51523a1e805c32
