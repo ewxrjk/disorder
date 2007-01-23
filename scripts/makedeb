@@ -34,4 +34,3 @@ ssh $buildhost "
   CC='ccache cc' debian/rules build
   fakeroot debian/rules binary
 "
-# arch-tag:3ebf6ef38076b7cb313b86843e741d97

@@ -24,4 +24,3 @@ SUBDIRS=@subdirs@
 
 echo-distdir:
 	@echo $(distdir)
-# arch-tag:7e0566bae866a64c2f998d4253581ce0

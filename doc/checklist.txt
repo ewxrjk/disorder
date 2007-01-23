@@ -77,4 +77,3 @@ Modify prefs for a whole album from 'choose'.
 Local Variables:
 mode:outline
 End:
-# arch-tag:wuvzKmIxK6XShozQ9Bsuww

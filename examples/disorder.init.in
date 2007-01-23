@@ -65,4 +65,3 @@ force-reload ) reload ;;
   echo "usage: $0 start|stop|restart|reload" 1>&2
   exit 1
 esac
-# arch-tag:b75a857d0e9f723d2ae30687758ee1eb

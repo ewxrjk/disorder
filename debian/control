@@ -12,4 +12,3 @@ Depends: httpd,pwgen,mpg321,vorbis-tools,sox,${shlibs:Depends}
 Conflicts: jukebox
 Description: Play random or selected digital audio files continuously
   Controlled from the command line or via a web-based interface.
-# arch-tag:747c10dcef548c0ba4ac60fc8864f4fa

@@ -40,4 +40,3 @@ execraw_la_LDFLAGS=-module
 
 shell_la_SOURCES=shell.c
 shell_la_LDFLAGS=-module
-# arch-tag:45b01b1ebc885c96d6faad2d824a7eae

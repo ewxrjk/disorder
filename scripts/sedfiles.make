@@ -33,4 +33,3 @@ $(SEDFILES) : % : %.in Makefile
 # Local Variables:
 # mode:makefile
 # End:
-# arch-tag:97f84bf68cbbc5a0d72871aa0e704447

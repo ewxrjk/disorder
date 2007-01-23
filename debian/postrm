@@ -24,4 +24,3 @@ remove )
   ldconfig -n /usr/lib
   ;;
 esac
-# arch-tag:829be82824d0c6a903228934b29939e8

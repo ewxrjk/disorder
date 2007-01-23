@@ -167,4 +167,3 @@ c-basic-offset:2
 comment-column:40
 End:
 */
-/* arch-tag:ru/Jqo0hseWMoSt/ba4Xlw */

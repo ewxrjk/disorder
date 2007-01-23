@@ -70,4 +70,3 @@ binary
 clean
 
 regenerate
-# arch-tag:be5fb519cf2e3214d82bdae4c9af2b17

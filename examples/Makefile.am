@@ -28,4 +28,3 @@ include ${top_srcdir}/scripts/sedfiles.make
 EXTRA_DIST=disorder.init.in config.sample.in disorder-log
 
 CLEANFILES=$(SEDFILES)
-# arch-tag:c335ba7bb6f5a6077a563a1b79951e31

@@ -2,4 +2,3 @@ Require valid-user
 AuthType basic
 AuthName jukebox
 AuthUserFile /etc/disorder/http.users
-# arch-tag:2c90f33e2ed8bd26f2a0091113abfe0b

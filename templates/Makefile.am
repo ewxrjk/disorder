@@ -28,4 +28,3 @@ static_DATA=disorder.css
 staticdir=${pkgdatadir}/static
 
 EXTRA_DIST=${pkgdata_DATA} $(static_DATA)
-# arch-tag:c04ecae39c46f7a88463e746b857d913

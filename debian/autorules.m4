@@ -116,4 +116,3 @@ m4_define([regenerate], [debian/rules: debian/autorules.m4 debian/rules.m4
 ])
 
 m4_divert(0)m4_dnl
-# arch-tag:c5871f9bd46d5d2e2ed7302cbcaccd4b

@@ -90,4 +90,3 @@ check: test
 	./test
 
 CLEANFILES=definitions.h
-# arch-tag:a8730cb4f8b4517b6e37b1f717956d7c

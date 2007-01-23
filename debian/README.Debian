@@ -33,5 +33,4 @@ To get the web interface working:
 
    If it doesn't work, always look at the web server error log.
 
- -- Richard Kettlewell <rjk@greenend.org.uk>, Sun May 22 14:14:11 2005
-arch-tag:e325cf2983484c130b1ca1df78331fa6
+ -- Richard Kettlewell <rjk@greenend.org.uk>, Tue Jan 23 21:35:13 2007

@@ -52,4 +52,3 @@ done
 echo "url http://$server_name/cgi-bin/disorder/disorder" >> /etc/disorder/conf.debconf.new
 
 mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf
-# arch-tag:80ca629b164394d9806d6e8378205951

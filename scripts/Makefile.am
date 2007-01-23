@@ -21,4 +21,3 @@
 dist_pkgdata_DATA=completion.bash
 
 EXTRA_DIST=htmlman sedfiles.make text2c oggrename
-# arch-tag:49137b3a04a5bc92cd8c17d4372db87b

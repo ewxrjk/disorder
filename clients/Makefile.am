@@ -67,4 +67,3 @@ check-completions:
 	diff -u ,commands ,completions
 
 CLEANFILES=,commands ,completions
-# arch-tag:3wdM7iS0B+n8makCG+YcAg

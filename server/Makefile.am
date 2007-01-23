@@ -81,4 +81,3 @@ check-help: all
 	./disorder-speaker --help > /dev/null
 
 cgi.o: ../lib/definitions.h
-# arch-tag:f36fc0fa65dd5143a80874c1c83f595f

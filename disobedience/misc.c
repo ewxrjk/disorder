@@ -93,5 +93,3 @@ fill-column:79
 indent-tabs-mode:nil
 End:
 */
-
-/* arch-tag:tV2wkVwV3p2A66vyViQJSw */

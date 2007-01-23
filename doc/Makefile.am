@@ -44,4 +44,3 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disobedience.1.in disorderfm.1.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN)
-# arch-tag:9e90ca91629f0571b87f5a5f11227b7f

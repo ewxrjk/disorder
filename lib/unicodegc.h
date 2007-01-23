@@ -1611,4 +1611,3 @@ static const struct unicode_gc {
   { 917760, 983039, unicode_gc_Mn },
   { 983040, 1114109, unicode_gc_Co },
 };
-/* arch-tag:aba6847fbd64858c183a471a517838a9 */

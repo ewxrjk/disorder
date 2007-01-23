@@ -35,4 +35,3 @@ for f in *.[1-9].html; do
   rm -f $HOME/work/web/disorder/$f
   sed < $f > $HOME/work/web/disorder/$f 's/^@.*//'
 done
-# arch-tag:jpK3z3qFK+Sv/8QVvpMUIg

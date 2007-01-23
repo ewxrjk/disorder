@@ -102,4 +102,3 @@ AC_DEFUN([RJK_REQUIRE_PCRE_UTF8],[
     AC_MSG_ERROR([please rebuild your pcre library with --enable-utf8])
   fi
 ])
-# arch-tag:d09b2112a218009313949a279401a5b4

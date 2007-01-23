@@ -30,4 +30,3 @@ EXTRA_DIST=disorder.py.in tkdisorder
 BUILT_SOURCES=disorder.py
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN) *.pyc
-# arch-tag:6b3bfd0829ab35f1a30e7d8bf9111b95

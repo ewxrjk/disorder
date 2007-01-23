@@ -32,4 +32,3 @@ rules: ${autorules_m4} ${rules_m4}
 EXTRA_DIST=README.Debian autorules.m4 config control copyright \
 	   disorder.config htaccess postinst prerm rules.m4 templates    \
 	   rules conffiles postrm changelog options.debian
-# arch-tag:1b7bd457d3d740887311435ded0c5eac

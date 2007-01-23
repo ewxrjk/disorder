@@ -60,4 +60,3 @@ complete -o default \
 # Local Variables:
 # mode:sh
 # End:
-# arch-tag:2XNe1BR5K6TxF+njsXAByw

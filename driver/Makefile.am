@@ -26,4 +26,3 @@ AM_CPPFLAGS=-I${top_srcdir}/lib
 libdisorder_la_SOURCES=disorder.c
 libdisorder_la_LDFLAGS=-module
 
-# arch-tag:tYZU3CmDyRkdyrcHgJMxcA

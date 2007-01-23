@@ -20,4 +20,3 @@
 #
 set -e
 /etc/init.d/disorder stop
-# arch-tag:99c16a42035fb0fb74a828543a666eb3

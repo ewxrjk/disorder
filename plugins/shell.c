@@ -66,4 +66,3 @@ c-basic-offset:2
 comment-column:40
 End:
 */
-/* arch-tag:5e4b82a463c04d36c6cb9142db00ed07 */

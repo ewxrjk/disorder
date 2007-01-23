@@ -9,4 +9,3 @@ include options.transform
 
 # user overrides - you supply this
 include options.user
-# arch-tag:c3c0270b2c7e398b97c0d6a43961a4c3

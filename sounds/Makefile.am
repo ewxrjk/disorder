@@ -21,4 +21,3 @@
 pkgdata_DATA=slap.ogg scratch.ogg
 
 EXTRA_DIST=${pkgdata_DATA}
-# arch-tag:cd42d893e1fce039edeb219309bb4796

@@ -95,4 +95,3 @@ reconfigure )
   /etc/init.d/disorder reload
   ;;
 esac
-# arch-tag:ec773fd84ef6c95eca2e7287d2db9878

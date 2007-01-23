@@ -26,4 +26,3 @@ make check
 really make "$@" install
 really ./libtool --mode=install install -m 755 server/disorder.cgi /home/jukebox/public_html/index.cgi
 really ldconfig
-# arch-tag:cbb189b7f23939cc806cf6dc0c2cb0d5

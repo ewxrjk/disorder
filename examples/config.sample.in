@@ -55,5 +55,3 @@ stopword the a an and to too in on of we i am as im for is
 #transform dir     "^.*/([^/]+)$"                           "$1"      *
 #transform dir     "^(the) ([^/]*)"                         "$2, $1"  sort    i
 #transform dir     "[[:punct:]]"                            ""        sort    g
-
-# arch-tag:57c841bad362239972e38de20d15e6c0

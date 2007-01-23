@@ -75,4 +75,3 @@ widget "disobedience.*.row-playing" style : application "disobedience-playing"
 widget "disobedience.*.row-even" style : application "disobedience-even"
 widget "disobedience.*.row-odd" style : application "disobedience-odd"
 widget "disobedience.*.row-title" style : application "disobedience-title"
-# arch-tag:kFBxSkTwM9fRlwC/NTqR4A

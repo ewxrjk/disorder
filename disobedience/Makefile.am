@@ -44,4 +44,3 @@ EXTRA_DIST=disobedience.rc
 # check everything has working --help
 check-help: all
 	./disobedience --version > /dev/null
-# arch-tag:SILYIkQB3aPIe8z+Ng994A

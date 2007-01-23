@@ -27,4 +27,3 @@ staticdir=${pkgdatadir}/static
 EXTRA_DIST=$(static_DATA)
 
 CLEANFILES=$(SEDFILES)
-# arch-tag:izAg/jA9nncHHWR5+ZuD+Q

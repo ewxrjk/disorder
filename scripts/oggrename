@@ -55,4 +55,3 @@ while(scalar %rename) {
     }
     die "stuck in a loop!\n" if !$worked;
 }
-# arch-tag:AU/Rh0oscz3GBqwzJYRy1w

@@ -380,4 +380,3 @@ AC_CONFIG_FILES([Makefile
 		 python/Makefile
 		 examples/Makefile])
 AC_OUTPUT
-# arch-tag:cb633d20520a61a924cd528cef926ec1

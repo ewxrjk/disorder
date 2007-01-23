@@ -75,4 +75,3 @@ for my $dir (readdir D) {
 
 print map("$_\n", sort keys %missing);
 
-# arch-tag:PRdTcEnpHD8PVsb6Bp+QTQ
