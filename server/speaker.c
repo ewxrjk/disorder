@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,6 @@
 #include <assert.h>
 #include <sys/select.h>
 #include <time.h>
-#include <alsa/asoundlib.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -50,6 +49,9 @@
 #include "mem.h"
 #include "speaker.h"
 #include "user.h"
+
+#if BUILD_SPEAKER
+#include <alsa/asoundlib.h>
 
 #define BUFFER_SECONDS 5                /* How many seconds of input to
                                          * buffer. */
@@ -622,6 +624,13 @@ int main(int argc, char **argv) {
   info("stopped (parent terminated)");
   exit(0);
 }
+#else
+int main(int attribute((unused)) argc, char **argv) {
+  set_progname(argv);
+  mem_init(0);
+  fatal(0, "disorder-speaker not supported on this platform");
+}
+#endif
 
 /*
 Local Variables:

@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,10 +25,22 @@ AM_INIT_AUTOMAKE(disorder, 1.5.1+)
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
+# Find host type
+AC_CANONICAL_HOST
+
 # What we want to build
 want_server=yes
 want_gtk=yes
 want_python=yes
+
+case "$host" in
+*linux* | *Linux* )
+  want_speaker=yes
+  ;;
+* )
+  want_speaker=no
+  ;;
+esac
 
 # Checks for programs.
 AC_PROG_CC
@@ -122,9 +134,19 @@ if test $want_server = yes; then
   AC_CHECK_LIB([ao], [ao_initialize],
 	       [AC_SUBST(LIBAO,[-lao])],
 	       [missing_libraries="$missing_libraries libao"])
-  AC_CHECK_LIB([asound], [snd_pcm_open],
-	       [AC_SUBST(LIBASOUND,[-lasound])],
-	       [missing_libraries="$missing_libraries libasound"])
+  if test $want_speaker = yes; then
+    case "$host" in
+    *linux* | *Linux* )
+      AC_CHECK_LIB([asound], [snd_pcm_open],
+		   [AC_SUBST(LIBASOUND,[-lasound])],
+		   [missing_libraries="$missing_libraries libasound"])
+      AC_DEFINE([BUILD_SPEAKER],[disorder-speaker],[define to build the speaker subprocess])
+      ;;
+    * )
+      AC_MSG_ERROR([want to build speaker for unknown sound API])
+      ;;
+    esac
+  fi
 fi
 
 if test $want_gtk = yes; then
