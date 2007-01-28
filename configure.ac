@@ -140,7 +140,7 @@ if test $want_server = yes; then
       AC_CHECK_LIB([asound], [snd_pcm_open],
 		   [AC_SUBST(LIBASOUND,[-lasound])],
 		   [missing_libraries="$missing_libraries libasound"])
-      AC_DEFINE([BUILD_SPEAKER],[disorder-speaker],[define to build the speaker subprocess])
+      AC_DEFINE([BUILD_SPEAKER],[1],[define to build the speaker subprocess])
       ;;
     * )
       AC_MSG_ERROR([want to build speaker for unknown sound API])
