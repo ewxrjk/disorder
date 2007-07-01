@@ -579,8 +579,6 @@ static int compute_alias(char **aliasp,
   int c, used_db = 0, slash_prefix, err;
   struct kvp *at;
 
-  if(strstr(track, "Troggs"))
-    D(("computing alias for %s", track));
   dynstr_init(&d);
   dynstr_append_string(&d, find_track_root(track));
   while((c = (unsigned char)*s++)) {
@@ -615,20 +613,11 @@ static int compute_alias(char **aliasp,
    * an alias) */
   switch(err = trackdb_getdata(trackdb_tracksdb, d.vec, &at, tid)) {
   case 0:
-    if(strstr(track, "Troggs"))
-      D(("found a hit for alias"));
     if((s = kvp_get(at, "_alias_for"))
        && !strcmp(s, track)) {
     case DB_NOTFOUND:
-      if(strstr(track, "Troggs"))
-        D(("accepting anyway"));
       *aliasp = d.vec;
     } else {
-      if(strstr(track, "Troggs")) {
-        D(("rejecting"));
-        D(("%s", track));
-        D(("%s", s ? s : "(null)"));
-      }
       *aliasp = 0;
     }
     return 0;
@@ -1162,7 +1151,8 @@ static int tag_intersection(char **a, char **b) {
 }
 
 /* Check whether a track is suitable for random play.  Returns 0 if it is,
- * DB_NOTFOUND if it or DB_LOCK_DEADLOCK. */
+ * DB_NOTFOUND if it is not or DB_LOCK_DEADLOCK if the database gave us
+ * that. */
 static int check_suitable(const char *track,
                           DB_TXN *tid,
                           char **required_tags,
@@ -1172,6 +1162,12 @@ static int check_suitable(const char *track,
   struct kvp *p, *t;
   const char *pick_at_random, *played_time;
 
+  /* don't pick tracks that aren't in any surviving collection (for instance
+   * you've edited the config but the rescan hasn't done its job yet) */
+  if(!find_track_root(track)) {
+    info("found track not in any collection: %s", track);
+    return DB_NOTFOUND;
+  }
   /* don't pick aliases - only pick the canonical form */
   if(gettrackdata(track, &t, &p, 0, 0, tid) == DB_LOCK_DEADLOCK)
     return DB_LOCK_DEADLOCK;

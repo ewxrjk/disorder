@@ -270,6 +270,14 @@ static void do_all(void (*fn)(const struct collection *c)) {
 
   for(n = 0; n < config->collection.n; ++n)
     fn(&config->collection.s[n]);
+  /* TODO: we need to tidy up tracks from collections now removed.  We could do
+   * this two ways: either remember collections we think there are and spot
+   * their disappearance, or iterate over all tracks and gc any that don't fit
+   * into some collection.
+   *
+   * Having a way to rename collections would be rather convenient too but
+   * that's another kettle of monkeys.
+   */
 }
 
 int main(int argc, char **argv) {

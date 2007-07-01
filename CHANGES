@@ -32,6 +32,9 @@ The 'pick' plugin has been abolished.  All the logic formerly done there
 is now built into the server, where it can be done much more
 efficiently.
 
+A bug where removing a collection (from the configuration) could cause a
+crash when random play was enabled has been fixed.
+
 ** disorderfm
 
 There is a new command line tool called 'disorderfm' which is designed
