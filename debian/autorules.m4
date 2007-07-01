@@ -27,21 +27,25 @@ m4_divert(-1)m4_dnl
 
 m4_changequote([,])
 
-m4_define([build], [[build]:
+m4_define([build], [.PHONY: [build]
+[build]:
 m4_syscmd([test -f ../configure || test -f ../config.status])m4_dnl
-m4_ifelse(m4_sysval,0,[	./configure ${CONFIGURE}
+m4_ifelse(m4_sysval,0,[	./configure ${CONFIGURE} ${CONFIGURE_EXTRA}
 ])m4_dnl
 	$(MAKE) prefix=/usr])m4_dnl
 
-m4_define([binary], [[binary]: [binary]-arch [binary]-indep
+m4_define([binary], [.PHONY: [binary] [binary]-arch [binary]-indep
+[binary]: [binary]-arch [binary]-indep
 [binary]-arch: _archpkgs
 [binary]-indep: _indeppkgs])
 
 m4_define([anypkg], [m4_define([_package], $1)m4_dnl
 m4_define([cleanup], cleanup [cleanpkg-$1])m4_dnl
+.PHONY: cleanpkg-$1
 cleanpkg-$1:
 	rm -rf debian/$1
 
+.PHONY: pkg-$1
 pkg-$1: [build]
 	rm -rf debian/$1
 	mkdir -p debian/$1
@@ -95,7 +99,8 @@ anypkg([$1],[$2])])
 m4_define([indeppkg], [m4_define([_indeppkgs], _indeppkgs pkg-$1)m4_dnl
 anypkg([$1],[$2])])
 
-m4_define([clean], [[clean]: cleanup
+m4_define([clean], [.PHONY: [clean]
+[clean]: cleanup
 	-$(MAKE) distclean
 	rm -f config.cache
 	rm -f debian/files
@@ -109,7 +114,8 @@ m4_define([_indeppkgs], [])
 
 m4_define([regenerate], [debian/rules: debian/autorules.m4 debian/rules.m4
 	rm -f debian/rules.tmp
-	m4 -P debian/autorules.m4 debian/rules.m4 > debian/rules.tmp
+	cd debian && \
+		m4 -P autorules.m4 rules.m4 > rules.tmp
 	chmod 555 debian/rules.tmp
 	mv -f debian/rules.tmp debian/rules
 ])
