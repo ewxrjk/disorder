@@ -210,6 +210,20 @@ This an odd-numbered row in the queue or recently played track list.
 .TP
 .B disobedience.*.row-even
 This an even-numbered row in the queue or recently played track list.
+.SH CONFIGURATION
+If you are using
+.B disobedience
+on the same host as the server then no additional configuration should be
+required.
+.PP
+If it is running on a different host then the server will need a
+.B listen
+directive in its configuration and the clien a matching
+.B connect
+directive.  Also the client will need user passwords, either in
+.IR pkgconfdir/config. USER
+or
+.IR ~ USER /.disorder.passwd .
 .SH "SEE ALSO"
 .BR disorder_config (5)
 .PP
