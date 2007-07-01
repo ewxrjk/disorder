@@ -26,7 +26,7 @@ include ${top_srcdir}/scripts/sedfiles.make
 
 man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
 	disorder_protocol.5 tkdisorder.1 disorder-deadlock.8 \
-	disorder-rescan.8 disobedience.1 disorderfm.1
+	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8
 
 HTMLMAN=$(foreach man,$(man_MANS),$(man).html)
 
