@@ -349,7 +349,7 @@ if test "x$GCC" = xyes; then
   CC="${CC} $gcc_werror"
 
   # for older GCCs that don't know %ju (etc)
-  AC_CACHE_CHECK([checking whether -Wno-format is required],
+  AC_CACHE_CHECK([whether -Wno-format is required],
 		 rjk_cv_noformat,
 		 AC_TRY_COMPILE([#include <stdio.h>
 #include <stdint.h>
@@ -361,7 +361,7 @@ if test "x$GCC" = xyes; then
     CC="${CC} -Wno-format"
   fi
 
-  AC_CACHE_CHECK([checking whether -Wshadow is OK],
+  AC_CACHE_CHECK([whether -Wshadow is OK],
 		 rjk_cv_shadow,
                  oldCC="${CC}"
 		 CC="${CC} -Wshadow"
