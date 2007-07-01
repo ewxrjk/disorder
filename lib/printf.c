@@ -61,7 +61,7 @@ struct conversion;
 struct state {
   struct sink *output;
   int bytes;
-  va_list *ap;
+  va_list ap;
 };
 
 struct specifier {
@@ -188,14 +188,14 @@ static int output_integer(struct state *s, struct conversion *c) {
   default:
     if(c->specifier->base < 0) {
       switch(c->length) {
-      case 0: l = va_arg(*s->ap, int); break;
-      case l_char: l = (signed char)va_arg(*s->ap, int); break;
-      case l_short: l = (short)va_arg(*s->ap, int); break;
-      case l_long: l = va_arg(*s->ap, long); break;
-      case l_longlong: l = va_arg(*s->ap, long_long); break;
-      case l_intmax_t: l = va_arg(*s->ap, intmax_t); break;
-      case l_size_t: l = va_arg(*s->ap, ssize_t); break;
-      case l_ptrdiff_t: l = va_arg(*s->ap, ptrdiff_t); break;
+      case 0: l = va_arg(s->ap, int); break;
+      case l_char: l = (signed char)va_arg(s->ap, int); break;
+      case l_short: l = (short)va_arg(s->ap, int); break;
+      case l_long: l = va_arg(s->ap, long); break;
+      case l_longlong: l = va_arg(s->ap, long_long); break;
+      case l_intmax_t: l = va_arg(s->ap, intmax_t); break;
+      case l_size_t: l = va_arg(s->ap, ssize_t); break;
+      case l_ptrdiff_t: l = va_arg(s->ap, ptrdiff_t); break;
       default: abort();
       }
       base = -c->specifier->base;
@@ -208,14 +208,14 @@ static int output_integer(struct state *s, struct conversion *c) {
       }
     } else {
       switch(c->length) {
-      case 0: u = va_arg(*s->ap, unsigned int); break;
-      case l_char: u = (unsigned char)va_arg(*s->ap, unsigned int); break;
-      case l_short: u = (unsigned short)va_arg(*s->ap, unsigned int); break;
-      case l_long: u = va_arg(*s->ap, unsigned long); break;
-      case l_longlong: u = va_arg(*s->ap, u_long_long); break;
-      case l_intmax_t: u = va_arg(*s->ap, uintmax_t); break;
-      case l_size_t: u = va_arg(*s->ap, size_t); break;
-      case l_ptrdiff_t: u = va_arg(*s->ap, ptrdiff_t); break;
+      case 0: u = va_arg(s->ap, unsigned int); break;
+      case l_char: u = (unsigned char)va_arg(s->ap, unsigned int); break;
+      case l_short: u = (unsigned short)va_arg(s->ap, unsigned int); break;
+      case l_long: u = va_arg(s->ap, unsigned long); break;
+      case l_longlong: u = va_arg(s->ap, u_long_long); break;
+      case l_intmax_t: u = va_arg(s->ap, uintmax_t); break;
+      case l_size_t: u = va_arg(s->ap, size_t); break;
+      case l_ptrdiff_t: u = va_arg(s->ap, ptrdiff_t); break;
       default: abort();
       }
       base = c->specifier->base;
@@ -223,7 +223,7 @@ static int output_integer(struct state *s, struct conversion *c) {
     }
     break;
   case 'p':
-    u = (uintptr_t)va_arg(*s->ap, void *);
+    u = (uintptr_t)va_arg(s->ap, void *);
     c->flags |= f_hash;
     base = c->specifier->base;
     sign = 0;
@@ -307,7 +307,7 @@ static int output_string(struct state *s, struct conversion *c) {
   const char *str, *n;
   int pad, len;
 
-  str = va_arg(*s->ap, const char *);
+  str = va_arg(s->ap, const char *);
   if(c->flags & f_precision) {
     if((n = memchr(str, 0, c->precision)))
       len = n - str;
@@ -335,7 +335,7 @@ static int output_char(struct state *s, struct conversion *c) {
   int pad;
   char ch;
 
-  ch = va_arg(*s->ap, int);
+  ch = va_arg(s->ap, int);
   if(c->flags & f_width) {
     if((pad = c->width - 1) < 0)
       pad = 0;
@@ -353,14 +353,14 @@ static int output_char(struct state *s, struct conversion *c) {
 
 static int output_count(struct state *s, struct conversion *c) {
   switch(c->length) {
-  case 0: *va_arg(*s->ap, int *) = s->bytes; break;
-  case l_char: *va_arg(*s->ap, signed char *) = s->bytes; break;
-  case l_short: *va_arg(*s->ap, short *) = s->bytes; break;
-  case l_long: *va_arg(*s->ap, long *) = s->bytes; break;
-  case l_longlong: *va_arg(*s->ap, long_long *) = s->bytes; break;
-  case l_intmax_t: *va_arg(*s->ap, intmax_t *) = s->bytes; break;
-  case l_size_t: *va_arg(*s->ap, ssize_t *) = s->bytes; break;
-  case l_ptrdiff_t: *va_arg(*s->ap, ptrdiff_t *) = s->bytes; break;
+  case 0: *va_arg(s->ap, int *) = s->bytes; break;
+  case l_char: *va_arg(s->ap, signed char *) = s->bytes; break;
+  case l_short: *va_arg(s->ap, short *) = s->bytes; break;
+  case l_long: *va_arg(s->ap, long *) = s->bytes; break;
+  case l_longlong: *va_arg(s->ap, long_long *) = s->bytes; break;
+  case l_intmax_t: *va_arg(s->ap, intmax_t *) = s->bytes; break;
+  case l_size_t: *va_arg(s->ap, ssize_t *) = s->bytes; break;
+  case l_ptrdiff_t: *va_arg(s->ap, ptrdiff_t *) = s->bytes; break;
   default: abort();
   }
   return 0;
@@ -457,32 +457,36 @@ int byte_vsinkprintf(struct sink *output,
 
   memset(&s, 0, sizeof s);
   s.output = output;
-  s.ap = &ap;
+  va_copy(s.ap,ap);
   while(*fmt) {
     /* output text up to next conversion specification */
     for(ptr = fmt; *fmt && *fmt != '%'; ++fmt)
       ;
     if((n = fmt - ptr))
-      if(do_write(&s, ptr, n) < 0) return -1;
+      if(do_write(&s, ptr, n) < 0) goto error;
     if(!*fmt)
       break;
     ++fmt;
     /* parse conversion */
-    if((n = parse_conversion(&c, fmt)) < 0) return -1;
+    if((n = parse_conversion(&c, fmt)) < 0) goto error;
     fmt += n;
     /* fill in width and precision */
     if((c.flags & f_width) && c.width == -1)
-      if((c.width = va_arg(*s.ap, int)) < 0) {
+      if((c.width = va_arg(s.ap, int)) < 0) {
 	c.width = -c.width;
 	c.flags |= f_left;
       }
     if((c.flags & f_precision) && c.precision == -1)
-      if((c.precision = va_arg(*s.ap, int)) < 0)
+      if((c.precision = va_arg(s.ap, int)) < 0)
 	c.flags ^= f_precision;
     /* generate the output */
-    if(c.specifier->output(&s, &c) < 0) return -1;
+    if(c.specifier->output(&s, &c) < 0) goto error;
   }
+  va_end(s.ap);
   return s.bytes;
+error:
+  va_end(s.ap);
+  return -1;
 }
 
 /*
