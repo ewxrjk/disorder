@@ -36,7 +36,7 @@ archpkg([disorder], [	m4_dnl
 		debian/disorder/etc/disorder/config
 	$(INSTALL) -m 644 debian/options.debian \
 		debian/disorder/etc/disorder/options
-	$(LIBTOOL) --mode=install $(INSTALL) -m 555 server/disorder.cgi \
+	$(LIBTOOL) --mode=install $(INSTALL) -m 755 server/disorder.cgi \
 		$(shell pwd)/debian/disorder/usr/lib/cgi-bin/disorder/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder \
 		debian/disorder/usr/bin/* \
@@ -44,25 +44,26 @@ archpkg([disorder], [	m4_dnl
 		debian/disorder/usr/sbin/* \
 		debian/disorder/usr/lib/*.so* \
 		debian/disorder/usr/lib/disorder/*.so*
-	$(INSTALL) -m 444 debian/htaccess \
+	$(INSTALL) -m 644 debian/htaccess \
 		debian/disorder/usr/lib/cgi-bin/disorder/.htaccess
-	$(INSTALL) -m 444 CHANGES README debian/README.Debian \
+	$(INSTALL) -m 644 CHANGES README debian/README.Debian \
 		BUGS README.* \
 		debian/disorder/usr/share/doc/disorder/.
-	$(INSTALL) -m 444 ChangeLog.d/*--* \
+	$(INSTALL) -m 644 ChangeLog.d/*--* \
 		debian/disorder/usr/share/doc/disorder/ChangeLog.d
-	$(INSTALL) -m 444 COPYING debian/disorder/usr/share/doc/disorder/GPL
+	$(INSTALL) -m 644 COPYING debian/disorder/usr/share/doc/disorder/GPL
 	gzip -9f debian/disorder/usr/share/doc/disorder/ChangeLog.d/*--* \
 		 debian/disorder/usr/share/doc/disorder/CHANGES \
 		 debian/disorder/usr/share/doc/disorder/README \
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
-		 debian/disorder/usr/share/doc/disorder/GPL
-	$(INSTALL) -m 555 debian/postinst debian/prerm debian/postrm \
+		 debian/disorder/usr/share/doc/disorder/GPL \
+		 debian/disorder/usr/share/man/man*/*
+	$(INSTALL) -m 755 debian/postinst debian/prerm debian/postrm \
 		debian/config \
-		debian/conffiles \
 		debian/disorder/DEBIAN/.
-	$(INSTALL) -m 444 debian/templates debian/disorder/DEBIAN/.
+	$(INSTALL) -m 644 debian/conffiles debian/templates \
+		debian/disorder/DEBIAN/.
 ])
 
 binary

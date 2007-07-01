@@ -51,8 +51,7 @@ pkg-$1: [build]
 		debian/$1/usr/share/doc/$1/copyright
 	cp debian/changelog \
 		debian/$1/usr/share/doc/$1/changelog.Debian
-	gzip -9 debian/$1/usr/share/doc/$1/copyright \
-		debian/$1/usr/share/doc/$1/changelog.Debian
+	gzip -9 debian/$1/usr/share/doc/$1/changelog.Debian
 $2	dpkg-gencontrol -isp -p$1 -Pdebian/$1 -Tdebian/substvars.$1
 	chown -R root:root debian/$1
 	chmod -R g-ws debian/$1
