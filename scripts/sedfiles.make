@@ -20,13 +20,13 @@
 
 $(SEDFILES) : % : %.in Makefile
 	rm -f $@.new
-	sed 's!sbindir!${sbindir}!g;\
-	     s!bindir!${bindir}!g;\
-	     s!pkgconfdir!${sysconfdir}/disorder!g;\
-	     s!pkgstatedir!${localstatedir}/disorder!g;\
-	     s!pkgdatadir!${pkgdatadir}!g;\
-	     s!_version_!${VERSION}!g;\
-	        ' < $< > $@.new
+	sed -e 's!sbindir!${sbindir}!g;' \
+	    -e 's!bindir!${bindir}!g;' \
+	    -e 's!pkgconfdir!${sysconfdir}/disorder!g;' \
+	    -e 's!pkgstatedir!${localstatedir}/disorder!g;' \
+	    -e 's!pkgdatadir!${pkgdatadir}!g;' \
+	    -e 's!_version_!${VERSION}!g;' \
+	        < $< > $@.new
 	chmod 444 $@.new
 	mv -f $@.new $@
 
