@@ -22,5 +22,11 @@ EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
 README.upgrades README.client
 SUBDIRS=@subdirs@
 
+ChangeLog.d: ${srcdir}/ChangeLog.d/bzr-changelog
+
+${srcdir}/ChangeLog.d/bzr-changelog:
+	bzr log > ${srcdir}/ChangeLog.d/bzr-changelog.new
+	mv ${srcdir}/ChangeLog.d/bzr-changelog.new ${srcdir}/ChangeLog.d/bzr-changelog
+
 echo-distdir:
 	@echo $(distdir)
