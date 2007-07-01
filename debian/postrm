@@ -19,8 +19,16 @@
 # USA
 #
 set -e
+
 case "$1" in
 remove )
   ldconfig -n /usr/lib
+  ;;
+purge )
+  if [ -e /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+    db_purge
+  fi
+  update-rc.d disorder remove
   ;;
 esac

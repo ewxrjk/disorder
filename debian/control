@@ -8,7 +8,7 @@ Package: disorder
 Architecture: any
 Section: sound
 Priority: extra
-Depends: httpd,pwgen,mpg321,vorbis-tools,sox,${shlibs:Depends}
+Depends: httpd,pwgen,mpg321,vorbis-tools,sox,debconf,${shlibs:Depends}
 Conflicts: jukebox
 Description: Play random or selected digital audio files continuously
-  Controlled from the command line or via a web-based interface.
+ Controlled from the command line or via a web-based interface.
