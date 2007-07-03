@@ -330,6 +330,11 @@ int main(int argc, char **argv) {
 
   mem_init(1);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  /* Causes GTK+ to 0-fill lots of things, which helps the garbage collector. */
+  g_mem_gc_friendly = 1;
+  /* Causes GTK+ to always use g_malloc() instead of private allocator that
+   * libgc doesn't know about */
+  g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
   /* GLib sucks - not const-correct */
   g_mem_set_vtable((GMemVTable *)&glib_memvtable);
   gtk_init(&argc, &argv);
