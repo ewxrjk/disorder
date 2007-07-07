@@ -298,7 +298,7 @@ static void fill_directory_node(struct choosenode *cn) {
   /* TODO: de-dupe against fill_letter_node */
   assert(report_label != 0);
   gtk_label_set_text(GTK_LABEL(report_label), "getting files");
-  cn->children.nvec = 0;
+  clear_children(cn);
   cbd = xmalloc(sizeof *cbd);
   cbd->u.choosenode = cn;
   disorder_eclient_dirs(client, got_dirs, cn->path, 0, cbd);
