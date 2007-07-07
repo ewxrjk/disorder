@@ -87,3 +87,4 @@ templates/Makefile
 doc/disorder-speaker.8.html
 .gdb_history
 core
+vgcore.*

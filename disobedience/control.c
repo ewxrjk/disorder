@@ -233,7 +233,7 @@ static gchar *format_volume(GtkScale attribute((unused)) *scale,
   char s[32];
 
   snprintf(s, sizeof s, "%.1f", (double)value);
-  return xstrdup(s);
+  return g_strdup(s);
 }
 
 /* Called to format the balance value. */
@@ -242,9 +242,9 @@ static gchar *format_balance(GtkScale attribute((unused)) *scale,
   char s[32];
 
   if(fabs(value) < 0.1)
-    return xstrdup("0");
+    return g_strdup("0");
   snprintf(s, sizeof s, "%+.1f", (double)value);
-  return xstrdup(s);
+  return g_strdup(s);
 }
 
 /* Volume mapping.  We consider left, right, volume to be in [0,1]

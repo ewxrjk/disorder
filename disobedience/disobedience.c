@@ -58,15 +58,6 @@ int volume_l, volume_r;                 /* volume */
 double goesupto = 10;                   /* volume upper bound */
 int choosealpha;                        /* break up choose by letter */
 
-static const GMemVTable glib_memvtable = {
-  xmalloc,
-  xrealloc,
-  xfree,
-  0,                                    /* calloc */
-  0,                                    /* try_malloc */
-  0                                     /* try_realloc */
-};
-
 static const disorder_eclient_log_callbacks gdisorder_log_callbacks = {
   log_connected,
   log_completed,
@@ -331,12 +322,6 @@ int main(int argc, char **argv) {
   mem_init(1);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   /* Causes GTK+ to 0-fill lots of things, which helps the garbage collector. */
-  g_mem_gc_friendly = 1;
-  /* Causes GTK+ to always use g_malloc() instead of private allocator that
-   * libgc doesn't know about */
-  g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
-  /* GLib sucks - not const-correct */
-  g_mem_set_vtable((GMemVTable *)&glib_memvtable);
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);
   while((n = getopt_long(argc, argv, "hVc:dtH", options, 0)) >= 0) {
