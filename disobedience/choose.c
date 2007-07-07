@@ -93,6 +93,7 @@ static int nsearchresults;              /* number of results */
 
 /* Forward Declarations */
 
+static void clear_children(struct choosenode *cn);
 static struct choosenode *newnode(struct choosenode *parent,
                                   const char *path,
                                   const char *display,
@@ -174,6 +175,7 @@ static void fill_root_node(struct choosenode *cn) {
   struct callbackdata *cbd;
 
   D(("fill_root_node"));
+  clear_children(cn);
   if(choosealpha) {
     if(!cn->children.nvec) {              /* Only need to do this once */
       for(ch = 'A'; ch <= 'Z'; ++ch) {
