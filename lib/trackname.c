@@ -44,7 +44,10 @@ const char *find_track_root(const char *track) {
        && track[l] == '/')
       break;
   }
-  if(n >= config->collection.n) return 0;
+  if(n >= config->collection.n) {
+    error(0, "found track in no collection '%s'", track);
+    return 0;
+  }
   return config->collection.s[n].root;
 }
 

@@ -491,9 +491,12 @@ static char **track_to_words(const char *track,
   struct vector v;
   char **w;
   int nw;
+  const char *rootless = track_rootless(track);
 
+  if(!rootless)
+    rootless = track;                   /* bodge */
   vector_init(&v);
-  if((w = words(casefold(strip_extension(track_rootless(track))), &nw)))
+  if((w = words(casefold(strip_extension(rootless)), &nw)))
     vector_append_many(&v, w, nw);
 
   for(; p; p = p->next)
