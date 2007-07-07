@@ -581,9 +581,15 @@ static int compute_alias(char **aliasp,
   const char *s = config->alias, *t, *expansion, *part;
   int c, used_db = 0, slash_prefix, err;
   struct kvp *at;
+  const char *const root = find_track_root(track);
 
+  if(!root) {
+    /* Bodge for tracks with no root */
+    *aliasp = 0;
+    return 0;
+  }
   dynstr_init(&d);
-  dynstr_append_string(&d, find_track_root(track));
+  dynstr_append_string(&d, root);
   while((c = (unsigned char)*s++)) {
     if(c != '{') {
       dynstr_append(&d, c);
