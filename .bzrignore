@@ -86,3 +86,4 @@ templates/Makefile
 .bzr.backup
 doc/disorder-speaker.8.html
 .gdb_history
+core

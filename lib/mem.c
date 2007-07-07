@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "mem.h"
 #include "log.h"
@@ -53,8 +54,10 @@ void mem_init(int gc) {
     do_malloc_atomic = malloc;
     do_realloc = realloc;
     do_free = free;
-  } else
+  } else {
     GC_init();
+    assert(GC_all_interior_pointers);
+  }
 }
 
 void *xmalloc(size_t n) {
