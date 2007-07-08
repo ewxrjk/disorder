@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+.\" Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -296,12 +296,39 @@ If multiple player commands match a track then the first match is used.
 The interval at which the preferences log file will be synchronised.  Defaults
 to 3600, i.e. one hour.
 .TP
+.B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
+Describes the sample format expected by the \fBspeaker_command\fR (below).  The
+components of the format specification are as follows:
+.RS
+.TP 10
+.I BITS
+The number of bits per sample.  Optionally, may be suffixed by \fBb\fR or
+\fBl\fR for big-endian and little-endian words.  If neither is used the native
+byte order is assumed.
+.TP
+.I RATE
+The number of samples per second.
+.TP
+.I CHANNELS
+The number of channels.
+.PP
+The default is
+.BR 16/44100/2 .
+.RE
+.TP
 .B signal \fINAME\fR
 Defines the signal to be sent to track player process groups when tracks are
 scratched.  The default is \fBSIGKILL\fR.
 .IP
 Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
+.TP
+.B speaker_command \fICOMMAND
+Causes the speaker subprocess to pipe audio data into shell command
+\fICOMMAND\fR, rather than writing to a local sound card.  The sample format is
+determine by
+.B sample_format
+above.
 .TP
 .B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
 Determine which operations are restricted to the submitter of a
