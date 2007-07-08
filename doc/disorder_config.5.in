@@ -329,6 +329,12 @@ Causes the speaker subprocess to pipe audio data into shell command
 determine by
 .B sample_format
 above.
+.IP
+Note that if the sample format is wrong then
+.BR sox (1)
+is invoked to translate it.  If
+.B sox
+is not installed then this will not work.
 .TP
 .B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
 Determine which operations are restricted to the submitter of a
@@ -1040,7 +1046,7 @@ In addition there are two built-in parts, \fBpath\fR which is the whole path
 name and \fBext\fR which is the filename extension, including the initial dot
 (or the empty string if there is not extension).
 .SH "SEE ALSO"
-\fBdisorder\fR(1), \fBdisorderd\fR(8), \fBdisorder-dump\fR(8),
+\fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder-dump\fR(8),
 \fBpcrepattern\fR(3)
 .\" Local Variables:
 .\" mode:nroff
