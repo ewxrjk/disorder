@@ -84,6 +84,7 @@ static size_t bpf;                      /* bytes per frame */
 static struct pollfd fds[NFDS];         /* if we need more than that */
 static int fdno;                        /* fd number */
 static snd_pcm_uframes_t pcm_bufsize;   /* buffer size */
+static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
 static int forceplay;                   /* frames to force play */
 
 static const struct option options[] = {
@@ -266,6 +267,7 @@ static void log_params(snd_pcm_hw_params_t *hwparams,
   snd_pcm_uframes_t f;
   unsigned u;
 
+  return;                               /* too verbose */
   if(hwparams) {
     /* TODO */
   }
@@ -360,9 +362,10 @@ static int activate(void) {
                                                      &pcm_bufsize)) < 0)
       fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
             3 * FRAMES, err);
-    if(pcm_bufsize != 3 * FRAMES)
+    if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
       info("asked for PCM buffer of %d frames, got %d",
            3 * FRAMES, (int)pcm_bufsize);
+    last_pcm_bufsize = pcm_bufsize;
     if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
       fatal(0, "error calling snd_pcm_hw_params: %d", err);
     D(("set up sw params"));
