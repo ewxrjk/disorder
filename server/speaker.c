@@ -309,8 +309,8 @@ static void soxargs(const char ***pp, char **qq, ao_sample_format *ao)
   *(*pp)++ = *qq; n = sprintf(*qq, "-r%d", ao->rate); *qq += n + 1;
   switch(ao->byte_format) {
     case AO_FMT_NATIVE: break;
-    case AO_FMT_BIG: *(*pp)++ = "-B";
-    case AO_FMT_LITTLE: *(*pp)++ = "-L";
+    case AO_FMT_BIG: *(*pp)++ = "-B"; break;
+    case AO_FMT_LITTLE: *(*pp)++ = "-L"; break;
   }
   *(*pp)++ = *qq; n = sprintf(*qq, "-%d", ao->bits/8); *qq += n + 1;
   *(*pp)++ = *qq; n = sprintf(*qq, "-c%d", ao->channels); *qq += n + 1;
