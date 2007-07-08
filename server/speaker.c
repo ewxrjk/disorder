@@ -42,6 +42,8 @@
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <fcntl.h>
+#include <poll.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -51,8 +53,9 @@
 #include "speaker.h"
 #include "user.h"
 
-#if BUILD_SPEAKER
+#if API_ALSA
 #include <alsa/asoundlib.h>
+#endif
 
 #define BUFFER_SECONDS 5                /* How many seconds of input to
                                          * buffer. */
@@ -79,13 +82,15 @@ static struct track {
 
 static time_t last_report;              /* when we last reported */
 static int paused;                      /* pause status */
-static snd_pcm_t *pcm;                  /* current pcm handle */
 static ao_sample_format pcm_format;     /* current format if aodev != 0 */
 static size_t bpf;                      /* bytes per frame */
 static struct pollfd fds[NFDS];         /* if we need more than that */
 static int fdno;                        /* fd number */
-static snd_pcm_uframes_t pcm_bufsize;   /* buffer size */
+static size_t bufsize;                  /* buffer size */
+#if API_ALSA
+static snd_pcm_t *pcm;                  /* current pcm handle */
 static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
+#endif
 static int ready;                       /* ready to send audio */
 static int forceplay;                   /* frames to force play */
 static int kidfd = -1;                  /* child process input */
@@ -234,10 +239,11 @@ static int formats_equal(const ao_sample_format *a,
 
 /* Close the sound device. */
 static void idle(void) {
-  int  err;
-
   D(("idle"));
+#if API_ALSA
   if(pcm) {
+    int  err;
+
     if((err = snd_pcm_nonblock(pcm, 0)) < 0)
       fatal(0, "error calling snd_pcm_nonblock: %d", err);
     D(("draining pcm"));
@@ -248,6 +254,7 @@ static void idle(void) {
     forceplay = 0;
     D(("released audio device"));
   }
+#endif
   ready = 0;
 }
 
@@ -266,6 +273,7 @@ static void abandon(void) {
   forceplay = 0;
 }
 
+#if API_ALSA
 static void log_params(snd_pcm_hw_params_t *hwparams,
                        snd_pcm_sw_params_t *swparams) {
   snd_pcm_uframes_t f;
@@ -290,6 +298,7 @@ static void log_params(snd_pcm_hw_params_t *hwparams,
     info("sw xfer_align=%lu", (unsigned long)f);
   }
 }
+#endif
 
 static void soxargs(const char ***pp, char **qq, ao_sample_format *ao)
 {
@@ -310,12 +319,6 @@ static void soxargs(const char ***pp, char **qq, ao_sample_format *ao)
 /* Make sure the sound device is open and has the right sample format.  Return
  * 0 on success and -1 on error. */
 static int activate(void) {
-  int err;
-  snd_pcm_hw_params_t *hwparams;
-  snd_pcm_sw_params_t *swparams;
-  int sample_format = 0;
-  unsigned rate;
-
   /* If we don't know the format yet we cannot start. */
   if(!playing->got_format) {
     D((" - not got format for %s", playing->id));
@@ -359,17 +362,25 @@ static int activate(void) {
     }
     if(!ready) {
       pcm_format = config->sample_format;
-      pcm_bufsize = 3 * FRAMES;
+      bufsize = 3 * FRAMES;
       bpf = bytes_per_frame(&config->sample_format);
       D(("acquired audio device"));
       ready = 1;
     }
     return 0;
   }
+#if API_ALSA
   /* If we need to change format then close the current device. */
   if(pcm && !formats_equal(&playing->format, &pcm_format))
      idle();
   if(!pcm) {
+    snd_pcm_hw_params_t *hwparams;
+    snd_pcm_sw_params_t *swparams;
+    snd_pcm_uframes_t pcm_bufsize;
+    int err;
+    int sample_format = 0;
+    unsigned rate;
+
     D(("snd_pcm_open"));
     if((err = snd_pcm_open(&pcm,
                            config->device,
@@ -422,7 +433,8 @@ static int activate(void) {
             playing->format.channels, err);
       goto fatal;
     }
-    pcm_bufsize = 3 * FRAMES;
+    bufsize = 3 * FRAMES;
+    pcm_bufsize = bufsize;
     if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
                                                      &pcm_bufsize)) < 0)
       fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
@@ -457,6 +469,7 @@ error:
     snd_pcm_close(pcm);
     pcm = 0;
   }
+#endif
   return -1;
 }
 
@@ -488,10 +501,8 @@ static void fork_kid(void) {
 }
 
 static void play(size_t frames) {
-  snd_pcm_sframes_t written_frames;
-  size_t avail_bytes, avail_frames;
+  size_t avail_bytes, written_frames;
   ssize_t written_bytes;
-  int err;
 
   if(activate()) {
     if(playing)
@@ -520,18 +531,23 @@ static void play(size_t frames) {
     avail_bytes = playing->used;
 
   if(kidfd == -1) {
+#if API_ALSA
+    snd_pcm_sframes_t pcm_written_frames;
+    size_t avail_frames;
+    int err;
+
     avail_frames = avail_bytes / bpf;
     if(avail_frames > frames)
       avail_frames = frames;
     if(!avail_frames)
       return;
-    written_frames = snd_pcm_writei(pcm,
-                                    playing->buffer + playing->start,
-                                    avail_frames);
+    pcm_written_frames = snd_pcm_writei(pcm,
+                                        playing->buffer + playing->start,
+                                        avail_frames);
     D(("actually play %zu frames, wrote %d",
-       avail_frames, (int)written_frames));
-    if(written_frames < 0) {
-      switch(written_frames) {
+       avail_frames, (int)pcm_written_frames));
+    if(pcm_written_frames < 0) {
+      switch(pcm_written_frames) {
         case -EPIPE:                        /* underrun */
           error(0, "snd_pcm_writei reports underrun");
           if((err = snd_pcm_prepare(pcm)) < 0)
@@ -540,10 +556,15 @@ static void play(size_t frames) {
         case -EAGAIN:
           return;
         default:
-          fatal(0, "error calling snd_pcm_writei: %d", (int)written_frames);
+          fatal(0, "error calling snd_pcm_writei: %d",
+                (int)pcm_written_frames);
       }
     }
+    written_frames = pcm_written_frames;
     written_bytes = written_frames * bpf;
+#else
+    assert(!"reached");
+#endif
   } else {
     if(avail_bytes > frames * bpf)
       avail_bytes = frames * bpf;
@@ -607,10 +628,12 @@ static int addfd(int fd, int events) {
 }
 
 int main(int argc, char **argv) {
-  int n, fd, stdin_slot, alsa_slots, alsa_nslots = -1, kid_slot, err;
-  unsigned short alsa_revents;
+  int n, fd, stdin_slot, alsa_slots, kid_slot;
   struct track *t;
   struct speaker_message sm;
+#if API_ALSA
+  int alsa_nslots = -1, err;
+#endif
 
   set_progname(argv);
   mem_init(0);
@@ -643,7 +666,15 @@ int main(int argc, char **argv) {
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
   info("started");
-  if(config->speaker_command) fork_kid();
+  if(config->speaker_command)
+    fork_kid();
+  else {
+#if API_ALSA
+    /* ok */
+#else
+    fatal(0, "invoked speaker but no speaker_command and no known sound API");
+ #endif
+  }
   while(getppid() != 1) {
     fdno = 0;
     /* Always ready for commands from the main server. */
@@ -658,10 +689,11 @@ int main(int argc, char **argv) {
      * sound device. */
     alsa_slots = -1;
     kid_slot = -1;
-    if(pcm && !forceplay) {
+    if(ready && !forceplay) {
       if(kidfd >= 0)
         kid_slot = addfd(kidfd, POLLOUT);
       else {
+#if API_ALSA
         int retry = 3;
         
         alsa_slots = fdno;
@@ -679,6 +711,7 @@ int main(int argc, char **argv) {
         } while(retry-- > 0);
         if(alsa_nslots >= 0)
           fdno += alsa_nslots;
+#endif
       }
     }
     /* If any other tracks don't have a full buffer, try to read sample data
@@ -698,6 +731,9 @@ int main(int argc, char **argv) {
     }
     /* Play some sound before doing anything else */
     if(alsa_slots != -1) {
+#if API_ALSA
+      unsigned short alsa_revents;
+      
       if((err = snd_pcm_poll_descriptors_revents(pcm,
                                                  &fds[alsa_slots],
                                                  alsa_nslots,
@@ -705,6 +741,7 @@ int main(int argc, char **argv) {
         fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
       if(alsa_revents & (POLLOUT | POLLERR))
         play(3 * FRAMES);
+#endif
     } else if(kid_slot != -1) {
       if(fds[kid_slot].revents & (POLLOUT | POLLERR))
         play(3 * FRAMES);
@@ -732,7 +769,7 @@ int main(int argc, char **argv) {
 	  t = findtrack(sm.id, 1);
           if(fd != -1) acquire(t, fd);
           playing = t;
-          play(pcm_bufsize);
+          play(bufsize);
           report();
 	  break;
 	case SM_PAUSE:
@@ -745,7 +782,7 @@ int main(int argc, char **argv) {
           if(paused) {
             paused = 0;
             if(playing)
-              play(pcm_bufsize);
+              play(bufsize);
           }
           report();
 	  break;
@@ -793,13 +830,6 @@ int main(int argc, char **argv) {
   info("stopped (parent terminated)");
   exit(0);
 }
-#else
-int main(int attribute((unused)) argc, char **argv) {
-  set_progname(argv);
-  mem_init(0);
-  fatal(0, "disorder-speaker not supported on this platform");
-}
-#endif
 
 /*
 Local Variables:

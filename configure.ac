@@ -35,10 +35,10 @@ want_python=yes
 
 case "$host" in
 *linux* | *Linux* )
-  want_speaker=yes
+  want_alsa=yes
   ;;
 * )
-  want_speaker=no
+  want_alsa=no
   ;;
 esac
 
@@ -134,18 +134,11 @@ if test $want_server = yes; then
   AC_CHECK_LIB([ao], [ao_initialize],
 	       [AC_SUBST(LIBAO,[-lao])],
 	       [missing_libraries="$missing_libraries libao"])
-  if test $want_speaker = yes; then
-    case "$host" in
-    *linux* | *Linux* )
-      AC_CHECK_LIB([asound], [snd_pcm_open],
-		   [AC_SUBST(LIBASOUND,[-lasound])],
-		   [missing_libraries="$missing_libraries libasound"])
-      AC_DEFINE([BUILD_SPEAKER],[1],[define to build the speaker subprocess])
-      ;;
-    * )
-      AC_MSG_ERROR([want to build speaker for unknown sound API])
-      ;;
-    esac
+  if test $want_alsa = yes; then
+    AC_CHECK_LIB([asound], [snd_pcm_open],
+		 [AC_SUBST(LIBASOUND,[-lasound])],
+		 [missing_libraries="$missing_libraries libasound"])
+    AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
   fi
 fi
 
