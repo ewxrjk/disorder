@@ -255,6 +255,75 @@ static int set_restrict(const struct config_state *cs,
   return 0;
 }
 
+static int parse_sample_format(const struct config_state *cs,
+			       ao_sample_format *ao,
+			       int nvec, char **vec) {
+  char *p = vec[0];
+  long t;
+
+  if (nvec != 1) {
+    error(0, "%s:%d: wrong number of arguments", cs->path, cs->line);
+    return -1;
+  }
+  if (xstrtol(&t, p, &p, 0)) {
+    error(errno, "%s:%d: converting bits-per-sample", cs->path, cs->line);
+    return -1;
+  }
+  if (t != 8 && t != 16) {
+    error(0, "%s:%d: bad bite-per-sample (%ld)", cs->path, cs->line, t);
+    return -1;
+  }
+  if (ao) ao->bits = t;
+  switch (*p) {
+    case 'l': case 'L': t = AO_FMT_LITTLE; p++; break;
+    case 'b': case 'B': t = AO_FMT_BIG; p++; break;
+    default: t = AO_FMT_NATIVE; break;
+  }
+  if (ao) ao->byte_format = t;
+  if (*p != '/') {
+    error(errno, "%s:%d: expected `/' after bits-per-sample",
+	  cs->path, cs->line);
+    return -1;
+  }
+  p++;
+  if (xstrtol(&t, p, &p, 0)) {
+    error(errno, "%s:%d: converting sample-rate", cs->path, cs->line);
+    return -1;
+  }
+  if (t < 1 || t > INT_MAX) {
+    error(0, "%s:%d: silly sample-rate (%ld)", cs->path, cs->line, t);
+    return -1;
+  }
+  if (ao) ao->rate = t;
+  if (*p != '/') {
+    error(0, "%s:%d: expected `/' after sample-rate",
+	  cs->path, cs->line);
+    return -1;
+  }
+  p++;
+  if (xstrtol(&t, p, &p, 0)) {
+    error(errno, "%s:%d: converting channels", cs->path, cs->line);
+    return -1;
+  }
+  if (t < 1 || t > 8) {
+    error(0, "%s:%d: silly number (%ld) of channels", cs->path, cs->line, t);
+    return -1;
+  }
+  if (ao) ao->channels = t;
+  if (*p) {
+    error(0, "%s:%d: junk after channels", cs->path, cs->line);
+    return -1;
+  }
+  return 0;
+}
+
+static int set_sample_format(const struct config_state *cs,
+			     const struct conf *whoami,
+			     int nvec, char **vec) {
+  return parse_sample_format(cs, ADDRESS(cs->config, ao_sample_format),
+			     nvec, vec);
+}
+
 static int set_namepart(const struct config_state *cs,
 			const struct conf *whoami,
 			int nvec, char **vec) {
@@ -430,6 +499,7 @@ static const struct conftype
   type_integer = { set_integer, free_none },
   type_stringlist_accum = { set_stringlist_accum, free_stringlistlist },
   type_string_accum = { set_string_accum, free_stringlist },
+  type_sample_format = { set_sample_format, free_none },
   type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist };
@@ -548,6 +618,12 @@ static int validate_isauser(const struct config_state *cs,
     return -1;
   }
   return 0;
+}
+
+static int validate_sample_format(const struct config_state *cs,
+				  int attribute((unused)) nvec,
+				  char **vec) {
+  return parse_sample_format(cs, 0, nvec, vec);
 }
 
 static int validate_channel(const struct config_state *cs,
@@ -675,8 +751,10 @@ static const struct conf conf[] = {
   { C(prefsync),         &type_integer,          validate_positive },
   { C(refresh),          &type_integer,          validate_positive },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
+  { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(signal),           &type_signal,           validate_any },
+  { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
   { C(transform),        &type_transform,        validate_any },
@@ -789,6 +867,11 @@ static struct config *config_default(void) {
   c->lock = 1;
   c->device = xstrdup("default");
   c->nice_rescan = 10;
+  c->speaker_command = 0;
+  c->sample_format.bits = 16;
+  c->sample_format.rate = 44100;
+  c->sample_format.channels = 2;
+  c->sample_format.byte_format = AO_FMT_NATIVE;
   return c;
 }
 

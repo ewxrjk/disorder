@@ -21,6 +21,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
+#include <ao/ao.h>
+
 struct real_pcre;
 
 /* Configuration is kept in a @struct config@; the live configuration
@@ -97,6 +99,8 @@ struct config {
   int lock;				/* server takes a lock */
   long nice_server;			/* nice value for server */
   long nice_speaker;			/* nice value for speaker */
+  const char *speaker_command;		/* command for speaker to run */
+  ao_sample_format sample_format;	/* sample format to enforce */
   /* shared client/server config */
   const char *home;			/* home directory for state files */
   /* client config */
