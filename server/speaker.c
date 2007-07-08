@@ -261,6 +261,30 @@ static void abandon(void) {
   forceplay = 0;
 }
 
+static void log_params(snd_pcm_hw_params_t *hwparams,
+                       snd_pcm_sw_params_t *swparams) {
+  snd_pcm_uframes_t f;
+  unsigned u;
+
+  if(hwparams) {
+    /* TODO */
+  }
+  if(swparams) {
+    snd_pcm_sw_params_get_silence_size(swparams, &f);
+    info("sw silence_size=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
+    info("sw silence_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_sleep_min(swparams, &u);
+    info("sw sleep_min=%lu", (unsigned long)u);
+    snd_pcm_sw_params_get_start_threshold(swparams, &f);
+    info("sw start_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
+    info("sw stop_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_xfer_align(swparams, &f);
+    info("sw xfer_align=%lu", (unsigned long)f);
+  }
+}
+
 /* Make sure the sound device is open and has the right sample format.  Return
  * 0 on success and -1 on error. */
 static int activate(void) {
@@ -353,6 +377,7 @@ static int activate(void) {
     pcm_format = playing->format;
     bpf = bytes_per_frame(&pcm_format);
     D(("acquired audio device"));
+    log_params(hwparams, swparams);
   }
   return 0;
 fatal:
@@ -510,9 +535,23 @@ int main(int argc, char **argv) {
     /* If forceplay is set then wait until it succeeds before waiting on the
      * sound device. */
     if(pcm && !forceplay) {
+      int retry = 3;
+
       alsa_slots = fdno;
-      alsa_nslots = snd_pcm_poll_descriptors(pcm, &fds[fdno], NFDS - fdno);
-      fdno += alsa_nslots;
+      do {
+        retry = 0;
+        alsa_nslots = snd_pcm_poll_descriptors(pcm, &fds[fdno], NFDS - fdno);
+        if((alsa_nslots <= 0
+            || !(fds[alsa_slots].events & POLLOUT))
+           && snd_pcm_state(pcm) == SND_PCM_STATE_XRUN) {
+          error(0, "underrun detected after call to snd_pcm_poll_descriptors()");
+          if((err = snd_pcm_prepare(pcm)))
+            fatal(0, "error calling snd_pcm_prepare: %d", err);
+        } else
+          break;
+      } while(retry-- > 0);
+      if(alsa_nslots >= 0)
+        fdno += alsa_nslots;
     } else
       alsa_slots = -1;
     /* If any other tracks don't have a full buffer, try to read sample data
