@@ -2,3 +2,9 @@ properties
 	make return be the same as OK
 search
 	select tracks by tag
+
+general:
+	If the server stops then disobedience crashes.  Specifically,
+	disorder_eclient_polled() finds a stashed 'command' with a
+	callback of authbanner_opcallback, and a NULL cmd, in
+	state_idle and c->authenticated nonzero.
