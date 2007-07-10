@@ -199,6 +199,7 @@ fi
 AC_C_CONST
 AC_TYPE_SIZE_T
 AC_C_INLINE
+AC_C_BIGENDIAN
 AC_CHECK_TYPES([struct sockaddr_in6],,,[AC_INCLUDES_DEFAULT
 #include <netinet/in.h>])
 

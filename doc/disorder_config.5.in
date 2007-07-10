@@ -323,6 +323,11 @@ scratched.  The default is \fBSIGKILL\fR.
 Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
 .TP
+.B sox_generation \fB0\fR|\fB1
+Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
+the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).  The default
+is 0.
+.TP
 .B speaker_command \fICOMMAND
 Causes the speaker subprocess to pipe audio data into shell command
 \fICOMMAND\fR, rather than writing to a local sound card.  The sample format is

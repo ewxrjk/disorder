@@ -754,6 +754,7 @@ static const struct conf conf[] = {
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(signal),           &type_signal,           validate_any },
+  { C(sox_generation),   &type_integer,          validate_non_negative },
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },

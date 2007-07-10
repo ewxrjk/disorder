@@ -101,6 +101,7 @@ struct config {
   long nice_speaker;			/* nice value for speaker */
   const char *speaker_command;		/* command for speaker to run */
   ao_sample_format sample_format;	/* sample format to enforce */
+  long sox_generation;			/* sox syntax generation */
   /* shared client/server config */
   const char *home;			/* home directory for state files */
   /* client config */

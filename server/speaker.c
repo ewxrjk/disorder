@@ -57,6 +57,12 @@
 #include <alsa/asoundlib.h>
 #endif
 
+#ifdef WORDS_BIGENDIAN
+# define MACHINE_AO_FMT AO_FMT_BIG
+#else
+# define MACHINE_AO_FMT AO_FMT_LITTLE
+#endif
+
 #define BUFFER_SECONDS 5                /* How many seconds of input to
                                          * buffer. */
 
@@ -300,20 +306,39 @@ static void log_params(snd_pcm_hw_params_t *hwparams,
 }
 #endif
 
-static void soxargs(const char ***pp, char **qq, ao_sample_format *ao)
-{
+static void soxargs(const char ***pp, char **qq, ao_sample_format *ao) {
   int n;
 
   *(*pp)++ = "-t.raw";
   *(*pp)++ = "-s";
   *(*pp)++ = *qq; n = sprintf(*qq, "-r%d", ao->rate); *qq += n + 1;
-  switch(ao->byte_format) {
+  *(*pp)++ = *qq; n = sprintf(*qq, "-c%d", ao->channels); *qq += n + 1;
+  /* sox 12.17.9 insists on -b etc; CVS sox insists on -<n> etc; both are
+   * deployed! */
+  switch(config->sox_generation) {
+  case 0:
+    if(ao->bits != 8
+       && ao->byte_format != AO_FMT_NATIVE
+       && ao->byte_format != MACHINE_AO_FMT) {
+      *(*pp)++ = "-x";
+    }
+    switch(ao->bits) {
+    case 8: *(*pp)++ = "-b"; break;
+    case 16: *(*pp)++ = "-w"; break;
+    case 32: *(*pp)++ = "-l"; break;
+    case 64: *(*pp)++ = "-d"; break;
+    default: fatal(0, "cannot handle sample size %d", (int)ao->bits);
+    }
+    break;
+  case 1:
+    switch(ao->byte_format) {
     case AO_FMT_NATIVE: break;
     case AO_FMT_BIG: *(*pp)++ = "-B"; break;
     case AO_FMT_LITTLE: *(*pp)++ = "-L"; break;
+    }
+    *(*pp)++ = *qq; n = sprintf(*qq, "-%d", ao->bits/8); *qq += n + 1;
+    break;
   }
-  *(*pp)++ = *qq; n = sprintf(*qq, "-%d", ao->bits/8); *qq += n + 1;
-  *(*pp)++ = *qq; n = sprintf(*qq, "-c%d", ao->channels); *qq += n + 1;
 }
 
 /* Make sure the sound device is open and has the right sample format.  Return
