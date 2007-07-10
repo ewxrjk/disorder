@@ -1,5 +1,5 @@
-DisOrder and Internet Streams
-=============================
+DisOrder and Republishing Internet Streams
+==========================================
 
 DisOrder doesn't have any built-in support for playing streams but you can make
 it do so.  I use the following in my configuration file:
@@ -24,6 +24,71 @@ You'll probably want to prevent random play of streams:
 You can then queue a stream like any other track.  It won't automatically
 interrupt the playing track, you have to scratch it manually.  Go back to
 normal play by scratching the stream.
+
+
+Creating A Stream Of DisOrder Output
+====================================
+
+This can be achieved using the speaker_command option and Icecast (see
+http://www.icecast.org/).  It will only work if you use the speaker process,
+i.e. execraw for everything.
+
+I used:
+
+  speaker_command "ices2 /etc/disorder/ices.xml"
+
+where ices.xml is:
+
+  <?xml version="1.0"?>
+  <ices>
+      <background>0</background>
+      <logpath>/var/log/ices</logpath>
+      <logfile>disorder.log</logfile>
+      <loglevel>4</loglevel>
+      <consolelog>0</consolelog>
+      <stream>
+	  <metadata>
+	      <name>lyonesse</name>
+	      <genre>Various</genre>
+	      <description>lyonesse disorder output</description>
+	  </metadata>
+	  <input>
+	      <module>stdinpcm</module>
+	      <param name="rate">44100</param>
+	      <param name="channels">2</param>
+	      <param name="metadata">1</param>
+	      <param name="metadatafilename">/var/disorder/icedata</param>
+	  </input>
+	  <instance>
+	      <hostname>lyonesse.anjou.terraraq.org.uk</hostname>
+	      <port>8000</port>
+	      <password>SOURCE PASSWORD HERE</password>
+	      <mount>/disorder.ogg</mount>
+	      <reconnectdelay>2</reconnectdelay>
+	      <reconnectattempts>5</reconnectattempts>
+	      <maxqueuelength>80</maxqueuelength>
+	      <encode>
+		  <nominal-bitrate>64000</nominal-bitrate>
+		  <samplerate>44100</samplerate>
+		  <channels>2</channels>
+		  <flush-samples>8820</flush-samples>
+	      </encode>
+	  </instance>
+
+	  </stream>
+  </ices>
+
+This doesn't seem to get on very well with pausing but you're unlikely to want
+to pause a stream in any case.  I used IceCast 2.3.1 and Ices 2.0.1.  You can
+play the stream with XMMS or whatever.  The total setup seems to play rather
+behind the 'current' time, watch this space for a fix (or contribute one!)
+
+Other DisOrder options you can set are sox_generation which you should set to
+if you have a sufficently recent version of sox, due to an incompatile change
+in its command syntax; and sample_format which determines what format is
+supplied to the speaker_command.  See disorder_config(5) for further
+information.
+
 
 Local Variables:
 mode:text
