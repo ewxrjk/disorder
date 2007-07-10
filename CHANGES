@@ -35,6 +35,14 @@ efficiently.
 A bug where removing a collection (from the configuration) could cause a
 crash when random play was enabled has been fixed.
 
+A new configuration option 'queue_pad' allows the number of random
+tracks kept on the queue to be controlled.
+
+New configuration options 'speaker_command', 'sample_format' and
+'sox_generation' direct the speaker process to send audio data to a
+subcommand instead of straight to the sound card, for instance for
+broadcasting over a network.
+
 ** disorderfm
 
 There is a new command line tool called 'disorderfm' which is designed
@@ -50,6 +58,11 @@ README.
 options.transform and the 'transform' web option have gone, replaced
 with a 'transform' configuration command.  Both this and 'namepart' are
 now optional.
+
+** Thanks
+
+Ross Younger, Colin Watson, Michael Stevens and Mark Wooding all
+contributed in some way to this release.
 
 * Changes up to version 1.5.1
 
