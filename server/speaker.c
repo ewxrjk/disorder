@@ -394,6 +394,8 @@ static int activate(void) {
     }
     return 0;
   }
+  if(config->speaker_command)
+    return -1;
 #if API_ALSA
   /* If we need to change format then close the current device. */
   if(pcm && !formats_equal(&playing->format, &pcm_format))
@@ -555,7 +557,7 @@ static void play(size_t frames) {
   else
     avail_bytes = playing->used;
 
-  if(kidfd == -1) {
+  if(!config->speaker_command) {
 #if API_ALSA
     snd_pcm_sframes_t pcm_written_frames;
     size_t avail_frames;
@@ -715,9 +717,10 @@ int main(int argc, char **argv) {
     alsa_slots = -1;
     kid_slot = -1;
     if(ready && !forceplay) {
-      if(kidfd >= 0)
-        kid_slot = addfd(kidfd, POLLOUT);
-      else {
+      if(config->speaker_command) {
+        if(kidfd >= 0)
+          kid_slot = addfd(kidfd, POLLOUT);
+      } else {
 #if API_ALSA
         int retry = 3;
         
