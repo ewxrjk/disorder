@@ -247,7 +247,7 @@ static int formats_equal(const ao_sample_format *a,
 static void idle(void) {
   D(("idle"));
 #if API_ALSA
-  if(pcm) {
+  if(!config->speaker_command && pcm) {
     int  err;
 
     if((err = snd_pcm_nonblock(pcm, 0)) < 0)
