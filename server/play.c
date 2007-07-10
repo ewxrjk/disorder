@@ -458,24 +458,31 @@ void abandon(ev_source attribute((unused)) *ev,
 int add_random_track(void) {
   struct queue_entry *q;
   const char *p;
+  long qlen = 0;
+  int rc = 0;
 
   /* If random play is not enabled then do nothing. */
   if(shutting_down || !random_is_enabled())
     return 0;
-  /* If there is already a random track, do nothing. */
+  /* Count how big the queue is */
   for(q = qhead.next; q != &qhead; q = q->next)
-    if(q->state == playing_random)
-      return 0;
-  /* Try to pick a random track */
-  if(!(p = trackdb_random(16)))
-    return -1;
-  /* Add it to the end of the queue. */
-  q = queue_add(p, 0, WHERE_END);
-  q->state = playing_random;
+    ++qlen;
+  /* Add random tracks until the queue is at the right size */
+  while(qlen < config->queue_pad) {
+    /* Try to pick a random track */
+    if(!(p = trackdb_random(16))) {
+      rc = -1;
+      break;
+    }
+    /* Add it to the end of the queue. */
+    q = queue_add(p, 0, WHERE_END);
+    q->state = playing_random;
+    D(("picked %p (%s) at random", (void *)q, q->track));
+    ++qlen;
+  }
   /* Commit the queue */
   queue_write();
-  D(("picked %p (%s) at random", (void *)q, q->track));
-  return 0;
+  return rc;
 }
 
 /* try to play a track */

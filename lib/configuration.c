@@ -749,6 +749,7 @@ static const struct conf conf[] = {
   { C(player),           &type_stringlist_accum, validate_player },
   { C(plugins),          &type_string_accum,     validate_isdir },
   { C(prefsync),         &type_integer,          validate_positive },
+  { C(queue_pad),        &type_integer,          validate_positive },
   { C(refresh),          &type_integer,          validate_positive },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
@@ -873,6 +874,7 @@ static struct config *config_default(void) {
   c->sample_format.rate = 44100;
   c->sample_format.channels = 2;
   c->sample_format.byte_format = AO_FMT_NATIVE;
+  c->queue_pad = 10;
   return c;
 }
 

@@ -112,6 +112,8 @@ struct config {
   const char *url;			/* canonical URL */
   long refresh;				/* maximum refresh period */
   unsigned restrictions;		/* restrictions */
+  long queue_pad;			/* how far to pad queue with
+					 * random tracks */
 #define RESTRICT_SCRATCH 1
 #define RESTRICT_REMOVE 2
 #define RESTRICT_MOVE 4

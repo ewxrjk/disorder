@@ -296,6 +296,10 @@ If multiple player commands match a track then the first match is used.
 The interval at which the preferences log file will be synchronised.  Defaults
 to 3600, i.e. one hour.
 .TP
+.B queue_pad \fICOUNT\fR
+The target size of the queue.  If random play is enabled then randomly picked
+tracks will be added until the queue is at least this big.
+.TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).  The
 components of the format specification are as follows:

@@ -353,7 +353,7 @@ void queue_id(struct queue_entry *q) {
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
 			      int where) {
-  struct queue_entry *q;
+  struct queue_entry *q, *beforeme;
 
   q = xmalloc(sizeof *q);
   q->track = xstrdup(track);
@@ -369,11 +369,13 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
     l_add(qhead.prev, q);
     break;
   case WHERE_BEFORE_RANDOM:
-    if(qhead.prev == &qhead		/* Empty queue. */
-       || qhead.prev->state != playing_random) /* No random track */
-      l_add(qhead.prev, q);
-    else
-      l_add(qhead.prev->prev, q);	/* Before random track. */
+    /* We want to find the point in the queue before the block of random tracks
+     * at the end. */
+    beforeme = &qhead;
+    while(beforeme->prev != &qhead
+	  && beforeme->prev->state == playing_random)
+      beforeme = beforeme->prev;
+    l_add(beforeme->prev, q);
     break;
   }
   /* submitter will be a null pointer for a scratch */
