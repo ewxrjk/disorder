@@ -335,6 +335,7 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
+  signal(SIGPIPE, SIG_IGN);
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);

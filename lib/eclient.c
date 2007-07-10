@@ -546,8 +546,10 @@ static void read_input(disorder_eclient *c) {
     if(c->state > state_connecting)
       consume(&c->input, (nl - c->input.vec) + 1);
   }
-  if(c->eof)
+  if(c->eof) {
     comms_error(c, "reading from %s: server disconnected", c->ident);
+    c->authenticated = 0;
+  }
 }
 
 /* called with a line that has just been read */
