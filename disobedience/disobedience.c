@@ -321,7 +321,6 @@ int main(int argc, char **argv) {
 
   mem_init(1);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  /* Causes GTK+ to 0-fill lots of things, which helps the garbage collector. */
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);
   while((n = getopt_long(argc, argv, "hVc:dtH", options, 0)) >= 0) {

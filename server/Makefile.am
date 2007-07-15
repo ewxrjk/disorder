@@ -32,33 +32,33 @@ disorderd_SOURCES=disorderd.c				\
 	state.c state.h					\
 	trackdb.c trackdb.h trackdb-int.h exports.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT)
+	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_deadlock_SOURCES=deadlock.c                    \
 	trackdb.c trackdb.h
 disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDB) $(LIBPCRE) $(LIBGC)
+	$(LIBDB) $(LIBPCRE) $(LIBGC) $(LIBICONV)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBGC) $(LIBPCRE)
+	$(LIBASOUND) $(LIBGC) $(LIBPCRE) $(LIBICONV)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
 	api.c api-server.c				\
 	trackdb.c trackdb.h exports.c
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDB) $(LIBGC) $(LIBPCRE)
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_dump_SOURCES=dump.c                           \
         trackdb.c trackdb.h
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBDB) $(LIBGC)
+	$(LIBPCRE) $(LIBDB) $(LIBGC) $(LIBICONV)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
@@ -70,7 +70,7 @@ disorder_cgi_LDFLAGS=-export-dynamic
 disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
 
 trackname_SOURCES=trackname.c
-trackname_LDADD=../lib/libdisorder.a $(LIBGC) $(LIBPCRE)
+trackname_LDADD=../lib/libdisorder.a $(LIBGC) $(LIBPCRE) $(LIBICONV)
 trackname_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:

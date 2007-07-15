@@ -29,7 +29,7 @@ disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c
-disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC)
+disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c

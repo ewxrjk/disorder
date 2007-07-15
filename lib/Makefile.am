@@ -78,7 +78,7 @@ defs.o: definitions.h
 defs.lo: definitions.h
 
 test_SOURCES=test.c
-test_LDADD=libdisorder.a $(LIBPCRE) $(LIBGC)
+test_LDADD=libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBICONV)
 test_DEPENDENCIES=libdisorder.a
 
 check: test
