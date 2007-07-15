@@ -48,6 +48,7 @@
 #include "printf.h"
 #include "trackdb.h"
 #include "trackdb-int.h"
+#include "trackname.h"
 
 static DB_TXN *global_tid;
 
@@ -182,7 +183,7 @@ done:
 
 struct recheck_state {
   const struct collection *c;
-  long nobsolete, nlength;
+  long nobsolete, nnocollection, nlength;
 };
 
 /* called for each non-alias track */
@@ -199,6 +200,15 @@ static int recheck_callback(const char *track,
 
   if(aborted()) return EINTR;
   D(("rechecking %s", track));
+  /* if we're not checking a specific collection, find the right collection */
+  if(!c) {
+    if(!(c = find_track_collection(track))) {
+      D(("obsoleting %s", track));
+      if((err = trackdb_obsolete(track, tid))) return err;
+      ++cs->nnocollection;
+      return 0;
+    }
+  }
   /* see if the track has evaporated */
   if(check(c->module, c->root, path) == 0) {
     D(("obsoleting %s", track));
@@ -225,13 +235,17 @@ static int recheck_callback(const char *track,
 static void recheck_collection(const struct collection *c) {
   struct recheck_state cs;
 
-  info("rechecking %s", c->root);
+  if(c)
+    info("rechecking %s", c->root);
+  else
+    info("rechecking all tracks");
   for(;;) {
     checkabort();
     global_tid = trackdb_begin_transaction();
     memset(&cs, 0, sizeof cs);
     cs.c = c;
-    if(trackdb_scan(c->root, recheck_callback, &cs, global_tid)) goto fail;
+    if(trackdb_scan(c ? c->root : 0, recheck_callback, &cs, global_tid))
+      goto fail;
     break;
   fail:
     /* Maybe we need to shut down */
@@ -242,12 +256,19 @@ static void recheck_collection(const struct collection *c) {
     /* Let anything else that is going on get out of the way. */
     sleep(10);
     checkabort();
-    info("resuming recheck of %s", c->root);
+    if(c)
+      info("resuming recheck of %s", c->root);
+    else
+      info("resuming global recheck");
   }
   trackdb_commit_transaction(global_tid);
   global_tid = 0;
-  info("rechecked %s, %ld obsoleted, %ld lengths calculated",
-       c->root, cs.nobsolete, cs.nlength);
+  if(c)
+    info("rechecked %s, %ld obsoleted, %ld lengths calculated",
+         c->root, cs.nobsolete, cs.nlength);
+  else
+    info("rechecked all tracks, %ld no collection, %ld obsoleted, %ld lengths calculated",
+         cs.nnocollection, cs.nobsolete, cs.nlength);
 }
 
 /* rescan/recheck a collection by name */
@@ -313,12 +334,16 @@ int main(int argc, char **argv) {
   trackdb_init(0);
   trackdb_open();
   if(optind == argc) {
+    /* Rescan all collections */
     do_all(rescan_collection);
-    do_all(recheck_collection);
+    /* Check that every track still exists */
+    recheck_collection(0);
   }
   else {
+    /* Rescan specified collections */
     for(n = optind; n < argc; ++n)
       do_directory(argv[n], rescan_collection);
+    /* Check specified collections for tracks that have gone */
     for(n = optind; n < argc; ++n)
       do_directory(argv[n], recheck_collection);
   }

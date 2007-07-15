@@ -82,9 +82,9 @@ int trackdb_scan(const char *root,
                                  DB_TXN *tid),
                  void *u,
                  DB_TXN *tid);
-/* Call CALLBACK for each non-alias track below ROOT.  Return 0 or
- * DB_LOCK_DEADLOCK.  CALLBACK should return 0 on success or EINTR to cancel
- * the scan. */
+/* Call CALLBACK for each non-alias track below ROOT (or all tracks if ROOT is
+ * 0).  Return 0 or DB_LOCK_DEADLOCK.  CALLBACK should return 0 on success or
+ * EINTR to cancel the scan. */
 
 /* fill KEY in with S, returns KEY */
 static inline DBT *make_key(DBT *key, const char *s) {

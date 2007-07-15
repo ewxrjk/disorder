@@ -33,7 +33,7 @@
 #include "filepart.h"
 #include "words.h"
 
-const char *find_track_root(const char *track) {
+const struct collection *find_track_collection(const char *track) {
   int n;
   size_t l, tl = strlen(track);
 
@@ -44,11 +44,18 @@ const char *find_track_root(const char *track) {
        && track[l] == '/')
       break;
   }
-  if(n >= config->collection.n) {
-    error(0, "found track in no collection '%s'", track);
+  if(n < config->collection.n)
+    return &config->collection.s[n];
+  else
     return 0;
-  }
-  return config->collection.s[n].root;
+}
+
+const char *find_track_root(const char *track) {
+  const struct collection *c = find_track_collection(track);
+  if(c)
+    return c->root;
+  error(0, "found track in no collection '%s'", track);
+  return 0;
 }
 
 const char *track_rootless(const char *track) {

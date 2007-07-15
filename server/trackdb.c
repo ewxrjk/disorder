@@ -1649,22 +1649,37 @@ int trackdb_scan(const char *root,
                  DB_TXN *tid) {
   DBC *cursor;
   DBT k, d;
-  size_t root_len = strlen(root);
-  int err;
+  const size_t root_len = root ? strlen(root) : 0;
+  int err, cberr;
   struct kvp *data;
+  const char *track;
 
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
-  err = cursor->c_get(cursor, make_key(&k, root), prepare_data(&d),
-                      DB_SET_RANGE);
+  if(root)
+    err = cursor->c_get(cursor, make_key(&k, root), prepare_data(&d),
+                        DB_SET_RANGE);
+  else {
+    memset(&k, 0, sizeof k);
+    err = cursor->c_get(cursor, &k, prepare_data(&d),
+                        DB_FIRST);
+  }
   while(!err) {
-    if(k.size > root_len
-       && !strncmp(k.data, root, root_len)
-       && ((char *)k.data)[root_len] == '/') {
+    if(!root
+       || (k.size > root_len
+           && !strncmp(k.data, root, root_len)
+           && ((char *)k.data)[root_len] == '/')) {
       data = kvp_urldecode(d.data, d.size);
-      if(kvp_get(data, "_path"))
-        if((err = callback(xstrndup(k.data, k.size), data, u, tid)))
+      if(kvp_get(data, "_path")) {
+        track = xstrndup(k.data, k.size);
+        /* Advance to the next track before the callback so that the callback
+         * may safely delete the track */
+        err = cursor->c_get(cursor, &k, &d, DB_NEXT);
+        if((cberr = callback(track, data, u, tid))) {
+          err = cberr;
           break;
-      err = cursor->c_get(cursor, &k, &d, DB_NEXT);
+        }
+      } else
+        err = cursor->c_get(cursor, &k, &d, DB_NEXT);
     } else
       break;
   }

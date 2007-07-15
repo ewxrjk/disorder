@@ -21,6 +21,9 @@
 #ifndef TRACKNAME_H
 #define TRACKNAME_H
 
+const struct collection *find_track_collection(const char *track);
+/* find the collection for @track@ */
+
 const char *find_track_root(const char *track);
 /* find the collection root for @track@ */
 
