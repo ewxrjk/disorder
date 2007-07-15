@@ -42,7 +42,6 @@ archpkg([disorder], [	m4_dnl
 		debian/disorder/usr/bin/* \
 		debian/disorder/usr/lib/cgi-bin/disorder/* \
 		debian/disorder/usr/sbin/* \
-		debian/disorder/usr/lib/*.so* \
 		debian/disorder/usr/lib/disorder/*.so*
 	$(INSTALL) -m 644 debian/htaccess \
 		debian/disorder/usr/lib/cgi-bin/disorder/.htaccess

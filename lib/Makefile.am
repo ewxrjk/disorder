@@ -1,3 +1,4 @@
+
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004, 2005, 2006 Richard Kettlewell
@@ -18,14 +19,11 @@
 # USA
 #
 
-lib_LTLIBRARIES=libdisorder.la
+noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
 noinst_PROGRAMS=test
 
-# This library is there to share code between the DisOrder applications,
-# not to provide an interface to anyone else.  As such there are no
-# guarantees regarding its ABI.
-libdisorder_la_SOURCES=charset.c charset.h		\
+libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
@@ -68,9 +66,9 @@ libdisorder_la_SOURCES=charset.c charset.h		\
 	words.c words.h casefold.h unicodegc.h 		\
 	wstat.c wstat.h					\
 	disorder.h
-libdisorder_la_LIBADD=$(LIBGCRYPT) $(LIBGC) $(LIBICONV) $(LIBNSL) \
-	$(LIBSOCKET) $(LIBDL) $(LIBPCRE)
-libdisorder_la_LDFLAGS=-release ${VERSION}
+#libdisorder_la_LIBADD=$(LIBGCRYPT) $(LIBGC) $(LIBICONV) $(LIBNSL) \
+#	$(LIBSOCKET) $(LIBDL) $(LIBPCRE)
+#libdisorder_la_LDFLAGS=-release ${VERSION}
 
 definitions.h: Makefile
 	rm -f $@.new
@@ -83,8 +81,8 @@ defs.o: definitions.h
 defs.lo: definitions.h
 
 test_SOURCES=test.c
-test_LDADD=libdisorder.la $(LIBPCRE)
-test_DEPENDENCIES=libdisorder.la
+test_LDADD=libdisorder.a $(LIBPCRE) $(LIBGC)
+test_DEPENDENCIES=libdisorder.a
 
 check: test
 	./test

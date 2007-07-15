@@ -30,42 +30,48 @@ disorderd_SOURCES=disorderd.c				\
 	play.c play.h 					\
 	server.c server.h     				\
 	state.c state.h					\
-	trackdb.c trackdb.h trackdb-int.h
-disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBPCRE) $(LIBDB) $(LIBAO)
+	trackdb.c trackdb.h trackdb-int.h exports.c
+disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT)
 disorderd_LDFLAGS=-export-dynamic
-disorderd_DEPENDENCIES=../lib/libdisorder.la
+disorderd_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_deadlock_SOURCES=deadlock.c                    \
 	trackdb.c trackdb.h
-disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBDB)
-disorder_deadlock_DEPENDENCIES=../lib/libdisorder.la
+disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBDB) $(LIBPCRE) $(LIBGC)
+disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_speaker_SOURCES=speaker.c
-disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBASOUND)
-disorder_speaker_DEPENDENCIES=../lib/libdisorder.la
+disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBASOUND) $(LIBGC) $(LIBPCRE)
+disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
 	api.c api-server.c				\
-	trackdb.c trackdb.h
-disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBDB)
+	trackdb.c trackdb.h exports.c
+disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBDB) $(LIBGC) $(LIBPCRE)
 disorder_rescan_LDFLAGS=-export-dynamic
-disorder_rescan_DEPENDENCIES=../lib/libdisorder.la
+disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_dump_SOURCES=dump.c                           \
         trackdb.c trackdb.h
-disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.la $(LIBPCRE) $(LIBDB)
-disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBPCRE) $(LIBDB) $(LIBGC)
+disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\
-	cgi.c cgi.h cgimain.c
-disorder_cgi_LDADD=../lib/libdisorder.la $(LIBPCRE)
+	cgi.c cgi.h cgimain.c exports.c
+disorder_cgi_LDADD=../lib/libdisorder.a \
+	$(LIBPCRE) $(LIBGC) $(LIBGCRYPT) $(LIBDL)
 disorder_cgi_LDFLAGS=-export-dynamic
-disorder_cgi_DEPENDENCIES=../lib/libdisorder.la
+disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
 
 trackname_SOURCES=trackname.c
-trackname_LDADD=../lib/libdisorder.la
-trackname_DEPENDENCIES=../lib/libdisorder.la
+trackname_LDADD=../lib/libdisorder.a $(LIBGC) $(LIBPCRE)
+trackname_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)

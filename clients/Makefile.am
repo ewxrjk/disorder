@@ -24,18 +24,20 @@ noinst_PROGRAMS=test-eclient filename-bytes
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorder_SOURCES=disorder.c authorize.c authorize.h
-disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.la
-disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBDL) $(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
+disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c
-disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.la
-disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.la
+disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC)
+disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
 
 test_eclient_SOURCES=test-eclient.c
-test_eclient_LDADD=../lib/libdisorder.la
-test_eclient_DEPENDENCIES=../lib/libdisorder.la
+test_eclient_LDADD=../lib/libdisorder.a \
+	$(LIBDL) $(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
+test_eclient_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
