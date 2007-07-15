@@ -23,6 +23,7 @@
 
 #include <stddef.h>
 #include <gcrypt.h>
+#include <assert.h>
 
 #include "hex.h"
 #include "log.h"
@@ -36,7 +37,9 @@ const char *authhash(const void *challenge, size_t nchallenge,
 		     const char *password) {
   gcrypt_hash_handle h;
   const char *res;
-  
+
+  assert(challenge != 0);
+  assert(password != 0);
 #if HAVE_GCRY_ERROR_T
   {
     gcry_error_t e;

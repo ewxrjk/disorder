@@ -194,6 +194,10 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
   vector_init(&c->vec);
   dynstr_init(&c->input);
   dynstr_init(&c->output);
+  if(!config->password) {
+    error(0, "no password set");
+    return 0;
+  }
   return c;
 }
 

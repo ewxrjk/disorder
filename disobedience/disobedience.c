@@ -341,8 +341,9 @@ int main(int argc, char **argv) {
   mainloop = g_main_loop_new(0, 0);
   if(config_read()) fatal(0, "cannot read configuration");
   /* create the clients */
-  client = gtkclient();
-  logclient = gtkclient();
+  if(!(client = gtkclient())
+     || !(logclient = gtkclient()))
+    return 1;                           /* already reported an error */
   disorder_eclient_log(logclient, &gdisorder_log_callbacks, 0);
   /* periodic operations (e.g. expiring the cache) */
   g_timeout_add(600000/*milliseconds*/, periodic, 0);

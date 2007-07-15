@@ -161,6 +161,10 @@ disorder_eclient *gtkclient(void) {
   esource = (struct eclient_source *)source;
   esource->pollfd.fd = -1;
   esource->client = disorder_eclient_new(&gtkclient_callbacks, source);
+  if(!esource->client) {
+    g_source_destroy(source);
+    return 0;
+  }
   g_source_attach(source, 0);
   return esource->client;
 }
