@@ -30,7 +30,8 @@ disorderd_SOURCES=disorderd.c				\
 	play.c play.h 					\
 	server.c server.h     				\
 	state.c state.h					\
-	trackdb.c trackdb.h trackdb-int.h exports.c
+	trackdb.c trackdb.h trackdb-int.h exports.c 	\
+	../lib/memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV)
 disorderd_LDFLAGS=-export-dynamic
@@ -39,38 +40,40 @@ disorderd_DEPENDENCIES=../lib/libdisorder.a
 disorder_deadlock_SOURCES=deadlock.c                    \
 	trackdb.c trackdb.h
 disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDB) $(LIBPCRE) $(LIBGC) $(LIBICONV)
+	$(LIBDB) $(LIBPCRE) $(LIBICONV)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBGC) $(LIBPCRE) $(LIBICONV)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
 	api.c api-server.c				\
-	trackdb.c trackdb.h exports.c
+	trackdb.c trackdb.h exports.c			\
+	../lib/memgc.c
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_dump_SOURCES=dump.c                           \
-        trackdb.c trackdb.h
+disorder_dump_SOURCES=dump.c                           	\
+        trackdb.c trackdb.h				\
+	../lib/memgc.c
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBDB) $(LIBGC) $(LIBICONV)
+	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\
 	cgi.c cgi.h cgimain.c exports.c
 disorder_cgi_LDADD=../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBGC) $(LIBGCRYPT) $(LIBDL)
+	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL)
 disorder_cgi_LDFLAGS=-export-dynamic
 disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
 
 trackname_SOURCES=trackname.c
-trackname_LDADD=../lib/libdisorder.a $(LIBGC) $(LIBPCRE) $(LIBICONV)
+trackname_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV)
 trackname_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:

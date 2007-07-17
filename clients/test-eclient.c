@@ -163,7 +163,7 @@ static void recent_completed(void *v, struct queue_entry *q) {
 
 int main(int argc, char **argv) {
   assert(argc > 0);
-  mem_init(1);
+  mem_init();
   debugging = 0;			/* turn on for even more verbosity */
   if(config_read()) fatal(0, "config_read failed");
   tracks = &argv[1];

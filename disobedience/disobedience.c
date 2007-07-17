@@ -319,7 +319,7 @@ int main(int argc, char **argv) {
   int n;
   disorder_eclient *logclient;
 
-  mem_init(1);
+  mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);

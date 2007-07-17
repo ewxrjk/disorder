@@ -351,7 +351,7 @@ int main(int argc, char **argv) {
   int n;
   struct pattern *p;
 
-  mem_init(1);
+  mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVdf:t:i:e:ET:u:wlscn", options, 0)) >= 0) {
     switch(n) {

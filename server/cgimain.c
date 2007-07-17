@@ -45,7 +45,6 @@ int main(int argc, char **argv) {
   dcgi_state s;
   cgi_sink output;
 
-  mem_init(0);
   if(argc > 0) progname = argv[0];
   cgi_parse();
   if((conf = getenv("DISORDER_CONFIG"))) configfile = xstrdup(conf);

@@ -390,7 +390,7 @@ int main(int argc, char **argv) {
   char *tmp;
   FILE *fp;
 
-  mem_init(1);
+  mem_init();
   while((n = getopt_long(argc, argv, "hVc:dDutsrRaP", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();

@@ -78,7 +78,6 @@ int main(int argc, char **argv) {
   int n, err, aborted;
 
   set_progname(argv);
-  mem_init(0);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dD", options, 0)) >= 0) {
     switch(n) {

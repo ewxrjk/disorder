@@ -501,7 +501,7 @@ int main(int argc, char **argv) {
   int status = 0;
   struct vector args;
 
-  mem_init(1);
+  mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dHL", options, 0)) >= 0) {
     switch(n) {

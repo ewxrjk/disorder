@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,9 @@
 #include <config.h>
 #include "types.h"
 
+#if GC
 #include <gc.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -34,11 +36,6 @@
 
 #include "disorder.h"
 
-static void *(*do_malloc)(size_t) = GC_malloc;
-static void *(*do_realloc)(void *, size_t) = GC_realloc;
-static void *(*do_malloc_atomic)(size_t) = GC_malloc_atomic;
-static void (*do_free)(void *) = GC_free;
-
 static void *malloc_and_zero(size_t n) {
   void *ptr = malloc(n);
 
@@ -46,10 +43,23 @@ static void *malloc_and_zero(size_t n) {
   return ptr;
 }
 
-void mem_init(int gc) {
+#if GC
+static void *(*do_malloc)(size_t) = GC_malloc;
+static void *(*do_realloc)(void *, size_t) = GC_realloc;
+static void *(*do_malloc_atomic)(size_t) = GC_malloc_atomic;
+static void (*do_free)(void *) = GC_free;
+#else
+static void *(*do_malloc)(size_t) = malloc_and_zero;
+static void *(*do_realloc)(void *, size_t) = realloc;
+static void *(*do_malloc_atomic)(size_t) = malloc;
+static void (*do_free)(void *) = free;
+#endif
+
+void mem_init(void) {
+#if GC
   const char *e;
   
-  if(!gc || ((e = getenv("DISORDER_GC")) && !strcmp(e, "no"))) {
+  if(((e = getenv("DISORDER_GC")) && !strcmp(e, "no"))) {
     do_malloc = malloc_and_zero;
     do_malloc_atomic = malloc;
     do_realloc = realloc;
@@ -58,6 +68,7 @@ void mem_init(int gc) {
     GC_init();
     assert(GC_all_interior_pointers);
   }
+#endif
 }
 
 void *xmalloc(size_t n) {

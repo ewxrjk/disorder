@@ -27,9 +27,8 @@
 
 #include <stdarg.h>
 
-void mem_init(int gc);
-/* initialize memory management.  Set GC to 1 if garbage collection is
- * desired. */
+void mem_init(void);
+/* initialize memory management. */
 
 void *xmalloc(size_t);
 void *xrealloc(void *, size_t);

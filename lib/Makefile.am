@@ -1,4 +1,3 @@
-
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004, 2005, 2006, s007 Richard Kettlewell
@@ -78,7 +77,7 @@ defs.o: definitions.h
 defs.lo: definitions.h
 
 test_SOURCES=test.c
-test_LDADD=libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBICONV)
+test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV)
 test_DEPENDENCIES=libdisorder.a
 
 check: test

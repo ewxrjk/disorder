@@ -184,7 +184,7 @@ static void volumecheck_after(long offset) {
   int initial_rescan = 1;
 
   set_progname(argv);
-  mem_init(1);
+  mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
