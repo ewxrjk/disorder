@@ -22,6 +22,7 @@
 
 #include <getopt.h>
 #include <locale.h>
+#include <pcre.h>
 
 /* Apologies for the numerous de-consting casts, but GLib et al do not seem to
  * have heard of const. */
@@ -320,6 +321,9 @@ int main(int argc, char **argv) {
   disorder_eclient *logclient;
 
   mem_init();
+  /* garbage-collect PCRE's memory */
+  pcre_malloc = xmalloc;
+  pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);

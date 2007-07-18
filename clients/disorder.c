@@ -34,6 +34,7 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <assert.h>
+#include <pcre.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -502,6 +503,9 @@ int main(int argc, char **argv) {
   struct vector args;
 
   mem_init();
+  /* garbage-collect PCRE's memory */
+  pcre_malloc = xmalloc;
+  pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dHL", options, 0)) >= 0) {
     switch(n) {
