@@ -849,7 +849,7 @@ static void remove_drag_targets(struct queuelike *ql) {
 static void redisplay_queue(struct queuelike *ql) {
   struct queue_entry *q;
   int row, col;
-  GList *c;
+  GList *c, *children;
   const char *name;
   GtkRequisition req;  
   GtkWidget *w;
@@ -858,7 +858,7 @@ static void redisplay_queue(struct queuelike *ql) {
 
   D(("redisplay_queue"));
   /* Eliminate all the existing widgets and start from scratch */
-  for(c = gtk_container_get_children(GTK_CONTAINER(ql->mainlayout));
+  for(c = children = gtk_container_get_children(GTK_CONTAINER(ql->mainlayout));
       c;
       c = c->next) {
     /* Destroy both the label and the eventbox */
@@ -869,6 +869,7 @@ static void redisplay_queue(struct queuelike *ql) {
     DW(event_box);
     gtk_widget_destroy(GTK_WIDGET(c->data));
   }
+  g_list_free(children);
   /* Adjust the row count */
   for(q = ql->q, ql->nrows = 0; q; q = q->next)
     ++ql->nrows;
