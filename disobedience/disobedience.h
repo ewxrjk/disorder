@@ -180,8 +180,8 @@ void choose_update(void);
 #define WT(what) static int current##what, max##what
 #define DW(what) (--current##what)
 #else
-#define NW(what) (0)
-#define DW(what) (0)
+#define NW(what) do { } while(0)
+#define DW(what) do { } while(0)
 #define WT(what) struct neverused
 #endif
 
