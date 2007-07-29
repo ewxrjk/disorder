@@ -22,6 +22,18 @@
 
 /* Choose track ------------------------------------------------------------ */
 
+WT(label);
+WT(event_box);
+WT(menu);
+WT(menu_item);
+WT(layout);
+WT(vbox);
+WT(arrow);
+WT(hbox);
+WT(button);
+WT(image);
+WT(entry);
+
 /* We don't use the built-in tree widgets because they require that you know
  * the children of a node on demand, and we have to wait for the server to tell
  * us. */
@@ -197,6 +209,34 @@ static void fill_root_node(struct choosenode *cn) {
   }
 }
 
+static void delete_cn_widgets(struct choosenode *cn) {
+  if(cn->arrow) {
+    DW(arrow);
+    gtk_widget_destroy(cn->arrow);
+    cn->arrow = 0;
+  }
+  if(cn->label) {
+    DW(label);
+    gtk_widget_destroy(cn->label);
+    cn->label = 0;
+  }
+  if(cn->marker) {
+    DW(image);
+    gtk_widget_destroy(cn->marker);
+    cn->marker = 0;
+  }
+  if(cn->hbox) {
+    DW(hbox);
+    gtk_widget_destroy(cn->hbox);
+    cn->hbox = 0;
+  }
+  if(cn->container) {
+    DW(event_box);
+    gtk_widget_destroy(cn->container);
+    cn->container = 0;
+  }
+}
+
 /* Clear all the children of CN */
 static void clear_children(struct choosenode *cn) {
   int n;
@@ -205,15 +245,7 @@ static void clear_children(struct choosenode *cn) {
   /* Recursively clear subtrees */
   for(n = 0; n < cn->children.nvec; ++n) {
     clear_children(cn->children.vec[n]);
-    if(cn->children.vec[n]->container) {
-      if(cn->children.vec[n]->arrow)
-        gtk_widget_destroy(cn->children.vec[n]->arrow);
-      gtk_widget_destroy(cn->children.vec[n]->label);
-      if(cn->children.vec[n]->marker)
-        gtk_widget_destroy(cn->children.vec[n]->marker);
-      gtk_widget_destroy(cn->children.vec[n]->hbox);
-      gtk_widget_destroy(cn->children.vec[n]->container);
-    }
+    delete_cn_widgets(cn->children.vec[n]);
   }
   cn->children.nvec = 0;
 }
@@ -330,6 +362,11 @@ static void contract_node(struct choosenode *cn) {
   cn->flags &= ~CN_EXPANDED;
   /* Clear selection below this node */
   clear_selection(cn);
+  /* Zot children.  We never used to do this but the result would be that over
+   * time you'd end up with the entire tree pulled into memory.  If the server
+   * is over a slow network it will make interactivity slightly worse; if
+   * anyone complains we can make it an option. */
+  clear_children(cn);
   /* We can contract a node immediately. */
   redisplay_tree();
 }
@@ -535,10 +572,7 @@ static void clearsearch_clicked(GtkButton attribute((unused)) *button,
 static void delete_widgets(struct choosenode *cn) {
   int n;
 
-  if(cn->container) {
-    gtk_widget_destroy(cn->container);
-    cn->container = 0;
-  }
+  delete_cn_widgets(cn);
   for(n = 0; n < cn->children.nvec; ++n)
     delete_widgets(cn->children.vec[n]);
   cn->flags &= ~(CN_DISPLAYED|CN_SELECTED);
@@ -590,23 +624,29 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
    */
   if(!cn->container) {
     /* Widgets need to be created */
+    NW(hbox);
     cn->hbox = gtk_hbox_new(FALSE, 1);
     if(cn->flags & CN_EXPANDABLE) {
+      NW(arrow);
       cn->arrow = gtk_arrow_new(cn->flags & CN_EXPANDED ? GTK_ARROW_DOWN
                                                         : GTK_ARROW_RIGHT,
                                 GTK_SHADOW_NONE);
       cn->marker = 0;
     } else {
       cn->arrow = 0;
-      if((pb = find_image("notes.png")))
+      if((pb = find_image("notes.png"))) {
+        NW(image);
         cn->marker = gtk_image_new_from_pixbuf(pb);
+      }
     }
+    NW(label);
     cn->label = gtk_label_new(cn->display);
     if(cn->arrow)
       gtk_container_add(GTK_CONTAINER(cn->hbox), cn->arrow);
     gtk_container_add(GTK_CONTAINER(cn->hbox), cn->label);
     if(cn->marker)
       gtk_container_add(GTK_CONTAINER(cn->hbox), cn->marker);
+    NW(event_box);
     cn->container = gtk_event_box_new();
     gtk_container_add(GTK_CONTAINER(cn->container), cn->hbox);
     g_signal_connect(cn->container, "button-release-event", 
@@ -942,15 +982,18 @@ GtkWidget *choose_widget(void) {
    */
   
   /* Text entry box for search terms */
+  NW(entry);
   searchentry = gtk_entry_new();
   g_signal_connect(searchentry, "changed", G_CALLBACK(searchentry_changed), 0);
 
   /* Cancel button to clear the search */
+  NW(button);
   clearsearch = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
   g_signal_connect(G_OBJECT(clearsearch), "clicked",
                    G_CALLBACK(clearsearch_clicked), 0);
 
   /* hbox packs the search box and the cancel button together on a line */
+  NW(hbox);
   hbox = gtk_hbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
   gtk_box_pack_start(GTK_BOX(hbox), searchentry,
                      TRUE/*expand*/, TRUE/*fill*/, 0/*padding*/);
@@ -959,15 +1002,18 @@ GtkWidget *choose_widget(void) {
   
   /* chooselayout contains the currently visible subset of the track
    * namespace */
+  NW(layout);
   chooselayout = gtk_layout_new(0, 0);
   root = newnode(0/*parent*/, "<root>", "All files", "",
                  CN_EXPANDABLE, fill_root_node);
   realroot = root;
   expand_node(root);                    /* will call redisplay_tree */
   /* Create the popup menu */
+  NW(menu);
   menu = gtk_menu_new();
   g_signal_connect(menu, "destroy", G_CALLBACK(gtk_widget_destroyed), &menu);
   for(n = 0; n < NMENUITEMS; ++n) {
+    NW(menu_item);
     menuitems[n].w = gtk_menu_item_new_with_label(menuitems[n].name);
     gtk_menu_attach(GTK_MENU(menu), menuitems[n].w, 0, 1, n, n + 1);
   }
@@ -975,6 +1021,7 @@ GtkWidget *choose_widget(void) {
   scrolled = scroll_widget(GTK_WIDGET(chooselayout), "choose");
 
   /* The scrollable layout and the search hbox go together in a vbox */
+  NW(vbox);
   vbox = gtk_vbox_new(FALSE/*homogenous*/, 1/*spacing*/);
   gtk_box_pack_start(GTK_BOX(vbox), hbox,
                      FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);

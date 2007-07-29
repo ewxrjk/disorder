@@ -20,7 +20,16 @@
 
 #include "disobedience.h"
 
-/* Forward declartions ----------------------------------------------------- */
+/* Forward declarations ---------------------------------------------------- */
+
+WT(adjustment);
+WT(hscale);
+WT(hbox);
+WT(tooltips);
+WT(button);
+WT(image);
+WT(label);
+WT(vbox);
 
 struct icon;
 
@@ -77,7 +86,7 @@ static struct icon {
 GtkAdjustment *volume_adj, *balance_adj;
 
 /* Create the control bar */
- GtkWidget *control_widget(void) {
+GtkWidget *control_widget(void) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
   GtkWidget *content;
   GdkPixbuf *pb;
@@ -85,31 +94,42 @@ GtkAdjustment *volume_adj, *balance_adj;
   GtkTooltips *tips = gtk_tooltips_new();
   int n;
 
+  NW(hbox);
+  NW(tooltips);
   D(("control_widget"));
   for(n = 0; n < NICONS; ++n) {
+    NW(button);
     icons[n].button = gtk_button_new();
-    if((pb = find_image(icons[n].icon)))
+    if((pb = find_image(icons[n].icon))) {
+      NW(image);
       content = gtk_image_new_from_pixbuf(pb);
-    else
+    } else {
+      NW(label);
       content = gtk_label_new(icons[n].icon);
+    }
     gtk_container_add(GTK_CONTAINER(icons[n].button), content);
     gtk_tooltips_set_tip(tips, icons[n].button, icons[n].tip, "");
     g_signal_connect(G_OBJECT(icons[n].button), "clicked",
                      G_CALLBACK(icons[n].clicked), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
      * taller things in the control bar */
+    NW(vbox);
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), icons[n].button, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
   }
   /* create the adjustments for the volume control */
+  NW(adjustment);
   volume_adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, goesupto,
                                                  goesupto / 20, goesupto / 20,
                                                  0));
+  NW(adjustment);
   balance_adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, -1, 1,
                                                   0.2, 0.2, 0));
   /* the volume control */
+  NW(hscale);
   v = gtk_hscale_new(volume_adj);
+  NW(hscale);
   b = gtk_hscale_new(balance_adj);
   gtk_scale_set_digits(GTK_SCALE(v), 10);
   gtk_scale_set_digits(GTK_SCALE(b), 10);

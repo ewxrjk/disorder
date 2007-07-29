@@ -167,6 +167,24 @@ GtkWidget *choose_widget(void);
 void choose_update(void);
 /* Called when we think the choose tree might need updating */
 
+/* Widget leakage debugging rubbish ---------------------------------------- */
+
+#if MDEBUG
+#define NW(what) do {                                   \
+  if(++current##what % 100 > max##what) {               \
+    fprintf(stderr, "%s:%d: %d %s\n",                   \
+            __FILE__, __LINE__, current##what, #what);  \
+    max##what = current##what;                          \
+  }                                                     \
+} while(0)
+#define WT(what) static int current##what, max##what
+#define DW(what) (--current##what)
+#else
+#define NW(what) (0)
+#define DW(what) (0)
+#define WT(what) struct neverused
+#endif
+
 #endif /* DISOBEDIENCE_H */
 
 /*

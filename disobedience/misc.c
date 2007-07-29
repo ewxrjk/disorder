@@ -22,6 +22,8 @@
 
 /* Miscellaneous GTK+ stuff ------------------------------------------------ */
 
+WT(cached_image);
+
 /* Functions */
 
 GtkWidget *scroll_widget(GtkWidget *child,
@@ -68,6 +70,7 @@ GdkPixbuf *find_image(const char *name) {
       error(0, "%s", err->message);
       return 0;
     }
+    NW(cached_image);
     cache_put(&image_cache_type, name,  pb);
   }
   return pb;

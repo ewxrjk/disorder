@@ -55,6 +55,13 @@
 
 /* Queue management -------------------------------------------------------- */
 
+WT(label);
+WT(event_box);
+WT(menu);
+WT(menu_item);
+WT(layout);
+WT(vbox);
+
 struct queuelike;
 
 static void add_drag_targets(struct queuelike *ql);
@@ -361,6 +368,7 @@ static GtkWidget *column_when(const struct queuelike attribute((unused)) *ql,
     strftime(when, sizeof when, "%H:%M", localtime_r(&t, &tm));
   else
     when[0] = 0;
+  NW(label);
   return gtk_label_new(when);
 }
 
@@ -369,6 +377,7 @@ static GtkWidget *column_who(const struct queuelike attribute((unused)) *ql,
                              const struct queue_entry *q,
                              const char attribute((unused)) *data) {
   D(("column_who"));
+  NW(label);
   return gtk_label_new(q->submitter ? q->submitter : "");
 }
 
@@ -378,6 +387,7 @@ static GtkWidget *column_namepart(const struct queuelike
                                   const struct queue_entry *q,
                                   const char *data) {
   D(("column_namepart"));
+  NW(label);
   return gtk_label_new(namepart(q->track, "display", data));
 }
 
@@ -417,13 +427,17 @@ static GtkWidget *column_length(const struct queuelike attribute((unused)) *ql,
   D(("column_length"));
   if(q == playing_track) {
     assert(!playing_length_label);
+    NW(label);
     playing_length_label = gtk_label_new(text_length(q));
     /* Zot playing_length_label when it is destroyed */
     g_signal_connect(playing_length_label, "destroy",
                      G_CALLBACK(gtk_widget_destroyed), &playing_length_label);
     return playing_length_label;
-  } else
+  } else {
+    NW(label);
     return gtk_label_new(text_length(q));
+  }
+  
 }
 
 /* Apply a new queue contents, transferring the selection from the old value */
@@ -462,6 +476,7 @@ static GtkWidget *wrap_queue_cell(GtkWidget *label,
    * background */
   gtk_misc_set_padding(GTK_MISC(label), HCELLPADDING, VCELLPADDING);
   /* Event box is just to hold a background color */
+  NW(event_box);
   bg = gtk_event_box_new();
   gtk_container_add(GTK_CONTAINER(bg), label);
   if(wp) {
@@ -492,6 +507,7 @@ static GtkWidget *get_queue_cell(struct queuelike *ql,
 /* Add a padding cell to the end of a row */
 static GtkWidget *get_padding_cell(const char *name) {
   D(("get_padding_cell"));
+  NW(label);
   return wrap_queue_cell(gtk_label_new(""), name, 0);
 }
 
@@ -729,6 +745,7 @@ static gboolean queue_drag_motion(GtkWidget attribute((unused)) *widget,
 
   if(!id || q) {
     if(!ql->dragmark) {
+      NW(event_box);
       ql->dragmark = gtk_event_box_new();
       g_signal_connect(ql->dragmark, "destroy",
                        G_CALLBACK(gtk_widget_destroyed), &ql->dragmark);
@@ -765,6 +782,7 @@ static void add_drag_target(struct queuelike *ql, int y, int row,
   GtkWidget *eventbox;
 
   assert(ql->dropzones[row] == 0);
+  NW(event_box);
   eventbox = gtk_event_box_new();
   /* Make the target zone invisible */
   gtk_event_box_set_visible_window(GTK_EVENT_BOX(eventbox), FALSE);
@@ -818,6 +836,7 @@ static void remove_drag_targets(struct queuelike *ql) {
 
   for(row = 0; row < ql->nrows; ++row) {
     if(ql->dropzones[row]) {
+      DW(event_box);
       gtk_widget_destroy(ql->dropzones[row]);
     }
     assert(ql->dropzones[row] == 0);
@@ -843,8 +862,11 @@ static void redisplay_queue(struct queuelike *ql) {
       c;
       c = c->next) {
     /* Destroy both the label and the eventbox */
-    if(GTK_BIN(c->data)->child)
+    if(GTK_BIN(c->data)->child) {
+      DW(label);
       gtk_widget_destroy(GTK_BIN(c->data)->child);
+    }
+    DW(event_box);
     gtk_widget_destroy(GTK_WIDGET(c->data));
   }
   /* Adjust the row count */
@@ -992,7 +1014,9 @@ static GtkWidget *queuelike(struct queuelike *ql,
   ql->mainrowheight = !0;                /* else division by 0 */
   ql->selection = selection_new();
   /* Create the layouts */
+  NW(layout);
   ql->mainlayout = gtk_layout_new(0, 0);
+  NW(layout);
   ql->titlelayout = gtk_layout_new(0, 0);
   /* Scroll the layouts */
   ql->mainscroll = mainscroll = scroll_widget(ql->mainlayout, name);
@@ -1005,6 +1029,7 @@ static GtkWidget *queuelike(struct queuelike *ql,
   g_signal_connect(mainadj, "value-changed", G_CALLBACK(queue_scrolled), titleadj);
   /* Fill the titles and put them anywhere */
   for(col = 0; col < NCOLUMNS; ++col) {
+    NW(label);
     label = gtk_label_new(columns[col].name);
     gtk_misc_set_alignment(GTK_MISC(label), columns[col].xalign, 0);
     ql->titlecells[col] = wrap_queue_cell(label, "row-title", 0);
@@ -1013,14 +1038,17 @@ static GtkWidget *queuelike(struct queuelike *ql,
   ql->titlecells[col] = get_padding_cell("row-title");
   gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   /* Pack the lot together in a vbox */
+  NW(vbox);
   vbox = gtk_vbox_new(0, 0);
   gtk_box_pack_start(GTK_BOX(vbox), titlescroll, 0, 0, 0);
   gtk_box_pack_start(GTK_BOX(vbox), mainscroll, 1, 1, 0);
   /* Create the popup menu */
+  NW(menu);
   ql->menu = gtk_menu_new();
   g_signal_connect(ql->menu, "destroy",
                    G_CALLBACK(gtk_widget_destroyed), &ql->menu);
   for(n = 0; menuitems[n].name; ++n) {
+    NW(menu_item);
     menuitems[n].w = gtk_menu_item_new_with_label(menuitems[n].name);
     gtk_menu_attach(GTK_MENU(ql->menu), menuitems[n].w, 0, 1, n, n + 1);
   }
