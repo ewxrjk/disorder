@@ -632,7 +632,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
    * A non-expandable item has just a text label and no arrow.
    */
   if(!cn->container) {
-    MTAG_PUSH("make_widgets");
+    MTAG_PUSH("make_widgets_1");
     /* Widgets need to be created */
     NW(hbox);
     cn->hbox = gtk_hbox_new(FALSE, 1);
@@ -649,6 +649,8 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
         cn->marker = gtk_image_new_from_pixbuf(pb);
       }
     }
+    MTAG_POP();
+    MTAG_PUSH("make_widgets_2");
     NW(label);
     cn->label = gtk_label_new(cn->display);
     if(cn->arrow)
@@ -656,6 +658,8 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     gtk_container_add(GTK_CONTAINER(cn->hbox), cn->label);
     if(cn->marker)
       gtk_container_add(GTK_CONTAINER(cn->hbox), cn->marker);
+    MTAG_POP();
+    MTAG_PUSH("make_widgets_3");
     NW(event_box);
     cn->container = gtk_event_box_new();
     gtk_container_add(GTK_CONTAINER(cn->container), cn->hbox);
@@ -686,6 +690,8 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   else {
     gtk_layout_put(GTK_LAYOUT(chooselayout), cn->container, x, y);
     cn->flags |= CN_DISPLAYED;
+    /* Now chooselayout has a ref to the container */
+    g_object_unref(cn->container);
   }
   /* Set the widget's selection status */
   if(!(cn->flags & CN_EXPANDABLE))
