@@ -433,7 +433,7 @@ static void fill_search_node(struct choosenode *cn) {
 
   D(("fill_search_node %s", cn->path));
   /* We depend on the search results being sorted as by compare_path(). */
-  cn->children.nvec = 0;
+  clear_children(cn);
   for(n = 0; n < nsearchresults; ++n) {
     /* We only care about descendants of CN */
     if(!is_descendant(cn->path, searchresults[n]))
