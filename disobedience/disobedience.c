@@ -273,6 +273,72 @@ static void count_widgets(void) {
 }
 #endif
 
+#if MTRACK
+const char *mtag = "init";
+static hash *mtrack_hash;
+
+static int *mthfind(const char *tag) {
+  static const int zero = 0;
+  int *cp = hash_find(mtrack_hash, tag);
+  if(!cp) {
+    hash_add(mtrack_hash, tag, &zero, HASH_INSERT);
+    cp = hash_find(mtrack_hash, tag);
+  }
+  return cp;
+}
+
+static void *trap_malloc(size_t n) {
+  void *ptr = malloc(n + sizeof(char *));
+
+  *(const char **)ptr = mtag;
+  ++*mthfind(mtag);
+  return (char *)ptr + sizeof(char *);
+}
+
+static void trap_free(void *ptr) {
+  const char *tag;
+  if(!ptr)
+    return;
+  ptr = (char *)ptr - sizeof(char *);
+  tag = *(const char **)ptr;
+  --*mthfind(tag);
+  free(ptr);
+}
+
+static void *trap_realloc(void *ptr, size_t n) {
+  if(!ptr)
+    return trap_malloc(n);
+  if(!n) {
+    trap_free(ptr);
+    return 0;
+  }
+  ptr = (char *)ptr - sizeof(char *);
+  ptr = realloc(ptr, n + sizeof(char *));
+  *(const char **)ptr = mtag;
+  return (char *)ptr + sizeof(char *);
+}
+
+static int report_tags_callback(const char *key, void *value,
+                                void attribute((unused)) *u) {
+  fprintf(stderr, "%16s: %d\n", key, *(int *)value);
+  return 0;
+}
+
+static void report_tags(void) {
+  hash_foreach(mtrack_hash, report_tags_callback, 0);
+  fprintf(stderr, "\n");
+}
+
+static const GMemVTable glib_memvtable = {
+  trap_malloc,
+  trap_realloc,
+  trap_free,
+  0,
+  0,
+  0
+};
+#endif
+
 /* Called once every 10 minutes */
 static gboolean periodic(gpointer attribute((unused)) data) {
   D(("periodic"));
@@ -284,6 +350,9 @@ static gboolean periodic(gpointer attribute((unused)) data) {
 #if MDEBUG
   count_widgets();
   fprintf(stderr, "cache size: %zu\n", cache_count());
+#endif
+#if MTRACK
+  report_tags();
 #endif
   return TRUE;                          /* don't remove me */
 }
@@ -350,6 +419,10 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
+#if MTRACK
+  mtrack_hash = hash_new(sizeof (int));
+  g_mem_set_vtable((GMemVTable *)&glib_memvtable);
+#endif
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);
@@ -375,7 +448,7 @@ int main(int argc, char **argv) {
     return 1;                           /* already reported an error */
   disorder_eclient_log(logclient, &gdisorder_log_callbacks, 0);
   /* periodic operations (e.g. expiring the cache) */
-#if MDEBUG
+#if MDEBUG || MTRACK
   g_timeout_add(5000/*milliseconds*/, periodic, 0);
 #else
   g_timeout_add(600000/*milliseconds*/, periodic, 0);
@@ -389,6 +462,7 @@ int main(int argc, char **argv) {
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));
   gtk_widget_show_all(toplevel);
   D(("enter main loop"));
+  MTAG("misc");
   g_main_loop_run(mainloop);
   return 0;
 }

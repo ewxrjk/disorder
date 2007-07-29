@@ -596,7 +596,9 @@ static void redisplay_tree(void) {
   files_selected = 0;
   files_visible = 0;
   /* Correct the layout and find out how much space it uses */
+  MTAG_PUSH("display_tree");
   d = display_tree(root, 0, 0);
+  MTAG_POP();
   /* We must set the total size or scrolling will not work (it wouldn't be hard
    * for GtkLayout to figure it out for itself but presumably you're supposed
    * to be able to have widgets off the edge of the layuot.)
@@ -630,6 +632,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
    * A non-expandable item has just a text label and no arrow.
    */
   if(!cn->container) {
+    MTAG_PUSH("make_widgets");
     /* Widgets need to be created */
     NW(hbox);
     cn->hbox = gtk_hbox_new(FALSE, 1);
@@ -665,6 +668,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     gtk_widget_set_name(cn->container, "choose");
     /* Show everything by default */
     gtk_widget_show_all(cn->container);
+    MTAG_POP();
   }
   assert(cn->container);
   /* Make sure the icon is right */

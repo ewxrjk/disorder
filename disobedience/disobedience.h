@@ -185,6 +185,17 @@ void choose_update(void);
 #define WT(what) struct neverused
 #endif
 
+#if MTRACK
+extern const char *mtag;
+#define MTAG(x) do { mtag = x; } while(0)
+#define MTAG_PUSH(x) do { const char *save_mtag = mtag; mtag = x; (void)0
+#define MTAG_POP() mtag = save_mtag; } while(0)
+#else
+#define MTAG(x) do { } while(0)
+#define MTAG_PUSH(x) do {} while(0)
+#define MTAG_POP() do {} while(0)
+#endif
+
 #endif /* DISOBEDIENCE_H */
 
 /*
