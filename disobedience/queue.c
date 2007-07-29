@@ -1183,10 +1183,10 @@ static gboolean adjust_sofar(gpointer attribute((unused)) data) {
 /* Popup menu for the queue.  Put the properties first so that finger trouble
  * is less dangerous. */
 static struct menuitem queue_menu[] = {
-  { "Properties", properties_activate, properties_sensitive, 0, 0 },
-  { "Select all", selectall_activate, selectall_sensitive, 0, 0 },
-  { "Scratch", scratch_activate, scratch_sensitive, 0, 0 },
-  { "Remove", remove_activate, remove_sensitive, 0, 0 },
+  { "Track properties", properties_activate, properties_sensitive, 0, 0 },
+  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
+  { "Scratch track", scratch_activate, scratch_sensitive, 0, 0 },
+  { "Remove track from queue", remove_activate, remove_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }
 };
 
@@ -1238,8 +1238,8 @@ static struct queue_entry *fixup_recent(struct queue_entry *q) {
 }
 
 static struct menuitem recent_menu[] = {
-  { "Properties", properties_activate, properties_sensitive,0, 0 },
-  { "Select all", selectall_activate, selectall_sensitive, 0, 0 },
+  { "Track properties", properties_activate, properties_sensitive,0, 0 },
+  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }
 };
 

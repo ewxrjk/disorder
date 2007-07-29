@@ -104,12 +104,12 @@ static void about_popup_got_version(void attribute((unused)) *v,
 GtkWidget *menubar(GtkWidget *w) {
   static const GtkItemFactoryEntry entries[] = {
     { (char *)"/File", 0,  0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/File/Quit", (char *)"<CTRL>Q", quit_program, 0,
+    { (char *)"/File/Quit Disobedience", (char *)"<CTRL>Q", quit_program, 0,
       (char *)"<StockItem>", GTK_STOCK_QUIT },
     { (char *)"/Edit", 0,  0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/Edit/Select All", (char *)"<CTRL>A", select_all, 0,
+    { (char *)"/Edit/Select all tracks", (char *)"<CTRL>A", select_all, 0,
       0, 0 },
-    { (char *)"/Edit/Properties", 0, properties_item, 0,
+    { (char *)"/Edit/Track properties", 0, properties_item, 0,
       0, 0 },
     { (char *)"/Help", 0,  0, 0, (char *)"<Branch>", 0 },
     { (char *)"/Help/About DisOrder", 0,  about_popup, 0,
@@ -129,9 +129,9 @@ GtkWidget *menubar(GtkWidget *w) {
                                 0);
   gtk_window_add_accel_group(GTK_WINDOW(w), accel);
   selectall_widget = gtk_item_factory_get_widget(itemfactory,
-						 "<GdisorderMain>/Edit/Select All");
+						 "<GdisorderMain>/Edit/Select all tracks");
   properties_widget = gtk_item_factory_get_widget(itemfactory,
-						  "<GdisorderMain>/Edit/Properties");
+						  "<GdisorderMain>/Edit/Track properties");
   assert(selectall_widget != 0);
   assert(properties_widget != 0);
   return gtk_item_factory_get_widget(itemfactory,

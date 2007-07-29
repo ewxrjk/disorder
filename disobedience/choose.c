@@ -137,17 +137,24 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
                                gpointer user_data);
 
 static void activate_play(GtkMenuItem *menuitem, gpointer user_data);
+#if 0
 static void activate_remove(GtkMenuItem *menuitem, gpointer user_data);
+#endif
 static void activate_properties(GtkMenuItem *menuitem, gpointer user_data);
 
 static gboolean sensitive_play(struct choosenode *cn);
+#if 0
 static gboolean sensitive_remove(struct choosenode *cn);
+#endif
 static gboolean sensitive_properties(struct choosenode *cn);
 
 static struct menuitem menuitems[] = {
-  { "Play", activate_play, sensitive_play, 0, 0 },
+  { "Play track", activate_play, sensitive_play, 0, 0 },
+#if 0
+  /* Not implemented yet */
   { "Remove", activate_remove, sensitive_remove, 0, 0 },
-  { "Properties", activate_properties, sensitive_properties, 0, 0 },
+#endif
+  { "Track properties", activate_properties, sensitive_properties, 0, 0 },
 };
 
 #define NMENUITEMS (int)(sizeof menuitems / sizeof *menuitems)
@@ -903,10 +910,12 @@ static void activate_play(GtkMenuItem attribute((unused)) *menuitem,
     disorder_eclient_play(client, tracks[n], 0, 0);
 }
 
+#if 0
 static void activate_remove(GtkMenuItem attribute((unused)) *menuitem,
                             gpointer attribute((unused)) user_data) {
   /* TODO remove all selected tracks */
 }
+#endif
 
 static void activate_properties(GtkMenuItem attribute((unused)) *menuitem,
                                 gpointer attribute((unused)) user_data) {
@@ -920,9 +929,11 @@ static gboolean sensitive_play(struct choosenode attribute((unused)) *cn) {
   return !!files_selected;
 }
 
+#if 0
 static gboolean sensitive_remove(struct choosenode attribute((unused)) *cn) {
   return FALSE;                         /* not implemented yet */
 }
+#endif
 
 static gboolean sensitive_properties(struct choosenode attribute((unused)) *cn) {
   return !!files_selected;
