@@ -97,6 +97,10 @@ void cache_clean(const struct cache_type *type) {
     hash_foreach(h, clean_callback, (void *)type);
 }
 
+size_t cache_count(void) {
+  return h ? hash_count(h) : 0;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

@@ -251,6 +251,28 @@ static void log_volume(void attribute((unused)) *v,
   }
 }
 
+#if MDEBUG
+static int widget_count, container_count;
+
+static void count_callback(GtkWidget *w,
+                           gpointer attribute((unused)) data) {
+  ++widget_count;
+  if(GTK_IS_CONTAINER(w)) {
+    ++container_count;
+    gtk_container_foreach(GTK_CONTAINER(w), count_callback, 0);
+  }
+}
+
+static void count_widgets(void) {
+  widget_count = 0;
+  container_count = 1;
+  if(toplevel)
+    gtk_container_foreach(GTK_CONTAINER(toplevel), count_callback, 0);
+  fprintf(stderr, "widget count: %8d  container count: %8d\n",
+          widget_count, container_count);
+}
+#endif
+
 /* Called once every 10 minutes */
 static gboolean periodic(gpointer attribute((unused)) data) {
   D(("periodic"));
@@ -259,6 +281,10 @@ static gboolean periodic(gpointer attribute((unused)) data) {
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
+#if MDEBUG
+  count_widgets();
+  fprintf(stderr, "cache size: %zu\n", cache_count());
+#endif
   return TRUE;                          /* don't remove me */
 }
 
@@ -349,7 +375,11 @@ int main(int argc, char **argv) {
     return 1;                           /* already reported an error */
   disorder_eclient_log(logclient, &gdisorder_log_callbacks, 0);
   /* periodic operations (e.g. expiring the cache) */
+#if MDEBUG
+  g_timeout_add(5000/*milliseconds*/, periodic, 0);
+#else
   g_timeout_add(600000/*milliseconds*/, periodic, 0);
+#endif
   /* The point of this is to try and get a handle on mysterious
    * unresponsiveness.  It's not very useful in production use. */
   if(0)

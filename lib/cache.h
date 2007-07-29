@@ -41,6 +41,9 @@ void cache_expire(void);
 void cache_clean(const struct cache_type *type);
 /* Clean all elements of a particular type, or all elements if TYPE=0 */
 
+size_t cache_count(void);
+/* Return the size of the cache */
+
 #endif /* CACHE_H */
 
 /*
