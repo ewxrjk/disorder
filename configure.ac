@@ -64,7 +64,7 @@ AC_ARG_WITH([python],
 			    [do not build Python support])],
 	    [want_python=$withval])
 
-subdirs="scripts lib clients doc examples debian"
+subdirs="scripts lib clients doc examples debian tests"
 
 if test $want_server = yes; then
   subdirs="${subdirs} server plugins driver templates sounds images"
@@ -394,5 +394,6 @@ AC_CONFIG_FILES([Makefile
 		 debian/Makefile
 		 sounds/Makefile
 		 python/Makefile
-		 examples/Makefile])
+		 examples/Makefile
+		 tests/Makefile])
 AC_OUTPUT

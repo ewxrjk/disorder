@@ -1,0 +1,19 @@
+#! /usr/bin/env python
+import dtest
+
+tests = ["nothing"]
+
+for test in tests:
+    print "Test '%s'" % test
+    m = __import__(test)
+    dtest.run(getattr(m, "test"),
+              setup=getattr(m, "setup", None),
+              report=False,
+              name=test)
+
+print "%d tests" % dtest.tests
+if dtest.failures:
+    print "%d failures" % dtest.failures
+    sys.exit(1)
+else:
+    print "All tests OK"

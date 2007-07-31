@@ -90,3 +90,6 @@ core
 vgcore.*
 *.tar.gz
 TAGS
+ktrace.out
+tests/Makefile
+tests/testroot
