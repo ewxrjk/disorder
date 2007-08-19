@@ -1278,8 +1278,7 @@ const char *trackdb_random(int tries) {
     } else {
       /* No required tags.  We pick random record numbers in the database
        * instead. */
-      switch(err = trackdb_tracksdb->stat(trackdb_tracksdb, tid, &sp,
-                                          DB_RECORDCOUNT)) {
+      switch(err = trackdb_tracksdb->stat(trackdb_tracksdb, tid, &sp, 0)) {
       case 0:
         break;
       case DB_LOCK_DEADLOCK:
