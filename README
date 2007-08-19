@@ -41,6 +41,11 @@ Development dependencies (only developers will need these):
   Libtool          1.5.6               1.4 not good enough
   Bazaar (bzr)
 
+On Debian you might ensure you have the required packages as follows:
+  apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
+                  libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
+                  libao-dev libmad0-dev libasound2-dev libdb-dev
+
 Mailing lists:
   http://www.chiark.greenend.org.uk/mailman/listinfo/sgo-software-discuss
    - discussion of DisOrder (and other software), bug reports, etc
