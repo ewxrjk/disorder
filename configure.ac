@@ -99,7 +99,7 @@ if test "x$FINK" != xnone; then
   AC_CACHE_CHECK([fink install directory],[rjk_cv_finkprefix],[
     rjk_cv_finkprefix="`echo "$FINK" | sed 's,/bin/fink$,,'`"
   ])
-  CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include"
+  CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/gc -I${rjk_cv_finkprefix}/include"
   if test $want_server = yes; then
     CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/db4"
   fi
