@@ -64,7 +64,7 @@ AC_ARG_WITH([python],
 			    [do not build Python support])],
 	    [want_python=$withval])
 
-subdirs="scripts lib clients doc examples debian tests"
+subdirs="scripts lib clients doc examples debian"
 
 if test $want_server = yes; then
   subdirs="${subdirs} server plugins driver templates sounds images"
@@ -79,6 +79,7 @@ if test $want_gtk = yes; then
     subdirs="${subdirs} images"
   fi
 fi
+subdirs="${subdirs} tests"
 AC_SUBST([subdirs])
 
 # libtool config
