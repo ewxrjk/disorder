@@ -121,8 +121,8 @@ testroot = "%s/testroot" % os.getcwd()
 topsrcdir = os.path.abspath(os.getenv("topsrcdir"))
 remove_dir(testroot)
 os.mkdir(testroot)
-open("%s/config" % testroot, "w").write("""
-player *.ogg shell 'echo "$TRACK" >> %s/played.log'
+open("%s/config" % testroot, "w").write(
+"""player *.ogg shell 'echo "$TRACK" >> %s/played.log'
 home %s
 collection fs ASCII %s/tracks
 scratch %s/scratch.ogg
