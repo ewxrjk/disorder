@@ -118,6 +118,9 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
    See disorder_config(5) for more details.
 
+   See README.raw for details on setting up "raw format" players, which allow
+   for pausing and gapless play.
+
 5. Create /etc/disorder/config.private.  This should be readable only by the
    jukebox group:
 
