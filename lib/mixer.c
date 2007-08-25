@@ -100,7 +100,12 @@ int mixer_channel(const char attribute((unused)) *c) {
 int mixer_control(int attribute((unused)) *left, 
 		  int attribute((unused)) *right,
 		  int attribute((unused)) set) {
-  error(0, "don't know how to set volume on this platform");
+  static int reported;
+
+  if(!reported) {
+    error(0, "don't know how to set volume on this platform");
+    reported = 1;
+  }
   return -1;
 }
 #endif
