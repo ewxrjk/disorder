@@ -155,6 +155,8 @@ static void rescan_collection(const struct collection *c) {
     if(n < config->player.n) {
       nnew += !!trackdb_notice(track, path);
       ++ntracks;
+      if(ntracks % 1000 == 0)
+        info("rescanning %s, %ld tracks so far", c->root, ntracks);
     }
   }
   /* tidy up */
