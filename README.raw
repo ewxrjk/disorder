@@ -14,7 +14,9 @@ The purpose of raw format players is:
 ** Usage
 
 To use raw format, use the execraw module and make the command choose the
-"disorder" libao driver.
+"disorder" libao driver.  You may need to link the driver from wherever
+DisOrder installs it (e.g. /usr/local/lib/ao/plugins-2) to where libao will
+look for it (e.g. /usr/lib/ao/plugins-2 or /sw/lib/ao/plugins-2).
 
 You should pass the "fragile" option to ogg123.  This is because ogg123 ignores
 write errors!
