@@ -1,4 +1,5 @@
 # player programs
+# see README.raw for details of the 'disorder' libao plugin
 player *.mp3 execraw mpg321 -q -o disorder
 player *.ogg execraw ogg123 -q -d disorder -o fragile:1
 player *.wav shell --wait-for-device play
