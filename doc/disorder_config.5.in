@@ -142,6 +142,25 @@ automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
 .TP
+.B backend \fINAME\fR
+Selects the backend use by the speaker process.  The following options are
+available:
+.RS
+.TP
+.B alsa
+Use the ALSA API.  This is only available on Linux systems, on which it is the
+default.
+.TP
+.B command
+Execute a command.  This is the default if
+.B speaker_command
+is specified, or (currently) on non-Linux systems.
+.TP
+.B network
+Transmit audio over the network.  This is the default if
+\fBbroadcast\fR is specified.
+.RE
+.TP
 .B channel \fICHANNEL\fR
 The mixer channel that the volume control should use.  Valid names depend on
 your operating system and hardware, but some standard ones that might be useful

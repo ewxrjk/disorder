@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder
- * Copyright (C) 2005 Richard Kettlewell
+ * This file is part of DisOrder.
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,25 +18,33 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#ifndef TIMEVAL_H
+#define TIMEVAL_H
 
-#include "defs.h"
-#include "definitions.h"
+static inline struct timeval tvsub(const struct timeval a,
+                                   const struct timeval b) {
+  struct timeval r;
 
-const char disorder_version_string[] = VERSION;
-const char pkglibdir[] = PKGLIBDIR;
-const char pkgconfdir[] = PKGCONFDIR;
-const char pkgstatedir[] = PKGSTATEDIR;
-const char pkgdatadir[] = PKGDATADIR;
-const char bindir[] = BINDIR;
-const char sbindir[] = SBINDIR;
-const char finkbindir[] = FINKBINDIR;
+  r.tv_sec = a.tv_sec - b.tv_sec;
+  r.tv_usec = a.tv_usec - b.tv_usec;
+  if(r.tv_usec < 0) {
+    r.tv_usec += 1000000;
+    r.tv_sec--;
+  }
+  if(r.tv_usec > 999999) {
+    r.tv_usec -= 1000000;
+    r.tv_sec++;
+  }
+  return r;
+}
+
+#endif /* TIMEVAL_H */
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
 fill-column:79
+indent-tabs-mode:nil
 End:
 */

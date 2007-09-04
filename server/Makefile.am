@@ -1,3 +1,4 @@
+
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
@@ -21,6 +22,7 @@
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker
 noinst_PROGRAMS=disorder.cgi trackname
+noinst_DATA=uk.org.greenend.rjk.disorder.plist
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
@@ -45,7 +47,7 @@ disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBPCRE) $(LIBICONV)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
@@ -90,3 +92,19 @@ check-help: all
 	./disorder-speaker --help > /dev/null
 
 cgi.o: ../lib/definitions.h
+
+# for Mac OS X >=10.4
+SEDFILES=uk.org.greenend.rjk.disorder.plist
+include ${top_srcdir}/scripts/sedfiles.make
+EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in
+LAUNCHD=/Library/LaunchDaemons
+
+install-data-hook:
+	@if [ -d ${LAUNCHD} ]; then \
+	  echo $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
+	  $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
+	  echo launchctl unload ${LAUNCHD} \|\| true;\
+	  launchctl unload ${LAUNCHD} || true;\
+	  echo launchctl load ${LAUNCHD} \|\| true;\
+	  launchctl load ${LAUNCHD} || true;\
+	fi

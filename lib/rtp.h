@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder
- * Copyright (C) 2005 Richard Kettlewell
+ * This file is part of DisOrder.
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,25 +18,25 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#ifndef RTP_H
+#define RTP_H
 
-#include "defs.h"
-#include "definitions.h"
+/* RTP is defined in RFC1889 */
+struct attribute((packed)) rtp {
+  uint8_t vpxcc;
+  uint8_t mpt;
+  uint16_t seq;
+  uint32_t timestamp;
+  uint32_t ssrc;
+};
 
-const char disorder_version_string[] = VERSION;
-const char pkglibdir[] = PKGLIBDIR;
-const char pkgconfdir[] = PKGCONFDIR;
-const char pkgstatedir[] = PKGSTATEDIR;
-const char pkgdatadir[] = PKGDATADIR;
-const char bindir[] = BINDIR;
-const char sbindir[] = SBINDIR;
-const char finkbindir[] = FINKBINDIR;
+#endif /* RTP_H */
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
 fill-column:79
+indent-tabs-mode:nil
 End:
 */

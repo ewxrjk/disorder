@@ -39,22 +39,28 @@ struct addrinfo *get_address(const struct stringlist *a,
   struct addrinfo *res;
   char *name;
   int rc;
-  
-  if(a->n == 1) {
+
+  switch(a->n) {  
+  case 1:
     byte_xasprintf(&name, "host * service %s", a->s[0]);
     if((rc = getaddrinfo(0, a->s[0], pref, &res))) {
       error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
       return 0;
     }
-  } else {
+    break;
+  case 2:
     byte_xasprintf(&name, "host %s service %s", a->s[0], a->s[1]);
     if((rc = getaddrinfo(a->s[0], a->s[1], pref, &res))) {
       error(0, "getaddrinfo %s %s: %s", a->s[0], a->s[1], gai_strerror(rc));
       return 0;
     }
+    break;
+  default:
+    error(0, "invalid network address specification (n=%d)", a->n);
+    return 0;
   }
-  if(!res || res->ai_socktype != SOCK_STREAM) {
-    error(0, "getaddrinfo didn't give us a stream socket");
+  if(!res || (pref && res->ai_socktype != pref->ai_socktype)) {
+    error(0, "getaddrinfo didn't give us a suitable socket address");
     if(res)
       freeaddrinfo(res);
     return 0;

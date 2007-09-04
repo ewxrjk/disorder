@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,6 +102,10 @@ struct config {
   const char *speaker_command;		/* command for speaker to run */
   ao_sample_format sample_format;	/* sample format to enforce */
   long sox_generation;			/* sox syntax generation */
+  int speaker_backend;			/* speaker backend */
+#define BACKEND_ALSA 0
+#define BACKEND_COMMAND 1
+#define BACKEND_NETWORK 2
   /* shared client/server config */
   const char *home;			/* home directory for state files */
   /* client config */
@@ -121,6 +125,9 @@ struct config {
   int signal;				/* termination signal */
   const char *device;			/* ALSA output device */
   struct transformlist transform;	/* path name transformations */
+
+  struct stringlist broadcast;		/* audio broadcast address */
+  struct stringlist broadcast_from;	/* audio broadcast source address */
 
   /* derived values: */
   int nparts;				/* number of distinct name parts */

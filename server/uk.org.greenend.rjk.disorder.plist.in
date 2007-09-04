@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>LANG</key>
+		<string>en_GB.UTF-8</string>
+		<key>LC_ALL</key>
+		<string>en_GB.UTF-8</string>
+	</dict>
+	<key>Label</key>
+	<string>uk.org.greenend.rjk.disorder</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>sbindir/disorderd</string>
+		<string>--foreground</string>
+		<string>--syslog</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/jukebox</string>
+	<key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>
+

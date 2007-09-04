@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -405,6 +405,36 @@ static int set_transform(const struct config_state *cs,
   return 0;
 }
 
+static int set_backend(const struct config_state *cs,
+		       const struct conf *whoami,
+		       int nvec, char **vec) {
+  int *const valuep = ADDRESS(cs->config, int);
+  
+  if(nvec != 1) {
+    error(0, "%s:%d: '%s' requires one argument",
+	  cs->path, cs->line, whoami->name);
+    return -1;
+  }
+  if(!strcmp(vec[0], "alsa")) {
+#if API_ALSA
+    *valuep = BACKEND_ALSA;
+#else
+    error(0, "%s:%d: ALSA is not available on this platform",
+	  cs->path, cs->line);
+    return -1;
+#endif
+  } else if(!strcmp(vec[0], "command"))
+    *valuep = BACKEND_COMMAND;
+  else if(!strcmp(vec[0], "network"))
+    *valuep = BACKEND_NETWORK;
+  else {
+    error(0, "%s:%d: invalid '%s' value '%s'",
+	  cs->path, cs->line, whoami->name, vec[0]);
+    return -1;
+  }
+  return 0;
+}
+
 /* free functions */
 
 static void free_none(struct config attribute((unused)) *c,
@@ -502,7 +532,8 @@ static const struct conftype
   type_sample_format = { set_sample_format, free_none },
   type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
-  type_transform = { set_transform, free_transformlist };
+  type_transform = { set_transform, free_transformlist },
+  type_backend = { set_backend, free_none };
 
 /* specific validation routine */
 
@@ -720,6 +751,45 @@ static int validate_alias(const struct config_state *cs,
   return 0;
 }
 
+static int validate_addrport(const struct config_state attribute((unused)) *cs,
+			     int nvec,
+			     char attribute((unused)) **vec) {
+  switch(nvec) {
+  case 0:
+    error(0, "%s:%d: missing address",
+	  cs->path, cs->line);
+    return -1;
+  case 1:
+    error(0, "%s:%d: missing port name/number",
+	  cs->path, cs->line);
+    return -1;
+  case 2:
+    return 0;
+  default:
+    error(0, "%s:%d: expected ADDRESS PORT",
+	  cs->path, cs->line);
+    return -1;
+  }
+}
+
+static int validate_address(const struct config_state attribute((unused)) *cs,
+			 int nvec,
+			 char attribute((unused)) **vec) {
+  switch(nvec) {
+  case 0:
+    error(0, "%s:%d: missing address",
+	  cs->path, cs->line);
+    return -1;
+  case 1:
+  case 2:
+    return 0;
+  default:
+    error(0, "%s:%d: expected ADDRESS PORT",
+	  cs->path, cs->line);
+    return -1;
+  }
+}
+
 /* configuration table */
 
 #define C(x) #x, offsetof(struct config, x)
@@ -728,16 +798,18 @@ static int validate_alias(const struct config_state *cs,
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
+  { C(broadcast),        &type_stringlist,       validate_addrport },
+  { C(broadcast_from),   &type_stringlist,       validate_address },
   { C(channel),          &type_string,           validate_channel },
   { C(checkpoint_kbyte), &type_integer,          validate_non_negative },
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
-  { C(connect),          &type_stringlist,       validate_any },
+  { C(connect),          &type_stringlist,       validate_addrport },
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
   { C(home),             &type_string,           validate_isdir },
-  { C(listen),           &type_stringlist,       validate_any },
+  { C(listen),           &type_stringlist,       validate_addrport },
   { C(lock),             &type_boolean,          validate_any },
   { C(mixer),            &type_string,           validate_ischr },
   { C(namepart),         &type_namepart,         validate_any },
@@ -756,6 +828,7 @@ static const struct conf conf[] = {
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(signal),           &type_signal,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
+  { C(speaker_backend),  &type_backend,          validate_any },
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
@@ -875,6 +948,7 @@ static struct config *config_default(void) {
   c->sample_format.channels = 2;
   c->sample_format.byte_format = AO_FMT_NATIVE;
   c->queue_pad = 10;
+  c->speaker_backend = -1;
   return c;
 }
 
@@ -940,6 +1014,23 @@ static void config_postdefaults(struct config *c) {
     for(n = 0; n < NTRANSFORM; ++n)
       set_transform(&cs, whoami, 5, (char **)transform[n]);
   }
+  if(c->speaker_backend == -1) {
+    if(c->speaker_command)
+      c->speaker_backend = BACKEND_COMMAND;
+    else if(c->broadcast.n)
+      c->speaker_backend = BACKEND_NETWORK;
+    else {
+#if API_ALSA
+      c->speaker_backend = BACKEND_ALSA;
+#else
+      c->speaker_backend = BACKEND_COMMAND;
+#endif
+    }
+  }
+  if(c->speaker_backend == BACKEND_COMMAND && !c->speaker_command)
+    fatal(0, "speaker_backend is command but speaker_command is not set");
+  if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
+    fatal(0, "speaker_backend is network but broadcast is not set");
 }
 
 /* re-read the config file */

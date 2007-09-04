@@ -138,10 +138,20 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
    See disorderd(8) and disorder_config(5) for more details.
 
-6. Make sure the server is started at boot time.  On many Linux systems,
-   examples/disorder.init should be more or less suitable; install it in
-   /etc/init.d, adapting it as necessary, and make appropriate links from
-   /etc/rc[0-6].d.  If you have a BSD style init then you are on your own.
+6. Make sure the server is started at boot time.
+
+   On many Linux systems, examples/disorder.init should be more or less
+   suitable; install it in /etc/init.d, adapting it as necessary, and make
+   appropriate links from /etc/rc[0-6].d.
+
+   For Mac OS X 10.4, a suitable plist file is automatically installed.  The
+   command:
+
+    sudo launchctl list
+
+   ...should show "uk.org.greenend.rjk.disorder" (among other things).
+
+   If you have a some other init system then you are on your own.
 
 7. Make sure the state directory (/var/disorder or /usr/local/var/disorder or
    as determined by configure) exists and is writable by the jukebox user.
@@ -149,9 +159,18 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
      mkdir -m 755 /var/disorder
      chown disorder:root /var/disorder
 
-8. Start the server, for instance:
+   If you want to use some other directory you must put use the 'home' command
+   in the configuration file.
+
+8. Start the server.
+
+   On Linux systems with sysv-style init:
 
      /etc/init.d/disorder start
+
+   On Mac OS X 10.4:
+
+     sudo launchctl start uk.org.greenend.rjk.disorder
 
    By default disorderd logs to daemon.*; check your syslog.conf to see where
    this ends up and look for log messages from disorderd there.  If it didn't

@@ -44,6 +44,10 @@
 #include <time.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <gcrypt.h>
+#include <sys/uio.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -52,6 +56,9 @@
 #include "mem.h"
 #include "speaker.h"
 #include "user.h"
+#include "addr.h"
+#include "timeval.h"
+#include "rtp.h"
 
 #if API_ALSA
 #include <alsa/asoundlib.h>
@@ -67,6 +74,11 @@
                                          * buffer. */
 
 #define FRAMES 4096                     /* Frame batch size */
+
+#define NETWORK_BYTES 1024              /* Bytes to send per network packet */
+/* (don't make this too big or arithmetic will start to overflow) */
+
+#define RTP_AHEAD 2                     /* Max RTP playahead (seconds) */
 
 #define NFDS 256                        /* Max FDs to poll for */
 
@@ -99,7 +111,14 @@ static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
 #endif
 static int ready;                       /* ready to send audio */
 static int forceplay;                   /* frames to force play */
-static int kidfd = -1;                  /* child process input */
+static int cmdfd = -1;                  /* child process input */
+static int bfd = -1;                    /* broadcast FD */
+static uint32_t rtp_time;               /* RTP timestamp */
+static struct timeval rtp_time_real;    /* corresponding real time */
+static uint16_t rtp_seq;                /* frame sequence number */
+static uint32_t rtp_id;                 /* RTP SSRC */
+static int idled;                       /* set when idled */
+static int audio_errors;                /* audio error counter */
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -247,7 +266,7 @@ static int formats_equal(const ao_sample_format *a,
 static void idle(void) {
   D(("idle"));
 #if API_ALSA
-  if(!config->speaker_command && pcm) {
+  if(config->speaker_backend == BACKEND_ALSA && pcm) {
     int  err;
 
     if((err = snd_pcm_nonblock(pcm, 0)) < 0)
@@ -261,6 +280,7 @@ static void idle(void) {
     D(("released audio device"));
   }
 #endif
+  idled = 1;
   ready = 0;
 }
 
@@ -349,7 +369,11 @@ static int activate(void) {
     D((" - not got format for %s", playing->id));
     return -1;
   }
-  if(kidfd >= 0) {
+  switch(config->speaker_backend) {
+  case BACKEND_COMMAND:
+  case BACKEND_NETWORK:
+    /* If we pass audio on to some other agent then we enforce the configured
+     * sample format on the *inbound* audio data. */
     if(!formats_equal(&playing->format, &config->sample_format)) {
       char argbuf[1024], *q = argbuf;
       const char *av[18], **pp = av;
@@ -393,111 +417,112 @@ static int activate(void) {
       ready = 1;
     }
     return 0;
-  }
-  if(config->speaker_command)
-    return -1;
+  case BACKEND_ALSA:
 #if API_ALSA
-  /* If we need to change format then close the current device. */
-  if(pcm && !formats_equal(&playing->format, &pcm_format))
-     idle();
-  if(!pcm) {
-    snd_pcm_hw_params_t *hwparams;
-    snd_pcm_sw_params_t *swparams;
-    snd_pcm_uframes_t pcm_bufsize;
-    int err;
-    int sample_format = 0;
-    unsigned rate;
+    /* If we need to change format then close the current device. */
+    if(pcm && !formats_equal(&playing->format, &pcm_format))
+      idle();
+    if(!pcm) {
+      snd_pcm_hw_params_t *hwparams;
+      snd_pcm_sw_params_t *swparams;
+      snd_pcm_uframes_t pcm_bufsize;
+      int err;
+      int sample_format = 0;
+      unsigned rate;
 
-    D(("snd_pcm_open"));
-    if((err = snd_pcm_open(&pcm,
-                           config->device,
-                           SND_PCM_STREAM_PLAYBACK,
-                           SND_PCM_NONBLOCK))) {
-      error(0, "error from snd_pcm_open: %d", err);
-      goto error;
-    }
-    snd_pcm_hw_params_alloca(&hwparams);
-    D(("set up hw params"));
-    if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_any: %d", err);
-    if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
-                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-    switch(playing->format.bits) {
-    case 8:
-      sample_format = SND_PCM_FORMAT_S8;
-      break;
-    case 16:
-      switch(playing->format.byte_format) {
-      case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
-      case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
-      case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
-        error(0, "unrecognized byte format %d", playing->format.byte_format);
+      D(("snd_pcm_open"));
+      if((err = snd_pcm_open(&pcm,
+                             config->device,
+                             SND_PCM_STREAM_PLAYBACK,
+                             SND_PCM_NONBLOCK))) {
+        error(0, "error from snd_pcm_open: %d", err);
+        goto error;
+      }
+      snd_pcm_hw_params_alloca(&hwparams);
+      D(("set up hw params"));
+      if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
+        fatal(0, "error from snd_pcm_hw_params_any: %d", err);
+      if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
+                                             SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
+        fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
+      switch(playing->format.bits) {
+      case 8:
+        sample_format = SND_PCM_FORMAT_S8;
+        break;
+      case 16:
+        switch(playing->format.byte_format) {
+        case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
+        case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
+        case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
+          error(0, "unrecognized byte format %d", playing->format.byte_format);
+          goto fatal;
+        }
+        break;
+      default:
+        error(0, "unsupported sample size %d", playing->format.bits);
         goto fatal;
       }
-      break;
-    default:
-      error(0, "unsupported sample size %d", playing->format.bits);
-      goto fatal;
+      if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
+                                             sample_format)) < 0) {
+        error(0, "error from snd_pcm_hw_params_set_format (%d): %d",
+              sample_format, err);
+        goto fatal;
+      }
+      rate = playing->format.rate;
+      if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
+        error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
+              playing->format.rate, err);
+        goto fatal;
+      }
+      if(rate != (unsigned)playing->format.rate)
+        info("want rate %d, got %u", playing->format.rate, rate);
+      if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
+                                               playing->format.channels)) < 0) {
+        error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
+              playing->format.channels, err);
+        goto fatal;
+      }
+      bufsize = 3 * FRAMES;
+      pcm_bufsize = bufsize;
+      if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
+                                                       &pcm_bufsize)) < 0)
+        fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
+              3 * FRAMES, err);
+      if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
+        info("asked for PCM buffer of %d frames, got %d",
+             3 * FRAMES, (int)pcm_bufsize);
+      last_pcm_bufsize = pcm_bufsize;
+      if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
+        fatal(0, "error calling snd_pcm_hw_params: %d", err);
+      D(("set up sw params"));
+      snd_pcm_sw_params_alloca(&swparams);
+      if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
+        fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
+      if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, FRAMES)) < 0)
+        fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
+              FRAMES, err);
+      if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
+        fatal(0, "error calling snd_pcm_sw_params: %d", err);
+      pcm_format = playing->format;
+      bpf = bytes_per_frame(&pcm_format);
+      D(("acquired audio device"));
+      log_params(hwparams, swparams);
+      ready = 1;
     }
-    if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
-                                           sample_format)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_format (%d): %d",
-            sample_format, err);
-      goto fatal;
+    return 0;
+  fatal:
+    abandon();
+  error:
+    /* We assume the error is temporary and that we'll retry in a bit. */
+    if(pcm) {
+      snd_pcm_close(pcm);
+      pcm = 0;
     }
-    rate = playing->format.rate;
-    if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-            playing->format.rate, err);
-      goto fatal;
-    }
-    if(rate != (unsigned)playing->format.rate)
-      info("want rate %d, got %u", playing->format.rate, rate);
-    if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                             playing->format.channels)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-            playing->format.channels, err);
-      goto fatal;
-    }
-    bufsize = 3 * FRAMES;
-    pcm_bufsize = bufsize;
-    if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
-                                                     &pcm_bufsize)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-            3 * FRAMES, err);
-    if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
-      info("asked for PCM buffer of %d frames, got %d",
-           3 * FRAMES, (int)pcm_bufsize);
-    last_pcm_bufsize = pcm_bufsize;
-    if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
-      fatal(0, "error calling snd_pcm_hw_params: %d", err);
-    D(("set up sw params"));
-    snd_pcm_sw_params_alloca(&swparams);
-    if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
-    if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, FRAMES)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
-            FRAMES, err);
-    if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params: %d", err);
-    pcm_format = playing->format;
-    bpf = bytes_per_frame(&pcm_format);
-    D(("acquired audio device"));
-    log_params(hwparams, swparams);
-    ready = 1;
-  }
-  return 0;
-fatal:
-  abandon();
-error:
-  /* We assume the error is temporary and that we'll retry in a bit. */
-  if(pcm) {
-    snd_pcm_close(pcm);
-    pcm = 0;
-  }
+    return -1;
 #endif
-  return -1;
+  default:
+    assert(!"reached");
+  }
 }
 
 /* Check to see whether the current track has finished playing */
@@ -509,13 +534,13 @@ static void maybe_finished(void) {
     abandon();
 }
 
-static void fork_kid(void) {
-  pid_t kid;
+static void fork_cmd(void) {
+  pid_t cmdpid;
   int pfd[2];
-  if(kidfd != -1) close(kidfd);
+  if(cmdfd != -1) close(cmdfd);
   xpipe(pfd);
-  kid = xfork();
-  if(!kid) {
+  cmdpid = xfork();
+  if(!cmdpid) {
     xdup2(pfd[0], 0);
     close(pfd[0]);
     close(pfd[1]);
@@ -523,13 +548,15 @@ static void fork_kid(void) {
     fatal(errno, "error execing /bin/sh");
   }
   close(pfd[0]);
-  kidfd = pfd[1];
-  D(("forked kid %d, fd = %d", kid, kidfd));
+  cmdfd = pfd[1];
+  D(("forked cmd %d, fd = %d", cmdpid, cmdfd));
 }
 
 static void play(size_t frames) {
   size_t avail_bytes, written_frames;
   ssize_t written_bytes;
+  struct rtp header;
+  struct iovec vec[2];
 
   if(activate()) {
     if(playing)
@@ -557,8 +584,9 @@ static void play(size_t frames) {
   else
     avail_bytes = playing->used;
 
-  if(!config->speaker_command) {
+  switch(config->speaker_backend) {
 #if API_ALSA
+  case BACKEND_ALSA:
     snd_pcm_sframes_t pcm_written_frames;
     size_t avail_frames;
     int err;
@@ -589,28 +617,107 @@ static void play(size_t frames) {
     }
     written_frames = pcm_written_frames;
     written_bytes = written_frames * bpf;
-#else
-    assert(!"reached");
+    break;
 #endif
-  } else {
+  case BACKEND_COMMAND:
     if(avail_bytes > frames * bpf)
       avail_bytes = frames * bpf;
-    written_bytes = write(kidfd, playing->buffer + playing->start,
+    written_bytes = write(cmdfd, playing->buffer + playing->start,
                           avail_bytes);
     D(("actually play %zu bytes, wrote %d",
        avail_bytes, (int)written_bytes));
     if(written_bytes < 0) {
       switch(errno) {
         case EPIPE:
-          error(0, "hmm, kid died; trying another");
-          fork_kid();
+          error(0, "hmm, command died; trying another");
+          fork_cmd();
           return;
         case EAGAIN:
           return;
       }
     }
     written_frames = written_bytes / bpf; /* good enough */
+    break;
+  case BACKEND_NETWORK:
+    /* We transmit using RTP (RFC3550) and attempt to conform to the internet
+     * AVT profile (RFC3551). */
+    if(rtp_time_real.tv_sec == 0)
+      xgettimeofday(&rtp_time_real, 0);
+    if(idled) {
+      struct timeval now;
+      xgettimeofday(&now, 0);
+      /* There's been a gap.  Fix up the RTP time accordingly. */
+      rtp_time += (((now.tv_sec + now.tv_usec /1000000.0)
+                    - (rtp_time_real.tv_sec + rtp_time_real.tv_usec / 1000000.0)) 
+                   * playing->format.rate * playing->format.channels);
+    }
+    header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
+    header.seq = htons(rtp_seq++);
+    header.timestamp = htonl(rtp_time);
+    header.ssrc = rtp_id;
+    header.mpt = (idled ? 0x80 : 0x00) | 10;
+    /* 10 = L16 = 16-bit x 2 x 44100KHz.  We ought to deduce this value from
+     * the sample rate (in a library somewhere so that configuration.c can rule
+     * out invalid rates).
+     */
+    idled = 0;
+    if(avail_bytes > NETWORK_BYTES - sizeof header) {
+      avail_bytes = NETWORK_BYTES - sizeof header;
+      avail_bytes -= avail_bytes % bpf;
+    }
+    /* "The RTP clock rate used for generating the RTP timestamp is independent
+     * of the number of channels and the encoding; it equals the number of
+     * sampling periods per second.  For N-channel encodings, each sampling
+     * period (say, 1/8000 of a second) generates N samples. (This terminology
+     * is standard, but somewhat confusing, as the total number of samples
+     * generated per second is then the sampling rate times the channel
+     * count.)"
+     */
+    vec[0].iov_base = (void *)&header;
+    vec[0].iov_len = sizeof header;
+    vec[1].iov_base = playing->buffer + playing->start;
+    vec[1].iov_len = avail_bytes;
+#if 0
+    {
+      char buffer[3 * sizeof header + 1];
+      size_t n;
+      const uint8_t *ptr = (void *)&header;
+      
+      for(n = 0; n < sizeof header; ++n)
+        sprintf(&buffer[3 * n], "%02x ", *ptr++);
+      info(buffer);
+    }
+#endif
+    do {
+      written_bytes = writev(bfd,
+                             vec,
+                             2);
+    } while(written_bytes < 0 && errno == EINTR);
+    if(written_bytes < 0) {
+      error(errno, "error transmitting audio data");
+      ++audio_errors;
+      if(audio_errors == 10)
+        fatal(0, "too many audio errors");
+      return;
+    }
+    audio_errors /= 2;
+    written_bytes = avail_bytes;
+    written_frames = written_bytes / bpf;
+    /* Advance RTP's notion of the time */
+    rtp_time += written_frames * playing->format.channels;
+    /* Advance the corresponding real time */
+    assert(NETWORK_BYTES <= 2000);      /* else risk overflowing 32 bits */
+    rtp_time_real.tv_usec += written_frames * 1000000 / playing->format.rate;
+    if(rtp_time_real.tv_usec >= 1000000) {
+      ++rtp_time_real.tv_sec;
+      rtp_time_real.tv_usec -= 1000000;
+    }
+    break;
+  default:
+    assert(!"reached");
   }
+  /* written_bytes and written_frames had better both be set and correct by
+   * this point */
   playing->start += written_bytes;
   playing->used -= written_bytes;
   playing->played += written_frames;
@@ -636,12 +743,12 @@ static void report(void) {
 }
 
 static void reap(int __attribute__((unused)) sig) {
-  pid_t kid;
+  pid_t cmdpid;
   int st;
 
   do
-    kid = waitpid(-1, &st, WNOHANG);
-  while(kid > 0);
+    cmdpid = waitpid(-1, &st, WNOHANG);
+  while(cmdpid > 0);
   signal(SIGCHLD, reap);
 }
 
@@ -655,9 +762,33 @@ static int addfd(int fd, int events) {
 }
 
 int main(int argc, char **argv) {
-  int n, fd, stdin_slot, alsa_slots, kid_slot;
+  int n, fd, stdin_slot, alsa_slots, cmdfd_slot, bfd_slot, poke, timeout;
+  struct timeval now, delta;
   struct track *t;
   struct speaker_message sm;
+  struct addrinfo *res, *sres;
+  static const struct addrinfo pref = {
+    0,
+    PF_INET,
+    SOCK_DGRAM,
+    IPPROTO_UDP,
+    0,
+    0,
+    0,
+    0
+  };
+  static const struct addrinfo prefbind = {
+    AI_PASSIVE,
+    PF_INET,
+    SOCK_DGRAM,
+    IPPROTO_UDP,
+    0,
+    0,
+    0,
+    0
+  };
+  static const int one = 1;
+  char *sockname, *ssockname;
 #if API_ALSA
   int alsa_nslots = -1, err;
 #endif
@@ -691,15 +822,43 @@ int main(int argc, char **argv) {
   become_mortal();
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
-  info("started");
-  if(config->speaker_command)
-    fork_kid();
-  else {
-#if API_ALSA
-    /* ok */
-#else
-    fatal(0, "invoked speaker but no speaker_command and no known sound API");
- #endif
+  switch(config->speaker_backend) {
+  case BACKEND_ALSA:
+    info("selected ALSA backend");
+  case BACKEND_COMMAND:
+    info("selected command backend");
+    fork_cmd();
+    break;
+  case BACKEND_NETWORK:
+    res = get_address(&config->broadcast, &pref, &sockname);
+    if(!res) return -1;
+    if(config->broadcast_from.n) {
+      sres = get_address(&config->broadcast_from, &prefbind, &ssockname);
+      if(!sres) return -1;
+    } else
+      sres = 0;
+    if((bfd = socket(res->ai_family,
+                     res->ai_socktype,
+                     res->ai_protocol)) < 0)
+      fatal(errno, "error creating broadcast socket");
+    if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
+      fatal(errno, "error settting SO_BROADCAST on broadcast socket");
+    /* We might well want to set additional broadcast- or multicast-related
+     * options here */
+    if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
+      fatal(errno, "error binding broadcast socket to %s", ssockname);
+    if(connect(bfd, res->ai_addr, res->ai_addrlen) < 0)
+      fatal(errno, "error connecting broadcast socket to %s", sockname);
+    /* Select an SSRC */
+    gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
+    info("selected network backend, sending to %s", sockname);
+    if(config->sample_format.byte_format != AO_FMT_BIG) {
+      info("forcing big-endian sample format");
+      config->sample_format.byte_format = AO_FMT_BIG;
+    }
+    break;
+  default:
+    fatal(0, "unknown backend %d", config->speaker_backend);
   }
   while(getppid() != 1) {
     fdno = 0;
@@ -714,13 +873,40 @@ int main(int argc, char **argv) {
     /* If forceplay is set then wait until it succeeds before waiting on the
      * sound device. */
     alsa_slots = -1;
-    kid_slot = -1;
+    cmdfd_slot = -1;
+    bfd_slot = -1;
+    /* By default we will wait up to a second before thinking about current
+     * state. */
+    timeout = 1000;
     if(ready && !forceplay) {
-      if(config->speaker_command) {
-        if(kidfd >= 0)
-          kid_slot = addfd(kidfd, POLLOUT);
-      } else {
+      switch(config->speaker_backend) {
+      case BACKEND_COMMAND:
+        /* We send sample data to the subprocess as fast as it can accept it.
+         * This isn't ideal as pause latency can be very high as a result. */
+        if(cmdfd >= 0)
+          cmdfd_slot = addfd(cmdfd, POLLOUT);
+        break;
+      case BACKEND_NETWORK:
+        /* We want to keep the notional playing point somewhere in the near
+         * future.  If it's too near then clients that attempt even the
+         * slightest amount of read-ahead will never catch up, and those that
+         * don't will skip whenever there's a trivial network delay.  If it's
+         * too far ahead then pause latency will be too high.
+         */
+        xgettimeofday(&now, 0);
+        delta = tvsub(rtp_time_real, now);
+        if(delta.tv_sec < RTP_AHEAD) {
+          D(("delta = %ld.%06ld", (long)delta.tv_sec, (long)delta.tv_usec));
+          bfd_slot = addfd(bfd, POLLOUT);
+          if(delta.tv_sec < 0)
+            rtp_time_real = now;        /* catch up */
+        }
+        break;
 #if API_ALSA
+      case BACKEND_ALSA:
+        /* We send sample data to ALSA as fast as it can accept it, relying on
+         * the fact that it has a relatively small buffer to minimize pause
+         * latency. */
         int retry = 3;
         
         alsa_slots = fdno;
@@ -738,7 +924,10 @@ int main(int argc, char **argv) {
         } while(retry-- > 0);
         if(alsa_nslots >= 0)
           fdno += alsa_nslots;
+        break;
 #endif
+      default:
+        assert(!"unknown backend");
       }
     }
     /* If any other tracks don't have a full buffer, try to read sample data
@@ -750,29 +939,47 @@ int main(int argc, char **argv) {
         } else
           t->slot = -1;
       }
-    /* Wait up to a second before thinking about current state */
-    n = poll(fds, fdno, 1000);
+    /* Wait for something interesting to happen */
+    n = poll(fds, fdno, timeout);
     if(n < 0) {
       if(errno == EINTR) continue;
       fatal(errno, "error calling poll");
     }
     /* Play some sound before doing anything else */
-    if(alsa_slots != -1) {
+    poke = 0;
+    switch(config->speaker_backend) {
 #if API_ALSA
-      unsigned short alsa_revents;
-      
-      if((err = snd_pcm_poll_descriptors_revents(pcm,
-                                                 &fds[alsa_slots],
-                                                 alsa_nslots,
-                                                 &alsa_revents)) < 0)
-        fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
-      if(alsa_revents & (POLLOUT | POLLERR))
-        play(3 * FRAMES);
+    case BACKEND_ALSA:
+      if(alsa_slots != -1) {
+        unsigned short alsa_revents;
+        
+        if((err = snd_pcm_poll_descriptors_revents(pcm,
+                                                   &fds[alsa_slots],
+                                                   alsa_nslots,
+                                                   &alsa_revents)) < 0)
+          fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
+        if(alsa_revents & (POLLOUT | POLLERR))
+          play(3 * FRAMES);
+      } else
+        poke = 1;
+      break;
 #endif
-    } else if(kid_slot != -1) {
-      if(fds[kid_slot].revents & (POLLOUT | POLLERR))
-        play(3 * FRAMES);
-    } else {
+    case BACKEND_COMMAND:
+      if(cmdfd_slot != -1) {
+        if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
+          play(3 * FRAMES);
+      } else
+        poke = 1;
+      break;
+    case BACKEND_NETWORK:
+      if(bfd_slot != -1) {
+        if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
+          play(3 * FRAMES);
+      } else
+        poke = 1;
+      break;
+    }
+    if(poke) {
       /* Some attempt to play must have failed */
       if(playing && !paused)
         play(forceplay);

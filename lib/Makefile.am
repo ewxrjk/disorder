@@ -49,6 +49,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\
 	regsub.c regsub.h				\
+	rtp.h						\
 	selection.c selection.h				\
 	signame.c signame.h				\
 	sink.c sink.h					\
@@ -57,6 +58,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	syscalls.c syscalls.h				\
 	types.h						\
 	table.c table.h					\
+	timeval.h					\
 	trackname.c trackname.h				\
 	user.h user.c					\
 	utf8.h utf8.c					\
@@ -72,6 +74,9 @@ definitions.h: Makefile
 	echo "#define PKGCONFDIR \"${sysconfdir}/\"PACKAGE" >> $@.new
 	echo "#define PKGSTATEDIR \"${localstatedir}/\"PACKAGE" >> $@.new
 	echo "#define PKGDATADIR \"${pkgdatadir}/\"" >> $@.new
+	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
+	echo "#define BINDIR \"${bindir}/\"" >> $@.new
+	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new
 	mv $@.new $@
 defs.o: definitions.h
 defs.lo: definitions.h
