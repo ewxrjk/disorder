@@ -73,7 +73,7 @@ static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
 /** @brief Buffer size
  *
  * We'll only start playing when this many samples are available. */
-static unsigned readahead = 4 * 2 * 44100; /* 4 seconds */
+static unsigned readahead = 2 * 2 * 44100;
 
 /** @brief Number of samples to infill by in one go */
 #define INFILL_SAMPLES (44100 * 2)      /* 1s */
@@ -371,6 +371,9 @@ static void play_rtp(void) {
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
+      logged = now;
+      info("%lu samples in buffer (%lus)", nsamples,
+           nsamples / (44100 * 2));
       info("Buffering...");
       while(nsamples < readahead)
         pthread_cond_wait(&cond, &lock);
@@ -384,6 +387,9 @@ static void play_rtp(void) {
       active = 1;
       infilling = 0;
       escape = 0;
+      logged = now;
+      info("%lu samples in buffer (%lus)", nsamples,
+           nsamples / (44100 * 2));
       info("Playing...");
       /* Wait until the buffer empties out */
       while(nsamples >= minbuffer && !escape) {
@@ -472,8 +478,9 @@ static void play_rtp(void) {
           }
           frames_available = samples_available / 2;
           if(!infilling) {
-            info("Infilling %d samples, next=%"PRIx32" but packet=%"PRIx32,
-                 samples_available, next_timestamp, packets->timestamp);
+            info("Infilling %d samples, next=%"PRIx32" packet=[%"PRIx32",%"PRIx32"]",
+                 samples_available, next_timestamp,
+                 packets->timestamp, packets->timestamp + packets->nsamples);
             //infilling++;
           }
           frames_written = snd_pcm_writei(pcm,
