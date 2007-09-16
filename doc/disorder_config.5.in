@@ -161,6 +161,13 @@ Transmit audio over the network.  This is the default if
 \fBbroadcast\fR is specified.
 .RE
 .TP
+.B broadcast \fIADDRESS\fR \fIPORT\fR
+Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.  This implies
+\fBbackend network\fR.
+.TP
+.B broadcast_from \fIADDRESS\fR \fIPORT\fR
+Sets the (local) source address used by \fBbroadcast\fR.
+.TP
 .B channel \fICHANNEL\fR
 The mixer channel that the volume control should use.  Valid names depend on
 your operating system and hardware, but some standard ones that might be useful
