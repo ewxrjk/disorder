@@ -46,6 +46,8 @@
 #include <alsa/asoundlib.h>
 #endif
 
+#define readahead linux_headers_are_borked
+
 /** @brief RTP socket */
 static int rtpfd;
 
@@ -61,14 +63,17 @@ static const char *device;
 /** @brief Minimum buffer size
  *
  * We'll stop playing if there's only this many samples in the buffer. */
-#define MINBUFFER 8820
+static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
 
 /** @brief Maximum sample size
  *
  * The maximum supported size (in bytes) of one sample. */
 #define MAXSAMPLESIZE 2
 
-#define READAHEAD 88200                 /* how far to read ahead */
+/** @brief Buffer size
+ *
+ * We'll only start playing when this many samples are available. */
+static unsigned readahead = 4 * 2 * 44100; /* 4 seconds */
 
 #define MAXBUFFER (3 * 88200)           /* maximum buffer contents */
 
@@ -128,6 +133,8 @@ static const struct option options[] = {
   { "version", no_argument, 0, 'V' },
   { "debug", no_argument, 0, 'd' },
   { "device", required_argument, 0, 'D' },
+  { "min", required_argument, 0, 'm' },
+  { "buffer", required_argument, 0, 'b' },
   { 0, 0, 0, 0 }
 };
 
@@ -344,7 +351,7 @@ static void play_rtp(void) {
     for(;;) {
       /* Wait for the buffer to fill up a bit */
       info("Buffering...");
-      while(nsamples < READAHEAD)
+      while(nsamples < readahead)
         pthread_cond_wait(&cond, &lock);
       if(!prepared) {
         if((err = snd_pcm_prepare(pcm)))
@@ -357,7 +364,7 @@ static void play_rtp(void) {
       infilling = 0;
       info("Playing...");
       /* Wait until the buffer empties out */
-      while(nsamples >= MINBUFFER) {
+      while(nsamples >= minbuffer) {
         /* Wait for ALSA to ask us for more data */
         pthread_mutex_unlock(&lock);
         snd_pcm_wait(pcm, -1);
@@ -371,22 +378,25 @@ static void play_rtp(void) {
           frames_written = snd_pcm_writei(pcm,
                                           packets->samples_raw + packets->nused,
                                           frames_available);
-          if(frames_written < 0)
-            fatal(0, "error calling snd_pcm_writei: %ld",
-                  (long)frames_written);
-          samples_written = frames_written * 2;
-          packets->nused += samples_written;
-          next_timestamp += samples_written;
-          if(packets->nused == packets->nsamples) {
-            /* We're done with this packet */
-            struct packet *p = packets;
-
-            packets = p->next;
-            nsamples -= p->nsamples;
-            free(p);
-            pthread_cond_broadcast(&cond);
+          if(frames_written < 0) {
+            if(frames_written != -EAGAIN)
+              fatal(0, "error calling snd_pcm_writei: %ld",
+                    (long)frames_written);
+          } else {
+            samples_written = frames_written * 2;
+            packets->nused += samples_written;
+            next_timestamp += samples_written;
+            if(packets->nused == packets->nsamples) {
+              /* We're done with this packet */
+              struct packet *p = packets;
+              
+              packets = p->next;
+              nsamples -= p->nsamples;
+              free(p);
+              pthread_cond_broadcast(&cond);
+            }
+            infilling = 0;
           }
-          infilling = 0;
         } else {
           /* We don't have anything to play!  We'd better play some 0s. */
           static const uint16_t zeros[1024];
@@ -402,10 +412,12 @@ static void play_rtp(void) {
           frames_written = snd_pcm_writei(pcm,
                                           zeros,
                                           frames_available);
-          if(frames_written < 0)
-            fatal(0, "error calling snd_pcm_writei: %ld",
-                  (long)frames_written);
-          next_timestamp += samples_written;
+          if(frames_written < 0) {
+            if(frames_written != -EAGAIN)
+              fatal(0, "error calling snd_pcm_writei: %ld",
+                    (long)frames_written);
+          } else
+            next_timestamp += samples_written;
         }
       }
       active = 0;
@@ -463,14 +475,14 @@ static void play_rtp(void) {
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
-      while(nsamples < READAHEAD)
+      while(nsamples < readahead)
         pthread_cond_wait(&cond, &lock);
       /* Start playing now */
       status = AudioDeviceStart(adid, adioproc);
       if(status)
         fatal(0, "AudioDeviceStart: %d", (int)status);
       /* Wait until the buffer empties out */
-      while(nsamples >= MINBUFFER)
+      while(nsamples >= minbuffer)
         pthread_cond_wait(&cond, &lock);
       /* Stop playing for a bit until the buffer re-fills */
       status = AudioDeviceStop(adid, adioproc);
@@ -492,7 +504,9 @@ static void help(void) {
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
 	  "  --debug, -d             Turn on debugging\n"
-          "  --device, -D DEVICE     Output device\n");
+          "  --device, -D DEVICE     Output device\n"
+          "  --min, -m FRAMES        Buffer low water mark\n"
+          "  --buffer, -b FRAMES     Buffer high water mark\n");
   xfclose(stdout);
   exit(0);
 }
@@ -523,12 +537,14 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
     case 'd': debugging = 1; break;
     case 'D': device = optarg; break;
+    case 'm': minbuffer = 2 * atol(optarg); break;
+    case 'b': readahead = 2 * atol(optarg); break;
     default: fatal(0, "invalid option");
     }
   }
