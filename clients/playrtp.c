@@ -416,8 +416,10 @@ static void play_rtp(void) {
             if(frames_written != -EAGAIN)
               fatal(0, "error calling snd_pcm_writei: %ld",
                     (long)frames_written);
-          } else
+          } else {
+            samples_written = frames_written * 2;
             next_timestamp += samples_written;
+          }
         }
       }
       active = 0;
