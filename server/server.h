@@ -36,6 +36,8 @@ int server_stop(ev_source *ev, int fd);
 
 extern int volume_left, volume_right;	/* last known volume */
 
+extern int wideopen;			/* blindly accept all logins */
+
 #endif /* SERVER_H */
 
 /*

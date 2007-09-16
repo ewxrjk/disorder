@@ -70,6 +70,7 @@ static const struct option options[] = {
   { "log", required_argument, 0, 'l' },
   { "pidfile", required_argument, 0, 'P' },
   { "no-initial-rescan", no_argument, 0, 'N' },
+  { "wide-open", no_argument, 0, 'w' },
   { "syslog", no_argument, 0, 's' },
   { 0, 0, 0, 0 }
 };
@@ -221,6 +222,7 @@ int main(int argc, char **argv) {
     case 'P': pidfile = optarg; break;
     case 'N': initial_rescan = 0; break;
     case 's': logsyslog = 1; break;
+    case 'w': wideopen = 1; break;
     default: fatal(0, "invalid option");
     }
   }
