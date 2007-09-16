@@ -95,3 +95,4 @@ tests/Makefile
 tests/testroot
 disorder.plist
 server/uk.org.greenend.rjk.disorder.plist
+doc/guts
