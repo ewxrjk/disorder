@@ -296,6 +296,7 @@ static void play_rtp(void) {
     size_t samples_written;
     int prepared = 1;
     int err;
+    int infilling = 0;
 
     /* Open ALSA */
     if((err = snd_pcm_open(&pcm,
@@ -342,6 +343,7 @@ static void play_rtp(void) {
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
+      info("Buffering...");
       while(nsamples < READAHEAD)
         pthread_cond_wait(&cond, &lock);
       if(!prepared) {
@@ -352,6 +354,8 @@ static void play_rtp(void) {
       /* Start at the first available packet */
       next_timestamp = packets->timestamp;
       active = 1;
+      infilling = 0;
+      info("Playing...");
       /* Wait until the buffer empties out */
       while(nsamples >= MINBUFFER) {
         /* Wait for ALSA to ask us for more data */
@@ -368,7 +372,8 @@ static void play_rtp(void) {
                                           packets->samples_raw + packets->nused,
                                           frames_available);
           if(frames_written < 0)
-            fatal(0, "error calling snd_pcm_writei: %d", err);
+            fatal(0, "error calling snd_pcm_writei: %ld",
+                  (long)frames_written);
           samples_written = frames_written * 2;
           packets->nused += samples_written;
           next_timestamp += samples_written;
@@ -381,10 +386,16 @@ static void play_rtp(void) {
             free(p);
             pthread_cond_broadcast(&cond);
           }
+          infilling = 0;
         } else {
           /* We don't have anything to play!  We'd better play some 0s. */
           static const uint16_t zeros[1024];
           size_t samples_available = 1024, frames_available;
+
+          if(!infilling) {
+            info("Infilling...");
+            infilling = 1;
+          }
           if(packets && next_timestamp + samples_available > packets->timestamp)
             samples_available = packets->timestamp - next_timestamp;
           frames_available = samples_available / 2;
@@ -392,15 +403,20 @@ static void play_rtp(void) {
                                           zeros,
                                           frames_available);
           if(frames_written < 0)
-            fatal(0, "error calling snd_pcm_writei: %d", err);
+            fatal(0, "error calling snd_pcm_writei: %ld",
+                  (long)frames_written);
           next_timestamp += samples_written;
         }
       }
       active = 0;
       /* We stop playing for a bit until the buffer re-fills */
       pthread_mutex_unlock(&lock);
+      if((err = snd_pcm_nonblock(pcm, 0)))
+        fatal(0, "error calling snd_pcm_nonblock: %d", err);
       if((err = snd_pcm_drain(pcm)))
         fatal(0, "error calling snd_pcm_drain: %d", err);
+      if((err = snd_pcm_nonblock(pcm, 1)))
+        fatal(0, "error calling snd_pcm_nonblock: %d", err);
       prepared = 0;
       pthread_mutex_lock(&lock);
     }
