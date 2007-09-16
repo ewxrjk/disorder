@@ -229,7 +229,10 @@ static void *listen_thread(void attribute((unused)) *arg) {
     if(*pp && p->timestamp == (*pp)->timestamp) {
       /* *pp == p; a duplicate.  Ideally we avoid the translation step here,
        * but we'll worry about that another time. */
+      info("dropped a duplicated");
     } else {
+      if(*pp)
+        info("receiving packets out of order");
       p->next = *pp;
       *pp = p;
       nsamples += p->nsamples;
@@ -416,7 +419,16 @@ static void play_rtp(void) {
         }
         /* Wait for ALSA to ask us for more data */
         pthread_mutex_unlock(&lock);
-        snd_pcm_wait(pcm, -1);
+        write(2, ".", 1);               /* TODO remove me sometime */
+        switch(err = snd_pcm_wait(pcm, -1)) {
+        case 0:
+          info("snd_pcm_wait timed out");
+          break;
+        case 1:
+          break;
+        default:
+          fatal(0, "snd_pcm_wait returned %d", err);
+        }
         pthread_mutex_lock(&lock);
         /* ALSA is ready for more data */
         packet_start = packets->timestamp;
