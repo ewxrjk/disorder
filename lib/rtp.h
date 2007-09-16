@@ -22,7 +22,7 @@
 #define RTP_H
 
 /* RTP is defined in RFC1889 */
-struct attribute((packed)) rtp {
+struct attribute((packed)) rtp_header {
   uint8_t vpxcc;
   uint8_t mpt;
   uint16_t seq;

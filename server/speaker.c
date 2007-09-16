@@ -555,7 +555,7 @@ static void fork_cmd(void) {
 static void play(size_t frames) {
   size_t avail_bytes, written_frames;
   ssize_t written_bytes;
-  struct rtp header;
+  struct rtp_header header;
   struct iovec vec[2];
 
   if(activate()) {

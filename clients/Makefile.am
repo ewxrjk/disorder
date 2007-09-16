@@ -18,7 +18,7 @@
 # USA
 #
 
-bin_PROGRAMS=disorder disorderfm
+bin_PROGRAMS=disorder disorderfm disorder-playrtp
 noinst_PROGRAMS=test-eclient filename-bytes
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -33,6 +33,10 @@ disorderfm_SOURCES=disorderfm.c \
 	../lib/memgc.c
 disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
+
+disorder_playrtp_SOURCES=playrtp.c
+disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBASOUND)
+disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
 
