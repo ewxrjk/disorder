@@ -586,7 +586,7 @@ static void play(size_t frames) {
 
   switch(config->speaker_backend) {
 #if API_ALSA
-  case BACKEND_ALSA:
+  case BACKEND_ALSA: {
     snd_pcm_sframes_t pcm_written_frames;
     size_t avail_frames;
     int err;
@@ -618,6 +618,7 @@ static void play(size_t frames) {
     written_frames = pcm_written_frames;
     written_bytes = written_frames * bpf;
     break;
+  }
 #endif
   case BACKEND_COMMAND:
     if(avail_bytes > frames * bpf)
@@ -903,7 +904,7 @@ int main(int argc, char **argv) {
         }
         break;
 #if API_ALSA
-      case BACKEND_ALSA:
+      case BACKEND_ALSA: {
         /* We send sample data to ALSA as fast as it can accept it, relying on
          * the fact that it has a relatively small buffer to minimize pause
          * latency. */
@@ -925,6 +926,7 @@ int main(int argc, char **argv) {
         if(alsa_nslots >= 0)
           fdno += alsa_nslots;
         break;
+      }
 #endif
       default:
         assert(!"unknown backend");
