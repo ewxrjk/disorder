@@ -30,9 +30,19 @@
 #include "authhash.h"
 
 #ifndef AUTHHASH
+/** @brief Which hash function to use */
 # define AUTHHASH GCRY_MD_SHA1
 #endif
 
+/** @brief Perform the authorization hash function
+ * @param challenge Pointer to challange
+ * @param nchallenge Size of challenge
+ * @param password Password
+ *
+ * Computes H(challenge|password) and returns it as a newly allocated hex
+ * string.  Currently the hash function is SHA-1, but this may be changed in
+ * future versions; see @ref AUTHHASH.
+ */
 const char *authhash(const void *challenge, size_t nchallenge,
 		     const char *password) {
   gcrypt_hash_handle h;

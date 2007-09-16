@@ -28,18 +28,31 @@
 #include "log.h"
 #include "cache.h"
 
+/** @brief The global cache */
 static hash *h;
 
+/** @brief One cache entry */
 struct cache_entry {
+  /** @brief What type of object this is */
   const struct cache_type *type;
+
+  /** @brief Pointer to object value */
   const void *value;
+
+  /** @brief Time that object was inserted into cache */
   time_t birth;
 };
 
+/** @brief Return true if object @p c has expired */
 static int expired(const struct cache_entry *c, time_t now) {
   return now - c->birth > c->type->lifetime;
 }
 
+/** @brief Insert an object into the cache
+ * @param type Pointer to object type
+ * @param key Unique key
+ * @param value Pointer to value
+ */
 void cache_put(const struct cache_type *type,
                const char *key, const void *value) {
   struct cache_entry *c;
@@ -53,6 +66,11 @@ void cache_put(const struct cache_type *type,
   hash_add(h, key, c,  HASH_INSERT_OR_REPLACE);
 }
 
+/** @brief Look up an object in the cache
+ * @param type Pointer to object type
+ * @param key Unique key
+ * @return Pointer to object value or NULL if not found
+ */
 const void *cache_get(const struct cache_type *type, const char *key) {
   const struct cache_entry *c;
   
@@ -74,6 +92,9 @@ static int expiry_callback(const char *key, void *value, void *u) {
   return 0;
 }
 
+/** @brief Expire the cache
+ *
+ * Called from time to time to expire cache entries. */
 void cache_expire(void) {
   time_t now;
 
@@ -92,11 +113,20 @@ static int clean_callback(const char *key, void *value, void *u) {
   return 0;
 }
 
+/** @brief Clean the cache
+ * @param type Pointer to type to clean
+ *
+ * Removes all entries of type @p type from the cache.
+ */
 void cache_clean(const struct cache_type *type) {
   if(h)
     hash_foreach(h, clean_callback, (void *)type);
 }
 
+/** @brief Report cache size
+ *
+ * Returns the number of objects in the cache
+ */
 size_t cache_count(void) {
   return h ? hash_count(h) : 0;
 }

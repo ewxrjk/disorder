@@ -88,6 +88,10 @@ struct addrinfo *get_address(const struct stringlist *a,
   return res;
 }
 
+/** @brief Comparison function for address information
+ *
+ * Suitable for qsort().
+ */
 int addrinfocmp(const struct addrinfo *a,
 		const struct addrinfo *b) {
   const struct sockaddr_in *ina, *inb;
