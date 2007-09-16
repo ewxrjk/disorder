@@ -75,6 +75,9 @@ static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
  * We'll only start playing when this many samples are available. */
 static unsigned readahead = 4 * 2 * 44100; /* 4 seconds */
 
+/** @brief Number of samples to infill by in one go */
+#define INFILL_SAMPLES (44100 * 2)      /* 1s */
+
 #define MAXBUFFER (3 * 88200)           /* maximum buffer contents */
 
 /** @brief Received packet
@@ -86,9 +89,7 @@ struct packet {
    * or mis-ordered there may be gaps at any given moment. */
   struct packet *next;
   /** @brief Number of samples in this packet */
-  int nsamples;
-  /** @brief Number of samples used from this packet */
-  int nused;
+  uint32_t nsamples;
   /** @brief Timestamp from RTP packet
    *
    * NB that "timestamps" are really sample counters.*/
@@ -143,6 +144,21 @@ static inline int lt(uint32_t a, uint32_t b) {
   return (uint32_t)(a - b) & 0x80000000;
 }
 
+/** @brief Return true iff a >= b in sequence-space arithmetic */
+static inline int ge(uint32_t a, uint32_t b) {
+  return !lt(a, b);
+}
+
+/** @brief Return true iff a > b in sequence-space arithmetic */
+static inline int gt(uint32_t a, uint32_t b) {
+  return lt(b, a);
+}
+
+/** @brief Return true iff a <= b in sequence-space arithmetic */
+static inline int le(uint32_t a, uint32_t b) {
+  return !lt(b, a);
+}
+
 /** @brief Background thread collecting samples
  *
  * This function collects samples, perhaps converts them to the target format,
@@ -172,11 +188,13 @@ static void *listen_thread(void attribute((unused)) *arg) {
     /* Ignore too-short packets */
     if((size_t)n <= sizeof (struct rtp_header))
       continue;
-    p->nused = 0;
     p->timestamp = ntohl(packet.header.timestamp);
     /* Ignore packets in the past */
-    if(active && lt(p->timestamp, next_timestamp))
+    if(active && lt(p->timestamp, next_timestamp)) {
+      info("dropping old packet, timestamp=%"PRIx32" < %"PRIx32,
+           p->timestamp, next_timestamp);
       continue;
+    }
     /* Convert to target format */
     switch(packet.header.mpt & 0x7F) {
     case 10:
@@ -303,7 +321,9 @@ static void play_rtp(void) {
     size_t samples_written;
     int prepared = 1;
     int err;
-    int infilling = 0;
+    int infilling = 0, escape = 0;
+    time_t logged, now;
+    uint32_t packet_start, packet_end;
 
     /* Open ALSA */
     if((err = snd_pcm_open(&pcm,
@@ -347,6 +367,7 @@ static void play_rtp(void) {
 
     /* Ready to go */
 
+    time(&logged);
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
@@ -362,35 +383,72 @@ static void play_rtp(void) {
       next_timestamp = packets->timestamp;
       active = 1;
       infilling = 0;
+      escape = 0;
       info("Playing...");
       /* Wait until the buffer empties out */
-      while(nsamples >= minbuffer) {
+      while(nsamples >= minbuffer && !escape) {
+        time(&now);
+        if(now > logged + 10) {
+          logged = now;
+          info("%lu samples in buffer (%lus)", nsamples,
+               nsamples / (44100 * 2));
+        }
+        if(packets
+           && ge(next_timestamp, packets->timestamp + packets->nsamples)) {
+          struct packet *p = packets;
+          
+          info("dropping buffered past packet %"PRIx32" < %"PRIx32,
+               packets->timestamp, next_timestamp);
+          
+          packets = p->next;
+          if(packets)
+            assert(lt(p->timestamp, packets->timestamp));
+          nsamples -= p->nsamples;
+          free(p);
+          pthread_cond_broadcast(&cond);
+          continue;
+        }
         /* Wait for ALSA to ask us for more data */
         pthread_mutex_unlock(&lock);
         snd_pcm_wait(pcm, -1);
         pthread_mutex_lock(&lock);
         /* ALSA is ready for more data */
-        if(packets && packets->timestamp + packets->nused == next_timestamp) {
-          /* Hooray, we have a packet we can play */
-          const size_t samples_available = packets->nsamples - packets->nused;
+        packet_start = packets->timestamp;
+        packet_end = packets->timestamp + packets->nsamples;
+        if(ge(next_timestamp, packet_start)
+           && lt(next_timestamp, packet_end)) {
+          /* The target timestamp is somewhere in this packet */
+          const uint32_t offset = next_timestamp - packets->timestamp;
+          const uint32_t samples_available = (packets->timestamp + packets->nsamples) - next_timestamp;
           const size_t frames_available = samples_available / 2;
 
           frames_written = snd_pcm_writei(pcm,
-                                          packets->samples_raw + packets->nused,
+                                          packets->samples_raw + offset,
                                           frames_available);
           if(frames_written < 0) {
-            if(frames_written != -EAGAIN)
+            switch(frames_written) {
+            case -EAGAIN:
+              info("snd_pcm_wait() returned but we got -EAGAIN!");
+              break;
+            case -EPIPE:
+              error(0, "error calling snd_pcm_writei: %ld",
+                    (long)frames_written);
+              escape = 1;
+              break;
+            default:
               fatal(0, "error calling snd_pcm_writei: %ld",
                     (long)frames_written);
+            }
           } else {
             samples_written = frames_written * 2;
-            packets->nused += samples_written;
             next_timestamp += samples_written;
-            if(packets->nused == packets->nsamples) {
+            if(ge(next_timestamp, packet_end)) {
               /* We're done with this packet */
               struct packet *p = packets;
               
               packets = p->next;
+              if(packets)
+                assert(lt(p->timestamp, packets->timestamp));
               nsamples -= p->nsamples;
               free(p);
               pthread_cond_broadcast(&cond);
@@ -399,23 +457,42 @@ static void play_rtp(void) {
           }
         } else {
           /* We don't have anything to play!  We'd better play some 0s. */
-          static const uint16_t zeros[1024];
-          size_t samples_available = 1024, frames_available;
+          static const uint16_t zeros[INFILL_SAMPLES];
+          size_t samples_available = INFILL_SAMPLES, frames_available;
 
-          if(!infilling) {
-            info("Infilling...");
-            infilling = 1;
-          }
-          if(packets && next_timestamp + samples_available > packets->timestamp)
+          /* If the maximum infill would take us past the start of the next
+           * packet then we truncate the infill to the right amount. */
+          if(lt(packets->timestamp,
+                next_timestamp + samples_available))
             samples_available = packets->timestamp - next_timestamp;
+          if((int)samples_available < 0) {
+            info("packets->timestamp: %"PRIx32"  next_timestamp: %"PRIx32"  next+max: %"PRIx32"  available: %"PRIx32,
+                 packets->timestamp, next_timestamp,
+                 next_timestamp + INFILL_SAMPLES, samples_available);
+          }
           frames_available = samples_available / 2;
+          if(!infilling) {
+            info("Infilling %d samples, next=%"PRIx32" but packet=%"PRIx32,
+                 samples_available, next_timestamp, packets->timestamp);
+            //infilling++;
+          }
           frames_written = snd_pcm_writei(pcm,
                                           zeros,
                                           frames_available);
           if(frames_written < 0) {
-            if(frames_written != -EAGAIN)
+            switch(frames_written) {
+            case -EAGAIN:
+              info("snd_pcm_wait() returned but we got -EAGAIN!");
+              break;
+            case -EPIPE:
+              error(0, "error calling snd_pcm_writei: %ld",
+                    (long)frames_written);
+              escape = 1;
+              break;
+            default:
               fatal(0, "error calling snd_pcm_writei: %ld",
                     (long)frames_written);
+            }
           } else {
             samples_written = frames_written * 2;
             next_timestamp += samples_written;
@@ -427,8 +504,13 @@ static void play_rtp(void) {
       pthread_mutex_unlock(&lock);
       if((err = snd_pcm_nonblock(pcm, 0)))
         fatal(0, "error calling snd_pcm_nonblock: %d", err);
-      if((err = snd_pcm_drain(pcm)))
-        fatal(0, "error calling snd_pcm_drain: %d", err);
+      if(escape) {
+        if((err = snd_pcm_drop(pcm)))
+          fatal(0, "error calling snd_pcm_drop: %d", err);
+        escape = 0;
+      } else
+        if((err = snd_pcm_drain(pcm)))
+          fatal(0, "error calling snd_pcm_drain: %d", err);
       if((err = snd_pcm_nonblock(pcm, 1)))
         fatal(0, "error calling snd_pcm_nonblock: %d", err);
       prepared = 0;
