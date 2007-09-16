@@ -142,28 +142,9 @@ automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
 .TP
-.B backend \fINAME\fR
-Selects the backend use by the speaker process.  The following options are
-available:
-.RS
-.TP
-.B alsa
-Use the ALSA API.  This is only available on Linux systems, on which it is the
-default.
-.TP
-.B command
-Execute a command.  This is the default if
-.B speaker_command
-is specified, or (currently) on non-Linux systems.
-.TP
-.B network
-Transmit audio over the network.  This is the default if
-\fBbroadcast\fR is specified.
-.RE
-.TP
 .B broadcast \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.  This implies
-\fBbackend network\fR.
+\fBspeaker_backend network\fR.
 .TP
 .B broadcast_from \fIADDRESS\fR \fIPORT\fR
 Sets the (local) source address used by \fBbroadcast\fR.
@@ -352,6 +333,25 @@ scratched.  The default is \fBSIGKILL\fR.
 .IP
 Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
+.TP
+.B speaker_backend \fINAME\fR
+Selects the backend use by the speaker process.  The following options are
+available:
+.RS
+.TP
+.B alsa
+Use the ALSA API.  This is only available on Linux systems, on which it is the
+default.
+.TP
+.B command
+Execute a command.  This is the default if
+.B speaker_command
+is specified, or (currently) on non-Linux systems.
+.TP
+.B network
+Transmit audio over the network.  This is the default if
+\fBbroadcast\fR is specified.
+.RE
 .TP
 .B sox_generation \fB0\fR|\fB1
 Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
