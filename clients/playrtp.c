@@ -218,7 +218,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
       {
         size_t i;
 
-        for(i = 0; i < p->nsamples; ++n)
+        for(i = 0; i < p->nsamples; ++i)
           p->samples_float[i] = (int16_t)ntohs(samples[i]) * (0.5f / 32767);
       }
 #else
@@ -288,13 +288,14 @@ static OSStatus adioproc
         if(le(packet_end, next_timestamp)) {
           /* This packet is in the past */
           info("dropping buffered past packet %"PRIx32" < %"PRIx32,
-               packets->timestamp, next_timestamp);
+               packet_start, next_timestamp);
+          drop_first_packet();
           continue;
         }
         if(ge(next_timestamp, packet_start)
            && lt(next_timestamp, packet_end)) {
           /* This packet is suitable */
-          const uint32_t offset = next_timestamp - packets->timestamp;
+          const uint32_t offset = next_timestamp - packet_start;
           uint32_t samples_available = packet_end - next_timestamp;
           if(samples_available > samplesOutLeft)
             samples_available = samplesOutLeft;
@@ -303,6 +304,7 @@ static OSStatus adioproc
                  samples_available * sizeof(float));
           samplesOut += samples_available;
           next_timestamp += samples_available;
+          samplesOutLeft -= samples_available;
           if(ge(next_timestamp, packet_end))
             drop_first_packet();
           continue;
@@ -316,6 +318,7 @@ static OSStatus adioproc
         
         if(samples_available > samplesOutLeft)
           samples_available = samplesOutLeft;
+        info("infill by %"PRIu32, samples_available);
         /* Convniently the buffer is 0 to start with */
         next_timestamp += samples_available;
         samplesOut += samples_available;
@@ -323,6 +326,7 @@ static OSStatus adioproc
         /* TODO log infill */
       } else {
         /* There's no next packet at all */
+        info("infilled by %zu", samplesOutLeft);
         next_timestamp += samplesOutLeft;
         samplesOut += samplesOutLeft;
         samplesOutLeft = 0;
@@ -605,9 +609,13 @@ static void play_rtp(void) {
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
+      info("Buffering...");
       while(nsamples < readahead)
         pthread_cond_wait(&cond, &lock);
       /* Start playing now */
+      info("Playing...");
+      next_timestamp = packets->timestamp;
+      active = 1;
       status = AudioDeviceStart(adid, adioproc);
       if(status)
         fatal(0, "AudioDeviceStart: %d", (int)status);
@@ -618,6 +626,7 @@ static void play_rtp(void) {
       status = AudioDeviceStop(adid, adioproc);
       if(status)
         fatal(0, "AudioDeviceStop: %d", (int)status);
+      active = 0;
       /* Go back round */
     }
   }
