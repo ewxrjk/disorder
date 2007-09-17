@@ -654,8 +654,8 @@ static void play(size_t frames) {
       if(offset >= 0) {
         info("offset RTP timestamp by %ld", offset);
         rtp_time += offset;
-      } else
-        xgettimeofday(&rtp_time_real, 0);
+      }
+      rtp_time_real = now;
     }
     header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
     header.seq = htons(rtp_seq++);
