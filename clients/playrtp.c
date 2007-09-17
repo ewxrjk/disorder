@@ -60,7 +60,7 @@ static const char *device;
  */
 #define MAXSAMPLES 2048
 
-/** @brief Minimum buffer size
+/** @brief Minimum low watermark
  *
  * We'll stop playing if there's only this many samples in the buffer. */
 static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
@@ -70,15 +70,18 @@ static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
  * The maximum supported size (in bytes) of one sample. */
 #define MAXSAMPLESIZE 2
 
-/** @brief Buffer size
+/** @brief Buffer high watermark
  *
  * We'll only start playing when this many samples are available. */
 static unsigned readahead = 2 * 2 * 44100;
 
+/** @brief Maximum buffer size
+ *
+ * We'll stop reading from the network if we have this many samples. */
+static unsigned maxbuffer;
+
 /** @brief Number of samples to infill by in one go */
 #define INFILL_SAMPLES (44100 * 2)      /* 1s */
-
-#define MAXBUFFER (3 * 88200)           /* maximum buffer contents */
 
 /** @brief Received packet
  *
@@ -108,7 +111,8 @@ static unsigned long nsamples;
 
 /** @brief Linked list of packets
  *
- * In ascending order of timestamp. */
+ * In ascending order of timestamp.  Really this should be a heap for more
+ * efficient access. */
 static struct packet *packets;
 
 /** @brief Timestamp of next packet to play.
@@ -135,6 +139,7 @@ static const struct option options[] = {
   { "debug", no_argument, 0, 'd' },
   { "device", required_argument, 0, 'D' },
   { "min", required_argument, 0, 'm' },
+  { "max", required_argument, 0, 'x' },
   { "buffer", required_argument, 0, 'b' },
   { 0, 0, 0, 0 }
 };
@@ -157,6 +162,15 @@ static inline int gt(uint32_t a, uint32_t b) {
 /** @brief Return true iff a <= b in sequence-space arithmetic */
 static inline int le(uint32_t a, uint32_t b) {
   return !lt(b, a);
+}
+
+/** @brief Drop the packet at the head of the queue */
+static void drop_first_packet(void) {
+  struct packet *const p = packets;
+  packets = p->next;
+  nsamples -= p->nsamples;
+  free(p);
+  pthread_cond_broadcast(&cond);
 }
 
 /** @brief Background thread collecting samples
@@ -201,8 +215,12 @@ static void *listen_thread(void attribute((unused)) *arg) {
       p->nsamples = (n - sizeof (struct rtp_header)) / sizeof(uint16_t);
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
       /* Convert to what Core Audio expects */
-      for(n = 0; n < p->nsamples; ++n)
-        p->samples_float[n] = (int16_t)ntohs(samples[n]) * (0.5f / 32767);
+      {
+        size_t i;
+
+        for(i = 0; i < p->nsamples; ++n)
+          p->samples_float[i] = (int16_t)ntohs(samples[i]) * (0.5f / 32767);
+      }
 #else
       /* ALSA can do any necessary conversion itself (though it might be better
        * to do any necessary conversion in the background) */
@@ -219,7 +237,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
      *
      * This is rather unsatisfactory: it means that if packets get heavily
      * out of order then we guarantee dropouts.  But for now... */
-    while(nsamples >= MAXBUFFER)
+    while(nsamples >= maxbuffer)
       pthread_cond_wait(&cond, &lock);
     for(pp = &packets;
         *pp && lt((*pp)->timestamp, p->timestamp);
@@ -245,48 +263,74 @@ static void *listen_thread(void attribute((unused)) *arg) {
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 /** @brief Callback from Core Audio */
-static OSStatus adioproc(AudioDeviceID inDevice,
-                         const AudioTimeStamp *inNow,
-                         const AudioBufferList *inInputData,
-                         const AudioTimeStamp *inInputTime,
-                         AudioBufferList *outOutputData,
-                         const AudioTimeStamp *inOutputTime,
-                         void *inClientData) {
+static OSStatus adioproc
+    (AudioDeviceID attribute((unused)) inDevice,
+     const AudioTimeStamp attribute((unused)) *inNow,
+     const AudioBufferList attribute((unused)) *inInputData,
+     const AudioTimeStamp attribute((unused)) *inInputTime,
+     AudioBufferList *outOutputData,
+     const AudioTimeStamp attribute((unused)) *inOutputTime,
+     void attribute((unused)) *inClientData) {
   UInt32 nbuffers = outOutputData->mNumberBuffers;
   AudioBuffer *ab = outOutputData->mBuffers;
-  float *samplesOut;                    /* where to write samples to */
-  size_t samplesOutLeft;                /* space left */
-  size_t samplesInLeft;
-  size_t samplesToCopy;
 
   pthread_mutex_lock(&lock);
-  samplesOut = ab->data;
-  samplesOutLeft = ab->mDataByteSize / sizeof (float);
-  while(packets && nbuffers > 0) {
-    if(packets->used == packets->nsamples) {
-      /* TODO if we dropped a packet then we should introduce a gap here */
-      struct packet *const p = packets;
-      packets = p->next;
-      free(p);
-      pthread_cond_broadcast(&cond);
-      continue;
+  while(nbuffers > 0) {
+    float *samplesOut = ab->mData;
+    size_t samplesOutLeft = ab->mDataByteSize / sizeof (float);
+    
+    while(samplesOutLeft > 0) {
+      if(packets) {
+        /* There's a packet */
+        const uint32_t packet_start = packets->timestamp;
+        const uint32_t packet_end = packets->timestamp + packets->nsamples;
+        
+        if(le(packet_end, next_timestamp)) {
+          /* This packet is in the past */
+          info("dropping buffered past packet %"PRIx32" < %"PRIx32,
+               packets->timestamp, next_timestamp);
+          continue;
+        }
+        if(ge(next_timestamp, packet_start)
+           && lt(next_timestamp, packet_end)) {
+          /* This packet is suitable */
+          const uint32_t offset = next_timestamp - packets->timestamp;
+          uint32_t samples_available = packet_end - next_timestamp;
+          if(samples_available > samplesOutLeft)
+            samples_available = samplesOutLeft;
+          memcpy(samplesOut,
+                 packets->samples_float + offset,
+                 samples_available * sizeof(float));
+          samplesOut += samples_available;
+          next_timestamp += samples_available;
+          if(ge(next_timestamp, packet_end))
+            drop_first_packet();
+          continue;
+        }
+      }
+      /* We didn't find a suitable packet (though there might still be
+       * unsuitable ones).  We infill with 0s. */
+      if(packets) {
+        /* There is a next packet, only infill up to that point */
+        uint32_t samples_available = packets->timestamp - next_timestamp;
+        
+        if(samples_available > samplesOutLeft)
+          samples_available = samplesOutLeft;
+        /* Convniently the buffer is 0 to start with */
+        next_timestamp += samples_available;
+        samplesOut += samples_available;
+        samplesOutLeft -= samples_available;
+        /* TODO log infill */
+      } else {
+        /* There's no next packet at all */
+        next_timestamp += samplesOutLeft;
+        samplesOut += samplesOutLeft;
+        samplesOutLeft = 0;
+        /* TODO log infill */
+      }
     }
-    if(samplesOutLeft == 0) {
-      --nbuffers;
-      ++ab;
-      samplesOut = ab->data;
-      samplesOutLeft = ab->mDataByteSize / sizeof (float);
-      continue;
-    }
-    /* Now: (1) there is some data left to read
-     *      (2) there is some space to put it */
-    samplesInLeft = packets->nsamples - packets->used;
-    samplesToCopy = (samplesInLeft < samplesOutLeft
-                     ? samplesInLeft : samplesOutLeft);
-    memcpy(samplesOut, packet->samples + packets->used, samplesToCopy);
-    packets->used += samplesToCopy;
-    samplesOut += samplesToCopy;
-    samesOutLeft -= samplesToCopy;
+    ++ab;
+    --nbuffers;
   }
   pthread_mutex_unlock(&lock);
   return 0;
@@ -404,17 +448,9 @@ static void play_rtp(void) {
         }
         if(packets
            && ge(next_timestamp, packets->timestamp + packets->nsamples)) {
-          struct packet *p = packets;
-          
           info("dropping buffered past packet %"PRIx32" < %"PRIx32,
                packets->timestamp, next_timestamp);
-          
-          packets = p->next;
-          if(packets)
-            assert(lt(p->timestamp, packets->timestamp));
-          nsamples -= p->nsamples;
-          free(p);
-          pthread_cond_broadcast(&cond);
+          drop_first_packet();
           continue;
         }
         /* Wait for ALSA to ask us for more data */
@@ -460,17 +496,8 @@ static void play_rtp(void) {
           } else {
             samples_written = frames_written * 2;
             next_timestamp += samples_written;
-            if(ge(next_timestamp, packet_end)) {
-              /* We're done with this packet */
-              struct packet *p = packets;
-              
-              packets = p->next;
-              if(packets)
-                assert(lt(p->timestamp, packets->timestamp));
-              nsamples -= p->nsamples;
-              free(p);
-              pthread_cond_broadcast(&cond);
-            }
+            if(ge(next_timestamp, packet_end))
+              drop_first_packet();
             infilling = 0;
           }
         } else {
@@ -562,14 +589,14 @@ static void play_rtp(void) {
     if(status)
       fatal(0, "AudioHardwareGetProperty: %d", (int)status);
     D(("mSampleRate       %f", asbd.mSampleRate));
-    D(("mFormatID         %08"PRIx32, asbd.mFormatID));
-    D(("mFormatFlags      %08"PRIx32, asbd.mFormatFlags));
-    D(("mBytesPerPacket   %08"PRIx32, asbd.mBytesPerPacket));
-    D(("mFramesPerPacket  %08"PRIx32, asbd.mFramesPerPacket));
-    D(("mBytesPerFrame    %08"PRIx32, asbd.mBytesPerFrame));
-    D(("mChannelsPerFrame %08"PRIx32, asbd.mChannelsPerFrame));
-    D(("mBitsPerChannel   %08"PRIx32, asbd.mBitsPerChannel));
-    D(("mReserved         %08"PRIx32, asbd.mReserved));
+    D(("mFormatID         %08lx", asbd.mFormatID));
+    D(("mFormatFlags      %08lx", asbd.mFormatFlags));
+    D(("mBytesPerPacket   %08lx", asbd.mBytesPerPacket));
+    D(("mFramesPerPacket  %08lx", asbd.mFramesPerPacket));
+    D(("mBytesPerFrame    %08lx", asbd.mBytesPerFrame));
+    D(("mChannelsPerFrame %08lx", asbd.mChannelsPerFrame));
+    D(("mBitsPerChannel   %08lx", asbd.mBitsPerChannel));
+    D(("mReserved         %08lx", asbd.mReserved));
     if(asbd.mFormatID != kAudioFormatLinearPCM)
       fatal(0, "audio device does not support kAudioFormatLinearPCM");
     status = AudioDeviceAddIOProc(adid, adioproc, 0);
@@ -604,12 +631,13 @@ static void help(void) {
   xprintf("Usage:\n"
 	  "  disorder-playrtp [OPTIONS] ADDRESS [PORT]\n"
 	  "Options:\n"
-	  "  --help, -h              Display usage message\n"
-	  "  --version, -V           Display version number\n"
-	  "  --debug, -d             Turn on debugging\n"
           "  --device, -D DEVICE     Output device\n"
           "  --min, -m FRAMES        Buffer low water mark\n"
-          "  --buffer, -b FRAMES     Buffer high water mark\n");
+          "  --buffer, -b FRAMES     Buffer high water mark\n"
+          "  --max, -x FRAMES        Buffer maximum size\n"
+	  "  --help, -h              Display usage message\n"
+	  "  --version, -V           Display version number\n"
+          );
   xfclose(stdout);
   exit(0);
 }
@@ -640,7 +668,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -648,9 +676,12 @@ int main(int argc, char **argv) {
     case 'D': device = optarg; break;
     case 'm': minbuffer = 2 * atol(optarg); break;
     case 'b': readahead = 2 * atol(optarg); break;
+    case 'x': maxbuffer = 2 * atol(optarg); break;
     default: fatal(0, "invalid option");
     }
   }
+  if(!maxbuffer)
+    maxbuffer = 4 * readahead;
   argc -= optind;
   argv += optind;
   if(argc < 1 || argc > 2)

@@ -35,7 +35,8 @@ disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorder_playrtp_SOURCES=playrtp.c
-disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBASOUND)
+disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBASOUND) $(COREAUDIO)
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c

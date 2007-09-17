@@ -97,3 +97,5 @@ disorder.plist
 server/uk.org.greenend.rjk.disorder.plist
 doc/guts
 clients/disorder-playrtp
+doc/disorder-playrtp.1.html
+doc/disorder-playrtp.1

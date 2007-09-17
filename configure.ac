@@ -37,10 +37,15 @@ case "$host" in
 *linux* | *Linux* )
   want_alsa=yes
   ;;
+*-apple-darwin* )
+  want_alsa=no
+  COREAUDIO="-framework CoreAudio"
+  ;;
 * )
   want_alsa=no
   ;;
 esac
+AC_SUBST([COREAUDIO])
 
 # Checks for programs.
 AC_PROG_CC
