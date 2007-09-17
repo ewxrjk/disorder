@@ -651,8 +651,11 @@ static void play(size_t frames) {
       const long offset =  (((now.tv_sec + now.tv_usec /1000000.0)
                              - (rtp_time_real.tv_sec + rtp_time_real.tv_usec / 1000000.0)) 
                             * playing->format.rate * playing->format.channels);
-      info("offset RTP timestamp by %ld", offset);
-      rtp_time += offset;
+      if(offset >= 0) {
+        info("offset RTP timestamp by %ld", offset);
+        rtp_time += offset;
+      } else
+        xgettimeofday(&rtp_time_real, 0);
     }
     header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
     header.seq = htons(rtp_seq++);
@@ -715,6 +718,7 @@ static void play(size_t frames) {
       ++rtp_time_real.tv_sec;
       rtp_time_real.tv_usec -= 1000000;
     }
+    assert(rtp_time_real.tv_usec < 1000000);
     break;
   default:
     assert(!"reached");
