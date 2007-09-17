@@ -648,9 +648,11 @@ static void play(size_t frames) {
       struct timeval now;
       xgettimeofday(&now, 0);
       /* There's been a gap.  Fix up the RTP time accordingly. */
-      rtp_time += (((now.tv_sec + now.tv_usec /1000000.0)
-                    - (rtp_time_real.tv_sec + rtp_time_real.tv_usec / 1000000.0)) 
-                   * playing->format.rate * playing->format.channels);
+      const long offset =  (((now.tv_sec + now.tv_usec /1000000.0)
+                             - (rtp_time_real.tv_sec + rtp_time_real.tv_usec / 1000000.0)) 
+                            * playing->format.rate * playing->format.channels);
+      info("offset RTP timestamp by %ld", offset);
+      rtp_time += offset;
     }
     header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
     header.seq = htons(rtp_seq++);
