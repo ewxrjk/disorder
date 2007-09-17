@@ -144,12 +144,12 @@ if test $want_server = yes; then
   AC_CHECK_LIB([ao], [ao_initialize],
 	       [AC_SUBST(LIBAO,[-lao])],
 	       [missing_libraries="$missing_libraries libao"])
-  if test $want_alsa = yes; then
-    AC_CHECK_LIB([asound], [snd_pcm_open],
-		 [AC_SUBST(LIBASOUND,[-lasound])],
-		 [missing_libraries="$missing_libraries libasound"])
-    AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
-  fi
+fi
+if test $want_alsa = yes; then
+  AC_CHECK_LIB([asound], [snd_pcm_open],
+               [AC_SUBST(LIBASOUND,[-lasound])],
+	       [missing_libraries="$missing_libraries libasound"])
+  AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
 fi
 
 if test $want_gtk = yes; then
