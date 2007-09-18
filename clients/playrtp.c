@@ -51,6 +51,9 @@
 /** @brief RTP socket */
 static int rtpfd;
 
+/** @brief Log output */
+static FILE *logfp;
+
 /** @brief Output device */
 static const char *device;
 
@@ -200,8 +203,10 @@ static void *listen_thread(void attribute((unused)) *arg) {
       }
     }
     /* Ignore too-short packets */
-    if((size_t)n <= sizeof (struct rtp_header))
+    if((size_t)n <= sizeof (struct rtp_header)) {
+      info("ignored a short packet");
       continue;
+    }
     p->timestamp = ntohl(packet.header.timestamp);
     /* Ignore packets in the past */
     if(active && lt(p->timestamp, next_timestamp)) {
@@ -232,13 +237,20 @@ static void *listen_thread(void attribute((unused)) *arg) {
       fatal(0, "unsupported RTP payload type %d",
             packet.header.mpt & 0x7F);
     }
+    if(logfp)
+      fprintf(logfp, "sequence %u timestamp %"PRIx32" length %"PRIx32" end %"PRIx32"\n",
+              ntohs(packet.header.seq), 
+              p->timestamp, p->nsamples, p->timestamp + p->nsamples);
     pthread_mutex_lock(&lock);
     /* Stop reading if we've reached the maximum.
      *
      * This is rather unsatisfactory: it means that if packets get heavily
      * out of order then we guarantee dropouts.  But for now... */
-    while(nsamples >= maxbuffer)
-      pthread_cond_wait(&cond, &lock);
+    if(nsamples >= maxbuffer) {
+      info("buffer full");
+      while(nsamples >= maxbuffer)
+        pthread_cond_wait(&cond, &lock);
+    }
     for(pp = &packets;
         *pp && lt((*pp)->timestamp, p->timestamp);
         pp = &(*pp)->next)
@@ -323,14 +335,12 @@ static OSStatus adioproc
         next_timestamp += samples_available;
         samplesOut += samples_available;
         samplesOutLeft -= samples_available;
-        /* TODO log infill */
       } else {
         /* There's no next packet at all */
         info("infilled by %zu", samplesOutLeft);
         next_timestamp += samplesOutLeft;
         samplesOut += samplesOutLeft;
         samplesOutLeft = 0;
-        /* TODO log infill */
       }
     }
     ++ab;
@@ -677,7 +687,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -686,6 +696,7 @@ int main(int argc, char **argv) {
     case 'm': minbuffer = 2 * atol(optarg); break;
     case 'b': readahead = 2 * atol(optarg); break;
     case 'x': maxbuffer = 2 * atol(optarg); break;
+    case 'L': logfp = fopen(optarg, "w"); break;
     default: fatal(0, "invalid option");
     }
   }

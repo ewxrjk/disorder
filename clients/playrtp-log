@@ -1,0 +1,38 @@
+#! /usr/bin/perl -w
+use strict;
+
+our $last;
+my %start = ();
+my %end = ();
+while(<>) {
+    if(/sequence (\d+) timestamp (\w+) length (\w+) end (\w+)/) {
+	my $seq = $1;
+	my $timestamp = hex($2);
+	my $length = hex($3);
+	my $end = hex($4);
+
+	if(defined $last) {
+	    if($seq < $last) {
+		print "$seq < $last\n";
+	    } elsif($seq != $last + 1) {
+		printf "%u when %u expected, missed %d\n",
+		$seq, $last + 1, $seq - $last;
+	    }
+	}
+	if(exists $start{$seq}) {
+	    print "$seq: duplicate";
+	}
+	$start{$seq} = $timestamp;
+	$end{$seq} = $end;
+	if(exists $start{$seq-1}) {
+	    if($end{$seq-1} != $start{$seq}) {
+		printf "%u ends at %x but %u starts at %x (delta=%d)\n",
+		$seq-1, $end{$seq-1}, $seq, $start{$seq},
+		$start{$seq}-$end{$seq-1};
+	    }
+	}
+
+
+	$last = $seq;
+    }
+}
