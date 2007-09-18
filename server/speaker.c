@@ -553,7 +553,7 @@ static void fork_cmd(void) {
 }
 
 static void play(size_t frames) {
-  size_t avail_bytes, written_frames;
+  size_t avail_bytes, write_bytes, written_frames;
   ssize_t written_bytes;
   struct rtp_header header;
   struct iovec vec[2];
@@ -679,33 +679,40 @@ static void play(size_t frames) {
      * generated per second is then the sampling rate times the channel
      * count.)"
      */
-    vec[0].iov_base = (void *)&header;
-    vec[0].iov_len = sizeof header;
-    vec[1].iov_base = playing->buffer + playing->start;
-    vec[1].iov_len = avail_bytes;
+    write_bytes = avail_bytes;
 #if 0
-    {
-      char buffer[3 * sizeof header + 1];
-      size_t n;
-      const uint8_t *ptr = (void *)&header;
-      
-      for(n = 0; n < sizeof header; ++n)
-        sprintf(&buffer[3 * n], "%02x ", *ptr++);
-      info(buffer);
-    }
+    while(write_bytes > 0 && (uint32_t)(playing->buffer + playing->start + write_bytes - 4) == 0)
+      write_bytes -= 4;
 #endif
-    do {
-      written_bytes = writev(bfd,
-                             vec,
-                             2);
-    } while(written_bytes < 0 && errno == EINTR);
-    if(written_bytes < 0) {
-      error(errno, "error transmitting audio data");
-      ++audio_errors;
-      if(audio_errors == 10)
-        fatal(0, "too many audio errors");
+    if(write_bytes) {
+      vec[0].iov_base = (void *)&header;
+      vec[0].iov_len = sizeof header;
+      vec[1].iov_base = playing->buffer + playing->start;
+      vec[1].iov_len = avail_bytes;
+#if 0
+      {
+        char buffer[3 * sizeof header + 1];
+        size_t n;
+        const uint8_t *ptr = (void *)&header;
+        
+        for(n = 0; n < sizeof header; ++n)
+          sprintf(&buffer[3 * n], "%02x ", *ptr++);
+        info(buffer);
+      }
+#endif
+      do {
+        written_bytes = writev(bfd,
+                               vec,
+                               2);
+      } while(written_bytes < 0 && errno == EINTR);
+      if(written_bytes < 0) {
+        error(errno, "error transmitting audio data");
+        ++audio_errors;
+        if(audio_errors == 10)
+          fatal(0, "too many audio errors");
       return;
-    }
+      }
+    } else
     audio_errors /= 2;
     written_bytes = avail_bytes;
     written_frames = written_bytes / bpf;
