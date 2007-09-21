@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/test.c @brief Library tests */
 
 #include <config.h>
 #include "types.h"
@@ -26,6 +27,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "utf8.h"
 #include "mem.h"
@@ -35,11 +37,13 @@
 #include "mime.h"
 #include "hex.h"
 #include "words.h"
+#include "heap.h"
 
 static int tests, errors;
 
+/** @brief Checks that @p expr is nonzero */
 #define insist(expr) do {				\
-  if(!expr) {						\
+  if(!(expr)) {						\
     ++errors;						\
     fprintf(stderr, "%s:%d: error checking %s\n",	\
             __FILE__, __LINE__, #expr);			\
@@ -112,6 +116,8 @@ static void test_utf8(void) {
   insist(u8 != 0);				\
   insist(!strcmp(u8, CHARS));			\
 } while(0)
+
+  fprintf(stderr, "test_utf8\n");
 
   /* empty string */
 
@@ -210,6 +216,8 @@ static void test_utf8(void) {
 static void test_mime(void) {
   char *t, *n, *v;
 
+  fprintf(stderr, "test_mime\n");
+
   t = n = v = 0;
   insist(!mime_content_type("text/plain", &t, &n, &v));
   insist(!strcmp(t, "text/plain"));
@@ -279,6 +287,8 @@ static void test_hex(void) {
   uint8_t *u;
   size_t ul;
 
+  fprintf(stderr, "test_hex\n");
+
   for(n = 0; n <= UCHAR_MAX; ++n) {
     if(!isxdigit(n))
       insist(unhexdigitq(n) == -1);
@@ -315,14 +325,17 @@ static void test_hex(void) {
   insist(memcmp(u, h, 4) == 0);
   u = unhex("", &ul);
   insist(ul == 0);
-  fprintf(stderr, "2 ERROR reports expected:\n");
+  fprintf(stderr, "2 ERROR reports expected {\n");
   insist(unhex("F", 0) == 0);
   insist(unhex("az", 0) == 0);
+  fprintf(stderr, "}\n");
 }
 
 static void test_casefold(void) {
   uint32_t c, l, u[2];
   const char *s, *ls;
+
+  fprintf(stderr, "test_casefold\n");
 
   for(c = 1; c < 256; ++c) {
     u[0] = c;
@@ -361,6 +374,32 @@ static void test_casefold(void) {
   check_string(casefold(""), "");
 }
 
+/** @brief Less-than comparison function for integer heap */
+static inline int int_lt(int a, int b) { return a < b; }
+
+HEAP_TYPE(iheap, int, int_lt);
+
+/** @brief Tests for @ref heap.h */
+static void test_heap(void) {
+  struct iheap h[1];
+  int n;
+  int last = -1;
+
+  fprintf(stderr, "test_heap\n");
+
+  iheap_init(h);
+  for(n = 0; n < 1000; ++n)
+    iheap_insert(h, random() % 100);
+  for(n = 0; n < 1000; ++n) {
+    const int latest = iheap_remove(h);
+    if(last > latest)
+      fprintf(stderr, "should have %d <= %d\n", last, latest);
+    insist(last <= latest);
+    last = latest;
+  }
+  putchar('\n');
+}
+
 int main(void) {
   insist('\n' == 0x0A);
   insist('\r' == 0x0D);
@@ -380,6 +419,8 @@ int main(void) {
   /* configuration.c */
   /* event.c */
   /* fprintf.c */
+  /* heap.c */
+  test_heap();
   /* hex.c */
   test_hex();
   /* inputline.c */

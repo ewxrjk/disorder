@@ -85,7 +85,11 @@ test_SOURCES=test.c
 test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV)
 test_DEPENDENCIES=libdisorder.a
 
-check: test
+check: test #test.i
 	./test
+
+%.i: %.c
+	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
+	mv $@.new $@
 
 CLEANFILES=definitions.h
