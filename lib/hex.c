@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/hex.c @brief Hexadecimal encoding and decoding */
 
 #include <config.h>
 #include "types.h"
@@ -28,6 +29,11 @@
 #include "mem.h"
 #include "log.h"
 
+/** @brief Convert a byte sequence to hex
+ * @param ptr Pointer to first byte
+ * @param n Number of bytes
+ * @return Allocated string containing hexdump
+ */
 char *hex(const uint8_t *ptr, size_t n) {
   char *buf = xmalloc_noptr(n * 2 + 1), *p = buf;
 
@@ -37,6 +43,12 @@ char *hex(const uint8_t *ptr, size_t n) {
   return buf;
 }
 
+/** @brief Convert a character to its value as a hex digit
+ * @param c Character code
+ * @return Value has hex digit or -1
+ *
+ * The 'q' stands for 'quiet' - this function does not report errors.
+ */
 int unhexdigitq(int c) {
   switch(c) {
   case '0': return 0;
@@ -59,6 +71,13 @@ int unhexdigitq(int c) {
   }
 }
 
+/** @brief Convert a character to its value as a hex digit
+ * @param c Character code
+ * @return Value has hex digit or -1
+ *
+ * If the character is not a valid hex digit then an error is logged.
+ * See @ref unhexdigitq() if that is a problem.
+ */
 int unhexdigit(int c) {
   int d;
 
@@ -66,6 +85,17 @@ int unhexdigit(int c) {
   return d;
 }
 
+/** @brief Convert a hex string to bytes
+ * @param s Pointer to hex string
+ * @param np Where to store byte string length or NULL
+ * @return Allocated buffer, or 0
+ *
+ * @p s should point to a 0-terminated string containing an even number
+ * of hex digits.  They are converted to bytes and returned via the return
+ * value and optionally the length via @p np.
+ *
+ * On any error a message is logged and a null pointer is returned.
+ */
 uint8_t *unhex(const char *s, size_t *np) {
   size_t l;
   uint8_t *buf, *p;
