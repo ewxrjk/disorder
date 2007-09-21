@@ -33,6 +33,7 @@ char *hex(const uint8_t *ptr, size_t n) {
 
   while(n-- > 0)
     p += sprintf(p, "%02x", (unsigned)*ptr++);
+  *p = 0;
   return buf;
 }
 
