@@ -76,61 +76,61 @@
  * \f$N\f$ and \f$A\f$ are exchanged, so now \f$A\f$ has children \f$N\f$ and
  * \f$B\f$.  \f$A < N\f$ and \f$A \le B\f$.
  */
-#define HEAP_TYPE(NAME, ETYPE, LT)                              \
-  typedef ETYPE NAME##_element;                                 \
-  VECTOR_TYPE(NAME, NAME##_element, xrealloc)                   \
-                                                                \
-  static inline int NAME##_count(struct NAME *heap) {                  \
-    return heap->nvec;                                          \
-  }                                                             \
-                                                                \
-  static inline NAME##_element NAME##_first(struct NAME *heap) {       \
-    assert(heap->nvec > 0);                                     \
-    return heap->vec[0];                                        \
-  }                                                             \
-                                                                \
-  static void NAME##_insert(struct NAME *heap, NAME##_element elt) {   \
-    int n = heap->nvec;                                         \
-    NAME##_append(heap, elt);                                   \
-    while(n > 0) {                                              \
-      const int p = (n-1)/2;                                    \
-      if(!LT(heap->vec[n],heap->vec[p]))                        \
-        break;                                                  \
-      else {                                                    \
-        const NAME##_element t = heap->vec[n];                    \
-        heap->vec[n] = heap->vec[p];                            \
-        heap->vec[p] = t;                                       \
-        n = p;                                                  \
-      }                                                         \
-    }                                                           \
-  }                                                             \
-                                                                \
-  static NAME##_element NAME##_remove(struct NAME *heap) {             \
-    int n = 0;                                                  \
-    NAME##_element r;                                           \
-                                                                \
-    assert(heap->nvec > 0);                                     \
-    r = heap->vec[0];                                           \
-    heap->vec[0] = heap->vec[--heap->nvec];                     \
-    while(2 * n + 1 < heap->nvec) {                             \
-      int a = 2 * n + 1;                                        \
-      int b = 2 * n + 2;                                        \
-                                                                \
-      if(b < heap->nvec && LT(heap->vec[b],heap->vec[a])) {     \
-        ++a;                                                    \
-        --b;                                                    \
-      }                                                         \
-      if(LT(heap->vec[a], heap->vec[n])) {                      \
-        const NAME##_element t = heap->vec[n];                  \
-        heap->vec[n] = heap->vec[a];                            \
-        heap->vec[a] = t;                                       \
-        n = a;                                                  \
-      } else \
-        break;                                                  \
-    }                                                           \
-    return r;                                                   \
-  }                                                             \
-                                                                \
+#define HEAP_TYPE(NAME, ETYPE, LT)                                      \
+  typedef ETYPE NAME##_element;                                         \
+  VECTOR_TYPE(NAME, NAME##_element, xrealloc);                          \
+                                                                        \
+  static inline int NAME##_count(struct NAME *heap) {                   \
+    return heap->nvec;                                                  \
+  }                                                                     \
+                                                                        \
+  static inline NAME##_element NAME##_first(struct NAME *heap) {        \
+    assert(heap->nvec > 0);                                             \
+    return heap->vec[0];                                                \
+  }                                                                     \
+                                                                        \
+  static void NAME##_insert(struct NAME *heap, NAME##_element elt) {    \
+    int n = heap->nvec;                                                 \
+    NAME##_append(heap, elt);                                           \
+    while(n > 0) {                                                      \
+      const int p = (n-1)/2;                                            \
+      if(!LT(heap->vec[n],heap->vec[p]))                                \
+        break;                                                          \
+      else {                                                            \
+        const NAME##_element t = heap->vec[n];                          \
+        heap->vec[n] = heap->vec[p];                                    \
+        heap->vec[p] = t;                                               \
+        n = p;                                                          \
+      }                                                                 \
+    }                                                                   \
+  }                                                                     \
+                                                                        \
+  static NAME##_element NAME##_remove(struct NAME *heap) {              \
+    int n = 0;                                                          \
+    NAME##_element r;                                                   \
+                                                                        \
+    assert(heap->nvec > 0);                                             \
+    r = heap->vec[0];                                                   \
+    heap->vec[0] = heap->vec[--heap->nvec];                             \
+    while(2 * n + 1 < heap->nvec) {                                     \
+      int a = 2 * n + 1;                                                \
+      int b = 2 * n + 2;                                                \
+                                                                        \
+      if(b < heap->nvec && LT(heap->vec[b],heap->vec[a])) {             \
+        ++a;                                                            \
+        --b;                                                            \
+      }                                                                 \
+      if(LT(heap->vec[a], heap->vec[n])) {                              \
+        const NAME##_element t = heap->vec[n];                          \
+        heap->vec[n] = heap->vec[a];                                    \
+        heap->vec[a] = t;                                               \
+        n = a;                                                          \
+      } else                                                            \
+        break;                                                          \
+    }                                                                   \
+    return r;                                                           \
+  }                                                                     \
+                                                                        \
   struct heap_swallow_semicolon
   
 
