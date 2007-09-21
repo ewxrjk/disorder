@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/basen.c @brief Arbitrary base conversion 
+ *
+ * The functions in this file handle arbitrary-size non-negative integers,
+ * represented as a bigendian (MSW first) sequence of @c unsigned @c long
+ * words.  The words themselves use the native byte order.
+ */
 
 #include <config.h>
 #include "types.h"

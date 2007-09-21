@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/cache.c @brief Object caching */
 
 #include <config.h>
 #include "types.h"
