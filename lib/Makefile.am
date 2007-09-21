@@ -36,6 +36,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	eventlog.c eventlog.h 				\
 	filepart.c filepart.h				\
 	hash.c hash.h					\
+	heap.h						\
 	hex.c hex.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
