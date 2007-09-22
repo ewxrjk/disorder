@@ -46,8 +46,12 @@
 #define VECTOR_TYPE(NAME,ETYPE,REALLOC)				\
 								\
 struct NAME {							\
+  /** @brief Pointer to elements */ 				\
   ETYPE *vec;							\
-  int nvec, nslots;						\
+  /** @brief Number of elements */				\
+  int nvec;							\
+  /** @brief Number of slots */					\
+  int nslots;							\
 };								\
 								\
 static inline void NAME##_init(struct NAME *v) {		\
