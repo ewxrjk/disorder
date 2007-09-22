@@ -111,6 +111,8 @@ static void format(char buffer[], size_t bufsize, const char *fmt, va_list ap) {
 }
 
 /** @brief Log to a file
+ * @param pri Message priority (as per syslog)
+ * @param msg Messagge to log
  * @param user The @c FILE @c * to log to or NULL for @c stderr
  */
 static void logfp(int pri, const char *msg, void *user) {
@@ -177,7 +179,10 @@ static void logger(int pri, const char *fmt, ...) {
 }
 
 /** @brief Format and log a message
+ * @param pri Message priority (as per syslog)
+ * @param fmt Format string
  * @param errno_value Errno value to include as a string, or 0
+ * @param ap Argument list
  */
 void elog(int pri, int errno_value, const char *fmt, va_list ap) {
   char buffer[1024];
