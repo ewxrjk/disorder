@@ -77,11 +77,6 @@ static const char *device;
  * We'll stop playing if there's only this many samples in the buffer. */
 static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
 
-/** @brief Maximum sample size
- *
- * The maximum supported size (in bytes) of one sample. */
-#define MAXSAMPLESIZE 2
-
 /** @brief Buffer high watermark
  *
  * We'll only start playing when this many samples are available. */
@@ -128,7 +123,7 @@ struct packet {
    * Only the first @p nsamples samples are defined; the rest is uninitialized
    * data.
    */
-  unsigned char samples_raw[MAXSAMPLES * MAXSAMPLESIZE];
+  uint16_t samples_raw[MAXSAMPLES];
 };
 
 /** @brief Return true iff \f$a < b\f$ in sequence-space arithmetic
@@ -298,7 +293,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
     iov[0].iov_base = &header;
     iov[0].iov_len = sizeof header;
     iov[1].iov_base = p->samples_raw;
-    iov[1].iov_len = sizeof p->samples_raw;
+    iov[1].iov_len = sizeof p->samples_raw / sizeof *p->samples_raw;
     n = readv(rtpfd, iov, 2);
     if(n < 0) {
       switch(errno) {
@@ -412,8 +407,7 @@ static OSStatus adioproc
         /* This packet is ready to play */
         const uint32_t packet_end = p->timestamp + p->nsamples;
         const uint32_t offset = next_timestamp - p->timestamp;
-        const uint16_t *ptr =
-          (void *)(p->samples_raw + offset * sizeof (uint16_t));
+        const uint16_t *ptr = (void *)(p->samples_raw + offset);
 
         samples_available = packet_end - next_timestamp;
         if(samples_available > samplesOutLeft)
@@ -454,6 +448,194 @@ static OSStatus adioproc
 }
 #endif
 
+
+#if API_ALSA
+/** @brief PCM handle */
+static snd_pcm_t *pcm;
+
+/** @brief True when @ref pcm is up and running */
+static int alsa_prepared = 1;
+
+/** @brief Initialize @ref pcm */
+static void setup_alsa(void) {
+  snd_pcm_hw_params_t *hwparams;
+  snd_pcm_sw_params_t *swparams;
+  /* Only support one format for now */
+  const int sample_format = SND_PCM_FORMAT_S16_BE;
+  unsigned rate = 44100;
+  const int channels = 2;
+  const int samplesize = channels * sizeof(uint16_t);
+  snd_pcm_uframes_t pcm_bufsize = MAXSAMPLES * samplesize * 3;
+  /* If we can write more than this many samples we'll get a wakeup */
+  const int avail_min = 256;
+  int err;
+  
+  /* Open ALSA */
+  if((err = snd_pcm_open(&pcm,
+                         device ? device : "default",
+                         SND_PCM_STREAM_PLAYBACK,
+                         SND_PCM_NONBLOCK)))
+    fatal(0, "error from snd_pcm_open: %d", err);
+  /* Set up 'hardware' parameters */
+  snd_pcm_hw_params_alloca(&hwparams);
+  if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
+    fatal(0, "error from snd_pcm_hw_params_any: %d", err);
+  if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
+                                         SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
+    fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
+  if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
+                                         sample_format)) < 0)
+    
+    fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
+          sample_format, err);
+  if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0)
+    fatal(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
+          rate, err);
+  if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
+                                           channels)) < 0)
+    fatal(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
+          channels, err);
+  if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
+                                                   &pcm_bufsize)) < 0)
+    fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
+          MAXSAMPLES * samplesize * 3, err);
+  if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
+    fatal(0, "error calling snd_pcm_hw_params: %d", err);
+  /* Set up 'software' parameters */
+  snd_pcm_sw_params_alloca(&swparams);
+  if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
+    fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
+  if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, avail_min)) < 0)
+    fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
+          avail_min, err);
+  if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
+    fatal(0, "error calling snd_pcm_sw_params: %d", err);
+}
+
+/** @brief Wait until ALSA wants some audio */
+static void wait_alsa(void) {
+  struct pollfd fds[64];
+  int nfds, err;
+  unsigned short events;
+
+  for(;;) {
+    do {
+      if((nfds = snd_pcm_poll_descriptors(pcm,
+                                          fds, sizeof fds / sizeof *fds)) < 0)
+        fatal(0, "error calling snd_pcm_poll_descriptors: %d", nfds);
+    } while(poll(fds, nfds, -1) < 0 && errno == EINTR);
+    if((err = snd_pcm_poll_descriptors_revents(pcm, fds, nfds, &events)))
+      fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
+    if(events & POLLOUT)
+      return;
+  }
+}
+
+/** @brief Play some sound
+ * @param s Pointer to sample data
+ * @param n Number of samples
+ * @return 0 on success, -1 on non-fatal error
+ */
+static int alsa_writei(const void *s, size_t n) {
+  /* Do the write */
+  const snd_pcm_sframes_t frames_written = snd_pcm_writei(pcm, s, n / 2);
+  if(frames_written < 0) {
+    /* Something went wrong */
+    switch(frames_written) {
+    case -EAGAIN:
+      return 0;
+    case -EPIPE:
+      error(0, "error calling snd_pcm_writei: %ld",
+            (long)frames_written);
+      return -1;
+    default:
+      fatal(0, "error calling snd_pcm_writei: %ld",
+            (long)frames_written);
+    }
+  } else {
+    /* Success */
+    next_timestamp += frames_written * 2;
+    return 0;
+  }
+}
+
+/** @brief Play the relevant part of a packet
+ * @param p Packet to play
+ * @return 0 on success, -1 on non-fatal error
+ */
+static int alsa_play(const struct packet *p) {
+  write(2, ".", 1);
+  return alsa_writei(p->samples_raw + next_timestamp - p->timestamp,
+                     (p->timestamp + p->nsamples) - next_timestamp);
+}
+
+/** @brief Play some silence
+ * @param p Next packet or NULL
+ * @return 0 on success, -1 on non-fatal error
+ */
+static int alsa_infill(const struct packet *p) {
+  static const uint16_t zeros[INFILL_SAMPLES];
+  size_t samples_available = INFILL_SAMPLES;
+
+  if(p && samples_available > p->timestamp - next_timestamp)
+    samples_available = p->timestamp - next_timestamp;
+  write(2, "?", 1);
+  return alsa_writei(zeros, samples_available);
+}
+
+/** @brief Reset ALSA state after we lost synchronization */
+static void alsa_reset(int hard_reset) {
+  int err;
+
+  if((err = snd_pcm_nonblock(pcm, 0)))
+    fatal(0, "error calling snd_pcm_nonblock: %d", err);
+  if(hard_reset) {
+    if((err = snd_pcm_drop(pcm)))
+      fatal(0, "error calling snd_pcm_drop: %d", err);
+  } else
+    if((err = snd_pcm_drain(pcm)))
+      fatal(0, "error calling snd_pcm_drain: %d", err);
+  if((err = snd_pcm_nonblock(pcm, 1)))
+    fatal(0, "error calling snd_pcm_nonblock: %d", err);
+  alsa_prepared = 0;
+}
+#endif
+
+/** @brief Wait until the buffer is adequately full
+ *
+ * Must be called with @ref lock held.
+ */
+static void fill_buffer(void) {
+  info("Buffering...");
+  while(nsamples < readahead)
+    pthread_cond_wait(&cond, &lock);
+  next_timestamp = pheap_first(&packets)->timestamp;
+  active = 1;
+}
+
+/** @brief Find next packet
+ * @return Packet to play or NULL if none found
+ *
+ * The return packet is merely guaranteed not to be in the past: it might be
+ * the first packet in the future rather than one that is actually suitable to
+ * play.
+ *
+ * Must be called with @ref lock held.
+ */
+static struct packet *next_packet(void) {
+  while(pheap_count(&packets)) {
+    struct packet *const p = pheap_first(&packets);
+    if(le(p->timestamp + p->nsamples, next_timestamp)) {
+      /* This packet is in the past.  Drop it and try another one. */
+      drop_first_packet();
+    } else
+      /* This packet is NOT in the past.  (It might be in the future
+       * however.) */
+      return p;
+  }
+  return 0;
+}
+
 /** @brief Play an RTP stream
  *
  * This is the guts of the program.  It is responsible for:
@@ -470,212 +652,41 @@ static void play_rtp(void) {
   pthread_create(&ltid, 0, listen_thread, 0);
 #if API_ALSA
   {
-    snd_pcm_t *pcm;
-    snd_pcm_hw_params_t *hwparams;
-    snd_pcm_sw_params_t *swparams;
-    /* Only support one format for now */
-    const int sample_format = SND_PCM_FORMAT_S16_BE;
-    unsigned rate = 44100;
-    const int channels = 2;
-    const int samplesize = channels * sizeof(uint16_t);
-    snd_pcm_uframes_t pcm_bufsize = MAXSAMPLES * samplesize * 3;
-    /* If we can write more than this many samples we'll get a wakeup */
-    const int avail_min = 256;
-    snd_pcm_sframes_t frames_written;
-    size_t samples_written;
-    int prepared = 1;
-    int err;
-    int infilling = 0, escape = 0;
-    time_t logged, now;
-    uint32_t packet_start, packet_end;
+    struct packet *p;
+    int escape, err;
 
-    /* Open ALSA */
-    if((err = snd_pcm_open(&pcm,
-                           device ? device : "default",
-                           SND_PCM_STREAM_PLAYBACK,
-                           SND_PCM_NONBLOCK)))
-      fatal(0, "error from snd_pcm_open: %d", err);
-    /* Set up 'hardware' parameters */
-    snd_pcm_hw_params_alloca(&hwparams);
-    if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_any: %d", err);
-    if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
-                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-    if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
-                                           sample_format)) < 0)
-
-      fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
-            sample_format, err);
-    if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-            rate, err);
-    if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                             channels)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-            channels, err);
-    if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
-                                                     &pcm_bufsize)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-            MAXSAMPLES * samplesize * 3, err);
-    if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
-      fatal(0, "error calling snd_pcm_hw_params: %d", err);
-    /* Set up 'software' parameters */
-    snd_pcm_sw_params_alloca(&swparams);
-    if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
-    if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, avail_min)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
-            avail_min, err);
-    if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params: %d", err);
-
-    /* Ready to go */
-
-    time(&logged);
+    /* Open the sound device */
+    setup_alsa();
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
-      logged = now;
-      info("%lu samples in buffer (%lus)", nsamples,
-           nsamples / (44100 * 2));
-      info("Buffering...");
-      while(nsamples < readahead)
-        pthread_cond_wait(&cond, &lock);
-      if(!prepared) {
+      fill_buffer();
+      if(!alsa_prepared) {
         if((err = snd_pcm_prepare(pcm)))
           fatal(0, "error calling snd_pcm_prepare: %d", err);
-        prepared = 1;
+        alsa_prepared = 1;
       }
-      active = 1;
-      infilling = 0;
       escape = 0;
-      logged = now;
-      info("%lu samples in buffer (%lus)", nsamples,
-           nsamples / (44100 * 2));
       info("Playing...");
-      /* Wait until the buffer empties out */
+      /* Keep playing until the buffer empties out, or ALSA tells us to get
+       * lost */
       while(nsamples >= minbuffer && !escape) {
-        time(&now);
-        if(now > logged + 10) {
-          logged = now;
-          info("%lu samples in buffer (%lus)", nsamples,
-               nsamples / (44100 * 2));
-        }
-        if(packets
-           && ge(next_timestamp, packets->timestamp + packets->nsamples)) {
-          info("dropping buffered past packet %"PRIx32" < %"PRIx32,
-               packets->timestamp, next_timestamp);
-          drop_first_packet();
-          continue;
-        }
         /* Wait for ALSA to ask us for more data */
         pthread_mutex_unlock(&lock);
-        write(2, ".", 1);               /* TODO remove me sometime */
-        switch(err = snd_pcm_wait(pcm, -1)) {
-        case 0:
-          info("snd_pcm_wait timed out");
-          break;
-        case 1:
-          break;
-        default:
-          fatal(0, "snd_pcm_wait returned %d", err);
-        }
+        wait_alsa();
         pthread_mutex_lock(&lock);
-        /* ALSA is ready for more data */
-        packet_start = packets->timestamp;
-        packet_end = packets->timestamp + packets->nsamples;
-        if(ge(next_timestamp, packet_start)
-           && lt(next_timestamp, packet_end)) {
-          /* The target timestamp is somewhere in this packet */
-          const uint32_t offset = next_timestamp - packets->timestamp;
-          const uint32_t samples_available = (packets->timestamp + packets->nsamples) - next_timestamp;
-          const size_t frames_available = samples_available / 2;
-
-          frames_written = snd_pcm_writei(pcm,
-                                          packets->samples_raw + offset,
-                                          frames_available);
-          if(frames_written < 0) {
-            switch(frames_written) {
-            case -EAGAIN:
-              info("snd_pcm_wait() returned but we got -EAGAIN!");
-              break;
-            case -EPIPE:
-              error(0, "error calling snd_pcm_writei: %ld",
-                    (long)frames_written);
-              escape = 1;
-              break;
-            default:
-              fatal(0, "error calling snd_pcm_writei: %ld",
-                    (long)frames_written);
-            }
-          } else {
-            samples_written = frames_written * 2;
-            next_timestamp += samples_written;
-            if(ge(next_timestamp, packet_end))
-              drop_first_packet();
-            infilling = 0;
-          }
-        } else {
-          /* We don't have anything to play!  We'd better play some 0s. */
-          static const uint16_t zeros[INFILL_SAMPLES];
-          size_t samples_available = INFILL_SAMPLES, frames_available;
-
-          /* If the maximum infill would take us past the start of the next
-           * packet then we truncate the infill to the right amount. */
-          if(lt(packets->timestamp,
-                next_timestamp + samples_available))
-            samples_available = packets->timestamp - next_timestamp;
-          if((int)samples_available < 0) {
-            info("packets->timestamp: %"PRIx32"  next_timestamp: %"PRIx32"  next+max: %"PRIx32"  available: %"PRIx32,
-                 packets->timestamp, next_timestamp,
-                 next_timestamp + INFILL_SAMPLES, samples_available);
-          }
-          frames_available = samples_available / 2;
-          if(!infilling) {
-            info("Infilling %d samples, next=%"PRIx32" packet=[%"PRIx32",%"PRIx32"]",
-                 samples_available, next_timestamp,
-                 packets->timestamp, packets->timestamp + packets->nsamples);
-            //infilling++;
-          }
-          frames_written = snd_pcm_writei(pcm,
-                                          zeros,
-                                          frames_available);
-          if(frames_written < 0) {
-            switch(frames_written) {
-            case -EAGAIN:
-              info("snd_pcm_wait() returned but we got -EAGAIN!");
-              break;
-            case -EPIPE:
-              error(0, "error calling snd_pcm_writei: %ld",
-                    (long)frames_written);
-              escape = 1;
-              break;
-            default:
-              fatal(0, "error calling snd_pcm_writei: %ld",
-                    (long)frames_written);
-            }
-          } else {
-            samples_written = frames_written * 2;
-            next_timestamp += samples_written;
-          }
-        }
+        /* ALSA is ready for more data, find something to play */
+        p = next_packet();
+        /* Play it or play some silence */
+        if(contains(p, next_timestamp))
+          escape = alsa_play(p);
+        else
+          escape = alsa_infill(p);
       }
       active = 0;
       /* We stop playing for a bit until the buffer re-fills */
       pthread_mutex_unlock(&lock);
-      if((err = snd_pcm_nonblock(pcm, 0)))
-        fatal(0, "error calling snd_pcm_nonblock: %d", err);
-      if(escape) {
-        if((err = snd_pcm_drop(pcm)))
-          fatal(0, "error calling snd_pcm_drop: %d", err);
-        escape = 0;
-      } else
-        if((err = snd_pcm_drain(pcm)))
-          fatal(0, "error calling snd_pcm_drain: %d", err);
-      if((err = snd_pcm_nonblock(pcm, 1)))
-        fatal(0, "error calling snd_pcm_nonblock: %d", err);
-      prepared = 0;
+      alsa_reset(escape);
       pthread_mutex_lock(&lock);
     }
 
@@ -721,9 +732,7 @@ static void play_rtp(void) {
     pthread_mutex_lock(&lock);
     for(;;) {
       /* Wait for the buffer to fill up a bit */
-      info("Buffering...");
-      while(nsamples < readahead)
-        pthread_cond_wait(&cond, &lock);
+      fill_buffer();
       /* Start playing now */
       info("Playing...");
       next_timestamp = pheap_first(&packets)->timestamp;
