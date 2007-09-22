@@ -20,7 +20,27 @@
 /** @file clients/playrtp.c
  * @brief RTP player
  *
- * This RTP player supports Linux (ALSA) and Darwin (Core Audio) systems.
+ * This player supports Linux (<a href="http://www.alsa-project.org/">ALSA</a>)
+ * and Apple Mac (<a
+ * href="http://developer.apple.com/audio/coreaudio.html">Core Audio</a>)
+ * systems.  There is no support for Microsoft Windows yet, and that will in
+ * fact probably an entirely separate program.
+ *
+ * The program runs (at least) two threads.  listen_thread() is responsible for
+ * reading RTP packets off the wire and adding them to the binary heap @ref
+ * packets, assuming they are basically sound.
+ *
+ * The main thread is responsible for actually playing audio.  In ALSA this
+ * means it waits until ALSA says it's ready for more audio which it then
+ * plays.
+ *
+ * InCore Audio the main thread is only responsible for starting and stopping
+ * play: the system does the actual playback in its own private thread, and
+ * calls adioproc() to fetch the audio data.
+ *
+ * Sometimes it happens that there is no audio available to play.  This may
+ * because the server went away, or a packet was dropped, or the server
+ * deliberately did not send any sound because it encountered a silence.
  */
 
 #include <config.h>
@@ -113,10 +133,11 @@ struct packet {
   /** @brief Flags
    *
    * Valid values are:
-   * - @ref IDLE: the idle bit was set in the RTP packet
+   * - @ref IDLE - the idle bit was set in the RTP packet
    */
   unsigned flags;
-#define IDLE 0x0001                     /**< idle bit set in RTP packet */
+/** @brief idle bit set in RTP packet*/
+#define IDLE 0x0001
 
   /** @brief Raw sample data
    *
@@ -275,7 +296,24 @@ static void drop_first_packet(void) {
 /** @brief Background thread collecting samples
  *
  * This function collects samples, perhaps converts them to the target format,
- * and adds them to the packet list. */
+ * and adds them to the packet list.
+ *
+ * It is crucial that the gap between successive calls to read() is as small as
+ * possible: otherwise packets will be dropped.
+ *
+ * We use a binary heap to ensure that the unavoidable effort is at worst
+ * logarithmic in the total number of packets - in fact if packets are mostly
+ * received in order then we will largely do constant work per packet since the
+ * newest packet will always be last.
+ *
+ * Of more concern is that we must acquire the lock on the heap to add a packet
+ * to it.  If this proves a problem in practice then the answer would be
+ * (probably doubly) linked list with new packets added the end and a second
+ * thread which reads packets off the list and adds them to the heap.
+ *
+ * We keep memory allocation (mostly) very fast by keeping pre-allocated
+ * packets around; see @ref new_packet().
+ */
 static void *listen_thread(void attribute((unused)) *arg) {
   struct packet *p = 0;
   int n;
@@ -325,9 +363,6 @@ static void *listen_thread(void attribute((unused)) *arg) {
     switch(header.mpt & 0x7F) {
     case 10:
       p->nsamples = (n - sizeof header) / sizeof(uint16_t);
-      /* ALSA can do any necessary conversion itself (though it might be better
-       * to do any necessary conversion in the background) */
-      /* TODO we could readv into the buffer */
       break;
       /* TODO support other RFC3551 media types (when the speaker does) */
     default:
@@ -342,7 +377,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
      * This is rather unsatisfactory: it means that if packets get heavily
      * out of order then we guarantee dropouts.  But for now... */
     if(nsamples >= maxbuffer) {
-      info("buffer full");
+      info("Buffer full");
       while(nsamples >= maxbuffer)
         pthread_cond_wait(&cond, &lock);
     }
@@ -356,7 +391,10 @@ static void *listen_thread(void attribute((unused)) *arg) {
   }
 }
 
-/** @brief Return true if @p p contains @p timestamp */
+/** @brief Return true if @p p contains @p timestamp
+ *
+ * Containment implies that a sample @p timestamp exists within the packet.
+ */
 static inline int contains(const struct packet *p, uint32_t timestamp) {
   const uint32_t packet_start = p->timestamp;
   const uint32_t packet_end = p->timestamp + p->nsamples;
@@ -531,7 +569,7 @@ static void wait_alsa(void) {
   }
 }
 
-/** @brief Play some sound
+/** @brief Play some sound via ALSA
  * @param s Pointer to sample data
  * @param n Number of samples
  * @return 0 on success, -1 on non-fatal error
@@ -543,6 +581,7 @@ static int alsa_writei(const void *s, size_t n) {
     /* Something went wrong */
     switch(frames_written) {
     case -EAGAIN:
+      write(2, "#", 1);
       return 0;
     case -EPIPE:
       error(0, "error calling snd_pcm_writei: %ld",
@@ -564,6 +603,8 @@ static int alsa_writei(const void *s, size_t n) {
  * @return 0 on success, -1 on non-fatal error
  */
 static int alsa_play(const struct packet *p) {
+  if(p->flags & IDLE)
+    write(2, "I", 1);
   write(2, ".", 1);
   return alsa_writei(p->samples_raw + next_timestamp - p->timestamp,
                      (p->timestamp + p->nsamples) - next_timestamp);
