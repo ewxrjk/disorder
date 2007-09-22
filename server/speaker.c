@@ -17,14 +17,35 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
-/* This program deliberately does not use the garbage collector even though it
- * might be convenient to do so.  This is for two reasons.  Firstly some libao
- * drivers are implemented using threads and we do not want to have to deal
- * with potential interactions between threading and garbage collection.
- * Secondly this process needs to be able to respond quickly and this is not
- * compatible with the collector hanging the program even relatively
- * briefly. */
+/** @file server/speaker.c
+ * @brief Speaker processs
+ *
+ * This program is responsible for transmitting a single coherent audio stream
+ * to its destination (over the network, to some sound API, to some
+ * subprocess).  It receives connections from decoders via file descriptor
+ * passing from the main server and plays them in the right order.
+ *
+ * For the <a href="http://www.alsa-project.org/">ALSA</a> API, 8- and 16- bit
+ * stereo and mono are supported, with any sample rate (within the limits that
+ * ALSA can deal with.)
+ *
+ * When communicating with a subprocess, <a
+ * href="http://sox.sourceforge.net/">sox</a> is invoked to convert the inbound
+ * data to a single consistent format.  The same applies for network (RTP)
+ * play, though in that case currently only 44.1KHz 16-bit stereo is supported.
+ *
+ * The inbound data starts with a structure defining the data format.  Note
+ * that this is NOT portable between different platforms or even necessarily
+ * between versions; the speaker is assumed to be built from the same source
+ * and run on the same host as the main server.
+ *
+ * This program deliberately does not use the garbage collector even though it
+ * might be convenient to do so.  This is for two reasons.  Firstly some sound
+ * APIs use thread threads and we do not want to have to deal with potential
+ * interactions between threading and garbage collection.  Secondly this
+ * process needs to be able to respond quickly and this is not compatible with
+ * the collector hanging the program even relatively briefly.
+ */
 
 #include <config.h>
 #include "types.h"
@@ -70,20 +91,32 @@
 # define MACHINE_AO_FMT AO_FMT_LITTLE
 #endif
 
-#define BUFFER_SECONDS 5                /* How many seconds of input to
-                                         * buffer. */
+/** @brief How many seconds of input to buffer
+ *
+ * While any given connection has this much audio buffered, no more reads will
+ * be issued for that connection.  The decoder will have to wait.
+ */
+#define BUFFER_SECONDS 5
 
 #define FRAMES 4096                     /* Frame batch size */
 
-#define NETWORK_BYTES 1024              /* Bytes to send per network packet */
-/* (don't make this too big or arithmetic will start to overflow) */
+/** @brief Bytes to send per network packet
+ *
+ * Don't make this too big or arithmetic will start to overflow.
+ */
+#define NETWORK_BYTES 1024
 
-#define RTP_AHEAD 2                     /* Max RTP playahead (seconds) */
+/** @brief Maximum RTP playahead (seconds) */
+#define RTP_AHEAD 2
 
-#define NFDS 256                        /* Max FDs to poll for */
+/** @brief Maximum number of FDs to poll for */
+#define NFDS 256
 
-/* Known tracks are kept in a linked list.  We don't normally to have
- * more than two - maybe three at the outside. */
+/** @brief Track structure
+ *
+ * Known tracks are kept in a linked list.  Usually there will be at most two
+ * of these but rearranging the queue can cause there to be more.
+ */
 static struct track {
   struct track *next;                   /* next track */
   int fd;                               /* input FD */
@@ -152,12 +185,12 @@ static void version(void) {
   exit(0);
 }
 
-/* Return the number of bytes per frame in FORMAT. */
+/** @brief Return the number of bytes per frame in @p format */
 static size_t bytes_per_frame(const ao_sample_format *format) {
   return format->channels * format->bits / 8;
 }
 
-/* Find track ID, maybe creating it if not found. */
+/** @brief Find track @p id, maybe creating it if not found */
 static struct track *findtrack(const char *id, int create) {
   struct track *t;
 
@@ -177,7 +210,7 @@ static struct track *findtrack(const char *id, int create) {
   return t;
 }
 
-/* Remove track ID (but do not destroy it). */
+/** @brief Remove track @p id (but do not destroy it) */
 static struct track *removetrack(const char *id) {
   struct track *t, **tt;
 
@@ -189,7 +222,7 @@ static struct track *removetrack(const char *id) {
   return t;
 }
 
-/* Destroy a track. */
+/** @brief Destroy a track */
 static void destroy(struct track *t) {
   D(("destroy %s", t->id));
   if(t->fd != -1) xclose(t->fd);
@@ -197,7 +230,7 @@ static void destroy(struct track *t) {
   free(t);
 }
 
-/* Notice a new FD. */
+/** @brief Notice a new connection */
 static void acquire(struct track *t, int fd) {
   D(("acquire %s %d", t->id, fd));
   if(t->fd != -1)
@@ -206,54 +239,7 @@ static void acquire(struct track *t, int fd) {
   nonblock(fd);
 }
 
-/* Read data into a sample buffer.  Return 0 on success, -1 on EOF. */
-static int fill(struct track *t) {
-  size_t where, left;
-  int n;
-
-  D(("fill %s: eof=%d used=%zu size=%zu  got_format=%d",
-     t->id, t->eof, t->used, t->size, t->got_format));
-  if(t->eof) return -1;
-  if(t->used < t->size) {
-    /* there is room left in the buffer */
-    where = (t->start + t->used) % t->size;
-    if(t->got_format) {
-      /* We are reading audio data, get as much as we can */
-      if(where >= t->start) left = t->size - where;
-      else left = t->start - where;
-    } else
-      /* We are still waiting for the format, only get that */
-      left = sizeof (ao_sample_format) - t->used;
-    do {
-      n = read(t->fd, t->buffer + where, left);
-    } while(n < 0 && errno == EINTR);
-    if(n < 0) {
-      if(errno != EAGAIN) fatal(errno, "error reading sample stream");
-      return 0;
-    }
-    if(n == 0) {
-      D(("fill %s: eof detected", t->id));
-      t->eof = 1;
-      return -1;
-    }
-    t->used += n;
-    if(!t->got_format && t->used >= sizeof (ao_sample_format)) {
-      assert(t->used == sizeof (ao_sample_format));
-      /* Check that our assumptions are met. */
-      if(t->format.bits & 7)
-        fatal(0, "bits per sample not a multiple of 8");
-      /* Make a new buffer for audio data. */
-      t->size = bytes_per_frame(&t->format) * t->format.rate * BUFFER_SECONDS;
-      t->buffer = xmalloc(t->size);
-      t->used = 0;
-      t->got_format = 1;
-      D(("got format for %s", t->id));
-    }
-  }
-  return 0;
-}
-
-/* Return true if A and B denote identical libao formats, else false. */
+/** @brief Return true if A and B denote identical libao formats, else false */
 static int formats_equal(const ao_sample_format *a,
                          const ao_sample_format *b) {
   return (a->bits == b->bits
@@ -262,70 +248,7 @@ static int formats_equal(const ao_sample_format *a,
           && a->byte_format == b->byte_format);
 }
 
-/* Close the sound device. */
-static void idle(void) {
-  D(("idle"));
-#if API_ALSA
-  if(config->speaker_backend == BACKEND_ALSA && pcm) {
-    int  err;
-
-    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
-      fatal(0, "error calling snd_pcm_nonblock: %d", err);
-    D(("draining pcm"));
-    snd_pcm_drain(pcm);
-    D(("closing pcm"));
-    snd_pcm_close(pcm);
-    pcm = 0;
-    forceplay = 0;
-    D(("released audio device"));
-  }
-#endif
-  idled = 1;
-  ready = 0;
-}
-
-/* Abandon the current track */
-static void abandon(void) {
-  struct speaker_message sm;
-
-  D(("abandon"));
-  memset(&sm, 0, sizeof sm);
-  sm.type = SM_FINISHED;
-  strcpy(sm.id, playing->id);
-  speaker_send(1, &sm, 0);
-  removetrack(playing->id);
-  destroy(playing);
-  playing = 0;
-  forceplay = 0;
-}
-
-#if API_ALSA
-static void log_params(snd_pcm_hw_params_t *hwparams,
-                       snd_pcm_sw_params_t *swparams) {
-  snd_pcm_uframes_t f;
-  unsigned u;
-
-  return;                               /* too verbose */
-  if(hwparams) {
-    /* TODO */
-  }
-  if(swparams) {
-    snd_pcm_sw_params_get_silence_size(swparams, &f);
-    info("sw silence_size=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
-    info("sw silence_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_sleep_min(swparams, &u);
-    info("sw sleep_min=%lu", (unsigned long)u);
-    snd_pcm_sw_params_get_start_threshold(swparams, &f);
-    info("sw start_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
-    info("sw stop_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_xfer_align(swparams, &f);
-    info("sw xfer_align=%lu", (unsigned long)f);
-  }
-}
-#endif
-
+/** @brief Compute arguments to sox */
 static void soxargs(const char ***pp, char **qq, ao_sample_format *ao) {
   int n;
 
@@ -361,8 +284,184 @@ static void soxargs(const char ***pp, char **qq, ao_sample_format *ao) {
   }
 }
 
-/* Make sure the sound device is open and has the right sample format.  Return
- * 0 on success and -1 on error. */
+/** @brief Enable format translation
+ *
+ * If necessary, replaces a tracks inbound file descriptor with one connected
+ * to a sox invocation, which performs the required translation.
+ */
+static void enable_translation(struct track *t) {
+  switch(config->speaker_backend) {
+  case BACKEND_COMMAND:
+  case BACKEND_NETWORK:
+    /* These backends need a specific sample format */
+    break;
+  case BACKEND_ALSA:
+    /* ALSA can cope */
+    return;
+  }
+  if(!formats_equal(&t->format, &config->sample_format)) {
+    char argbuf[1024], *q = argbuf;
+    const char *av[18], **pp = av;
+    int soxpipe[2];
+    pid_t soxkid;
+
+    *pp++ = "sox";
+    soxargs(&pp, &q, &t->format);
+    *pp++ = "-";
+    soxargs(&pp, &q, &config->sample_format);
+    *pp++ = "-";
+    *pp++ = 0;
+    if(debugging) {
+      for(pp = av; *pp; pp++)
+        D(("sox arg[%d] = %s", pp - av, *pp));
+      D(("end args"));
+    }
+    xpipe(soxpipe);
+    soxkid = xfork();
+    if(soxkid == 0) {
+      signal(SIGPIPE, SIG_DFL);
+      xdup2(t->fd, 0);
+      xdup2(soxpipe[1], 1);
+      fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK);
+      close(soxpipe[0]);
+      close(soxpipe[1]);
+      close(t->fd);
+      execvp("sox", (char **)av);
+      _exit(1);
+    }
+    D(("forking sox for format conversion (kid = %d)", soxkid));
+    close(t->fd);
+    close(soxpipe[1]);
+    t->fd = soxpipe[0];
+    t->format = config->sample_format;
+    ready = 0;
+  }
+}
+
+/** @brief Read data into a sample buffer
+ * @param t Pointer to track
+ * @return 0 on success, -1 on EOF
+ *
+ * This is effectively the read callback on @c t->fd.
+ */
+static int fill(struct track *t) {
+  size_t where, left;
+  int n;
+
+  D(("fill %s: eof=%d used=%zu size=%zu  got_format=%d",
+     t->id, t->eof, t->used, t->size, t->got_format));
+  if(t->eof) return -1;
+  if(t->used < t->size) {
+    /* there is room left in the buffer */
+    where = (t->start + t->used) % t->size;
+    if(t->got_format) {
+      /* We are reading audio data, get as much as we can */
+      if(where >= t->start) left = t->size - where;
+      else left = t->start - where;
+    } else
+      /* We are still waiting for the format, only get that */
+      left = sizeof (ao_sample_format) - t->used;
+    do {
+      n = read(t->fd, t->buffer + where, left);
+    } while(n < 0 && errno == EINTR);
+    if(n < 0) {
+      if(errno != EAGAIN) fatal(errno, "error reading sample stream");
+      return 0;
+    }
+    if(n == 0) {
+      D(("fill %s: eof detected", t->id));
+      t->eof = 1;
+      return -1;
+    }
+    t->used += n;
+    if(!t->got_format && t->used >= sizeof (ao_sample_format)) {
+      assert(t->used == sizeof (ao_sample_format));
+      /* Check that our assumptions are met. */
+      if(t->format.bits & 7)
+        fatal(0, "bits per sample not a multiple of 8");
+      /* If the input format is unsuitable, arrange to translate it */
+      enable_translation(t);
+      /* Make a new buffer for audio data. */
+      t->size = bytes_per_frame(&t->format) * t->format.rate * BUFFER_SECONDS;
+      t->buffer = xmalloc(t->size);
+      t->used = 0;
+      t->got_format = 1;
+      D(("got format for %s", t->id));
+    }
+  }
+  return 0;
+}
+
+/** @brief Close the sound device */
+static void idle(void) {
+  D(("idle"));
+#if API_ALSA
+  if(config->speaker_backend == BACKEND_ALSA && pcm) {
+    int  err;
+
+    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
+      fatal(0, "error calling snd_pcm_nonblock: %d", err);
+    D(("draining pcm"));
+    snd_pcm_drain(pcm);
+    D(("closing pcm"));
+    snd_pcm_close(pcm);
+    pcm = 0;
+    forceplay = 0;
+    D(("released audio device"));
+  }
+#endif
+  idled = 1;
+  ready = 0;
+}
+
+/** @brief Abandon the current track */
+static void abandon(void) {
+  struct speaker_message sm;
+
+  D(("abandon"));
+  memset(&sm, 0, sizeof sm);
+  sm.type = SM_FINISHED;
+  strcpy(sm.id, playing->id);
+  speaker_send(1, &sm, 0);
+  removetrack(playing->id);
+  destroy(playing);
+  playing = 0;
+  forceplay = 0;
+}
+
+#if API_ALSA
+/** @brief Log ALSA parameters */
+static void log_params(snd_pcm_hw_params_t *hwparams,
+                       snd_pcm_sw_params_t *swparams) {
+  snd_pcm_uframes_t f;
+  unsigned u;
+
+  return;                               /* too verbose */
+  if(hwparams) {
+    /* TODO */
+  }
+  if(swparams) {
+    snd_pcm_sw_params_get_silence_size(swparams, &f);
+    info("sw silence_size=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
+    info("sw silence_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_sleep_min(swparams, &u);
+    info("sw sleep_min=%lu", (unsigned long)u);
+    snd_pcm_sw_params_get_start_threshold(swparams, &f);
+    info("sw start_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
+    info("sw stop_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_xfer_align(swparams, &f);
+    info("sw xfer_align=%lu", (unsigned long)f);
+  }
+}
+#endif
+
+/** @brief Enable sound output
+ *
+ * Makes sure the sound device is open and has the right sample format.  Return
+ * 0 on success and -1 on error.
+ */
 static int activate(void) {
   /* If we don't know the format yet we cannot start. */
   if(!playing->got_format) {
@@ -372,43 +471,6 @@ static int activate(void) {
   switch(config->speaker_backend) {
   case BACKEND_COMMAND:
   case BACKEND_NETWORK:
-    /* If we pass audio on to some other agent then we enforce the configured
-     * sample format on the *inbound* audio data. */
-    if(!formats_equal(&playing->format, &config->sample_format)) {
-      char argbuf[1024], *q = argbuf;
-      const char *av[18], **pp = av;
-      int soxpipe[2];
-      pid_t soxkid;
-      *pp++ = "sox";
-      soxargs(&pp, &q, &playing->format);
-      *pp++ = "-";
-      soxargs(&pp, &q, &config->sample_format);
-      *pp++ = "-";
-      *pp++ = 0;
-      if(debugging) {
-        for(pp = av; *pp; pp++)
-          D(("sox arg[%d] = %s", pp - av, *pp));
-        D(("end args"));
-      }
-      xpipe(soxpipe);
-      soxkid = xfork();
-      if(soxkid == 0) {
-        xdup2(playing->fd, 0);
-        xdup2(soxpipe[1], 1);
-        fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK);
-        close(soxpipe[0]);
-        close(soxpipe[1]);
-        close(playing->fd);
-        execvp("sox", (char **)av);
-        _exit(1);
-      }
-      D(("forking sox for format conversion (kid = %d)", soxkid));
-      close(playing->fd);
-      close(soxpipe[1]);
-      playing->fd = soxpipe[0];
-      playing->format = config->sample_format;
-      ready = 0;
-    }
     if(!ready) {
       pcm_format = config->sample_format;
       bufsize = 3 * FRAMES;
@@ -541,6 +603,7 @@ static void fork_cmd(void) {
   xpipe(pfd);
   cmdpid = xfork();
   if(!cmdpid) {
+    signal(SIGPIPE, SIG_DFL);
     xdup2(pfd[0], 0);
     close(pfd[0]);
     close(pfd[1]);
