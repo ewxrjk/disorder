@@ -94,7 +94,7 @@ static unsigned maxbuffer;
 
 /** @brief Number of samples to infill by in one go
  *
- * This is an upper bound - in practice we expxect the underlying audio API to
+ * This is an upper bound - in practice we expect the underlying audio API to
  * only ask for a much smaller number of samples in any one go.
  */
 #define INFILL_SAMPLES (44100 * 2)      /* 1s */
@@ -107,12 +107,22 @@ static unsigned maxbuffer;
 struct packet {
   /** @brief Number of samples in this packet */
   uint32_t nsamples;
+
   /** @brief Timestamp from RTP packet
    *
    * NB that "timestamps" are really sample counters.  Use lt() or lt_packet()
    * to compare timestamps. 
    */
   uint32_t timestamp;
+
+  /** @brief Flags
+   *
+   * Valid values are:
+   * - @ref IDLE: the idle bit was set in the RTP packet
+   */
+  unsigned flags;
+#define IDLE 0x0001                     /**< idle bit set in RTP packet */
+
   /** @brief Raw sample data
    *
    * Only the first @p nsamples samples are defined; the rest is uninitialized
@@ -312,9 +322,11 @@ static void *listen_thread(void attribute((unused)) *arg) {
       continue;
     }
     pthread_mutex_lock(&lock);
-    p = new_packet();
+    p->flags = 0;
     p->timestamp = timestamp;
     /* Convert to target format */
+    if(header.mpt & 0x80)
+      p->flags |= IDLE;
     switch(header.mpt & 0x7F) {
     case 10:
       p->nsamples = (n - sizeof header) / sizeof(uint16_t);
@@ -342,6 +354,8 @@ static void *listen_thread(void attribute((unused)) *arg) {
     /* Add the packet to the heap */
     pheap_insert(&packets, p);
     nsamples += p->nsamples;
+    /* We'll need a new packet */
+    p = 0;
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&lock);
   }
@@ -370,7 +384,9 @@ static OSStatus adioproc
   AudioBuffer *ab = outOutputData->mBuffers;
   const struct packet *p;
   uint32_t samples_available;
+  struct timeval in, out;
 
+  gettimeofday(&in, 0);
   pthread_mutex_lock(&lock);
   while(nbuffers > 0) {
     float *samplesOut = ab->mData;
@@ -391,6 +407,8 @@ static OSStatus adioproc
       }
       p = pheap_count(&packets) ? pheap_first(&packets) : 0;
       if(p && contains(p, next_timestamp)) {
+        if(p->flags & IDLE)
+          fprintf(stderr, "\nIDLE\n");
         /* This packet is ready to play */
         const uint32_t packet_end = p->timestamp + p->nsamples;
         const uint32_t offset = next_timestamp - p->timestamp;
@@ -406,23 +424,32 @@ static OSStatus adioproc
           *samplesOut++ = (int16_t)ntohs(*ptr++) * (0.5 / 32767);
         /* We don't bother junking the packet - that'll be dealt with next time
          * round */
+        write(2, ".", 1);
       } else {
         /* No packet is ready to play (and there might be no packet at all) */
         samples_available = p ? p->timestamp - next_timestamp
                               : samplesOutLeft;
         if(samples_available > samplesOutLeft)
           samples_available = samplesOutLeft;
-        info("infill by %"PRIu32, samples_available);
+        //info("infill by %"PRIu32, samples_available);
         /* Conveniently the buffer is 0 to start with */
         next_timestamp += samples_available;
         samplesOut += samples_available;
         samplesOutLeft -= samples_available;
+        write(2, "?", 1);
       }
     }
     ++ab;
     --nbuffers;
   }
   pthread_mutex_unlock(&lock);
+  gettimeofday(&out, 0);
+  {
+    static double max;
+    double thistime = (out.tv_sec - in.tv_sec) + (out.tv_usec - in.tv_usec) / 1000000.0;
+    if(thistime > max)
+      fprintf(stderr, "adioproc: %8.8fs\n", max = thistime);
+  }
   return 0;
 }
 #endif
@@ -477,6 +504,7 @@ static void play_rtp(void) {
       fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
     if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
                                            sample_format)) < 0)
+
       fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
             sample_format, err);
     if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0)
