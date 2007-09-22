@@ -17,6 +17,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file clients/playrtp.c
+ * @brief RTP player
+ *
+ * This RTP player supports Linux (ALSA) and Darwin (Core Audio) systems.
+ */
 
 #include <config.h>
 #include "types.h"
@@ -31,6 +36,7 @@
 #include <pthread.h>
 #include <locale.h>
 #include <sys/uio.h>
+#include <string.h>
 
 #include "log.h"
 #include "mem.h"
@@ -39,6 +45,8 @@
 #include "syscalls.h"
 #include "rtp.h"
 #include "defs.h"
+#include "vector.h"
+#include "heap.h"
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 # include <CoreAudio/AudioHardware.h>
@@ -84,32 +92,74 @@ static unsigned readahead = 2 * 2 * 44100;
  * We'll stop reading from the network if we have this many samples. */
 static unsigned maxbuffer;
 
-/** @brief Number of samples to infill by in one go */
+/** @brief Number of samples to infill by in one go
+ *
+ * This is an upper bound - in practice we expxect the underlying audio API to
+ * only ask for a much smaller number of samples in any one go.
+ */
 #define INFILL_SAMPLES (44100 * 2)      /* 1s */
 
-/** @brief Received packet */
+/** @brief Received packet
+ *
+ * Received packets are kept in a binary heap (see @ref pheap) ordered by
+ * timestamp.
+ */
 struct packet {
   /** @brief Number of samples in this packet */
   uint32_t nsamples;
   /** @brief Timestamp from RTP packet
    *
-   * NB that "timestamps" are really sample counters.*/
+   * NB that "timestamps" are really sample counters.  Use lt() or lt_packet()
+   * to compare timestamps. 
+   */
   uint32_t timestamp;
-  /** @brief Raw sample data */
+  /** @brief Raw sample data
+   *
+   * Only the first @p nsamples samples are defined; the rest is uninitialized
+   * data.
+   */
   unsigned char samples_raw[MAXSAMPLES * MAXSAMPLESIZE];
 };
 
+/** @brief Return true iff \f$a < b\f$ in sequence-space arithmetic
+ *
+ * Specifically it returns true if \f$(a-b) mod 2^{32} < 2^{31}\f$.
+ *
+ * See also lt_packet().
+ */
+static inline int lt(uint32_t a, uint32_t b) {
+  return (uint32_t)(a - b) & 0x80000000;
+}
+
+/** @brief Return true iff a >= b in sequence-space arithmetic */
+static inline int ge(uint32_t a, uint32_t b) {
+  return !lt(a, b);
+}
+
+/** @brief Return true iff a > b in sequence-space arithmetic */
+static inline int gt(uint32_t a, uint32_t b) {
+  return lt(b, a);
+}
+
+/** @brief Return true iff a <= b in sequence-space arithmetic */
+static inline int le(uint32_t a, uint32_t b) {
+  return !lt(b, a);
+}
+
+/** @brief Ordering for packets, used by @ref pheap */
+static inline int lt_packet(const struct packet *a, const struct packet *b) {
+  return lt(a->timestamp, b->timestamp);
+}
+
+/** @struct pheap 
+ * @brief Binary heap of packets ordered by timestamp */
+HEAP_TYPE(pheap, struct packet *, lt_packet);
+
+/** @brief Binary heap of received packets */
+static struct pheap packets;
+
 /** @brief Total number of samples available */
 static unsigned long nsamples;
-
-/** @brief Mapping of sequence numbers to packets
- *
- * This isn't very efficient - 256KB on 32-bit machines, 512KB if you do a
- * 64-bit build for some reason.  It can be optimized later if need be. */
-static struct packet *packets[65536];
-
-/** @brief Total number of packets */
-static unsigned npackets;
 
 /** @brief Timestamp of next packet to play.
  *
@@ -123,25 +173,42 @@ static uint32_t next_timestamp;
  * This is true when playing and false when just buffering. */
 static int active;
 
-/** @brief Sequence number of next packet we expxect to play */
-static uint16_t sequence;
-
 /** @brief Structure of free packet list */
 union free_packet {
   struct packet p;
   union free_packet *next;
 };
 
-/** @brief Linked list of free packets */
+/** @brief Linked list of free packets
+ *
+ * This is a linked list of formerly used packets.  For preference we re-use
+ * packets that have already been used rather than unused ones, to limit the
+ * size of the program's working set.  If there are no free packets in the list
+ * we try @ref next_free_packet instead.
+ *
+ * Must hold @ref lock when accessing this.
+ */
 static union free_packet *free_packets;
 
-/** @brief Array of new free packets */
+/** @brief Array of new free packets 
+ *
+ * There are @ref count_free_packets ready to use at this address.  If there
+ * are none left we allocate more memory.
+ *
+ * Must hold @ref lock when accessing this.
+ */
 static union free_packet *next_free_packet;
 
-/** @brief Count of new free packets */
+/** @brief Count of new free packets at @ref next_free_packet
+ *
+ * Must hold @ref lock when accessing this.
+ */
 static size_t count_free_packets;
 
-/** @brief Lock protecting @ref packets */
+/** @brief Lock protecting @ref packets 
+ *
+ * This also protects the packet memory allocation infrastructure, @ref
+ * free_packets and @ref next_free_packet. */
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief Condition variable signalled whenever @ref packets is changed */
@@ -187,34 +254,16 @@ static void free_packet(struct packet *p) {
   free_packets = u;
 }
 
-/** @brief Return true iff a < b in sequence-space arithmetic */
-static inline int lt(uint32_t a, uint32_t b) {
-  return (uint32_t)(a - b) & 0x80000000;
-}
-
-/** @brief Return true iff a >= b in sequence-space arithmetic */
-static inline int ge(uint32_t a, uint32_t b) {
-  return !lt(a, b);
-}
-
-/** @brief Return true iff a > b in sequence-space arithmetic */
-static inline int gt(uint32_t a, uint32_t b) {
-  return lt(b, a);
-}
-
-/** @brief Return true iff a <= b in sequence-space arithmetic */
-static inline int le(uint32_t a, uint32_t b) {
-  return !lt(b, a);
-}
-
-/** @brief Drop the packet at the head of the queue */
-static void drop_packet(unsigned sequence) {
-  if(packets[sequence]) {
-    nsamples -= packets[sequence]->nsamples;
-    free_packet(packets[sequence]);
-    packets[sequence] = 0;
+/** @brief Drop the first packet
+ *
+ * Assumes that @ref lock is held. 
+ */
+static void drop_first_packet(void) {
+  if(pheap_count(&packets)) {
+    struct packet *const p = pheap_remove(&packets);
+    nsamples -= p->nsamples;
+    free_packet(p);
     pthread_cond_broadcast(&cond);
-    --npackets;
   }
 }
 
@@ -290,15 +339,8 @@ static void *listen_thread(void attribute((unused)) *arg) {
       while(nsamples >= maxbuffer)
         pthread_cond_wait(&cond, &lock);
     }
-    /* If there's a packet there already we overwrite it; perhaps it is left
-     * over from an earlier stage. */
-    drop_packet(seq);
-    /* Record this packet */
-    packets[seq] = p;
-    /* If we currently have no idea where to start playing, this is it */
-    if(!npackets)
-      sequence = seq;
-    ++npackets;
+    /* Add the packet to the heap */
+    pheap_insert(&packets, p);
     nsamples += p->nsamples;
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&lock);
@@ -327,6 +369,7 @@ static OSStatus adioproc
   UInt32 nbuffers = outOutputData->mNumberBuffers;
   AudioBuffer *ab = outOutputData->mBuffers;
   const struct packet *p;
+  uint32_t samples_available;
 
   pthread_mutex_lock(&lock);
   while(nbuffers > 0) {
@@ -336,51 +379,44 @@ static OSStatus adioproc
     while(samplesOutLeft > 0) {
       /* Look for a suitable packet, dropping any unsuitable ones along the
        * way.  Unsuitable packets are ones that are in the past. */
-      while(npackets
-            && (!packets[sequence]
-                || le(packets[sequence]->timestamp
-                         + packets[sequence]->nsamples,
-                      next_timestamp)))
-        drop_packet(sequence++);
-      p = packets[sequence];
-      if(p) {
-        if(contains(p, next_timestamp)) {
-          /* This packet is suitable */
-          const uint32_t packet_end = p->timestamp + p->nsamples;
-          const uint32_t offset = next_timestamp - p->timestamp;
-          const uint16_t *ptr =
-            (void *)(p->samples_raw + offset * sizeof (uint16_t));
-          uint32_t samples_available = packet_end - next_timestamp;
-          if(samples_available > samplesOutLeft)
-            samples_available = samplesOutLeft;
-          next_timestamp += samples_available;
-          samplesOutLeft -= samples_available;
-          while(samples_available-- > 0)
-            *samplesOut++ = (int16_t)ntohs(*ptr++) * (0.5 / 32767);
-          /* We don't bother junking the packet or advancing sequence - that'll
-           * be dealt with next time round */
-          continue;
-        }
+      while(pheap_count(&packets)) {
+        p = pheap_first(&packets);
+        if(le(p->timestamp + p->nsamples, next_timestamp))
+          /* This packet is in the past.  Drop it and try another one. */
+          drop_first_packet();
+        else
+          /* This packet is NOT in the past.  (It might be in the future
+           * however.) */
+          break;
       }
-      /* We didn't find a suitable packet (though there might still be
-       * unsuitable ones).  We infill with 0s. */
-      if(p) {
-        /* There is a next packet, only infill up to that point */
-        uint32_t samples_available = p->timestamp - next_timestamp;
-        
+      p = pheap_count(&packets) ? pheap_first(&packets) : 0;
+      if(p && contains(p, next_timestamp)) {
+        /* This packet is ready to play */
+        const uint32_t packet_end = p->timestamp + p->nsamples;
+        const uint32_t offset = next_timestamp - p->timestamp;
+        const uint16_t *ptr =
+          (void *)(p->samples_raw + offset * sizeof (uint16_t));
+
+        samples_available = packet_end - next_timestamp;
+        if(samples_available > samplesOutLeft)
+          samples_available = samplesOutLeft;
+        next_timestamp += samples_available;
+        samplesOutLeft -= samples_available;
+        while(samples_available-- > 0)
+          *samplesOut++ = (int16_t)ntohs(*ptr++) * (0.5 / 32767);
+        /* We don't bother junking the packet - that'll be dealt with next time
+         * round */
+      } else {
+        /* No packet is ready to play (and there might be no packet at all) */
+        samples_available = p ? p->timestamp - next_timestamp
+                              : samplesOutLeft;
         if(samples_available > samplesOutLeft)
           samples_available = samplesOutLeft;
         info("infill by %"PRIu32, samples_available);
-        /* Convniently the buffer is 0 to start with */
+        /* Conveniently the buffer is 0 to start with */
         next_timestamp += samples_available;
         samplesOut += samples_available;
         samplesOutLeft -= samples_available;
-      } else {
-        /* There's no next packet at all */
-        info("infilled by %zu", samplesOutLeft);
-        next_timestamp += samplesOutLeft;
-        samplesOut += samplesOutLeft;
-        samplesOutLeft = 0;
       }
     }
     ++ab;
@@ -483,9 +519,6 @@ static void play_rtp(void) {
           fatal(0, "error calling snd_pcm_prepare: %d", err);
         prepared = 1;
       }
-      assert(sequence != -1);
-      /* Start at the first available packet */
-      next_timestamp = packets[sequence]->timestamp;
       active = 1;
       infilling = 0;
       escape = 0;
@@ -665,7 +698,7 @@ static void play_rtp(void) {
         pthread_cond_wait(&cond, &lock);
       /* Start playing now */
       info("Playing...");
-      next_timestamp = packets[sequence]->timestamp;
+      next_timestamp = pheap_first(&packets)->timestamp;
       active = 1;
       status = AudioDeviceStart(adid, adioproc);
       if(status)
