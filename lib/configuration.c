@@ -49,32 +49,51 @@
 #include "regsub.h"
 #include "signame.h"
 
+/** @brief Path to config file 
+ *
+ * set_configfile() sets the deafult if it is null.
+ */
 char *configfile;
 
+/** @brief Config file parser state */
 struct config_state {
+  /** @brief Filename */
   const char *path;
+  /** @brief Line number */
   int line;
+  /** @brief Configuration object under construction */
   struct config *config;
 };
 
+/** @brief Current configuration */
 struct config *config;
 
+/** @brief One configuration item */
 struct conf {
+  /** @brief Name as it appears in the config file */
   const char *name;
+  /** @brief Offset in @ref config structure */
   size_t offset;
+  /** @brief Pointer to item type */
   const struct conftype *type;
+  /** @brief Pointer to item-specific validation routine */
   int (*validate)(const struct config_state *cs,
 		  int nvec, char **vec);
 };
 
+/** @brief Type of a configuration item */
 struct conftype {
+  /** @brief Pointer to function to set item */
   int (*set)(const struct config_state *cs,
 	     const struct conf *whoami,
 	     int nvec, char **vec);
+  /** @brief Pointer to function to free item */
   void (*free)(struct config *c, const struct conf *whoami);
 };
 
+/** @brief Compute the address of an item */
 #define ADDRESS(C, TYPE) ((TYPE *)((char *)(C) + whoami->offset))
+/** @brief Return the value of an item */
 #define VALUE(C, TYPE) (*ADDRESS(C, TYPE))
 
 static int set_signal(const struct config_state *cs,
@@ -790,11 +809,12 @@ static int validate_address(const struct config_state attribute((unused)) *cs,
   }
 }
 
-/* configuration table */
-
+/** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
+/** @brief Item name and and offset */
 #define C2(x,y) #x, offsetof(struct config, y)
 
+/** @brief All configuration items */
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
@@ -839,7 +859,7 @@ static const struct conf conf[] = {
   { C(username),         &type_string,           validate_any },
 };
 
-/* find a configuration item's definition by key */
+/** @brief Find a configuration item's definition by key */
 static const struct conf *find(const char *key) {
   int n;
 
@@ -848,7 +868,7 @@ static const struct conf *find(const char *key) {
   return &conf[n];
 }
 
-/* set a new configuration value */
+/** @brief Set a new configuration value */
 static int config_set(const struct config_state *cs,
 		      int nvec, char **vec) {
   const struct conf *which;
@@ -869,7 +889,7 @@ static void config_error(const char *msg, void *u) {
   error(0, "%s:%d: %s", cs->path, cs->line, msg);
 }
 
-/* include a file by name */
+/** @brief Include a file by name */
 static int config_include(struct config *c, const char *path) {
   FILE *fp;
   char *buffer, *inputbuffer, **vec;
@@ -921,7 +941,7 @@ static int config_include(struct config *c, const char *path) {
   return ret;
 }
 
-/* make a new default config */
+/** @brief Make a new default configuration */
 static struct config *config_default(void) {
   struct config *c = xmalloc(sizeof *c);
   const char *logname;
@@ -959,12 +979,13 @@ static char *get_file(struct config *c, const char *name) {
   return s;
 }
 
+/** @brief Set the default configuration file */
 static void set_configfile(void) {
   if(!configfile)
     byte_xasprintf(&configfile, "%s/config", pkgconfdir);
 }
 
-/* free the config file */
+/** @brief Free a configuration object */
 static void config_free(struct config *c) {
   int n;
 
@@ -978,6 +999,7 @@ static void config_free(struct config *c) {
   }
 }
 
+/** @brief Set post-parse defaults */
 static void config_postdefaults(struct config *c) {
   struct config_state cs;
   const struct conf *whoami;
@@ -1033,7 +1055,7 @@ static void config_postdefaults(struct config *c) {
     fatal(0, "speaker_backend is network but broadcast is not set");
 }
 
-/* re-read the config file */
+/** @brief (Re-)read the config file */
 int config_read() {
   struct config *c;
   char *privconf;
@@ -1071,6 +1093,7 @@ int config_read() {
   return 0;
 }
 
+/** @brief Return the path to the private configuration file */
 char *config_private(void) {
   char *s;
 
@@ -1079,6 +1102,7 @@ char *config_private(void) {
   return s;
 }
 
+/** @brief Return the path to user's personal configuration file */
 char *config_userconf(const char *home, const struct passwd *pw) {
   char *s;
 
@@ -1086,7 +1110,8 @@ char *config_userconf(const char *home, const struct passwd *pw) {
   return s;
 }
 
-char *config_usersysconf(const struct passwd *pw ) {
+/** @brief Return the path to user-specific system configuration */
+char *config_usersysconf(const struct passwd *pw) {
   char *s;
 
   set_configfile();
