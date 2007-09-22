@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/mem.c
+ * @brief Memory management
+ */
 
 #include <config.h>
 #include "types.h"
@@ -36,6 +39,10 @@
 
 #include "disorder.h"
 
+/** @brief Allocate and zero out
+ * @param n Number of bytes to allocate
+ * @return Pointer to allocated memory,  or 0
+ */
 static void *malloc_and_zero(size_t n) {
   void *ptr = malloc(n);
 
@@ -55,6 +62,12 @@ static void *(*do_malloc_atomic)(size_t) = malloc;
 static void (*do_free)(void *) = free;
 #endif
 
+/** @brief Initialize memory management
+ *
+ * Must be called by all programs that use garbage collection.  Define
+ * @c ${DISORDER_GC} to @c no to suppress use of the collector
+ * (e.g. for debugging purposes).
+ */
 void mem_init(void) {
 #if GC
   const char *e;
@@ -71,6 +84,13 @@ void mem_init(void) {
 #endif
 }
 
+/** @brief Allocate memory
+ * @param n Bytes to allocate
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  The allocated memory is always
+ * 0-filled.
+ */
 void *xmalloc(size_t n) {
   void *ptr;
 
@@ -79,18 +99,42 @@ void *xmalloc(size_t n) {
   return ptr;
 }
 
+/** @brief Reallocate memory
+ * @param ptr Block to reallocated
+ * @param n Bytes to allocate
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  It is NOT guaranteed that any
+ * additional memory allocated is 0-filled.
+ */
 void *xrealloc(void *ptr, size_t n) {
   if(!(ptr = do_realloc(ptr, n)) && n)
     fatal(errno, "error allocating memory");
   return ptr;
 }
 
+/** @brief Allocate memory
+ * @param count Number of objects to allocate
+ * @param size Size of one object
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  The allocated memory is always
+ * 0-filled.
+ */
 void *xcalloc(size_t count, size_t size) {
   if(count > SIZE_MAX / size)
     fatal(0, "excessively large calloc");
   return xmalloc(count * size);
 }
 
+/** @brief Allocate memory
+ * @param n Bytes to allocate
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  The allocated memory is not
+ * guaranteed to be 0-filled and is not suitable for storing pointers
+ * in.
+ */
 void *xmalloc_noptr(size_t n) {
   void *ptr;
 
@@ -99,6 +143,15 @@ void *xmalloc_noptr(size_t n) {
   return ptr;
 }
 
+/** @brief Reallocate memory
+ * @param ptr Block to reallocated
+ * @param n Bytes to allocate
+ * @return Pointer to allocated memory
+ *
+ * Terminates the processf on error.  It is NOT guaranteed that any
+ * additional memory allocated is 0-filled.  The block must have been
+ * allocated with xmalloc_noptr() (or xrealloc_noptr()) initially.
+ */
 void *xrealloc_noptr(void *ptr, size_t n) {
   if(ptr == 0)
     return xmalloc_noptr(n);
@@ -107,6 +160,12 @@ void *xrealloc_noptr(void *ptr, size_t n) {
   return ptr;
 }
 
+/** @brief Duplicate a string
+ * @param s String to copy
+ * @return New copy of string
+ *
+ * This uses the equivalent of xmalloc_noptr() to allocate the new string.
+ */
 char *xstrdup(const char *s) {
   char *t;
 
@@ -115,6 +174,14 @@ char *xstrdup(const char *s) {
   return strcpy(t, s);
 }
 
+/** @brief Duplicate a prefix of a string
+ * @param s String to copy
+ * @param n Prefix of string to copy
+ * @return New copy of string
+ *
+ * This uses the equivalent of xmalloc_noptr() to allocate the new string.
+ * @p n must not exceed the length of the string.
+ */
 char *xstrndup(const char *s, size_t n) {
   char *t;
 
@@ -125,6 +192,9 @@ char *xstrndup(const char *s, size_t n) {
   return t;
 }
 
+/** @brief Free memory
+ * @param ptr Block to free or 0
+ */
 void xfree(void *ptr) {
   do_free(ptr);
 }
