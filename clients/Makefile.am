@@ -57,6 +57,10 @@ check-help: all
 	./disorder --version > /dev/null
 	./disorder --help > /dev/null
 	./disorder --help-commands > /dev/null
+	./disorderfm --version > /dev/null
+	./disorderfm --help > /dev/null
+	./disorder-playrtp --version > /dev/null
+	./disorder-playrtp --help > /dev/null
 
 # check that the command completions are up to date
 check-completions:
