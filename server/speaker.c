@@ -220,6 +220,12 @@ struct speaker_backend {
    */
   int (*activate)(void);
 
+  /** @brief Play sound
+   * @param frames Number of frames to play
+   * @return Number of frames actually played
+   */
+  size_t (*play)(size_t frames);
+  
   /** @brief Deactivation
    *
    * Called to deactivate the sound device.  This is the inverse of
@@ -556,11 +562,12 @@ static void fork_cmd(void) {
 }
 
 static void play(size_t frames) {
-  size_t avail_bytes, write_bytes, written_frames;
+  size_t avail_frames, avail_bytes, write_bytes, written_frames;
   ssize_t written_bytes;
   struct rtp_header header;
   struct iovec vec[2];
 
+  /* Make sure the output device is activated */
   if(activate()) {
     if(playing)
       forceplay = frames;
@@ -583,22 +590,24 @@ static void play(size_t frames) {
   forceplay = 0;
   /* Figure out how many frames there are available to write */
   if(playing->start + playing->used > playing->size)
+    /* The ring buffer is currently wrapped, only play up to the wrap point */
     avail_bytes = playing->size - playing->start;
   else
+    /* The ring buffer is not wrapped, can play the lot */
     avail_bytes = playing->used;
+  avail_frames = avail_bytes / bpf;
+  /* Only play up to the requested amount */
+  if(avail_frames > frames)
+    avail_frames = frames;
+  if(!avail_frames)
+    return;
 
   switch(config->speaker_backend) {
 #if API_ALSA
   case BACKEND_ALSA: {
     snd_pcm_sframes_t pcm_written_frames;
-    size_t avail_frames;
     int err;
 
-    avail_frames = avail_bytes / bpf;
-    if(avail_frames > frames)
-      avail_frames = frames;
-    if(!avail_frames)
-      return;
     pcm_written_frames = snd_pcm_writei(pcm,
                                         playing->buffer + playing->start,
                                         avail_frames);
@@ -909,6 +918,11 @@ error:
   return -1;
 }
 
+/** @brief Play via ALSA */
+static size_t alsa_play(size_t frames) {
+  return frames;
+}
+
 /** @brief ALSA deactivation */
 static void alsa_deactivate(void) {
   if(pcm) {
@@ -931,6 +945,11 @@ static void alsa_deactivate(void) {
 static void command_init(void) {
   info("selected command backend");
   fork_cmd();
+}
+
+/** @brief Play to a subprocess */
+static size_t command_play(size_t frames) {
+  return frames;
 }
 
 /** @brief Command/network backend activation */
@@ -1014,6 +1033,11 @@ static void network_init(void) {
   }
 }
 
+/** @brief Play over the network */
+static size_t network_play(size_t frames) {
+  return frames;
+}
+
 /** @brief Table of speaker backends */
 static const struct speaker_backend backends[] = {
 #if API_ALSA
@@ -1022,6 +1046,7 @@ static const struct speaker_backend backends[] = {
     0,
     alsa_init,
     alsa_activate,
+    alsa_play,
     alsa_deactivate
   },
 #endif
@@ -1030,6 +1055,7 @@ static const struct speaker_backend backends[] = {
     FIXED_FORMAT,
     command_init,
     generic_activate,
+    command_play,
     0                                   /* deactivate */
   },
   {
@@ -1037,9 +1063,10 @@ static const struct speaker_backend backends[] = {
     FIXED_FORMAT,
     network_init,
     generic_activate,
+    network_play,
     0                                   /* deactivate */
   },
-  { -1, 0, 0, 0, 0 }
+  { -1, 0, 0, 0, 0, 0 }
 };
 
 int main(int argc, char **argv) {
