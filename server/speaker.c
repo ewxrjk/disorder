@@ -172,6 +172,31 @@ static uint32_t rtp_id;                 /* RTP SSRC */
 static int idled;                       /* set when idled */
 static int audio_errors;                /* audio error counter */
 
+/** @brief Structure of a backend */
+struct speaker_backend {
+  /** @brief Which backend this is
+   *
+   * @c -1 terminates the list.
+   */
+  int backend;
+  
+  /** @brief Initialization
+   *
+   * Called once at startup.
+   */
+  void (*init)(void);
+
+  /** @brief Activation
+   * @return 0 on success, non-0 on error
+   *
+   * Called to activate the output device.
+   */
+  int (*activate)(void);
+};
+
+/** @brief Selected backend */
+static const struct speaker_backend *backend;
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -353,7 +378,6 @@ static void enable_translation(struct track *t) {
     close(soxpipe[1]);
     t->fd = soxpipe[0];
     t->format = config->sample_format;
-    ready = 0;
   }
 }
 
@@ -487,123 +511,7 @@ static int activate(void) {
     D((" - not got format for %s", playing->id));
     return -1;
   }
-  switch(config->speaker_backend) {
-  case BACKEND_COMMAND:
-  case BACKEND_NETWORK:
-    if(!ready) {
-      pcm_format = config->sample_format;
-      bufsize = 3 * FRAMES;
-      bpf = bytes_per_frame(&config->sample_format);
-      D(("acquired audio device"));
-      ready = 1;
-    }
-    return 0;
-  case BACKEND_ALSA:
-#if API_ALSA
-    /* If we need to change format then close the current device. */
-    if(pcm && !formats_equal(&playing->format, &pcm_format))
-      idle();
-    if(!pcm) {
-      snd_pcm_hw_params_t *hwparams;
-      snd_pcm_sw_params_t *swparams;
-      snd_pcm_uframes_t pcm_bufsize;
-      int err;
-      int sample_format = 0;
-      unsigned rate;
-
-      D(("snd_pcm_open"));
-      if((err = snd_pcm_open(&pcm,
-                             config->device,
-                             SND_PCM_STREAM_PLAYBACK,
-                             SND_PCM_NONBLOCK))) {
-        error(0, "error from snd_pcm_open: %d", err);
-        goto error;
-      }
-      snd_pcm_hw_params_alloca(&hwparams);
-      D(("set up hw params"));
-      if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
-        fatal(0, "error from snd_pcm_hw_params_any: %d", err);
-      if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
-                                             SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-        fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-      switch(playing->format.bits) {
-      case 8:
-        sample_format = SND_PCM_FORMAT_S8;
-        break;
-      case 16:
-        switch(playing->format.byte_format) {
-        case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
-        case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
-        case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
-          error(0, "unrecognized byte format %d", playing->format.byte_format);
-          goto fatal;
-        }
-        break;
-      default:
-        error(0, "unsupported sample size %d", playing->format.bits);
-        goto fatal;
-      }
-      if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
-                                             sample_format)) < 0) {
-        error(0, "error from snd_pcm_hw_params_set_format (%d): %d",
-              sample_format, err);
-        goto fatal;
-      }
-      rate = playing->format.rate;
-      if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
-        error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-              playing->format.rate, err);
-        goto fatal;
-      }
-      if(rate != (unsigned)playing->format.rate)
-        info("want rate %d, got %u", playing->format.rate, rate);
-      if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                               playing->format.channels)) < 0) {
-        error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-              playing->format.channels, err);
-        goto fatal;
-      }
-      bufsize = 3 * FRAMES;
-      pcm_bufsize = bufsize;
-      if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
-                                                       &pcm_bufsize)) < 0)
-        fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-              3 * FRAMES, err);
-      if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
-        info("asked for PCM buffer of %d frames, got %d",
-             3 * FRAMES, (int)pcm_bufsize);
-      last_pcm_bufsize = pcm_bufsize;
-      if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
-        fatal(0, "error calling snd_pcm_hw_params: %d", err);
-      D(("set up sw params"));
-      snd_pcm_sw_params_alloca(&swparams);
-      if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
-        fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
-      if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, FRAMES)) < 0)
-        fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
-              FRAMES, err);
-      if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
-        fatal(0, "error calling snd_pcm_sw_params: %d", err);
-      pcm_format = playing->format;
-      bpf = bytes_per_frame(&pcm_format);
-      D(("acquired audio device"));
-      log_params(hwparams, swparams);
-      ready = 1;
-    }
-    return 0;
-  fatal:
-    abandon();
-  error:
-    /* We assume the error is temporary and that we'll retry in a bit. */
-    if(pcm) {
-      snd_pcm_close(pcm);
-      pcm = 0;
-    }
-    return -1;
-#endif
-  default:
-    assert(!"reached");
-  }
+  return backend->activate();
 }
 
 /* Check to see whether the current track has finished playing */
@@ -883,12 +791,128 @@ static int addfd(int fd, int events) {
 static void alsa_init(void) {
   info("selected ALSA backend");
 }
+
+/** @brief ALSA backend activation */
+static int alsa_activate(void) {
+  /* If we need to change format then close the current device. */
+  if(pcm && !formats_equal(&playing->format, &pcm_format))
+    idle();
+  if(!pcm) {
+    snd_pcm_hw_params_t *hwparams;
+    snd_pcm_sw_params_t *swparams;
+    snd_pcm_uframes_t pcm_bufsize;
+    int err;
+    int sample_format = 0;
+    unsigned rate;
+
+    D(("snd_pcm_open"));
+    if((err = snd_pcm_open(&pcm,
+                           config->device,
+                           SND_PCM_STREAM_PLAYBACK,
+                           SND_PCM_NONBLOCK))) {
+      error(0, "error from snd_pcm_open: %d", err);
+      goto error;
+    }
+    snd_pcm_hw_params_alloca(&hwparams);
+    D(("set up hw params"));
+    if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
+      fatal(0, "error from snd_pcm_hw_params_any: %d", err);
+    if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
+                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
+      fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
+    switch(playing->format.bits) {
+    case 8:
+      sample_format = SND_PCM_FORMAT_S8;
+      break;
+    case 16:
+      switch(playing->format.byte_format) {
+      case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
+      case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
+      case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
+        error(0, "unrecognized byte format %d", playing->format.byte_format);
+        goto fatal;
+      }
+      break;
+    default:
+      error(0, "unsupported sample size %d", playing->format.bits);
+      goto fatal;
+    }
+    if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
+                                           sample_format)) < 0) {
+      error(0, "error from snd_pcm_hw_params_set_format (%d): %d",
+            sample_format, err);
+      goto fatal;
+    }
+    rate = playing->format.rate;
+    if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
+      error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
+            playing->format.rate, err);
+      goto fatal;
+    }
+    if(rate != (unsigned)playing->format.rate)
+      info("want rate %d, got %u", playing->format.rate, rate);
+    if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
+                                             playing->format.channels)) < 0) {
+      error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
+            playing->format.channels, err);
+      goto fatal;
+    }
+    bufsize = 3 * FRAMES;
+    pcm_bufsize = bufsize;
+    if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
+                                                     &pcm_bufsize)) < 0)
+      fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
+            3 * FRAMES, err);
+    if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
+      info("asked for PCM buffer of %d frames, got %d",
+           3 * FRAMES, (int)pcm_bufsize);
+    last_pcm_bufsize = pcm_bufsize;
+    if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
+      fatal(0, "error calling snd_pcm_hw_params: %d", err);
+    D(("set up sw params"));
+    snd_pcm_sw_params_alloca(&swparams);
+    if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
+      fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
+    if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, FRAMES)) < 0)
+      fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
+            FRAMES, err);
+    if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
+      fatal(0, "error calling snd_pcm_sw_params: %d", err);
+    pcm_format = playing->format;
+    bpf = bytes_per_frame(&pcm_format);
+    D(("acquired audio device"));
+    log_params(hwparams, swparams);
+    ready = 1;
+  }
+  return 0;
+fatal:
+  abandon();
+error:
+  /* We assume the error is temporary and that we'll retry in a bit. */
+  if(pcm) {
+    snd_pcm_close(pcm);
+    pcm = 0;
+  }
+  return -1;
+}
 #endif
 
 /** @brief Command backend initialization */
 static void command_init(void) {
   info("selected command backend");
   fork_cmd();
+}
+
+/** @brief Command backend activation */
+static int command_activate(void) {
+  if(!ready) {
+    pcm_format = config->sample_format;
+    bufsize = 3 * FRAMES;
+    bpf = bytes_per_frame(&config->sample_format);
+    D(("acquired audio device"));
+    ready = 1;
+  }
+  return 0;
 }
 
 /** @brief Network backend initialization */
@@ -961,41 +985,38 @@ static void network_init(void) {
   }
 }
 
-/** @brief Structure of a backend */
-struct speaker_backend {
-  /** @brief Which backend this is
-   *
-   * @c -1 terminates the list.
-   */
-  int backend;
-  
-  /** @brief Initialization
-   *
-   * Called once at startup.
-   */
-  void (*init)(void);
-};
-
-/** @brief Selected backend */
-static const struct speaker_backend *backend;
+/** @brief Network backend activation */
+static int network_activate(void) {
+  if(!ready) {
+    pcm_format = config->sample_format;
+    bufsize = 3 * FRAMES;
+    bpf = bytes_per_frame(&config->sample_format);
+    D(("acquired audio device"));
+    ready = 1;
+  }
+  return 0;
+}
 
 /** @brief Table of speaker backends */
 static const struct speaker_backend backends[] = {
 #if API_ALSA
   {
     BACKEND_ALSA,
-    alsa_init
+    alsa_init,
+    alsa_activate
   },
 #endif
   {
     BACKEND_COMMAND,
-    command_init
+    command_init,
+    command_activate
   },
   {
     BACKEND_NETWORK,
-    network_init
+    network_init,
+    network_activate
   },
-  { -1, 0 }
+  { -1, 0, 0 }
 };
 
 int main(int argc, char **argv) {
