@@ -246,6 +246,17 @@ struct speaker_backend {
    * array and stash the slot number somewhere safe.
    */
   void (*beforepoll)(void);
+
+  /** @brief Called after poll()
+   * @return 0 if we could play, non-0 if not
+   *
+   * Called after the call to poll().  Should arrange to play some audio if the
+   * output device is ready.
+   *
+   * The return value should be 0 if the device was ready to play, or nonzero
+   * if it was not.
+   */
+  int (*afterpoll)(void);
 };
 
 /** @brief Selected backend */
@@ -824,6 +835,25 @@ static void alsa_beforepoll(void) {
     fdno += alsa_nslots;
 }
 
+/** @brief Process poll() results for ALSA */
+static int alsa_afterpoll(void) {
+  int err;
+
+  if(alsa_slots != -1) {
+    unsigned short alsa_revents;
+    
+    if((err = snd_pcm_poll_descriptors_revents(pcm,
+                                               &fds[alsa_slots],
+                                               alsa_nslots,
+                                               &alsa_revents)) < 0)
+      fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
+    if(alsa_revents & (POLLOUT | POLLERR))
+      play(3 * FRAMES);
+    return 0;
+  } else
+    return 1;
+}
+
 /** @brief ALSA deactivation */
 static void alsa_deactivate(void) {
   if(pcm) {
@@ -879,6 +909,16 @@ static void command_beforepoll(void) {
    * This isn't ideal as pause latency can be very high as a result. */
   if(cmdfd >= 0)
     cmdfd_slot = addfd(cmdfd, POLLOUT);
+}
+
+/** @brief Process poll() results for subprocess play */
+static int command_afterpoll(void) {
+  if(cmdfd_slot != -1) {
+    if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
+      play(3 * FRAMES);
+    return 0;
+  } else
+    return -1;
 }
 
 /** @brief Command/network backend activation */
@@ -1100,6 +1140,16 @@ static void network_beforepoll(void) {
     bfd_slot = addfd(bfd, POLLOUT);
 }
 
+/** @brief Process poll() results for network play */
+static int network_afterpoll(void) {
+  if(bfd_slot != -1) {
+    if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
+      play(3 * FRAMES);
+    return 0;
+  } else
+    return 1;
+}
+
 /** @brief Table of speaker backends */
 static const struct speaker_backend backends[] = {
 #if API_ALSA
@@ -1110,7 +1160,8 @@ static const struct speaker_backend backends[] = {
     alsa_activate,
     alsa_play,
     alsa_deactivate,
-    alsa_beforepoll
+    alsa_beforepoll,
+    alsa_afterpoll
   },
 #endif
   {
@@ -1120,7 +1171,8 @@ static const struct speaker_backend backends[] = {
     generic_activate,
     command_play,
     0,                                  /* deactivate */
-    command_beforepoll
+    command_beforepoll,
+    command_afterpoll
   },
   {
     BACKEND_NETWORK,
@@ -1129,18 +1181,16 @@ static const struct speaker_backend backends[] = {
     generic_activate,
     network_play,
     0,                                  /* deactivate */
-    network_beforepoll
+    network_beforepoll,
+    network_afterpoll
   },
-  { -1, 0, 0, 0, 0, 0, 0 }
+  { -1, 0, 0, 0, 0, 0, 0, 0 }           /* end of list */
 };
 
 int main(int argc, char **argv) {
   int n, fd, stdin_slot, poke, timeout;
   struct track *t;
   struct speaker_message sm;
-#if API_ALSA
-  int err;
-#endif
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
@@ -1218,39 +1268,7 @@ int main(int argc, char **argv) {
       fatal(errno, "error calling poll");
     }
     /* Play some sound before doing anything else */
-    poke = 0;
-    switch(config->speaker_backend) {
-#if API_ALSA
-    case BACKEND_ALSA:
-      if(alsa_slots != -1) {
-        unsigned short alsa_revents;
-        
-        if((err = snd_pcm_poll_descriptors_revents(pcm,
-                                                   &fds[alsa_slots],
-                                                   alsa_nslots,
-                                                   &alsa_revents)) < 0)
-          fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
-        if(alsa_revents & (POLLOUT | POLLERR))
-          play(3 * FRAMES);
-      } else
-        poke = 1;
-      break;
-#endif
-    case BACKEND_COMMAND:
-      if(cmdfd_slot != -1) {
-        if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
-          play(3 * FRAMES);
-      } else
-        poke = 1;
-      break;
-    case BACKEND_NETWORK:
-      if(bfd_slot != -1) {
-        if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
-          play(3 * FRAMES);
-      } else
-        poke = 1;
-      break;
-    }
+    poke = backend->afterpoll();
     if(poke) {
       /* Some attempt to play must have failed */
       if(playing && !paused)
