@@ -726,7 +726,7 @@ static void play(size_t frames) {
      * AVT profile (RFC3551). */
 
     if(idled) {
-      /* There's been a gap.  Fix up the RTP time accordingly. */
+      /* There may have been a gap.  Fix up the RTP time accordingly. */
       struct timeval now;
       uint64_t delta;
       uint64_t target_rtp_time;
@@ -739,13 +739,48 @@ static void play(size_t frames) {
       target_rtp_time = (delta * playing->format.rate
                                * playing->format.channels) / 1000000;
       /* Overflows at ~6 years uptime with 44100Hz stereo */
-      if(target_rtp_time > rtp_time)
+
+      /* rtp_time is the number of samples we've played.  NB that we play
+       * RTP_AHEAD_MS ahead of ourselves, so it may legitimately be ahead of
+       * the value we deduce from time comparison.
+       *
+       * Suppose we have 1s track started at t=0, and another track begins to
+       * play at t=2s.  Suppose RTP_AHEAD_MS=1000 and 44100Hz stereo.  In that
+       * case we'll send 1s of audio as fast as we can, giving rtp_time=88200.
+       * rtp_time stops at this point.
+       *
+       * At t=2s we'll have calculated target_rtp_time=176400.  In this case we
+       * set rtp_time=176400 and the player can correctly conclude that it
+       * should leave 1s between the tracks.
+       *
+       * Suppose instead that the second track arrives at t=0.5s, and that
+       * we've managed to transmit the whole of the first track already.  We'll
+       * have target_rtp_time=44100.
+       *
+       * The desired behaviour is to play the second track back to back with
+       * first.  In this case therefore we do not modify rtp_time.
+       *
+       * Is it ever right to reduce rtp_time?  No; for that would imply
+       * transmitting packets with overlapping timestamp ranges, which does not
+       * make sense.
+       */
+      if(target_rtp_time > rtp_time) {
+        /* More time has elapsed than we've transmitted samples.  That implies
+         * we've been 'sending' silence.  */
         info("advancing rtp_time by %"PRIu64" samples",
              target_rtp_time - rtp_time);
-      else if(target_rtp_time < rtp_time)
-        info("reversing rtp_time by %"PRIu64" samples",
-             rtp_time - target_rtp_time);
-      rtp_time = target_rtp_time;
+        rtp_time = target_rtp_time;
+      } else if(target_rtp_time < rtp_time) {
+        const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
+                                           * config->sample_format.rate
+                                           * config->sample_format.channels
+                                           / 1000);
+        
+        if(target_rtp_time + samples_ahead < rtp_time) {
+          info("reversing rtp_time by %"PRIu64" samples",
+               rtp_time - target_rtp_time);
+        }
+      }
     }
     header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
     header.seq = htons(rtp_seq++);
