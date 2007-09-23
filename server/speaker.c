@@ -987,7 +987,9 @@ int main(int argc, char **argv) {
                                            * config->sample_format.rate
                                            * config->sample_format.channels
                                            / 1000);
+#if 0
         static unsigned logit;
+#endif
 
         /* If we're starting then initialize the base time */
         if(!rtp_time)
@@ -1001,7 +1003,7 @@ int main(int argc, char **argv) {
                                      * config->sample_format.channels)
 
                           / 1000000;
-#if 1
+#if 0
         /* TODO remove logging guff */
         if(!(logit++ & 1023))
           info("rtp_time %llu target %llu difference %lld [%lld]", 
