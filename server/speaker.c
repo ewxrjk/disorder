@@ -562,10 +562,8 @@ static void fork_cmd(void) {
 }
 
 static void play(size_t frames) {
-  size_t avail_frames, avail_bytes, write_bytes, written_frames;
+  size_t avail_frames, avail_bytes, written_frames;
   ssize_t written_bytes;
-  struct rtp_header header;
-  struct iovec vec[2];
 
   /* Make sure the output device is activated */
   if(activate()) {
@@ -601,145 +599,8 @@ static void play(size_t frames) {
     avail_frames = frames;
   if(!avail_frames)
     return;
-
-  switch(config->speaker_backend) {
-#if API_ALSA
-  case BACKEND_ALSA: {
-    written_frames = backend->play(avail_frames);
-    break;
-  }
-#endif
-  case BACKEND_COMMAND:
-    if(avail_bytes > frames * bpf)
-      avail_bytes = frames * bpf;
-    written_bytes = write(cmdfd, playing->buffer + playing->start,
-                          avail_bytes);
-    D(("actually play %zu bytes, wrote %d",
-       avail_bytes, (int)written_bytes));
-    if(written_bytes < 0) {
-      switch(errno) {
-        case EPIPE:
-          error(0, "hmm, command died; trying another");
-          fork_cmd();
-          return;
-        case EAGAIN:
-          return;
-      }
-    }
-    written_frames = written_bytes / bpf; /* good enough */
-    break;
-  case BACKEND_NETWORK:
-    /* We transmit using RTP (RFC3550) and attempt to conform to the internet
-     * AVT profile (RFC3551). */
-
-    if(idled) {
-      /* There may have been a gap.  Fix up the RTP time accordingly. */
-      struct timeval now;
-      uint64_t delta;
-      uint64_t target_rtp_time;
-
-      /* Find the current time */
-      xgettimeofday(&now, 0);
-      /* Find the number of microseconds elapsed since rtp_time=0 */
-      delta = tvsub_us(now, rtp_time_0);
-      assert(delta <= UINT64_MAX / 88200);
-      target_rtp_time = (delta * playing->format.rate
-                               * playing->format.channels) / 1000000;
-      /* Overflows at ~6 years uptime with 44100Hz stereo */
-
-      /* rtp_time is the number of samples we've played.  NB that we play
-       * RTP_AHEAD_MS ahead of ourselves, so it may legitimately be ahead of
-       * the value we deduce from time comparison.
-       *
-       * Suppose we have 1s track started at t=0, and another track begins to
-       * play at t=2s.  Suppose RTP_AHEAD_MS=1000 and 44100Hz stereo.  In that
-       * case we'll send 1s of audio as fast as we can, giving rtp_time=88200.
-       * rtp_time stops at this point.
-       *
-       * At t=2s we'll have calculated target_rtp_time=176400.  In this case we
-       * set rtp_time=176400 and the player can correctly conclude that it
-       * should leave 1s between the tracks.
-       *
-       * Suppose instead that the second track arrives at t=0.5s, and that
-       * we've managed to transmit the whole of the first track already.  We'll
-       * have target_rtp_time=44100.
-       *
-       * The desired behaviour is to play the second track back to back with
-       * first.  In this case therefore we do not modify rtp_time.
-       *
-       * Is it ever right to reduce rtp_time?  No; for that would imply
-       * transmitting packets with overlapping timestamp ranges, which does not
-       * make sense.
-       */
-      if(target_rtp_time > rtp_time) {
-        /* More time has elapsed than we've transmitted samples.  That implies
-         * we've been 'sending' silence.  */
-        info("advancing rtp_time by %"PRIu64" samples",
-             target_rtp_time - rtp_time);
-        rtp_time = target_rtp_time;
-      } else if(target_rtp_time < rtp_time) {
-        const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                           * config->sample_format.rate
-                                           * config->sample_format.channels
-                                           / 1000);
-        
-        if(target_rtp_time + samples_ahead < rtp_time) {
-          info("reversing rtp_time by %"PRIu64" samples",
-               rtp_time - target_rtp_time);
-        }
-      }
-    }
-    header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
-    header.seq = htons(rtp_seq++);
-    header.timestamp = htonl((uint32_t)rtp_time);
-    header.ssrc = rtp_id;
-    header.mpt = (idled ? 0x80 : 0x00) | 10;
-    /* 10 = L16 = 16-bit x 2 x 44100KHz.  We ought to deduce this value from
-     * the sample rate (in a library somewhere so that configuration.c can rule
-     * out invalid rates).
-     */
-    idled = 0;
-    if(avail_bytes > NETWORK_BYTES - sizeof header) {
-      avail_bytes = NETWORK_BYTES - sizeof header;
-      /* Always send a whole number of frames */
-      avail_bytes -= avail_bytes % bpf;
-    }
-    /* "The RTP clock rate used for generating the RTP timestamp is independent
-     * of the number of channels and the encoding; it equals the number of
-     * sampling periods per second.  For N-channel encodings, each sampling
-     * period (say, 1/8000 of a second) generates N samples. (This terminology
-     * is standard, but somewhat confusing, as the total number of samples
-     * generated per second is then the sampling rate times the channel
-     * count.)"
-     */
-    write_bytes = avail_bytes;
-    if(write_bytes) {
-      vec[0].iov_base = (void *)&header;
-      vec[0].iov_len = sizeof header;
-      vec[1].iov_base = playing->buffer + playing->start;
-      vec[1].iov_len = avail_bytes;
-      do {
-        written_bytes = writev(bfd,
-                               vec,
-                               2);
-      } while(written_bytes < 0 && errno == EINTR);
-      if(written_bytes < 0) {
-        error(errno, "error transmitting audio data");
-        ++audio_errors;
-        if(audio_errors == 10)
-          fatal(0, "too many audio errors");
-      return;
-      }
-    } else
-    audio_errors /= 2;
-    written_bytes = avail_bytes;
-    written_frames = written_bytes / bpf;
-    /* Advance RTP's notion of the time */
-    rtp_time += written_frames * playing->format.channels;
-    break;
-  default:
-    assert(!"reached");
-  }
+  /* Play it, Sam */
+  written_frames = backend->play(avail_frames);
   written_bytes = written_frames * bpf;
   /* written_bytes and written_frames had better both be set and correct by
    * this point */
@@ -949,7 +810,25 @@ static void command_init(void) {
 
 /** @brief Play to a subprocess */
 static size_t command_play(size_t frames) {
-  return frames;
+  size_t bytes = frames * bpf;
+  int written_bytes;
+
+  written_bytes = write(cmdfd, playing->buffer + playing->start, bytes);
+  D(("actually play %zu bytes, wrote %d",
+     bytes, written_bytes));
+  if(written_bytes < 0) {
+    switch(errno) {
+    case EPIPE:
+      error(0, "hmm, command died; trying another");
+      fork_cmd();
+      return 0;
+    case EAGAIN:
+      return 0;
+    default:
+      fatal(errno, "error writing to subprocess");
+    }
+  } else
+    return written_bytes / bpf;
 }
 
 /** @brief Command/network backend activation */
@@ -1035,7 +914,113 @@ static void network_init(void) {
 
 /** @brief Play over the network */
 static size_t network_play(size_t frames) {
-  return frames;
+  struct rtp_header header;
+  struct iovec vec[2];
+  size_t bytes = frames * bpf, written_frames;
+  int written_bytes;
+  /* We transmit using RTP (RFC3550) and attempt to conform to the internet
+   * AVT profile (RFC3551). */
+
+  if(idled) {
+    /* There may have been a gap.  Fix up the RTP time accordingly. */
+    struct timeval now;
+    uint64_t delta;
+    uint64_t target_rtp_time;
+
+    /* Find the current time */
+    xgettimeofday(&now, 0);
+    /* Find the number of microseconds elapsed since rtp_time=0 */
+    delta = tvsub_us(now, rtp_time_0);
+    assert(delta <= UINT64_MAX / 88200);
+    target_rtp_time = (delta * playing->format.rate
+                       * playing->format.channels) / 1000000;
+    /* Overflows at ~6 years uptime with 44100Hz stereo */
+
+    /* rtp_time is the number of samples we've played.  NB that we play
+     * RTP_AHEAD_MS ahead of ourselves, so it may legitimately be ahead of
+     * the value we deduce from time comparison.
+     *
+     * Suppose we have 1s track started at t=0, and another track begins to
+     * play at t=2s.  Suppose RTP_AHEAD_MS=1000 and 44100Hz stereo.  In that
+     * case we'll send 1s of audio as fast as we can, giving rtp_time=88200.
+     * rtp_time stops at this point.
+     *
+     * At t=2s we'll have calculated target_rtp_time=176400.  In this case we
+     * set rtp_time=176400 and the player can correctly conclude that it
+     * should leave 1s between the tracks.
+     *
+     * Suppose instead that the second track arrives at t=0.5s, and that
+     * we've managed to transmit the whole of the first track already.  We'll
+     * have target_rtp_time=44100.
+     *
+     * The desired behaviour is to play the second track back to back with
+     * first.  In this case therefore we do not modify rtp_time.
+     *
+     * Is it ever right to reduce rtp_time?  No; for that would imply
+     * transmitting packets with overlapping timestamp ranges, which does not
+     * make sense.
+     */
+    if(target_rtp_time > rtp_time) {
+      /* More time has elapsed than we've transmitted samples.  That implies
+       * we've been 'sending' silence.  */
+      info("advancing rtp_time by %"PRIu64" samples",
+           target_rtp_time - rtp_time);
+      rtp_time = target_rtp_time;
+    } else if(target_rtp_time < rtp_time) {
+      const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
+                                     * config->sample_format.rate
+                                     * config->sample_format.channels
+                                     / 1000);
+        
+      if(target_rtp_time + samples_ahead < rtp_time) {
+        info("reversing rtp_time by %"PRIu64" samples",
+             rtp_time - target_rtp_time);
+      }
+    }
+  }
+  header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
+  header.seq = htons(rtp_seq++);
+  header.timestamp = htonl((uint32_t)rtp_time);
+  header.ssrc = rtp_id;
+  header.mpt = (idled ? 0x80 : 0x00) | 10;
+  /* 10 = L16 = 16-bit x 2 x 44100KHz.  We ought to deduce this value from
+   * the sample rate (in a library somewhere so that configuration.c can rule
+   * out invalid rates).
+   */
+  idled = 0;
+  if(bytes > NETWORK_BYTES - sizeof header) {
+    bytes = NETWORK_BYTES - sizeof header;
+    /* Always send a whole number of frames */
+    bytes -= bytes % bpf;
+  }
+  /* "The RTP clock rate used for generating the RTP timestamp is independent
+   * of the number of channels and the encoding; it equals the number of
+   * sampling periods per second.  For N-channel encodings, each sampling
+   * period (say, 1/8000 of a second) generates N samples. (This terminology
+   * is standard, but somewhat confusing, as the total number of samples
+   * generated per second is then the sampling rate times the channel
+   * count.)"
+   */
+  vec[0].iov_base = (void *)&header;
+  vec[0].iov_len = sizeof header;
+  vec[1].iov_base = playing->buffer + playing->start;
+  vec[1].iov_len = bytes;
+  do {
+    written_bytes = writev(bfd, vec, 2);
+  } while(written_bytes < 0 && errno == EINTR);
+  if(written_bytes < 0) {
+    error(errno, "error transmitting audio data");
+    ++audio_errors;
+    if(audio_errors == 10)
+      fatal(0, "too many audio errors");
+    return 0;
+  } else
+    audio_errors /= 2;
+  written_bytes -= sizeof (struct rtp_header);
+  written_frames = written_bytes / bpf;
+  /* Advance RTP's notion of the time */
+  rtp_time += written_frames * playing->format.channels;
+  return written_frames;
 }
 
 /** @brief Table of speaker backends */
