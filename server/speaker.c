@@ -1251,19 +1251,19 @@ static const struct speaker_backend backends[] = {
  *
  * The playing of audio is more complicated however.
  *
- * On the first run through when a track is ready to be played, @c ready and
+ * On the first run through when a track is ready to be played, @ref ready and
  * @ref forceplay will both be zero.  Therefore @c beforepoll is not called.
  *
  * @c afterpoll on the other hand @b is called and will return nonzero.  The
  * result is that we call @c play(0).  This will call activate(), setting
- * @c ready nonzero, but otherwise has no immediate effect.
+ * @ref ready nonzero, but otherwise has no immediate effect.
  *
  * We then deal with stdin and the decoders.
  *
  * We then reach the second place we might play some audio.  @ref forceplay is
  * 0 so nothing happens here again.
  *
- * On the next iteration through however @c ready is nonzero, and @ref
+ * On the next iteration through however @ref ready is nonzero, and @ref
  * forceplay is 0, so we call @c beforepoll.  After the @c poll() we call @c
  * afterpoll and actually get some audio played.
  *
