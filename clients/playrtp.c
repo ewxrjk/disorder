@@ -290,6 +290,7 @@ static const struct option options[] = {
   { "min", required_argument, 0, 'm' },
   { "max", required_argument, 0, 'x' },
   { "buffer", required_argument, 0, 'b' },
+  { "rcvbuf", required_argument, 0, 'R' },
   { 0, 0, 0, 0 }
 };
 
@@ -849,6 +850,7 @@ static void help(void) {
           "  --min, -m FRAMES        Buffer low water mark\n"
           "  --buffer, -b FRAMES     Buffer high water mark\n"
           "  --max, -x FRAMES        Buffer maximum size\n"
+          "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
           );
@@ -868,6 +870,8 @@ int main(int argc, char **argv) {
   struct addrinfo *res;
   struct stringlist sl;
   char *sockname;
+  int rcvbuf, target_rcvbuf = 131072;
+  socklen_t len;
 
   static const struct addrinfo prefs = {
     AI_PASSIVE,
@@ -882,7 +886,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -892,6 +896,7 @@ int main(int argc, char **argv) {
     case 'b': readahead = 2 * atol(optarg); break;
     case 'x': maxbuffer = 2 * atol(optarg); break;
     case 'L': logfp = fopen(optarg, "w"); break;
+    case 'R': target_rcvbuf = atoi(optarg); break;
     default: fatal(0, "invalid option");
     }
   }
@@ -912,6 +917,22 @@ int main(int argc, char **argv) {
     fatal(errno, "error creating socket");
   if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
     fatal(errno, "error binding socket to %s", sockname);
+  len = sizeof rcvbuf;
+  if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
+    fatal(errno, "error calling getsockopt SO_RCVBUF");
+  if(target_rcvbuf) {
+    if(setsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF,
+                  &target_rcvbuf, sizeof target_rcvbuf) < 0)
+      error(errno, "error calling setsockopt SO_RCVBUF %d", 
+            target_rcvbuf);
+      /* We try to carry on anyway */
+    else
+      info("changed socket receive buffer from %d to %d",
+           rcvbuf, target_rcvbuf);
+  } else
+    info("default socket receive buffer %d", rcvbuf);
+  if(logfp)
+    info("WARNING: -L option can impact performance");
   play_rtp();
   return 0;
 }
