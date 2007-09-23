@@ -106,8 +106,8 @@
  */
 #define NETWORK_BYTES 1024
 
-/** @brief Maximum RTP playahead (seconds) */
-#define RTP_AHEAD 1
+/** @brief Maximum RTP playahead (ms) */
+#define RTP_AHEAD_MS 1000
 
 /** @brief Maximum number of FDs to poll for */
 #define NFDS 256
@@ -971,9 +971,10 @@ int main(int argc, char **argv) {
         struct timeval now;
         uint64_t target_us;
         uint64_t target_rtp_time;
-        const uint64_t samples_ahead = RTP_AHEAD * config->sample_format.rate
-                                              * config->sample_format.channels;
-
+        const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
+                                           * config->sample_format.rate
+                                           * config->sample_format.channels
+                                           / 1000);
         static unsigned logit;
 
         /* If we're starting then initialize the base time */
@@ -988,7 +989,7 @@ int main(int argc, char **argv) {
                                      * config->sample_format.channels)
 
                           / 1000000;
-#if 0
+#if 1
         /* TODO remove logging guff */
         if(!(logit++ & 1023))
           info("rtp_time %llu target %llu difference %lld [%lld]", 
@@ -996,8 +997,7 @@ int main(int argc, char **argv) {
                rtp_time - target_rtp_time,
                samples_ahead);
 #endif
-        if(rtp_time < target_rtp_time
-           || rtp_time - target_rtp_time < samples_ahead)
+        if((int64_t)(rtp_time - target_rtp_time) < samples_ahead)
           bfd_slot = addfd(bfd, POLLOUT);
         break;
       }
