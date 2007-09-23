@@ -133,7 +133,6 @@ static struct track {
 
 static time_t last_report;              /* when we last reported */
 static int paused;                      /* pause status */
-static ao_sample_format pcm_format;     /* current format if aodev != 0 */
 static size_t bpf;                      /* bytes per frame */
 static struct pollfd fds[NFDS];         /* if we need more than that */
 static int fdno;                        /* fd number */
@@ -142,6 +141,7 @@ static size_t bufsize;                  /* buffer size */
 /** @brief The current PCM handle */
 static snd_pcm_t *pcm;
 static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
+static ao_sample_format pcm_format;     /* current format if aodev != 0 */
 #endif
 
 /** @brief Ready to send audio
@@ -188,6 +188,15 @@ struct speaker_backend {
    * @c -1 terminates the list.
    */
   int backend;
+
+  /** @brief Flags
+   *
+   * Possible values
+   * - @ref FIXED_FORMAT
+   */
+  unsigned flags;
+/** @brief Lock to configured sample format */
+#define FIXED_FORMAT 0x0001
   
   /** @brief Initialization
    *
@@ -352,16 +361,8 @@ static void soxargs(const char ***pp, char **qq, ao_sample_format *ao) {
  * to a sox invocation, which performs the required translation.
  */
 static void enable_translation(struct track *t) {
-  switch(config->speaker_backend) {
-  case BACKEND_COMMAND:
-  case BACKEND_NETWORK:
-    /* These backends need a specific sample format */
-    break;
-  case BACKEND_ALSA:
-    /* ALSA can cope */
-    return;
-  }
-  if(!formats_equal(&t->format, &config->sample_format)) {
+  if((backend->flags & FIXED_FORMAT)
+     && !formats_equal(&t->format, &config->sample_format)) {
     char argbuf[1024], *q = argbuf;
     const char *av[18], **pp = av;
     int soxpipe[2];
@@ -924,7 +925,6 @@ static void command_init(void) {
 /** @brief Command backend activation */
 static int command_activate(void) {
   if(!ready) {
-    pcm_format = config->sample_format;
     bufsize = 3 * FRAMES;
     bpf = bytes_per_frame(&config->sample_format);
     D(("acquired audio device"));
@@ -1006,7 +1006,6 @@ static void network_init(void) {
 /** @brief Network backend activation */
 static int network_activate(void) {
   if(!ready) {
-    pcm_format = config->sample_format;
     bufsize = 3 * FRAMES;
     bpf = bytes_per_frame(&config->sample_format);
     D(("acquired audio device"));
@@ -1020,21 +1019,24 @@ static const struct speaker_backend backends[] = {
 #if API_ALSA
   {
     BACKEND_ALSA,
+    0,
     alsa_init,
     alsa_activate
   },
 #endif
   {
     BACKEND_COMMAND,
+    FIXED_FORMAT,
     command_init,
     command_activate
   },
   {
     BACKEND_NETWORK,
+    FIXED_FORMAT,
     network_init,
     network_activate
   },
-  { -1, 0, 0 }
+  { -1, 0, 0, 0 }
 };
 
 int main(int argc, char **argv) {
