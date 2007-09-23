@@ -38,6 +38,12 @@ static inline struct timeval tvsub(const struct timeval a,
   return r;
 }
 
+static inline uint64_t tvsub_us(const struct timeval a,
+                                const struct timeval b) {
+  return (((uint64_t)a.tv_sec * 1000000 + a.tv_usec)
+          - ((uint64_t)b.tv_sec * 1000000 + b.tv_usec));
+}
+
 #endif /* TIMEVAL_H */
 
 /*

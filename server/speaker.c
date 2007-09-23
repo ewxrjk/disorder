@@ -146,8 +146,27 @@ static int ready;                       /* ready to send audio */
 static int forceplay;                   /* frames to force play */
 static int cmdfd = -1;                  /* child process input */
 static int bfd = -1;                    /* broadcast FD */
-static uint32_t rtp_time;               /* RTP timestamp */
-static struct timeval rtp_time_real;    /* corresponding real time */
+
+/** @brief RTP timestamp
+ *
+ * This counts the number of samples played (NB not the number of frames
+ * played).
+ *
+ * The timestamp in the packet header is only 32 bits wide.  With 44100Hz
+ * stereo, that only gives about half a day before wrapping, which is not
+ * particularly convenient for certain debugging purposes.  Therefore the
+ * timestamp is maintained as a 64-bit integer, giving around six million years
+ * before wrapping, and truncated to 32 bits when transmitting.
+ */
+static uint64_t rtp_time;
+
+/** @brief RTP base timestamp
+ *
+ * This is the real time correspoding to an @ref rtp_time of 0.  It is used
+ * to recalculate the timestamp after idle periods.
+ */
+static struct timeval rtp_time_0;
+
 static uint16_t rtp_seq;                /* frame sequence number */
 static uint32_t rtp_id;                 /* RTP SSRC */
 static int idled;                       /* set when idled */
@@ -705,24 +724,32 @@ static void play(size_t frames) {
   case BACKEND_NETWORK:
     /* We transmit using RTP (RFC3550) and attempt to conform to the internet
      * AVT profile (RFC3551). */
-    if(rtp_time_real.tv_sec == 0)
-      xgettimeofday(&rtp_time_real, 0);
+
     if(idled) {
-      struct timeval now;
-      xgettimeofday(&now, 0);
       /* There's been a gap.  Fix up the RTP time accordingly. */
-      const long offset =  (((now.tv_sec + now.tv_usec /1000000.0)
-                             - (rtp_time_real.tv_sec + rtp_time_real.tv_usec / 1000000.0)) 
-                            * playing->format.rate * playing->format.channels);
-      if(offset >= 0) {
-        info("offset RTP timestamp by %ld", offset);
-        rtp_time += offset;
-      }
-      rtp_time_real = now;
+      struct timeval now;
+      uint64_t delta;
+      uint64_t target_rtp_time;
+
+      /* Find the current time */
+      xgettimeofday(&now, 0);
+      /* Find the number of microseconds elapsed since rtp_time=0 */
+      delta = tvsub_us(now, rtp_time_0);
+      assert(delta <= UINT64_MAX / 88200);
+      target_rtp_time = (delta * playing->format.rate
+                               * playing->format.channels) / 1000000;
+      /* Overflows at ~6 years uptime with 44100Hz stereo */
+      if(target_rtp_time > rtp_time)
+        info("advancing rtp_time by %"PRIu64" samples",
+             target_rtp_time - rtp_time);
+      else if(target_rtp_time < rtp_time)
+        info("reversing rtp_time by %"PRIu64" samples",
+             rtp_time - target_rtp_time);
+      rtp_time = target_rtp_time;
     }
     header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
     header.seq = htons(rtp_seq++);
-    header.timestamp = htonl(rtp_time);
+    header.timestamp = htonl((uint32_t)rtp_time);
     header.ssrc = rtp_id;
     header.mpt = (idled ? 0x80 : 0x00) | 10;
     /* 10 = L16 = 16-bit x 2 x 44100KHz.  We ought to deduce this value from
@@ -732,6 +759,7 @@ static void play(size_t frames) {
     idled = 0;
     if(avail_bytes > NETWORK_BYTES - sizeof header) {
       avail_bytes = NETWORK_BYTES - sizeof header;
+      /* Always send a whole number of frames */
       avail_bytes -= avail_bytes % bpf;
     }
     /* "The RTP clock rate used for generating the RTP timestamp is independent
@@ -743,26 +771,11 @@ static void play(size_t frames) {
      * count.)"
      */
     write_bytes = avail_bytes;
-#if 0
-    while(write_bytes > 0 && (uint32_t)(playing->buffer + playing->start + write_bytes - 4) == 0)
-      write_bytes -= 4;
-#endif
     if(write_bytes) {
       vec[0].iov_base = (void *)&header;
       vec[0].iov_len = sizeof header;
       vec[1].iov_base = playing->buffer + playing->start;
       vec[1].iov_len = avail_bytes;
-#if 0
-      {
-        char buffer[3 * sizeof header + 1];
-        size_t n;
-        const uint8_t *ptr = (void *)&header;
-        
-        for(n = 0; n < sizeof header; ++n)
-          sprintf(&buffer[3 * n], "%02x ", *ptr++);
-        info(buffer);
-      }
-#endif
       do {
         written_bytes = writev(bfd,
                                vec,
@@ -781,14 +794,6 @@ static void play(size_t frames) {
     written_frames = written_bytes / bpf;
     /* Advance RTP's notion of the time */
     rtp_time += written_frames * playing->format.channels;
-    /* Advance the corresponding real time */
-    assert(NETWORK_BYTES <= 2000);      /* else risk overflowing 32 bits */
-    rtp_time_real.tv_usec += written_frames * 1000000 / playing->format.rate;
-    if(rtp_time_real.tv_usec >= 1000000) {
-      ++rtp_time_real.tv_sec;
-      rtp_time_real.tv_usec -= 1000000;
-    }
-    assert(rtp_time_real.tv_usec < 1000000);
     break;
   default:
     assert(!"reached");
@@ -840,7 +845,6 @@ static int addfd(int fd, int events) {
 
 int main(int argc, char **argv) {
   int n, fd, stdin_slot, alsa_slots, cmdfd_slot, bfd_slot, poke, timeout;
-  struct timeval now, delta;
   struct track *t;
   struct speaker_message sm;
   struct addrinfo *res, *sres;
@@ -963,22 +967,38 @@ int main(int argc, char **argv) {
         if(cmdfd >= 0)
           cmdfd_slot = addfd(cmdfd, POLLOUT);
         break;
-      case BACKEND_NETWORK:
-        /* We want to keep the notional playing point somewhere in the near
-         * future.  If it's too near then clients that attempt even the
-         * slightest amount of read-ahead will never catch up, and those that
-         * don't will skip whenever there's a trivial network delay.  If it's
-         * too far ahead then pause latency will be too high.
-         */
+      case BACKEND_NETWORK: {
+        struct timeval now;
+        uint64_t target_us;
+        uint64_t target_rtp_time;
+        const uint64_t ahead = RTP_AHEAD * config->sample_format.rate
+          * config->sample_format.channels;
+
+        static unsigned logit;
+
+        /* If we're starting then initialize the base time */
+        if(!rtp_time)
+          xgettimeofday(&rtp_time_0, 0);
+        /* We send audio data whenever we get RTP_AHEAD seconds or more
+         * behind */
         xgettimeofday(&now, 0);
-        delta = tvsub(rtp_time_real, now);
-        if(delta.tv_sec < RTP_AHEAD) {
-          D(("delta = %ld.%06ld", (long)delta.tv_sec, (long)delta.tv_usec));
+        target_us = tvsub_us(now, rtp_time_0);
+        assert(target_us <= UINT64_MAX / 88200);
+        target_rtp_time = (target_us * config->sample_format.rate
+                                     * config->sample_format.channels)
+
+                          / 1000000;
+        /* TODO remove logging guff */
+        if(!(logit++ & 1023))
+          info("rtp_time %llu target %llu difference %lld [%lld]", 
+               rtp_time, target_rtp_time,
+               rtp_time - target_rtp_time,
+               ahead);
+        if(rtp_time < target_rtp_time
+           || rtp_time - target_rtp_time < ahead)
           bfd_slot = addfd(bfd, POLLOUT);
-          if(delta.tv_sec < 0)
-            rtp_time_real = now;        /* catch up */
-        }
         break;
+      }
 #if API_ALSA
       case BACKEND_ALSA: {
         /* We send sample data to ALSA as fast as it can accept it, relying on

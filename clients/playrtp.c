@@ -377,7 +377,8 @@ static void *listen_thread(void attribute((unused)) *arg) {
      * This is rather unsatisfactory: it means that if packets get heavily
      * out of order then we guarantee dropouts.  But for now... */
     if(nsamples >= maxbuffer) {
-      info("Buffer full");
+      //info("Buffer full");
+      write(2, "B", 1);
       while(nsamples >= maxbuffer)
         pthread_cond_wait(&cond, &lock);
     }
