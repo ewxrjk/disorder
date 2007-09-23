@@ -403,6 +403,41 @@ static inline int contains(const struct packet *p, uint32_t timestamp) {
           && lt(timestamp, packet_end));
 }
 
+/** @brief Wait until the buffer is adequately full
+ *
+ * Must be called with @ref lock held.
+ */
+static void fill_buffer(void) {
+  info("Buffering...");
+  while(nsamples < readahead)
+    pthread_cond_wait(&cond, &lock);
+  next_timestamp = pheap_first(&packets)->timestamp;
+  active = 1;
+}
+
+/** @brief Find next packet
+ * @return Packet to play or NULL if none found
+ *
+ * The return packet is merely guaranteed not to be in the past: it might be
+ * the first packet in the future rather than one that is actually suitable to
+ * play.
+ *
+ * Must be called with @ref lock held.
+ */
+static struct packet *next_packet(void) {
+  while(pheap_count(&packets)) {
+    struct packet *const p = pheap_first(&packets);
+    if(le(p->timestamp + p->nsamples, next_timestamp)) {
+      /* This packet is in the past.  Drop it and try another one. */
+      drop_first_packet();
+    } else
+      /* This packet is NOT in the past.  (It might be in the future
+       * however.) */
+      return p;
+  }
+  return 0;
+}
+
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 /** @brief Callback from Core Audio */
 static OSStatus adioproc
@@ -415,33 +450,18 @@ static OSStatus adioproc
      void attribute((unused)) *inClientData) {
   UInt32 nbuffers = outOutputData->mNumberBuffers;
   AudioBuffer *ab = outOutputData->mBuffers;
-  const struct packet *p;
   uint32_t samples_available;
-  struct timeval in, out;
 
-  gettimeofday(&in, 0);
   pthread_mutex_lock(&lock);
   while(nbuffers > 0) {
     float *samplesOut = ab->mData;
     size_t samplesOutLeft = ab->mDataByteSize / sizeof (float);
 
     while(samplesOutLeft > 0) {
-      /* Look for a suitable packet, dropping any unsuitable ones along the
-       * way.  Unsuitable packets are ones that are in the past. */
-      while(pheap_count(&packets)) {
-        p = pheap_first(&packets);
-        if(le(p->timestamp + p->nsamples, next_timestamp))
-          /* This packet is in the past.  Drop it and try another one. */
-          drop_first_packet();
-        else
-          /* This packet is NOT in the past.  (It might be in the future
-           * however.) */
-          break;
-      }
-      p = pheap_count(&packets) ? pheap_first(&packets) : 0;
+      const struct packet *p = next_packet();
       if(p && contains(p, next_timestamp)) {
         if(p->flags & IDLE)
-          fprintf(stderr, "\nIDLE\n");
+          write(2, "I", 1);
         /* This packet is ready to play */
         const uint32_t packet_end = p->timestamp + p->nsamples;
         const uint32_t offset = next_timestamp - p->timestamp;
@@ -475,13 +495,6 @@ static OSStatus adioproc
     --nbuffers;
   }
   pthread_mutex_unlock(&lock);
-  gettimeofday(&out, 0);
-  {
-    static double max;
-    double thistime = (out.tv_sec - in.tv_sec) + (out.tv_usec - in.tv_usec) / 1000000.0;
-    if(thistime > max)
-      fprintf(stderr, "adioproc: %8.8fs\n", max = thistime);
-  }
   return 0;
 }
 #endif
@@ -641,41 +654,6 @@ static void alsa_reset(int hard_reset) {
   alsa_prepared = 0;
 }
 #endif
-
-/** @brief Wait until the buffer is adequately full
- *
- * Must be called with @ref lock held.
- */
-static void fill_buffer(void) {
-  info("Buffering...");
-  while(nsamples < readahead)
-    pthread_cond_wait(&cond, &lock);
-  next_timestamp = pheap_first(&packets)->timestamp;
-  active = 1;
-}
-
-/** @brief Find next packet
- * @return Packet to play or NULL if none found
- *
- * The return packet is merely guaranteed not to be in the past: it might be
- * the first packet in the future rather than one that is actually suitable to
- * play.
- *
- * Must be called with @ref lock held.
- */
-static struct packet *next_packet(void) {
-  while(pheap_count(&packets)) {
-    struct packet *const p = pheap_first(&packets);
-    if(le(p->timestamp + p->nsamples, next_timestamp)) {
-      /* This packet is in the past.  Drop it and try another one. */
-      drop_first_packet();
-    } else
-      /* This packet is NOT in the past.  (It might be in the future
-       * however.) */
-      return p;
-  }
-  return 0;
-}
 
 /** @brief Play an RTP stream
  *

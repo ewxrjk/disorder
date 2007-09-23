@@ -21,7 +21,7 @@
 #ifndef ECLIENT_H
 #define ECLIENT_H
 
-/* Asynchronous client interface.  You must provide disorder_client_poll(). */
+/* Asynchronous client interface */
 
 typedef struct disorder_eclient disorder_eclient;
 
