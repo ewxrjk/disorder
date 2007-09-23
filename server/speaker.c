@@ -105,7 +105,18 @@
  */
 #define BUFFER_SECONDS 5
 
-#define FRAMES 4096                     /* Frame batch size */
+/** @brief Frame batch size
+ *
+ * This controls how many frames are written in one go.
+ *
+ * For ALSA we request a buffer of three times this size and set the low
+ * watermark to this amount.  The goal is then to keep between 1 and 3 times
+ * this many frames in play.
+ *
+ * For all backends we attempt to play up to three times this many frames per
+ * shot.  In practice we will often only send much less than this.
+ */
+#define FRAMES 4096
 
 /** @brief Bytes to send per network packet
  *
@@ -159,9 +170,25 @@ static ao_sample_format pcm_format;     /* current format if aodev != 0 */
  */
 static int ready;
 
-static int forceplay;                   /* frames to force play */
-static int cmdfd = -1;                  /* child process input */
-static int bfd = -1;                    /* broadcast FD */
+/** @brief Frames to force-play
+ *
+ * If this is nonzero, and playing is enabled, then the main loop will attempt
+ * to play this many frames without checking whether the output device is
+ * ready.
+ */
+static int forceplay;
+
+/** @brief Pipe to subprocess
+ *
+ * This is the file descriptor to write to for @ref BACKEND_COMMAND.
+ */
+static int cmdfd = -1;
+
+/** @brief Network socket
+ *
+ * This is the file descriptor to write to for @ref BACKEND_NETWORK.
+ */
+static int bfd = -1;
 
 /** @brief RTP timestamp
  *
@@ -183,10 +210,21 @@ static uint64_t rtp_time;
  */
 static struct timeval rtp_time_0;
 
-static uint16_t rtp_seq;                /* frame sequence number */
-static uint32_t rtp_id;                 /* RTP SSRC */
+/** @brief RTP packet sequence number */
+static uint16_t rtp_seq;
+
+/** @brief RTP SSRC */
+static uint32_t rtp_id;
+
+/** @brief Set when idled
+ *
+ * This is set when the sound device is deliberately closed by idle().
+ * @ref ready is set to 0 at the same time.
+ */
 static int idled;                       /* set when idled */
-static int audio_errors;                /* audio error counter */
+
+/** @brief Error counter */
+static int audio_errors;
 
 /** @brief Structure of a backend */
 struct speaker_backend {
@@ -442,7 +480,9 @@ static void enable_translation(struct track *t) {
  * @param t Pointer to track
  * @return 0 on success, -1 on EOF
  *
- * This is effectively the read callback on @c t->fd.
+ * This is effectively the read callback on @c t->fd.  It is called from the
+ * main loop whenever the track's file descriptor is readable, assuming the
+ * buffer has not reached the maximum allowed occupancy.
  */
 static int fill(struct track *t) {
   size_t where, left;
@@ -492,7 +532,12 @@ static int fill(struct track *t) {
   return 0;
 }
 
-/** @brief Close the sound device */
+/** @brief Close the sound device
+ *
+ * This is called to deactivate the output device when pausing, and also by the
+ * ALSA backend when changing encoding (in which case the sound device will be
+ * immediately reactivated).
+ */
 static void idle(void) {
   D(("idle"));
   if(backend->deactivate)
@@ -558,7 +603,13 @@ static int activate(void) {
   return backend->activate();
 }
 
-/* Check to see whether the current track has finished playing */
+/** @brief Check whether the current track has finished
+ *
+ * The current track is determined to have finished either if the input stream
+ * eded before the format could be determined (i.e. it is malformed) or the
+ * input is at end of file and there is less than a frame left unplayed.  (So
+ * it copes with decoders that crash mid-frame.)
+ */
 static void maybe_finished(void) {
   if(playing
      && playing->eof
@@ -567,6 +618,7 @@ static void maybe_finished(void) {
     abandon();
 }
 
+/** @brief Start the subprocess for @ref BACKEND_COMMAND */
 static void fork_cmd(void) {
   pid_t cmdpid;
   int pfd[2];
@@ -586,6 +638,7 @@ static void fork_cmd(void) {
   D(("forked cmd %d, fd = %d", cmdpid, cmdfd));
 }
 
+/** @brief Play up to @p frames frames of audio */
 static void play(size_t frames) {
   size_t avail_frames, avail_bytes, written_frames;
   ssize_t written_bytes;
@@ -1187,49 +1240,53 @@ static const struct speaker_backend backends[] = {
   { -1, 0, 0, 0, 0, 0, 0, 0 }           /* end of list */
 };
 
-int main(int argc, char **argv) {
-  int n, fd, stdin_slot, poke, timeout;
+/** @brief Main event loop
+ *
+ * This has grown in a rather bizarre and ad-hoc way is very sensitive to
+ * changes...
+ *
+ * Firstly the loop is terminated when the parent process exits.  Therefore the
+ * speaker process has the same lifetime as the main server.  This and the
+ * reading of data from decoders is comprehensible enough.
+ *
+ * The playing of audio is more complicated however.
+ *
+ * On the first run through when a track is ready to be played, @c ready and
+ * @ref forceplay will both be zero.  Therefore @c beforepoll is not called.
+ *
+ * @c afterpoll on the other hand @b is called and will return nonzero.  The
+ * result is that we call @c play(0).  This will call activate(), setting
+ * @c ready nonzero, but otherwise has no immediate effect.
+ *
+ * We then deal with stdin and the decoders.
+ *
+ * We then reach the second place we might play some audio.  @ref forceplay is
+ * 0 so nothing happens here again.
+ *
+ * On the next iteration through however @c ready is nonzero, and @ref
+ * forceplay is 0, so we call @c beforepoll.  After the @c poll() we call @c
+ * afterpoll and actually get some audio played.
+ *
+ * This is surely @b far more complicated than it needs to be!
+ *
+ * If at any call to play(), activate() fails, or if there aren't enough bytes
+ * in the buffer to satisfy the request, then @ref forceplay is set non-0.  On
+ * the next pass through the event loop @c beforepoll is not called.  This
+ * means that (if none of the other FDs trigger) the @c poll() call will block
+ * for up to a second.  @c afterpoll will return nonzero, since @c beforepoll
+ * wasn't called, and consequently play() is called with @ref forceplay as its
+ * argument.
+ *
+ * The effect is to attempt to restart playing audio - including the activate()
+ * step, which may have failed at the previous attempt - at least once a second
+ * after an error has disabled it.  The delay prevents busy-waiting on whatever
+ * condition has rendered the audio device uncooperative.
+ */
+static void mainloop(void) {
   struct track *t;
   struct speaker_message sm;
+  int n, fd, stdin_slot, poke, timeout;
 
-  set_progname(argv);
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dD", options, 0)) >= 0) {
-    switch(n) {
-    case 'h': help();
-    case 'V': version();
-    case 'c': configfile = optarg; break;
-    case 'd': debugging = 1; break;
-    case 'D': debugging = 0; break;
-    default: fatal(0, "invalid option");
-    }
-  }
-  if(getenv("DISORDER_DEBUG_SPEAKER")) debugging = 1;
-  /* If stderr is a TTY then log there, otherwise to syslog. */
-  if(!isatty(2)) {
-    openlog(progname, LOG_PID, LOG_DAEMON);
-    log_default = &log_syslog;
-  }
-  if(config_read()) fatal(0, "cannot read configuration");
-  /* ignore SIGPIPE */
-  signal(SIGPIPE, SIG_IGN);
-  /* reap kids */
-  signal(SIGCHLD, reap);
-  /* set nice value */
-  xnice(config->nice_speaker);
-  /* change user */
-  become_mortal();
-  /* make sure we're not root, whatever the config says */
-  if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
-  /* identify the backend used to play */
-  for(n = 0; backends[n].backend != -1; ++n)
-    if(backends[n].backend == config->speaker_backend)
-      break;
-  if(backends[n].backend == -1)
-    fatal(0, "unsupported backend %d", config->speaker_backend);
-  backend = &backends[n];
-  /* backend-specific initialization */
-  backend->init();
   while(getppid() != 1) {
     fdno = 0;
     /* Always ready for commands from the main server. */
@@ -1242,7 +1299,9 @@ int main(int argc, char **argv) {
       playing->slot = -1;
     /* If forceplay is set then wait until it succeeds before waiting on the
      * sound device. */
+#if API_ALSA
     alsa_slots = -1;
+#endif
     cmdfd_slot = -1;
     bfd_slot = -1;
     /* By default we will wait up to a second before thinking about current
@@ -1351,6 +1410,50 @@ int main(int argc, char **argv) {
     if(time(0) > last_report)
       report();
   }
+}
+
+int main(int argc, char **argv) {
+  int n;
+
+  set_progname(argv);
+  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  while((n = getopt_long(argc, argv, "hVc:dD", options, 0)) >= 0) {
+    switch(n) {
+    case 'h': help();
+    case 'V': version();
+    case 'c': configfile = optarg; break;
+    case 'd': debugging = 1; break;
+    case 'D': debugging = 0; break;
+    default: fatal(0, "invalid option");
+    }
+  }
+  if(getenv("DISORDER_DEBUG_SPEAKER")) debugging = 1;
+  /* If stderr is a TTY then log there, otherwise to syslog. */
+  if(!isatty(2)) {
+    openlog(progname, LOG_PID, LOG_DAEMON);
+    log_default = &log_syslog;
+  }
+  if(config_read()) fatal(0, "cannot read configuration");
+  /* ignore SIGPIPE */
+  signal(SIGPIPE, SIG_IGN);
+  /* reap kids */
+  signal(SIGCHLD, reap);
+  /* set nice value */
+  xnice(config->nice_speaker);
+  /* change user */
+  become_mortal();
+  /* make sure we're not root, whatever the config says */
+  if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
+  /* identify the backend used to play */
+  for(n = 0; backends[n].backend != -1; ++n)
+    if(backends[n].backend == config->speaker_backend)
+      break;
+  if(backends[n].backend == -1)
+    fatal(0, "unsupported backend %d", config->speaker_backend);
+  backend = &backends[n];
+  /* backend-specific initialization */
+  backend->init();
+  mainloop();
   info("stopped (parent terminated)");
   exit(0);
 }
