@@ -25,9 +25,9 @@
  * subprocess).  It receives connections from decoders via file descriptor
  * passing from the main server and plays them in the right order.
  *
- * For the <a href="http://www.alsa-project.org/">ALSA</a> API, 8- and 16- bit
- * stereo and mono are supported, with any sample rate (within the limits that
- * ALSA can deal with.)
+ * @b Encodings.  For the <a href="http://www.alsa-project.org/">ALSA</a> API,
+ * 8- and 16- bit stereo and mono are supported, with any sample rate (within
+ * the limits that ALSA can deal with.)
  *
  * When communicating with a subprocess, <a
  * href="http://sox.sourceforge.net/">sox</a> is invoked to convert the inbound
@@ -39,12 +39,19 @@
  * between versions; the speaker is assumed to be built from the same source
  * and run on the same host as the main server.
  *
- * This program deliberately does not use the garbage collector even though it
- * might be convenient to do so.  This is for two reasons.  Firstly some sound
- * APIs use thread threads and we do not want to have to deal with potential
- * interactions between threading and garbage collection.  Secondly this
- * process needs to be able to respond quickly and this is not compatible with
- * the collector hanging the program even relatively briefly.
+ * @b Garbage @b Collection.  This program deliberately does not use the
+ * garbage collector even though it might be convenient to do so.  This is for
+ * two reasons.  Firstly some sound APIs use thread threads and we do not want
+ * to have to deal with potential interactions between threading and garbage
+ * collection.  Secondly this process needs to be able to respond quickly and
+ * this is not compatible with the collector hanging the program even
+ * relatively briefly.
+ *
+ * @b Units.  This program thinks at various times in three different units.
+ * Bytes are obvious.  A sample is a single sample on a single channel.  A
+ * frame is several samples on different channels at the same point in time.
+ * So (for instance) a 16-bit stereo frame is 4 bytes and consists of a pair of
+ * 2-byte samples.
  */
 
 #include <config.h>

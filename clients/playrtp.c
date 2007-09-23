@@ -294,7 +294,7 @@ static const struct option options[] = {
   { 0, 0, 0, 0 }
 };
 
-/** @Brief Return a new packet */
+/** @brief Return a new packet */
 static struct packet *new_packet(void) {
   struct packet *p;
   
