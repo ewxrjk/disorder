@@ -869,6 +869,8 @@ int main(int argc, char **argv) {
     0
   };
   static const int one = 1;
+  int sndbuf, target_sndbuf = 131072;
+  socklen_t len;
   char *sockname, *ssockname;
 #if API_ALSA
   int alsa_nslots = -1, err;
@@ -923,7 +925,17 @@ int main(int argc, char **argv) {
                      res->ai_protocol)) < 0)
       fatal(errno, "error creating broadcast socket");
     if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-      fatal(errno, "error settting SO_BROADCAST on broadcast socket");
+      fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+    len = sizeof sndbuf;
+    if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
+                  &sndbuf, &len) < 0)
+      fatal(errno, "error getting SO_SNDBUF");
+    if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
+                  &target_sndbuf, sizeof target_sndbuf) < 0)
+      error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
+    else
+      info("changed socket send buffer size from %d to %d",
+           sndbuf, target_sndbuf);
     /* We might well want to set additional broadcast- or multicast-related
      * options here */
     if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
