@@ -605,30 +605,7 @@ static void play(size_t frames) {
   switch(config->speaker_backend) {
 #if API_ALSA
   case BACKEND_ALSA: {
-    snd_pcm_sframes_t pcm_written_frames;
-    int err;
-
-    pcm_written_frames = snd_pcm_writei(pcm,
-                                        playing->buffer + playing->start,
-                                        avail_frames);
-    D(("actually play %zu frames, wrote %d",
-       avail_frames, (int)pcm_written_frames));
-    if(pcm_written_frames < 0) {
-      switch(pcm_written_frames) {
-        case -EPIPE:                        /* underrun */
-          error(0, "snd_pcm_writei reports underrun");
-          if((err = snd_pcm_prepare(pcm)) < 0)
-            fatal(0, "error calling snd_pcm_prepare: %d", err);
-          return;
-        case -EAGAIN:
-          return;
-        default:
-          fatal(0, "error calling snd_pcm_writei: %d",
-                (int)pcm_written_frames);
-      }
-    }
-    written_frames = pcm_written_frames;
-    written_bytes = written_frames * bpf;
+    written_frames = backend->play(avail_frames);
     break;
   }
 #endif
@@ -763,6 +740,7 @@ static void play(size_t frames) {
   default:
     assert(!"reached");
   }
+  written_bytes = written_frames * bpf;
   /* written_bytes and written_frames had better both be set and correct by
    * this point */
   playing->start += written_bytes;
@@ -920,7 +898,29 @@ error:
 
 /** @brief Play via ALSA */
 static size_t alsa_play(size_t frames) {
-  return frames;
+  snd_pcm_sframes_t pcm_written_frames;
+  int err;
+  
+  pcm_written_frames = snd_pcm_writei(pcm,
+                                      playing->buffer + playing->start,
+                                      frames);
+  D(("actually play %zu frames, wrote %d",
+     frames, (int)pcm_written_frames));
+  if(pcm_written_frames < 0) {
+    switch(pcm_written_frames) {
+    case -EPIPE:                        /* underrun */
+      error(0, "snd_pcm_writei reports underrun");
+      if((err = snd_pcm_prepare(pcm)) < 0)
+        fatal(0, "error calling snd_pcm_prepare: %d", err);
+      return 0;
+    case -EAGAIN:
+      return 0;
+    default:
+      fatal(0, "error calling snd_pcm_writei: %d",
+            (int)pcm_written_frames);
+    }
+  } else
+    return pcm_written_frames;
 }
 
 /** @brief ALSA deactivation */
