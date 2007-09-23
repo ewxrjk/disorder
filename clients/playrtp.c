@@ -920,7 +920,7 @@ int main(int argc, char **argv) {
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
     fatal(errno, "error calling getsockopt SO_RCVBUF");
-  if(target_rcvbuf) {
+  if(target_rcvbuf > rcvbuf) {
     if(setsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF,
                   &target_rcvbuf, sizeof target_rcvbuf) < 0)
       error(errno, "error calling setsockopt SO_RCVBUF %d", 

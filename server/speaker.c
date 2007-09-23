@@ -965,12 +965,16 @@ int main(int argc, char **argv) {
     if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
                   &sndbuf, &len) < 0)
       fatal(errno, "error getting SO_SNDBUF");
-    if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
-                  &target_sndbuf, sizeof target_sndbuf) < 0)
-      error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
-    else
-      info("changed socket send buffer size from %d to %d",
-           sndbuf, target_sndbuf);
+    if(target_sndbuf > sndbuf) {
+      if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
+                    &target_sndbuf, sizeof target_sndbuf) < 0)
+        error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
+      else
+        info("changed socket send buffer size from %d to %d",
+             sndbuf, target_sndbuf);
+    } else
+        info("default socket send buffer is %d",
+             sndbuf);
     /* We might well want to set additional broadcast- or multicast-related
      * options here */
     if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
