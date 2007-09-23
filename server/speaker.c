@@ -104,7 +104,7 @@
  *
  * Don't make this too big or arithmetic will start to overflow.
  */
-#define NETWORK_BYTES 1024
+#define NETWORK_BYTES (1024+sizeof(struct rtp_header))
 
 /** @brief Maximum RTP playahead (ms) */
 #define RTP_AHEAD_MS 1000
