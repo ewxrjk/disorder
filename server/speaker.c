@@ -239,6 +239,13 @@ struct speaker_backend {
    * @c activate above.
    */
   void (*deactivate)(void);
+
+  /** @brief Called before poll()
+   *
+   * Called before the call to poll().  Should call addfd() to update the FD
+   * array and stash the slot number somewhere safe.
+   */
+  void (*beforepoll)(void);
 };
 
 /** @brief Selected backend */
@@ -791,6 +798,32 @@ static size_t alsa_play(size_t frames) {
     return pcm_written_frames;
 }
 
+static int alsa_slots, alsa_nslots = -1;
+
+/** @brief Fill in poll fd array for ALSA */
+static void alsa_beforepoll(void) {
+  /* We send sample data to ALSA as fast as it can accept it, relying on
+   * the fact that it has a relatively small buffer to minimize pause
+   * latency. */
+  int retry = 3, err;
+  
+  alsa_slots = fdno;
+  do {
+    retry = 0;
+    alsa_nslots = snd_pcm_poll_descriptors(pcm, &fds[fdno], NFDS - fdno);
+    if((alsa_nslots <= 0
+        || !(fds[alsa_slots].events & POLLOUT))
+       && snd_pcm_state(pcm) == SND_PCM_STATE_XRUN) {
+      error(0, "underrun detected after call to snd_pcm_poll_descriptors()");
+      if((err = snd_pcm_prepare(pcm)))
+        fatal(0, "error calling snd_pcm_prepare: %d", err);
+    } else
+      break;
+  } while(retry-- > 0);
+  if(alsa_nslots >= 0)
+    fdno += alsa_nslots;
+}
+
 /** @brief ALSA deactivation */
 static void alsa_deactivate(void) {
   if(pcm) {
@@ -836,6 +869,16 @@ static size_t command_play(size_t frames) {
     }
   } else
     return written_bytes / bpf;
+}
+
+static int cmdfd_slot;
+
+/** @brief Update poll array for writing to subprocess */
+static void command_beforepoll(void) {
+  /* We send sample data to the subprocess as fast as it can accept it.
+   * This isn't ideal as pause latency can be very high as a result. */
+  if(cmdfd >= 0)
+    cmdfd_slot = addfd(cmdfd, POLLOUT);
 }
 
 /** @brief Command/network backend activation */
@@ -1030,6 +1073,33 @@ static size_t network_play(size_t frames) {
   return written_frames;
 }
 
+static int bfd_slot;
+
+/** @brief Set up poll array for network play */
+static void network_beforepoll(void) {
+  struct timeval now;
+  uint64_t target_us;
+  uint64_t target_rtp_time;
+  const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
+                                 * config->sample_format.rate
+                                 * config->sample_format.channels
+                                 / 1000);
+  
+  /* If we're starting then initialize the base time */
+  if(!rtp_time)
+    xgettimeofday(&rtp_time_0, 0);
+  /* We send audio data whenever we get RTP_AHEAD seconds or more
+   * behind */
+  xgettimeofday(&now, 0);
+  target_us = tvsub_us(now, rtp_time_0);
+  assert(target_us <= UINT64_MAX / 88200);
+  target_rtp_time = (target_us * config->sample_format.rate
+                               * config->sample_format.channels)
+                     / 1000000;
+  if((int64_t)(rtp_time - target_rtp_time) < samples_ahead)
+    bfd_slot = addfd(bfd, POLLOUT);
+}
+
 /** @brief Table of speaker backends */
 static const struct speaker_backend backends[] = {
 #if API_ALSA
@@ -1039,7 +1109,8 @@ static const struct speaker_backend backends[] = {
     alsa_init,
     alsa_activate,
     alsa_play,
-    alsa_deactivate
+    alsa_deactivate,
+    alsa_beforepoll
   },
 #endif
   {
@@ -1048,7 +1119,8 @@ static const struct speaker_backend backends[] = {
     command_init,
     generic_activate,
     command_play,
-    0                                   /* deactivate */
+    0,                                  /* deactivate */
+    command_beforepoll
   },
   {
     BACKEND_NETWORK,
@@ -1056,17 +1128,18 @@ static const struct speaker_backend backends[] = {
     network_init,
     generic_activate,
     network_play,
-    0                                   /* deactivate */
+    0,                                  /* deactivate */
+    network_beforepoll
   },
-  { -1, 0, 0, 0, 0, 0 }
+  { -1, 0, 0, 0, 0, 0, 0 }
 };
 
 int main(int argc, char **argv) {
-  int n, fd, stdin_slot, alsa_slots, cmdfd_slot, bfd_slot, poke, timeout;
+  int n, fd, stdin_slot, poke, timeout;
   struct track *t;
   struct speaker_message sm;
 #if API_ALSA
-  int alsa_nslots = -1, err;
+  int err;
 #endif
 
   set_progname(argv);
@@ -1125,79 +1198,10 @@ int main(int argc, char **argv) {
     /* By default we will wait up to a second before thinking about current
      * state. */
     timeout = 1000;
-    if(ready && !forceplay) {
-      switch(config->speaker_backend) {
-      case BACKEND_COMMAND:
-        /* We send sample data to the subprocess as fast as it can accept it.
-         * This isn't ideal as pause latency can be very high as a result. */
-        if(cmdfd >= 0)
-          cmdfd_slot = addfd(cmdfd, POLLOUT);
-        break;
-      case BACKEND_NETWORK: {
-        struct timeval now;
-        uint64_t target_us;
-        uint64_t target_rtp_time;
-        const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                           * config->sample_format.rate
-                                           * config->sample_format.channels
-                                           / 1000);
-#if 0
-        static unsigned logit;
-#endif
-
-        /* If we're starting then initialize the base time */
-        if(!rtp_time)
-          xgettimeofday(&rtp_time_0, 0);
-        /* We send audio data whenever we get RTP_AHEAD seconds or more
-         * behind */
-        xgettimeofday(&now, 0);
-        target_us = tvsub_us(now, rtp_time_0);
-        assert(target_us <= UINT64_MAX / 88200);
-        target_rtp_time = (target_us * config->sample_format.rate
-                                     * config->sample_format.channels)
-
-                          / 1000000;
-#if 0
-        /* TODO remove logging guff */
-        if(!(logit++ & 1023))
-          info("rtp_time %llu target %llu difference %lld [%lld]", 
-               rtp_time, target_rtp_time,
-               rtp_time - target_rtp_time,
-               samples_ahead);
-#endif
-        if((int64_t)(rtp_time - target_rtp_time) < samples_ahead)
-          bfd_slot = addfd(bfd, POLLOUT);
-        break;
-      }
-#if API_ALSA
-      case BACKEND_ALSA: {
-        /* We send sample data to ALSA as fast as it can accept it, relying on
-         * the fact that it has a relatively small buffer to minimize pause
-         * latency. */
-        int retry = 3;
-        
-        alsa_slots = fdno;
-        do {
-          retry = 0;
-          alsa_nslots = snd_pcm_poll_descriptors(pcm, &fds[fdno], NFDS - fdno);
-          if((alsa_nslots <= 0
-              || !(fds[alsa_slots].events & POLLOUT))
-             && snd_pcm_state(pcm) == SND_PCM_STATE_XRUN) {
-            error(0, "underrun detected after call to snd_pcm_poll_descriptors()");
-            if((err = snd_pcm_prepare(pcm)))
-              fatal(0, "error calling snd_pcm_prepare: %d", err);
-          } else
-            break;
-        } while(retry-- > 0);
-        if(alsa_nslots >= 0)
-          fdno += alsa_nslots;
-        break;
-      }
-#endif
-      default:
-        assert(!"unknown backend");
-      }
-    }
+    /* We'll break the poll as soon as the underlying sound device is ready for
+     * more data */
+    if(ready && !forceplay)
+      backend->beforepoll();
     /* If any other tracks don't have a full buffer, try to read sample data
      * from them. */
     for(t = tracks; t; t = t->next)
