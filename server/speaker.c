@@ -139,10 +139,19 @@ static struct pollfd fds[NFDS];         /* if we need more than that */
 static int fdno;                        /* fd number */
 static size_t bufsize;                  /* buffer size */
 #if API_ALSA
-static snd_pcm_t *pcm;                  /* current pcm handle */
+/** @brief The current PCM handle */
+static snd_pcm_t *pcm;
 static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
 #endif
-static int ready;                       /* ready to send audio */
+
+/** @brief Ready to send audio
+ *
+ * This is set when the destination is ready to receive audio.  Generally
+ * this implies that the sound device is open.  In the ALSA backend it
+ * does @b not necessarily imply that is has the right sample format.
+ */
+static int ready;
+
 static int forceplay;                   /* frames to force play */
 static int cmdfd = -1;                  /* child process input */
 static int bfd = -1;                    /* broadcast FD */
@@ -182,7 +191,11 @@ struct speaker_backend {
   
   /** @brief Initialization
    *
-   * Called once at startup.
+   * Called once at startup.  This is responsible for one-time setup
+   * operations, for instance opening a network socket to transmit to.
+   *
+   * When writing to a native sound API this might @b not imply opening the
+   * native sound device - that might be done by @c activate below.
    */
   void (*init)(void);
 
@@ -190,6 +203,11 @@ struct speaker_backend {
    * @return 0 on success, non-0 on error
    *
    * Called to activate the output device.
+   *
+   * After this function succeeds, @ref ready should be non-0.  As well as
+   * opening the audio device, this function is responsible for reconfiguring
+   * if it necessary to cope with different samples formats (for backends that
+   * don't demand a single fixed sample format for the lifetime of the server).
    */
   int (*activate)(void);
 };
