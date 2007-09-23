@@ -878,10 +878,21 @@ static int addfd(int fd, int events) {
     return -1;
 }
 
-int main(int argc, char **argv) {
-  int n, fd, stdin_slot, alsa_slots, cmdfd_slot, bfd_slot, poke, timeout;
-  struct track *t;
-  struct speaker_message sm;
+#if API_ALSA
+/** @brief ALSA backend initialization */
+static void alsa_init(void) {
+  info("selected ALSA backend");
+}
+#endif
+
+/** @brief Command backend initialization */
+static void command_init(void) {
+  info("selected command backend");
+  fork_cmd();
+}
+
+/** @brief Network backend initialization */
+static void network_init(void) {
   struct addrinfo *res, *sres;
   static const struct addrinfo pref = {
     0,
@@ -907,6 +918,90 @@ int main(int argc, char **argv) {
   int sndbuf, target_sndbuf = 131072;
   socklen_t len;
   char *sockname, *ssockname;
+
+  res = get_address(&config->broadcast, &pref, &sockname);
+  if(!res) exit(-1);
+  if(config->broadcast_from.n) {
+    sres = get_address(&config->broadcast_from, &prefbind, &ssockname);
+    if(!sres) exit(-1);
+  } else
+    sres = 0;
+  if((bfd = socket(res->ai_family,
+                   res->ai_socktype,
+                   res->ai_protocol)) < 0)
+    fatal(errno, "error creating broadcast socket");
+  if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
+    fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+  len = sizeof sndbuf;
+  if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
+                &sndbuf, &len) < 0)
+    fatal(errno, "error getting SO_SNDBUF");
+  if(target_sndbuf > sndbuf) {
+    if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
+                  &target_sndbuf, sizeof target_sndbuf) < 0)
+      error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
+    else
+      info("changed socket send buffer size from %d to %d",
+           sndbuf, target_sndbuf);
+  } else
+    info("default socket send buffer is %d",
+         sndbuf);
+  /* We might well want to set additional broadcast- or multicast-related
+   * options here */
+  if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
+    fatal(errno, "error binding broadcast socket to %s", ssockname);
+  if(connect(bfd, res->ai_addr, res->ai_addrlen) < 0)
+    fatal(errno, "error connecting broadcast socket to %s", sockname);
+  /* Select an SSRC */
+  gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
+  info("selected network backend, sending to %s", sockname);
+  if(config->sample_format.byte_format != AO_FMT_BIG) {
+    info("forcing big-endian sample format");
+    config->sample_format.byte_format = AO_FMT_BIG;
+  }
+}
+
+/** @brief Structure of a backend */
+struct speaker_backend {
+  /** @brief Which backend this is
+   *
+   * @c -1 terminates the list.
+   */
+  int backend;
+  
+  /** @brief Initialization
+   *
+   * Called once at startup.
+   */
+  void (*init)(void);
+};
+
+/** @brief Selected backend */
+static const struct speaker_backend *backend;
+
+/** @brief Table of speaker backends */
+static const struct speaker_backend backends[] = {
+#if API_ALSA
+  {
+    BACKEND_ALSA,
+    alsa_init
+  },
+#endif
+  {
+    BACKEND_COMMAND,
+    command_init
+  },
+  {
+    BACKEND_NETWORK,
+    network_init
+  },
+  { -1, 0 }
+};
+
+int main(int argc, char **argv) {
+  int n, fd, stdin_slot, alsa_slots, cmdfd_slot, bfd_slot, poke, timeout;
+  struct track *t;
+  struct speaker_message sm;
 #if API_ALSA
   int alsa_nslots = -1, err;
 #endif
@@ -940,58 +1035,15 @@ int main(int argc, char **argv) {
   become_mortal();
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
-  switch(config->speaker_backend) {
-  case BACKEND_ALSA:
-    info("selected ALSA backend");
-  case BACKEND_COMMAND:
-    info("selected command backend");
-    fork_cmd();
-    break;
-  case BACKEND_NETWORK:
-    res = get_address(&config->broadcast, &pref, &sockname);
-    if(!res) return -1;
-    if(config->broadcast_from.n) {
-      sres = get_address(&config->broadcast_from, &prefbind, &ssockname);
-      if(!sres) return -1;
-    } else
-      sres = 0;
-    if((bfd = socket(res->ai_family,
-                     res->ai_socktype,
-                     res->ai_protocol)) < 0)
-      fatal(errno, "error creating broadcast socket");
-    if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-      fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-    len = sizeof sndbuf;
-    if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
-                  &sndbuf, &len) < 0)
-      fatal(errno, "error getting SO_SNDBUF");
-    if(target_sndbuf > sndbuf) {
-      if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
-                    &target_sndbuf, sizeof target_sndbuf) < 0)
-        error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
-      else
-        info("changed socket send buffer size from %d to %d",
-             sndbuf, target_sndbuf);
-    } else
-        info("default socket send buffer is %d",
-             sndbuf);
-    /* We might well want to set additional broadcast- or multicast-related
-     * options here */
-    if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
-      fatal(errno, "error binding broadcast socket to %s", ssockname);
-    if(connect(bfd, res->ai_addr, res->ai_addrlen) < 0)
-      fatal(errno, "error connecting broadcast socket to %s", sockname);
-    /* Select an SSRC */
-    gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
-    info("selected network backend, sending to %s", sockname);
-    if(config->sample_format.byte_format != AO_FMT_BIG) {
-      info("forcing big-endian sample format");
-      config->sample_format.byte_format = AO_FMT_BIG;
-    }
-    break;
-  default:
-    fatal(0, "unknown backend %d", config->speaker_backend);
-  }
+  /* identify the backend used to play */
+  for(n = 0; backends[n].backend != -1; ++n)
+    if(backends[n].backend == config->speaker_backend)
+      break;
+  if(backends[n].backend == -1)
+    fatal(0, "unsupported backend %d", config->speaker_backend);
+  backend = &backends[n];
+  /* backend-specific initialization */
+  backend->init();
   while(getppid() != 1) {
     fdno = 0;
     /* Always ready for commands from the main server. */
