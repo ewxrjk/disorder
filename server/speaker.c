@@ -219,6 +219,13 @@ struct speaker_backend {
    * don't demand a single fixed sample format for the lifetime of the server).
    */
   int (*activate)(void);
+
+  /** @brief Deactivation
+   *
+   * Called to deactivate the sound device.  This is the inverse of
+   * @c activate above.
+   */
+  void (*deactivate)(void);
 };
 
 /** @brief Selected backend */
@@ -457,21 +464,8 @@ static int fill(struct track *t) {
 /** @brief Close the sound device */
 static void idle(void) {
   D(("idle"));
-#if API_ALSA
-  if(config->speaker_backend == BACKEND_ALSA && pcm) {
-    int  err;
-
-    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
-      fatal(0, "error calling snd_pcm_nonblock: %d", err);
-    D(("draining pcm"));
-    snd_pcm_drain(pcm);
-    D(("closing pcm"));
-    snd_pcm_close(pcm);
-    pcm = 0;
-    forceplay = 0;
-    D(("released audio device"));
-  }
-#endif
+  if(backend->deactivate)
+    backend->deactivate();
   idled = 1;
   ready = 0;
 }
@@ -914,6 +908,23 @@ error:
   }
   return -1;
 }
+
+/** @brief ALSA deactivation */
+static void alsa_deactivate(void) {
+  if(pcm) {
+    int  err;
+    
+    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
+      fatal(0, "error calling snd_pcm_nonblock: %d", err);
+    D(("draining pcm"));
+    snd_pcm_drain(pcm);
+    D(("closing pcm"));
+    snd_pcm_close(pcm);
+    pcm = 0;
+    forceplay = 0;
+    D(("released audio device"));
+  }
+}
 #endif
 
 /** @brief Command backend initialization */
@@ -922,8 +933,8 @@ static void command_init(void) {
   fork_cmd();
 }
 
-/** @brief Command backend activation */
-static int command_activate(void) {
+/** @brief Command/network backend activation */
+static int generic_activate(void) {
   if(!ready) {
     bufsize = 3 * FRAMES;
     bpf = bytes_per_frame(&config->sample_format);
@@ -1003,17 +1014,6 @@ static void network_init(void) {
   }
 }
 
-/** @brief Network backend activation */
-static int network_activate(void) {
-  if(!ready) {
-    bufsize = 3 * FRAMES;
-    bpf = bytes_per_frame(&config->sample_format);
-    D(("acquired audio device"));
-    ready = 1;
-  }
-  return 0;
-}
-
 /** @brief Table of speaker backends */
 static const struct speaker_backend backends[] = {
 #if API_ALSA
@@ -1021,22 +1021,25 @@ static const struct speaker_backend backends[] = {
     BACKEND_ALSA,
     0,
     alsa_init,
-    alsa_activate
+    alsa_activate,
+    alsa_deactivate
   },
 #endif
   {
     BACKEND_COMMAND,
     FIXED_FORMAT,
     command_init,
-    command_activate
+    generic_activate,
+    0                                   /* deactivate */
   },
   {
     BACKEND_NETWORK,
     FIXED_FORMAT,
     network_init,
-    network_activate
+    generic_activate,
+    0                                   /* deactivate */
   },
-  { -1, 0, 0, 0 }
+  { -1, 0, 0, 0, 0 }
 };
 
 int main(int argc, char **argv) {
