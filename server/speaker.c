@@ -82,7 +82,7 @@
 #include "log.h"
 #include "defs.h"
 #include "mem.h"
-#include "speaker.h"
+#include "speaker-protocol.h"
 #include "user.h"
 #include "addr.h"
 #include "timeval.h"

@@ -54,7 +54,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	selection.c selection.h				\
 	signame.c signame.h				\
 	sink.c sink.h					\
-	speaker.c speaker.h				\
+	speaker-protocol.c speaker-protocol.h		\
 	split.c split.h					\
 	syscalls.c syscalls.h				\
 	types.h						\
