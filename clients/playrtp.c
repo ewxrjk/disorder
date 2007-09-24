@@ -481,6 +481,8 @@ static inline int contains(const struct packet *p, uint32_t timestamp) {
  * Must be called with @ref lock held.
  */
 static void fill_buffer(void) {
+  while(nsamples)
+    drop_first_packet();
   info("Buffering...");
   while(nsamples < readahead)
     pthread_cond_wait(&cond, &lock);
