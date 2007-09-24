@@ -45,7 +45,7 @@ disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_speaker_SOURCES=speaker.c
+disorder_speaker_SOURCES=speaker.c speaker.h
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a

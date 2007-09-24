@@ -24,8 +24,8 @@
  * process communicate.
  */
 
-#ifndef SPEAKER_H
-#define SPEAKER_H
+#ifndef SPEAKER_PROTOCOL_H
+#define SPEAKER_PROTOCOL_H
 
 /** @brief A message from the main server to the speaker, or vica versa */
 struct speaker_message {
@@ -104,7 +104,7 @@ int speaker_recv(int fd, struct speaker_message *sm, int *datafd);
  * on EOF, +ve if a message is read, -1 on EAGAIN, terminates on any other
  * error. */
 
-#endif /* SPEAKER_H */
+#endif /* SPEAKER_PROTOCOL_H */
 
 /*
 Local Variables:
