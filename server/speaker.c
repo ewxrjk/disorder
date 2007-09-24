@@ -974,6 +974,7 @@ static size_t network_play(size_t frames) {
      * transmitting packets with overlapping timestamp ranges, which does not
      * make sense.
      */
+    target_rtp_time &= ~(uint64_t)1;    /* stereo! */
     if(target_rtp_time > rtp_time) {
       /* More time has elapsed than we've transmitted samples.  That implies
        * we've been 'sending' silence.  */
