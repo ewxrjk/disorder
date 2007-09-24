@@ -207,6 +207,20 @@ extern ao_sample_format device_format;
 extern struct track *tracks;
 extern struct track *playing;
 
+extern const struct speaker_backend network_backend;
+extern const struct speaker_backend alsa_backend;
+extern const struct speaker_backend command_backend;
+
+extern struct pollfd fds[NFDS];
+extern int fdno;
+extern size_t device_bpf;
+extern int idled;
+
+int addfd(int fd, int events);
+int formats_equal(const ao_sample_format *a,
+                  const ao_sample_format *b);
+void abandon(void);
+
 #endif /* SPEAKER_H */
 
 /*

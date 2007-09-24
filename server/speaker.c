@@ -72,10 +72,6 @@
 #include <time.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <gcrypt.h>
-#include <sys/uio.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -84,14 +80,7 @@
 #include "mem.h"
 #include "speaker-protocol.h"
 #include "user.h"
-#include "addr.h"
-#include "timeval.h"
-#include "rtp.h"
 #include "speaker.h"
-
-#if API_ALSA
-#include <alsa/asoundlib.h>
-#endif
 
 /** @brief Linked list of all prepared tracks */
 struct track *tracks;
@@ -99,16 +88,17 @@ struct track *tracks;
 /** @brief Playing track, or NULL */
 struct track *playing;
 
+/** @brief Number of bytes pre frame */
+size_t device_bpf;
+
+/** @brief Array of file descriptors for poll() */
+struct pollfd fds[NFDS];
+
+/** @brief Next free slot in @ref fds */
+int fdno;
+
 static time_t last_report;              /* when we last reported */
 static int paused;                      /* pause status */
-static size_t bpf;                      /* bytes per frame */
-static struct pollfd fds[NFDS];         /* if we need more than that */
-static int fdno;                        /* fd number */
-#if API_ALSA
-/** @brief The current PCM handle */
-static snd_pcm_t *pcm;
-static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
-#endif
 
 /** @brief The current device state */
 enum device_states device_state;
@@ -121,52 +111,11 @@ enum device_states device_state;
  */
 ao_sample_format device_format;
 
-/** @brief Pipe to subprocess
- *
- * This is the file descriptor to write to for @ref BACKEND_COMMAND.
- */
-static int cmdfd = -1;
-
-/** @brief Network socket
- *
- * This is the file descriptor to write to for @ref BACKEND_NETWORK.
- */
-static int bfd = -1;
-
-/** @brief RTP timestamp
- *
- * This counts the number of samples played (NB not the number of frames
- * played).
- *
- * The timestamp in the packet header is only 32 bits wide.  With 44100Hz
- * stereo, that only gives about half a day before wrapping, which is not
- * particularly convenient for certain debugging purposes.  Therefore the
- * timestamp is maintained as a 64-bit integer, giving around six million years
- * before wrapping, and truncated to 32 bits when transmitting.
- */
-static uint64_t rtp_time;
-
-/** @brief RTP base timestamp
- *
- * This is the real time correspoding to an @ref rtp_time of 0.  It is used
- * to recalculate the timestamp after idle periods.
- */
-static struct timeval rtp_time_0;
-
-/** @brief RTP packet sequence number */
-static uint16_t rtp_seq;
-
-/** @brief RTP SSRC */
-static uint32_t rtp_id;
-
 /** @brief Set when idled
  *
  * This is set when the sound device is deliberately closed by idle().
  */
-static int idled;                       /* set when idled */
-
-/** @brief Error counter */
-static int audio_errors;
+int idled;
 
 /** @brief Selected backend */
 static const struct speaker_backend *backend;
@@ -258,8 +207,8 @@ static void acquire(struct track *t, int fd) {
 }
 
 /** @brief Return true if A and B denote identical libao formats, else false */
-static int formats_equal(const ao_sample_format *a,
-                         const ao_sample_format *b) {
+int formats_equal(const ao_sample_format *a,
+                  const ao_sample_format *b) {
   return (a->bits == b->bits
           && a->rate == b->rate
           && a->channels == b->channels
@@ -419,7 +368,7 @@ static void idle(void) {
 }
 
 /** @brief Abandon the current track */
-static void abandon(void) {
+void abandon(void) {
   struct speaker_message sm;
 
   D(("abandon"));
@@ -453,7 +402,7 @@ static void activate(void) {
     device_state = device_open;
   }
   if(device_state == device_open)
-    bpf = bytes_per_frame(&device_format);
+    device_bpf = bytes_per_frame(&device_format);
 }
 
 /** @brief Check whether the current track has finished
@@ -498,7 +447,7 @@ static void play(size_t frames) {
     if(device_state != device_open)
       return;
   }
-  D(("play: play %zu/%zu%s %dHz %db %dc",  frames, playing->used / bpf,
+  D(("play: play %zu/%zu%s %dHz %db %dc",  frames, playing->used / device_bpf,
      playing->eof ? " EOF" : "",
      playing->format.rate,
      playing->format.bits,
@@ -510,7 +459,7 @@ static void play(size_t frames) {
   else
     /* The ring buffer is not wrapped, can play the lot */
     avail_bytes = playing->used;
-  avail_frames = avail_bytes / bpf;
+  avail_frames = avail_bytes / device_bpf;
   /* Only play up to the requested amount */
   if(avail_frames > frames)
     avail_frames = frames;
@@ -518,7 +467,7 @@ static void play(size_t frames) {
     return;
   /* Play it, Sam */
   written_frames = backend->play(avail_frames);
-  written_bytes = written_frames * bpf;
+  written_bytes = written_frames * device_bpf;
   /* written_bytes and written_frames had better both be set and correct by
    * this point */
   playing->start += written_bytes;
@@ -556,7 +505,7 @@ static void reap(int __attribute__((unused)) sig) {
   signal(SIGCHLD, reap);
 }
 
-static int addfd(int fd, int events) {
+int addfd(int fd, int events) {
   if(fdno < NFDS) {
     fds[fdno].fd = fd;
     fds[fdno].events = events;
@@ -565,549 +514,14 @@ static int addfd(int fd, int events) {
     return -1;
 }
 
-#if API_ALSA
-/** @brief ALSA backend initialization */
-static void alsa_init(void) {
-  info("selected ALSA backend");
-}
-
-/** @brief Log ALSA parameters */
-static void log_params(snd_pcm_hw_params_t *hwparams,
-                       snd_pcm_sw_params_t *swparams) {
-  snd_pcm_uframes_t f;
-  unsigned u;
-
-  return;                               /* too verbose */
-  if(hwparams) {
-    /* TODO */
-  }
-  if(swparams) {
-    snd_pcm_sw_params_get_silence_size(swparams, &f);
-    info("sw silence_size=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
-    info("sw silence_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_sleep_min(swparams, &u);
-    info("sw sleep_min=%lu", (unsigned long)u);
-    snd_pcm_sw_params_get_start_threshold(swparams, &f);
-    info("sw start_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
-    info("sw stop_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_xfer_align(swparams, &f);
-    info("sw xfer_align=%lu", (unsigned long)f);
-  }
-}
-
-/** @brief ALSA deactivation */
-static void alsa_deactivate(void) {
-  if(pcm) {
-    int err;
-    
-    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
-      fatal(0, "error calling snd_pcm_nonblock: %d", err);
-    D(("draining pcm"));
-    snd_pcm_drain(pcm);
-    D(("closing pcm"));
-    snd_pcm_close(pcm);
-    pcm = 0;
-    device_state = device_closed;
-    D(("released audio device"));
-  }
-}
-
-/** @brief ALSA backend activation */
-static void alsa_activate(void) {
-  /* If we need to change format then close the current device. */
-  if(pcm && !formats_equal(&playing->format, &device_format))
-    alsa_deactivate();
-  /* Now if the sound device is open it must have the right format */
-  if(!pcm) {
-    snd_pcm_hw_params_t *hwparams;
-    snd_pcm_sw_params_t *swparams;
-    snd_pcm_uframes_t pcm_bufsize;
-    int err;
-    int sample_format = 0;
-    unsigned rate;
-
-    D(("snd_pcm_open"));
-    if((err = snd_pcm_open(&pcm,
-                           config->device,
-                           SND_PCM_STREAM_PLAYBACK,
-                           SND_PCM_NONBLOCK))) {
-      error(0, "error from snd_pcm_open: %d", err);
-      goto error;
-    }
-    snd_pcm_hw_params_alloca(&hwparams);
-    D(("set up hw params"));
-    if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_any: %d", err);
-    if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
-                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-    switch(playing->format.bits) {
-    case 8:
-      sample_format = SND_PCM_FORMAT_S8;
-      break;
-    case 16:
-      switch(playing->format.byte_format) {
-      case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
-      case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
-      case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
-        error(0, "unrecognized byte format %d", playing->format.byte_format);
-        goto fatal;
-      }
-      break;
-    default:
-      error(0, "unsupported sample size %d", playing->format.bits);
-      goto fatal;
-    }
-    if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
-                                           sample_format)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_format (%d): %d",
-            sample_format, err);
-      goto fatal;
-    }
-    rate = playing->format.rate;
-    if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-            playing->format.rate, err);
-      goto fatal;
-    }
-    if(rate != (unsigned)playing->format.rate)
-      info("want rate %d, got %u", playing->format.rate, rate);
-    if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                             playing->format.channels)) < 0) {
-      error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-            playing->format.channels, err);
-      goto fatal;
-    }
-    pcm_bufsize = 3 * FRAMES;
-    if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
-                                                     &pcm_bufsize)) < 0)
-      fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-            3 * FRAMES, err);
-    if(pcm_bufsize != 3 * FRAMES && pcm_bufsize != last_pcm_bufsize)
-      info("asked for PCM buffer of %d frames, got %d",
-           3 * FRAMES, (int)pcm_bufsize);
-    last_pcm_bufsize = pcm_bufsize;
-    if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
-      fatal(0, "error calling snd_pcm_hw_params: %d", err);
-    D(("set up sw params"));
-    snd_pcm_sw_params_alloca(&swparams);
-    if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
-    if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, FRAMES)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
-            FRAMES, err);
-    if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
-      fatal(0, "error calling snd_pcm_sw_params: %d", err);
-    device_format = playing->format;
-    D(("acquired audio device"));
-    log_params(hwparams, swparams);
-    device_state = device_open;
-  }
-  return;
-fatal:
-  abandon();
-error:
-  /* We assume the error is temporary and that we'll retry in a bit. */
-  if(pcm) {
-    snd_pcm_close(pcm);
-    pcm = 0;
-    device_state = device_error;
-  }
-  return;
-}
-
-/** @brief Play via ALSA */
-static size_t alsa_play(size_t frames) {
-  snd_pcm_sframes_t pcm_written_frames;
-  int err;
-  
-  pcm_written_frames = snd_pcm_writei(pcm,
-                                      playing->buffer + playing->start,
-                                      frames);
-  D(("actually play %zu frames, wrote %d",
-     frames, (int)pcm_written_frames));
-  if(pcm_written_frames < 0) {
-    switch(pcm_written_frames) {
-    case -EPIPE:                        /* underrun */
-      error(0, "snd_pcm_writei reports underrun");
-      if((err = snd_pcm_prepare(pcm)) < 0)
-        fatal(0, "error calling snd_pcm_prepare: %d", err);
-      return 0;
-    case -EAGAIN:
-      return 0;
-    default:
-      fatal(0, "error calling snd_pcm_writei: %d",
-            (int)pcm_written_frames);
-    }
-  } else
-    return pcm_written_frames;
-}
-
-static int alsa_slots, alsa_nslots = -1;
-
-/** @brief Fill in poll fd array for ALSA */
-static void alsa_beforepoll(void) {
-  /* We send sample data to ALSA as fast as it can accept it, relying on
-   * the fact that it has a relatively small buffer to minimize pause
-   * latency. */
-  int retry = 3, err;
-  
-  alsa_slots = fdno;
-  do {
-    retry = 0;
-    alsa_nslots = snd_pcm_poll_descriptors(pcm, &fds[fdno], NFDS - fdno);
-    if((alsa_nslots <= 0
-        || !(fds[alsa_slots].events & POLLOUT))
-       && snd_pcm_state(pcm) == SND_PCM_STATE_XRUN) {
-      error(0, "underrun detected after call to snd_pcm_poll_descriptors()");
-      if((err = snd_pcm_prepare(pcm)))
-        fatal(0, "error calling snd_pcm_prepare: %d", err);
-    } else
-      break;
-  } while(retry-- > 0);
-  if(alsa_nslots >= 0)
-    fdno += alsa_nslots;
-}
-
-/** @brief Process poll() results for ALSA */
-static int alsa_ready(void) {
-  int err;
-
-  unsigned short alsa_revents;
-  
-  if((err = snd_pcm_poll_descriptors_revents(pcm,
-                                             &fds[alsa_slots],
-                                             alsa_nslots,
-                                             &alsa_revents)) < 0)
-    fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
-  if(alsa_revents & (POLLOUT | POLLERR))
-    return 1;
-  else
-    return 0;
-}
-#endif
-
-/** @brief Start the subprocess for @ref BACKEND_COMMAND */
-static void fork_cmd(void) {
-  pid_t cmdpid;
-  int pfd[2];
-  if(cmdfd != -1) close(cmdfd);
-  xpipe(pfd);
-  cmdpid = xfork();
-  if(!cmdpid) {
-    signal(SIGPIPE, SIG_DFL);
-    xdup2(pfd[0], 0);
-    close(pfd[0]);
-    close(pfd[1]);
-    execl("/bin/sh", "sh", "-c", config->speaker_command, (char *)0);
-    fatal(errno, "error execing /bin/sh");
-  }
-  close(pfd[0]);
-  cmdfd = pfd[1];
-  D(("forked cmd %d, fd = %d", cmdpid, cmdfd));
-}
-
-/** @brief Command backend initialization */
-static void command_init(void) {
-  info("selected command backend");
-  fork_cmd();
-}
-
-/** @brief Play to a subprocess */
-static size_t command_play(size_t frames) {
-  size_t bytes = frames * bpf;
-  int written_bytes;
-
-  written_bytes = write(cmdfd, playing->buffer + playing->start, bytes);
-  D(("actually play %zu bytes, wrote %d",
-     bytes, written_bytes));
-  if(written_bytes < 0) {
-    switch(errno) {
-    case EPIPE:
-      error(0, "hmm, command died; trying another");
-      fork_cmd();
-      return 0;
-    case EAGAIN:
-      return 0;
-    default:
-      fatal(errno, "error writing to subprocess");
-    }
-  } else
-    return written_bytes / bpf;
-}
-
-static int cmdfd_slot;
-
-/** @brief Update poll array for writing to subprocess */
-static void command_beforepoll(void) {
-  /* We send sample data to the subprocess as fast as it can accept it.
-   * This isn't ideal as pause latency can be very high as a result. */
-  if(cmdfd >= 0)
-    cmdfd_slot = addfd(cmdfd, POLLOUT);
-}
-
-/** @brief Process poll() results for subprocess play */
-static int command_ready(void) {
-  if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
-    return 1;
-  else
-    return 0;
-}
-
-/** @brief Network backend initialization */
-static void network_init(void) {
-  struct addrinfo *res, *sres;
-  static const struct addrinfo pref = {
-    0,
-    PF_INET,
-    SOCK_DGRAM,
-    IPPROTO_UDP,
-    0,
-    0,
-    0,
-    0
-  };
-  static const struct addrinfo prefbind = {
-    AI_PASSIVE,
-    PF_INET,
-    SOCK_DGRAM,
-    IPPROTO_UDP,
-    0,
-    0,
-    0,
-    0
-  };
-  static const int one = 1;
-  int sndbuf, target_sndbuf = 131072;
-  socklen_t len;
-  char *sockname, *ssockname;
-
-  res = get_address(&config->broadcast, &pref, &sockname);
-  if(!res) exit(-1);
-  if(config->broadcast_from.n) {
-    sres = get_address(&config->broadcast_from, &prefbind, &ssockname);
-    if(!sres) exit(-1);
-  } else
-    sres = 0;
-  if((bfd = socket(res->ai_family,
-                   res->ai_socktype,
-                   res->ai_protocol)) < 0)
-    fatal(errno, "error creating broadcast socket");
-  if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-    fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-  len = sizeof sndbuf;
-  if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
-                &sndbuf, &len) < 0)
-    fatal(errno, "error getting SO_SNDBUF");
-  if(target_sndbuf > sndbuf) {
-    if(setsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
-                  &target_sndbuf, sizeof target_sndbuf) < 0)
-      error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
-    else
-      info("changed socket send buffer size from %d to %d",
-           sndbuf, target_sndbuf);
-  } else
-    info("default socket send buffer is %d",
-         sndbuf);
-  /* We might well want to set additional broadcast- or multicast-related
-   * options here */
-  if(sres && bind(bfd, sres->ai_addr, sres->ai_addrlen) < 0)
-    fatal(errno, "error binding broadcast socket to %s", ssockname);
-  if(connect(bfd, res->ai_addr, res->ai_addrlen) < 0)
-    fatal(errno, "error connecting broadcast socket to %s", sockname);
-  /* Select an SSRC */
-  gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
-  info("selected network backend, sending to %s", sockname);
-  if(config->sample_format.byte_format != AO_FMT_BIG) {
-    info("forcing big-endian sample format");
-    config->sample_format.byte_format = AO_FMT_BIG;
-  }
-}
-
-/** @brief Play over the network */
-static size_t network_play(size_t frames) {
-  struct rtp_header header;
-  struct iovec vec[2];
-  size_t bytes = frames * bpf, written_frames;
-  int written_bytes;
-  /* We transmit using RTP (RFC3550) and attempt to conform to the internet
-   * AVT profile (RFC3551). */
-
-  if(idled) {
-    /* There may have been a gap.  Fix up the RTP time accordingly. */
-    struct timeval now;
-    uint64_t delta;
-    uint64_t target_rtp_time;
-
-    /* Find the current time */
-    xgettimeofday(&now, 0);
-    /* Find the number of microseconds elapsed since rtp_time=0 */
-    delta = tvsub_us(now, rtp_time_0);
-    assert(delta <= UINT64_MAX / 88200);
-    target_rtp_time = (delta * playing->format.rate
-                       * playing->format.channels) / 1000000;
-    /* Overflows at ~6 years uptime with 44100Hz stereo */
-
-    /* rtp_time is the number of samples we've played.  NB that we play
-     * RTP_AHEAD_MS ahead of ourselves, so it may legitimately be ahead of
-     * the value we deduce from time comparison.
-     *
-     * Suppose we have 1s track started at t=0, and another track begins to
-     * play at t=2s.  Suppose RTP_AHEAD_MS=1000 and 44100Hz stereo.  In that
-     * case we'll send 1s of audio as fast as we can, giving rtp_time=88200.
-     * rtp_time stops at this point.
-     *
-     * At t=2s we'll have calculated target_rtp_time=176400.  In this case we
-     * set rtp_time=176400 and the player can correctly conclude that it
-     * should leave 1s between the tracks.
-     *
-     * Suppose instead that the second track arrives at t=0.5s, and that
-     * we've managed to transmit the whole of the first track already.  We'll
-     * have target_rtp_time=44100.
-     *
-     * The desired behaviour is to play the second track back to back with
-     * first.  In this case therefore we do not modify rtp_time.
-     *
-     * Is it ever right to reduce rtp_time?  No; for that would imply
-     * transmitting packets with overlapping timestamp ranges, which does not
-     * make sense.
-     */
-    target_rtp_time &= ~(uint64_t)1;    /* stereo! */
-    if(target_rtp_time > rtp_time) {
-      /* More time has elapsed than we've transmitted samples.  That implies
-       * we've been 'sending' silence.  */
-      info("advancing rtp_time by %"PRIu64" samples",
-           target_rtp_time - rtp_time);
-      rtp_time = target_rtp_time;
-    } else if(target_rtp_time < rtp_time) {
-      const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                     * config->sample_format.rate
-                                     * config->sample_format.channels
-                                     / 1000);
-        
-      if(target_rtp_time + samples_ahead < rtp_time) {
-        info("reversing rtp_time by %"PRIu64" samples",
-             rtp_time - target_rtp_time);
-      }
-    }
-  }
-  header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
-  header.seq = htons(rtp_seq++);
-  header.timestamp = htonl((uint32_t)rtp_time);
-  header.ssrc = rtp_id;
-  header.mpt = (idled ? 0x80 : 0x00) | 10;
-  /* 10 = L16 = 16-bit x 2 x 44100KHz.  We ought to deduce this value from
-   * the sample rate (in a library somewhere so that configuration.c can rule
-   * out invalid rates).
-   */
-  idled = 0;
-  if(bytes > NETWORK_BYTES - sizeof header) {
-    bytes = NETWORK_BYTES - sizeof header;
-    /* Always send a whole number of frames */
-    bytes -= bytes % bpf;
-  }
-  /* "The RTP clock rate used for generating the RTP timestamp is independent
-   * of the number of channels and the encoding; it equals the number of
-   * sampling periods per second.  For N-channel encodings, each sampling
-   * period (say, 1/8000 of a second) generates N samples. (This terminology
-   * is standard, but somewhat confusing, as the total number of samples
-   * generated per second is then the sampling rate times the channel
-   * count.)"
-   */
-  vec[0].iov_base = (void *)&header;
-  vec[0].iov_len = sizeof header;
-  vec[1].iov_base = playing->buffer + playing->start;
-  vec[1].iov_len = bytes;
-  do {
-    written_bytes = writev(bfd, vec, 2);
-  } while(written_bytes < 0 && errno == EINTR);
-  if(written_bytes < 0) {
-    error(errno, "error transmitting audio data");
-    ++audio_errors;
-    if(audio_errors == 10)
-      fatal(0, "too many audio errors");
-    return 0;
-  } else
-    audio_errors /= 2;
-  written_bytes -= sizeof (struct rtp_header);
-  written_frames = written_bytes / bpf;
-  /* Advance RTP's notion of the time */
-  rtp_time += written_frames * playing->format.channels;
-  return written_frames;
-}
-
-static int bfd_slot;
-
-/** @brief Set up poll array for network play */
-static void network_beforepoll(void) {
-  struct timeval now;
-  uint64_t target_us;
-  uint64_t target_rtp_time;
-  const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                 * config->sample_format.rate
-                                 * config->sample_format.channels
-                                 / 1000);
-  
-  /* If we're starting then initialize the base time */
-  if(!rtp_time)
-    xgettimeofday(&rtp_time_0, 0);
-  /* We send audio data whenever we get RTP_AHEAD seconds or more
-   * behind */
-  xgettimeofday(&now, 0);
-  target_us = tvsub_us(now, rtp_time_0);
-  assert(target_us <= UINT64_MAX / 88200);
-  target_rtp_time = (target_us * config->sample_format.rate
-                               * config->sample_format.channels)
-                     / 1000000;
-  if((int64_t)(rtp_time - target_rtp_time) < samples_ahead)
-    bfd_slot = addfd(bfd, POLLOUT);
-}
-
-/** @brief Process poll() results for network play */
-static int network_ready(void) {
-  if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
-    return 1;
-  else
-    return 0;
-}
-
 /** @brief Table of speaker backends */
-static const struct speaker_backend backends[] = {
+static const struct speaker_backend *backends[] = {
 #if API_ALSA
-  {
-    BACKEND_ALSA,
-    0,
-    alsa_init,
-    alsa_activate,
-    alsa_play,
-    alsa_deactivate,
-    alsa_beforepoll,
-    alsa_ready
-  },
+  &alsa_backend,
 #endif
-  {
-    BACKEND_COMMAND,
-    FIXED_FORMAT,
-    command_init,
-    0,                                  /* activate */
-    command_play,
-    0,                                  /* deactivate */
-    command_beforepoll,
-    command_ready
-  },
-  {
-    BACKEND_NETWORK,
-    FIXED_FORMAT,
-    network_init,
-    0,                                  /* activate */
-    network_play,
-    0,                                  /* deactivate */
-    network_beforepoll,
-    network_ready
-  },
-  { -1, 0, 0, 0, 0, 0, 0, 0 }           /* end of list */
+  &command_backend,
+  &network_backend,
+  0
 };
 
 /** @brief Return nonzero if we want to play some audio
@@ -1299,12 +713,12 @@ int main(int argc, char **argv) {
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
   /* identify the backend used to play */
-  for(n = 0; backends[n].backend != -1; ++n)
-    if(backends[n].backend == config->speaker_backend)
+  for(n = 0; backends[n]; ++n)
+    if(backends[n]->backend == config->speaker_backend)
       break;
-  if(backends[n].backend == -1)
+  if(!backends[n])
     fatal(0, "unsupported backend %d", config->speaker_backend);
-  backend = &backends[n];
+  backend = backends[n];
   /* backend-specific initialization */
   backend->init();
   mainloop();
