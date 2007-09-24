@@ -28,8 +28,6 @@ disorder-playrtp \- play DisOrder network broadcasts
 .SH DESCRIPTION
 \fBdisorder-playrtp\fR plays a network broadcast sent from the specified
 address.
-.PP
-It is currently a work in progress!
 .SH OPTIONS
 .TP
 .B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
@@ -48,6 +46,9 @@ in the buffer, playing will be (re-)started.
 Specifies the maximum buffer size in frames.  If there are this many frames in
 the buffer then reading from the network socket will be suspended.  The default
 is four times the \fB--buffer\fR value.
+.TP
+.B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
+Specifies socket receive buffer size.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.

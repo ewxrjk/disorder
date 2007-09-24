@@ -350,7 +350,9 @@ is specified, or (currently) on non-Linux systems.
 .TP
 .B network
 Transmit audio over the network.  This is the default if
-\fBbroadcast\fR is specified.
+\fBbroadcast\fR is specified.  You can use
+.BR disorder-playrtp (1)
+to receive and play the resulting stream on Linux and OS X.
 .RE
 .TP
 .B sox_generation \fB0\fR|\fB1

@@ -103,6 +103,11 @@ static void network_init(void) {
   socklen_t len;
   char *sockname, *ssockname;
 
+  /* Override sample format */
+  config->sample_format.rate = 44100;
+  config->sample_format.channels = 2;
+  config->sample_format.bits = 16;
+  config->sample_format.byte_format = AO_FMT_BIG;
   res = get_address(&config->broadcast, &pref, &sockname);
   if(!res) exit(-1);
   if(config->broadcast_from.n) {
@@ -139,10 +144,6 @@ static void network_init(void) {
   /* Select an SSRC */
   gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
   info("selected network backend, sending to %s", sockname);
-  if(config->sample_format.byte_format != AO_FMT_BIG) {
-    info("forcing big-endian sample format");
-    config->sample_format.byte_format = AO_FMT_BIG;
-  }
 }
 
 /** @brief Play over the network */

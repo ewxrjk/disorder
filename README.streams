@@ -26,8 +26,34 @@ interrupt the playing track, you have to scratch it manually.  Go back to
 normal play by scratching the stream.
 
 
-Creating A Stream Of DisOrder Output
-====================================
+RTP Streaming
+=============
+
+DisOrder is now capable to transmitting RTP streams over a suitable network.
+To enable this make sure that allplayers use the speaker process, i.e. execraw
+rather than exec (or it won't work properly) and configure the network speaker
+backend:
+
+    speaker_backend network
+    broadcast 172.17.207.255 9003
+    broadcast_from 172.17.207.2 9002
+
+broadcast_from is optional but may be convenient for some cases.
+
+To play, use the disorder-playrtp client.
+
+   disorder-playrtp 0.0.0.0 9003
+
+Currently only 16-bit 44100Hz stereo is supported, which requires about
+1.4Mbit/s.  Possibly other lower-quality but lower-bandwidth encodings will be
+supported in future.
+
+If you have a too-recent version of sox you may need to set the sox_generation
+option.
+
+
+Icecast Streaming
+=================
 
 This can be achieved using the speaker_command option and Icecast (see
 http://www.icecast.org/).  It will only work if you use the speaker process,
@@ -83,11 +109,8 @@ to pause a stream in any case.  I used IceCast 2.3.1 and Ices 2.0.1.  You can
 play the stream with XMMS or whatever.  The total setup seems to play rather
 behind the 'current' time, watch this space for a fix (or contribute one!)
 
-Other DisOrder options you can set are sox_generation which you should set to
-if you have a sufficently recent version of sox, due to an incompatile change
-in its command syntax; and sample_format which determines what format is
-supplied to the speaker_command.  See disorder_config(5) for further
-information.
+If you have a too-recent version of sox you may need to set the sox_generation
+option.
 
 
 Local Variables:
