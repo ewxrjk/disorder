@@ -757,7 +757,10 @@ static void play_rtp(void) {
       info("Playing...");
       /* Keep playing until the buffer empties out, or ALSA tells us to get
        * lost */
-      while(nsamples >= minbuffer && !escape) {
+      while((nsamples >= minbuffer
+             || (nsamples > 0
+                 && contains(pheap_first(&packets), next_timestamp)))
+            && !escape) {
         /* Wait for ALSA to ask us for more data */
         pthread_mutex_unlock(&lock);
         wait_alsa();
@@ -828,7 +831,9 @@ static void play_rtp(void) {
       if(status)
         fatal(0, "AudioDeviceStart: %d", (int)status);
       /* Wait until the buffer empties out */
-      while(nsamples >= minbuffer)
+      while(nsamples >= minbuffer
+            || (nsamples > 0
+                && contains(pheap_first(&packets), next_timestamp)))
         pthread_cond_wait(&cond, &lock);
       /* Stop playing for a bit until the buffer re-fills */
       status = AudioDeviceStop(adid, adioproc);
