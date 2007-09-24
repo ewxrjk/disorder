@@ -1,0 +1,64 @@
+.\"
+.\" Copyright (C) 2007 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder-playrtp 1
+.SH NAME
+disorder-playrtp \- play DisOrder network broadcasts
+.SH SYNOPSIS
+.B disorder-playrtp
+.RI [ OPTIONS ]
+.RB [ -- ]
+.I ADDRESS
+.I PORT
+.SH DESCRIPTION
+\fBdisorder-playrtp\fR plays a network broadcast sent from the specified
+address.
+.SH OPTIONS
+.TP
+.B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
+Specifies the audio device to use.  The exact meaning of this is
+platform-dependent; on Linux it is the ALSA device name.
+.TP
+.B --min \fIFRAMES\fR, \fB-m \fIFRAMES\fR
+Specifies the buffer low watermark in frames.  If the number of frames falls
+below this value then playing will be stopped until the buffer fills up.
+.TP
+.B --buffer \fIFRAMES\fR, \fB-b \fIFRAMES\fR
+Specifies the buffer high watermark in frames.  Once there are this many frames
+in the buffer, playing will be (re-)started.
+.TP
+.B --max \fIFRAMES\fR, \fB-x \fIFRAMES\fR
+Specifies the maximum buffer size in frames.  If there are this many frames in
+the buffer then reading from the network socket will be suspended.  The default
+is four times the \fB--buffer\fR value.
+.TP
+.B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
+Specifies socket receive buffer size.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SH "SEE ALSO"
+.BR disorder_config (5),
+.BR disorderd (8)
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:

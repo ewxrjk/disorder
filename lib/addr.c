@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/addr.c Socket address support */
 
 #include <config.h>
 #include "types.h"
@@ -33,28 +34,52 @@
 #include "configuration.h"
 #include "addr.h"
 
+/** @brief Convert a pair of strings to an address
+ * @param a Pointer to string list
+ * @param pref Hints structure for getaddrinfo, or NULL
+ * @param namep Where to store address description, or NULL
+ * @return Address info structure or NULL on error
+ *
+ * This converts one or two strings into an address specification suitable
+ * for passing to socket(), bind() etc.
+ *
+ * If there is only one string then it is assumed to be the service
+ * name (port number).  If there are two then the first is the host
+ * name and the second the service name.
+ *
+ * @p namep is used to return a description of the address suitable
+ * for use in log messages.
+ *
+ * If an error occurs a message is logged and a null pointer returned.
+ */
 struct addrinfo *get_address(const struct stringlist *a,
 			     const struct addrinfo *pref,
 			     char **namep) {
   struct addrinfo *res;
   char *name;
   int rc;
-  
-  if(a->n == 1) {
+
+  switch(a->n) {  
+  case 1:
     byte_xasprintf(&name, "host * service %s", a->s[0]);
     if((rc = getaddrinfo(0, a->s[0], pref, &res))) {
       error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
       return 0;
     }
-  } else {
+    break;
+  case 2:
     byte_xasprintf(&name, "host %s service %s", a->s[0], a->s[1]);
     if((rc = getaddrinfo(a->s[0], a->s[1], pref, &res))) {
       error(0, "getaddrinfo %s %s: %s", a->s[0], a->s[1], gai_strerror(rc));
       return 0;
     }
+    break;
+  default:
+    error(0, "invalid network address specification (n=%d)", a->n);
+    return 0;
   }
-  if(!res || res->ai_socktype != SOCK_STREAM) {
-    error(0, "getaddrinfo didn't give us a stream socket");
+  if(!res || (pref && res->ai_socktype != pref->ai_socktype)) {
+    error(0, "getaddrinfo didn't give us a suitable socket address");
     if(res)
       freeaddrinfo(res);
     return 0;
@@ -64,6 +89,10 @@ struct addrinfo *get_address(const struct stringlist *a,
   return res;
 }
 
+/** @brief Comparison function for address information
+ *
+ * Suitable for qsort().
+ */
 int addrinfocmp(const struct addrinfo *a,
 		const struct addrinfo *b) {
   const struct sockaddr_in *ina, *inb;

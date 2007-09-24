@@ -17,6 +17,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/log.c @brief Errors and logging
+ *
+ * All messages are initially emitted by one of the four functions below.
+ * debug() is generally invoked via D() so that mostly you just do a test
+ * rather than a complete subroutine call.
+ *
+ * Messages are dispatched via @ref log_default.  This defaults to @ref
+ * log_stderr.  daemonize() will turn off @ref log_stderr and use @ref
+ * log_syslog instead.
+ *
+ * fatal() will call exitfn() with a nonzero status.  The default value is
+ * exit(), but it should be set to _exit() anywhere but the 'main line' of the
+ * program, to guarantee that exit() gets called at most once.
+ */
 
 #define NO_MEMORY_ALLOCATION
 /* because the memory allocation functions report errors */
@@ -34,22 +48,44 @@
 #include "disorder.h"
 #include "printf.h"
 
+/** @brief Definition of a log output */
 struct log_output {
+  /** @brief Function to call */
   void (*fn)(int pri, const char *msg, void *user);
+  /** @brief User data */
   void *user;
 };
 
+/** @brief Function to call on a fatal error
+ *
+ * This is normally @c exit() but in the presence of @c fork() it
+ * sometimes gets set to @c _exit(). */
 void (*exitfn)(int) attribute((noreturn)) = exit;
+
+/** @brief Debug flag */
 int debugging;
+
+/** @brief Program name */
 const char *progname;
+
+/** @brief Filename for debug messages */
 const char *debug_filename;
+
+/** @brief Line number for debug messages */
 int debug_lineno;
+
+/** @brief Pointer to chosen log output structure */
 struct log_output *log_default = &log_stderr;
 
+/** @brief Filename to debug for */
 static const char *debug_only;
 
-/* we might be receiving things in any old encoding, or binary rubbish in no
- * encoding at all, so escape anything we don't like the look of */
+/** @brief Construct log line, encoding special characters
+ *
+ * We might be receiving things in any old encoding, or binary rubbish
+ * in no encoding at all, so escape anything we don't like the look
+ * of.  We limit the log message to a kilobyte.
+ */
 static void format(char buffer[], size_t bufsize, const char *fmt, va_list ap) {
   char t[1024];
   const char *p;
@@ -74,7 +110,11 @@ static void format(char buffer[], size_t bufsize, const char *fmt, va_list ap) {
   buffer[n] = 0;
 }
 
-/* log to a file */
+/** @brief Log to a file
+ * @param pri Message priority (as per syslog)
+ * @param msg Messagge to log
+ * @param user The @c FILE @c * to log to or NULL for @c stderr
+ */
 static void logfp(int pri, const char *msg, void *user) {
   struct timeval tv;
   FILE *fp = user ? user : stderr;
@@ -106,7 +146,7 @@ static void logfp(int pri, const char *msg, void *user) {
   fputc('\n', fp);
 }
 
-/* log to syslog */
+/** @brief Log to syslog */
 static void logsyslog(int pri, const char *msg,
 		      void attribute((unused)) *user) {
   if(pri < LOG_DEBUG)
@@ -115,10 +155,13 @@ static void logsyslog(int pri, const char *msg,
     syslog(pri, "%s:%d: %s", debug_filename, debug_lineno, msg);
 }
 
+/** @brief Log output that writes to @c stderr */
 struct log_output log_stderr = { logfp, 0 };
+
+/** @brief Log output that sends to syslog */
 struct log_output log_syslog = { logsyslog, 0 };
 
-/* log to all log outputs */
+/** @brief Format and log a message */
 static void vlogger(int pri, const char *fmt, va_list ap) {
   char buffer[1024];
 
@@ -126,7 +169,7 @@ static void vlogger(int pri, const char *fmt, va_list ap) {
   log_default->fn(pri, buffer, log_default->user);
 }
 
-/* wrapper for vlogger */
+/** @brief Format and log a message */
 static void logger(int pri, const char *fmt, ...) {
   va_list ap;
 
@@ -135,7 +178,12 @@ static void logger(int pri, const char *fmt, ...) {
   va_end(ap);
 }
 
-/* internals of fatal/error/info */
+/** @brief Format and log a message
+ * @param pri Message priority (as per syslog)
+ * @param fmt Format string
+ * @param errno_value Errno value to include as a string, or 0
+ * @param ap Argument list
+ */
 void elog(int pri, int errno_value, const char *fmt, va_list ap) {
   char buffer[1024];
 
@@ -156,6 +204,7 @@ void elog(int pri, int errno_value, const char *fmt, va_list ap) {
 /* shared implementation of vararg functions */
 #include "log-impl.h"
 
+/** @brief Log a debug message */
 void debug(const char *msg, ...) {
   va_list ap;
 
@@ -164,6 +213,7 @@ void debug(const char *msg, ...) {
   va_end(ap);
 }
 
+/** @brief Set the program name from @c argc */
 void set_progname(char **argv) {
   if((progname = strrchr(argv[0], '/')))
     ++progname;

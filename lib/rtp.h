@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2006 Richard Kettlewell
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,32 +18,25 @@
  * USA
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef RTP_H
+#define RTP_H
 
-/* The command-response server.
- *
- * See disorder_protocol(5) for sometimes up-to-date protocol documentation.
- */
+/* RTP is defined in RFC1889 */
+struct attribute((packed)) rtp_header {
+  uint8_t vpxcc;
+  uint8_t mpt;
+  uint16_t seq;
+  uint32_t timestamp;
+  uint32_t ssrc;
+};
 
-int server_start(ev_source *ev, int pf,
-		 size_t socklen, const struct sockaddr *sa,
-		 const char *name);
-/* start listening.  Return the fd. */
-
-int server_stop(ev_source *ev, int fd);
-/* Stop listening on @fd@ */
-
-extern int volume_left, volume_right;	/* last known volume */
-
-extern int wideopen;			/* blindly accept all logins */
-
-#endif /* SERVER_H */
+#endif /* RTP_H */
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
 fill-column:79
+indent-tabs-mode:nil
 End:
 */

@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/charset.c @brief Character set conversion */
 
 #include <config.h>
 #include "types.h"
@@ -33,6 +34,13 @@
 #include "utf8.h"
 #include "vector.h"
 
+/** @brief Low-level converstion routine
+ * @param from Source encoding
+ * @param to Destination encoding
+ * @param ptr First byte to convert
+ * @param n Number of bytes to convert
+ * @return Converted text, 0-terminated; or NULL on error.
+ */
 static void *convert(const char *from, const char *to,
 		     const void *ptr, size_t n) {
   iconv_t i;
@@ -61,8 +69,14 @@ static void *convert(const char *from, const char *to,
   return buf;
 }
 
-/* not everybody's iconv supports UCS-4, and it's inconvenient to have to know
- * our endianness, and it's easy to convert it ourselves, so we do */
+/** @brief Convert UTF-8 to UCS-4
+ * @param mb Pointer to 0-terminated UTF-8 string
+ * @return Pointer to 0-terminated UCS-4 string
+ *
+ * Not everybody's iconv supports UCS-4, and it's inconvenient to have to know
+ * our endianness, and it's easy to convert it ourselves, so we do.  See also
+ * @ref ucs42utf8().
+ */ 
 uint32_t *utf82ucs4(const char *mb) {
   struct dynstr_ucs4 d;
   uint32_t c;
@@ -77,6 +91,12 @@ uint32_t *utf82ucs4(const char *mb) {
   return d.vec;
 }
 
+/** @brief Convert UCS-4 to UTF-8
+ * @param u Pointer to 0-terminated UCS-4 string
+ * @return Pointer to 0-terminated UTF-8 string
+ *
+ * See @ref utf82ucs4().
+ */
 char *ucs42utf8(const uint32_t *u) {
   struct dynstr d;
   uint32_t c;
@@ -106,23 +126,28 @@ char *ucs42utf8(const uint32_t *u) {
   return d.vec;
 }
 
+/** @brief Convert from the local multibyte encoding to UTF-8 */
 char *mb2utf8(const char *mb) {
   return convert(nl_langinfo(CODESET), "UTF-8", mb, strlen(mb) + 1);
 }
 
+/** @brief Convert from UTF-8 to the local multibyte encoding */
 char *utf82mb(const char *utf8) {
   return convert("UTF-8", nl_langinfo(CODESET), utf8, strlen(utf8) + 1);
 }
 
+/** @brief Convert from encoding @p from to UTF-8 */
 char *any2utf8(const char *from, const char *any) {
   return convert(from, "UTF-8", any, strlen(any) + 1);
 }
 
+/** @brief Convert from encoding @p from to the local multibyte encoding */
 char *any2mb(const char *from, const char *any) {
   if(from) return convert(from, nl_langinfo(CODESET), any, strlen(any) + 1);
   else return xstrdup(any);
 }
 
+/** @brief Convert from encoding @p from to encoding @p to */
 char *any2any(const char *from,
 	      const char *to,
 	      const char *any) {
@@ -130,6 +155,10 @@ char *any2any(const char *from,
   else return xstrdup(any);
 }
 
+/** @brief strlen workalike for UCS-4 strings
+ *
+ * We don't rely on the local @c wchar_t being UCS-4.
+ */
 int ucs4cmp(const uint32_t *a, const uint32_t *b) {
   while(*a && *b && *a == *b) ++a, ++b;
   if(*a > *b) return 1;

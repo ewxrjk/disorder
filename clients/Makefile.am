@@ -18,7 +18,7 @@
 # USA
 #
 
-bin_PROGRAMS=disorder disorderfm
+bin_PROGRAMS=disorder disorderfm disorder-playrtp
 noinst_PROGRAMS=test-eclient filename-bytes
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -33,6 +33,11 @@ disorderfm_SOURCES=disorderfm.c \
 	../lib/memgc.c
 disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
+
+disorder_playrtp_SOURCES=playrtp.c
+disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBASOUND) $(COREAUDIO)
+disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
 
@@ -52,6 +57,10 @@ check-help: all
 	./disorder --version > /dev/null
 	./disorder --help > /dev/null
 	./disorder --help-commands > /dev/null
+	./disorderfm --version > /dev/null
+	./disorderfm --help > /dev/null
+	./disorder-playrtp --version > /dev/null
+	./disorder-playrtp --help > /dev/null
 
 # check that the command completions are up to date
 check-completions:

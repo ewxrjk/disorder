@@ -17,7 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/log-impl.h @brief Errors and logging */
 
+/** @brief Log an error and quit
+ *
+ * If @c ${DISORDER_FATAL_ABORT} is defined (as anything) then the process
+ * is aborted, so you can get a backtrace.
+ */
 void disorder_fatal(int errno_value, const char *msg, ...) {
   va_list ap;
 
@@ -28,6 +34,7 @@ void disorder_fatal(int errno_value, const char *msg, ...) {
   exitfn(EXIT_FAILURE);
 }
 
+/** @brief Log an error */
 void disorder_error(int errno_value, const char *msg, ...) {
   va_list ap;
 
@@ -36,6 +43,7 @@ void disorder_error(int errno_value, const char *msg, ...) {
   va_end(ap);
 }
 
+/** @brief Log an informational message */
 void disorder_info(const char *msg, ...) {
   va_list ap;
 

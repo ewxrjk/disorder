@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/asprintf.c @brief printf() workalikes */
 
 #include <config.h>
 #include "types.h"
@@ -33,6 +34,12 @@
 #include "vector.h"
 #include "log.h"
 
+/** @brief vasprintf() workalike without encoding errors
+ *
+ * This acts like vasprintf() except that it does not throw an error
+ * if you use a string outside the current locale's encoding rules,
+ * and it uses the memory allocation calls from @ref mem.h.
+ */
 int byte_vasprintf(char **ptrp,
 		   const char *fmt,
 		   va_list ap) {
@@ -47,6 +54,12 @@ int byte_vasprintf(char **ptrp,
   return n;
 }
 
+/** @brief asprintf() workalike without encoding errors
+ *
+ * This acts like asprintf() except that it does not throw an error
+ * if you use a string outside the current locale's encoding rules,
+ * and it uses the memory allocation calls from @ref mem.h.
+ */
 int byte_asprintf(char **ptrp,
 		  const char *fmt,
 		  ...) {
@@ -59,6 +72,13 @@ int byte_asprintf(char **ptrp,
   return n;
 }
 
+/** @brief asprintf() workalike without encoding errors
+ *
+ * This acts like asprintf() except that it does not throw an error if
+ * you use a string outside the current locale's encoding rules; it
+ * uses the memory allocation calls from @ref mem.h; and it terminates
+ * the program on error.
+ */
 int byte_xasprintf(char **ptrp,
 		   const char *fmt,
 		   ...) {
@@ -71,6 +91,13 @@ int byte_xasprintf(char **ptrp,
   return n;
 }
 
+/** @brief vasprintf() workalike without encoding errors
+ *
+ * This acts like vasprintf() except that it does not throw an error
+ * if you use a string outside the current locale's encoding rules; it
+ * uses the memory allocation calls from @ref mem.h; and it terminates
+ * the program on error.
+ */
 int byte_xvasprintf(char **ptrp,
 		    const char *fmt,
 		    va_list ap) {

@@ -20,13 +20,14 @@
 
 SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
-	disorder-rescan.8 disobedience.1 disorderfm.1
+	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-playrtp.1
 
 include ${top_srcdir}/scripts/sedfiles.make
 
 man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
 	disorder_protocol.5 tkdisorder.1 disorder-deadlock.8 \
-	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8
+	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8 \
+	disorder-playrtp.1
 
 HTMLMAN=$(foreach man,$(man_MANS),$(man).html)
 
@@ -41,6 +42,7 @@ pkgdata_DATA=$(HTMLMAN)
 EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder.3 disorder-dump.8.in disorder_protocol.5.in \
 	   tkdisorder.1 disorder-deadlock.8.in disorder-rescan.8.in \
-	   disobedience.1.in disorderfm.1.in disorder-speaker.8
+	   disobedience.1.in disorderfm.1.in disorder-speaker.8 \
+	   disorder-playrtp.1.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN)

@@ -21,27 +21,13 @@
 #ifndef LOG_H
 #define LOG_H
 
-/* All messages are initially emitted by one of the four functions below.
- * debug() is generally invoked via D() so that mostly you just do a test
- * rather than a complete subroutine call.
- *
- * Messages are dispatched via log_default.  This defaults to log_stderr.
- * daemonize() will turn off log_stderr and use log_syslog instead.
- *
- * fatal() will call exitfn() with a nonzero status.  The default value is
- * exit(), but it should be set to _exit() anywhere but the 'main line' of the
- * program, to guarantee that exit() gets called at most once.
- */
-
 #include <stdarg.h>
 
 struct log_output;
 
 void set_progname(char **argv);
-/* set progname from argv[0] */
 
 void elog(int pri, int errno_value, const char *fmt, va_list ap);
-/* internals of fatal/error/info/debug */
 
 void fatal(int errno_value, const char *msg, ...) attribute((noreturn))
   attribute((format (printf, 2, 3)));

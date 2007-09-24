@@ -53,6 +53,7 @@
 #include "user.h"
 #include "mixer.h"
 #include "eventlog.h"
+#include "printf.h"
 
 static ev_source *ev;
 
@@ -69,6 +70,8 @@ static const struct option options[] = {
   { "log", required_argument, 0, 'l' },
   { "pidfile", required_argument, 0, 'P' },
   { "no-initial-rescan", no_argument, 0, 'N' },
+  { "wide-open", no_argument, 0, 'w' },
+  { "syslog", no_argument, 0, 's' },
   { 0, 0, 0, 0 }
 };
 
@@ -82,6 +85,7 @@ static void help(void) {
 	  "  --config PATH, -c PATH   Set configuration file\n"
 	  "  --debug, -d              Turn on debugging\n"
 	  "  --foreground, -f         Do not become a daemon\n"
+	  "  --syslog, -s             Log to syslog even with -f\n"
 	  "  --pidfile PATH, -P PATH  Leave a pidfile\n");
   xfclose(stdout);
   exit(0);
@@ -178,8 +182,27 @@ static void volumecheck_after(long offset) {
   ev_timeout(ev, 0, &w, volumecheck_again, 0);
 }
 
- int main(int argc, char **argv) {
-  int n, background = 1;
+/* We fix the path to include the bindir and sbindir we were installed into */
+static void fix_path(void) {
+  char *path = getenv("PATH");
+  char *newpath;
+
+  if(!path)
+    error(0, "PATH is not set at all!");
+
+  if(*finkbindir)
+    /* We appear to be a finkized mac; include fink on the path in case the
+     * tools we need are there. */
+    byte_xasprintf(&newpath, "PATH=%s:%s:%s:%s", 
+		   path, bindir, sbindir, finkbindir);
+  else
+    byte_xasprintf(&newpath, "PATH=%s:%s:%s", path, bindir, sbindir);
+  putenv(newpath);
+  info("%s", newpath); 
+}
+
+int main(int argc, char **argv) {
+  int n, background = 1, logsyslog = 0;
   const char *pidfile = 0;
   int initial_rescan = 1;
 
@@ -189,7 +212,7 @@ static void volumecheck_after(long offset) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  while((n = getopt_long(argc, argv, "hVc:dfP:N", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dfP:Ns", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -198,13 +221,22 @@ static void volumecheck_after(long offset) {
     case 'f': background = 0; break;
     case 'P': pidfile = optarg; break;
     case 'N': initial_rescan = 0; break;
+    case 's': logsyslog = 1; break;
+    case 'w': wideopen = 1; break;
     default: fatal(0, "invalid option");
     }
   }
   /* go into background if necessary */
   if(background)
     daemonize(progname, LOG_DAEMON, pidfile);
+  else if(logsyslog) {
+    /* If we're running under some kind of daemon supervisor then we may want
+     * to log to syslog but not to go into background */
+    openlog(progname, LOG_PID, LOG_DAEMON);
+    log_default = &log_syslog;
+  }
   info("process ID %lu", (unsigned long)getpid());
+  fix_path();
   srand(time(0));			/* don't start the same every time */
   /* create event loop */
   ev = ev_new();
@@ -270,5 +302,6 @@ static void volumecheck_after(long offset) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
 End:
 */

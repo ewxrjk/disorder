@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,24 +29,37 @@ struct real_pcre;
  * is always pointed to by @config@.  Values in @config@ are UTF-8 encoded.
  */
 
+/** @brief A list of strings */
 struct stringlist {
+  /** @brief Number of strings */
   int n;
+  /** @brief Array of strings */
   char **s;
 };
 
+/** @brief A list of list of strings */
 struct stringlistlist {
+  /** @brief Number of string lists */
   int n;
+  /** @brief Array of string lists */
   struct stringlist *s;
 };
 
+/** @brief A collection of tracks */
 struct collection {
+  /** @brief Module that supports this collection */
   char *module;
+  /** @brief Filename encoding */
   char *encoding;
+  /** @brief Root directory */
   char *root;
 };
 
+/** @brief A list of collections */
 struct collectionlist {
+  /** @brief Number of collections */
   int n;
+  /** @brief Array of collections */
   struct collection *s;
 };
 
@@ -76,51 +89,136 @@ struct transformlist {
   struct transform *t;
 };
 
+/** @brief System configuration */
 struct config {
   /* server config */
-  struct stringlistlist player;		/* players */
-  struct stringlistlist allow;		/* allowed users */
-  struct stringlist scratch;		/* scratch tracks */
-  long gap;				/* gap between tracks */
-  long history;				/* length of history */
-  struct stringlist trust;		/* trusted users */
-  const char *user;			/* user to run as */
-  long nice_rescan;			/* rescan subprocess niceness */
-  struct stringlist plugins;		/* plugin path */
-  struct stringlist stopword;		/* stopwords for track search */
-  struct collectionlist collection;	/* track collections */
+
+  /** @brief All players */
+  struct stringlistlist player;
+
+  /** @brief Allowed users */
+  struct stringlistlist allow;
+
+  /** @brief Scratch tracks */
+  struct stringlist scratch;
+
+  /** @brief Gap between tracks in seconds */
+  long gap;
+
+  /** @brief Maximum number of recent tracks to record in history */
+  long history;
+
+  /** @brief Trusted users */
+  struct stringlist trust;
+
+  /** @brief User for server to run as */
+  const char *user;
+
+  /** @brief Nice value for rescan subprocess */
+  long nice_rescan;
+
+  /** @brief Paths to search for plugins */
+  struct stringlist plugins;
+
+  /** @brief List of stopwords */
+  struct stringlist stopword;
+
+  /** @brief List of collections */
+  struct collectionlist collection;
+
+  /** @brief Database checkpoint byte limit */
   long checkpoint_kbyte;
+
+  /** @brief Databsase checkpoint minimum */
   long checkpoint_min;
-  char *mixer;				/* mixer device file */
-  char *channel;			/* mixer channel */
-  long prefsync;			/* preflog sync intreval */
-  struct stringlist listen;		/* secondary listen address */
-  const char *alias;			/* alias format */
-  int lock;				/* server takes a lock */
-  long nice_server;			/* nice value for server */
-  long nice_speaker;			/* nice value for speaker */
-  const char *speaker_command;		/* command for speaker to run */
-  ao_sample_format sample_format;	/* sample format to enforce */
-  long sox_generation;			/* sox syntax generation */
-  /* shared client/server config */
-  const char *home;			/* home directory for state files */
-  /* client config */
-  const char *username, *password;	/* our own username and password */
-  struct stringlist connect;		/* connect address */
-  /* web config */
-  struct stringlist templates;		/* template path */
-  const char *url;			/* canonical URL */
-  long refresh;				/* maximum refresh period */
+
+  /** @brief Path to mixer device */
+  char *mixer;
+
+  /** @brief Mixer channel to use */
+  char *channel;
+
+  long prefsync;			/* preflog sync interval */
+
+  /** @brief Secondary listen address */
+  struct stringlist listen;
+
+  /** @brief Alias format string */
+  const char *alias;
+
+  /** @brief Enable server locking */
+  int lock;
+
+  /** @brief Nice value for server */
+  long nice_server;
+
+  /** @brief Nice value for speaker */
+  long nice_speaker;
+
+  /** @brief Command execute by speaker to play audio */
+  const char *speaker_command;
+
+  /** @brief Target sample format */
+  ao_sample_format sample_format;
+
+  /** @brief Sox syntax generation */
+  long sox_generation;
+
+  /** @brief Speaker backend
+   *
+   * Choices are @ref BACKEND_ALSA, @ref BACKEND_COMMAND or @ref
+   * BACKEND_NETWORK.
+   */
+  int speaker_backend;
+#define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
+#define BACKEND_COMMAND 1		/**< Execute a command */
+#define BACKEND_NETWORK 2		/**< Transmit RTP  */
+
+  /** @brief Home directory for state files */
+  const char *home;
+
+  /** @brief Login username */
+  const char *username;
+
+  /** @brief Login password */
+  const char *password;
+
+  /** @brief Address to connect to */
+  struct stringlist connect;
+
+  /** @brief Directories to search for web templates */
+  struct stringlist templates;
+
+  /** @brief Canonical URL of web interface */
+  const char *url;
+
+  /** @brief Maximum refresh interval for web interface (seconds) */
+  long refresh;
+
+  /** @brief Facilities restricted to trusted users
+   *
+   * A bitmap of @ref RESTRICT_SCRATCH, @ref RESTRICT_REMOVE and @ref
+   * RESTRICT_MOVE.
+   */
   unsigned restrictions;		/* restrictions */
-  long queue_pad;			/* how far to pad queue with
-					 * random tracks */
-#define RESTRICT_SCRATCH 1
-#define RESTRICT_REMOVE 2
-#define RESTRICT_MOVE 4
+#define RESTRICT_SCRATCH 1		/**< Restrict scratching */
+#define RESTRICT_REMOVE 2		/**< Restrict removal */
+#define RESTRICT_MOVE 4			/**< Restrict rearrangement */
+
+  /** @brief Target queue length */
+  long queue_pad;
+
   struct namepartlist namepart;		/* transformations */
-  int signal;				/* termination signal */
-  const char *device;			/* ALSA output device */
+
+  /** @brief Termination signal for subprocesses */
+  int signal;
+
+  /** @brief ALSA output device */
+  const char *device;
   struct transformlist transform;	/* path name transformations */
+
+  struct stringlist broadcast;		/* audio broadcast address */
+  struct stringlist broadcast_from;	/* audio broadcast source address */
 
   /* derived values: */
   int nparts;				/* number of distinct name parts */

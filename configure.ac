@@ -37,10 +37,15 @@ case "$host" in
 *linux* | *Linux* )
   want_alsa=yes
   ;;
+*-apple-darwin* )
+  want_alsa=no
+  COREAUDIO="-framework CoreAudio"
+  ;;
 * )
   want_alsa=no
   ;;
 esac
+AC_SUBST([COREAUDIO])
 
 # Checks for programs.
 AC_PROG_CC
@@ -100,12 +105,16 @@ if test "x$FINK" != xnone; then
   AC_CACHE_CHECK([fink install directory],[rjk_cv_finkprefix],[
     rjk_cv_finkprefix="`echo "$FINK" | sed 's,/bin/fink$,,'`"
   ])
+  finkbindir="${rjk_cv_finkprefix}/bin"
   CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/gc -I${rjk_cv_finkprefix}/include"
   if test $want_server = yes; then
     CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/db4"
   fi
   LDFLAGS="${LDFLAGS} -L${rjk_cv_finkprefix}/lib"
+else
+  finkbindir=""
 fi
+AC_SUBST([finkbindir])
 
 # Checks for libraries.
 # We save up a list of missing libraries that we can't do without
@@ -135,12 +144,12 @@ if test $want_server = yes; then
   AC_CHECK_LIB([ao], [ao_initialize],
 	       [AC_SUBST(LIBAO,[-lao])],
 	       [missing_libraries="$missing_libraries libao"])
-  if test $want_alsa = yes; then
-    AC_CHECK_LIB([asound], [snd_pcm_open],
-		 [AC_SUBST(LIBASOUND,[-lasound])],
-		 [missing_libraries="$missing_libraries libasound"])
-    AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
-  fi
+fi
+if test $want_alsa = yes; then
+  AC_CHECK_LIB([asound], [snd_pcm_open],
+               [AC_SUBST(LIBASOUND,[-lasound])],
+	       [missing_libraries="$missing_libraries libasound"])
+  AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
 fi
 
 if test $want_gtk = yes; then
@@ -175,7 +184,7 @@ RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for header files.
 RJK_FIND_GC_H
-AC_CHECK_HEADERS([inttypes.h])
+AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h])
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.
 # We don't bother checking very standard stuff

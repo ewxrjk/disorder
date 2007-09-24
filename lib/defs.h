@@ -26,6 +26,9 @@ extern const char pkglibdir[];
 extern const char pkgconfdir[];
 extern const char pkgstatedir[];
 extern const char pkgdatadir[];
+extern const char bindir[];
+extern const char sbindir[];
+extern const char finkbindir[];
 
 #endif /* DEFS_H */
 

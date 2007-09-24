@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/basen.c @brief Arbitrary base conversion 
+ *
+ * The functions in this file handle arbitrary-size non-negative integers,
+ * represented as a bigendian (MSW first) sequence of @c unsigned @c long
+ * words.  The words themselves use the native byte order.
+ */
 
 #include <config.h>
 #include "types.h"
@@ -25,7 +31,11 @@
 
 #include "basen.h"
 
-/* test whether v is 0 */
+/** @brief Test whether v is 0
+ * @param v Pointer to bigendian bignum
+ * @param nwords Length of bignum
+ * @return !v
+ */
 static int zero(const unsigned long *v, int nwords) {
   int n;
 
@@ -34,7 +44,14 @@ static int zero(const unsigned long *v, int nwords) {
   return n == nwords;
 }
 
-/* divide v by m returning the remainder */
+/** @brief Divide v by m returning the remainder.
+ * @param v Pointer to bigendian bignum
+ * @param nwords Length of bignum
+ * @param m Divisor (must not be 0)
+ * @return Remainder
+ *
+ * The quotient is stored in @p v.
+ */
 static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
   unsigned long r = 0, a, b;
   int n;
@@ -54,6 +71,17 @@ static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
   return r;
 }
 
+/** @brief Convert v to a chosen base
+ * @param v Pointer to bigendian bignum
+ * @param nwords Length of bignum
+ * @param buffer Output buffer
+ * @param bufsize Size of output buffer
+ * @param base Number base (2..62)
+ * @return 0 on success, -1 if the buffer is too small
+ *
+ * Converts @p v to a string in the given base using decimal digits, lower case
+ * letter sand upper case letters as digits.
+ */
 int basen(unsigned long *v,
 	  int nwords,
 	  char buffer[],

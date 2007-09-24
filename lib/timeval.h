@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2006 Richard Kettlewell
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,32 +18,39 @@
  * USA
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef TIMEVAL_H
+#define TIMEVAL_H
 
-/* The command-response server.
- *
- * See disorder_protocol(5) for sometimes up-to-date protocol documentation.
- */
+static inline struct timeval tvsub(const struct timeval a,
+                                   const struct timeval b) {
+  struct timeval r;
 
-int server_start(ev_source *ev, int pf,
-		 size_t socklen, const struct sockaddr *sa,
-		 const char *name);
-/* start listening.  Return the fd. */
+  r.tv_sec = a.tv_sec - b.tv_sec;
+  r.tv_usec = a.tv_usec - b.tv_usec;
+  if(r.tv_usec < 0) {
+    r.tv_usec += 1000000;
+    r.tv_sec--;
+  }
+  if(r.tv_usec > 999999) {
+    r.tv_usec -= 1000000;
+    r.tv_sec++;
+  }
+  return r;
+}
 
-int server_stop(ev_source *ev, int fd);
-/* Stop listening on @fd@ */
+static inline int64_t tvsub_us(const struct timeval a,
+                               const struct timeval b) {
+  return (((uint64_t)a.tv_sec * 1000000 + a.tv_usec)
+          - ((uint64_t)b.tv_sec * 1000000 + b.tv_usec));
+}
 
-extern int volume_left, volume_right;	/* last known volume */
-
-extern int wideopen;			/* blindly accept all logins */
-
-#endif /* SERVER_H */
+#endif /* TIMEVAL_H */
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
 fill-column:79
+indent-tabs-mode:nil
 End:
 */

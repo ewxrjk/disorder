@@ -48,7 +48,8 @@ struct displaydata {
 };
 
 /* instantiate the node vector type */
-VECTOR_TYPE(nodevector, struct choosenode *, xrealloc)
+
+VECTOR_TYPE(nodevector, struct choosenode *, xrealloc);
 
 struct choosenode {
   struct choosenode *parent;            /* parent node */

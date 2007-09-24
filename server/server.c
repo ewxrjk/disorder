@@ -69,6 +69,12 @@
 
 int volume_left, volume_right;		/* last known volume */
 
+/** @brief Accept all well-formed login attempts
+ *
+ * Used in debugging.
+ */
+int wideopen;
+
 struct listener {
   const char *name;
   int pf;
@@ -373,28 +379,29 @@ static int c_user(struct conn *c,
       sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
       return 1;
     }
-  }
+  } else
+    strcpy(host, "local");
   /* find the user */
   for(n = 0; n < config->allow.n
 	&& strcmp(config->allow.s[n].s[0], vec[0]); ++n)
     ;
   /* if it's a real user check whether the response is right */
-  if(n < config->allow.n) {
-    res = authhash(c->nonce, sizeof c->nonce, config->allow.s[n].s[1]);
-    if(res && !strcmp(res, vec[1])) {
-      c->who = vec[0];
-      /* currently we only bother logging remote connections */
-      if(c->l->pf != PF_UNIX)
-	info("S%x %s connected from %s", c->tag, vec[0], host);
-      sink_writes(ev_writer_sink(c->w), "230 OK\n");
-      return 1;
-    }
+  if(n >= config->allow.n) {
+    info("S%x unknown user '%s' from %s", c->tag, vec[0], host);
+    sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
+    return 1;
+  }
+  res = authhash(c->nonce, sizeof c->nonce, config->allow.s[n].s[1]);
+  if(wideopen || (res && !strcmp(res, vec[1]))) {
+    c->who = vec[0];
+    /* currently we only bother logging remote connections */
+    if(c->l->pf != PF_UNIX)
+      info("S%x %s connected from %s", c->tag, vec[0], host);
+    sink_writes(ev_writer_sink(c->w), "230 OK\n");
+    return 1;
   }
   /* oops, response was wrong */
-  if(c->l->pf != PF_UNIX)
-    info("S%x authentication failure for %s from %s", c->tag, vec[0], host);
-  else
-    info("S%x authentication failure for %s", c->tag, vec[0]);
+  info("S%x authentication failure for %s from %s", c->tag, vec[0], host);
   sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
   return 1;
 }

@@ -47,7 +47,7 @@
 #include "eventlog.h"
 #include "logfd.h"
 #include "syscalls.h"
-#include "speaker.h"
+#include "speaker-protocol.h"
 #include "disorder.h"
 #include "signame.h"
 #include "hash.h"

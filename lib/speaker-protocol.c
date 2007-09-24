@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/speaker-protocol.c
+ * @brief Speaker/server protocol support
+ */
 
 #include <config.h>
 #include "types.h"
@@ -26,9 +29,16 @@
 #include <errno.h>
 #include <sys/uio.h>
 
-#include "speaker.h"
+#include "speaker-protocol.h"
 #include "log.h"
 
+/** @brief Send a speaker message
+ * @param fd File descriptor to send to
+ * @param sm Pointer to message
+ * @param datafd File descriptoxr to pass with message or -1
+ *
+ * @p datafd will be the output from some decoder.
+ */
 void speaker_send(int fd, const struct speaker_message *sm, int datafd) {
   struct msghdr m;
   struct iovec iov;
@@ -59,6 +69,15 @@ void speaker_send(int fd, const struct speaker_message *sm, int datafd) {
     fatal(errno, "sendmsg");
 }
 
+/** @brief Receive a speaker message
+ * @param fd File descriptor to read from
+ * @param sm Where to store received message
+ * @param datafd Where to store received file descriptor or NULL
+ * @return -ve on @c EAGAIN, 0 at EOF, +ve on success
+ *
+ * If @p datafd is NULL but a file descriptor is nonetheless received,
+ * the process is terminated with an error.
+ */
 int speaker_recv(int fd, struct speaker_message *sm, int *datafd) {
   struct msghdr m;
   struct iovec iov;
