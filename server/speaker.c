@@ -104,29 +104,22 @@ static int paused;                      /* pause status */
 static size_t bpf;                      /* bytes per frame */
 static struct pollfd fds[NFDS];         /* if we need more than that */
 static int fdno;                        /* fd number */
-static size_t bufsize;                  /* buffer size */
 #if API_ALSA
 /** @brief The current PCM handle */
 static snd_pcm_t *pcm;
 static snd_pcm_uframes_t last_pcm_bufsize; /* last seen buffer size */
-static ao_sample_format pcm_format;     /* current format if aodev != 0 */
 #endif
 
-/** @brief Ready to send audio
- *
- * This is set when the destination is ready to receive audio.  Generally
- * this implies that the sound device is open.  In the ALSA backend it
- * does @b not necessarily imply that is has the right sample format.
- */
-static int ready;
+/** @brief The current device state */
+enum device_states device_state;
 
-/** @brief Frames to force-play
+/** @brief The current device sample format
  *
- * If this is nonzero, and playing is enabled, then the main loop will attempt
- * to play this many frames without checking whether the output device is
- * ready.
+ * Only meaningful if @ref device_state = @ref device_open or perhaps @ref
+ * device_error.  For @ref FIXED_FORMAT backends, this should always match @c
+ * config->sample_format.
  */
-static int forceplay;
+ao_sample_format device_format;
 
 /** @brief Pipe to subprocess
  *
@@ -169,7 +162,6 @@ static uint32_t rtp_id;
 /** @brief Set when idled
  *
  * This is set when the sound device is deliberately closed by idle().
- * @ref ready is set to 0 at the same time.
  */
 static int idled;                       /* set when idled */
 
@@ -419,10 +411,11 @@ static int fill(struct track *t) {
  */
 static void idle(void) {
   D(("idle"));
-  if(backend->deactivate)
+  if(backend->deactivate) 
     backend->deactivate();
+  else
+    device_state = device_closed;
   idled = 1;
-  ready = 0;
 }
 
 /** @brief Abandon the current track */
@@ -437,49 +430,30 @@ static void abandon(void) {
   removetrack(playing->id);
   destroy(playing);
   playing = 0;
-  forceplay = 0;
 }
-
-#if API_ALSA
-/** @brief Log ALSA parameters */
-static void log_params(snd_pcm_hw_params_t *hwparams,
-                       snd_pcm_sw_params_t *swparams) {
-  snd_pcm_uframes_t f;
-  unsigned u;
-
-  return;                               /* too verbose */
-  if(hwparams) {
-    /* TODO */
-  }
-  if(swparams) {
-    snd_pcm_sw_params_get_silence_size(swparams, &f);
-    info("sw silence_size=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
-    info("sw silence_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_sleep_min(swparams, &u);
-    info("sw sleep_min=%lu", (unsigned long)u);
-    snd_pcm_sw_params_get_start_threshold(swparams, &f);
-    info("sw start_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
-    info("sw stop_threshold=%lu", (unsigned long)f);
-    snd_pcm_sw_params_get_xfer_align(swparams, &f);
-    info("sw xfer_align=%lu", (unsigned long)f);
-  }
-}
-#endif
 
 /** @brief Enable sound output
  *
  * Makes sure the sound device is open and has the right sample format.  Return
  * 0 on success and -1 on error.
  */
-static int activate(void) {
+static void activate(void) {
   /* If we don't know the format yet we cannot start. */
   if(!playing->got_format) {
     D((" - not got format for %s", playing->id));
-    return -1;
+    return;
   }
-  return backend->activate();
+  if(backend->flags & FIXED_FORMAT)
+    device_format = config->sample_format;
+  if(backend->activate) {
+    backend->activate();
+  } else {
+    assert(backend->flags & FIXED_FORMAT);
+    /* ...otherwise device_format not set */
+    device_state = device_open;
+  }
+  if(device_state == device_open)
+    bpf = bytes_per_frame(&device_format);
 }
 
 /** @brief Check whether the current track has finished
@@ -497,52 +471,38 @@ static void maybe_finished(void) {
     abandon();
 }
 
-/** @brief Start the subprocess for @ref BACKEND_COMMAND */
-static void fork_cmd(void) {
-  pid_t cmdpid;
-  int pfd[2];
-  if(cmdfd != -1) close(cmdfd);
-  xpipe(pfd);
-  cmdpid = xfork();
-  if(!cmdpid) {
-    signal(SIGPIPE, SIG_DFL);
-    xdup2(pfd[0], 0);
-    close(pfd[0]);
-    close(pfd[1]);
-    execl("/bin/sh", "sh", "-c", config->speaker_command, (char *)0);
-    fatal(errno, "error execing /bin/sh");
-  }
-  close(pfd[0]);
-  cmdfd = pfd[1];
-  D(("forked cmd %d, fd = %d", cmdpid, cmdfd));
-}
-
-/** @brief Play up to @p frames frames of audio */
+/** @brief Play up to @p frames frames of audio
+ *
+ * It is always safe to call this function.
+ * - If @ref playing is 0 then it will just return
+ * - If @ref paused is non-0 then it will just return
+ * - If @ref device_state != @ref device_open then it will call activate() and
+ * return if it it fails.
+ * - If there is not enough audio to play then it play what is available.
+ *
+ * If there are not enough frames to play then whatever is available is played
+ * instead.  It is up to mainloop() to ensure that play() is not called when
+ * unreasonably only an small amounts of data is available to play.
+ */
 static void play(size_t frames) {
   size_t avail_frames, avail_bytes, written_frames;
   ssize_t written_bytes;
 
-  /* Make sure the output device is activated */
-  if(activate()) {
-    if(playing)
-      forceplay = frames;
-    else
-      forceplay = 0;                    /* Must have called abandon() */
+  /* Make sure there's a track to play and it is not pasued */
+  if(!playing || paused)
     return;
+  /* Make sure the output device is open and has the right sample format */
+  if(device_state != device_open
+     || !formats_equal(&device_format, &playing->format)) {
+    activate(); 
+    if(device_state != device_open)
+      return;
   }
   D(("play: play %zu/%zu%s %dHz %db %dc",  frames, playing->used / bpf,
      playing->eof ? " EOF" : "",
      playing->format.rate,
      playing->format.bits,
      playing->format.channels));
-  /* If we haven't got enough bytes yet wait until we have.  Exception: when
-   * we are at eof. */
-  if(playing->used < frames * bpf && !playing->eof) {
-    forceplay = frames;
-    return;
-  }
-  /* We have got enough data so don't force play again */
-  forceplay = 0;
   /* Figure out how many frames there are available to write */
   if(playing->start + playing->used > playing->size)
     /* The ring buffer is currently wrapped, only play up to the wrap point */
@@ -569,6 +529,7 @@ static void play(size_t frames) {
   if(!playing->used || playing->start == playing->size)
     playing->start = 0;
   frames -= written_frames;
+  return;
 }
 
 /* Notify the server what we're up to. */
@@ -610,11 +571,55 @@ static void alsa_init(void) {
   info("selected ALSA backend");
 }
 
+/** @brief Log ALSA parameters */
+static void log_params(snd_pcm_hw_params_t *hwparams,
+                       snd_pcm_sw_params_t *swparams) {
+  snd_pcm_uframes_t f;
+  unsigned u;
+
+  return;                               /* too verbose */
+  if(hwparams) {
+    /* TODO */
+  }
+  if(swparams) {
+    snd_pcm_sw_params_get_silence_size(swparams, &f);
+    info("sw silence_size=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_silence_threshold(swparams, &f);
+    info("sw silence_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_sleep_min(swparams, &u);
+    info("sw sleep_min=%lu", (unsigned long)u);
+    snd_pcm_sw_params_get_start_threshold(swparams, &f);
+    info("sw start_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_stop_threshold(swparams, &f);
+    info("sw stop_threshold=%lu", (unsigned long)f);
+    snd_pcm_sw_params_get_xfer_align(swparams, &f);
+    info("sw xfer_align=%lu", (unsigned long)f);
+  }
+}
+
+/** @brief ALSA deactivation */
+static void alsa_deactivate(void) {
+  if(pcm) {
+    int err;
+    
+    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
+      fatal(0, "error calling snd_pcm_nonblock: %d", err);
+    D(("draining pcm"));
+    snd_pcm_drain(pcm);
+    D(("closing pcm"));
+    snd_pcm_close(pcm);
+    pcm = 0;
+    device_state = device_closed;
+    D(("released audio device"));
+  }
+}
+
 /** @brief ALSA backend activation */
-static int alsa_activate(void) {
+static void alsa_activate(void) {
   /* If we need to change format then close the current device. */
-  if(pcm && !formats_equal(&playing->format, &pcm_format))
-    idle();
+  if(pcm && !formats_equal(&playing->format, &device_format))
+    alsa_deactivate();
+  /* Now if the sound device is open it must have the right format */
   if(!pcm) {
     snd_pcm_hw_params_t *hwparams;
     snd_pcm_sw_params_t *swparams;
@@ -675,8 +680,7 @@ static int alsa_activate(void) {
             playing->format.channels, err);
       goto fatal;
     }
-    bufsize = 3 * FRAMES;
-    pcm_bufsize = bufsize;
+    pcm_bufsize = 3 * FRAMES;
     if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
                                                      &pcm_bufsize)) < 0)
       fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
@@ -696,13 +700,12 @@ static int alsa_activate(void) {
             FRAMES, err);
     if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
       fatal(0, "error calling snd_pcm_sw_params: %d", err);
-    pcm_format = playing->format;
-    bpf = bytes_per_frame(&pcm_format);
+    device_format = playing->format;
     D(("acquired audio device"));
     log_params(hwparams, swparams);
-    ready = 1;
+    device_state = device_open;
   }
-  return 0;
+  return;
 fatal:
   abandon();
 error:
@@ -710,8 +713,9 @@ error:
   if(pcm) {
     snd_pcm_close(pcm);
     pcm = 0;
+    device_state = device_error;
   }
-  return -1;
+  return;
 }
 
 /** @brief Play via ALSA */
@@ -768,41 +772,42 @@ static void alsa_beforepoll(void) {
 }
 
 /** @brief Process poll() results for ALSA */
-static int alsa_afterpoll(void) {
+static int alsa_ready(void) {
   int err;
 
-  if(alsa_slots != -1) {
-    unsigned short alsa_revents;
-    
-    if((err = snd_pcm_poll_descriptors_revents(pcm,
-                                               &fds[alsa_slots],
-                                               alsa_nslots,
-                                               &alsa_revents)) < 0)
-      fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
-    if(alsa_revents & (POLLOUT | POLLERR))
-      play(3 * FRAMES);
-    return 0;
-  } else
+  unsigned short alsa_revents;
+  
+  if((err = snd_pcm_poll_descriptors_revents(pcm,
+                                             &fds[alsa_slots],
+                                             alsa_nslots,
+                                             &alsa_revents)) < 0)
+    fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
+  if(alsa_revents & (POLLOUT | POLLERR))
     return 1;
-}
-
-/** @brief ALSA deactivation */
-static void alsa_deactivate(void) {
-  if(pcm) {
-    int  err;
-    
-    if((err = snd_pcm_nonblock(pcm, 0)) < 0)
-      fatal(0, "error calling snd_pcm_nonblock: %d", err);
-    D(("draining pcm"));
-    snd_pcm_drain(pcm);
-    D(("closing pcm"));
-    snd_pcm_close(pcm);
-    pcm = 0;
-    forceplay = 0;
-    D(("released audio device"));
-  }
+  else
+    return 0;
 }
 #endif
+
+/** @brief Start the subprocess for @ref BACKEND_COMMAND */
+static void fork_cmd(void) {
+  pid_t cmdpid;
+  int pfd[2];
+  if(cmdfd != -1) close(cmdfd);
+  xpipe(pfd);
+  cmdpid = xfork();
+  if(!cmdpid) {
+    signal(SIGPIPE, SIG_DFL);
+    xdup2(pfd[0], 0);
+    close(pfd[0]);
+    close(pfd[1]);
+    execl("/bin/sh", "sh", "-c", config->speaker_command, (char *)0);
+    fatal(errno, "error execing /bin/sh");
+  }
+  close(pfd[0]);
+  cmdfd = pfd[1];
+  D(("forked cmd %d, fd = %d", cmdpid, cmdfd));
+}
 
 /** @brief Command backend initialization */
 static void command_init(void) {
@@ -844,24 +849,11 @@ static void command_beforepoll(void) {
 }
 
 /** @brief Process poll() results for subprocess play */
-static int command_afterpoll(void) {
-  if(cmdfd_slot != -1) {
-    if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
-      play(3 * FRAMES);
+static int command_ready(void) {
+  if(fds[cmdfd_slot].revents & (POLLOUT | POLLERR))
+    return 1;
+  else
     return 0;
-  } else
-    return -1;
-}
-
-/** @brief Command/network backend activation */
-static int generic_activate(void) {
-  if(!ready) {
-    bufsize = 3 * FRAMES;
-    bpf = bytes_per_frame(&config->sample_format);
-    D(("acquired audio device"));
-    ready = 1;
-  }
-  return 0;
 }
 
 /** @brief Network backend initialization */
@@ -1073,13 +1065,11 @@ static void network_beforepoll(void) {
 }
 
 /** @brief Process poll() results for network play */
-static int network_afterpoll(void) {
-  if(bfd_slot != -1) {
-    if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
-      play(3 * FRAMES);
-    return 0;
-  } else
+static int network_ready(void) {
+  if(fds[bfd_slot].revents & (POLLOUT | POLLERR))
     return 1;
+  else
+    return 0;
 }
 
 /** @brief Table of speaker backends */
@@ -1093,105 +1083,78 @@ static const struct speaker_backend backends[] = {
     alsa_play,
     alsa_deactivate,
     alsa_beforepoll,
-    alsa_afterpoll
+    alsa_ready
   },
 #endif
   {
     BACKEND_COMMAND,
     FIXED_FORMAT,
     command_init,
-    generic_activate,
+    0,                                  /* activate */
     command_play,
     0,                                  /* deactivate */
     command_beforepoll,
-    command_afterpoll
+    command_ready
   },
   {
     BACKEND_NETWORK,
     FIXED_FORMAT,
     network_init,
-    generic_activate,
+    0,                                  /* activate */
     network_play,
     0,                                  /* deactivate */
     network_beforepoll,
-    network_afterpoll
+    network_ready
   },
   { -1, 0, 0, 0, 0, 0, 0, 0 }           /* end of list */
 };
 
-/** @brief Main event loop
+/** @brief Return nonzero if we want to play some audio
  *
- * This has grown in a rather bizarre and ad-hoc way is very sensitive to
- * changes...
- *
- * Firstly the loop is terminated when the parent process exits.  Therefore the
- * speaker process has the same lifetime as the main server.  This and the
- * reading of data from decoders is comprehensible enough.
- *
- * The playing of audio is more complicated however.
- *
- * On the first run through when a track is ready to be played, @ref ready and
- * @ref forceplay will both be zero.  Therefore @c beforepoll is not called.
- *
- * @c afterpoll on the other hand @b is called and will return nonzero.  The
- * result is that we call @c play(0).  This will call activate(), setting
- * @ref ready nonzero, but otherwise has no immediate effect.
- *
- * We then deal with stdin and the decoders.
- *
- * We then reach the second place we might play some audio.  @ref forceplay is
- * 0 so nothing happens here again.
- *
- * On the next iteration through however @ref ready is nonzero, and @ref
- * forceplay is 0, so we call @c beforepoll.  After the @c poll() we call @c
- * afterpoll and actually get some audio played.
- *
- * This is surely @b far more complicated than it needs to be!
- *
- * If at any call to play(), activate() fails, or if there aren't enough bytes
- * in the buffer to satisfy the request, then @ref forceplay is set non-0.  On
- * the next pass through the event loop @c beforepoll is not called.  This
- * means that (if none of the other FDs trigger) the @c poll() call will block
- * for up to a second.  @c afterpoll will return nonzero, since @c beforepoll
- * wasn't called, and consequently play() is called with @ref forceplay as its
- * argument.
- *
- * The effect is to attempt to restart playing audio - including the activate()
- * step, which may have failed at the previous attempt - at least once a second
- * after an error has disabled it.  The delay prevents busy-waiting on whatever
- * condition has rendered the audio device uncooperative.
+ * We want to play audio if there is a current track; and it is not paused; and
+ * there are at least @ref FRAMES frames of audio to play, or we are in sight
+ * of the end of the current track.
  */
+static int playable(void) {
+  return playing
+         && !paused
+         && (playing->used >= FRAMES || playing->eof);
+}
+
+/** @brief Main event loop */
 static void mainloop(void) {
   struct track *t;
   struct speaker_message sm;
-  int n, fd, stdin_slot, poke, timeout;
+  int n, fd, stdin_slot, timeout;
 
   while(getppid() != 1) {
     fdno = 0;
+    /* By default we will wait up to a second before thinking about current
+     * state. */
+    timeout = 1000;
     /* Always ready for commands from the main server. */
     stdin_slot = addfd(0, POLLIN);
     /* Try to read sample data for the currently playing track if there is
      * buffer space. */
-    if(playing && !playing->eof && playing->used < playing->size) {
+    if(playing && !playing->eof && playing->used < playing->size)
       playing->slot = addfd(playing->fd, POLLIN);
-    } else if(playing)
+    else if(playing)
       playing->slot = -1;
-    /* If forceplay is set then wait until it succeeds before waiting on the
-     * sound device. */
-#if API_ALSA
-    alsa_slots = -1;
-#endif
-    cmdfd_slot = -1;
-    bfd_slot = -1;
-    /* By default we will wait up to a second before thinking about current
-     * state. */
-    timeout = 1000;
-    /* We'll break the poll as soon as the underlying sound device is ready for
-     * more data */
-    if(ready && !forceplay)
-      backend->beforepoll();
+    if(playable()) {
+      /* We want to play some audio.  If the device is closed then we attempt
+       * to open it. */
+      if(device_state == device_closed)
+        activate();
+      /* If the device is (now) open then we will wait up until it is ready for
+       * more.  If something went wrong then we should have device_error
+       * instead, but the post-poll code will cope even if it's
+       * device_closed. */
+      if(device_state == device_open)
+        backend->beforepoll();
+    }
     /* If any other tracks don't have a full buffer, try to read sample data
-     * from them. */
+     * from them.  We do this last of all, so that if we run out of slots,
+     * nothing important can't be monitored. */
     for(t = tracks; t; t = t->next)
       if(t != playing) {
         if(!t->eof && t->used < t->size) {
@@ -1206,16 +1169,26 @@ static void mainloop(void) {
       fatal(errno, "error calling poll");
     }
     /* Play some sound before doing anything else */
-    poke = backend->afterpoll();
-    if(poke) {
-      /* Some attempt to play must have failed */
-      if(playing && !paused)
-        play(forceplay);
-      else
-        forceplay = 0;                  /* just in case */
+    if(playable()) {
+      /* We want to play some audio */
+      if(device_state == device_open) {
+        if(backend->ready())
+          play(3 * FRAMES);
+      } else {
+        /* We must be in _closed or _error, and it should be the latter, but we
+         * cope with either.
+         *
+         * We most likely timed out, so now is a good time to retry.  play()
+         * knows to re-activate the device if necessary.
+         */
+        play(3 * FRAMES);
+      }
     }
     /* Perhaps we have a command to process */
     if(fds[stdin_slot].revents & POLLIN) {
+      /* There might (in theory) be several commands queued up, but in general
+       * this won't be the case, so we don't bother looping around to pick them
+       * all up. */ 
       n = speaker_recv(0, &sm, &fd);
       if(n > 0)
 	switch(sm.type) {
@@ -1231,7 +1204,10 @@ static void mainloop(void) {
 	  t = findtrack(sm.id, 1);
           if(fd != -1) acquire(t, fd);
           playing = t;
-          play(bufsize);
+          /* We attempt to play straight away rather than going round the loop.
+           * play() is clever enough to perform any activation that is
+           * required. */
+          play(3 * FRAMES);
           report();
 	  break;
 	case SM_PAUSE:
@@ -1243,8 +1219,9 @@ static void mainloop(void) {
           D(("SM_RESUME"));
           if(paused) {
             paused = 0;
+            /* As for SM_PLAY we attempt to play straight away. */
             if(playing)
-              play(bufsize);
+              play(3 * FRAMES);
           }
           report();
 	  break;
@@ -1276,14 +1253,11 @@ static void mainloop(void) {
     for(t = tracks; t; t = t->next)
       if(t->slot != -1 && (fds[t->slot].revents & (POLLIN | POLLHUP)))
          fill(t);
-    /* We might be able to play now */
-    if(ready && forceplay && playing && !paused)
-      play(forceplay);
     /* Maybe we finished playing a track somewhere in the above */
     maybe_finished();
     /* If we don't need the sound device for now then close it for the benefit
      * of anyone else who wants it. */
-    if((!playing || paused) && ready)
+    if((!playing || paused) && device_state == device_open)
       idle();
     /* If we've not reported out state for a second do so now. */
     if(time(0) > last_report)

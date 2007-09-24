@@ -36,15 +36,18 @@
  */
 #define BUFFER_SECONDS 5
 
-/** @brief Frame batch size
+/** @brief Minimum number of frames to try to play at once
  *
- * This controls how many frames are written in one go.
+ * The main loop will only attempt to play any audio when this many
+ * frames are available (or the current track has reached the end).
+ * The actual number of frames it attempts to play will often be
+ * larger than this (up to three times).
  *
  * For ALSA we request a buffer of three times this size and set the low
  * watermark to this amount.  The goal is then to keep between 1 and 3 times
  * this many frames in play.
  *
- * For all backends we attempt to play up to three times this many frames per
+ * For other we attempt to play up to three times this many frames per
  * shot.  In practice we will often only send much less than this.
  */
 #define FRAMES 4096
@@ -112,49 +115,96 @@ struct speaker_backend {
    *
    * Called to activate the output device.
    *
-   * After this function succeeds, @ref ready should be non-0.  As well as
-   * opening the audio device, this function is responsible for reconfiguring
-   * if it necessary to cope with different samples formats (for backends that
-   * don't demand a single fixed sample format for the lifetime of the server).
+   * On input @ref device_state may be anything.  If it is @ref
+   * device_open then the device is already open but might be using
+   * the wrong sample format.  The device should be reconfigured to
+   * use the right sample format.
+   *
+   * If it is @ref device_error then a retry is underway and an
+   * attempt to recover or re-open the device (with the right sample
+   * format) should be made.
+   *
+   * If it is @ref device_closed then the device should be opened with
+   * the right sample format.
+   *
+   * If the @ref FIXED_FORMAT flag is not set then @ref device_format
+   * must be set on success.
+   *
+   * Some devices are effectively always open and have no error state,
+   * in which case this callback can be NULL.  In this case @ref
+   * FIXED_FORMAT must be set.  Note that @ref device_state still
+   * switches between @ref device_open and @ref device_closd in this
+   * case.
    */
-  int (*activate)(void);
+  void (*activate)(void);
 
   /** @brief Play sound
    * @param frames Number of frames to play
    * @return Number of frames actually played
+   *
+   * If an error occurs (and it is not immediately recovered) this
+   * should set @ref device_state to @ref device_error.
    */
   size_t (*play)(size_t frames);
   
   /** @brief Deactivation
    *
-   * Called to deactivate the sound device.  This is the inverse of
-   * @c activate above.
+   * Called to deactivate the sound device.  This is the inverse of @c
+   * activate above.
+   *
+   * For sound devices that are open all the time and have no error
+   * state, this callback can be NULL.  Note that @ref device_state
+   * still switches between @ref device_open and @ref device_closd in
+   * this case.
    */
   void (*deactivate)(void);
 
   /** @brief Called before poll()
    *
-   * Called before the call to poll().  Should call addfd() to update the FD
-   * array and stash the slot number somewhere safe.
+   * Called before the call to poll().  Should call addfd() to update
+   * the FD array and stash the slot number somewhere safe.  This will
+   * only be called if @ref device_state = @ref device_open.
    */
   void (*beforepoll)(void);
 
   /** @brief Called after poll()
-   * @return 0 if we could play, non-0 if not
+   * @return 1 if output device ready for play, 0 otherwise
    *
-   * Called after the call to poll().  Should arrange to play some audio if the
-   * output device is ready.
+   * Called after the call to poll().  This will only be called if
+   * @ref device_state = @ref device_open.
    *
-   * The return value should be 0 if the device was ready to play, or nonzero
-   * if it was not.
+   * The return value should be 1 if the device was ready to play, or
+   * 0 if it was not.
    */
-  int (*afterpoll)(void);
+  int (*ready)(void);
 };
 
-/** @brief Linked list of all prepared tracks */
-extern struct track *tracks;
+/** @brief Possible device states */
+enum device_states {
+  /** @brief The device is closed */
+  device_closed,
 
-/** @brief Playing track, or NULL */
+  /** @brief The device is open and ready to receive sound
+   *
+   * The current device sample format is potentially part of this state.
+   */
+  device_open,
+  
+  /** @brief An error has occurred on the device
+   *
+   * This state is used to ensure that a small interval is left
+   * between retrying the device.  If errors just set @ref
+   * device_closed then the main loop would busy-wait on broken output
+   * devices.
+   *
+   * The current device sample format is potentially part of this state.
+   */
+  device_error
+};
+
+extern enum device_states device_state;
+extern ao_sample_format device_format;
+extern struct track *tracks;
 extern struct track *playing;
 
 #endif /* SPEAKER_H */
