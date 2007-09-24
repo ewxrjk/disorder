@@ -32,10 +32,12 @@
 #include "speaker-protocol.h"
 #include "log.h"
 
-/** @brief Send a speaker messages
+/** @brief Send a speaker message
  * @param fd File descriptor to send to
  * @param sm Pointer to message
- * @param datafd File descriptor to pass with message or -1
+ * @param datafd File descriptoxr to pass with message or -1
+ *
+ * @p datafd will be the output from some decoder.
  */
 void speaker_send(int fd, const struct speaker_message *sm, int datafd) {
   struct msghdr m;
