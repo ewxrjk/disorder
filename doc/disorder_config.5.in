@@ -212,6 +212,11 @@ Determines whether the server locks against concurrent operation.  Default is
 The path to the mixer device, if you want access to the volume control,
 e.g. \fB/dev/mixer\fR.
 .TP
+.B multicast_ttl \fIHOPS\fR
+Set the maximum number of hops to send multicast packets.  This only applies is
+\fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
+multicast address.
+.TP
 .B namepart \fIPART\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how to extract trackname part \fIPART\fR from a 
 track name (with the collection root part removed).

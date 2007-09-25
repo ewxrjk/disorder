@@ -119,8 +119,37 @@ static void network_init(void) {
                    res->ai_socktype,
                    res->ai_protocol)) < 0)
     fatal(errno, "error creating broadcast socket");
-  if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-    fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+  if((res->ai_family == PF_INET
+      && IN_MULTICAST(
+           ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr)
+         ))
+     || (res->ai_family == PF_INET6
+         && IN6_IS_ADDR_MULTICAST(
+               &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr
+            ))) {
+    /* Multicasting */
+    switch(res->ai_family) {
+    case PF_INET: {
+      const int mttl = config->multicast_ttl;
+      if(setsockopt(bfd, IPPROTO_IP, IP_MULTICAST_TTL, &mttl, sizeof mttl) < 0)
+        fatal(errno, "error setting IP_MULTICAST_TTL on multicast socket");
+      break;
+    }
+    case PF_INET6: {
+      const int mttl = config->multicast_ttl;
+      if(setsockopt(bfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+                    &mttl, sizeof mttl) < 0)
+        fatal(errno, "error setting IPV6_MULTICAST_HOPS on multicast socket");
+      break;
+    }
+    default:
+      fatal(0, "unsupported address family %d", res->ai_family);
+    }
+  } else {
+    /* Presumably just broadcasting */
+    if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
+      fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+  }
   len = sizeof sndbuf;
   if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
                 &sndbuf, &len) < 0)

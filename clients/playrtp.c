@@ -291,6 +291,7 @@ static const struct option options[] = {
   { "max", required_argument, 0, 'x' },
   { "buffer", required_argument, 0, 'b' },
   { "rcvbuf", required_argument, 0, 'R' },
+  { "multicast", required_argument, 0, 'M' },
   { 0, 0, 0, 0 }
 };
 
@@ -858,6 +859,7 @@ static void help(void) {
           "  --buffer, -b FRAMES     Buffer high water mark\n"
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
+          "  --multicast, -M GROUP   Join multicast group\n"
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
           );
@@ -879,6 +881,9 @@ int main(int argc, char **argv) {
   char *sockname;
   int rcvbuf, target_rcvbuf = 131072;
   socklen_t len;
+  char *multicast_group = 0;
+  struct ip_mreq mreq;
+  struct ipv6_mreq mreq6;
 
   static const struct addrinfo prefs = {
     AI_PASSIVE,
@@ -893,7 +898,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -904,6 +909,7 @@ int main(int argc, char **argv) {
     case 'x': maxbuffer = 2 * atol(optarg); break;
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
+    case 'M': multicast_group = optarg; break;
     default: fatal(0, "invalid option");
     }
   }
@@ -924,6 +930,28 @@ int main(int argc, char **argv) {
     fatal(errno, "error creating socket");
   if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
     fatal(errno, "error binding socket to %s", sockname);
+  if(multicast_group) {
+    if((n = getaddrinfo(multicast_group, 0, &prefs, &res)))
+      fatal(0, "getaddrinfo %s: %s", multicast_group, gai_strerror(n));
+    switch(res->ai_family) {
+    case PF_INET:
+      mreq.imr_multiaddr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+      mreq.imr_interface.s_addr = 0;      /* use primary interface */
+      if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+                    &mreq, sizeof mreq) < 0)
+        fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
+      break;
+    case PF_INET6:
+      mreq6.ipv6mr_multiaddr = ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr;
+      memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
+      if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+                    &mreq6, sizeof mreq6) < 0)
+        fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
+      break;
+    default:
+      fatal(0, "unsupported address family %d", res->ai_family);
+    }
+  }
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
     fatal(errno, "error calling getsockopt SO_RCVBUF");

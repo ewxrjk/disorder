@@ -835,6 +835,7 @@ static const struct conf conf[] = {
   { C(listen),           &type_stringlist,       validate_addrport },
   { C(lock),             &type_boolean,          validate_any },
   { C(mixer),            &type_string,           validate_ischr },
+  { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
   { C2(nice, nice_rescan), &type_integer,        validate_non_negative },
   { C(nice_rescan),      &type_integer,          validate_non_negative },
@@ -973,6 +974,7 @@ static struct config *config_default(void) {
   c->sample_format.byte_format = AO_FMT_NATIVE;
   c->queue_pad = 10;
   c->speaker_backend = -1;
+  c->multicast_ttl = 1;
   return c;
 }
 

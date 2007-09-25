@@ -50,6 +50,9 @@ is four times the \fB--buffer\fR value.
 .B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
 Specifies socket receive buffer size.
 .TP
+.B --multicast \fIGROUP\fR, \fB-M \fIGROUP\fR
+Specifies a multicast group to join.
+.TP
 .B --help\fR, \fB-h
 Display a usage message.
 .TP

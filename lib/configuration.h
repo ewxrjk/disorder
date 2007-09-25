@@ -220,8 +220,14 @@ struct config {
   const char *device;
   struct transformlist transform;	/* path name transformations */
 
-  struct stringlist broadcast;		/* audio broadcast address */
-  struct stringlist broadcast_from;	/* audio broadcast source address */
+  /** @brief Address to send audio data to */
+  struct stringlist broadcast;
+
+  /** @brief Source address for network audio transmission */
+  struct stringlist broadcast_from;
+
+  /** @brief TTL for multicast packets */
+  long multicast_ttl;
 
   /* derived values: */
   int nparts;				/* number of distinct name parts */
