@@ -50,7 +50,10 @@ const char bindir[] = BINDIR;
 /** @brief System binary directory */
 const char sbindir[] = SBINDIR;
 
-/** @brief Fink binary directory */
+/** @brief Fink binary directory
+ *
+ * Meaningless if not on a Mac.
+ */
 const char finkbindir[] = FINKBINDIR;
 
 /*

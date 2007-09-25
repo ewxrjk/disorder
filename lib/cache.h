@@ -17,14 +17,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/cache.h
+ * @brief Object caching
+ *
+ * There is a single cache for the whole process.  Objects of different types
+ * are distinguished.  Objects might be thrown out of the cache at any point.
+ */
 
 #ifndef CACHE_H
 #define CACHE_H
 
 /* Defines a cache mapping keys to typed data items */
 
+/** @brief Type of a cache object */
 struct cache_type {
-  int lifetime;                         /* Lifetime of a cache entry */
+  /** @brief Lifetime for objects of this type (seconds) */
+  int lifetime;
 };
 
 void cache_put(const struct cache_type *type,

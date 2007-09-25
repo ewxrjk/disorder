@@ -133,7 +133,7 @@ struct speaker_backend {
    * Some devices are effectively always open and have no error state,
    * in which case this callback can be NULL.  In this case @ref
    * FIXED_FORMAT must be set.  Note that @ref device_state still
-   * switches between @ref device_open and @ref device_closd in this
+   * switches between @ref device_open and @ref device_closed in this
    * case.
    */
   void (*activate)(void);
@@ -154,7 +154,7 @@ struct speaker_backend {
    *
    * For sound devices that are open all the time and have no error
    * state, this callback can be NULL.  Note that @ref device_state
-   * still switches between @ref device_open and @ref device_closd in
+   * still switches between @ref device_open and @ref device_closed in
    * this case.
    */
   void (*deactivate)(void);

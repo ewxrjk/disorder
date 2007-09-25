@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/configuration.h
+ * @brief Configuration file support
+ */
 
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H

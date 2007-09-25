@@ -34,6 +34,12 @@
 #include "client-common.h"
 #include "addr.h"
 
+/** @brief Invoke a function with the connect address
+ * @param c Passed to callback
+ * @param function Function to call
+ *
+ * Calls @p function with the result of looking up the connect address.
+ */
 int with_sockaddr(void *c,
 		  int (*function)(void *c,
 				  const struct sockaddr *sa,

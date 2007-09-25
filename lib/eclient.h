@@ -17,47 +17,73 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/eclient.h
+ * @brief Client code for event-driven programs
+ */
 
 #ifndef ECLIENT_H
 #define ECLIENT_H
 
 /* Asynchronous client interface */
 
+/** @brief Handle type */
 typedef struct disorder_eclient disorder_eclient;
 
 struct queue_entry;
 
-#define DISORDER_POLL_READ 1u           /* want to read FD */
-#define DISORDER_POLL_WRITE 2u          /* want to write FD */
+/** @brief Set to read from the FD */
+#define DISORDER_POLL_READ 1u
 
-/* Callbacks for all clients.  These must all be valid. */
+/** @brief Set to write to the FD */
+#define DISORDER_POLL_WRITE 2u
+
+/** @brief Callbacks for all clients
+ *
+ * These must all be valid.
+ */
 typedef struct disorder_eclient_callbacks {
+  /** @brief Called when a communication error (e.g. connected refused) occurs.
+   * @param u from disorder_eclient_new()
+   * @param msg error message
+   */
   void (*comms_error)(void *u, const char *msg);
-  /* Called when a communication error (e.g. connected refused) occurs.  U
-   * comes from the _new() call and MSG describes the problem.*/
   
+  /** @brief Called when a command fails (including initial authorization).
+   * @param u from disorder_eclient_new()
+   * @param v from failed command, or NULL if during setup
+   * @param msg error message
+   */
   void (*protocol_error)(void *u, void *v, int code, const char *msg);
-  /* Called when a command fails (including initial authorization).  U comes
-   * from the _new() call, V from the failed command or a null pointer if the
-   * error is in setup and MSG describes the problem. */
-  
-  void (*poll)(void *u, disorder_eclient *c, int fd, unsigned mode);
-  /* Set poll/select flags for FD according to MODE.  FD will never be -1.
-   * Before FD is closed, you will always get a call with MODE=0.  U comes from
-   * the _new() call. */
 
+  /** @brief Set poll/select flags
+   * @param u from disorder_eclient_new()
+   * @param c handle
+   * @param fd file descriptor
+   * @param mode bitmap (@ref DISORDER_POLL_READ and/or @ref DISORDER_POLL_WRITE)
+   *
+   * Before @p fd is closed you will always get a call with @p mode = 0.
+   */
+  void (*poll)(void *u, disorder_eclient *c, int fd, unsigned mode);
+
+  /** @brief Report current activity
+   * @param u from disorder_eclient_new()
+   * @param msg Current activity or NULL
+   *
+   * Called with @p msg = NULL when there's nothing going on.
+   */
   void (*report)(void *u, const char *msg);
-  /* Called from time to time to report what's doing.  Called with MSG=0
-   * when the client goes idle.*/
 } disorder_eclient_callbacks;
 
-/* Callbacks for log clients.  All of these are allowed to be a null pointers
- * in which case you don't get told about that log event. */
+/** @brief Callbacks for log clients
+ *
+ * All of these are allowed to be a null pointers in which case you don't get
+ * told about that log event.
+ *
+ * See disorder_protocol(5) for full documentation.
+ */
 typedef struct disorder_eclient_log_callbacks {
+  /** @brief Called on (re-)connection */
   void (*connected)(void *v);
-  /* Called on (re-)connection */
-
-  /* See disorder_protocol(5) for documentation for the rest */
   
   void (*completed)(void *v, const char *track);
   void (*failed)(void *v, const char *track, const char *status);
@@ -73,9 +99,15 @@ typedef struct disorder_eclient_log_callbacks {
 } disorder_eclient_log_callbacks;
 
 /* State bits */
-#define DISORDER_PLAYING_ENABLED  0x00000001 /* play is enabled */
-#define DISORDER_RANDOM_ENABLED   0x00000002 /* random play is enabled */
-#define DISORDER_TRACK_PAUSED     0x00000004 /* track is paused */
+
+/** @brief Play is enabled */
+#define DISORDER_PLAYING_ENABLED  0x00000001
+
+/** @brief Random play is enabled */
+#define DISORDER_RANDOM_ENABLED   0x00000002
+
+/** @brief Track is paused */
+#define DISORDER_TRACK_PAUSED     0x00000004
 
 struct queue_entry;
 struct kvp;

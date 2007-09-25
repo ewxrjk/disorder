@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/configuration.c
+ * @brief Configuration file support
+ */
 
 #include <config.h>
 #include "types.h"
@@ -883,6 +886,7 @@ static int config_set(const struct config_state *cs,
 	  || which->type->set(cs, which, nvec - 1, vec + 1));
 }
 
+/** @brief Error callback used by config_include() */
 static void config_error(const char *msg, void *u) {
   const struct config_state *cs = u;
 

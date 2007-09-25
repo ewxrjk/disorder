@@ -48,7 +48,12 @@ char *any2any(const char *from/*encoding or 0*/,
  * that iconv knows.  If FROM and TO are both 0 then ANY is returned
  * unchanged. */
 
-
+/** @brief Insist that @p s is not null
+ * @param s Pointer to check
+ * @return @p s
+ *
+ * Terminates the process if @p s is a null pointer.
+ */
 static inline char *nullcheck(char *s) {
   if(!s) exitfn(1);			/* assume an error already reported */
   return s;

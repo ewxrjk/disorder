@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/eclient.c
+ * @brief Client code for event-driven programs
+ */
 
 #include <config.h>
 #include "types.h"
@@ -57,16 +60,18 @@
 
 /* Types *********************************************************************/
 
+/** @brief Client state */
 enum client_state {
-  state_disconnected,                   /* not connected */
-  state_connecting,                     /* waiting for connect() */
-  state_connected,                      /* connected but not authenticated */
-  state_idle,                           /* not doing anything */
-  state_cmdresponse,                    /* waiting for command resonse */
-  state_body,                           /* accumulating body */
-  state_log,                            /* monitoring log */
+  state_disconnected,          /**< @brief not connected */
+  state_connecting,            /**< @brief waiting for connect() */
+  state_connected,             /**< @brief connected but not authenticated */
+  state_idle,                  /**< @brief not doing anything */
+  state_cmdresponse,           /**< @brief waiting for command resonse */
+  state_body,                  /**< @brief accumulating body */
+  state_log,                   /**< @brief monitoring log */
 };
 
+/** @brief Names for @ref client_state */
 static const char *const states[] = {
   "disconnected",
   "connecting",
@@ -79,42 +84,44 @@ static const char *const states[] = {
 
 struct operation;                       /* forward decl */
 
+/** @brief Type of an operation callback */
 typedef void operation_callback(disorder_eclient *c, struct operation *op);
 
-/* A pending operation.  This can be either a command or part of the
- * authentication protocol.  In the former case new commands are appended to
- * the list, in the latter case they are inserted at the front. */
+/** @brief A pending operation.
+ *
+ * This can be either a command or part of the authentication protocol.  In the
+ * former case new commands are appended to the list, in the latter case they
+ * are inserted at the front. */
 struct operation {
-  struct operation *next;               /* next operation */
-  char *cmd;                            /* command to send or 0 */
-  operation_callback *opcallback;       /* internal completion callback */
-  void (*completed)();                  /* user completion callback or 0 */
-  void *v;                              /* data for COMPLETED */
-  disorder_eclient *client;             /* owning client */
-  int sent;                             /* true if sent to server */
+  struct operation *next;          /**< @brief next operation */
+  char *cmd;                       /**< @brief command to send or 0 */
+  operation_callback *opcallback;  /**< @brief internal completion callback */
+  void (*completed)();             /**< @brief user completion callback or 0 */
+  void *v;                         /**< @brief data for COMPLETED */
+  disorder_eclient *client;        /**< @brief owning client */
+  int sent;                        /**< @brief true if sent to server */
 };
 
+/** @brief Client structure */
 struct disorder_eclient {
   const char *ident;
-  int fd;
-  enum client_state state;              /* current state */
-  int authenticated;                    /* true when authenicated */
-  struct dynstr output;                 /* output buffer */
-  struct dynstr input;                  /* input buffer */
-  int eof;                              /* input buffer is at EOF */
-  /* error reporting callbacks */
-  const disorder_eclient_callbacks *callbacks;
-  void *u;
-  /* operation queuue */
-  struct operation *ops, **opstail;
+  int fd;                               /**< @brief connection to server */
+  enum client_state state;              /**< @brief current state */
+  int authenticated;                    /**< @brief true when authenicated */
+  struct dynstr output;                 /**< @brief output buffer */
+  struct dynstr input;                  /**< @brief input buffer */
+  int eof;                              /**< @brief input buffer is at EOF */
+  const disorder_eclient_callbacks *callbacks; /**< @brief error callbacks */
+  void *u;                              /**< @brief user data */
+  struct operation *ops;                /**< @brief queue of operations */
+  struct operation **opstail;           /**< @brief queue tail */
   /* accumulated response */
-  int rc;                               /* response code */
-  char *line;                           /* complete line */
-  struct vector vec;                    /* body */
-  /* log client callback */
-  const disorder_eclient_log_callbacks *log_callbacks;
-  void *log_v;
-  unsigned long statebits;              /* current state */
+  int rc;                               /**< @brief response code */
+  char *line;                           /**< @brief complete line */
+  struct vector vec;                    /**< @brief body */
+  const disorder_eclient_log_callbacks *log_callbacks; /**< @brief log callbacks */
+  void *log_v;                          /**< @brief user data */
+  unsigned long statebits;              /**< @brief current state */
 };
 
 /* Forward declarations ******************************************************/
@@ -160,13 +167,18 @@ static void logentry_volume(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
-static const struct logentry_handler {
-  const char *name;
-  int min, max;
+/** @brief One possible log entry */
+struct logentry_handler {
+  const char *name;                     /**< @brief Entry name */
+  int min;                              /**< @brief Minimum arguments */
+  int max;                              /**< @brief Maximum arguments */
   void (*handler)(disorder_eclient *c,
                   int nvec,
-                  char **vec);
-} logentry_handlers[] = {
+                  char **vec);          /**< @brief Handler function */
+};
+
+/** @brief Table for parsing log entries */
+static const struct logentry_handler logentry_handlers[] = {
 #define LE(X, MIN, MAX) { #X, MIN, MAX, logentry_##X }
   LE(completed, 1, 1),
   LE(failed, 2, 2),
@@ -183,6 +195,10 @@ static const struct logentry_handler {
 
 /* Setup and teardown ********************************************************/
 
+/** @brief Create a new client
+ *
+ * Does NOT connect the client - connections are made (and re-made) on demand.
+ */
 disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
                                        void *u) {
   disorder_eclient *c = xmalloc(sizeof *c);
@@ -201,6 +217,7 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
   return c;
 }
 
+/** @brief Disconnect a client */
 void disorder_eclient_close(disorder_eclient *c) {
   struct operation *op;
 
@@ -223,7 +240,7 @@ void disorder_eclient_close(disorder_eclient *c) {
 
 /* Error reporting ***********************************************************/
 
-/* called when a connection error occurs */
+/** @brief called when a connection error occurs */
 static int comms_error(disorder_eclient *c, const char *fmt, ...) {
   va_list ap;
   char *s;
@@ -237,7 +254,7 @@ static int comms_error(disorder_eclient *c, const char *fmt, ...) {
   return -1;
 }
 
-/* called when the server reports an error */
+/** @brief called when the server reports an error */
 static int protocol_error(disorder_eclient *c, struct operation *op,
                           int code, const char *fmt, ...) {
   va_list ap;
@@ -253,6 +270,15 @@ static int protocol_error(disorder_eclient *c, struct operation *op,
 
 /* State machine *************************************************************/
 
+/** @brief Called when there's something to do
+ * @param c Client
+ * @param mode bitmap of @ref DISORDER_POLL_READ and/or @ref DISORDER_POLL_WRITE.
+ *
+ * This should be called from by your code when the file descriptor is readable
+ * or writable (as requested by the @c poll callback, see @ref
+ * disorder_eclient_callbacks) and in any case from time to time (with @p mode
+ * = 0) to allow for retries to work.
+ */
 void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
   struct operation *op;
 
@@ -385,7 +411,7 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
   if(c->fd != -1) c->callbacks->poll(c->u, c, c->fd, mode);
 }
 
-/* Called to start connecting */
+/** @brief Called to start connecting */
 static int start_connect(void *cc,
 			 const struct sockaddr *sa,
 			 socklen_t len,
@@ -419,7 +445,7 @@ static int start_connect(void *cc,
   return 0;
 }
 
-/* Called when maybe connected */
+/** @brief Called when maybe connected */
 static void maybe_connected(disorder_eclient *c) {
   /* We either connected, or got an error. */
   int err;

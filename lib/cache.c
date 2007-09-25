@@ -84,6 +84,7 @@ const void *cache_get(const struct cache_type *type, const char *key) {
     return 0;
 }
 
+/** @brief Call used by from cache_expire() */
 static int expiry_callback(const char *key, void *value, void *u) {
   const struct cache_entry *c = value;
   const time_t *now = u;
@@ -105,6 +106,7 @@ void cache_expire(void) {
   }
 }
 
+/** @brief Callback used by cache_clean() */
 static int clean_callback(const char *key, void *value, void *u) {
   const struct cache_entry *c = value;
   const struct cache_type *type = u;
