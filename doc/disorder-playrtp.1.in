@@ -28,11 +28,28 @@ disorder-playrtp \- play DisOrder network broadcasts
 .SH DESCRIPTION
 \fBdisorder-playrtp\fR plays a network broadcast sent from the specified
 address.
+.PP
+Normally the \fIADDRESS\fR would be 0.0.0.0.  The \fIPORT\fR will depend on the
+server configuration.  You may need to specify the \fB--multicast\fR option
+(see below) and if you have more than one soundcard perhaps the \fB--device\fR
+option.
 .SH OPTIONS
 .TP
 .B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
 Specifies the audio device to use.  The exact meaning of this is
 platform-dependent; on Linux it is the ALSA device name.
+.TP
+.B --multicast \fIGROUP\fR, \fB-M \fIGROUP\fR
+Specifies a multicast group to join.  This is necessary if the network
+broadcast is being multicasted rather than broadcast.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SS "Buffer Control Options"
+You shouldn't need to use these options.
 .TP
 .B --min \fIFRAMES\fR, \fB-m \fIFRAMES\fR
 Specifies the buffer low watermark in frames.  If the number of frames falls
@@ -48,16 +65,8 @@ the buffer then reading from the network socket will be suspended.  The default
 is four times the \fB--buffer\fR value.
 .TP
 .B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
-Specifies socket receive buffer size.
-.TP
-.B --multicast \fIGROUP\fR, \fB-M \fIGROUP\fR
-Specifies a multicast group to join.
-.TP
-.B --help\fR, \fB-h
-Display a usage message.
-.TP
-.B --version\fR, \fB-V
-Display version number.
+Specifies socket receive buffer size.  The default is 131072 (128Kbytes).  The
+buffer size will not be reduced below the operating system's default.
 .SH "SEE ALSO"
 .BR disorder_config (5),
 .BR disorderd (8)
