@@ -1063,8 +1063,10 @@ int config_read() {
 
   set_configfile();
   c = config_default();
-  if(config_include(c, configfile))
-    return -1;
+  /* standalone Disobedience installs might not have a global config file */
+  if(access(configfile, F_OK) == 0)
+    if(config_include(c, configfile))
+      return -1;
   /* if we can read the private config file, do */
   if((privconf = config_private())
      && access(privconf, R_OK) == 0
