@@ -102,3 +102,4 @@ doc/disorder-playrtp.1
 debian/substvars.*
 debian/disorder-playrtp
 *.bz2
+debian/disobedience

@@ -26,3 +26,10 @@ Default: localhost
 Description: Web server hostname
  Enter the hostname that the web interface will appear under.
 
+Template: disorder/port
+Type: string
+Default: none
+Description: Port number for clients to connect to
+ Enter the port number that the server should listen on for clients.  This
+ can be set to 'none' to permit only local clients or a port number for
+ remote clients to connect to, e.g. using Disobedience.

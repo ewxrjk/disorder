@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ set -e
 
 db_input high disorder/roots || true
 db_input high disorder/encoding || true
+db_input high disorder/port || true
 db_input medium disorder/scratches || true
 db_input medium disorder/server-name || true
 db_go || true
@@ -36,6 +37,8 @@ db_get disorder/encoding || true
 encoding="$RET"
 db_get disorder/server-name || true
 server_name="$RET"
+db_get disorder/port || true
+port="$RET"
 
 mkdir -p /etc/disorder
 cat > /etc/disorder/conf.debconf.new <<EOF
@@ -43,12 +46,23 @@ cat > /etc/disorder/conf.debconf.new <<EOF
 # do not edit manually
 # run 'dpkg-reconfigure disorder' instead
 EOF
+echo >> /etc/disorder/conf.debconf.new
+echo "# Collection roots"  >> /etc/disorder/conf.debconf.new
 for r in $roots; do
   echo "collection fs $encoding $r" >> /etc/disorder/conf.debconf.new
 done
+echo >> /etc/disorder/conf.debconf.new
+echo "# Scratches" >> /etc/disorder/conf.debconf.new
 for s in $scratches; do
   echo "scratch $s" >> /etc/disorder/conf.debconf.new
 done
+echo >> /etc/disorder/conf.debconf.new
+echo "# Canonical URL of web interface" >> /etc/disorder/conf.debconf.new
 echo "url http://$server_name/cgi-bin/disorder/disorder" >> /etc/disorder/conf.debconf.new
+if test "$port" != none && test "$port" != ""; then
+  echo >> /etc/disorder/conf.debconf.new
+  echo "# Listen for remote clients" >> /etc/disorder/conf.debconf.new
+  echo "listen 0.0.0.0 $port" >> /etc/disorder/conf.debconf.new
+fi
 
 mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf

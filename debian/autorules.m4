@@ -58,6 +58,12 @@ pkg-$1: [build]
 	cp debian/changelog \
 		debian/$1/usr/share/doc/$1/changelog.Debian
 	gzip -9 debian/$1/usr/share/doc/$1/changelog.Debian
+	@for f in preinst postinst prerm postrm conffiles templates config; do\
+	  if test -e debian/$$f.$1; then\
+	    echo cp debian/$$f.$1 debian/$1/DEBIAN/$$f; \
+	    cp debian/$$f.$1 debian/$1/DEBIAN/$$f; \
+	  fi;\
+	done
 $2	dpkg-gencontrol -isp -p$1 -Pdebian/$1 -Tdebian/substvars.$1
 	chown -R root:root debian/$1
 	chmod -R g-ws debian/$1

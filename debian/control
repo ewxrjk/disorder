@@ -9,7 +9,7 @@ Architecture: any
 Section: sound
 Priority: extra
 Depends: httpd,pwgen,mpg321,vorbis-tools,sox,debconf,${shlibs:Depends}
-Suggests: disorder-playrtp
+Suggests: disorder-playrtp,disobedience
 Description: Play random or selected digital audio files continuously
  Controlled from the command line or via a web-based interface.
 
@@ -22,3 +22,13 @@ Description: Network play client for DisOrder
   Plays RTP streams issued by DisOrder.  This is only useful if you
   have an install of the disorder package somewhere.
 
+Package: disobedience
+Architecture: any
+Section: sound
+Priority: extra
+Depends: ${shlibs:Depends}
+Suggests: disorder-playrtp
+Description: Controller GUI for DisOrder
+  Allows DisOrder users to remotely control what is played, etc.
+  This is only useful if you have an install of the disorder package
+  somewhere.

@@ -27,6 +27,19 @@ disobedience \- GUI client for DisOrder jukebox
 is a graphical client for DisOrder.  It is a work in progress and many features
 are not implemented yet.  However everything in this man page is either
 implemented or marked as missing.
+.SH "SETTING UP"
+You might use commands such as the following to set up a standalone instance of
+Disobedience:
+.PP
+.RS
+.nf
+cd
+mkdir .disorder
+echo password <your password> > .disorder/passwd
+echo connect <hostname> <port> >> .disorder/passwd
+chmod 600 .disorder/passwd
+.fi
+.RE
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
