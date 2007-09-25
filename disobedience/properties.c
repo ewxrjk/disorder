@@ -52,12 +52,12 @@ static void properties_ok(GtkButton *button, gpointer userdata);
 static void properties_apply(GtkButton *button, gpointer userdata);
 static void properties_cancel(GtkButton *button, gpointer userdata);
 
-/* Data for a single preference */
+/** @brief Data for a single preference */
 struct prefdata {
   const char *track;
   int row;
-  const struct pref *p;
-  const char *value;
+  const struct pref *p;                 /**< @brief kind of preference */
+  const char *value;                    /**< @brief value from server  */
   GtkWidget *widget;
 };
 
@@ -101,12 +101,12 @@ static const struct preftype preftype_boolean = {
   set_boolean
 };
 
-/* The known prefs for each track */
+/* @brief The known prefs for each track */
 static const struct pref {
-  const char *label;
-  const char *part;
-  const char *default_value;
-  const struct preftype *type;
+  const char *label;                    /**< @brief user-level description */
+  const char *part;                     /**< @brief protocol-level tag */
+  const char *default_value;            /**< @brief default value or NULL */
+  const struct preftype *type;          /**< @brief underlying data type */
 } prefs[] = {
   { "Artist", "artist", 0, &preftype_namepart },
   { "Album", "album", 0, &preftype_namepart },
@@ -246,17 +246,19 @@ static void prefdata_alldone(void) {
 /* Namepart preferences ---------------------------------------------------- */
 
 static void kickoff_namepart(struct prefdata *f) {
-  char *s;
-
-  byte_xasprintf(&s, "trackname_display_%s", f->p->part);
-  disorder_eclient_get(client, prefdata_completed, f->track, s,
-		       make_callbackdata(f));
+  /* We ask for the display name part.  This is a bit bizarre if what we really
+   * wanted was the underlying preference, but in fact it should always match
+   * and will supply a sane default without having to know how to parse tracks
+   * names (which implies knowing collection roots). */
+  disorder_eclient_namepart(client, prefdata_completed, f->track, "display", f->p->part,
+                            make_callbackdata(f));
 }
 
 static void completed_namepart(struct prefdata *f) {
-  if(!f->value)
-    /* No setting, use the computed default value instead */
-    f->value = trackname_part(f->track, "display", f->p->part);
+  if(!f->value) {
+    /* No setting */
+    f->value = "";
+  }
   f->widget = gtk_entry_new();
   gtk_entry_set_text(GTK_ENTRY(f->widget), f->value);
 }
@@ -271,13 +273,12 @@ static void set_namepart(struct prefdata *f, const char *value) {
 
   cbd->u.f = f;
   byte_xasprintf(&s, "trackname_display_%s", f->p->part);
-  if(strcmp(trackname_part(f->track, "display", f->p->part), value))
-    /* Different from default, set it */
-    disorder_eclient_set(client, set_namepart_completed, f->track, s, value,
-                         cbd);
-  else
-    /* Same as default, just unset */
-    disorder_eclient_unset(client, set_namepart_completed, f->track, s, cbd);
+  /* We don't know what the default is so can never unset.  This is a bug
+   * relative to the original design, which is supposed to only ever allow for
+   * non-trivial namepart preferences.  I suppose the server could spot a
+   * default being set and translate it into an unset. */
+  disorder_eclient_set(client, set_namepart_completed, f->track, s, value,
+                       cbd);
 }
 
 /* Called when we've set a namepart */
