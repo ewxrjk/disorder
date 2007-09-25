@@ -960,6 +960,10 @@ int trackdb_set(const char *track,
   int err, cmp;
   char *oldalias, *newalias, **oldtags = 0, **newtags;
 
+  if(value) {
+    /* TODO: if value matches default then set value=0 */
+  }
+  
   for(;;) {
     tid = trackdb_begin_transaction();
     if((err = gettrackdata(track, &t, &p, 0,
