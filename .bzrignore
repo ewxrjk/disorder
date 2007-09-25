@@ -99,3 +99,6 @@ doc/guts
 clients/disorder-playrtp
 doc/disorder-playrtp.1.html
 doc/disorder-playrtp.1
+debian/substvars.*
+debian/disorder-playrtp
+*.bz2

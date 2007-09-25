@@ -30,7 +30,9 @@ m4_changequote([,])
 m4_define([build], [.PHONY: [build]
 [build]:
 m4_syscmd([test -f ../configure || test -f ../config.status])m4_dnl
-m4_ifelse(m4_sysval,0,[	./configure ${CONFIGURE} ${CONFIGURE_EXTRA}
+m4_ifelse(m4_sysval,0,[	if test -f config.status; then \
+	  ./config.status; else\
+	  ./configure ${CONFIGURE} ${CONFIGURE_EXTRA}; fi
 ])m4_dnl
 	$(MAKE) prefix=/usr])m4_dnl
 

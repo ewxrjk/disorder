@@ -25,6 +25,8 @@ build
 
 archpkg([disorder], [	m4_dnl
 	$(MAKE) DESTDIR=`pwd`/debian/disorder staticdir=/var/www/disorder installdirs install
+	rm -f debian/disorder/usr/bin/disorder-playrtp
+	rm -f debian/disorder/usr/share/man/man1/disorder-playrtp.1
 	mkdir -m 755 -p debian/disorder/etc/disorder
 	mkdir -m 755 -p debian/disorder/etc/init.d
 	mkdir -m 755 -p debian/disorder/usr/lib/cgi-bin/disorder
@@ -63,6 +65,22 @@ archpkg([disorder], [	m4_dnl
 		debian/disorder/DEBIAN/.
 	$(INSTALL) -m 644 debian/conffiles debian/templates \
 		debian/disorder/DEBIAN/.
+])
+
+archpkg([disorder-playrtp], [	m4_dnl
+	mkdir -p debian/disorder-playrtp/usr/bin
+	mkdir -p debian/disorder-playrtp/usr/share/man/man1
+	$(INSTALL) -m 755 clients/disorder-playrtp \
+		debian/disorder-playrtp/usr/bin/disorder-playrtp
+	$(INSTALL) -m 755 doc/disorder-playrtp.1 \
+		debian/disorder-playrtp/usr/share/man/man1/disorder-playrtp.1
+	dpkg-shlibdeps -Tdebian/substvars.disorder-playrtp \
+		debian/disorder-playrtp/usr/bin/*
+	$(INSTALL) -m 644 debian/README.RTP \
+		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/README
+	$(INSTALL) -m 644 COPYING debian/disorder-playrtp/usr/share/doc/disorder-playrtp/GPL
+	gzip -9f debian/disorder-playrtp/usr/share/doc/disorder-playrtp/GPL \
+		 debian/disorder-playrtp/usr/share/man/man*/*
 ])
 
 binary

@@ -9,6 +9,16 @@ Architecture: any
 Section: sound
 Priority: extra
 Depends: httpd,pwgen,mpg321,vorbis-tools,sox,debconf,${shlibs:Depends}
-Conflicts: jukebox
+Suggests: disorder-playrtp
 Description: Play random or selected digital audio files continuously
  Controlled from the command line or via a web-based interface.
+
+Package: disorder-playrtp
+Architecture: any
+Section: sound
+Priority: extra
+Depends: ${shlibs:Depends}
+Description: Network play client for DisOrder
+  Plays RTP streams issued by DisOrder.  This is only useful if you
+  have an install of the disorder package somewhere.
+

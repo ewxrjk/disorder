@@ -1,3 +1,9 @@
+disorder (1.5.99+dev1) unstable; urgency=low
+
+  * New disorder-playrtp package
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Tue, 25 Sep 2007 12:27:11 +0100
+
 disorder (1.5.99+dev) unstable; urgency=low
 
   * Intermediate version number

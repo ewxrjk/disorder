@@ -1,0 +1,5 @@
+This is disorder-playrtp, a simple RTP client suitable for use with
+DisOrder.  See http://www.greenend.org.uk/rjk/disorder for further
+information.
+
+(c) 2007 Richard Kettlewell.  GPL v2 or later.

@@ -78,7 +78,9 @@ definitions.h: Makefile
 	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
 	echo "#define BINDIR \"${bindir}/\"" >> $@.new
 	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new
-	mv $@.new $@
+	@if cmp $@.new $@; then \
+		echo rm -f $@.new; rm -f $@.new; else \
+		echo mv $@.new $@; mv $@.new $@; fi
 defs.o: definitions.h
 defs.lo: definitions.h
 
@@ -93,4 +95,4 @@ check: test #test.i
 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
 	mv $@.new $@
 
-CLEANFILES=definitions.h
+CLEANFILES=definitions.h definitions.h.new
