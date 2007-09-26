@@ -30,8 +30,8 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <assert.h>
-#include <sys/ioctl.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -102,7 +102,7 @@ static void network_init(void) {
     0
   };
   static const int one = 1;
-  int sndbuf, target_sndbuf = 131072, n;
+  int sndbuf, target_sndbuf = 131072;
   socklen_t len;
   char *sockname, *ssockname;
 
@@ -150,21 +150,20 @@ static void network_init(void) {
     }
     info("multicasting on %s", sockname);
   } else {
-    struct ifreq *ifs;
-    int nifs;
+    struct ifaddrs *ifs;
 
-    /* See if the address matches the broadcast address of some interface */
-    ifreq_list(bfd, &ifs, &nifs);
-    for(n = 0; n < nifs; ++n) {
-      if(ioctl(bfd, SIOCGIFBRDADDR, &ifs[n]) < 0)
-        fatal(errno, "error calling ioctl SIOCGIFBRDADDR");
-      if(sockaddr_equal(&ifs[n].ifr_broadaddr, res->ai_addr))
+    if(getifaddrs(&ifs) < 0)
+      fatal(errno, "error calling getifaddrs");
+    while(ifs) {
+      if((ifs->ifa_flags & IFF_BROADCAST)
+         && sockaddr_equal(ifs->ifa_broadaddr, res->ai_addr))
         break;
+      ifs = ifs->ifa_next;
     }
-    if(n < nifs) {
+    if(ifs) {
       if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
         fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-      info("broadcasting on %s (%s)", sockname, ifs[n].ifr_name);
+      info("broadcasting on %s (%s)", sockname, ifs->ifa_name);
     } else
       info("unicasting on %s", sockname);
   }
