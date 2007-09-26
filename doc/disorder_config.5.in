@@ -405,10 +405,9 @@ Specifies one or more stopwords that should not take part in searches
 over track names.
 .SS "Client Configuration"
 .TP
-.B connect \fR[\fIHOST\fR] \fISERVICE\fR
+.B connect \fIHOST SERVICE\fR
 Connect to the address specified by \fIHOST\fR and port specified by
-\fISERVICE\fR.  If \fIHOST\fR is omitted then connects to the local host.
-Normally the UNIX domain socket is used instead.
+\fISERVICE\fR.
 .SS "Web Interface Configuration"
 .TP
 .B refresh \fISECONDS\fR

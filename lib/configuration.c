@@ -794,7 +794,7 @@ static int validate_addrport(const struct config_state attribute((unused)) *cs,
   }
 }
 
-static int validate_address(const struct config_state attribute((unused)) *cs,
+static int validate_port(const struct config_state attribute((unused)) *cs,
 			 int nvec,
 			 char attribute((unused)) **vec) {
   switch(nvec) {
@@ -806,7 +806,7 @@ static int validate_address(const struct config_state attribute((unused)) *cs,
   case 2:
     return 0;
   default:
-    error(0, "%s:%d: expected ADDRESS PORT",
+    error(0, "%s:%d: expected [ADDRESS] PORT",
 	  cs->path, cs->line);
     return -1;
   }
@@ -822,7 +822,7 @@ static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
   { C(broadcast),        &type_stringlist,       validate_addrport },
-  { C(broadcast_from),   &type_stringlist,       validate_address },
+  { C(broadcast_from),   &type_stringlist,       validate_addrport },
   { C(channel),          &type_string,           validate_channel },
   { C(checkpoint_kbyte), &type_integer,          validate_non_negative },
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
@@ -832,7 +832,7 @@ static const struct conf conf[] = {
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
   { C(home),             &type_string,           validate_isdir },
-  { C(listen),           &type_stringlist,       validate_addrport },
+  { C(listen),           &type_stringlist,       validate_port },
   { C(lock),             &type_boolean,          validate_any },
   { C(mixer),            &type_string,           validate_ischr },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
