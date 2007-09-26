@@ -18,7 +18,7 @@
 # USA
 #
 
-bin_SCRIPTS=tkdisorder
+noinst_SCRIPTS=tkdisorder
 nodist_python_PYTHON=disorder.py
 
 SEDFILES=disorder.py
