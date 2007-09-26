@@ -155,7 +155,11 @@ static void network_init(void) {
     if(getifaddrs(&ifs) < 0)
       fatal(errno, "error calling getifaddrs");
     while(ifs) {
+      /* (At least on Darwin) IFF_BROADCAST might be set but ifa_broadaddr
+       * still a null pointer.  It turns out that there's a subsequent entry
+       * for he same interface which _does_ have ifa_broadaddr though... */
       if((ifs->ifa_flags & IFF_BROADCAST)
+         && ifs->ifa_broadaddr
          && sockaddr_equal(ifs->ifa_broadaddr, res->ai_addr))
         break;
       ifs = ifs->ifa_next;
