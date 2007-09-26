@@ -1,4 +1,3 @@
-
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
@@ -106,8 +105,10 @@ install-data-hook:
 	@if [ -d ${LAUNCHD} ]; then \
 	  echo $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
 	  $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
-	  echo launchctl unload ${LAUNCHD} \|\| true;\
-	  launchctl unload ${LAUNCHD} || true;\
-	  echo launchctl load ${LAUNCHD} \|\| true;\
-	  launchctl load ${LAUNCHD} || true;\
+	  if [ "$$(NOLAUNCH)" != "" ]; then \
+	    echo launchctl unload ${LAUNCHD} \|\| true;\
+	    launchctl unload ${LAUNCHD} || true;\
+	    echo launchctl load ${LAUNCHD} \|\| true;\
+	    launchctl load ${LAUNCHD} || true;\
+         fi;\
 	fi
