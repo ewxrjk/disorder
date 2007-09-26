@@ -30,6 +30,8 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <assert.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -37,6 +39,7 @@
 #include "addr.h"
 #include "timeval.h"
 #include "rtp.h"
+#include "ifreq.h"
 #include "speaker-protocol.h"
 #include "speaker.h"
 
@@ -99,7 +102,7 @@ static void network_init(void) {
     0
   };
   static const int one = 1;
-  int sndbuf, target_sndbuf = 131072;
+  int sndbuf, target_sndbuf = 131072, n;
   socklen_t len;
   char *sockname, *ssockname;
 
@@ -145,10 +148,25 @@ static void network_init(void) {
     default:
       fatal(0, "unsupported address family %d", res->ai_family);
     }
+    info("multicasting on %s", sockname);
   } else {
-    /* Presumably just broadcasting */
-    if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-      fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+    struct ifreq *ifs;
+    int nifs;
+
+    /* See if the address matches the broadcast address of some interface */
+    ifreq_list(bfd, &ifs, &nifs);
+    for(n = 0; n < nifs; ++n) {
+      if(ioctl(bfd, SIOCGIFBRDADDR, &ifs[n]) < 0)
+        fatal(errno, "error calling ioctl SIOCGIFBRDADDR");
+      if(sockaddr_equal(&ifs[n].ifr_broadaddr, res->ai_addr))
+        break;
+    }
+    if(n < nifs) {
+      if(setsockopt(bfd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
+        fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+      info("broadcasting on %s (%s)", sockname, ifs[n].ifr_name);
+    } else
+      info("unicasting on %s", sockname);
   }
   len = sizeof sndbuf;
   if(getsockopt(bfd, SOL_SOCKET, SO_SNDBUF,
