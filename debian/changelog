@@ -1,3 +1,9 @@
+disorder (1.5.99+dev2) unstable; urgency=low
+
+  * Install images for use by Disobedience
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Wed, 26 Sep 2007 19:19:43 +0100
+
 disorder (1.5.99+dev1) unstable; urgency=low
 
   * New disorder-playrtp package
