@@ -103,3 +103,4 @@ debian/substvars.*
 debian/disorder-playrtp
 *.bz2
 debian/disobedience
+server/disorder-decode

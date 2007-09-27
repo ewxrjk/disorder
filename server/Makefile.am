@@ -19,7 +19,7 @@
 #
 
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
-	      disorder-speaker
+	      disorder-speaker disorder-decode
 noinst_PROGRAMS=disorder.cgi trackname
 noinst_DATA=uk.org.greenend.rjk.disorder.plist
 
@@ -51,6 +51,11 @@ disorder_speaker_SOURCES=speaker.c speaker.h \
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
+
+disorder_decode_SOURCES=decode.c
+disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBMAD)
+disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
 	api.c api-server.c				\
