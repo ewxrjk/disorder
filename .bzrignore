@@ -105,3 +105,4 @@ debian/disorder-playrtp
 debian/disobedience
 server/disorder-decode
 server/disorder-normalize
+doc/disorder-normalize.8.html

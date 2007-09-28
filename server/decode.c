@@ -33,11 +33,11 @@
 #include <assert.h>
 #include <fnmatch.h>
 #include <mad.h>
-#include <ao/ao.h>
 
 #include "log.h"
 #include "syscalls.h"
 #include "defs.h"
+#include "speaker-protocol.h"
 
 /** @brief Encoding lookup table type */
 struct decoder {
@@ -89,19 +89,17 @@ static inline void output_16(uint16_t n) {
  */
 static void output_header(int rate,
 			  int channels,
-			  int bits) {
-  static int already_written_header;
-  struct ao_sample_format format;
+			  int bits,
+                          int nbytes) {
+  struct stream_header header;
 
-  if(!already_written_header) {
-     format.rate = rate;
-     format.bits = bits;
-     format.channels = channels;
-     format.byte_format = AO_FMT_BIG;
-     if(fwrite(&format, sizeof format, 1, outputfp) < 1)
-       fatal(errno, "decoding %s: writing format header", path);
-     already_written_header = 1;
-   }
+  header.rate = rate;
+  header.bits = bits;
+  header.channels = channels;
+  header.endian = ENDIAN_BIG;
+  header.nbytes = nbytes;
+  if(fwrite(&header, sizeof header, 1, outputfp) < 1)
+    fatal(errno, "decoding %s: writing format header", path);
 }
 
 /** @brief Dithering state
@@ -184,7 +182,8 @@ static enum mad_flow mp3_output(void attribute((unused)) *data,
 
   output_header(header->samplerate,
 		pcm->channels,
-		16);
+		16,
+                2 * pcm->channels * pcm->length);
   switch(pcm->channels) {
   case 1:
     while(n--)
@@ -218,17 +217,10 @@ static enum mad_flow mp3_input(void attribute((unused)) *data,
 static enum mad_flow mp3_error(void attribute((unused)) *data,
 			       struct mad_stream *stream,
 			       struct mad_frame attribute((unused)) *frame) {
-  error(0, "decoding %s: %s (%#04x)",
-	path, mad_stream_errorstr(stream), stream->error);
-  return MAD_FLOW_CONTINUE;
-}
-
-/** @brief MP3 header callback */
-static enum mad_flow mp3_header(void attribute((unused)) *data,
-				struct mad_header const *header) {
-  output_header(header->samplerate,
-		MAD_NCHANNELS(header),
-		16);
+  if(0)
+    /* Just generates pointless verbosity l-( */
+    error(0, "decoding %s: %s (%#04x)",
+          path, mad_stream_errorstr(stream), stream->error);
   return MAD_FLOW_CONTINUE;
 }
 
@@ -237,7 +229,7 @@ static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
   open_input();
-  mad_decoder_init(mad, 0/*data*/, mp3_input, mp3_header, 0/*filter*/,
+  mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
   if(mad_decoder_run(mad, MAD_DECODER_MODE_SYNC))
     exit(1);
