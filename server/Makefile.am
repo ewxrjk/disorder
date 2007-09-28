@@ -54,7 +54,7 @@ disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_decode_SOURCES=decode.c
 disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBMAD)
+	$(LIBMAD) $(LIBVORBISFILE)
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_normalize_SOURCES=normalize.c

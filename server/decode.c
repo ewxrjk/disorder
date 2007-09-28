@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <fnmatch.h>
 #include <mad.h>
+#include <vorbis/vorbisfile.h>
 
 #include "log.h"
 #include "syscalls.h"
@@ -57,7 +58,7 @@ static FILE *outputfp;
 static const char *path;
 
 /** @brief Input buffer */
-static unsigned char buffer[1048576];
+static char buffer[1048576];
 
 /** @brief Open the input file */
 static void open_input(void) {
@@ -205,10 +206,10 @@ static enum mad_flow mp3_output(void attribute((unused)) *data,
 static enum mad_flow mp3_input(void attribute((unused)) *data,
 			       struct mad_stream *stream) {
   const size_t n = fill();
-  fprintf(stderr, "n=%zu\n", n);
+
   if(!n)
     return MAD_FLOW_STOP;
-  mad_stream_buffer(stream, buffer, n);
+  mad_stream_buffer(stream, (unsigned char *)buffer, n);
   return MAD_FLOW_CONTINUE;
 }
 
@@ -236,10 +237,41 @@ static void decode_mp3(void) {
   mad_decoder_finish(mad);
 }
 
+/** @brief OGG decoder */
+static void decode_ogg(void) {
+  FILE *fp;
+  OggVorbis_File vf[1];
+  int err;
+  long n;
+  int bitstream;
+  vorbis_info *vi;
+
+  if(!(fp = fopen(path, "rb")))
+    fatal(errno, "cannot open %s", path);
+  /* There doesn't seem to be any standard function for mapping the error codes
+   * to strings l-( */
+  if((err = ov_open(fp, vf, 0/*initial*/, 0/*ibytes*/)))
+    fatal(0, "ov_fopen %s: %d", path, err);
+  if(!(vi = ov_info(vf, 0/*link*/)))
+    fatal(0, "ov_info %s: failed", path);
+  while((n = ov_read(vf, buffer, sizeof buffer, 1/*bigendianp*/,
+                     2/*bytes/word*/, 1/*signed*/, &bitstream))) {
+    if(n < 0)
+      fatal(0, "ov_read %s: %ld", path, n);
+    if(bitstream > 0)
+      fatal(0, "only single-bitstream ogg files are supported");
+    output_header(vi->rate, vi->channels, 16/*bits*/, n);
+    if(fwrite(buffer, 1, n, outputfp) < (size_t)n)
+      fatal(errno, "decoding %s: writing sample data", path);
+  }
+}
+
 /** @brief Lookup table of decoders */
 static const struct decoder decoders[] = {
   { "*.mp3", decode_mp3 },
   { "*.MP3", decode_mp3 },
+  { "*.ogg", decode_ogg },
+  { "*.OGG", decode_ogg },
   { 0, 0 }
 };
 

@@ -27,7 +27,7 @@ notify_la_LDFLAGS=-module
 
 tracklength_la_SOURCES=tracklength.c mad.c madshim.h
 tracklength_la_LDFLAGS=-module
-tracklength_la_LIBADD=@LIBVORBISFILE@ @LIBMAD@
+tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD)
 
 fs_la_SOURCES=fs.c
 fs_la_LDFLAGS=-module
