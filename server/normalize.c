@@ -47,26 +47,27 @@
  * @param n Number of bytes to copy
  */
 static void copy(int infd, int outfd, size_t n) {
-  char buffer[4096], *ptr;
-  int r, w;
+  char buffer[4096];
+  ssize_t written;
 
   while(n > 0) {
-    r = read(infd, buffer, sizeof buffer);
-    if(r < 0) {
+    const ssize_t readden = read(infd, buffer,
+                                 n > sizeof buffer ? sizeof buffer : n);
+    if(readden < 0) {
       if(errno == EINTR)
 	continue;
       else
 	fatal(errno, "read error");
     }
-    if(r == 0)
+    if(readden == 0)
       fatal(0, "unexpected EOF");
-    n -= r;
-    ptr = buffer;
-    while(r > 0) {
-      w = write(outfd, ptr, r - (ptr - buffer));
+    n -= readden;
+    written = 0;
+    while(written < readden) {
+      const ssize_t w = write(outfd, buffer + written, readden - written);
       if(w < 0)
 	fatal(errno, "write error");
-      ptr += w;
+      written += w;
     }
   }
 }
