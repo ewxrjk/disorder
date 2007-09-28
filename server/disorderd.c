@@ -191,7 +191,7 @@ static void fix_path(void) {
   if(!path)
     error(0, "PATH is not set at all!");
 
-  if(*finkbindir)
+  if(*finkbindir && strcmp(finkbindir, "/"))
     /* We appear to be a finkized mac; include fink on the path in case the
      * tools we need are there. */
     byte_xasprintf(&newpath, "PATH=%s:%s:%s:%s", 
