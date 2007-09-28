@@ -38,6 +38,9 @@ crash when random play was enabled has been fixed.
 A new configuration option 'queue_pad' allows the number of random
 tracks kept on the queue to be controlled.
 
+There is a new utility disorder-decode which can decode several common
+audio file formats.  The example config file uses it.
+
 ** Network Play
 
 DisOrder can broadcast audio over a network, allowing it to be played on

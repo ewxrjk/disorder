@@ -36,6 +36,7 @@
 #include <disorder.h>
 
 #include "madshim.h"
+#include "wav.h"
 
 static void *mmap_file(const char *path, size_t *lengthp) {
   int fd;
@@ -95,131 +96,21 @@ error:
 }
 
 static long tl_wav(const char *path) {
-  size_t length;
-  void *base;
-  long duration = -1;
-  unsigned char *ptr;
-  unsigned n, m, data_bytes = 0, samples_per_second = 0;
-  unsigned n_channels = 0, bits_per_sample = 0, sample_point_size;
-  unsigned sample_frame_size, n_samples;
+  struct wavfile f[1];
+  int err, sample_frame_size;
+  long duration;
 
-  /* Sources:
-   *
-   * http://www.technology.niagarac.on.ca/courses/comp530/WavFileFormat.html
-   * http://www.borg.com/~jglatt/tech/wave.htm
-   * http://www.borg.com/~jglatt/tech/aboutiff.htm
-   *
-   * These files consists of a header followed by chunks.
-   * Multibyte values are little-endian.
-   *
-   * 12 byte file header:
-   *  offset  size  meaning
-   *  00      4     'RIFF'
-   *  04      4     length of rest of file
-   *  08      4     'WAVE'
-   *
-   * The length includes 'WAVE' but excludes the 1st 8 bytes.
-   *
-   * Chunk header:
-   *  00      4     chunk ID
-   *  04      4     length of rest of chunk
-   *
-   * The stated length may be odd, if so then there is an implicit padding byte
-   * appended to the chunk to make it up to an even length (someone wasn't
-   * think about 32/64-bit worlds).
-   *
-   * Also some files seem to have extra stuff at the end of chunks that nobody
-   * I know of documents.  Go figure, but check the length field rather than
-   * deducing the length from the ID.
-   *
-   * Format chunk:
-   *  00      4     'fmt'
-   *  04      4     length of rest of chunk
-   *  08      2     compression (1 = none)
-   *  0a      2     number of channels
-   *  0c      4     samples/second
-   *  10      4     average bytes/second, = (samples/sec) * (bytes/sample)
-   *  14      2     bytes/sample
-   *  16      2     bits/sample point
-   *
-   * 'sample' means 'sample frame' above, i.e. a sample point for each channel.
-   *
-   * Data chunk:
-   *  00      4     'data'
-   *  04      4     length of rest of chunk
-   *  08      ...   data
-   *
-   * There is only allowed to be one data chunk.  Some people violate this; we
-   * shall encourage people to fix their broken WAV files by not supporting
-   * this violation and because it's easier.
-   *
-   * As to the encoding of the data:
-   *
-   * Firstly, samples up to 8 bits in size are unsigned, larger samples are
-   * signed.  Madness.
-   *
-   * Secondly sample points are stored rounded up to a multiple of 8 bits in
-   * size.  Marginally saner.
-   *
-   * Written as a single word (of 8, 16, 24, whatever bits) the padding to
-   * implement this happens at the right hand (least significant) end.
-   * e.g. assuming a 9 bit sample:
-   *
-   * |                 padded sample word              |
-   * | 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 |
-   * |  8  7  6  5  4  3  2  1  0  -  -  -  -  -  -  - |
-   * 
-   * But this is a little-endian file format so the least significant byte is
-   * the first, which means that the padding is "between" the bits if you
-   * imagine them in their usual order:
-   *
-   *  |     first byte         |     second byte        |
-   *  | 7  6  5  4  3  2  1  0 | 7  6  5  4  3  2  1  0 |
-   *  | 0  -  -  -  -  -  -  - | 8  7  6  5  4  3  2  1 |
-   *
-   * Sample points are grouped into sample frames, consisting of as many
-   * samples points as their are channels.  It seems that there are standard
-   * orderings of different channels.
-   *
-   * Given all of the above all we need to do is pick up some numbers from the
-   * format chunk, and the length of the data chunk, and do some arithmetic.
-   */
-  if(!(base = mmap_file(path, &length))) return -1;
-#define get16(p) ((p)[0] + 256 * (p)[1])
-#define get32(p) ((p)[0] + 256 * ((p)[1] + 256 * ((p)[2] + 256 * (p)[3])))
-  ptr = base;
-  if(length < 12) goto out;
-  if(strncmp((char *)ptr, "RIFF", 4)) goto out;	/* wrong type */
-  n = get32(ptr + 4);			/* file length */
-  if(n > length - 8) goto out;		/* truncated */
-  ptr += 8;				/* skip file header */
-  if(n < 4 || strncmp((char *)ptr, "WAVE", 4)) goto out; /* wrong type */
-  ptr += 4;				/* skip 'WAVE' */
-  n -= 4;
-  while(n >= 8) {
-    m = get32(ptr + 4);			/* chunk length */
-    if(m > n - 8) goto out;		/* truncated */
-    if(!strncmp((char *)ptr, "fmt ", 4)) {
-      if(samples_per_second) goto out;	/* duplicate format chunk! */
-      n_channels = get16(ptr + 0x0a);
-      samples_per_second = get32(ptr + 0x0c);
-      bits_per_sample = get16(ptr + 0x16);
-      if(!samples_per_second) goto out;	/* bogus! */
-    } else if(!strncmp((char *)ptr, "data", 4)) {
-      if(data_bytes) goto out;		/* multiple data chunks! */
-      data_bytes = m;			/* remember data size */
-    }
-    m += 8;				/* include chunk header */
-    ptr += m;				/* skip chunk */
-    n -= m;
+  if((err = wav_init(f, path))) {
+    disorder_error(err, "error opening %s", path); 
+    return -1;
   }
-  sample_point_size = (bits_per_sample + 7) / 8;
-  sample_frame_size = sample_point_size * n_channels;
-  if(!sample_frame_size) goto out;	/* bogus or overflow */
-  n_samples = data_bytes / sample_frame_size;
-  duration = (n_samples + samples_per_second - 1) / samples_per_second;
-out:
-  munmap(base, length);
+  sample_frame_size = (f->bits + 7) / 8 * f->channels;
+  if(sample_frame_size) {
+    const long long n_samples = f->datasize / sample_frame_size;
+    duration = (n_samples + f->rate - 1) / f->rate;
+  } else
+    duration = -1;
+  wav_destroy(f);
   return duration;
 }
 

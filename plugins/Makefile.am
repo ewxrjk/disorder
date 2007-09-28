@@ -25,7 +25,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib
 notify_la_SOURCES=notify.c
 notify_la_LDFLAGS=-module
 
-tracklength_la_SOURCES=tracklength.c mad.c madshim.h
+tracklength_la_SOURCES=tracklength.c mad.c madshim.h ../lib/wav.h ../lib/wav.c
 tracklength_la_LDFLAGS=-module
 tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD)
 

@@ -289,7 +289,12 @@ The command is expected to know how to open its own sound device.
 .TP
 .B execraw \fICOMMAND\fR \fIARGS\fR...
 Identical to the \fBexec\fR except that the player is expected to use the
-DisOrder raw player protocol (see notes below).
+DisOrder raw player protocol.
+.BR disorder-decode (8)
+can decode several common audio file formats to this format.  If your favourite
+format is not supported, but you have a player which uses libao, there is also
+a libao driver which supports this format; see below for more information about
+this.
 .TP
 .B shell \fR[\fISHELL\fR] \fICOMMAND\fR
 The command is executed using the shell.  If \fISHELL\fR is specified then that

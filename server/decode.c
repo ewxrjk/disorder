@@ -38,6 +38,7 @@
 #include "log.h"
 #include "syscalls.h"
 #include "defs.h"
+#include "wav.h"
 #include "speaker-protocol.h"
 
 /** @brief Encoding lookup table type */
@@ -91,13 +92,14 @@ static inline void output_16(uint16_t n) {
 static void output_header(int rate,
 			  int channels,
 			  int bits,
-                          int nbytes) {
+                          int nbytes,
+                          int endian) {
   struct stream_header header;
 
   header.rate = rate;
   header.bits = bits;
   header.channels = channels;
-  header.endian = ENDIAN_BIG;
+  header.endian = endian;
   header.nbytes = nbytes;
   if(fwrite(&header, sizeof header, 1, outputfp) < 1)
     fatal(errno, "decoding %s: writing format header", path);
@@ -184,7 +186,8 @@ static enum mad_flow mp3_output(void attribute((unused)) *data,
   output_header(header->samplerate,
 		pcm->channels,
 		16,
-                2 * pcm->channels * pcm->length);
+                2 * pcm->channels * pcm->length,
+                ENDIAN_BIG);
   switch(pcm->channels) {
   case 1:
     while(n--)
@@ -260,10 +263,34 @@ static void decode_ogg(void) {
       fatal(0, "ov_read %s: %ld", path, n);
     if(bitstream > 0)
       fatal(0, "only single-bitstream ogg files are supported");
-    output_header(vi->rate, vi->channels, 16/*bits*/, n);
+    output_header(vi->rate, vi->channels, 16/*bits*/, n, ENDIAN_BIG);
     if(fwrite(buffer, 1, n, outputfp) < (size_t)n)
       fatal(errno, "decoding %s: writing sample data", path);
   }
+}
+
+/** @brief Sample data callback used by decode_wav() */
+static int wav_write(struct wavfile attribute((unused)) *f,
+                     const char *data,
+                     size_t nbytes,
+                     void attribute((unused)) *u) {
+  if(fwrite(data, 1, nbytes, outputfp) < nbytes)
+    fatal(errno, "decoding %s: writing sample data", path);
+  return 0;
+}
+
+/** @brief WAV file decoder */
+static void decode_wav(void) {
+  struct wavfile f[1];
+  int err;
+
+  if((err = wav_init(f, path)))
+    fatal(err, "opening %s", path);
+  if(f->bits % 8)
+    fatal(err, "%s: unsupported byte size %d", path, f->bits);
+  output_header(f->rate, f->channels, f->bits, f->datasize, ENDIAN_LITTLE);
+  if((err = wav_data(f, wav_write, 0)))
+    fatal(err, "error decoding %s", path);
 }
 
 /** @brief Lookup table of decoders */
@@ -272,6 +299,8 @@ static const struct decoder decoders[] = {
   { "*.MP3", decode_mp3 },
   { "*.ogg", decode_ogg },
   { "*.OGG", decode_ogg },
+  { "*.wav", decode_wav },
+  { "*.WAV", decode_wav },
   { 0, 0 }
 };
 

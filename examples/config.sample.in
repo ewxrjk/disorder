@@ -1,7 +1,7 @@
 # player programs
 player *.mp3 execraw disorder-decode
 player *.ogg execraw disorder-decode
-player *.wav shell --wait-for-device play
+player *.wav execraw disorder-decode
 
 # use the fs module to list files under /export/mp3.  The encoding
 # is ISO-8859-1.

@@ -24,10 +24,17 @@ disorder-decode \- DisOrder audio decoder
 .I PATH
 .SH DESCRIPTION
 .B disorder-decode
-converts MP3 and OGG files into DisOrders "raw" format.  It is
+converts MP3, OGG and WAV files into DisOrders "raw" format.  It is
 therefore suitable for use as an
 .B execraw
 player.
+.PP
+It is not intended to be used from the command line.
+.SH LIMITATIONS
+OGG files with multiple bitstreams are not supported.
+.PP
+WAV files with sample sizes that are not a multiple of 8 bits, or any
+kind of compression, are not supported.
 .SH "SEE ALSO"
 .BR disorderd (8),
 .BR disorder_config (5)
