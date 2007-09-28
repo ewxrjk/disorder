@@ -24,7 +24,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <ao/ao.h>
+#include "speaker-protocol.h"
 
 struct real_pcre;
 
@@ -162,7 +162,7 @@ struct config {
   const char *speaker_command;
 
   /** @brief Target sample format */
-  ao_sample_format sample_format;
+  struct stream_header sample_format;
 
   /** @brief Sox syntax generation */
   long sox_generation;

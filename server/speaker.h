@@ -29,13 +29,6 @@
 # define MACHINE_AO_FMT AO_FMT_LITTLE
 #endif
 
-/** @brief How many seconds of input to buffer
- *
- * While any given connection has this much audio buffered, no more reads will
- * be issued for that connection.  The decoder will have to wait.
- */
-#define BUFFER_SECONDS 5
-
 /** @brief Minimum number of frames to try to play at once
  *
  * The main loop will only attempt to play any audio when this many
@@ -70,17 +63,35 @@
  * of these but rearranging the queue can cause there to be more.
  */
 struct track {
-  struct track *next;                   /* next track */
+  /** @brief Next track */
+  struct track *next;
+
+  /** @brief Input file descriptor */
   int fd;                               /* input FD */
-  char id[24];                          /* ID */
-  size_t start, used;                   /* start + bytes used */
-  int eof;                              /* input is at EOF */
-  int got_format;                       /* got format yet? */
-  ao_sample_format format;              /* sample format */
-  unsigned long long played;            /* number of frames played */
-  char *buffer;                         /* sample buffer */
-  size_t size;                          /* sample buffer size */
-  int slot;                             /* poll array slot */
+
+  /** @brief Track ID */
+  char id[24];
+
+  /** @brief Start position of data in buffer */
+  size_t start;
+
+  /** @brief Number of bytes of data in buffer */
+  size_t used;
+
+  /** @brief Set @c fd is at EOF */
+  int eof;
+
+  /** @brief Total number of frames played */
+  unsigned long long played;
+
+  /** @brief Slot in @ref fds */
+  int slot;
+
+  /** @brief Input buffer
+   *
+   * 1Mbyte is enough for nearly 6s of 44100Hz 16-bit stereo
+   */
+  char buffer[1048576];
 };
 
 /** @brief Structure of a backend */
@@ -93,12 +104,9 @@ struct speaker_backend {
 
   /** @brief Flags
    *
-   * Possible values
-   * - @ref FIXED_FORMAT
+   * This field is currently not used and must be 0.
    */
   unsigned flags;
-/** @brief Lock to configured sample format */
-#define FIXED_FORMAT 0x0001
   
   /** @brief Initialization
    *
@@ -126,9 +134,6 @@ struct speaker_backend {
    *
    * If it is @ref device_closed then the device should be opened with
    * the right sample format.
-   *
-   * If the @ref FIXED_FORMAT flag is not set then @ref device_format
-   * must be set on success.
    *
    * Some devices are effectively always open and have no error state,
    * in which case this callback can be NULL.  In this case @ref
@@ -203,7 +208,6 @@ enum device_states {
 };
 
 extern enum device_states device_state;
-extern ao_sample_format device_format;
 extern struct track *tracks;
 extern struct track *playing;
 
@@ -213,12 +217,10 @@ extern const struct speaker_backend command_backend;
 
 extern struct pollfd fds[NFDS];
 extern int fdno;
-extern size_t device_bpf;
+extern size_t bpf;
 extern int idled;
 
 int addfd(int fd, int events);
-int formats_equal(const ao_sample_format *a,
-                  const ao_sample_format *b);
 void abandon(void);
 
 #endif /* SPEAKER_H */

@@ -1,7 +1,6 @@
-
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +17,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file driver/disorder.c
+ * @brief libao driver used by DisOrder
+ *
+ * The output from this driver is expected to be fed to @c
+ * disorder-normalize to convert to the confnigured target format.
+ */
 
 #include <config.h>
+#include "types.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -29,15 +35,21 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
+#include "speaker-protocol.h"
+
 /* extra declarations to help out lazy <ao/plugin.h> */
 int ao_plugin_test(void);
 ao_info *ao_plugin_driver_info(void);
 char *ao_plugin_file_extension(void);
 
-/* private data structure for this driver */
+/** @brief Private data structure for this driver */
 struct internal {
   int fd;				/* output file descriptor */
   int exit_on_error;			/* exit on write error */
+
+  /** @brief Record of sample format */
+  struct stream_header header;
+
 };
 
 /* like write() but never returns EINTR/EAGAIN or short */
@@ -126,10 +138,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
   
   /* we would like native-order samples */
   device->driver_byte_format = AO_FMT_NATIVE;
-  if(do_write(i->fd, format, sizeof *format) < 0) {
-    if(i->exit_on_error) exit(-1);
-    return 0;
-  }
+  i->header.rate = format->rate;
+  i->header.channels = format->channels;
+  i->header.bits = format->bits;
+  i->header.endian = ENDIAN_NATIVE;
   return 1;
 }
 
@@ -138,6 +150,14 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		   uint_32 num_bytes) {
   struct internal *i = device->internal;
 
+  /* Fill in and write the header */
+  i->header.nbytes = num_bytes;
+  if(do_write(i->fd, &i->header, sizeof i->header) < 0) {
+    if(i->exit_on_error) _exit(-1);
+    return 0;
+  }
+
+  /* Write the sample data */
   if(do_write(i->fd, output_samples, num_bytes) < 0) {
     if(i->exit_on_error) _exit(-1);
     return 0;

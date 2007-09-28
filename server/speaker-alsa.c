@@ -92,10 +92,6 @@ static void alsa_deactivate(void) {
 
 /** @brief ALSA backend activation */
 static void alsa_activate(void) {
-  /* If we need to change format then close the current device. */
-  if(pcm && !formats_equal(&playing->format, &device_format))
-    alsa_deactivate();
-  /* Now if the sound device is open it must have the right format */
   if(!pcm) {
     snd_pcm_hw_params_t *hwparams;
     snd_pcm_sw_params_t *swparams;
@@ -119,21 +115,21 @@ static void alsa_activate(void) {
     if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
                                            SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
       fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-    switch(playing->format.bits) {
+    switch(config->sample_format.bits) {
     case 8:
       sample_format = SND_PCM_FORMAT_S8;
       break;
     case 16:
-      switch(playing->format.byte_format) {
-      case AO_FMT_NATIVE: sample_format = SND_PCM_FORMAT_S16; break;
-      case AO_FMT_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
-      case AO_FMT_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
-        error(0, "unrecognized byte format %d", playing->format.byte_format);
+      switch(config->sample_format.endian) {
+      case ENDIAN_LITTLE: sample_format = SND_PCM_FORMAT_S16_LE; break;
+      case ENDIAN_BIG: sample_format = SND_PCM_FORMAT_S16_BE; break;
+      default:
+        error(0, "unrecognized byte format %d", config->sample_format.endian);
         goto fatal;
       }
       break;
     default:
-      error(0, "unsupported sample size %d", playing->format.bits);
+      error(0, "unsupported sample size %d", config->sample_format.bits);
       goto fatal;
     }
     if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
@@ -142,18 +138,18 @@ static void alsa_activate(void) {
             sample_format, err);
       goto fatal;
     }
-    rate = playing->format.rate;
+    rate = config->sample_format.rate;
     if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0) {
       error(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-            playing->format.rate, err);
+            config->sample_format.rate, err);
       goto fatal;
     }
-    if(rate != (unsigned)playing->format.rate)
-      info("want rate %d, got %u", playing->format.rate, rate);
-    if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                             playing->format.channels)) < 0) {
+    if(rate != (unsigned)config->sample_format.rate)
+      info("want rate %d, got %u", config->sample_format.rate, rate);
+    if((err = snd_pcm_hw_params_set_channels
+        (pcm, hwparams, config->sample_format.channels)) < 0) {
       error(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-            playing->format.channels, err);
+            config->sample_format.channels, err);
       goto fatal;
     }
     pcm_bufsize = 3 * FRAMES;
@@ -176,7 +172,6 @@ static void alsa_activate(void) {
             FRAMES, err);
     if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
       fatal(0, "error calling snd_pcm_sw_params: %d", err);
-    device_format = playing->format;
     D(("acquired audio device"));
     log_params(hwparams, swparams);
     device_state = device_open;

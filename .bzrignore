@@ -104,3 +104,4 @@ debian/disorder-playrtp
 *.bz2
 debian/disobedience
 server/disorder-decode
+server/disorder-normalize

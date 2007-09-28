@@ -278,61 +278,61 @@ static int set_restrict(const struct config_state *cs,
 }
 
 static int parse_sample_format(const struct config_state *cs,
-			       ao_sample_format *ao,
+			       struct stream_header *format,
 			       int nvec, char **vec) {
   char *p = vec[0];
   long t;
 
-  if (nvec != 1) {
+  if(nvec != 1) {
     error(0, "%s:%d: wrong number of arguments", cs->path, cs->line);
     return -1;
   }
-  if (xstrtol(&t, p, &p, 0)) {
+  if(xstrtol(&t, p, &p, 0)) {
     error(errno, "%s:%d: converting bits-per-sample", cs->path, cs->line);
     return -1;
   }
-  if (t != 8 && t != 16) {
+  if(t != 8 && t != 16) {
     error(0, "%s:%d: bad bite-per-sample (%ld)", cs->path, cs->line, t);
     return -1;
   }
-  if (ao) ao->bits = t;
+  if(format) format->bits = t;
   switch (*p) {
-    case 'l': case 'L': t = AO_FMT_LITTLE; p++; break;
-    case 'b': case 'B': t = AO_FMT_BIG; p++; break;
-    default: t = AO_FMT_NATIVE; break;
+    case 'l': case 'L': t = ENDIAN_LITTLE; p++; break;
+    case 'b': case 'B': t = ENDIAN_BIG; p++; break;
+    default: t = ENDIAN_NATIVE; break;
   }
-  if (ao) ao->byte_format = t;
-  if (*p != '/') {
+  if(format) format->endian = t;
+  if(*p != '/') {
     error(errno, "%s:%d: expected `/' after bits-per-sample",
 	  cs->path, cs->line);
     return -1;
   }
   p++;
-  if (xstrtol(&t, p, &p, 0)) {
+  if(xstrtol(&t, p, &p, 0)) {
     error(errno, "%s:%d: converting sample-rate", cs->path, cs->line);
     return -1;
   }
-  if (t < 1 || t > INT_MAX) {
+  if(t < 1 || t > INT_MAX) {
     error(0, "%s:%d: silly sample-rate (%ld)", cs->path, cs->line, t);
     return -1;
   }
-  if (ao) ao->rate = t;
-  if (*p != '/') {
+  if(format) format->rate = t;
+  if(*p != '/') {
     error(0, "%s:%d: expected `/' after sample-rate",
 	  cs->path, cs->line);
     return -1;
   }
   p++;
-  if (xstrtol(&t, p, &p, 0)) {
+  if(xstrtol(&t, p, &p, 0)) {
     error(errno, "%s:%d: converting channels", cs->path, cs->line);
     return -1;
   }
-  if (t < 1 || t > 8) {
+  if(t < 1 || t > 8) {
     error(0, "%s:%d: silly number (%ld) of channels", cs->path, cs->line, t);
     return -1;
   }
-  if (ao) ao->channels = t;
-  if (*p) {
+  if(format) format->channels = t;
+  if(*p) {
     error(0, "%s:%d: junk after channels", cs->path, cs->line);
     return -1;
   }
@@ -342,7 +342,7 @@ static int parse_sample_format(const struct config_state *cs,
 static int set_sample_format(const struct config_state *cs,
 			     const struct conf *whoami,
 			     int nvec, char **vec) {
-  return parse_sample_format(cs, ADDRESS(cs->config, ao_sample_format),
+  return parse_sample_format(cs, ADDRESS(cs->config, struct stream_header),
 			     nvec, vec);
 }
 
@@ -971,7 +971,7 @@ static struct config *config_default(void) {
   c->sample_format.bits = 16;
   c->sample_format.rate = 44100;
   c->sample_format.channels = 2;
-  c->sample_format.byte_format = AO_FMT_NATIVE;
+  c->sample_format.endian = ENDIAN_NATIVE;
   c->queue_pad = 10;
   c->speaker_backend = -1;
   c->multicast_ttl = 1;
@@ -1059,6 +1059,13 @@ static void config_postdefaults(struct config *c) {
     fatal(0, "speaker_backend is command but speaker_command is not set");
   if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
     fatal(0, "speaker_backend is network but broadcast is not set");
+  if(c->speaker_backend) {
+    /* Override sample format */
+    c->sample_format.rate = 44100;
+    c->sample_format.channels = 2;
+    c->sample_format.bits = 16;
+    c->sample_format.endian = ENDIAN_BIG;
+  }
 }
 
 /** @brief (Re-)read the config file */

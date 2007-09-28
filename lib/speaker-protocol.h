@@ -104,6 +104,39 @@ int speaker_recv(int fd, struct speaker_message *sm, int *datafd);
  * on EOF, +ve if a message is read, -1 on EAGAIN, terminates on any other
  * error. */
 
+/** @brief One chunk in a stream */
+struct stream_header {
+  /** @brief Frames per second */
+  uint32_t rate;
+
+  /** @brief Samples per frames */
+  uint8_t channels;
+
+  /** @brief Bits per sample */
+  uint8_t bits;
+
+  /** @brief Endianness */
+  uint8_t endian;
+#define ENDIAN_BIG 1
+#define ENDIAN_LITTLE 2
+#ifdef WORDS_BIGENDIAN
+# define ENDIAN_NATIVE ENDIAN_BIG
+#else
+# define ENDIAN_NATIVE ENDIAN_LITTLE
+#endif
+  
+  /** @brief Number of bytes */
+  uint32_t nbytes;
+} attribute((packed));
+
+static inline int formats_equal(const struct stream_header *a,
+                                const struct stream_header *b) {
+  return (a->rate == b->rate
+          && a->channels == b->channels
+          && a->bits == b->bits
+          && a->endian == b->endian);
+}
+
 #endif /* SPEAKER_PROTOCOL_H */
 
 /*

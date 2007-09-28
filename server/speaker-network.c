@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <errno.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -106,11 +107,6 @@ static void network_init(void) {
   socklen_t len;
   char *sockname, *ssockname;
 
-  /* Override sample format */
-  config->sample_format.rate = 44100;
-  config->sample_format.channels = 2;
-  config->sample_format.bits = 16;
-  config->sample_format.byte_format = AO_FMT_BIG;
   res = get_address(&config->broadcast, &pref, &sockname);
   if(!res) exit(-1);
   if(config->broadcast_from.n) {
@@ -200,7 +196,7 @@ static void network_init(void) {
 static size_t network_play(size_t frames) {
   struct rtp_header header;
   struct iovec vec[2];
-  size_t bytes = frames * device_bpf, written_frames;
+  size_t bytes = frames * bpf, written_frames;
   int written_bytes;
   /* We transmit using RTP (RFC3550) and attempt to conform to the internet
    * AVT profile (RFC3551). */
@@ -216,8 +212,8 @@ static size_t network_play(size_t frames) {
     /* Find the number of microseconds elapsed since rtp_time=0 */
     delta = tvsub_us(now, rtp_time_0);
     assert(delta <= UINT64_MAX / 88200);
-    target_rtp_time = (delta * playing->format.rate
-                       * playing->format.channels) / 1000000;
+    target_rtp_time = (delta * config->sample_format.rate
+                       * config->sample_format.channels) / 1000000;
     /* Overflows at ~6 years uptime with 44100Hz stereo */
 
     /* rtp_time is the number of samples we've played.  NB that we play
@@ -276,7 +272,7 @@ static size_t network_play(size_t frames) {
   if(bytes > NETWORK_BYTES - sizeof header) {
     bytes = NETWORK_BYTES - sizeof header;
     /* Always send a whole number of frames */
-    bytes -= bytes % device_bpf;
+    bytes -= bytes % bpf;
   }
   /* "The RTP clock rate used for generating the RTP timestamp is independent
    * of the number of channels and the encoding; it equals the number of
@@ -302,9 +298,9 @@ static size_t network_play(size_t frames) {
   } else
     audio_errors /= 2;
   written_bytes -= sizeof (struct rtp_header);
-  written_frames = written_bytes / device_bpf;
+  written_frames = written_bytes / bpf;
   /* Advance RTP's notion of the time */
-  rtp_time += written_frames * playing->format.channels;
+  rtp_time += written_frames * config->sample_format.channels;
   return written_frames;
 }
 
@@ -345,7 +341,7 @@ static int network_ready(void) {
 
 const struct speaker_backend network_backend = {
   BACKEND_NETWORK,
-  FIXED_FORMAT,
+  0,
   network_init,
   0,                                    /* activate */
   network_play,

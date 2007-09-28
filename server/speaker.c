@@ -29,15 +29,9 @@
  * 8- and 16- bit stereo and mono are supported, with any sample rate (within
  * the limits that ALSA can deal with.)
  *
- * When communicating with a subprocess, <a
- * href="http://sox.sourceforge.net/">sox</a> is invoked to convert the inbound
- * data to a single consistent format.  The same applies for network (RTP)
- * play, though in that case currently only 44.1KHz 16-bit stereo is supported.
- *
- * The inbound data starts with a structure defining the data format.  Note
- * that this is NOT portable between different platforms or even necessarily
- * between versions; the speaker is assumed to be built from the same source
- * and run on the same host as the main server.
+ * Inbound data is expected to match @c config->sample_format.  In normal use
+ * this is arranged by the @c disorder-normalize program (see @ref
+ * server/normalize.c).
  *
  * @b Garbage @b Collection.  This program deliberately does not use the
  * garbage collector even though it might be convenient to do so.  This is for
@@ -89,7 +83,7 @@ struct track *tracks;
 struct track *playing;
 
 /** @brief Number of bytes pre frame */
-size_t device_bpf;
+size_t bpf;
 
 /** @brief Array of file descriptors for poll() */
 struct pollfd fds[NFDS];
@@ -102,14 +96,6 @@ static int paused;                      /* pause status */
 
 /** @brief The current device state */
 enum device_states device_state;
-
-/** @brief The current device sample format
- *
- * Only meaningful if @ref device_state = @ref device_open or perhaps @ref
- * device_error.  For @ref FIXED_FORMAT backends, this should always match @c
- * config->sample_format.
- */
-ao_sample_format device_format;
 
 /** @brief Set when idled
  *
@@ -153,7 +139,7 @@ static void version(void) {
 }
 
 /** @brief Return the number of bytes per frame in @p format */
-static size_t bytes_per_frame(const ao_sample_format *format) {
+static size_t bytes_per_frame(const struct stream_header *format) {
   return format->channels * format->bits / 8;
 }
 
@@ -170,9 +156,6 @@ static struct track *findtrack(const char *id, int create) {
     strcpy(t->id, id);
     t->fd = -1;
     tracks = t;
-    /* The initial input buffer will be the sample format. */
-    t->buffer = (void *)&t->format;
-    t->size = sizeof t->format;
   }
   return t;
 }
@@ -193,7 +176,6 @@ static struct track *removetrack(const char *id) {
 static void destroy(struct track *t) {
   D(("destroy %s", t->id));
   if(t->fd != -1) xclose(t->fd);
-  if(t->buffer != (void *)&t->format) free(t->buffer);
   free(t);
 }
 
@@ -204,96 +186,6 @@ static void acquire(struct track *t, int fd) {
     xclose(t->fd);
   t->fd = fd;
   nonblock(fd);
-}
-
-/** @brief Return true if A and B denote identical libao formats, else false */
-int formats_equal(const ao_sample_format *a,
-                  const ao_sample_format *b) {
-  return (a->bits == b->bits
-          && a->rate == b->rate
-          && a->channels == b->channels
-          && a->byte_format == b->byte_format);
-}
-
-/** @brief Compute arguments to sox */
-static void soxargs(const char ***pp, char **qq, ao_sample_format *ao) {
-  int n;
-
-  *(*pp)++ = "-t.raw";
-  *(*pp)++ = "-s";
-  *(*pp)++ = *qq; n = sprintf(*qq, "-r%d", ao->rate); *qq += n + 1;
-  *(*pp)++ = *qq; n = sprintf(*qq, "-c%d", ao->channels); *qq += n + 1;
-  /* sox 12.17.9 insists on -b etc; CVS sox insists on -<n> etc; both are
-   * deployed! */
-  switch(config->sox_generation) {
-  case 0:
-    if(ao->bits != 8
-       && ao->byte_format != AO_FMT_NATIVE
-       && ao->byte_format != MACHINE_AO_FMT) {
-      *(*pp)++ = "-x";
-    }
-    switch(ao->bits) {
-    case 8: *(*pp)++ = "-b"; break;
-    case 16: *(*pp)++ = "-w"; break;
-    case 32: *(*pp)++ = "-l"; break;
-    case 64: *(*pp)++ = "-d"; break;
-    default: fatal(0, "cannot handle sample size %d", (int)ao->bits);
-    }
-    break;
-  case 1:
-    switch(ao->byte_format) {
-    case AO_FMT_NATIVE: break;
-    case AO_FMT_BIG: *(*pp)++ = "-B"; break;
-    case AO_FMT_LITTLE: *(*pp)++ = "-L"; break;
-    }
-    *(*pp)++ = *qq; n = sprintf(*qq, "-%d", ao->bits/8); *qq += n + 1;
-    break;
-  }
-}
-
-/** @brief Enable format translation
- *
- * If necessary, replaces a tracks inbound file descriptor with one connected
- * to a sox invocation, which performs the required translation.
- */
-static void enable_translation(struct track *t) {
-  if((backend->flags & FIXED_FORMAT)
-     && !formats_equal(&t->format, &config->sample_format)) {
-    char argbuf[1024], *q = argbuf;
-    const char *av[18], **pp = av;
-    int soxpipe[2];
-    pid_t soxkid;
-
-    *pp++ = "sox";
-    soxargs(&pp, &q, &t->format);
-    *pp++ = "-";
-    soxargs(&pp, &q, &config->sample_format);
-    *pp++ = "-";
-    *pp++ = 0;
-    if(debugging) {
-      for(pp = av; *pp; pp++)
-        D(("sox arg[%d] = %s", pp - av, *pp));
-      D(("end args"));
-    }
-    xpipe(soxpipe);
-    soxkid = xfork();
-    if(soxkid == 0) {
-      signal(SIGPIPE, SIG_DFL);
-      xdup2(t->fd, 0);
-      xdup2(soxpipe[1], 1);
-      fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK);
-      close(soxpipe[0]);
-      close(soxpipe[1]);
-      close(t->fd);
-      execvp("sox", (char **)av);
-      _exit(1);
-    }
-    D(("forking sox for format conversion (kid = %d)", soxkid));
-    close(t->fd);
-    close(soxpipe[1]);
-    t->fd = soxpipe[0];
-    t->format = config->sample_format;
-  }
 }
 
 /** @brief Read data into a sample buffer
@@ -308,19 +200,15 @@ static int fill(struct track *t) {
   size_t where, left;
   int n;
 
-  D(("fill %s: eof=%d used=%zu size=%zu  got_format=%d",
-     t->id, t->eof, t->used, t->size, t->got_format));
+  D(("fill %s: eof=%d used=%zu",
+     t->id, t->eof, t->used));
   if(t->eof) return -1;
-  if(t->used < t->size) {
+  if(t->used < sizeof t->buffer) {
     /* there is room left in the buffer */
-    where = (t->start + t->used) % t->size;
-    if(t->got_format) {
-      /* We are reading audio data, get as much as we can */
-      if(where >= t->start) left = t->size - where;
-      else left = t->start - where;
-    } else
-      /* We are still waiting for the format, only get that */
-      left = sizeof (ao_sample_format) - t->used;
+    where = (t->start + t->used) % sizeof t->buffer;
+    /* Get as much data as we can */
+    if(where >= t->start) left = (sizeof t->buffer) - where;
+    else left = t->start - where;
     do {
       n = read(t->fd, t->buffer + where, left);
     } while(n < 0 && errno == EINTR);
@@ -334,20 +222,6 @@ static int fill(struct track *t) {
       return -1;
     }
     t->used += n;
-    if(!t->got_format && t->used >= sizeof (ao_sample_format)) {
-      assert(t->used == sizeof (ao_sample_format));
-      /* Check that our assumptions are met. */
-      if(t->format.bits & 7)
-        fatal(0, "bits per sample not a multiple of 8");
-      /* If the input format is unsuitable, arrange to translate it */
-      enable_translation(t);
-      /* Make a new buffer for audio data. */
-      t->size = bytes_per_frame(&t->format) * t->format.rate * BUFFER_SECONDS;
-      t->buffer = xmalloc(t->size);
-      t->used = 0;
-      t->got_format = 1;
-      D(("got format for %s", t->id));
-    }
   }
   return 0;
 }
@@ -387,22 +261,10 @@ void abandon(void) {
  * 0 on success and -1 on error.
  */
 static void activate(void) {
-  /* If we don't know the format yet we cannot start. */
-  if(!playing->got_format) {
-    D((" - not got format for %s", playing->id));
-    return;
-  }
-  if(backend->flags & FIXED_FORMAT)
-    device_format = config->sample_format;
-  if(backend->activate) {
+  if(backend->activate)
     backend->activate();
-  } else {
-    assert(backend->flags & FIXED_FORMAT);
-    /* ...otherwise device_format not set */
+  else
     device_state = device_open;
-  }
-  if(device_state == device_open)
-    device_bpf = bytes_per_frame(&device_format);
 }
 
 /** @brief Check whether the current track has finished
@@ -415,8 +277,7 @@ static void activate(void) {
 static void maybe_finished(void) {
   if(playing
      && playing->eof
-     && (!playing->got_format
-         || playing->used < bytes_per_frame(&playing->format)))
+     && playing->used < bytes_per_frame(&config->sample_format))
     abandon();
 }
 
@@ -440,26 +301,25 @@ static void play(size_t frames) {
   /* Make sure there's a track to play and it is not pasued */
   if(!playing || paused)
     return;
-  /* Make sure the output device is open and has the right sample format */
-  if(device_state != device_open
-     || !formats_equal(&device_format, &playing->format)) {
+  /* Make sure the output device is open */
+  if(device_state != device_open) {
     activate(); 
     if(device_state != device_open)
       return;
   }
-  D(("play: play %zu/%zu%s %dHz %db %dc",  frames, playing->used / device_bpf,
+  D(("play: play %zu/%zu%s %dHz %db %dc",  frames, playing->used / bpf,
      playing->eof ? " EOF" : "",
-     playing->format.rate,
-     playing->format.bits,
-     playing->format.channels));
+     config->sample_format.rate,
+     config->sample_format.bits,
+     config->sample_format.channels));
   /* Figure out how many frames there are available to write */
-  if(playing->start + playing->used > playing->size)
+  if(playing->start + playing->used > sizeof playing->buffer)
     /* The ring buffer is currently wrapped, only play up to the wrap point */
-    avail_bytes = playing->size - playing->start;
+    avail_bytes = (sizeof playing->buffer) - playing->start;
   else
     /* The ring buffer is not wrapped, can play the lot */
     avail_bytes = playing->used;
-  avail_frames = avail_bytes / device_bpf;
+  avail_frames = avail_bytes / bpf;
   /* Only play up to the requested amount */
   if(avail_frames > frames)
     avail_frames = frames;
@@ -467,7 +327,7 @@ static void play(size_t frames) {
     return;
   /* Play it, Sam */
   written_frames = backend->play(avail_frames);
-  written_bytes = written_frames * device_bpf;
+  written_bytes = written_frames * bpf;
   /* written_bytes and written_frames had better both be set and correct by
    * this point */
   playing->start += written_bytes;
@@ -475,7 +335,7 @@ static void play(size_t frames) {
   playing->played += written_frames;
   /* If the pointer is at the end of the buffer (or the buffer is completely
    * empty) wrap it back to the start. */
-  if(!playing->used || playing->start == playing->size)
+  if(!playing->used || playing->start == (sizeof playing->buffer))
     playing->start = 0;
   frames -= written_frames;
   return;
@@ -485,11 +345,11 @@ static void play(size_t frames) {
 static void report(void) {
   struct speaker_message sm;
 
-  if(playing && playing->buffer != (void *)&playing->format) {
+  if(playing) {
     memset(&sm, 0, sizeof sm);
     sm.type = paused ? SM_PAUSED : SM_PLAYING;
     strcpy(sm.id, playing->id);
-    sm.data = playing->played / playing->format.rate;
+    sm.data = playing->played / config->sample_format.rate;
     speaker_send(1, &sm, 0);
   }
   time(&last_report);
@@ -551,7 +411,7 @@ static void mainloop(void) {
     stdin_slot = addfd(0, POLLIN);
     /* Try to read sample data for the currently playing track if there is
      * buffer space. */
-    if(playing && !playing->eof && playing->used < playing->size)
+    if(playing && !playing->eof && playing->used < (sizeof playing->buffer))
       playing->slot = addfd(playing->fd, POLLIN);
     else if(playing)
       playing->slot = -1;
@@ -572,7 +432,7 @@ static void mainloop(void) {
      * nothing important can't be monitored. */
     for(t = tracks; t; t = t->next)
       if(t != playing) {
-        if(!t->eof && t->used < t->size) {
+        if(!t->eof && t->used < sizeof t->buffer) {
           t->slot = addfd(t->fd,  POLLIN | POLLHUP);
         } else
           t->slot = -1;
@@ -702,6 +562,7 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   if(config_read()) fatal(0, "cannot read configuration");
+  bpf = bytes_per_frame(&config->sample_format);
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
   /* reap kids */

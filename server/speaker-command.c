@@ -25,6 +25,7 @@
 
 #include <unistd.h>
 #include <poll.h>
+#include <errno.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -52,6 +53,7 @@ static void fork_cmd(void) {
   xpipe(pfd);
   cmdpid = xfork();
   if(!cmdpid) {
+    exitfn = _exit;
     signal(SIGPIPE, SIG_DFL);
     xdup2(pfd[0], 0);
     close(pfd[0]);
@@ -72,7 +74,7 @@ static void command_init(void) {
 
 /** @brief Play to a subprocess */
 static size_t command_play(size_t frames) {
-  size_t bytes = frames * device_bpf;
+  size_t bytes = frames * bpf;
   int written_bytes;
 
   written_bytes = write(cmdfd, playing->buffer + playing->start, bytes);
@@ -90,7 +92,7 @@ static size_t command_play(size_t frames) {
       fatal(errno, "error writing to subprocess");
     }
   } else
-    return written_bytes / device_bpf;
+    return written_bytes / bpf;
 }
 
 /** @brief Update poll array for writing to subprocess */
@@ -111,7 +113,7 @@ static int command_ready(void) {
 
 const struct speaker_backend command_backend = {
   BACKEND_COMMAND,
-  FIXED_FORMAT,
+  0,
   command_init,
   0,                                    /* activate */
   command_play,

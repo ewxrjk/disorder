@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include "types.h"
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -34,6 +35,7 @@
 #include <stdio.h>
 #include <pcre.h>
 #include <ao/ao.h>
+#include <sys/wait.h>
 
 #include "event.h"
 #include "log.h"
@@ -291,7 +293,7 @@ static int start(ev_source *ev,
 		 int smop) {
   int n, lfd;
   const char *p;
-  int sp[2];
+  int np[2], sp[2];
   struct speaker_message sm;
   char buffer[64];
   int optc;
@@ -301,7 +303,7 @@ static int start(ev_source *ev,
   struct timespec ts;
   const char *waitdevice = 0;
   const char *const *optv;
-  pid_t pid;
+  pid_t pid, npid;
 
   memset(&sm, 0, sizeof sm);
   if(find_player_pid(q->id) > 0) {
@@ -365,21 +367,53 @@ static int start(ev_source *ev,
     xclose(lfd);			/* tidy up */
     setpgid(0, 0);
     if((q->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
-      /* Raw format players write down a pipe (in fact a socket) to
-       * the speaker process. */
+      /* "Raw" format players need special treatment:
+       * 1) their output needs to go via the disorder-normalize process
+       * 2) the output of that needs to be passed to the disorder-speaker
+       *    process.
+       */
+      /* np will be the pipe to disorder-normalize */
+      if(socketpair(PF_UNIX, SOCK_STREAM, 0, np) < 0)
+	fatal(errno, "error calling socketpair");
+      xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
+      xshutdown(np[1], SHUT_RD);	/* decoder writes to np[1] */
+      /* sp will be the pipe to disorder-speaker */
       sm.type = smop;
-      strcpy(sm.id, q->id);
       if(socketpair(PF_UNIX, SOCK_STREAM, 0, sp) < 0)
 	fatal(errno, "error calling socketpair");
-      xshutdown(sp[0], SHUT_WR);
-      xshutdown(sp[1], SHUT_RD);
+      xshutdown(sp[0], SHUT_WR);	/* speaker reads from sp[0] */
+      xshutdown(sp[1], SHUT_RD);	/* normalize writes to sp[1] */
+      /* Start disorder-normalize */
+      if(!(npid = xfork())) {
+	if(!xfork()) {
+	  xdup2(np[0], 0);
+	  xdup2(sp[1], 1);
+	  xclose(np[0]);
+	  xclose(np[1]);
+	  xclose(sp[0]);
+	  xclose(sp[1]);
+	  execlp("disorder-normalize", "disorder-normalize", (char *)0);
+	  fatal(errno, "executing disorder-normalize");
+	}
+	_exit(0);
+      } else {
+	int w;
+
+	while(waitpid(npid, &w, 0) < 0 && errno == EINTR)
+	  ;
+      }
+      /* Send the speaker process the file descriptor to read from */
+      strcpy(sm.id, q->id);
       speaker_send(speaker_fd, &sm, sp[0]);
       /* Pass the file descriptor to the driver in an environment
        * variable. */
-      snprintf(buffer, sizeof buffer, "DISORDER_RAW_FD=%d", sp[1]);
+      snprintf(buffer, sizeof buffer, "DISORDER_RAW_FD=%d", np[1]);
       if(putenv(buffer) < 0)
 	fatal(errno, "error calling putenv");
+      /* Close all the FDs we don't need */
       xclose(sp[0]);
+      xclose(sp[1]);
+      xclose(np[0]);
     }
     if(waitdevice) {
       ao_initialize();
