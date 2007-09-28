@@ -1,7 +1,6 @@
 # player programs
-# see README.raw for details of the 'disorder' libao plugin
-player *.mp3 execraw mpg321 -q -o disorder
-player *.ogg execraw ogg123 -q -d disorder -o fragile:1
+player *.mp3 execraw disorder-decode
+player *.ogg execraw disorder-decode
 player *.wav shell --wait-for-device play
 
 # use the fs module to list files under /export/mp3.  The encoding
