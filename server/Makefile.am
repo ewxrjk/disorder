@@ -58,7 +58,7 @@ disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_normalize_SOURCES=normalize.c
-disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBPCRE)
+disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBPCRE) $(LIBICONV)
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
