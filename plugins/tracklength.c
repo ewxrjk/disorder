@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Portions copyright (C) 2004, 2005 Richard Kettlewell (see also below)
+ * Copyright (C) 2004, 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 
 #include <vorbis/vorbisfile.h>
 #include <mad.h>
+#include <FLAC/file_decoder.h>
 
 #include <disorder.h>
 
@@ -114,13 +115,89 @@ static long tl_wav(const char *path) {
   return duration;
 }
 
+/* libFLAC's "simplified" interface is rather heavyweight... */
+
+struct flac_state {
+  long duration;
+  const char *path;
+};
+
+static void flac_metadata(const FLAC__FileDecoder attribute((unused)) *decoder,
+			  const FLAC__StreamMetadata *metadata,
+			  void *client_data) {
+  struct flac_state *const state = client_data;
+  const FLAC__StreamMetadata_StreamInfo *const stream_info
+    = &metadata->data.stream_info;
+
+  if(metadata->type == FLAC__METADATA_TYPE_STREAMINFO)
+    /* FLAC uses 0 to mean unknown and conveniently so do we */
+    state->duration = (stream_info->total_samples
+		       + stream_info->sample_rate - 1)
+           / stream_info->sample_rate;
+}
+
+static void flac_error(const FLAC__FileDecoder attribute((unused)) *decoder,
+		       FLAC__StreamDecoderErrorStatus status,
+		       void *client_data) {
+  const struct flac_state *const state = client_data;
+
+  disorder_error(0, "error decoding %s: %s", state->path,
+		 FLAC__StreamDecoderErrorStatusString[status]);
+}
+
+static FLAC__StreamDecoderWriteStatus flac_write
+    (const FLAC__FileDecoder attribute((unused)) *decoder,
+     const FLAC__Frame attribute((unused)) *frame,
+     const FLAC__int32 attribute((unused)) *const buffer_[],
+     void attribute((unused)) *client_data) {
+  const struct flac_state *const state = client_data;
+
+  if(state->duration >= 0)
+    return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+  else
+    return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
+}
+
+static long tl_flac(const char *path) {
+  FLAC__FileDecoder *fd = 0;
+  FLAC__FileDecoderState fs;
+  struct flac_state state[1];
+
+  state->duration = -1;			/* error */
+  state->path = path;
+  if(!(fd = FLAC__file_decoder_new())) {
+    disorder_error(0, "FLAC__file_decoder_new failed");
+    goto fail;
+  }
+  if(!(FLAC__file_decoder_set_filename(fd, path))) {
+    disorder_error(0, "FLAC__file_set_filename failed");
+    goto fail;
+  }
+  FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
+  FLAC__file_decoder_set_error_callback(fd, flac_error);
+  FLAC__file_decoder_set_write_callback(fd, flac_write);
+  FLAC__file_decoder_set_client_data(fd, state);
+  if((fs = FLAC__file_decoder_init(fd))) {
+    disorder_error(0, "FLAC__file_decoder_init: %s",
+		   FLAC__FileDecoderStateString[fs]);
+    goto fail;
+  }
+  FLAC__file_decoder_process_until_end_of_metadata(fd);
+fail:
+  if(fd)
+    FLAC__file_decoder_delete(fd);
+  return state->duration;
+}
+
 static const struct {
   const char *ext;
   long (*fn)(const char *path);
 } file_formats[] = {
+  { ".FLAC", tl_flac },
   { ".MP3", tl_mp3 },
   { ".OGG", tl_ogg },
   { ".WAV", tl_wav },
+  { ".flac", tl_flac },
   { ".mp3", tl_mp3 },
   { ".ogg", tl_ogg },
   { ".wav", tl_wav }
