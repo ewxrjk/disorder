@@ -26,12 +26,14 @@ make check
 make dist-bzip2
 d=$(make echo-distdir)
 cp $d.tar.bz2 $HOME/work/web/disorder
-cp .src/CHANGES $HOME/work/web/disorder/CHANGES.txt
-cp .src/README $HOME/work/web/disorder/README.txt
-cp .src/ChangeLog.d/*--* $HOME/work/web/disorder/ChangeLog.d
+cp CHANGES $HOME/work/web/disorder/CHANGES.txt
+cp README $HOME/work/web/disorder/README.txt
+cp ChangeLog.d/*--* $HOME/work/web/disorder/ChangeLog.d
 cd doc
 for f in *.[1-9].html; do
   echo $f
   rm -f $HOME/work/web/disorder/$f
   sed < $f > $HOME/work/web/disorder/$f 's/^@.*//'
 done
+cp doc/plumbing.svg $HOME/work/web/disorder
+cp doc/plumbing.png $HOME/work/web/disorder
