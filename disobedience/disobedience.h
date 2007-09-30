@@ -89,6 +89,8 @@ extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
 extern int choosealpha;                 /* break up choose by letter */
 
+extern const disorder_eclient_log_callbacks log_callbacks;
+
 /* Functions --------------------------------------------------------------- */
 
 disorder_eclient *gtkclient(void);
@@ -111,6 +113,8 @@ GdkPixbuf *find_image(const char *name);
 void popup_error(const char *msg);
 /* Pop up an error message */
 
+void all_update(void);
+/* Update everything */
 
 /* Main menu */
 

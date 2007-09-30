@@ -29,21 +29,6 @@
 
 #include "style.h"                      /* generated style */
 
-/* Functions --------------------------------------------------------------- */
-
-static void log_connected(void *v);
-static void log_completed(void *v, const char *track);
-static void log_failed(void *v, const char *track, const char *status);
-static void log_moved(void *v, const char *user);
-static void log_playing(void *v, const char *track, const char *user);
-static void log_queue(void *v, struct queue_entry *q);
-static void log_recent_added(void *v, struct queue_entry *q);
-static void log_recent_removed(void *v, const char *id);
-static void log_removed(void *v, const char *id, const char *user);
-static void log_scratched(void *v, const char *track, const char *user);
-static void log_state(void *v, unsigned long state);
-static void log_volume(void *v, int l, int r);
-
 /* Variables --------------------------------------------------------------- */
 
 GMainLoop *mainloop;                    /* event loop */
@@ -61,21 +46,6 @@ int choosealpha;                        /* break up choose by letter */
 
 /** @brief True if a NOP is in flight */
 static int nop_in_flight;
-
-static const disorder_eclient_log_callbacks gdisorder_log_callbacks = {
-  log_connected,
-  log_completed,
-  log_failed,
-  log_moved,
-  log_playing,
-  log_queue,
-  log_recent_added,
-  log_recent_removed,
-  log_removed,
-  log_scratched,
-  log_state,
-  log_volume
-};
 
 /* Window creation --------------------------------------------------------- */
 
@@ -152,106 +122,6 @@ static void make_toplevel_window(void) {
                    FALSE,             /* fill */
                    0);
   gtk_widget_set_name(toplevel, "disobedience");
-}
-
-/* State monitoring -------------------------------------------------------- */
-
-static void all_update(void) {
-  playing_update();
-  queue_update();
-  recent_update();
-  control_update();
-}
-
-static void log_connected(void attribute((unused)) *v) {
-  struct callbackdata *cbd;
-
-  /* Don't know what we might have missed while disconnected so update
-   * everything.  We get this at startup too and this is how we do the initial
-   * state fetch. */
-  all_update();
-  /* Re-get the volume */
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  disorder_eclient_volume(client, log_volume, -1, -1, cbd);
-}
-
-static void log_completed(void attribute((unused)) *v,
-                          const char attribute((unused)) *track) {
-  playing = 0;
-  playing_update();
-  control_update();
-}
-
-static void log_failed(void attribute((unused)) *v,
-                       const char attribute((unused)) *track,
-                       const char attribute((unused)) *status) {
-  playing = 0;
-  playing_update();
-  control_update();
-}
-
-static void log_moved(void attribute((unused)) *v,
-                      const char attribute((unused)) *user) {
-   queue_update();
-}
-
-static void log_playing(void attribute((unused)) *v,
-                        const char attribute((unused)) *track,
-                        const char attribute((unused)) *user) {
-  playing = 1;
-  playing_update();
-  control_update();
-  /* we get a log_removed() anyway so we don't need to update_queue() from
-   * here */
-}
-
-static void log_queue(void attribute((unused)) *v,
-                      struct queue_entry attribute((unused)) *q) {
-  queue_update();
-}
-
-static void log_recent_added(void attribute((unused)) *v,
-                             struct queue_entry attribute((unused)) *q) {
-  recent_update();
-}
-
-static void log_recent_removed(void attribute((unused)) *v,
-                               const char attribute((unused)) *id) {
-  /* nothing - log_recent_added() will trigger the relevant update */
-}
-
-static void log_removed(void attribute((unused)) *v,
-                        const char attribute((unused)) *id,
-                        const char attribute((unused)) *user) {
-  queue_update();
-}
-
-static void log_scratched(void attribute((unused)) *v,
-                          const char attribute((unused)) *track,
-                          const char attribute((unused)) *user) {
-  playing = 0;
-  playing_update();
-  control_update();
-}
-
-static void log_state(void attribute((unused)) *v,
-                      unsigned long state) {
-  last_state = state;
-  control_update();
-  /* If the track is paused or resume then the currently playing track is
-   * refetched so that we can continue to correctly calculate the played so-far
-   * field */
-  playing_update();
-}
-
-static void log_volume(void attribute((unused)) *v,
-                       int l, int r) {
-  if(volume_l != l || volume_r != r) {
-    volume_l = l;
-    volume_r = r;
-    control_update();
-  }
 }
 
 #if MDEBUG
@@ -467,7 +337,7 @@ int main(int argc, char **argv) {
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))
     return 1;                           /* already reported an error */
-  disorder_eclient_log(logclient, &gdisorder_log_callbacks, 0);
+  disorder_eclient_log(logclient, &log_callbacks, 0);
   /* periodic operations (e.g. expiring the cache) */
 #if MDEBUG || MTRACK
   g_timeout_add(5000/*milliseconds*/, periodic, 0);

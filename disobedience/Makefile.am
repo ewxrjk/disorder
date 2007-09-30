@@ -25,7 +25,8 @@ AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
 
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 		  choose.c misc.c style.h control.c properties.c menu.c \
-	../lib/memgc.c
+		  log.c \
+		  ../lib/memgc.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
