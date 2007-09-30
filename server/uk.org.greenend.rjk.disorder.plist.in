@@ -19,8 +19,7 @@
 	</array>
 	<key>WorkingDirectory</key>
 	<string>/Users/jukebox</string>
-	<key>RunAtLoad</key>
-	<true/>
+<!-- 	<key>RunAtLoad</key> -->
+<!-- 	<true/> -->
 </dict>
 </plist>
-
