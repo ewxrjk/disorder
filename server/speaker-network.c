@@ -189,7 +189,6 @@ static void network_init(void) {
     fatal(errno, "error connecting broadcast socket to %s", sockname);
   /* Select an SSRC */
   gcry_randomize(&rtp_id, sizeof rtp_id, GCRY_STRONG_RANDOM);
-  info("selected network backend, sending to %s", sockname);
 }
 
 /** @brief Play over the network */
