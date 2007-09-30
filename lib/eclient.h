@@ -142,6 +142,8 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
 void disorder_eclient_close(disorder_eclient *c);
 /* Close C */
 
+int disorder_eclient_connected(const disorder_eclient *c);
+
 void disorder_eclient_polled(disorder_eclient *c, unsigned mode);
 /* Should be called when c's FD is readable and/or writable, and in any case
  * from time to time (so that retries work). */

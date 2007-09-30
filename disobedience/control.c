@@ -155,7 +155,7 @@ GtkWidget *control_widget(void) {
   return hbox;
 }
 
-/* Update the control bar after some kind of state change */
+/** @brief Update the control bar after some kind of state change */
 void control_update(void) {
   int n;
   double l, r;
@@ -171,10 +171,27 @@ void control_update(void) {
   --suppress_set_volume;
 }
 
+/** @brief Update the state of one of the control icons
+ * @param button Widget for button
+ * @param visible True if this version of the button should be visible
+ * @param usable True if the button is currently usable
+ *
+ * Several of the icons, rather bizarrely, come in pairs: for instance exactly
+ * one of the play and pause buttons is supposed to be visible at any given
+ * moment.
+ *
+ * @p usable need not take into account server availability, that is done
+ * automatically.
+ */
 static void update_icon(GtkWidget *button, 
-                        int visible, int attribute((unused)) usable) {
+                        int visible, int usable) {
+  /* If the connection is down nothing is ever usable */
+  if(!disorder_eclient_connected(client))
+    usable = 0;
   (visible ? gtk_widget_show : gtk_widget_hide)(button);
-  /* TODO: show usability */
+  /* Only both updating usability if the button is visible */
+  if(visible)
+    gtk_widget_set_sensitive(button, usable);
 }
 
 static void update_pause(const struct icon *icon) {

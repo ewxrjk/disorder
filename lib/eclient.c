@@ -99,7 +99,13 @@ struct operation {
   void (*completed)();             /**< @brief user completion callback or 0 */
   void *v;                         /**< @brief data for COMPLETED */
   disorder_eclient *client;        /**< @brief owning client */
-  int sent;                        /**< @brief true if sent to server */
+
+  /** @brief true if sent to server
+   *
+   * This is cleared by disorder_eclient_close(), forcing all queued
+   * commands to be transparently resent.
+   */
+  int sent;
 };
 
 /** @brief Client structure */
@@ -217,7 +223,13 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
   return c;
 }
 
-/** @brief Disconnect a client */
+/** @brief Disconnect a client
+ * @param c Client to disconnect
+ *
+ * NB that this routine just disconnnects the TCP connection.  It does not
+ * destroy the client!  If you continue to use it then it will attempt to
+ * reconnect.
+ */
 void disorder_eclient_close(disorder_eclient *c) {
   struct operation *op;
 
@@ -238,9 +250,34 @@ void disorder_eclient_close(disorder_eclient *c) {
     op->sent = 0;
 }
 
+/** @brief Return true if @c c is connected
+ *
+ * By connected it is meant that commands have a reasonable chance of being
+ * processed soon, not merely that a TCP connection exists - for instance if
+ * the client is still authenticating then that does not count as connected.
+ */
+int disorder_eclient_connected(const disorder_eclient *c) {
+  switch(c->state) {
+  case state_disconnected:
+  case state_connecting:
+  case state_connected:
+    return 0;
+  case state_idle:
+  case state_cmdresponse:
+  case state_body:
+  case state_log:
+    return 1;
+  }
+  assert(!"reached");
+}
+
 /* Error reporting ***********************************************************/
 
-/** @brief called when a connection error occurs */
+/** @brief called when a connection error occurs
+ *
+ * After this called we will be disconnected (by disorder_eclient_close()),
+ * so there will be a reconnection before any commands can be sent.
+ */
 static int comms_error(disorder_eclient *c, const char *fmt, ...) {
   va_list ap;
   char *s;
@@ -281,7 +318,7 @@ static int protocol_error(disorder_eclient *c, struct operation *op,
  */
 void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
   struct operation *op;
-
+  
   D(("disorder_eclient_polled fd=%d state=%s mode=[%s %s]",
      c->fd, states[c->state],
      mode & DISORDER_POLL_READ ? "READ" : "",
@@ -445,7 +482,7 @@ static int start_connect(void *cc,
   return 0;
 }
 
-/** @brief Called when maybe connected */
+/** @brief Called when poll triggers while waiting for a connection */
 static void maybe_connected(disorder_eclient *c) {
   /* We either connected, or got an error. */
   int err;

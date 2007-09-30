@@ -461,6 +461,8 @@ int main(int argc, char **argv) {
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));
   gtk_widget_show_all(toplevel);
+  /* set initial control button visibility/usability */
+  control_update();
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);
