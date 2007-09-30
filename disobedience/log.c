@@ -20,7 +20,7 @@
 
 #include "disobedience.h"
 
-/* Functions --------------------------------------------------------------- */
+/* State monitoring -------------------------------------------------------- */
 
 static void log_connected(void *v);
 static void log_completed(void *v, const char *track);
@@ -51,7 +51,14 @@ const disorder_eclient_log_callbacks log_callbacks = {
   log_volume
 };
 
-/* State monitoring -------------------------------------------------------- */
+struct monitor {
+  struct monitor *next;
+  unsigned long mask;
+  monitor_callback *callback;
+  void *u;
+};
+
+static struct monitor *monitors;
 
 void all_update(void) {
   playing_update();
@@ -134,6 +141,13 @@ static void log_scratched(void attribute((unused)) *v,
 
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
+  const struct monitor *m;
+
+  /* Tell anything that cares about the state change */
+  for(m = monitors; m; m = m->next) {
+    if((state ^ last_state) & m->mask)
+      m->callback(m->u, state);
+  }
   last_state = state;
   control_update();
   /* If the track is paused or resume then the currently playing track is
@@ -149,6 +163,18 @@ static void log_volume(void attribute((unused)) *v,
     volume_r = r;
     control_update();
   }
+}
+
+void register_monitor(monitor_callback *callback,
+                      void *u,
+                      unsigned long mask) {
+  struct monitor *m = xmalloc(sizeof *m);
+
+  m->next = monitors;
+  m->mask = mask;
+  m->callback = callback;
+  m->u = u;
+  monitors = m;
 }
 
 /*

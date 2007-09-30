@@ -91,6 +91,8 @@ extern int choosealpha;                 /* break up choose by letter */
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
+typedef void monitor_callback(void *u, unsigned long newstate);
+
 /* Functions --------------------------------------------------------------- */
 
 disorder_eclient *gtkclient(void);
@@ -112,6 +114,11 @@ GdkPixbuf *find_image(const char *name);
 
 void popup_error(const char *msg);
 /* Pop up an error message */
+
+void register_monitor(monitor_callback *callback,
+                      void *u,
+                      unsigned long mask);
+/* Register a state monitor */
 
 void all_update(void);
 /* Update everything */
