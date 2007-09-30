@@ -87,7 +87,7 @@ static int speaker_terminated(ev_source attribute((unused)) *ev,
 			      int attribute((unused)) status,
 			      const struct rusage attribute((unused)) *rusage,
 			      void attribute((unused)) *u) {
-  fatal(0, "speaker subprocess terminated with status %s",
+  fatal(0, "speaker subprocess %s",
 	wstat(status));
 }
 
