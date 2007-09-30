@@ -186,7 +186,7 @@ void control_update(void) {
 static void update_icon(GtkWidget *button, 
                         int visible, int usable) {
   /* If the connection is down nothing is ever usable */
-  if(!disorder_eclient_connected(client))
+  if(!(disorder_eclient_state(client) & DISORDER_CONNECTED))
     usable = 0;
   (visible ? gtk_widget_show : gtk_widget_hide)(button);
   /* Only both updating usability if the button is visible */

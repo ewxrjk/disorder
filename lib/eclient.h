@@ -106,8 +106,26 @@ typedef struct disorder_eclient_log_callbacks {
 /** @brief Random play is enabled */
 #define DISORDER_RANDOM_ENABLED   0x00000002
 
-/** @brief Track is paused */
+/** @brief Track is paused
+ *
+ * This is only meaningful if @ref DISORDER_PLAYING is set
+ */
 #define DISORDER_TRACK_PAUSED     0x00000004
+
+/** @brief Track is playing
+ *
+ * This can be set even if the current track is paused (in which case @ref
+ * DISORDER_TRACK_PAUSED) will also be set.
+ */
+#define DISORDER_PLAYING    0x00000008
+
+/** @brief Connected to server
+ *
+ * By connected it is meant that commands have a reasonable chance of being
+ * processed soon, not merely that a TCP connection exists - for instance if
+ * the client is still authenticating then that does not count as connected.
+ */
+#define DISORDER_CONNECTED        0x00000010
 
 struct queue_entry;
 struct kvp;
@@ -142,7 +160,7 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
 void disorder_eclient_close(disorder_eclient *c);
 /* Close C */
 
-int disorder_eclient_connected(const disorder_eclient *c);
+unsigned long disorder_eclient_state(const disorder_eclient *c);
 
 void disorder_eclient_polled(disorder_eclient *c, unsigned mode);
 /* Should be called when c's FD is readable and/or writable, and in any case

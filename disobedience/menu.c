@@ -62,7 +62,7 @@ void menu_update(int page) {
   assert(t != 0);
   gtk_widget_set_sensitive(properties_widget,
                            (t->properties_sensitive(tab)
-                            && disorder_eclient_connected(client)));
+                            && (disorder_eclient_state(client) & DISORDER_CONNECTED)));
   gtk_widget_set_sensitive(selectall_widget,
                            t->selectall_sensitive(tab));
 }

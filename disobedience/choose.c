@@ -937,7 +937,8 @@ static void activate_properties(GtkMenuItem attribute((unused)) *menuitem,
 }
 
 static gboolean sensitive_play(struct choosenode attribute((unused)) *cn) {
-  return !!files_selected && disorder_eclient_connected(client);
+  return (!!files_selected
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
 }
 
 #if 0
@@ -947,13 +948,13 @@ static gboolean sensitive_remove(struct choosenode attribute((unused)) *cn) {
 #endif
 
 static gboolean sensitive_properties(struct choosenode attribute((unused)) *cn) {
-  return !!files_selected && disorder_eclient_connected(client);
+  return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
 
 /* Main menu plumbing ------------------------------------------------------ */
 
 static int choose_properties_sensitive(GtkWidget attribute((unused)) *w) {
-  return !!files_selected && disorder_eclient_connected(client);
+  return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
 
 static int choose_selectall_sensitive(GtkWidget attribute((unused)) *w) {

@@ -127,7 +127,7 @@ struct disorder_eclient {
   struct vector vec;                    /**< @brief body */
   const disorder_eclient_log_callbacks *log_callbacks; /**< @brief log callbacks */
   void *log_v;                          /**< @brief user data */
-  unsigned long statebits;              /**< @brief current state */
+  unsigned long statebits;              /**< @brief latest state */
 };
 
 /* Forward declarations ******************************************************/
@@ -240,6 +240,7 @@ void disorder_eclient_close(disorder_eclient *c) {
     xclose(c->fd);
     c->fd = -1;
     c->state = state_disconnected;
+    c->statebits = 0;
   }
   c->output.nvec = 0;
   c->input.nvec = 0;
@@ -250,25 +251,9 @@ void disorder_eclient_close(disorder_eclient *c) {
     op->sent = 0;
 }
 
-/** @brief Return true if @c c is connected
- *
- * By connected it is meant that commands have a reasonable chance of being
- * processed soon, not merely that a TCP connection exists - for instance if
- * the client is still authenticating then that does not count as connected.
- */
-int disorder_eclient_connected(const disorder_eclient *c) {
-  switch(c->state) {
-  case state_disconnected:
-  case state_connecting:
-  case state_connected:
-    return 0;
-  case state_idle:
-  case state_cmdresponse:
-  case state_body:
-  case state_log:
-    return 1;
-  }
-  assert(!"reached");
+/** @brief Return current state */
+unsigned long disorder_eclient_state(const disorder_eclient *c) {
+  return c->statebits | (c->state > state_connected ? DISORDER_CONNECTED : 0);
 }
 
 /* Error reporting ***********************************************************/
@@ -1215,13 +1200,19 @@ static void logline(disorder_eclient *c, const char *line) {
 static void logentry_completed(disorder_eclient *c,
                                int attribute((unused)) nvec, char **vec) {
   if(!c->log_callbacks->completed) return;
+  c->state &= ~DISORDER_PLAYING;
   c->log_callbacks->completed(c->log_v, vec[0]);
+  if(c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_failed(disorder_eclient *c,
                             int attribute((unused)) nvec, char **vec) {
   if(!c->log_callbacks->failed)return;
+  c->state &= ~DISORDER_PLAYING;
   c->log_callbacks->failed(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_moved(disorder_eclient *c,
@@ -1233,7 +1224,10 @@ static void logentry_moved(disorder_eclient *c,
 static void logentry_playing(disorder_eclient *c,
                              int attribute((unused)) nvec, char **vec) {
   if(!c->log_callbacks->playing) return;
+  c->state |= DISORDER_PLAYING;
   c->log_callbacks->playing(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_queue(disorder_eclient *c,
@@ -1273,7 +1267,10 @@ static void logentry_removed(disorder_eclient *c,
 static void logentry_scratched(disorder_eclient *c,
                                int attribute((unused)) nvec, char **vec) {
   if(!c->log_callbacks->scratched) return;
+  c->state &= ~DISORDER_PLAYING;
   c->log_callbacks->scratched(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static const struct {
@@ -1300,7 +1297,7 @@ static void logentry_state(disorder_eclient *c,
       break;
     }
   if(!c->log_callbacks->state) return;
-  c->log_callbacks->state(c->log_v, c->statebits);
+  c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_volume(disorder_eclient *c,

@@ -1097,7 +1097,7 @@ static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
                              struct queue_entry attribute((unused)) *q) {
   /* We can scratch if the playing track is selected */
   return (playing_track
-          && disorder_eclient_connected(client)
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
           && selection_selected(ql->selection, playing_track->id));
 }
 
@@ -1112,7 +1112,7 @@ static int remove_sensitive(struct queuelike *ql,
                             struct queue_entry *q) {
   /* We can remove if we're hovering over a particular track or any non-playing
    * tracks are selected */
-  return (disorder_eclient_connected(client)
+  return ((disorder_eclient_state(client) & DISORDER_CONNECTED)
           && ((q
                && q != playing_track)
               || count_selected_nonplaying(ql)));
@@ -1139,7 +1139,7 @@ static int properties_sensitive(struct queuelike *ql,
                                 struct queue_entry attribute((unused)) *q) {
   /* "Properties" is sensitive if at least something is selected */
   return (hash_count(ql->selection) > 0
-          && disorder_eclient_connected(client));
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
 }
 
 static void properties_activate(GtkMenuItem attribute((unused)) *menuitem,
@@ -1269,7 +1269,8 @@ void recent_update(void) {
 /* Main menu plumbing ------------------------------------------------------ */
 
 static int queue_properties_sensitive(GtkWidget *w) {
-  return !!queue_count_selected(g_object_get_data(G_OBJECT(w), "queue"));
+  return (!!queue_count_selected(g_object_get_data(G_OBJECT(w), "queue"))
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
 }
 
 static int queue_selectall_sensitive(GtkWidget *w) {

@@ -389,7 +389,7 @@ static void nop_completed(void attribute((unused)) *v) {
  * currently connected then no NOP is sent.
  */
 static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
-  if(!nop_in_flight && disorder_eclient_connected(client)) {
+  if(!nop_in_flight && (disorder_eclient_state(client) & DISORDER_CONNECTED)) {
     nop_in_flight = 1;
     disorder_eclient_nop(client, nop_completed, 0);
   }
