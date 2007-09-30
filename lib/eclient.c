@@ -497,8 +497,12 @@ static void maybe_connected(disorder_eclient *c) {
     comms_error(c, "connecting to %s: %s", c->ident, strerror(err));
     /* sets state_disconnected */
   } else {
+    char *r;
+    
     /* The connection succeeded */
     c->state = state_connected;
+    byte_xasprintf(&r, "connected to %s", c->ident);
+    c->callbacks->report(c->u, r);
   }
 }
 
@@ -526,6 +530,8 @@ static void authbanner_opcallback(disorder_eclient *c,
 
 static void authuser_opcallback(disorder_eclient *c,
                                 struct operation *op) {
+  char *r;
+
   D(("authuser_opcallback"));
   if(c->rc / 100 != 2) {
     /* Wrong password or something.  We cannot proceed. */
@@ -535,6 +541,8 @@ static void authuser_opcallback(disorder_eclient *c,
   }
   /* OK, we're authenticated now. */
   c->authenticated = 1;
+  byte_xasprintf(&r, "authenticated with %s", c->ident);
+  c->callbacks->report(c->u, r);
   if(c->log_callbacks && !(c->ops && c->ops->opcallback == log_opcallback))
     /* We are a log client, switch to logging mode */
     stash_command(c, 0/*queuejump*/, log_opcallback, 0/*completed*/, c->log_v,
