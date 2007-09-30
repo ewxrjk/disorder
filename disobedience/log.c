@@ -142,14 +142,15 @@ static void log_scratched(void attribute((unused)) *v,
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
   const struct monitor *m;
+  const unsigned long changes = state ^ last_state;
 
+  info("log_state %s", disorder_eclient_interpret_state(state));
+  last_state = state;
   /* Tell anything that cares about the state change */
   for(m = monitors; m; m = m->next) {
-    if((state ^ last_state) & m->mask)
-      m->callback(m->u, state);
+    if(changes & m->mask)
+      m->callback(m->u);
   }
-  last_state = state;
-  control_update();
   /* If the track is paused or resume then the currently playing track is
    * refetched so that we can continue to correctly calculate the played so-far
    * field */

@@ -91,7 +91,7 @@ extern int choosealpha;                 /* break up choose by letter */
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
-typedef void monitor_callback(void *u, unsigned long newstate);
+typedef void monitor_callback(void *u);
 
 /* Functions --------------------------------------------------------------- */
 

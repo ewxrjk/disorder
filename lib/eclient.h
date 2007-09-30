@@ -127,6 +127,8 @@ typedef struct disorder_eclient_log_callbacks {
  */
 #define DISORDER_CONNECTED        0x00000010
 
+char *disorder_eclient_interpret_state(unsigned long statebits);
+
 struct queue_entry;
 struct kvp;
 struct sink;

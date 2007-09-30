@@ -1178,7 +1178,7 @@ static void logline(disorder_eclient *c, const char *line) {
   char **vec;
   uintmax_t when;
 
-  D(("log_opcallback [%s]", line));
+  info("log_opcallback [%s]", line);
   vec = split(line, &nvec, SPLIT_QUOTES, logline_error, c);
   if(nvec < 2) return;                  /* probably an error, already
                                          * reported */
@@ -1311,6 +1311,43 @@ static void logentry_volume(disorder_eclient *c,
      || r < 0 || r > INT_MAX)
     return;                             /* bogus */
   c->log_callbacks->volume(c->log_v, (int)l, (int)r);
+}
+
+/** @brief Convert @p statebits to a string */
+char *disorder_eclient_interpret_state(unsigned long statebits) {
+  struct dynstr d[1];
+  size_t n;
+
+  static const struct {
+    unsigned long bit;
+    const char *name;
+  } bits[] = {
+    { DISORDER_PLAYING_ENABLED, "playing_enabled" },
+    { DISORDER_RANDOM_ENABLED, "random_enabled" },
+    { DISORDER_TRACK_PAUSED, "track_paused" },
+    { DISORDER_PLAYING, "playing" },
+    { DISORDER_CONNECTED, "connected" },
+  };
+#define NBITS (sizeof bits / sizeof *bits)
+
+  dynstr_init(d);
+  for(n = 0; n < NBITS; ++n)
+    if(statebits & bits[n].bit) {
+      if(d->nvec)
+        dynstr_append(d, '|');
+      dynstr_append_string(d, bits[n].name);
+      statebits ^= bits[n].bit;
+    }
+  if(statebits) {
+    char s[20];
+
+    if(d->nvec)
+      dynstr_append(d, '|');
+    sprintf(s, "%#lx", statebits);
+    dynstr_append_string(d, s);
+  }
+  dynstr_terminate(d);
+  return d->vec;
 }
 
 /*

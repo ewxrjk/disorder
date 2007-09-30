@@ -51,6 +51,8 @@ static void volume_adjusted(GtkAdjustment *a, gpointer user_data);
 static gchar *format_volume(GtkScale *scale, gdouble value);
 static gchar *format_balance(GtkScale *scale, gdouble value);
 
+static void control_monitor(void *u);
+
 /* Control bar ------------------------------------------------------------- */
 
 static int suppress_set_volume;
@@ -152,27 +154,35 @@ GtkWidget *control_widget(void) {
                    G_CALLBACK(format_volume), 0);
   g_signal_connect(G_OBJECT(b), "format-value",
                    G_CALLBACK(format_balance), 0);
+  register_monitor(control_monitor, 0, -1UL);
   return hbox;
 }
 
 /** @brief Update the control bar after some kind of state change */
 void control_update(void) {
-  int n;
   double l, r;
 
   D(("control_update"));
-  for(n = 0; n < NICONS; ++n)
-    icons[n].update(&icons[n]);
+  /*control_monitor(0, disorder_eclient_state(client));*/
   l = volume_l / 100.0;
   r = volume_r / 100.0;
-  ++suppress_set_volume;;
+  ++suppress_set_volume;
   gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
   gtk_adjustment_set_value(balance_adj, balance(l, r));
   --suppress_set_volume;
 }
 
+static void control_monitor(void attribute((unused)) *u) {
+  int n;
+
+  fprintf(stderr, "control_monitor\n");
+  for(n = 0; n < NICONS; ++n)
+    icons[n].update(&icons[n]);
+  fprintf(stderr, "\n");
+}
+
 /** @brief Update the state of one of the control icons
- * @param button Widget for button
+ * @param icon Target icon
  * @param visible True if this version of the button should be visible
  * @param usable True if the button is currently usable
  *
@@ -183,57 +193,58 @@ void control_update(void) {
  * @p usable need not take into account server availability, that is done
  * automatically.
  */
-static void update_icon(GtkWidget *button, 
+static void update_icon(const struct icon *icon,
                         int visible, int usable) {
   /* If the connection is down nothing is ever usable */
-  if(!(disorder_eclient_state(client) & DISORDER_CONNECTED))
+  if(!(last_state & DISORDER_CONNECTED))
     usable = 0;
-  (visible ? gtk_widget_show : gtk_widget_hide)(button);
+  fprintf(stderr, "%s usable=%d visible=%d\n", icon->tip, usable, visible);
+  (visible ? gtk_widget_show : gtk_widget_hide)(icon->button);
   /* Only both updating usability if the button is visible */
   if(visible)
-    gtk_widget_set_sensitive(button, usable);
+    gtk_widget_set_sensitive(icon->button, usable);
 }
 
 static void update_pause(const struct icon *icon) {
-  int visible = !(last_state & DISORDER_TRACK_PAUSED);
-  int usable = playing;                 /* TODO: might be a lie */
-  update_icon(icon->button, visible, usable);
+  const int visible = !(last_state & DISORDER_TRACK_PAUSED);
+  const int usable = !!(last_state & DISORDER_PLAYING); /* TODO: might be a lie */
+  update_icon(icon, visible, usable);
 }
 
 static void update_play(const struct icon *icon) {
-  int visible = !!(last_state & DISORDER_TRACK_PAUSED);
-  int usable = playing;
-  update_icon(icon->button, visible, usable);
+  const int visible = !!(last_state & DISORDER_TRACK_PAUSED);
+  const int usable = !!(last_state & DISORDER_PLAYING);
+  update_icon(icon, visible, usable);
 }
 
 static void update_scratch(const struct icon *icon) {
-  int visible = 1;
-  int usable = playing;
-  update_icon(icon->button, visible, usable);
+  const int visible = 1;
+  const int usable = !!(last_state & DISORDER_PLAYING);
+  update_icon(icon, visible, usable);
 }
 
 static void update_random_enable(const struct icon *icon) {
-  int visible = !(last_state & DISORDER_RANDOM_ENABLED);
-  int usable = 1;
-  update_icon(icon->button, visible, usable);
+  const int visible = !(last_state & DISORDER_RANDOM_ENABLED);
+  const int usable = 1;
+  update_icon(icon, visible, usable);
 }
 
 static void update_random_disable(const struct icon *icon) {
-  int visible = !!(last_state & DISORDER_RANDOM_ENABLED);
-  int usable = 1;
-  update_icon(icon->button, visible, usable);
+  const int visible = !!(last_state & DISORDER_RANDOM_ENABLED);
+  const int usable = 1;
+  update_icon(icon, visible, usable);
 }
 
 static void update_enable(const struct icon *icon) {
-  int visible = !(last_state & DISORDER_PLAYING_ENABLED);
-  int usable = 1;
-  update_icon(icon->button, visible, usable);
+  const int visible = !(last_state & DISORDER_PLAYING_ENABLED);
+  const int usable = 1;
+  update_icon(icon, visible, usable);
 }
 
 static void update_disable(const struct icon *icon) {
-  int visible = !!(last_state & DISORDER_PLAYING_ENABLED);
-  int usable = 1;
-  update_icon(icon->button, visible, usable);
+  const int visible = !!(last_state & DISORDER_PLAYING_ENABLED);
+  const int usable = 1;
+  update_icon(icon, visible, usable);
 }
 
 static void clicked_icon(GtkButton attribute((unused)) *button,
