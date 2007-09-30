@@ -29,20 +29,22 @@ AM_CONFIG_HEADER([config.h])
 AC_CANONICAL_HOST
 
 # What we want to build
-want_server=yes
 want_gtk=yes
 want_python=yes
 
 case "$host" in
 *linux* | *Linux* )
   want_alsa=yes
+  want_server=yes
   ;;
 *-apple-darwin* )
   want_alsa=no
+  want_server=no
   COREAUDIO="-framework CoreAudio"
   ;;
 * )
   want_alsa=no
+  want_server=no
   ;;
 esac
 AC_SUBST([COREAUDIO])

@@ -1,0 +1,29 @@
+DisOrder on OS X
+================
+
+The server builds on OS X.  However the kernel panics when I run it
+(kernel 8.10.1).  Until Apple can provide a stable operating system,
+it is not recommended that you run the server on this platform.
+
+
+Things you will need to do:
+
+Make sure that ~jukebox/Library/Logs/CrashReporter/ (or whatever)
+exists and is writable by the jukebox user.
+
+     mkdir -p ~jukebox/Library/Logs/CrashReporter
+     chown -R jukebox:jukebox ~jukebox/Library
+
+Install server/uk.org.greenend.rjk.disorder.plist into
+/Library/LaunchDaemons.  Having done this reload the contents:
+
+    sudo launchctl load /Library/LaunchDaemons
+
+Note that the RunAtLoad key has been deliberately commented out, if
+you want to start the server at boot time you must edit this.  Given
+that at the time of writing this risks causing boot-time kernel
+panics, only do this if you are feeling brave.
+
+To start the server:
+
+     sudo launchctl start uk.org.greenend.rjk.disorder
