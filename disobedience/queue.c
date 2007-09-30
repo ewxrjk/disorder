@@ -1096,7 +1096,9 @@ static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
                              struct menuitem attribute((unused)) *m,
                              struct queue_entry attribute((unused)) *q) {
   /* We can scratch if the playing track is selected */
-  return playing_track && selection_selected(ql->selection, playing_track->id);
+  return (playing_track
+          && disorder_eclient_connected(client)
+          && selection_selected(ql->selection, playing_track->id));
 }
 
 static void scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
@@ -1110,7 +1112,10 @@ static int remove_sensitive(struct queuelike *ql,
                             struct queue_entry *q) {
   /* We can remove if we're hovering over a particular track or any non-playing
    * tracks are selected */
-  return (q && q != playing_track) || count_selected_nonplaying(ql);
+  return (disorder_eclient_connected(client)
+          && ((q
+               && q != playing_track)
+              || count_selected_nonplaying(ql)));
 }
 
 static void remove_activate(GtkMenuItem attribute((unused)) *menuitem,
@@ -1133,7 +1138,8 @@ static int properties_sensitive(struct queuelike *ql,
                                 struct menuitem attribute((unused)) *m,
                                 struct queue_entry attribute((unused)) *q) {
   /* "Properties" is sensitive if at least something is selected */
-  return hash_count(ql->selection) > 0;
+  return (hash_count(ql->selection) > 0
+          && disorder_eclient_connected(client));
 }
 
 static void properties_activate(GtkMenuItem attribute((unused)) *menuitem,
