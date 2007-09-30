@@ -408,6 +408,9 @@ Queue entry \fIID\fR was removed.  This is used both for explicit removal (when
 Some state change occurred.  The current set of keywords is:
 .RS
 .TP
+.B completed
+The current track completed successfully.
+.TP
 .B disable_play
 Playing was disabled.
 .TP
@@ -420,11 +423,23 @@ Playing was enabled.
 .B enable_random
 Random play was enabled.
 .TP
+.B failed
+The current track failed.
+.TP
 .B pause
 The current track was paused.
 .TP
+.B playing
+A track started playing.
+.TP
 .B resume
 The current track was resumed.
+.TP
+.B scratched
+The current track was scratched.
+.PP
+To simplify client implementation, \fBstate\fR commands reflecting the current
+state are sent at the start of the log.
 .RE
 .TP
 .B volume \fILEFT\fR \fIRIGHT\fR
