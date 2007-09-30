@@ -1,9 +1,8 @@
 Setting up a standalone DisOrder client
 =======================================
 
-Although DisOrder can still only play from a single computer, it is possible to
-control it over the network if the server has a 'listen PORT' directive in its
-configuration file.
+It is possible to control the DisOrder server over the network if the server
+has a 'listen PORT' directive in its configuration file.
 
 There is currently no standard DisOrder port number.
 
