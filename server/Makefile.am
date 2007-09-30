@@ -110,14 +110,14 @@ include ${top_srcdir}/scripts/sedfiles.make
 EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in
 LAUNCHD=/Library/LaunchDaemons
 
-install-data-hook:
-	@if [ -d ${LAUNCHD} ]; then \
-	  echo $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
-	  $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
-	  if [ "$$(NOLAUNCH)" != "" ]; then \
-	    echo launchctl unload ${LAUNCHD} \|\| true;\
-	    launchctl unload ${LAUNCHD} || true;\
-	    echo launchctl load ${LAUNCHD} \|\| true;\
-	    launchctl load ${LAUNCHD} || true;\
-         fi;\
-	fi
+#install-data-hook:
+#	@if [ -d ${LAUNCHD} ]; then \
+#	  echo $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
+#	  $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
+#	  if [ "$$(NOLAUNCH)" != "" ]; then \
+#	    echo launchctl unload ${LAUNCHD} \|\| true;\
+#	    launchctl unload ${LAUNCHD} || true;\
+#	    echo launchctl load ${LAUNCHD} \|\| true;\
+#	    launchctl load ${LAUNCHD} || true;\
+#         fi;\
+#	fi
