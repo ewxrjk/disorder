@@ -34,6 +34,7 @@
 #include <fnmatch.h>
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
+#include <FLAC/file_decoder.h>
 
 #include "log.h"
 #include "syscalls.h"
@@ -59,7 +60,7 @@ static FILE *outputfp;
 static const char *path;
 
 /** @brief Input buffer */
-static char buffer[1048576];
+static char input_buffer[1048576];
 
 /** @brief Open the input file */
 static void open_input(void) {
@@ -71,23 +72,52 @@ static void open_input(void) {
  * @return Number of bytes read
  */
 static size_t fill(void) {
-  int n = read(inputfd, buffer, sizeof buffer);
+  int n = read(inputfd, input_buffer, sizeof input_buffer);
 
   if(n < 0)
     fatal(errno, "reading from %s", path);
   return n;
 }
 
-/** @brief Write a 16-bit word in bigendian format */
-static inline void output_16(uint16_t n) {
-  if(putc(n >> 8, outputfp) < 0
-     || putc(n & 0xFF, outputfp) < 0)
+/** @brief Write an 8-bit word */
+static inline void output_8(int n) {
+  if(putc(n, outputfp) < 0)
     fatal(errno, "decoding %s: output error", path);
 }
 
-/** @brief Write the header
- * If called more than once, either does nothing (if you kept the same
- * output encoding) or fails (if you changed it).
+/** @brief Write a 16-bit word in bigendian format */
+static inline void output_16(uint16_t n) {
+  if(putc(n >> 8, outputfp) < 0
+     || putc(n, outputfp) < 0)
+    fatal(errno, "decoding %s: output error", path);
+}
+
+/** @brief Write a 24-bit word in bigendian format */
+static inline void output_24(uint32_t n) {
+  if(putc(n >> 16, outputfp) < 0
+     || putc(n >> 8, outputfp) < 0
+     || putc(n, outputfp) < 0)
+    fatal(errno, "decoding %s: output error", path);
+}
+
+/** @brief Write a 32-bit word in bigendian format */
+static inline void output_32(uint32_t n) {
+  if(putc(n >> 24, outputfp) < 0
+     || putc(n >> 16, outputfp) < 0
+     || putc(n >> 8, outputfp) < 0
+     || putc(n, outputfp) < 0)
+    fatal(errno, "decoding %s: output error", path);
+}
+
+/** @brief Write a block header
+ * @param rate Sample rate in Hz
+ * @param channels Channel count (currently only 1 or 2 supported)
+ * @param bits Bits per sample (must be a multiple of 8, no more than 64)
+ * @param nbytes Total number of data bytes
+ * @param endian @ref ENDIAN_BIG or @ref ENDIAN_LITTLE
+ *
+ * Checks that the sample format is a supported one (so other calls do not have
+ * to) and calls fatal() on error.
  */
 static void output_header(int rate,
 			  int channels,
@@ -96,6 +126,12 @@ static void output_header(int rate,
                           int endian) {
   struct stream_header header;
 
+  if(bits <= 0 || bits % 8 || bits > 64)
+    fatal(0, "decoding %s: unsupported sample size %d bits", path, bits);
+  if(channels <= 0 || channels > 2)
+    fatal(0, "decoding %s: unsupported channel count %d", path, channels);
+  if(rate <= 0)
+    fatal(0, "decoding %s: nonsensical sample rate %dHz", path, rate);
   header.rate = rate;
   header.bits = bits;
   header.channels = channels;
@@ -199,8 +235,6 @@ static enum mad_flow mp3_output(void attribute((unused)) *data,
       output_16(audio_linear_dither(*r++, rd));
     }
     break;
-  default:
-    fatal(0, "decoding %s: unsupported channel count %d", path, pcm->channels);
   }
   return MAD_FLOW_CONTINUE;
 }
@@ -212,7 +246,7 @@ static enum mad_flow mp3_input(void attribute((unused)) *data,
 
   if(!n)
     return MAD_FLOW_STOP;
-  mad_stream_buffer(stream, (unsigned char *)buffer, n);
+  mad_stream_buffer(stream, (unsigned char *)input_buffer, n);
   return MAD_FLOW_CONTINUE;
 }
 
@@ -257,14 +291,14 @@ static void decode_ogg(void) {
     fatal(0, "ov_fopen %s: %d", path, err);
   if(!(vi = ov_info(vf, 0/*link*/)))
     fatal(0, "ov_info %s: failed", path);
-  while((n = ov_read(vf, buffer, sizeof buffer, 1/*bigendianp*/,
+  while((n = ov_read(vf, input_buffer, sizeof input_buffer, 1/*bigendianp*/,
                      2/*bytes/word*/, 1/*signed*/, &bitstream))) {
     if(n < 0)
       fatal(0, "ov_read %s: %ld", path, n);
     if(bitstream > 0)
       fatal(0, "only single-bitstream ogg files are supported");
     output_header(vi->rate, vi->channels, 16/*bits*/, n, ENDIAN_BIG);
-    if(fwrite(buffer, 1, n, outputfp) < (size_t)n)
+    if(fwrite(input_buffer, 1, n, outputfp) < (size_t)n)
       fatal(errno, "decoding %s: writing sample data", path);
   }
 }
@@ -286,11 +320,71 @@ static void decode_wav(void) {
 
   if((err = wav_init(f, path)))
     fatal(err, "opening %s", path);
-  if(f->bits % 8)
-    fatal(err, "%s: unsupported byte size %d", path, f->bits);
   output_header(f->rate, f->channels, f->bits, f->datasize, ENDIAN_LITTLE);
   if((err = wav_data(f, wav_write, 0)))
     fatal(err, "error decoding %s", path);
+}
+
+/** @brief Metadata callback for FLAC decoder
+ *
+ * This is a no-op here.
+ */
+static void flac_metadata(const FLAC__FileDecoder attribute((unused)) *decoder,
+			  const FLAC__StreamMetadata attribute((unused)) *metadata,
+			  void attribute((unused)) *client_data) {
+}
+
+/** @brief Error callback for FLAC decoder */
+static void flac_error(const FLAC__FileDecoder attribute((unused)) *decoder,
+		       FLAC__StreamDecoderErrorStatus status,
+		       void attribute((unused)) *client_data) {
+  fatal(0, "error decoding %s: %s", path,
+        FLAC__StreamDecoderErrorStatusString[status]);
+}
+
+/** @brief Write callback for FLAC decoder */
+static FLAC__StreamDecoderWriteStatus flac_write
+    (const FLAC__FileDecoder attribute((unused)) *decoder,
+     const FLAC__Frame *frame,
+     const FLAC__int32 *const buffer[],
+     void attribute((unused)) *client_data) {
+  size_t n, c;
+
+  output_header(frame->header.sample_rate,
+                frame->header.channels,
+                frame->header.bits_per_sample,
+                (frame->header.channels * frame->header.blocksize
+                 * frame->header.bits_per_sample) / 8,
+                ENDIAN_BIG);
+  for(n = 0; n < frame->header.blocksize; ++n) {
+    for(c = 0; c < frame->header.channels; ++c) {
+      switch(frame->header.bits_per_sample) {
+      case 8: output_8(buffer[c][n]); break;
+      case 16: output_16(buffer[c][n]); break;
+      case 24: output_24(buffer[c][n]); break;
+      case 32: output_32(buffer[c][n]); break;
+      }
+    }
+  }
+  return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
+}
+
+
+/** @brief FLAC file decoder */
+static void decode_flac(void) {
+  FLAC__FileDecoder *fd = 0;
+  FLAC__FileDecoderState fs;
+
+  if(!(fd = FLAC__file_decoder_new()))
+    fatal(0, "FLAC__file_decoder_new failed");
+  if(!(FLAC__file_decoder_set_filename(fd, path)))
+    fatal(0, "FLAC__file_set_filename failed");
+  FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
+  FLAC__file_decoder_set_error_callback(fd, flac_error);
+  FLAC__file_decoder_set_write_callback(fd, flac_write);
+  if((fs = FLAC__file_decoder_init(fd)))
+    fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
+  FLAC__file_decoder_process_until_end_of_file(fd);
 }
 
 /** @brief Lookup table of decoders */
@@ -299,6 +393,8 @@ static const struct decoder decoders[] = {
   { "*.MP3", decode_mp3 },
   { "*.ogg", decode_ogg },
   { "*.OGG", decode_ogg },
+  { "*.flac", decode_flac },
+  { "*.FLAC", decode_flac },
   { "*.wav", decode_wav },
   { "*.WAV", decode_wav },
   { 0, 0 }

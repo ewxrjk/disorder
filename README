@@ -107,7 +107,7 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
 4. Create /etc/disorder/config.  Start from examples/config.sample and adapt it
    to your own requirements.  In particular, you should:
-    * edit the 'player' commands to reflect the software you have installed.
+    * add 'player' commands for any file formats not supported natively
     * edit the 'collection' command to identify the location(s) of your own
       digital audio files.  These commands also specify the encoding of
       filenames, which you should be sure to get right as recovery from an

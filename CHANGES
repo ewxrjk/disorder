@@ -38,8 +38,8 @@ crash when random play was enabled has been fixed.
 A new configuration option 'queue_pad' allows the number of random
 tracks kept on the queue to be controlled.
 
-There is a new utility disorder-decode which can decode several common
-audio file formats.  The example config file uses it.
+There is a new utility disorder-decode which can decode OGG, MP3, WAV
+and FLAC.  The example config file uses it.
 
 ** Network Play
 
