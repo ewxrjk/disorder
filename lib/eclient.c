@@ -1136,6 +1136,13 @@ int disorder_eclient_search(disorder_eclient *c,
                 "search", terms, (char *)0);
 }
 
+int disorder_eclient_nop(disorder_eclient *c,
+                         disorder_eclient_no_response *completed,
+                         void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "nop", (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

@@ -109,6 +109,11 @@ the queue.  If \fITARGET\fR is listed in the ID list then the tracks are moved
 to just after the first non-listed track before it, or to the head if there is
 no such track.
 .TP
+.B nop
+Do nothing.  Used by
+.BR disobedience (1)
+as a keepalive measure.
+.TP
 .B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
 Get a track name part.  Returns an empty string if a name part cannot be
 constructed.

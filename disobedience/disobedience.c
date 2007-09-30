@@ -59,6 +59,9 @@ int volume_l, volume_r;                 /* volume */
 double goesupto = 10;                   /* volume upper bound */
 int choosealpha;                        /* break up choose by letter */
 
+/** @brief True if a NOP is in flight */
+static int nop_in_flight;
+
 static const disorder_eclient_log_callbacks gdisorder_log_callbacks = {
   log_connected,
   log_completed,
@@ -375,6 +378,24 @@ static gboolean heartbeat(gpointer attribute((unused)) data) {
   return TRUE;
 }
 
+/** @brief Called when a NOP completes */
+static void nop_completed(void attribute((unused)) *v) {
+  nop_in_flight = 0;
+}
+
+/** @brief Called from time to time to arrange for a NOP to be sent
+ *
+ * At most one NOP remains in flight at any moment.  If the client is not
+ * currently connected then no NOP is sent.
+ */
+static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
+  if(!nop_in_flight && disorder_eclient_connected(client)) {
+    nop_in_flight = 1;
+    disorder_eclient_nop(client, nop_completed, 0);
+  }
+  return TRUE;                          /* keep call me please */
+}
+
 /* main -------------------------------------------------------------------- */
 
 static const struct option options[] = {
@@ -463,6 +484,12 @@ int main(int argc, char **argv) {
   gtk_widget_show_all(toplevel);
   /* set initial control button visibility/usability */
   control_update();
+  /* issue a NOP every so often */
+  g_timeout_add_full(G_PRIORITY_LOW,
+                     1000/*interval, ms*/,
+                     maybe_send_nop,
+                     0/*data*/,
+                     0/*notify*/);
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);

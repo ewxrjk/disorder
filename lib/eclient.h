@@ -292,6 +292,10 @@ int disorder_eclient_search(disorder_eclient *c,
                             const char *terms,
                             void *v);
 
+int disorder_eclient_nop(disorder_eclient *c,
+                         disorder_eclient_no_response *completed,
+                         void *v);
+
 #endif
 
 /*

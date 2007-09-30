@@ -900,6 +900,13 @@ static int c_get_global(struct conn *c,
   return 1;
 }
 
+static int c_nop(struct conn *c,
+		 char attribute((unused)) **vec,
+		 int attribute((unused)) nvec) {
+  sink_printf(ev_writer_sink(c->w), "250 Quack\n");
+  return 1;
+}
+
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -923,6 +930,7 @@ static const struct command {
   { "log",            0, 0,       c_log,            C_AUTH },
   { "move",           2, 2,       c_move,           C_AUTH },
   { "moveafter",      1, INT_MAX, c_moveafter,      C_AUTH },
+  { "nop",            0, 0,       c_nop,            C_AUTH },
   { "part",           3, 3,       c_part,           C_AUTH },
   { "pause",          0, 0,       c_pause,          C_AUTH },
   { "play",           1, 1,       c_play,           C_AUTH },
