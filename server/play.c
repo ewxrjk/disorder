@@ -87,10 +87,8 @@ static int speaker_terminated(ev_source attribute((unused)) *ev,
 			      int attribute((unused)) status,
 			      const struct rusage attribute((unused)) *rusage,
 			      void attribute((unused)) *u) {
-  if(status)
-    error(0, "speaker subprocess terminated with status %s",
-	  wstat(status));
-  return 0;
+  fatal(0, "speaker subprocess terminated with status %s",
+	wstat(status));
 }
 
 /* called when speaker process has something to say */
