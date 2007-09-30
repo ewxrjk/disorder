@@ -89,7 +89,7 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    The CGI interface has to be installed separately, and you must use Libtool
    to install it.  For instance:
 
-     ./libtool --mode=install install -m 755 progs/disorder.cgi /usr/local/lib/cgi-bin/disorder
+     ./libtool --mode=install install -m 755 clients/disorder.cgi /usr/local/lib/cgi-bin/disorder
 
    Depending on how your system is configured you may need to link the disorder
    libao driver into the right directory:
@@ -104,6 +104,12 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
    Do not use a general-purpose user or group, you must create ones
    specifically for DisOrder.
+
+   Under OS X, make sure that ~jukebox/Library/Logs/CrashReporter/ (or
+   whatever) exists and is writable by the jukebox user.
+
+     mkdir -p ~jukebox/Library/Logs/CrashReporter
+     chown -R jukebox:jukebox ~jukebox/Library
 
 4. Create /etc/disorder/config.  Start from examples/config.sample and adapt it
    to your own requirements.  In particular, you should:
@@ -148,12 +154,13 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    suitable; install it in /etc/init.d, adapting it as necessary, and make
    appropriate links from /etc/rc[0-6].d.
 
-   For Mac OS X 10.4, a suitable plist file is automatically installed.  The
-   command:
+   For Mac OS X 10.4, you can install server/uk.org.greenend.rjk.disorder.plist
+   into /Library/LaunchDaemons.  Having done this reload the contents:
 
-    sudo launchctl list
+    sudo launchctl load /Library/LaunchDaemons
 
-   ...should show "uk.org.greenend.rjk.disorder" (among other things).
+   Note that the RunAtLoad key has been deliberately commented out, if you want
+   to start the server at boot time you must edit this.
 
    If you have a some other init system then you are on your own.
 
