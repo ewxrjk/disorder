@@ -1138,6 +1138,15 @@ int disorder_eclient_search(disorder_eclient *c,
 
 /* Log clients ***************************************************************/
 
+/** @brief Monitor the server log
+ * @param c Client
+ * @param callbacks Functions to call when anything happens
+ * @param v Passed to @p callbacks functions
+ *
+ * Once a client is being used for logging it cannot be used for anything else.
+ * There is magic in authuser_opcallback() to re-submit the @c log command
+ * after reconnection.
+ */
 int disorder_eclient_log(disorder_eclient *c,
                          const disorder_eclient_log_callbacks *callbacks,
                          void *v) {

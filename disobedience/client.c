@@ -110,6 +110,8 @@ static void gtkclient_poll(void *u,
 static void gtkclient_comms_error(void attribute((unused)) *u,
 				  const char *msg) {
   D(("gtkclient_comms_error %s", msg));
+  /* Control buttons might have become unusable */
+  control_update();
   gtk_label_set_text(GTK_LABEL(report_label), msg);
 }
 
