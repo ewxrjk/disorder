@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/disobedience.c
+ * @brief Main Disobedience program
+ */
 
 #include "disobedience.h"
 
@@ -31,18 +34,43 @@
 
 /* Variables --------------------------------------------------------------- */
 
-GMainLoop *mainloop;                    /* event loop */
-GtkWidget *toplevel;                    /* top level window */
-GtkWidget *report_label;                /* label for progress indicator */
-GtkWidget *tabs;                        /* main tabs */
+/** @brief Event loop */
+GMainLoop *mainloop;
 
-disorder_eclient *client;               /* main client */
+/** @brief Top-level window */
+GtkWidget *toplevel;
 
-unsigned long last_state;               /* last reported state */
-int playing;                            /* true if playing some track */
-int volume_l, volume_r;                 /* volume */
+/** @brief Label for progress indicator */
+GtkWidget *report_label;
+
+/** @brief Main tab group */
+GtkWidget *tabs;
+
+/** @brief Main client */
+disorder_eclient *client;
+
+/** @brief Last reported state
+ *
+ * This is updated by log_state().
+ */
+unsigned long last_state;
+
+/** @brief True if some track is playing
+ *
+ * This ought to be removed in favour of last_state & DISORDER_PLAYING
+ */
+int playing;
+
+/** @brief Left channel volume */
+int volume_l;
+
+/** @brief Right channel volume */
+int volume_r;
+
 double goesupto = 10;                   /* volume upper bound */
-int choosealpha;                        /* break up choose by letter */
+
+/** @brief Break up choose tab by initial letter */
+int choosealpha;
 
 /** @brief True if a NOP is in flight */
 static int nop_in_flight;
@@ -52,6 +80,10 @@ static int nop_in_flight;
 /* Note that all the client operations kicked off from here will only complete
  * after we've entered the event loop. */
 
+/** @brief Called when main window is deleted
+ *
+ * Terminates the program.
+ */
 static gboolean delete_event(GtkWidget attribute((unused)) *widget,
                              GdkEvent attribute((unused)) *event,
                              gpointer attribute((unused)) data) {
@@ -59,7 +91,10 @@ static gboolean delete_event(GtkWidget attribute((unused)) *widget,
   exit(0);                              /* die immediately */
 }
 
-/* Called when the current tab is switched. */
+/** @brief Called when the current tab is switched
+ *
+ * Updates the menu settings to correspond to the new page.
+ */
 static void tab_switched(GtkNotebook attribute((unused)) *notebook,
                          GtkNotebookPage attribute((unused)) *page,
                          guint page_num,
@@ -67,6 +102,7 @@ static void tab_switched(GtkNotebook attribute((unused)) *notebook,
   menu_update(page_num);
 }
 
+/** @brief Create the report box */
 static GtkWidget *report_box(void) {
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
@@ -78,6 +114,7 @@ static GtkWidget *report_box(void) {
   return vbox;
 }
 
+/** @brief Create and populate the main tab group */
 static GtkWidget *notebook(void) {
   tabs = gtk_notebook_new();
   g_signal_connect(tabs, "switch-page", G_CALLBACK(tab_switched), 0);
@@ -90,6 +127,7 @@ static GtkWidget *notebook(void) {
   return tabs;
 }
 
+/** @brief Create and populate the main window */
 static void make_toplevel_window(void) {
   GtkWidget *const vbox = gtk_vbox_new(FALSE, 1);
   GtkWidget *const rb = report_box();
@@ -212,7 +250,7 @@ static const GMemVTable glib_memvtable = {
 };
 #endif
 
-/* Called once every 10 minutes */
+/** @brief Called once every 10 minutes */
 static gboolean periodic(gpointer attribute((unused)) data) {
   D(("periodic"));
   /* Expire cached data */
@@ -230,6 +268,10 @@ static gboolean periodic(gpointer attribute((unused)) data) {
   return TRUE;                          /* don't remove me */
 }
 
+/** @brief Called from time to time
+ *
+ * Used for debugging purposes
+ */
 static gboolean heartbeat(gpointer attribute((unused)) data) {
   static struct timeval last;
   struct timeval now;

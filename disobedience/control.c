@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/control.c
+ * @brief Volume control and buttons
+ */
 
 #include "disobedience.h"
 
@@ -53,19 +56,38 @@ static gchar *format_balance(GtkScale *scale, gdouble value);
 
 /* Control bar ------------------------------------------------------------- */
 
+/** @brief Guard against feedback loop in volume control */
 static int suppress_set_volume;
-/* Guard against feedback loop in volume control */
 
-static struct icon {
+/** @brief Definition of an icon
+ *
+ * The design here is rather mad: rather than changing the image displayed by
+ * icons according to their state, we flip the visibility of pairs of icons.
+ */
+struct icon {
+  /** @brief Filename for image */
   const char *icon;
+
+  /** @brief Text for tooltip */
   const char *tip;
+
+  /** @brief Called when button is clicked (activated) */
   void (*clicked)(GtkButton *button, gpointer userdata);
+
+  /** @brief Called to update button when state may have changed */
   void (*update)(const struct icon *i);
+
+  /** @brief @ref eclient.h function to call */
   int (*action)(disorder_eclient *c,
                 disorder_eclient_no_response *completed,
                 void *v);
+
+  /** @brief Pointer to button */
   GtkWidget *button;
-} icons[] = {
+};
+
+/** @brief Table of all icons */
+static struct icon icons[] = {
   { "pause.png", "Pause playing track", clicked_icon, update_pause,
     disorder_eclient_pause, 0 },
   { "play.png", "Resume playing track", clicked_icon, update_play,
@@ -81,9 +103,12 @@ static struct icon {
   { "notescross.png", "Disable play", clicked_icon, update_disable,
     disorder_eclient_disable, 0 },
 };
+
+/** @brief Count of icons */
 #define NICONS (int)(sizeof icons / sizeof *icons)
 
-GtkAdjustment *volume_adj, *balance_adj;
+static GtkAdjustment *volume_adj;
+static GtkAdjustment *balance_adj;
 
 /** @brief Called whenever last_state changes in any way */
 static void control_monitor(void attribute((unused)) *u) {
@@ -94,7 +119,7 @@ static void control_monitor(void attribute((unused)) *u) {
     icons[n].update(&icons[n]);
 }
 
-/* Create the control bar */
+/** @brief Create the control bar */
 GtkWidget *control_widget(void) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
   GtkWidget *content;
@@ -250,6 +275,7 @@ static void clicked_icon(GtkButton attribute((unused)) *button,
   icon->action(client, 0, 0);
 }
 
+/** @brief Called when the volume has been adjusted */
 static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
                             gpointer attribute((unused)) user_data) {
   double v = gtk_adjustment_get_value(volume_adj) / goesupto;
@@ -271,7 +297,7 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
                           0);
 }
 
-/* Called to format the volume value */
+/** @brief Formats the volume value */
 static gchar *format_volume(GtkScale attribute((unused)) *scale,
                             gdouble value) {
   char s[32];
@@ -280,7 +306,7 @@ static gchar *format_volume(GtkScale attribute((unused)) *scale,
   return g_strdup(s);
 }
 
-/* Called to format the balance value. */
+/** @brief Formats the balance value */
 static gchar *format_balance(GtkScale attribute((unused)) *scale,
                              gdouble value) {
   char s[32];
@@ -318,10 +344,12 @@ static gchar *format_balance(GtkScale attribute((unused)) *scale,
  * Thanks to Clive and Andrew.
  */
 
+/** @brief Return the greater of @p x and @p y */
 static double max(double x, double y) {
   return x > y ? x : y;
 }
 
+/** @brief Compute the left channel volume */
 static double left(double v, double b) {
   if(b > 0)                             /* volume = right */
     return v * (1 - b);
@@ -329,6 +357,7 @@ static double left(double v, double b) {
     return v;
 }
 
+/** @brief Compute the right channel volume */
 static double right(double v, double b) {
   if(b > 0)                             /* volume = right */
     return v;
@@ -336,10 +365,12 @@ static double right(double v, double b) {
     return v * (1 + b);
 }
 
+/** @brief Compute the overall volume */
 static double volume(double l, double r) {
   return max(l, r);
 }
 
+/** @brief Compute the balance */
 static double balance(double l, double r) {
   if(l > r)
     return r / l - 1;

@@ -17,10 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/client.c
+ * @brief GLIB integration for @ref lib/eclient.c client
+ */
 
 #include "disobedience.h"
 
-/* GSource subclass for disorder_eclient */
+/** @brief GSource subclass for disorder_eclient */
 struct eclient_source {
   GSource gsource;
   disorder_eclient *client;
@@ -28,8 +31,10 @@ struct eclient_source {
   GPollFD pollfd;
 };
 
-/* Called before FDs are polled to choose a timeout.  We ask for a 3s
- * timeout and every 10s or so we force a dispatch.  */
+/** @brief Called before FDs are polled to choose a timeout.
+ *
+ * We ask for a 3s timeout and every 10s or so we force a dispatch. 
+ */
 static gboolean gtkclient_prepare(GSource *source,
 				  gint *timeout) {
   const struct eclient_source *esource = (struct eclient_source *)source;
@@ -40,7 +45,7 @@ static gboolean gtkclient_prepare(GSource *source,
   return FALSE;			/* please poll */
 }
 
-/* Check whether we're ready to dispatch. */
+/** @brief Check whether we're ready to dispatch */
 static gboolean gtkclient_check(GSource *source) {
   const struct eclient_source *esource = (struct eclient_source *)source;
   D(("gtkclient_check fd=%d events=%x revents=%x",
@@ -48,7 +53,7 @@ static gboolean gtkclient_check(GSource *source) {
   return esource->pollfd.fd != -1 && esource->pollfd.revents != 0;
 }
 
-/* Dispatch */
+/** @brief Called after poll() (or otherwise) to dispatch an event */
 static gboolean gtkclient_dispatch(GSource *source,
 				   GSourceFunc attribute((unused)) callback,
 				   gpointer attribute((unused)) user_data) {
@@ -67,7 +72,7 @@ static gboolean gtkclient_dispatch(GSource *source,
   return TRUE;                          /* ??? not documented */
 }
 
-/* Table of callbacks for GSource subclass */
+/** @brief Table of callbacks for GSource subclass */
 static const GSourceFuncs sourcefuncs = {
   gtkclient_prepare,
   gtkclient_check,
@@ -77,7 +82,7 @@ static const GSourceFuncs sourcefuncs = {
   0,
 };
 
-/* Tell the mainloop what we need */
+/** @brief Tell the mainloop what we need */
 static void gtkclient_poll(void *u,
                            disorder_eclient attribute((unused)) *c,
                            int fd, unsigned mode) {
@@ -106,7 +111,11 @@ static void gtkclient_poll(void *u,
   }
 }
 
-/* Report a communication-level error.  It will be automatically retried. */
+/** @brief Report a communication-level error
+ *
+ * Any operations still outstanding are automatically replied by the underlying
+ * @ref lib/eclient.c code.
+ */
 static void gtkclient_comms_error(void attribute((unused)) *u,
 				  const char *msg) {
   D(("gtkclient_comms_error %s", msg));
@@ -114,9 +123,11 @@ static void gtkclient_comms_error(void attribute((unused)) *u,
   gtk_label_set_text(GTK_LABEL(report_label), msg);
 }
 
-/* Report a protocol error.  It will not be retried.  We offer a callback to
- * the submitter of the original command and if none is supplied we pop up an
- * error box. */
+/** @brief Report a protocol-level error
+ *
+ * The error will not be retried.  We offer a callback to the submitter of the
+ * original command and if none is supplied we pop up an error box.
+ */
 static void gtkclient_protocol_error(void attribute((unused)) *u,
 				     void *v,
                                      int code,
@@ -130,6 +141,7 @@ static void gtkclient_protocol_error(void attribute((unused)) *u,
     popup_protocol_error(code, msg);
 }
 
+/** @brief Report callback from eclient */
 static void gtkclient_report(void attribute((unused)) *u,
                              const char *msg) {
   if(!msg)
@@ -138,13 +150,14 @@ static void gtkclient_report(void attribute((unused)) *u,
   menu_update(-1);
 }
 
+/** @brief Repoort an unhandled protocol-level error to the user */
 void popup_protocol_error(int attribute((unused)) code,
                           const char *msg) {
   gtk_label_set_text(GTK_LABEL(report_label), msg);
   popup_error(msg);
 }
 
-/* Table of eclient callbacks */
+/** @brief Table of eclient callbacks */
 static const disorder_eclient_callbacks gtkclient_callbacks = {
   gtkclient_comms_error,
   gtkclient_protocol_error,
@@ -152,7 +165,7 @@ static const disorder_eclient_callbacks gtkclient_callbacks = {
   gtkclient_report
 };
 
-/* Create an eclient using the GLib main loop */
+/** @brief Create a @ref disorder_ecliient using the GLib main loop */
 disorder_eclient *gtkclient(void) {
   GSource *source;
   struct eclient_source *esource;

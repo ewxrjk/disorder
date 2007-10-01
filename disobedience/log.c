@@ -17,6 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/log.c
+ * @brief State monitoring
+ *
+ * Disobedience relies on the server to tell when essentially anything changes,
+ * even if it initiated the change itself.  It uses the @c log command to
+ * achieve this.
+ */
 
 #include "disobedience.h"
 
@@ -51,15 +58,28 @@ const disorder_eclient_log_callbacks log_callbacks = {
   log_volume
 };
 
+/** @brief State monitor
+ *
+ * We keep a linked list of everything that is interested in state changes.
+ */
 struct monitor {
+  /** @brief Next monitor */
   struct monitor *next;
+
+  /** @brief State bits of interest */
   unsigned long mask;
+
+  /** @brief Function to call if any of @c mask change */
   monitor_callback *callback;
+
+  /** @brief User data for callback */
   void *u;
 };
 
+/** @brief List of monitors */
 static struct monitor *monitors;
 
+/** @brief Update everything */
 void all_update(void) {
   playing_update();
   queue_update();
@@ -67,6 +87,14 @@ void all_update(void) {
   volume_update();
 }
 
+/** @brief Called when the client connects
+ *
+ * Depending on server and network state the TCP connection to the server may
+ * go up or down many times during the lifetime of Disobedience.  This function
+ * is called whenever it connects.
+ *
+ * The intent is to use the monitor logic to achieve this in future.
+ */
 static void log_connected(void attribute((unused)) *v) {
   /* Don't know what we might have missed while disconnected so update
    * everything.  We get this at startup too and this is how we do the initial
@@ -74,12 +102,14 @@ static void log_connected(void attribute((unused)) *v) {
   all_update();
 }
 
+/** @brief Called when the current track finishes playing */
 static void log_completed(void attribute((unused)) *v,
                           const char attribute((unused)) *track) {
   playing = 0;
   playing_update();
 }
 
+/** @brief Called when the current track fails */
 static void log_failed(void attribute((unused)) *v,
                        const char attribute((unused)) *track,
                        const char attribute((unused)) *status) {
@@ -87,9 +117,10 @@ static void log_failed(void attribute((unused)) *v,
   playing_update();
 }
 
+/** @brief Called when some track is moved within the queue */
 static void log_moved(void attribute((unused)) *v,
                       const char attribute((unused)) *user) {
-   queue_update();
+  queue_update();
 }
 
 static void log_playing(void attribute((unused)) *v,
@@ -101,27 +132,35 @@ static void log_playing(void attribute((unused)) *v,
    * here */
 }
 
+/** @brief Called when a track is added to the queue */
 static void log_queue(void attribute((unused)) *v,
                       struct queue_entry attribute((unused)) *q) {
   queue_update();
 }
 
+/** @brief Called when a track is added to the recently-played list */
 static void log_recent_added(void attribute((unused)) *v,
                              struct queue_entry attribute((unused)) *q) {
   recent_update();
 }
 
+/** @brief Called when a track is removed from the recently-played list
+ *
+ * We do nothing here - log_recent_added() suffices.
+ */
 static void log_recent_removed(void attribute((unused)) *v,
                                const char attribute((unused)) *id) {
   /* nothing - log_recent_added() will trigger the relevant update */
 }
 
+/** @brief Called when a track is removed from the queue */
 static void log_removed(void attribute((unused)) *v,
                         const char attribute((unused)) *id,
                         const char attribute((unused)) *user) {
   queue_update();
 }
 
+/** @brief Called when the current track is scratched */
 static void log_scratched(void attribute((unused)) *v,
                           const char attribute((unused)) *track,
                           const char attribute((unused)) *user) {
@@ -129,6 +168,7 @@ static void log_scratched(void attribute((unused)) *v,
   playing_update();
 }
 
+/** @brief Called when a state change occurs */
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
   const struct monitor *m;
@@ -155,6 +195,7 @@ static void log_state(void attribute((unused)) *v,
   playing_update();
 }
 
+/** @brief Called when volume changes */
 static void log_volume(void attribute((unused)) *v,
                        int l, int r) {
   if(volume_l != l || volume_r != r) {
@@ -164,6 +205,7 @@ static void log_volume(void attribute((unused)) *v,
   }
 }
 
+/** @brief Add a monitor to the list */
 void register_monitor(monitor_callback *callback,
                       void *u,
                       unsigned long mask) {
