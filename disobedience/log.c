@@ -64,27 +64,20 @@ void all_update(void) {
   playing_update();
   queue_update();
   recent_update();
-  control_update();
+  volume_update();
 }
 
 static void log_connected(void attribute((unused)) *v) {
-  struct callbackdata *cbd;
-
   /* Don't know what we might have missed while disconnected so update
    * everything.  We get this at startup too and this is how we do the initial
    * state fetch. */
   all_update();
-  /* Re-get the volume */
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  disorder_eclient_volume(client, log_volume, -1, -1, cbd);
 }
 
 static void log_completed(void attribute((unused)) *v,
                           const char attribute((unused)) *track) {
   playing = 0;
   playing_update();
-  control_update();
 }
 
 static void log_failed(void attribute((unused)) *v,
@@ -92,7 +85,6 @@ static void log_failed(void attribute((unused)) *v,
                        const char attribute((unused)) *status) {
   playing = 0;
   playing_update();
-  control_update();
 }
 
 static void log_moved(void attribute((unused)) *v,
@@ -105,7 +97,6 @@ static void log_playing(void attribute((unused)) *v,
                         const char attribute((unused)) *user) {
   playing = 1;
   playing_update();
-  control_update();
   /* we get a log_removed() anyway so we don't need to update_queue() from
    * here */
 }
@@ -136,15 +127,22 @@ static void log_scratched(void attribute((unused)) *v,
                           const char attribute((unused)) *user) {
   playing = 0;
   playing_update();
-  control_update();
 }
 
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
   const struct monitor *m;
-  const unsigned long changes = state ^ last_state;
-
-  D(("log_state %s", disorder_eclient_interpret_state(state)));
+  unsigned long changes = state ^ last_state;
+  static int first = 1;
+  
+  if(first) {
+    changes = -1UL;
+    first = 0;
+  }
+  D(("log_state old=%s new=%s changed=%s",
+     disorder_eclient_interpret_state(last_state),
+     disorder_eclient_interpret_state(state),
+     disorder_eclient_interpret_state(changes)));
   last_state = state;
   /* Tell anything that cares about the state change */
   for(m = monitors; m; m = m->next) {
@@ -162,7 +160,7 @@ static void log_volume(void attribute((unused)) *v,
   if(volume_l != l || volume_r != r) {
     volume_l = l;
     volume_r = r;
-    control_update();
+    volume_update();
   }
 }
 

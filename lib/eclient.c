@@ -249,6 +249,9 @@ void disorder_eclient_close(disorder_eclient *c) {
   /* We'll need to resend all operations */
   for(op = c->ops; op; op = op->next)
     op->sent = 0;
+  /* Drop our use a hint that we're disconnected */
+  if(c->log_callbacks && c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits);
 }
 
 /** @brief Return current state */
@@ -488,6 +491,8 @@ static void maybe_connected(disorder_eclient *c) {
     c->state = state_connected;
     byte_xasprintf(&r, "connected to %s", c->ident);
     c->callbacks->report(c->u, r);
+    /* If this is a log client we expect to get a bunch of updates from the
+     * server straight away */
   }
 }
 
@@ -1146,6 +1151,9 @@ int disorder_eclient_nop(disorder_eclient *c,
  * Once a client is being used for logging it cannot be used for anything else.
  * There is magic in authuser_opcallback() to re-submit the @c log command
  * after reconnection.
+ *
+ * NB that the @c state callback may be called from within this function,
+ * i.e. not solely later on from the event loop callback.
  */
 int disorder_eclient_log(disorder_eclient *c,
                          const disorder_eclient_log_callbacks *callbacks,
@@ -1153,6 +1161,9 @@ int disorder_eclient_log(disorder_eclient *c,
   if(c->log_callbacks) return -1;
   c->log_callbacks = callbacks;
   c->log_v = v;
+  /* Repoort initial state */
+  if(c->log_callbacks->state)
+    c->log_callbacks->state(c->log_v, c->statebits);
   stash_command(c, 0/*queuejump*/, log_opcallback, 0/*completed*/, v,
                 "log", (char *)0);
   return 0;
@@ -1331,6 +1342,8 @@ char *disorder_eclient_interpret_state(unsigned long statebits) {
 #define NBITS (sizeof bits / sizeof *bits)
 
   dynstr_init(d);
+  if(!statebits)
+    dynstr_append(d, '0');
   for(n = 0; n < NBITS; ++n)
     if(statebits & bits[n].bit) {
       if(d->nvec)

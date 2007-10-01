@@ -51,8 +51,6 @@ static void volume_adjusted(GtkAdjustment *a, gpointer user_data);
 static gchar *format_volume(GtkScale *scale, gdouble value);
 static gchar *format_balance(GtkScale *scale, gdouble value);
 
-static void control_monitor(void *u);
-
 /* Control bar ------------------------------------------------------------- */
 
 static int suppress_set_volume;
@@ -86,6 +84,15 @@ static struct icon {
 #define NICONS (int)(sizeof icons / sizeof *icons)
 
 GtkAdjustment *volume_adj, *balance_adj;
+
+/** @brief Called whenever last_state changes in any way */
+static void control_monitor(void attribute((unused)) *u) {
+  int n;
+
+  D(("control_monitor"));
+  for(n = 0; n < NICONS; ++n)
+    icons[n].update(&icons[n]);
+}
 
 /* Create the control bar */
 GtkWidget *control_widget(void) {
@@ -158,25 +165,17 @@ GtkWidget *control_widget(void) {
   return hbox;
 }
 
-/** @brief Update the control bar after some kind of state change */
-void control_update(void) {
+/** @brief Update the volume control when it changes */
+void volume_update(void) {
   double l, r;
 
-  D(("control_update"));
-  /*control_monitor(0, disorder_eclient_state(client));*/
+  D(("volume_update"));
   l = volume_l / 100.0;
   r = volume_r / 100.0;
   ++suppress_set_volume;
   gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
   gtk_adjustment_set_value(balance_adj, balance(l, r));
   --suppress_set_volume;
-}
-
-static void control_monitor(void attribute((unused)) *u) {
-  int n;
-
-  for(n = 0; n < NICONS; ++n)
-    icons[n].update(&icons[n]);
 }
 
 /** @brief Update the state of one of the control icons

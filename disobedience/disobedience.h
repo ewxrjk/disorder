@@ -138,9 +138,8 @@ void menu_update(int page);
 GtkWidget *control_widget(void);
 /* Make the controls widget */
 
-void control_update(void);
-/* Called whenever we think the control widget needs changing */
-
+void volume_update(void);
+/* Called whenever we think the volume control has changed */
 
 /* Queue/Recent */
 

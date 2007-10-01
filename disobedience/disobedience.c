@@ -337,7 +337,6 @@ int main(int argc, char **argv) {
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))
     return 1;                           /* already reported an error */
-  disorder_eclient_log(logclient, &log_callbacks, 0);
   /* periodic operations (e.g. expiring the cache) */
 #if MDEBUG || MTRACK
   g_timeout_add(5000/*milliseconds*/, periodic, 0);
@@ -352,14 +351,14 @@ int main(int argc, char **argv) {
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));
   gtk_widget_show_all(toplevel);
-  /* set initial control button visibility/usability */
-  control_update();
   /* issue a NOP every so often */
   g_timeout_add_full(G_PRIORITY_LOW,
                      1000/*interval, ms*/,
                      maybe_send_nop,
                      0/*data*/,
                      0/*notify*/);
+  /* Start monitoring the log */
+  disorder_eclient_log(logclient, &log_callbacks, 0);
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);
