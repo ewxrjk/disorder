@@ -175,10 +175,8 @@ void control_update(void) {
 static void control_monitor(void attribute((unused)) *u) {
   int n;
 
-  fprintf(stderr, "control_monitor\n");
   for(n = 0; n < NICONS; ++n)
     icons[n].update(&icons[n]);
-  fprintf(stderr, "\n");
 }
 
 /** @brief Update the state of one of the control icons
@@ -198,7 +196,6 @@ static void update_icon(const struct icon *icon,
   /* If the connection is down nothing is ever usable */
   if(!(last_state & DISORDER_CONNECTED))
     usable = 0;
-  fprintf(stderr, "%s usable=%d visible=%d\n", icon->tip, usable, visible);
   (visible ? gtk_widget_show : gtk_widget_hide)(icon->button);
   /* Only both updating usability if the button is visible */
   if(visible)

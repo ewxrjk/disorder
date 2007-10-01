@@ -1178,7 +1178,7 @@ static void logline(disorder_eclient *c, const char *line) {
   char **vec;
   uintmax_t when;
 
-  info("log_opcallback [%s]", line);
+  D(("log_opcallback [%s]", line));
   vec = split(line, &nvec, SPLIT_QUOTES, logline_error, c);
   if(nvec < 2) return;                  /* probably an error, already
                                          * reported */

@@ -144,7 +144,7 @@ static void log_state(void attribute((unused)) *v,
   const struct monitor *m;
   const unsigned long changes = state ^ last_state;
 
-  info("log_state %s", disorder_eclient_interpret_state(state));
+  D(("log_state %s", disorder_eclient_interpret_state(state)));
   last_state = state;
   /* Tell anything that cares about the state change */
   for(m = monitors; m; m = m->next) {
