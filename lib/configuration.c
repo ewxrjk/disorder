@@ -1012,7 +1012,7 @@ static void config_postdefaults(struct config *c) {
   int n;
 
   static const char *namepart[][4] = {
-    { "title",  "/([0-9]+:)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display" },
+    { "title",  "/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display" },
     { "title",  "/([^/]+)\\.[a-zA-Z0-9]+$",           "$1", "sort" },
     { "album",  "/([^/]+)/[^/]+$",                    "$1", "*" },
     { "artist", "/([^/]+)/[^/]+/[^/]+$",              "$1", "*" },
@@ -1021,7 +1021,7 @@ static void config_postdefaults(struct config *c) {
 #define NNAMEPART (int)(sizeof namepart / sizeof *namepart)
 
   static const char *transform[][5] = {
-    { "track", "^.*/([0-9]+:)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display", "" },
+    { "track", "^.*/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display", "" },
     { "track", "^.*/([^/]+)\\.[a-zA-Z0-9]+$",           "$1", "sort", "" },
     { "dir",   "^.*/([^/]+)$",                          "$1", "*", "" },
     { "dir",   "^(the) ([^/]*)",                        "$2, $1", "sort", "i", },
