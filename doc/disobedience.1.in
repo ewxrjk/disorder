@@ -27,19 +27,6 @@ disobedience \- GUI client for DisOrder jukebox
 is a graphical client for DisOrder.  It is a work in progress and many features
 are not implemented yet.  However everything in this man page is either
 implemented or marked as missing.
-.SH "SETTING UP"
-You might use commands such as the following to set up a standalone instance of
-Disobedience:
-.PP
-.RS
-.nf
-cd
-mkdir .disorder
-echo password <your password> > .disorder/passwd
-echo connect <hostname> <port> >> .disorder/passwd
-chmod 600 .disorder/passwd
-.fi
-.RE
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
@@ -191,6 +178,11 @@ The Random checkbox determines whether the track will be picked at random.
 Random play is enabled for every track by default, but it can be turned off
 here.
 .PP
+The double-headed arrow to the right of each preference will propagate its
+value to all the other tracks in the window.  For instance, this can be used to
+efficiently correct the artist or album fields, or bulk-disable random play for
+many tracks.
+.PP
 Press "OK" to confirm all changes and close the window, "Apply" to confirm
 changes but keep the window open and "Cancel" to close the window and discard
 all changes.
@@ -237,6 +229,19 @@ directive.  Also the client will need user passwords, either in
 .IR pkgconfdir/config. USER
 or
 .IR ~ USER /.disorder.passwd .
+.PP
+You might use commands such as the following to set up a standalone instance of
+Disobedience:
+.PP
+.RS
+.nf
+cd
+mkdir .disorder
+echo password <your password> > .disorder/passwd
+echo connect <hostname> <port> >> .disorder/passwd
+chmod 600 .disorder/passwd
+.fi
+.RE
 .SH "SEE ALSO"
 .BR disorder_config (5)
 .PP
