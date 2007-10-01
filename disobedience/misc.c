@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/misc.c
+ * @brief Miscellaneous GTK+ interfacing stuff
+ */
 
 #include "disobedience.h"
 
@@ -26,6 +29,11 @@ WT(cached_image);
 
 /* Functions */
 
+/** @brief Put scrollbars around a widget
+ * @param child Widget to surround
+ * @param widgetname Name for (both) widgets
+ * @return Scroll widget
+ */
 GtkWidget *scroll_widget(GtkWidget *child,
                          const char *widgetname) {
   GtkWidget *scroller = gtk_scrolled_window_new(0, 0);
@@ -57,6 +65,15 @@ GtkWidget *scroll_widget(GtkWidget *child,
   return scroller;
 }
 
+/** @brief Find an image
+ * @param name Relative path to image
+ * @return pixbuf containing image
+ *
+ * Images are cached so it's perfectly sensible to call this lots of times even
+ * for the same image.
+ *
+ * Images are searched for in @c pkgdatadir/static.
+ */
 GdkPixbuf *find_image(const char *name) {
   static const struct cache_type image_cache_type = { INT_MAX };
 
@@ -76,6 +93,7 @@ GdkPixbuf *find_image(const char *name) {
   return pb;
 }
 
+/** @brief Pop up an error message */
 void popup_error(const char *msg) {
   GtkWidget *w;
 

@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/menu.c
+ * @brief Main menu
+ */
 
 #include "disobedience.h"
 
@@ -25,6 +28,10 @@ static GtkWidget *properties_widget;
 
 static void about_popup_got_version(void *v, const char *value);
 
+/** @brief Called when the quit option is activated
+ *
+ * Just exits.
+ */
 static void quit_program(gpointer attribute((unused)) callback_data,
                          guint attribute((unused)) callback_action,
                          GtkWidget attribute((unused)) *menu_item) {
@@ -33,6 +40,11 @@ static void quit_program(gpointer attribute((unused)) callback_data,
 }
 
 /* TODO can we have a single parameterized callback for all these */
+
+/** @brief Called when the select all option is activated
+ *
+ * Calls the per-tab select all function.
+ */
 static void select_all(gpointer attribute((unused)) callback_data,
                        guint attribute((unused)) callback_action,
                        GtkWidget attribute((unused)) *menu_item) {
@@ -43,6 +55,10 @@ static void select_all(gpointer attribute((unused)) callback_data,
   t->selectall_activate(tab);
 }
 
+/** @brief Called when the track properties option is activated
+ *
+ * Calls the per-tab properties function.
+ */
 static void properties_item(gpointer attribute((unused)) callback_data,
                             guint attribute((unused)) callback_action,
                             GtkWidget attribute((unused)) *menu_item) {
@@ -53,6 +69,12 @@ static void properties_item(gpointer attribute((unused)) callback_data,
   t->properties_activate(tab);
 }
 
+/** @brief Update menu state
+ *
+ * Determines option sensitivity according to the current tab and adjusts the
+ * widgets accordingly.  Knows about @ref DISORDER_CONNECTED so the callbacks
+ * need not.
+ */
 void menu_update(int page) {
   GtkWidget *tab = gtk_notebook_get_nth_page
     (GTK_NOTEBOOK(tabs),
@@ -66,7 +88,8 @@ void menu_update(int page) {
   gtk_widget_set_sensitive(selectall_widget,
                            t->selectall_sensitive(tab));
 }
-     
+   
+/** @brief Fetch version in order to display the about... popup */
 static void about_popup(gpointer attribute((unused)) callback_data,
                         guint attribute((unused)) callback_action,
                         GtkWidget attribute((unused)) *menu_item) {
@@ -78,6 +101,7 @@ static void about_popup(gpointer attribute((unused)) callback_data,
                            0);
 }
 
+/** @brief Callde when version arrives, displays about... popup */
 static void about_popup_got_version(void attribute((unused)) *v,
                                     const char *value) {
   GtkWidget *w;
@@ -102,6 +126,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
   gtk_widget_destroy(w);
 }
 
+/** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *w) {
   static const GtkItemFactoryEntry entries[] = {
     { (char *)"/File", 0,  0, 0, (char *)"<Branch>", 0 },

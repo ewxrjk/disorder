@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/disobedience.h
+ * @brief Header file for Disobedience, the DisOrder GTK+ client
+ */
 
 #ifndef DISOBEDIENCE_H
 #define DISOBEDIENCE_H
@@ -56,6 +59,12 @@
 struct queuelike;
 struct choosenode;
 
+/** @brief Callback data structure
+ *
+ * This program is extremely heavily callback-driven.  Rather than have
+ * numerous different callback structures we have a single one which can be
+ * interpreted adequately both by success and error handlers.
+ */
 struct callbackdata {
   void (*onerror)(struct callbackdata *cbd,
                   int code,
@@ -68,6 +77,11 @@ struct callbackdata {
   } u;
 };
 
+/** @brief Per-tab callbacks
+ *
+ * Some of the options in the main menu depend on which tab is displayed, so we
+ * have some callbacks to set them appropriately.
+ */
 struct tabtype {
   int (*properties_sensitive)(GtkWidget *tab);
   int (*selectall_sensitive)(GtkWidget *tab);
