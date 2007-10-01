@@ -81,7 +81,6 @@ static struct monitor *monitors;
 
 /** @brief Update everything */
 void all_update(void) {
-  playing_update();
   queue_update();
   recent_update();
   volume_update();
@@ -105,16 +104,12 @@ static void log_connected(void attribute((unused)) *v) {
 /** @brief Called when the current track finishes playing */
 static void log_completed(void attribute((unused)) *v,
                           const char attribute((unused)) *track) {
-  playing = 0;
-  playing_update();
 }
 
 /** @brief Called when the current track fails */
 static void log_failed(void attribute((unused)) *v,
                        const char attribute((unused)) *track,
                        const char attribute((unused)) *status) {
-  playing = 0;
-  playing_update();
 }
 
 /** @brief Called when some track is moved within the queue */
@@ -126,10 +121,6 @@ static void log_moved(void attribute((unused)) *v,
 static void log_playing(void attribute((unused)) *v,
                         const char attribute((unused)) *track,
                         const char attribute((unused)) *user) {
-  playing = 1;
-  playing_update();
-  /* we get a log_removed() anyway so we don't need to update_queue() from
-   * here */
 }
 
 /** @brief Called when a track is added to the queue */
@@ -164,8 +155,6 @@ static void log_removed(void attribute((unused)) *v,
 static void log_scratched(void attribute((unused)) *v,
                           const char attribute((unused)) *track,
                           const char attribute((unused)) *user) {
-  playing = 0;
-  playing_update();
 }
 
 /** @brief Called when a state change occurs */
@@ -189,10 +178,6 @@ static void log_state(void attribute((unused)) *v,
     if(changes & m->mask)
       m->callback(m->u);
   }
-  /* If the track is paused or resume then the currently playing track is
-   * refetched so that we can continue to correctly calculate the played so-far
-   * field */
-  playing_update();
 }
 
 /** @brief Called when volume changes */
@@ -205,7 +190,13 @@ static void log_volume(void attribute((unused)) *v,
   }
 }
 
-/** @brief Add a monitor to the list */
+/** @brief Add a monitor to the list
+ * @param callback Function to call
+ * @param u User data to pass to @p callback
+ * @param mask Mask of flags that @p callback cares about
+ *
+ * Pass @p mask as -1UL to match all flags.
+ */
 void register_monitor(monitor_callback *callback,
                       void *u,
                       unsigned long mask) {

@@ -17,6 +17,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/queue.c
+ * @brief Queue widgets
+ *
+ * This file provides both the queue widget and the recently-played widget.
+ */
 
 #include "disobedience.h"
 
@@ -1197,10 +1202,24 @@ static struct menuitem queue_menu[] = {
   { 0, 0, 0, 0, 0 }
 };
 
+/** @brief Called whenever @ref DISORDER_PLAYING or @ref DISORDER_TRACK_PAUSED changes
+ *
+ * We monitor pause/resume as well as whether the track is playing in order to
+ * keep the time played so far up to date correctly.  See playing_completed().
+ */
+static void playing_update(void attribute((unused)) *v) {
+  D(("playing_update"));
+  gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
+  disorder_eclient_playing(client, playing_completed, 0);
+}
+
+/** @brief Create the queue widget */
 GtkWidget *queue_widget(void) {
   D(("queue_widget"));
   /* Arrange periodic update of the so-far played field */
   g_timeout_add(1000/*ms*/, adjust_sofar, 0);
+  /* Arrange a callback whenever the playing state changes */ 
+  register_monitor(playing_update, 0,  DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
@@ -1216,12 +1235,6 @@ void queue_update(void) {
   cbd->u.ql = &ql_queue;
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
   disorder_eclient_queue(client, queuelike_completed, cbd);
-}
-
-void playing_update(void) {
-  D(("playing_update"));
-  gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
-  disorder_eclient_playing(client, playing_completed, 0);
 }
 
 /* Recently played tracks -------------------------------------------------- */

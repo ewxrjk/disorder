@@ -157,9 +157,6 @@ void queue_select_all(struct queuelike *ql);
 void queue_properties(struct queuelike *ql);
 /* Pop up properties of selected items in some queue */
 
-void playing_update(void);
-/* Called whenever we think the currently playing track might have changed */
-
 int queued(const char *track);
 /* Return nonzero iff TRACK is queued or playing */
 
