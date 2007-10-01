@@ -1189,7 +1189,7 @@ static void logline(disorder_eclient *c, const char *line) {
   char **vec;
   uintmax_t when;
 
-  D(("log_opcallback [%s]", line));
+  D(("logline [%s]", line));
   vec = split(line, &nvec, SPLIT_QUOTES, logline_error, c);
   if(nvec < 2) return;                  /* probably an error, already
                                          * reported */
@@ -1293,7 +1293,7 @@ static const struct {
   { DISORDER_RANDOM_ENABLED, "enable_random", "disable_random" },
   { DISORDER_TRACK_PAUSED, "pause", "resume" },
 };
-#define NSTATES (int)(sizeof states / sizeof *states)
+#define NSTATES (int)(sizeof statestrings / sizeof *statestrings)
 
 static void logentry_state(disorder_eclient *c,
                            int attribute((unused)) nvec, char **vec) {
