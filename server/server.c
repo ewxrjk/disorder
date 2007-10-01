@@ -762,6 +762,9 @@ static int c_log(struct conn *c,
   if(playing)
     sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" state playing\n",
 		(uintmax_t)now);
+  /* Initial volume */
+  sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" volume %d %d\n",
+	      (uintmax_t)now, volume_left, volume_right);
   c->lo = xmalloc(sizeof *c->lo);
   c->lo->fn = logclient;
   c->lo->user = c;
