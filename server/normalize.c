@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file server/disorder-normalize.c
+/** @file server/normalize.c
  * @brief Convert "raw" format output to the configured format
  *
  * Currently we invoke sox even for trivial conversions such as byte-swapping.

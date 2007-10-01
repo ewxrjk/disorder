@@ -165,7 +165,7 @@ static const disorder_eclient_callbacks gtkclient_callbacks = {
   gtkclient_report
 };
 
-/** @brief Create a @ref disorder_ecliient using the GLib main loop */
+/** @brief Create a @ref disorder_eclient using the GLib main loop */
 disorder_eclient *gtkclient(void) {
   GSource *source;
   struct eclient_source *esource;

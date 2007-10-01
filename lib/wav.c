@@ -211,7 +211,9 @@ void wav_destroy(struct wavfile *f) {
 }
 
 /** @brief Visit all the data in a WAV file
+ * @param f WAV file handle
  * @param callback Called for successive blocks of data
+ * @param u User data
  *
  * @p callback will only ever be passed whole frames.
  */

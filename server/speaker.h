@@ -135,11 +135,9 @@ struct speaker_backend {
    * If it is @ref device_closed then the device should be opened with
    * the right sample format.
    *
-   * Some devices are effectively always open and have no error state,
-   * in which case this callback can be NULL.  In this case @ref
-   * FIXED_FORMAT must be set.  Note that @ref device_state still
-   * switches between @ref device_open and @ref device_closed in this
-   * case.
+   * Some devices are effectively always open and have no error state, in which
+   * case this callback can be NULL.  Note that @ref device_state still
+   * switches between @ref device_open and @ref device_closed in this case.
    */
   void (*activate)(void);
 
