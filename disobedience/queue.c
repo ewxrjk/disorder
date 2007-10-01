@@ -130,7 +130,7 @@ struct menuiteminfo {
 };
 
 /** @brief An item in the queue's popup menu */
-struct menuitem {
+struct queue_menuitem {
   /** @brief Menu item name */
   const char *name;
 
@@ -147,7 +147,7 @@ struct menuitem {
    * points to the queue entry the pointer is over.
    */
   int (*sensitive)(struct queuelike *ql,
-                   struct menuitem *m,
+                   struct queue_menuitem *m,
                    struct queue_entry *q);
 
   /** @brief Signal handler ID */
@@ -181,7 +181,7 @@ struct queuelike {
   GtkWidget *titlecells[NCOLUMNS + 1];  /**< @brief title cells */
   GtkWidget **cells;                    /**< @brief all the cells */
   GtkWidget *menu;                      /**< @brief popup menu */
-  struct menuitem *menuitems;           /**< @brief menu items */
+  struct queue_menuitem *menuitems;     /**< @brief menu items */
   GtkWidget *dragmark;                  /**< @brief drag destination marker */
   GtkWidget **dropzones;                /**< @brief drag targets */
 
@@ -1037,7 +1037,7 @@ static void queue_scrolled(GtkAdjustment *adjustment,
 static GtkWidget *queuelike(struct queuelike *ql,
                             struct queue_entry *(*fixup)(struct queue_entry *),
                             void (*notify)(void),
-                            struct menuitem *menuitems,
+                            struct queue_menuitem *menuitems,
                             const char *name) {
   GtkWidget *vbox, *mainscroll, *titlescroll, *label;
   GtkAdjustment *mainadj, *titleadj;
@@ -1130,7 +1130,7 @@ static int count_selected_nonplaying(const struct queuelike *ql) {
 
 /** @brief Determine whether the scratch option should be sensitive */
 static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
-                             struct menuitem attribute((unused)) *m,
+                             struct queue_menuitem attribute((unused)) *m,
                              struct queue_entry attribute((unused)) *q) {
   /* We can scratch if the playing track is selected */
   return (playing_track
@@ -1147,7 +1147,7 @@ static void scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /** @brief Determine whether the remove option should be sensitive */
 static int remove_sensitive(struct queuelike *ql,
-                            struct menuitem attribute((unused)) *m,
+                            struct queue_menuitem attribute((unused)) *m,
                             struct queue_entry *q) {
   /* We can remove if we're hovering over a particular track or any non-playing
    * tracks are selected */
@@ -1176,7 +1176,7 @@ static void remove_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /** @brief Determine whether the properties menu option should be sensitive */
 static int properties_sensitive(struct queuelike *ql,
-                                struct menuitem attribute((unused)) *m,
+                                struct queue_menuitem attribute((unused)) *m,
                                 struct queue_entry attribute((unused)) *q) {
   /* "Properties" is sensitive if at least something is selected */
   return (hash_count(ql->selection) > 0
@@ -1193,7 +1193,7 @@ static void properties_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /** @brief Determine whether the select all menu option should be sensitive */
 static int selectall_sensitive(struct queuelike *ql,
-                               struct menuitem attribute((unused)) *m,
+                               struct queue_menuitem attribute((unused)) *m,
                                struct queue_entry attribute((unused)) *q) {
   /* Sensitive if there is anything to select */
   return !!ql->q;
@@ -1236,7 +1236,7 @@ static gboolean adjust_sofar(gpointer attribute((unused)) data) {
 /** @brief Popup menu for the queue
  *
  * Properties first so that finger trouble is less dangerous. */
-static struct menuitem queue_menu[] = {
+static struct queue_menuitem queue_menu[] = {
   { "Track properties", properties_activate, properties_sensitive, 0, 0 },
   { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
   { "Scratch track", scratch_activate, scratch_sensitive, 0, 0 },
@@ -1307,7 +1307,7 @@ static struct queue_entry *fixup_recent(struct queue_entry *q) {
 }
 
 /** @brief Pop-up menu for recently played list */
-static struct menuitem recent_menu[] = {
+static struct queue_menuitem recent_menu[] = {
   { "Track properties", properties_activate, properties_sensitive,0, 0 },
   { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }

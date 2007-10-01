@@ -961,7 +961,7 @@ static char **gather_selected(int *ntracks) {
   return v.vec;
 }
 
-/** @breif Called when the menu's play option is activated */
+/** @brief Called when the menu's play option is activated */
 static void activate_play(GtkMenuItem attribute((unused)) *menuitem,
                           gpointer attribute((unused)) user_data) {
   char **tracks = gather_selected(0);
