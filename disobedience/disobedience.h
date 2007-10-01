@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006 Richard Kettlewell
+ * Copyright (C) 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,6 +88,7 @@ extern int playing;                     /* true if playing some track */
 extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
 extern int choosealpha;                 /* break up choose by letter */
+extern GtkTooltips *tips;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 

@@ -148,6 +148,7 @@ static void log_recent_removed(void attribute((unused)) *v,
 static void log_removed(void attribute((unused)) *v,
                         const char attribute((unused)) *id,
                         const char attribute((unused)) *user) {
+
   queue_update();
 }
 

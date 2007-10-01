@@ -28,7 +28,6 @@
 WT(adjustment);
 WT(hscale);
 WT(hbox);
-WT(tooltips);
 WT(button);
 WT(image);
 WT(label);
@@ -125,11 +124,9 @@ GtkWidget *control_widget(void) {
   GtkWidget *content;
   GdkPixbuf *pb;
   GtkWidget *v, *b;
-  GtkTooltips *tips = gtk_tooltips_new();
   int n;
 
   NW(hbox);
-  NW(tooltips);
   D(("control_widget"));
   for(n = 0; n < NICONS; ++n) {
     NW(button);

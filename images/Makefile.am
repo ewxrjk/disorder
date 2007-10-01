@@ -20,7 +20,8 @@
 
 static_DATA=cross.png down.png downdown.png edit.png nocross.png	\
 nodown.png nodowndown.png noup.png noupup.png tick.png up.png upup.png  \
-notes.png play.png pause.png random.png randomcross.png notescross.png
+notes.png play.png pause.png random.png randomcross.png notescross.png  \
+propagate.png
 
 staticdir=${pkgdatadir}/static
 

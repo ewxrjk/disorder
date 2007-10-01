@@ -75,6 +75,9 @@ int choosealpha;
 /** @brief True if a NOP is in flight */
 static int nop_in_flight;
 
+/** @brief Global tooltip group */
+GtkTooltips *tips;
+
 /* Window creation --------------------------------------------------------- */
 
 /* Note that all the client operations kicked off from here will only complete
@@ -389,6 +392,8 @@ int main(int argc, char **argv) {
    * unresponsiveness.  It's not very useful in production use. */
   if(0)
     g_timeout_add(1000/*milliseconds*/, heartbeat, 0);
+  /* global tooltips */
+  tips = gtk_tooltips_new();
   make_toplevel_window();
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));

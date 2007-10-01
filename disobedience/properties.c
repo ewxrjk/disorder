@@ -27,17 +27,20 @@ struct prefdata;
 static void kickoff_namepart(struct prefdata *f);
 static void completed_namepart(struct prefdata *f);
 static const char *get_edited_namepart(struct prefdata *f);
+static void set_edited_namepart(struct prefdata *f, const char *value);
 static void set_namepart(struct prefdata *f, const char *value);
 static void set_namepart_completed(void *v);
 
 static void kickoff_string(struct prefdata *f);
 static void completed_string(struct prefdata *f);
 static const char *get_edited_string(struct prefdata *f);
+static void set_edited_string(struct prefdata *f, const char *value);
 static void set_string(struct prefdata *f, const char *value);
 
 static void kickoff_boolean(struct prefdata *f);
 static void completed_boolean(struct prefdata *f);
 static const char *get_edited_boolean(struct prefdata *f);
+static void set_edited_boolean(struct prefdata *f, const char *value);
 static void set_boolean(struct prefdata *f, const char *value);
 
 static void prefdata_completed(void *v, const char *value);
@@ -73,6 +76,9 @@ struct preftype {
   const char *(*get_edited)(struct prefdata *f);
   /* Get the edited value from the widget. */
 
+  /** @brief Update the edited value */
+  void (*set_edited)(struct prefdata *f, const char *value);
+
   void (*set)(struct prefdata *f, const char *value);
   /* Set the new value and (if necessary) arrange for our display to update. */
 };
@@ -82,6 +88,7 @@ static const struct preftype preftype_namepart = {
   kickoff_namepart,
   completed_namepart,
   get_edited_namepart,
+  set_edited_namepart,
   set_namepart
 };
 
@@ -90,6 +97,7 @@ static const struct preftype preftype_string = {
   kickoff_string,
   completed_string,
   get_edited_string,
+  set_edited_string,
   set_string
 };
 
@@ -98,6 +106,7 @@ static const struct preftype preftype_boolean = {
   kickoff_boolean,
   completed_boolean,
   get_edited_boolean,
+  set_edited_boolean,
   set_boolean
 };
 
@@ -136,10 +145,24 @@ static GtkWidget *properties_window;
 static GtkWidget *properties_table;
 static GtkWidget *progress_window, *progress_bar;
 
+static void propagate_clicked(GtkButton attribute((unused)) *button,
+                              gpointer userdata) {
+  struct prefdata *f = (struct prefdata *)userdata, *g;
+  int p;
+  const char *value = f->p->type->get_edited(f);
+  
+  for(p = 0; p < prefs_total; ++p) {
+    g = &prefdatas[p];
+    if(f->p == g->p && f != g)
+      g->p->type->set_edited(g, value);
+  }
+}
+
 void properties(int ntracks, char **tracks) {
   int n, m;
   struct prefdata *f;
-  GtkWidget *hbox, *vbox, *button, *label, *entry;
+  GtkWidget *hbox, *vbox, *button, *label, *entry, *propagate, *content;
+  GdkPixbuf *pb;
 
   /* If there is a properties window open then just bring it to the
    * front.  It might not have the right values in... */
@@ -158,7 +181,8 @@ void properties(int ntracks, char **tracks) {
   g_signal_connect(properties_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_window);
   /* Most of the action is the table of preferences */
-  properties_table = gtk_table_new((NPREFS + 1) * ntracks, 2, FALSE);
+  properties_table = gtk_table_new((NPREFS + 1) * ntracks, 2 + ntracks > 1,
+                                   FALSE);
   g_signal_connect(properties_table, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_table);
   gtk_window_set_title(GTK_WINDOW(properties_window), "Track Properties");
@@ -167,6 +191,8 @@ void properties(int ntracks, char **tracks) {
   prefs_total = NPREFS * ntracks;
   prefdatas = xcalloc(prefs_total, sizeof *prefdatas);
   for(n = 0; n < ntracks; ++n) {
+    /* The track itself */
+    /* Caption */
     label = gtk_label_new("Track");
     gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
     gtk_table_attach(GTK_TABLE(properties_table),
@@ -175,6 +201,7 @@ void properties(int ntracks, char **tracks) {
 		     (NPREFS + 1) * n, (NPREFS + 1) * n + 1,
 		     GTK_FILL, 0,
 		     1, 1);
+    /* The track name */
     entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(entry), tracks[n]);
     gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
@@ -184,7 +211,9 @@ void properties(int ntracks, char **tracks) {
 		     (NPREFS + 1) * n, (NPREFS + 1) * n + 1,
 		     GTK_EXPAND|GTK_FILL, 0,
 		     1, 1);
+    /* Each preference */
     for(m = 0; m < NPREFS; ++m) {
+      /* Caption */
       label = gtk_label_new(prefs[m].label);
       gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
       gtk_table_attach(GTK_TABLE(properties_table),
@@ -193,11 +222,30 @@ void properties(int ntracks, char **tracks) {
 		       (NPREFS + 1) * n + 1 + m, (NPREFS + 1) * n + 2 + m,
 		       GTK_FILL/*xoptions*/, 0/*yoptions*/,
 		       1, 1);
+      /* Editing the preference is specific */
       f = &prefdatas[NPREFS * n + m];
       f->track = tracks[n];
       f->row = (NPREFS + 1) * n + 1 + m;
       f->p = &prefs[m];
       prefs[m].type->kickoff(f);
+      if(ntracks > 1) {
+        /* Propagation button */
+        propagate = gtk_button_new();
+        if((pb = find_image("propagate.png")))
+          content = gtk_image_new_from_pixbuf(pb);
+        else
+          content = gtk_label_new("propagate.png");
+        gtk_container_add(GTK_CONTAINER(propagate), content);
+        gtk_tooltips_set_tip(tips, propagate, "Copy to other tracks", "");
+        g_signal_connect(G_OBJECT(propagate), "clicked",
+                         G_CALLBACK(propagate_clicked), f);
+        gtk_table_attach(GTK_TABLE(properties_table),
+                         propagate,
+                         2/*left*/, 3/*right*/,
+                         (NPREFS + 1) * n + 1 + m, (NPREFS + 1) * n + 2 + m,
+                         GTK_FILL/*xoptions*/, 0/*yoptions*/,
+                         1/*xpadding*/, 1/*ypadding*/);
+      }
     }
   }
   prefs_unfilled = prefs_total;
@@ -260,11 +308,14 @@ static void completed_namepart(struct prefdata *f) {
     f->value = "";
   }
   f->widget = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(f->widget), f->value);
 }
 
 static const char *get_edited_namepart(struct prefdata *f) {
   return gtk_entry_get_text(GTK_ENTRY(f->widget));
+}
+
+static void set_edited_namepart(struct prefdata *f, const char *value) {
+  gtk_entry_set_text(GTK_ENTRY(f->widget), value);
 }
 
 static void set_namepart(struct prefdata *f, const char *value) {
@@ -301,11 +352,14 @@ static void completed_string(struct prefdata *f) {
     /* No setting, use the default value instead */
     f->value = f->p->default_value;
   f->widget = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(f->widget), f->value);
 }
 
 static const char *get_edited_string(struct prefdata *f) {
   return gtk_entry_get_text(GTK_ENTRY(f->widget));
+}
+
+static void set_edited_string(struct prefdata *f, const char *value) {
+  gtk_entry_set_text(GTK_ENTRY(f->widget), value);
 }
 
 static void set_string(struct prefdata *f, const char *value) {
@@ -331,13 +385,16 @@ static void completed_boolean(struct prefdata *f) {
   if(!f->value)
     /* Not set, use the default */
     f->value = f->p->default_value;
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(f->widget),
-                               strcmp(f->value, "0"));
 }
 
 static const char *get_edited_boolean(struct prefdata *f) {
   return (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(f->widget))
           ? "1" : "0");
+}
+
+static void set_edited_boolean(struct prefdata *f, const char *value) {
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(f->widget),
+                               strcmp(value, "0"));
 }
 
 static void set_boolean(struct prefdata *f, const char *value) {
@@ -382,6 +439,7 @@ static void prefdata_completed_common(struct prefdata *f,
                                       const char *value) {
   f->value = value;
   f->p->type->completed(f);
+  f->p->type->set_edited(f, f->value);
   assert(f->value != 0);                /* Had better set a default */
   gtk_table_attach(GTK_TABLE(properties_table), f->widget,
                    1, 2,
