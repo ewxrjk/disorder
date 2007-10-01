@@ -17,6 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/choose.c
+ * @brief Hierarchical track selection and search
+ *
+ * We don't use the built-in tree widgets because they require that you know
+ * the children of a node on demand, and we have to wait for the server to tell
+ * us.
+ */
 
 #include "disobedience.h"
 
@@ -34,75 +41,81 @@ WT(button);
 WT(image);
 WT(entry);
 
-/* We don't use the built-in tree widgets because they require that you know
- * the children of a node on demand, and we have to wait for the server to tell
- * us. */
-
 /* Types */
 
 struct choosenode;
 
+/** @brief Accumulated information about the tree widget */
 struct displaydata {
-  guint width;                          /* total width required */
-  guint height;                         /* total height required */
+  /** @brief Maximum width required */
+  guint width;
+  /** @brief Maximum height required */
+  guint height;
 };
 
 /* instantiate the node vector type */
 
 VECTOR_TYPE(nodevector, struct choosenode *, xrealloc);
 
+/** @brief One node in the virtual filesystem */
 struct choosenode {
-  struct choosenode *parent;            /* parent node */
-  const char *path;                     /* full path or 0  */
-  const char *sort;                     /* sort key */
-  const char *display;                  /* display name */
-  int pending;                          /* pending resolve queries */
+  struct choosenode *parent;            /**< @brief parent node */
+  const char *path;                     /**< @brief full path or 0  */
+  const char *sort;                     /**< @brief sort key */
+  const char *display;                  /**< @brief display name */
+  int pending;                          /**< @brief pending resolve queries */
   unsigned flags;
-#define CN_EXPANDABLE 0x0001            /* node is expandable */
-#define CN_EXPANDED 0x0002              /* node is expanded */
-/* Expandable items are directories; non-expandable ones are files */
-#define CN_DISPLAYED 0x0004             /* widget is displayed in layout */
-#define CN_SELECTED 0x0008              /* node is selected */
-  struct nodevector children;           /* vector of children */
-  void (*fill)(struct choosenode *);    /* request child fill or 0 for leaf */
-  GtkWidget *container;                 /* the container for this row */
-  GtkWidget *hbox;                      /* the hbox for this row */
-  GtkWidget *arrow;                     /* arrow widget or 0 */
-  GtkWidget *label;                     /* text label for this node */
-  GtkWidget *marker;                    /* queued marker */
+#define CN_EXPANDABLE 0x0001            /**< @brief node is expandable */
+#define CN_EXPANDED 0x0002              /**< @brief node is expanded
+                                         *
+                                         * Expandable items are directories;
+                                         * non-expandable ones are files. */
+#define CN_DISPLAYED 0x0004             /**< @brief widget is displayed in layout */
+#define CN_SELECTED 0x0008              /**< @brief node is selected */
+  struct nodevector children;           /**< @brief vector of children */
+  void (*fill)(struct choosenode *);    /**< @brief request child fill or 0 for leaf */
+  GtkWidget *container;                 /**< @brief the container for this row */
+  GtkWidget *hbox;                      /**< @brief the hbox for this row */
+  GtkWidget *arrow;                     /**< @brief arrow widget or 0 */
+  GtkWidget *label;                     /**< @brief text label for this node */
+  GtkWidget *marker;                    /**< @brief queued marker */
 };
 
+/** @brief One item in the popup menu */
 struct menuitem {
   /* Parameters */
-  const char *name;                     /* name */
+  const char *name;                     /**< @brief name */
 
   /* Callbacks */
   void (*activate)(GtkMenuItem *menuitem, gpointer user_data);
-  /* Called to activate the menu item.  The user data is the choosenode the
-   * pointer is over. */
+  /**< @brief Called to activate the menu item.
+   *
+   * @p user_data is the choosenode the mouse pointer is over. */
 
   gboolean (*sensitive)(struct choosenode *cn);
-  /* Called to determine whether the menu item should be sensitive.  TODO */
+  /* @brief Called to determine whether the menu item should be sensitive.
+   *
+   * TODO? */
 
   /* State */
-  gulong handlerid;                     /* signal handler ID */
-  GtkWidget *w;                         /* menu item widget */
+  gulong handlerid;                     /**< @brief signal handler ID */
+  GtkWidget *w;                         /**< @brief menu item widget */
 };
 
 /* Variables */
 
 static GtkWidget *chooselayout;
-static GtkWidget *searchentry;          /* search terms */
+static GtkWidget *searchentry;          /**< @brief search terms */
 static struct choosenode *root;
 static struct choosenode *realroot;
-static GtkWidget *menu;                 /* our popup menu */
-static struct choosenode *last_click;   /* last clicked node for selection */
-static int files_visible;               /* total files visible */
-static int files_selected;              /* total files selected */
-static int search_in_flight;            /* a search is underway */
-static int search_obsolete;             /* the current search is void */
-static char **searchresults;            /* search results */
-static int nsearchresults;              /* number of results */
+static GtkWidget *menu;                 /**< @brief our popup menu */
+static struct choosenode *last_click;   /**< @brief last clicked node for selection */
+static int files_visible;               /**< @brief total files visible */
+static int files_selected;              /**< @brief total files selected */
+static int search_in_flight;            /**< @brief a search is underway */
+static int search_obsolete;             /**< @brief the current search is void */
+static char **searchresults;            /**< @brief search results */
+static int nsearchresults;              /**< @brief number of results */
 
 /* Forward Declarations */
 
@@ -149,6 +162,7 @@ static gboolean sensitive_remove(struct choosenode *cn);
 #endif
 static gboolean sensitive_properties(struct choosenode *cn);
 
+/** @brief Menu items */
 static struct menuitem menuitems[] = {
   { "Play track", activate_play, sensitive_play, 0, 0 },
 #if 0
@@ -158,11 +172,12 @@ static struct menuitem menuitems[] = {
   { "Track properties", activate_properties, sensitive_properties, 0, 0 },
 };
 
+/** @brief Count of menu items */
 #define NMENUITEMS (int)(sizeof menuitems / sizeof *menuitems)
 
 /* Maintaining the data structure ------------------------------------------ */
 
-/* Create a new node */
+/** @brief Create a new node */
 static struct choosenode *newnode(struct choosenode *parent,
                                   const char *path,
                                   const char *display,
@@ -188,7 +203,7 @@ static struct choosenode *newnode(struct choosenode *parent,
   return n;
 }
 
-/* Fill the root */
+/** @brief Fill the root */
 static void fill_root_node(struct choosenode *cn) {
   int ch;
   char *name;
@@ -217,6 +232,7 @@ static void fill_root_node(struct choosenode *cn) {
   }
 }
 
+/** @brief Delete all the widgets owned by @p cn */
 static void delete_cn_widgets(struct choosenode *cn) {
   if(cn->arrow) {
     DW(arrow);
@@ -245,7 +261,11 @@ static void delete_cn_widgets(struct choosenode *cn) {
   }
 }
 
-/* Clear all the children of CN */
+/** @brief Recursively clear all the children of @p cn
+ *
+ * All the widgets at or below @p cn are deleted.  All choosenodes below
+ * it are emptied. i.e. we prune the tree at @p cn.
+ */
 static void clear_children(struct choosenode *cn) {
   int n;
 
@@ -258,7 +278,7 @@ static void clear_children(struct choosenode *cn) {
   cn->children.nvec = 0;
 }
 
-/* Fill a child node */
+/** @brief Fill a letter node */
 static void fill_letter_node(struct choosenode *cn) {
   const char *regexp;
   struct callbackdata *cbd;
@@ -287,7 +307,7 @@ static void fill_letter_node(struct choosenode *cn) {
   disorder_eclient_files(client, got_files, "", regexp, cbd);
 }
 
-/* Called with a list of files just below some node */
+/** @brief Called with a list of files just below some node */
 static void got_files(void *v, int nvec, char **vec) {
   struct callbackdata *cbd = v;
   struct choosenode *cn = cbd->u.choosenode;
@@ -301,10 +321,12 @@ static void got_files(void *v, int nvec, char **vec) {
     disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
 }
 
+/** @brief Called with an alias resolved filename */
 static void got_resolved_file(void *v, const char *track) {
   struct callbackdata *cbd = v;
   struct choosenode *cn = cbd->u.choosenode, *file_cn;
 
+  /* TODO as below */
   file_cn = newnode(cn, track,
                     trackname_transform("track", track, "display"),
                     trackname_transform("track", track, "sort"),
@@ -314,13 +336,20 @@ static void got_resolved_file(void *v, const char *track) {
     updated_node(cn, 1);
 }
 
-/* Called with a list of directories just below some node */
+/** @brief Called with a list of directories just below some node */
 static void got_dirs(void *v, int nvec, char **vec) {
   struct callbackdata *cbd = v;
   struct choosenode *cn = cbd->u.choosenode;
   int n;
 
   D(("got_dirs %d dirs for %s", nvec, cn->path));
+  /* TODO this depends on local configuration for trackname_transform().
+   * This will work, since the defaults are now built-in, but it'll be
+   * (potentially) different to the server's configured settings.
+   *
+   * Really we want a variant of files/dirs that produces both the
+   * raw filename and the transformed name for a chosen context.
+   */
   for(n = 0; n < nvec; ++n)
     newnode(cn, vec[n],
             trackname_transform("dir", vec[n], "display"),
@@ -329,7 +358,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
   updated_node(cn, 1);
 }
   
-/* Fill a child node */
+/** @brief Fill a child node */
 static void fill_directory_node(struct choosenode *cn) {
   struct callbackdata *cbd;
 
@@ -347,7 +376,7 @@ static void fill_directory_node(struct choosenode *cn) {
   disorder_eclient_files(client, got_files, cn->path, 0, cbd);
 }
 
-/* Expand a node */
+/** @brief Expand a node */
 static void expand_node(struct choosenode *cn) {
   D(("expand_node %s", cn->path));
   assert(cn->flags & CN_EXPANDABLE);
@@ -361,7 +390,7 @@ static void expand_node(struct choosenode *cn) {
   cn->fill(cn);
 }
 
-/* Contract a node */
+/** @brief Contract a node */
 static void contract_node(struct choosenode *cn) {
   D(("contract_node %s", cn->path));
   assert(cn->flags & CN_EXPANDABLE);
@@ -379,7 +408,7 @@ static void contract_node(struct choosenode *cn) {
   redisplay_tree();
 }
 
-/* qsort callback for ordering choosenodes */
+/** @brief qsort() callback for ordering choosenodes */
 static int compare_choosenode(const void *av, const void *bv) {
   const struct choosenode *const *aa = av, *const *bb = bv;
   const struct choosenode *a = *aa, *b = *bb;
@@ -389,7 +418,7 @@ static int compare_choosenode(const void *av, const void *bv) {
 			a->path, b->path);
 }
 
-/* Called when an expandable node is updated.   */
+/** @brief Called when an expandable node is updated.   */
 static void updated_node(struct choosenode *cn, int redisplay) {
   D(("updated_node %s", cn->path));
   assert(cn->flags & CN_EXPANDABLE);
@@ -405,11 +434,12 @@ static void updated_node(struct choosenode *cn, int redisplay) {
 
 /* Searching --------------------------------------------------------------- */
 
+/** @brief qsort() callback for ordering tracks */
 static int compare_track_for_qsort(const void *a, const void *b) {
   return compare_path(*(char **)a, *(char **)b);
 }
 
-/* Return true iff FILE is a child of DIR */
+/** @brief Return true iff @p file is a child of @p dir */
 static int is_child(const char *dir, const char *file) {
   const size_t dlen = strlen(dir);
 
@@ -418,14 +448,14 @@ static int is_child(const char *dir, const char *file) {
           && strchr(file + dlen + 1, '/') == 0);
 }
 
-/* Return true iff FILE is a descendant of DIR */
+/** @brief Return true iff @p file is a descendant of @p dir */
 static int is_descendant(const char *dir, const char *file) {
   const size_t dlen = strlen(dir);
 
   return !strncmp(file, dir, dlen) && file[dlen] == '/';
 }
 
-/* Called to fill a node in the search results tree */
+/** @brief Called to fill a node in the search results tree */
 static void fill_search_node(struct choosenode *cn) {
   int n;
   const size_t plen = strlen(cn->path);
@@ -462,7 +492,9 @@ static void fill_search_node(struct choosenode *cn) {
   updated_node(cn, 1);
 }
 
-/* This is called from eclient with a (possibly empty) list of search results,
+/** @brief Called with a list of search results
+ *
+ * This is called from eclient with a (possibly empty) list of search results,
  * and also from initiate_seatch with an always empty list to indicate that
  * we're not searching for anything in particular. */
 static void search_completed(void attribute((unused)) *v,
@@ -536,6 +568,11 @@ static void search_completed(void attribute((unused)) *v,
   }
 }
 
+/** @brief Initiate a search 
+ *
+ * If a search is underway we set @ref search_obsolete and restart the search
+ * in search_completed() above.
+ */
 static void initiate_search(void) {
   char *terms, *e;
 
@@ -568,7 +605,7 @@ static void initiate_search(void) {
   }
 }
 
-/* Called when the cancel search button is clicked */
+/** @brief Called when the cancel search button is clicked */
 static void clearsearch_clicked(GtkButton attribute((unused)) *button,
                                 gpointer attribute((unused)) userdata) {
   gtk_entry_set_text(GTK_ENTRY(searchentry), "");
@@ -576,7 +613,7 @@ static void clearsearch_clicked(GtkButton attribute((unused)) *button,
 
 /* Display functions ------------------------------------------------------- */
 
-/* Delete all the widgets in the tree */
+/** @brief Delete all the widgets in the tree */
 static void delete_widgets(struct choosenode *cn) {
   int n;
 
@@ -587,7 +624,7 @@ static void delete_widgets(struct choosenode *cn) {
   files_selected = 0;
 }
 
-/* Update the display */
+/** @brief Update the display */
 static void redisplay_tree(void) {
   struct displaydata d;
   guint oldwidth, oldheight;
@@ -617,8 +654,11 @@ static void redisplay_tree(void) {
   menu_update(-1);
 }
 
-/* Make sure all displayed widgets from CN down exist and are in their proper
- * place and return the vertical space used. */
+/** @brief Recursive step for redisplay_tree()
+ *
+ * Makes sure all displayed widgets from CN down exist and are in their proper
+ * place and return the maximum space used.
+ */
 static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   int n, aw;
   GtkRequisition req;
@@ -727,7 +767,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   return d;
 }
 
-/* Remove widgets for newly hidden nodes */
+/** @brief Remove widgets for newly hidden nodes */
 static void undisplay_tree(struct choosenode *cn) {
   int n;
 
@@ -744,6 +784,7 @@ static void undisplay_tree(struct choosenode *cn) {
 
 /* Selection --------------------------------------------------------------- */
 
+/** @brief Mark the widget @p cn according to its selection state */
 static void display_selection(struct choosenode *cn) {
   /* Need foreground and background colors */
   gtk_widget_set_state(cn->label, (cn->flags & CN_SELECTED
@@ -752,8 +793,9 @@ static void display_selection(struct choosenode *cn) {
                                        ? GTK_STATE_SELECTED : GTK_STATE_NORMAL));
 }
 
-/* Set the selection state of a widget.  Directories can never be selected, we
- * just ignore attempts to do so. */
+/** @brief Set the selection state of a widget
+ *
+ * Directories can never be selected, we just ignore attempts to do so. */
 static void set_selection(struct choosenode *cn, int selected) {
   unsigned f = selected ? CN_SELECTED : 0;
 
@@ -771,7 +813,7 @@ static void set_selection(struct choosenode *cn, int selected) {
   }
 }
 
-/* Recursively clear all selection bits from CN down */
+/** @brief Recursively clear all selection bits from CN down */
 static void clear_selection(struct choosenode *cn) {
   int n;
 
@@ -782,7 +824,10 @@ static void clear_selection(struct choosenode *cn) {
 
 /* User actions ------------------------------------------------------------ */
 
-/* Clicked on something */
+/** @brief Clicked on something
+ *
+ * This implements playing, all the modifiers for selection, etc.
+ */
 static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
                                GdkEventButton *event,
                                gpointer user_data) {
@@ -841,6 +886,8 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
               last_click = cn;
           }
         }
+        /* TODO trying to select a range that doesn't share a single parent
+         * currently does not work, but it ought to. */
         break;
       }
     }
@@ -881,6 +928,7 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
   }
 }
 
+/** @brief Called BY GTK+ to tell us the search entry box has changed */
 static void searchentry_changed(GtkEditable attribute((unused)) *editable,
                                 gpointer attribute((unused)) user_data) {
   initiate_search();
@@ -888,6 +936,7 @@ static void searchentry_changed(GtkEditable attribute((unused)) *editable,
 
 /* Menu items -------------------------------------------------------------- */
 
+/** @brief Recursive step for gather_selected() */
 static void recurse_selected(struct choosenode *cn, struct vector *v) {
   int n;
 
@@ -901,6 +950,7 @@ static void recurse_selected(struct choosenode *cn, struct vector *v) {
   }
 }
 
+/*** @brief Get a list of all the selected tracks */
 static char **gather_selected(int *ntracks) {
   struct vector v;
 
@@ -911,6 +961,7 @@ static char **gather_selected(int *ntracks) {
   return v.vec;
 }
 
+/** @breif Called when the menu's play option is activated */
 static void activate_play(GtkMenuItem attribute((unused)) *menuitem,
                           gpointer attribute((unused)) user_data) {
   char **tracks = gather_selected(0);
@@ -928,6 +979,7 @@ static void activate_remove(GtkMenuItem attribute((unused)) *menuitem,
 }
 #endif
 
+/** @brief Called when the menu's properties option is activated */
 static void activate_properties(GtkMenuItem attribute((unused)) *menuitem,
                                 gpointer attribute((unused)) user_data) {
   int ntracks;
@@ -936,6 +988,7 @@ static void activate_properties(GtkMenuItem attribute((unused)) *menuitem,
   properties(ntracks, tracks);
 }
 
+/** @brief Determine whether the menu's play option should be sensitive */
 static gboolean sensitive_play(struct choosenode attribute((unused)) *cn) {
   return (!!files_selected
           && (disorder_eclient_state(client) & DISORDER_CONNECTED));
@@ -947,28 +1000,38 @@ static gboolean sensitive_remove(struct choosenode attribute((unused)) *cn) {
 }
 #endif
 
+/** @brief Determine whether the menu's properties option should be sensitive */
 static gboolean sensitive_properties(struct choosenode attribute((unused)) *cn) {
   return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
 
 /* Main menu plumbing ------------------------------------------------------ */
 
+/** @brief Determine whether the edit menu's properties option should be sensitive */
 static int choose_properties_sensitive(GtkWidget attribute((unused)) *w) {
   return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
 
+/** @brief Determine whether the edit menu's select all option should be sensitive
+ *
+ * TODO not implemented,  see also choose_selectall_activate()
+ */
 static int choose_selectall_sensitive(GtkWidget attribute((unused)) *w) {
-  return FALSE;                         /* TODO */
+  return FALSE;
 }
 
+/** @brief Called when the edit menu's properties option is activated */
 static void choose_properties_activate(GtkWidget attribute((unused)) *w) {
   activate_properties(0, 0);
 }
 
+/** @brief Called when the edit menu's select all option is activated
+ *
+ * TODO not implemented, see choose_selectall_sensitive() */
 static void choose_selectall_activate(GtkWidget attribute((unused)) *w) {
-  /* TODO */
 }
 
+/** @brief Main menu callbacks for Choose screen */
 static const struct tabtype tabtype_choose = {
   choose_properties_sensitive,
   choose_selectall_sensitive,
@@ -978,7 +1041,7 @@ static const struct tabtype tabtype_choose = {
 
 /* Public entry points ----------------------------------------------------- */
 
-/* Create a track choice widget */
+/** @brief Create a track choice widget */
 GtkWidget *choose_widget(void) {
   int n;
   GtkWidget *scrolled;
@@ -1058,7 +1121,7 @@ GtkWidget *choose_widget(void) {
   return vbox;
 }
 
-/* Called when something we care about here might have changed */
+/** @brief Called when something we care about here might have changed */
 void choose_update(void) {
   redisplay_tree();
 }
