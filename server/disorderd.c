@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
   /* periodically tidy up the database */
   dbgc_after(60);
   /* periodically check the volume */
-  volumecheck_after(60);
+  volumecheck_again(0, 0, 0);
   /* set initial state */
   add_random_track();
   play(ev);
