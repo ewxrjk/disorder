@@ -1008,12 +1008,15 @@ GtkWidget *choose_widget(void) {
   NW(entry);
   searchentry = gtk_entry_new();
   g_signal_connect(searchentry, "changed", G_CALLBACK(searchentry_changed), 0);
+  gtk_tooltips_set_tip(tips, searchentry, "Enter search terms here; search is automatic", "");
 
   /* Cancel button to clear the search */
   NW(button);
   clearsearch = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
   g_signal_connect(G_OBJECT(clearsearch), "clicked",
                    G_CALLBACK(clearsearch_clicked), 0);
+  gtk_tooltips_set_tip(tips, clearsearch, "Clear search terms", "");
+
 
   /* hbox packs the search box and the cancel button together on a line */
   NW(hbox);
