@@ -1292,6 +1292,9 @@ static const struct {
   { DISORDER_PLAYING_ENABLED, "enable_play", "disable_play" },
   { DISORDER_RANDOM_ENABLED, "enable_random", "disable_random" },
   { DISORDER_TRACK_PAUSED, "pause", "resume" },
+  { DISORDER_PLAYING, "playing", "completed" },
+  { DISORDER_PLAYING, 0, "scratched" },
+  { DISORDER_PLAYING, 0, "failed" },
 };
 #define NSTATES (int)(sizeof statestrings / sizeof *statestrings)
 
@@ -1300,10 +1303,10 @@ static void logentry_state(disorder_eclient *c,
   int n;
 
   for(n = 0; n < NSTATES; ++n)
-    if(!strcmp(vec[0], statestrings[n].enable)) {
+    if(statestrings[n].enable && !strcmp(vec[0], statestrings[n].enable)) {
       c->statebits |= statestrings[n].bit;
       break;
-    } else if(!strcmp(vec[0], statestrings[n].disable)) {
+    } else if(statestrings[n].disable && !strcmp(vec[0], statestrings[n].disable)) {
       c->statebits &= ~statestrings[n].bit;
       break;
     }
