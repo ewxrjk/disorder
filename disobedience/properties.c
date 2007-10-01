@@ -130,10 +130,23 @@ static const struct pref {
 static const struct button {
   const gchar *stock;
   void (*clicked)(GtkButton *button, gpointer userdata);
+  const char *tip;
 } buttons[] = {
-  { GTK_STOCK_OK, properties_ok },
-  { GTK_STOCK_APPLY, properties_apply },
-  { GTK_STOCK_CANCEL, properties_cancel },
+  {
+    GTK_STOCK_OK,
+    properties_ok,
+    "Apply all changes and close window"
+  },
+  {
+    GTK_STOCK_APPLY,
+    properties_apply,
+    "Apply all changes and keep window open"
+  },
+  {
+    GTK_STOCK_CANCEL,
+    properties_cancel,
+    "Discard all changes and close window"
+  },
 };
 
 #define NBUTTONS (int)(sizeof buttons / sizeof *buttons)
@@ -256,6 +269,7 @@ void properties(int ntracks, char **tracks) {
     g_signal_connect(G_OBJECT(button), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
     gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+    gtk_tooltips_set_tip(tips, button, buttons[n].tip, "");
   }
   /* Put it all together */
   vbox = gtk_vbox_new(FALSE, 1);
