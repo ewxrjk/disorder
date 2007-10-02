@@ -558,6 +558,9 @@ then the root directory is used.
 Provides a front end to \fBchoose.html\fR which allows subsets of the top level
 directories to be selected by initial letter.
 .TP
+.B new.html
+Lists newly added tracks.
+.TP
 .B playing.html
 The "front page", which usually shows the currently playing tracks and
 the queue.
@@ -588,8 +591,10 @@ Additionally, other standard files are included by these:
 .B credits.html
 Included at the end of the main content \fB<DIV>\fR element.
 .TP
-.B sidebar.html
-Included at the start of the \fB<BODY>\fR element.
+.B topbar.html
+Included at the start of the \fB<BODY>\fR element.  (This supplants
+\fBsidebar.html\fR, though the latter is still available; override label
+\fBmenu\fR to choose between them.)
 .TP
 .B stdhead.html
 Included in the \fB<HEAD>\fR element.
@@ -728,6 +733,10 @@ argument in a loop (\fB@queue\fR or similar), otherwise to \fBfalse\fR.
 Expands to \fBtrue\fR if this is the last repetition of a \fITEMPLATE\fR in a
 loop, otherwise to \fBfalse\fR.
 .TP
+.B @isnew@
+Expands to \fBtrue\fR if the newly added tracks list has any tracks in it,
+otherwise to \fBfalse\fR.
+.TP
 .B @isplaying@
 Expands to \fBtrue\fR if a track is playing, otherwise to \fBfalse\fR.
 .TP
@@ -754,6 +763,10 @@ Usually used in \fBchoose.html\fR.
 .TP
 .B @ne{\fIA\fB}{\fIB\fB}
 Expands to \fBtrue\fR if \fIA\fR and \fIB\fR differ, otherwise to \fBfalse\fR.
+.TP
+.B @new{\fITEMPLATE\fB}
+Expands \fITEMPLATE\fR for each track in the newly added tracks list, starting
+with the most recent.  Used in \fBnew.html\fR.
 .TP
 .B @nfiles@
 Expands to the number of files from \fB@files\fR (above).
