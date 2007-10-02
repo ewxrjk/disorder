@@ -127,6 +127,8 @@ static GtkWidget *notebook(void) {
                            gtk_label_new("Recent"));
   gtk_notebook_append_page(GTK_NOTEBOOK(tabs), choose_widget(),
                            gtk_label_new("Choose"));
+  gtk_notebook_append_page(GTK_NOTEBOOK(tabs), added_widget(),
+                           gtk_label_new("Added"));
   return tabs;
 }
 

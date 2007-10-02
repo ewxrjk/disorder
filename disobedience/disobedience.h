@@ -156,15 +156,19 @@ GtkWidget *control_widget(void);
 void volume_update(void);
 /* Called whenever we think the volume control has changed */
 
-/* Queue/Recent */
+/* Queue/Recent/Added */
 
 GtkWidget *queue_widget(void);
 GtkWidget *recent_widget(void);
-/* Create widgets for displaying the queue and the recently played list */
+GtkWidget *added_widget(void);
+/* Create widgets for displaying the queue, the recently played list and the
+ * newly added tracks list */
 
 void queue_update(void);
 void recent_update(void);
-/* Called whenever we think the queue or recent list might have chanegd */
+void added_update(void);
+/* Called whenever we think the queue, recent or newly-added list might have
+ * changed */
 
 void queue_select_all(struct queuelike *ql);
 /* Select all on some queue */

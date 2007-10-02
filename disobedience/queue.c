@@ -107,11 +107,8 @@ struct column {
   gfloat xalign;                        /* Alignment of the label */
 };
 
-/** @brief Table of columns
- *
- * Need this in the middle of the types for NCOLUMNS
- */
-static const struct column columns[] = {
+/** @brief Table of columns for queue and recently played list */
+static const struct column maincolumns[] = {
   { "When",   column_when,     0,        1 },
   { "Who",    column_who,      0,        0 },
   { "Artist", column_namepart, "artist", 0 },
@@ -120,8 +117,22 @@ static const struct column columns[] = {
   { "Length", column_length,   0,        1 }
 };
 
-/** @brief Number of columns */
-#define NCOLUMNS (int)(sizeof columns / sizeof *columns)
+/** @brief Number of columns in queue and recnetly played list */
+#define NMAINCOLUMNS (int)(sizeof maincolumns / sizeof *maincolumns)
+
+/** @brief Table of columns for recently added tracks */
+static const struct column addedcolumns[] = {
+  { "Artist", column_namepart, "artist", 0 },
+  { "Album",  column_namepart, "album",  0 },
+  { "Title",  column_namepart, "title",  0 },
+  { "Length", column_length,   0,        1 }
+};
+
+/** @brief Number of columns in recently added list */
+#define NADDEDCOLUMNS (int)(sizeof addedcolumns / sizeof *addedcolumns)
+
+/** @brief Maximum number of column in any @ref queuelike */
+#define MAXCOLUMNS (NMAINCOLUMNS > NADDEDCOLUMNS ? NMAINCOLUMNS : NADDEDCOLUMNS)
 
 /** @brief Data passed to menu item activation handlers */
 struct menuiteminfo {
@@ -159,7 +170,8 @@ struct queue_menuitem {
 
 /** @brief A queue-like object
  *
- * There are (currently) two of these: @ref ql_queue and @ref ql_recent.
+ * There are (currently) three of these: @ref ql_queue, @ref ql_recent and @ref
+ * ql_added.
  */
 struct queuelike {
   /** @brief Name of this queue */
@@ -178,7 +190,7 @@ struct queuelike {
   GtkWidget *mainlayout;                /**< @brief main layout */
   GtkWidget *mainscroll;                /**< @brief scroller for main layout */
   GtkWidget *titlelayout;               /**< @brief title layout */
-  GtkWidget *titlecells[NCOLUMNS + 1];  /**< @brief title cells */
+  GtkWidget *titlecells[MAXCOLUMNS + 1]; /**< @brief title cells */
   GtkWidget **cells;                    /**< @brief all the cells */
   GtkWidget *menu;                      /**< @brief popup menu */
   struct queue_menuitem *menuitems;     /**< @brief menu items */
@@ -192,10 +204,14 @@ struct queuelike {
   int mainrowheight;                    /**< @brief height of one row */
   hash *selection;                      /**< @brief currently selected items */
   int swallow_release;                  /**< @brief swallow button release from drag */
+
+  const struct column *columns;         /**< @brief Table of columns */
+  int ncolumns;                         /**< @brief Number of columns */
 };
 
 static struct queuelike ql_queue; /**< @brief The main queue */
 static struct queuelike ql_recent; /*< @brief Recently-played tracks */
+static struct queuelike ql_added; /*< @brief Newly added tracks */
 static struct queue_entry *actual_queue; /**< @brief actual queue */
 static struct queue_entry *playing_track;     /**< @brief currenty playing */
 static time_t last_playing = (time_t)-1; /**< @brief when last got playing */
@@ -229,8 +245,8 @@ static void dump_layout(const struct queuelike *ql) {
   describe_widget("mainscroll", ql->mainscroll, 0);
   describe_widget("mainlayout", ql->mainlayout, 1);
   for(q = ql->q, row = 0; q; q = q->next, ++row)
-    for(col = 0; col < NCOLUMNS + 1; ++col)
-      if((w = ql->cells[row * (NCOLUMNS + 1) + col])) {
+    for(col = 0; col < ql->ncolumns + 1; ++col)
+      if((w = ql->cells[row * (ql->ncolumns + 1) + col])) {
         sprintf(s, "%dx%d", row, col);
         describe_widget(s, w, 2);
         if(GTK_BIN(w)->child)
@@ -248,6 +264,7 @@ static void namepart_completed_or_failed(void) {
   if(!namepart_lookups_outstanding || namepart_completions_deferred > 24) {
     redisplay_queue(&ql_queue);
     redisplay_queue(&ql_recent);
+    redisplay_queue(&ql_added);
     namepart_completions_deferred = 0;
   }
 }
@@ -527,8 +544,8 @@ static GtkWidget *get_queue_cell(struct queuelike *ql,
                                  int *wp) {
   GtkWidget *label;
   D(("get_queue_cell %d %d", row, col));
-  label = columns[col].widget(ql, q, columns[col].data);
-  gtk_misc_set_alignment(GTK_MISC(label), columns[col].xalign, 0);
+  label = ql->columns[col].widget(ql, q, ql->columns[col].data);
+  gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
   return wrap_queue_cell(label, name, wp);
 }
 
@@ -547,8 +564,8 @@ static void set_widget_states(struct queuelike *ql) {
   int row, col;
 
   for(q = ql->q, row = 0; q; q = q->next, ++row) {
-    for(col = 0; col < NCOLUMNS + 1; ++col)
-      gtk_widget_set_state(ql->cells[row * (NCOLUMNS + 1) + col],
+    for(col = 0; col < ql->ncolumns + 1; ++col)
+      gtk_widget_set_state(ql->cells[row * (ql->ncolumns + 1) + col],
                            selection_selected(ql->selection, q->id) ?
                            GTK_STATE_SELECTED : GTK_STATE_NORMAL);
   }
@@ -692,7 +709,11 @@ void queue_properties(struct queuelike *ql) {
 
 /* Drag and drop rearrangement --------------------------------------------- */
 
-/** @brief Return nonzero if @p is a draggable row */
+/** @brief Return nonzero if @p is a draggable row
+ *
+ * Only tracks in the main queue are draggable (and the currently playing track
+ * is not draggable).
+ */
 static int draggable_row(const struct queue_entry *q) {
   return q->ql == &ql_queue && q != playing_track;
 }
@@ -888,7 +909,7 @@ static void redisplay_queue(struct queuelike *ql) {
   const char *name;
   GtkRequisition req;  
   GtkWidget *w;
-  int maxwidths[NCOLUMNS], x, y, titlerowheight;
+  int maxwidths[MAXCOLUMNS], x, y, titlerowheight;
   int totalwidth = 10240;               /* TODO: can we be less blunt */
 
   D(("redisplay_queue"));
@@ -909,9 +930,9 @@ static void redisplay_queue(struct queuelike *ql) {
   for(q = ql->q, ql->nrows = 0; q; q = q->next)
     ++ql->nrows;
   /* We need to create all the widgets before we can position them */
-  ql->cells = xcalloc(ql->nrows * (NCOLUMNS + 1), sizeof *ql->cells);
+  ql->cells = xcalloc(ql->nrows * (ql->ncolumns + 1), sizeof *ql->cells);
   /* Minimum width is given by the column headings */
-  for(col = 0; col < NCOLUMNS; ++col) {
+  for(col = 0; col < ql->ncolumns; ++col) {
     /* Reset size so we don't inherit last iteration's maximum size */
     gtk_widget_set_size_request(GTK_BIN(ql->titlecells[col])->child, -1, -1);
     gtk_widget_size_request(GTK_BIN(ql->titlecells[col])->child, &req);
@@ -928,13 +949,13 @@ static void redisplay_queue(struct queuelike *ql) {
       if(q == playing_track) name = "row-playing";
       else name = row % 2 ? "row-even" : "row-odd";
       /* Make the widget for each column */
-      for(col = 0; col <= NCOLUMNS; ++col) {
+      for(col = 0; col <= ql->ncolumns; ++col) {
         /* Create and store the widget */
-        if(col < NCOLUMNS)
+        if(col < ql->ncolumns)
           w = get_queue_cell(ql, q, row, col, name, &maxwidths[col]);
         else
           w = get_padding_cell(name);
-        ql->cells[row * (NCOLUMNS + 1) + col] = w;
+        ql->cells[row * (ql->ncolumns + 1) + col] = w;
         /* Maybe mark it draggable */
         if(draggable_row(q)) {
           gtk_drag_source_set(w, GDK_BUTTON1_MASK,
@@ -955,14 +976,14 @@ static void redisplay_queue(struct queuelike *ql) {
      * everything and position it */
     for(row = 0, q = ql->q; row < ql->nrows; ++row, q = q->next) {
       x = 0;
-      for(col = 0; col < NCOLUMNS; ++col) {
-        w = ql->cells[row * (NCOLUMNS + 1) + col];
+      for(col = 0; col < ql->ncolumns; ++col) {
+        w = ql->cells[row * (ql->ncolumns + 1) + col];
         gtk_widget_set_size_request(GTK_BIN(w)->child,
                                     maxwidths[col], -1);
         gtk_layout_put(GTK_LAYOUT(ql->mainlayout), w, x, y);
         x += maxwidths[col];
       }
-      w = ql->cells[row * (NCOLUMNS + 1) + col];
+      w = ql->cells[row * (ql->ncolumns + 1) + col];
       gtk_widget_set_size_request(GTK_BIN(w)->child,
                                   totalwidth - x, -1);
       gtk_layout_put(GTK_LAYOUT(ql->mainlayout), w, x, y);
@@ -971,7 +992,7 @@ static void redisplay_queue(struct queuelike *ql) {
   }
   /* Titles */
   x = 0;
-  for(col = 0; col < NCOLUMNS; ++col) {
+  for(col = 0; col < ql->ncolumns; ++col) {
     gtk_widget_set_size_request(GTK_BIN(ql->titlecells[col])->child,
                                 maxwidths[col], -1);
     gtk_layout_move(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], x, 0);
@@ -1002,7 +1023,7 @@ static void queuelike_completed(void *v, struct queue_entry *q) {
 
   D(("queuelike_complete"));
   /* Install the new queue */
-  update_queue(ql, ql->fixup(q));
+  update_queue(ql, ql->fixup ? ql->fixup(q) : q);
   /* Update the display */
   redisplay_queue(ql);
   if(ql->notify)
@@ -1038,7 +1059,9 @@ static GtkWidget *queuelike(struct queuelike *ql,
                             struct queue_entry *(*fixup)(struct queue_entry *),
                             void (*notify)(void),
                             struct queue_menuitem *menuitems,
-                            const char *name) {
+                            const char *name,
+                            const struct column *columns,
+                            int ncolumns) {
   GtkWidget *vbox, *mainscroll, *titlescroll, *label;
   GtkAdjustment *mainadj, *titleadj;
   int col, n;
@@ -1050,6 +1073,8 @@ static GtkWidget *queuelike(struct queuelike *ql,
   ql->name = name;
   ql->mainrowheight = !0;                /* else division by 0 */
   ql->selection = selection_new();
+  ql->columns = columns;
+  ql->ncolumns = ncolumns;
   /* Create the layouts */
   NW(layout);
   ql->mainlayout = gtk_layout_new(0, 0);
@@ -1065,10 +1090,10 @@ static GtkWidget *queuelike(struct queuelike *ql,
   g_signal_connect(mainadj, "changed", G_CALLBACK(queue_scrolled), titleadj);
   g_signal_connect(mainadj, "value-changed", G_CALLBACK(queue_scrolled), titleadj);
   /* Fill the titles and put them anywhere */
-  for(col = 0; col < NCOLUMNS; ++col) {
+  for(col = 0; col < ql->ncolumns; ++col) {
     NW(label);
-    label = gtk_label_new(columns[col].name);
-    gtk_misc_set_alignment(GTK_MISC(label), columns[col].xalign, 0);
+    label = gtk_label_new(ql->columns[col].name);
+    gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
     ql->titlecells[col] = wrap_queue_cell(label, "row-title", 0);
     gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   }
@@ -1206,6 +1231,32 @@ static void selectall_activate(GtkMenuItem attribute((unused)) *menuitem,
   queue_select_all(mii->ql);
 }
 
+/** @brief Determine whether the play menu option should be sensitive */
+static int play_sensitive(struct queuelike *ql,
+                          struct queue_menuitem attribute((unused)) *m,
+                          struct queue_entry attribute((unused)) *q) {
+  /* "Play" is sensitive if at least something is selected */
+  return (hash_count(ql->selection) > 0
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+}
+
+/** @brief Play the selected tracks */
+static void play_activate(GtkMenuItem attribute((unused)) *menuitem,
+                          gpointer user_data) {
+  const struct menuiteminfo *mii = user_data;
+  struct queue_entry *q = mii->q;
+  struct queuelike *ql = mii->ql;
+
+  if(queue_count_selected(ql)) {
+    /* Play selected tracks */
+    for(q = ql->q; q; q = q->next)
+      if(selection_selected(ql->selection, q->id))
+        disorder_eclient_play(client, q->track, 0, 0);
+  } else if(q)
+    /* Nothing is selected, so play the hovered track */
+    disorder_eclient_play(client, q->track, 0, 0);
+}
+
 /* The queue --------------------------------------------------------------- */
 
 /** @brief Fix up the queue by sticking the currently playing track on the front */
@@ -1265,7 +1316,7 @@ GtkWidget *queue_widget(void) {
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
-                   "queue");
+                   "queue", maincolumns, NMAINCOLUMNS);
 }
 
 /** @brief Arrange an update of the queue widget
@@ -1316,7 +1367,8 @@ static struct queue_menuitem recent_menu[] = {
 /** @brief Create the recently-played list */
 GtkWidget *recent_widget(void) {
   D(("recent_widget"));
-  return queuelike(&ql_recent, fixup_recent, 0, recent_menu, "recent");
+  return queuelike(&ql_recent, fixup_recent, 0, recent_menu, "recent",
+                   maincolumns, NMAINCOLUMNS);
 }
 
 /** @brief Update the recently played list
@@ -1332,6 +1384,59 @@ void recent_update(void) {
   cbd->u.ql = &ql_recent;
   gtk_label_set_text(GTK_LABEL(report_label), "updating recently played list");
   disorder_eclient_recent(client, queuelike_completed, cbd);
+}
+
+/* Newly added tracks ------------------------------------------------------ */
+
+/** @brief Pop-up menu for recently played list */
+static struct queue_menuitem added_menu[] = {
+  { "Track properties", properties_activate, properties_sensitive, 0, 0 },
+  { "Play track", play_activate, play_sensitive, 0, 0 },
+  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
+  { 0, 0, 0, 0, 0 }
+};
+
+/** @brief Create the newly-added list */
+GtkWidget *added_widget(void) {
+  D(("added_widget"));
+  return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu, "added",
+                   addedcolumns, NADDEDCOLUMNS);
+}
+
+/** @brief Called with an updated list of newly-added tracks
+ *
+ * This is called with a raw list of track names but the rest of @ref
+ * disobedience/queue.c requires @ref queue_entry structures with a valid and
+ * unique @c id field.  This function fakes it.
+ */
+static void new_completed(void *v, int nvec, char **vec) {
+  struct queue_entry *q, *qh, *qlast = 0, **qq = &qh;
+  int n;
+
+  for(n = 0; n < nvec; ++n) {
+    q = xmalloc(sizeof *q);
+    q->prev = qlast;
+    q->track = vec[n];
+    q->id = vec[n];
+    *qq = q;
+    qq = &q->next;
+    qlast = q;
+  }
+  *qq = 0;
+  queuelike_completed(v, qh);
+}
+
+/** @brief Update the newly-added list */
+void added_update(void) {
+  struct callbackdata *cbd;
+  D(("added_updae"));
+
+  cbd = xmalloc(sizeof *cbd);
+  cbd->onerror = 0;
+  cbd->u.ql = &ql_added;
+  gtk_label_set_text(GTK_LABEL(report_label),
+                     "updating newly added track list");
+  disorder_eclient_new_tracks(client, new_completed, 0/*all*/, cbd);
 }
 
 /* Main menu plumbing ------------------------------------------------------ */

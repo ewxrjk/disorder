@@ -84,6 +84,7 @@ void all_update(void) {
   queue_update();
   recent_update();
   volume_update();
+  added_update();
 }
 
 /** @brief Called when the client connects
