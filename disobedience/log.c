@@ -41,6 +41,7 @@ static void log_removed(void *v, const char *id, const char *user);
 static void log_scratched(void *v, const char *track, const char *user);
 static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
+static void log_rescanned(void *v);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -55,7 +56,8 @@ const disorder_eclient_log_callbacks log_callbacks = {
   log_removed,
   log_scratched,
   log_state,
-  log_volume
+  log_volume,
+  log_rescanned
 };
 
 /** @brief State monitor
@@ -190,6 +192,11 @@ static void log_volume(void attribute((unused)) *v,
     volume_r = r;
     volume_update();
   }
+}
+
+/** @brief Called when a rescan completes */
+static void log_rescanned(void attribute((unused)) *v) {
+  added_update();
 }
 
 /** @brief Add a monitor to the list

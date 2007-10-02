@@ -404,6 +404,9 @@ Removed \fIID\fR from the recently played list.
 Queue entry \fIID\fR was removed.  This is used both for explicit removal (when
 \fIUSER\fR is present) and when playing a track (when it is absent).
 .TP
+.B rescanned
+A rescan completed.
+.TP
 .B scratched \fITRACK\fR \fIUSER\fR
 \fITRACK\fR was scratched by \fIUSER\fR.
 .TP

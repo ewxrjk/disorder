@@ -96,6 +96,7 @@ typedef struct disorder_eclient_log_callbacks {
   void (*scratched)(void *v, const char *track, const char *user);
   void (*state)(void *v, unsigned long state);
   void (*volume)(void *v, int left, int right);
+  void (*rescanned)(void *v);
 } disorder_eclient_log_callbacks;
 
 /* State bits */

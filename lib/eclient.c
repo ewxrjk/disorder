@@ -170,6 +170,7 @@ static void logentry_removed(disorder_eclient *c, int nvec, char **vec);
 static void logentry_scratched(disorder_eclient *c, int nvec, char **vec);
 static void logentry_state(disorder_eclient *c, int nvec, char **vec);
 static void logentry_volume(disorder_eclient *c, int nvec, char **vec);
+static void logentry_rescanned(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -194,6 +195,7 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(recent_added, 2, INT_MAX),
   LE(recent_removed, 1, 1),
   LE(removed, 1, 2),
+  LE(rescanned, 0, 0),
   LE(scratched, 2, 2),
   LE(state, 1, 1),
   LE(volume, 2, 2)
@@ -1307,6 +1309,13 @@ static void logentry_removed(disorder_eclient *c,
                              int attribute((unused)) nvec, char **vec) {
   if(!c->log_callbacks->removed) return;
   c->log_callbacks->removed(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_rescanned(disorder_eclient *c,
+                               int attribute((unused)) nvec,
+                               char attribute((unused)) **vec) {
+  if(!c->log_callbacks->rescanned) return;
+  c->log_callbacks->rescanned(c->log_v);
 }
 
 static void logentry_scratched(disorder_eclient *c,

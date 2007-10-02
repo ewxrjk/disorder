@@ -1748,6 +1748,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
     D(("disorderd-rescan terminate: %s", wstat(status)));
   /* Our cache of file lookups is out of date now */
   cache_clean(&cache_files_type);
+  eventlog("rescanned", (char *)0);
   return 0;
 }
 
