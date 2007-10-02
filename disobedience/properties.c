@@ -176,7 +176,10 @@ void properties(int ntracks, const char **tracks) {
   struct prefdata *f;
   GtkWidget *hbox, *vbox, *button, *label, *entry, *propagate, *content;
   GdkPixbuf *pb;
-
+  
+  /* If no tracks, do nothign */
+  if(!ntracks)
+    return;
   /* If there is a properties window open then just bring it to the
    * front.  It might not have the right values in... */
   if(properties_window) {

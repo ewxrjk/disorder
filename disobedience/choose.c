@@ -354,10 +354,11 @@ static void got_files(void *v, int nvec, char **vec) {
   /* Complicated by the need to resolve aliases.  We can save a bit of effort
    * by re-using cbd though. */
   cn->flags &= ~CN_GETTING_FILES;
-  cn->flags |= CN_RESOLVING_FILES;
-  cn->pending = nvec;
-  for(n = 0; n < nvec; ++n)
-    disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
+  if((cn->pending = nvec)) {
+    cn->flags |= CN_RESOLVING_FILES;
+    for(n = 0; n < nvec; ++n)
+      disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
+  }
 }
 
 /** @brief Called with an alias resolved filename */
