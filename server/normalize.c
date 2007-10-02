@@ -119,7 +119,7 @@ int main(int argc, char attribute((unused)) **argv) {
     fatal(errno, "error calling setlocale");
   if(argc > 1)
     fatal(0, "not intended to be invoked by users");
-  if(config_read())
+  if(config_read(1))
     fatal(0, "cannot read configuration");
   if(!isatty(2)) {
     openlog(progname, LOG_PID, LOG_DAEMON);

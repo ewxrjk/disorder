@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(0)) fatal(0, "cannot read configuration");
   info("started");
   trackdb_init(0);
   while(getppid() != 1) {

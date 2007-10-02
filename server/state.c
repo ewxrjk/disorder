@@ -143,7 +143,7 @@ int reconfigure(ev_source *ev, int reload) {
   if(reload) {
     need_another_rescan = trackdb_rescan_cancel();
     trackdb_close();
-    if(config_read())
+    if(config_read(1))
       ret = -1;
     else {
       /* Tell the speaker it needs to reload its config too. */

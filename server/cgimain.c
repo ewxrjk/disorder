@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   cgi_parse();
   if((conf = getenv("DISORDER_CONFIG"))) configfile = xstrdup(conf);
   if(getenv("DISORDER_DEBUG")) debugging = 1;
-  if(config_read()) exit(EXIT_FAILURE);
+  if(config_read(0)) exit(EXIT_FAILURE);
   memset(&g, 0, sizeof g);
   memset(&s, 0, sizeof s);
   s.g = &g;

@@ -240,7 +240,7 @@ struct config {
 extern struct config *config;
 /* the current configuration */
 
-int config_read(void);
+int config_read(int server);
 /* re-read config, return 0 on success or non-0 on error.
  * Only updates @config@ if the new configuration is valid. */
 

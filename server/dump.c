@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
       fatal(0, "specify only a dump file name");
     path = argv[optind];
   }
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(0)) fatal(0, "cannot read configuration");
   trackdb_init(recover);
   trackdb_open();
   if(dump) {

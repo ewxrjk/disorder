@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(0)) fatal(0, "cannot read configuration");
   /* create the clients */
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))

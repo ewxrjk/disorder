@@ -325,7 +325,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(0)) fatal(0, "cannot read configuration");
   xnice(config->nice_rescan);
   sa.sa_handler = signal_handler;
   sa.sa_flags = SA_RESTART;

@@ -149,6 +149,8 @@ static void cf_shutdown(disorder_client *c,
 
 static void cf_reconfigure(disorder_client *c,
 			   char attribute((unused)) **argv) {
+  /* Re-check configuration for server */
+  if(config_read(1)) fatal(0, "cannot read configuration");
   if(disorder_reconfigure(c)) exit(EXIT_FAILURE);
 }
 
@@ -517,7 +519,7 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(0)) fatal(0, "cannot read configuration");
   if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
   s = config_get_file("socket");
   if(disorder_connect(c)) exit(EXIT_FAILURE);

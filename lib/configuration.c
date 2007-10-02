@@ -1023,7 +1023,8 @@ static void config_free(struct config *c) {
 }
 
 /** @brief Set post-parse defaults */
-static void config_postdefaults(struct config *c) {
+static void config_postdefaults(struct config *c,
+				int server) {
   struct config_state cs;
   const struct conf *whoami;
   int n;
@@ -1072,10 +1073,12 @@ static void config_postdefaults(struct config *c) {
 #endif
     }
   }
-  if(c->speaker_backend == BACKEND_COMMAND && !c->speaker_command)
-    fatal(0, "speaker_backend is command but speaker_command is not set");
-  if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
-    fatal(0, "speaker_backend is network but broadcast is not set");
+  if(server) {
+    if(c->speaker_backend == BACKEND_COMMAND && !c->speaker_command)
+      fatal(0, "speaker_backend is command but speaker_command is not set");
+    if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
+      fatal(0, "speaker_backend is network but broadcast is not set");
+  }
   if(c->speaker_backend) {
     /* Override sample format */
     c->sample_format.rate = 44100;
@@ -1085,8 +1088,10 @@ static void config_postdefaults(struct config *c) {
   }
 }
 
-/** @brief (Re-)read the config file */
-int config_read() {
+/** @brief (Re-)read the config file
+ * @param server If set, do extra checking
+ */
+int config_read(int server) {
   struct config *c;
   char *privconf;
   struct passwd *pw;
@@ -1118,7 +1123,7 @@ int config_read() {
     return -1;
   xfree(privconf);
   /* install default namepart and transform settings */
-  config_postdefaults(c);
+  config_postdefaults(c, server);
   /* everything is good so we shall use the new config */
   config_free(config);
   config = c;

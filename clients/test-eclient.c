@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
   assert(argc > 0);
   mem_init();
   debugging = 0;			/* turn on for even more verbosity */
-  if(config_read()) fatal(0, "config_read failed");
+  if(config_read(0)) fatal(0, "config_read failed");
   tracks = &argv[1];
   c = disorder_eclient_new(&callbacks, &u_value);
   assert(c != 0);

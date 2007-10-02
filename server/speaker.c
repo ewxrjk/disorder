@@ -517,7 +517,7 @@ static void mainloop(void) {
 	  break;
 	case SM_RELOAD:
           D(("SM_RELOAD"));
-	  if(config_read()) error(0, "cannot read configuration");
+	  if(config_read(1)) error(0, "cannot read configuration");
           info("reloaded configuration");
 	  break;
 	default:
@@ -561,7 +561,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read()) fatal(0, "cannot read configuration");
+  if(config_read(1)) fatal(0, "cannot read configuration");
   bpf = bytes_per_frame(&config->sample_format);
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);

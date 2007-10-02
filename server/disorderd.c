@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
   ev = ev_new();
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");
   /* read config */
-  if(config_read())
+  if(config_read(1))
     fatal(0, "cannot read configuration");
   /* Start the speaker process (as root! - so it can choose its nice value) */
   speaker_setup(ev);
