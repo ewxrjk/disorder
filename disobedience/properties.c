@@ -171,7 +171,7 @@ static void propagate_clicked(GtkButton attribute((unused)) *button,
   }
 }
 
-void properties(int ntracks, char **tracks) {
+void properties(int ntracks, const char **tracks) {
   int n, m;
   struct prefdata *f;
   GtkWidget *hbox, *vbox, *button, *label, *entry, *propagate, *content;

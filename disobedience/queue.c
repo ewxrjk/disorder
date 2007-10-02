@@ -687,7 +687,7 @@ void queue_properties(struct queuelike *ql) {
     if(selection_selected(ql->selection, qq->id))
       vector_append(&v, (char *)qq->track);
   if(v.nvec)
-    properties(v.nvec, v.vec);
+    properties(v.nvec, (const char **)v.vec);
 }
 
 /* Drag and drop rearrangement --------------------------------------------- */

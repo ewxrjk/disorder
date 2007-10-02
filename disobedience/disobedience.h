@@ -117,7 +117,7 @@ void popup_protocol_error(int code,
                           const char *msg);
 /* Report an error */
 
-void properties(int ntracks, char **tracks);
+void properties(int ntracks, const char **tracks);
 /* Pop up a properties window for a list of tracks */
 
 GtkWidget *scroll_widget(GtkWidget *child, const char *name);

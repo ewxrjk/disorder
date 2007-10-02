@@ -57,6 +57,10 @@ struct displaydata {
 
 VECTOR_TYPE(nodevector, struct choosenode *, xrealloc);
 
+/** @brief Signature of function called when a choosenode is filled */
+typedef void (when_filled_callback)(struct choosenode *cn,
+                                    void *wfu);
+
 /** @brief One node in the virtual filesystem */
 struct choosenode {
   struct choosenode *parent;            /**< @brief parent node */
@@ -72,6 +76,10 @@ struct choosenode {
                                          * non-expandable ones are files. */
 #define CN_DISPLAYED 0x0004             /**< @brief widget is displayed in layout */
 #define CN_SELECTED 0x0008              /**< @brief node is selected */
+#define CN_GETTING_FILES 0x0010         /**< @brief files inbound */
+#define CN_RESOLVING_FILES 0x0020       /**< @brief resolved files inbound */
+#define CN_GETTING_DIRS 0x0040          /**< @brief directories inbound */
+#define CN_GETTING_ANY 0x0070           /**< @brief getting something */
   struct nodevector children;           /**< @brief vector of children */
   void (*fill)(struct choosenode *);    /**< @brief request child fill or 0 for leaf */
   GtkWidget *container;                 /**< @brief the container for this row */
@@ -79,10 +87,13 @@ struct choosenode {
   GtkWidget *arrow;                     /**< @brief arrow widget or 0 */
   GtkWidget *label;                     /**< @brief text label for this node */
   GtkWidget *marker;                    /**< @brief queued marker */
+
+  when_filled_callback *whenfilled;     /**< @brief called when filled or 0 */
+  void *wfu;                            /**< @brief passed to @c whenfilled */
 };
 
 /** @brief One item in the popup menu */
-struct menuitem {
+struct choose_menuitem {
   /* Parameters */
   const char *name;                     /**< @brief name */
 
@@ -108,7 +119,8 @@ static GtkWidget *chooselayout;
 static GtkWidget *searchentry;          /**< @brief search terms */
 static struct choosenode *root;
 static struct choosenode *realroot;
-static GtkWidget *menu;                 /**< @brief our popup menu */
+static GtkWidget *track_menu;           /**< @brief track popup menu */
+static GtkWidget *dir_menu;             /**< @brief directory popup menu */
 static struct choosenode *last_click;   /**< @brief last clicked node for selection */
 static int files_visible;               /**< @brief total files visible */
 static int files_selected;              /**< @brief total files selected */
@@ -150,30 +162,35 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
                                GdkEventButton *event,
                                gpointer user_data);
 
-static void activate_play(GtkMenuItem *menuitem, gpointer user_data);
-#if 0
-static void activate_remove(GtkMenuItem *menuitem, gpointer user_data);
-#endif
-static void activate_properties(GtkMenuItem *menuitem, gpointer user_data);
+static void activate_track_play(GtkMenuItem *menuitem, gpointer user_data);
+static void activate_track_properties(GtkMenuItem *menuitem, gpointer user_data);
 
-static gboolean sensitive_play(struct choosenode *cn);
-#if 0
-static gboolean sensitive_remove(struct choosenode *cn);
-#endif
-static gboolean sensitive_properties(struct choosenode *cn);
+static gboolean sensitive_track_play(struct choosenode *cn);
+static gboolean sensitive_track_properties(struct choosenode *cn);
 
-/** @brief Menu items */
-static struct menuitem menuitems[] = {
-  { "Play track", activate_play, sensitive_play, 0, 0 },
-#if 0
-  /* Not implemented yet */
-  { "Remove", activate_remove, sensitive_remove, 0, 0 },
-#endif
-  { "Track properties", activate_properties, sensitive_properties, 0, 0 },
+static void activate_dir_play(GtkMenuItem *menuitem, gpointer user_data);
+static void activate_dir_properties(GtkMenuItem *menuitem, gpointer user_data);
+static void activate_dir_select(GtkMenuItem *menuitem, gpointer user_data);
+
+static gboolean sensitive_dir_play(struct choosenode *cn);
+static gboolean sensitive_dir_properties(struct choosenode *cn);
+static gboolean sensitive_dir_select(struct choosenode *cn);
+
+/** @brief Track menu items */
+static struct choose_menuitem track_menuitems[] = {
+  { "Play track", activate_track_play, sensitive_track_play, 0, 0 },
+  { "Track properties", activate_track_properties, sensitive_track_properties, 0, 0 },
+  { 0, 0, 0, 0, 0 }
 };
 
-/** @brief Count of menu items */
-#define NMENUITEMS (int)(sizeof menuitems / sizeof *menuitems)
+/** @brief Directory menu items */
+static struct choose_menuitem dir_menuitems[] = {
+  { "Play all tracks", activate_dir_play, sensitive_dir_play, 0, 0 },
+  { "Track properties", activate_dir_properties, sensitive_dir_properties, 0, 0 },
+  { "Select all tracks", activate_dir_select, sensitive_dir_select, 0, 0 },
+  { 0, 0, 0, 0, 0 }
+};
+
 
 /* Maintaining the data structure ------------------------------------------ */
 
@@ -203,6 +220,19 @@ static struct choosenode *newnode(struct choosenode *parent,
   return n;
 }
 
+/** @brief Called when a node has been filled
+ *
+ * Response for calling @c whenfilled.
+ */
+static void filled(struct choosenode *cn) {
+  when_filled_callback *const whenfilled = cn->whenfilled;
+
+  if(whenfilled) {
+    cn->whenfilled = 0;
+    whenfilled(cn, cn->wfu);
+  }
+}
+
 /** @brief Fill the root */
 static void fill_root_node(struct choosenode *cn) {
   int ch;
@@ -220,8 +250,11 @@ static void fill_root_node(struct choosenode *cn) {
       newnode(cn, "<letter>", "*", "~", CN_EXPANDABLE, fill_letter_node);
     }
     updated_node(cn, 1);
+    filled(cn);
   } else {
     /* More de-duping possible here */
+    if(cn->flags & CN_GETTING_ANY)
+      return;
     gtk_label_set_text(GTK_LABEL(report_label), "getting files");
     cbd = xmalloc(sizeof *cbd);
     cbd->u.choosenode = cn;
@@ -229,6 +262,7 @@ static void fill_root_node(struct choosenode *cn) {
     cbd = xmalloc(sizeof *cbd);
     cbd->u.choosenode = cn;
     disorder_eclient_files(client, got_files, "", 0, cbd);
+    cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
   }
 }
 
@@ -284,6 +318,8 @@ static void fill_letter_node(struct choosenode *cn) {
   struct callbackdata *cbd;
 
   D(("fill_letter_node %s", cn->display));
+  if(cn->flags & CN_GETTING_ANY)
+    return;
   switch(cn->display[0]) {
   default:
     byte_xasprintf((char **)&regexp, "^(the )?%c", tolower(cn->display[0]));
@@ -305,6 +341,7 @@ static void fill_letter_node(struct choosenode *cn) {
   cbd = xmalloc(sizeof *cbd);
   cbd->u.choosenode = cn;
   disorder_eclient_files(client, got_files, "", regexp, cbd);
+  cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
 }
 
 /** @brief Called with a list of files just below some node */
@@ -316,6 +353,8 @@ static void got_files(void *v, int nvec, char **vec) {
   D(("got_files %d files for %s", nvec, cn->path));
   /* Complicated by the need to resolve aliases.  We can save a bit of effort
    * by re-using cbd though. */
+  cn->flags &= ~CN_GETTING_FILES;
+  cn->flags |= CN_RESOLVING_FILES;
   cn->pending = nvec;
   for(n = 0; n < nvec; ++n)
     disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
@@ -332,8 +371,12 @@ static void got_resolved_file(void *v, const char *track) {
                     trackname_transform("track", track, "sort"),
                     0/*flags*/, 0/*fill*/);
   /* Only bother updating when we've got the lot */
-  if(--cn->pending == 0)
+  if(--cn->pending == 0) {
+    cn->flags &= ~CN_RESOLVING_FILES;
     updated_node(cn, 1);
+    if(!(cn->flags & CN_GETTING_ANY))
+      filled(cn);
+  }
 }
 
 /** @brief Called with a list of directories just below some node */
@@ -356,6 +399,9 @@ static void got_dirs(void *v, int nvec, char **vec) {
             trackname_transform("dir", vec[n], "sort"),
             CN_EXPANDABLE, fill_directory_node);
   updated_node(cn, 1);
+  cn->flags &= ~CN_GETTING_DIRS;
+  if(!(cn->flags & CN_GETTING_ANY))
+    filled(cn);
 }
   
 /** @brief Fill a child node */
@@ -365,6 +411,8 @@ static void fill_directory_node(struct choosenode *cn) {
   D(("fill_directory_node %s", cn->path));
   /* TODO: caching */
   /* TODO: de-dupe against fill_letter_node */
+  if(cn->flags & CN_GETTING_ANY)
+    return;
   assert(report_label != 0);
   gtk_label_set_text(GTK_LABEL(report_label), "getting files");
   clear_children(cn);
@@ -374,6 +422,7 @@ static void fill_directory_node(struct choosenode *cn) {
   cbd = xmalloc(sizeof *cbd);
   cbd->u.choosenode = cn;
   disorder_eclient_files(client, got_files, cn->path, 0, cbd);
+  cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
 }
 
 /** @brief Expand a node */
@@ -903,6 +952,10 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
     }
   } else if(event->type == GDK_BUTTON_PRESS
      && event->button == 3) {
+    struct choose_menuitem *const menuitems =
+      (cn->flags & CN_EXPANDABLE ? dir_menuitems : track_menuitems);
+    GtkWidget *const menu =
+      (cn->flags & CN_EXPANDABLE ? dir_menu : track_menu);
     /* Right click.  Pop up a menu. */
     /* If the current file isn't selected, switch the selection to just that.
      * (If we're looking at a directory then leave the selection alone.) */
@@ -912,7 +965,7 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
       last_click = cn;
     }
     /* Set the item sensitivity and callbacks */
-    for(n = 0; n < NMENUITEMS; ++n) {
+    for(n = 0; menuitems[n].name; ++n) {
       if(menuitems[n].handlerid)
         g_signal_handler_disconnect(menuitems[n].w,
                                     menuitems[n].handlerid);
@@ -934,7 +987,7 @@ static void searchentry_changed(GtkEditable attribute((unused)) *editable,
   initiate_search();
 }
 
-/* Menu items -------------------------------------------------------------- */
+/* Track menu items -------------------------------------------------------- */
 
 /** @brief Recursive step for gather_selected() */
 static void recurse_selected(struct choosenode *cn, struct vector *v) {
@@ -951,20 +1004,20 @@ static void recurse_selected(struct choosenode *cn, struct vector *v) {
 }
 
 /*** @brief Get a list of all the selected tracks */
-static char **gather_selected(int *ntracks) {
+static const char **gather_selected(int *ntracks) {
   struct vector v;
 
   vector_init(&v);
   recurse_selected(root, &v);
   vector_terminate(&v);
   if(ntracks) *ntracks = v.nvec;
-  return v.vec;
+  return (const char **)v.vec;
 }
 
-/** @brief Called when the menu's play option is activated */
-static void activate_play(GtkMenuItem attribute((unused)) *menuitem,
-                          gpointer attribute((unused)) user_data) {
-  char **tracks = gather_selected(0);
+/** @brief Called when the track menu's play option is activated */
+static void activate_track_play(GtkMenuItem attribute((unused)) *menuitem,
+                                gpointer attribute((unused)) user_data) {
+  const char **tracks = gather_selected(0);
   int n;
   
   gtk_label_set_text(GTK_LABEL(report_label), "adding track to queue");
@@ -972,38 +1025,129 @@ static void activate_play(GtkMenuItem attribute((unused)) *menuitem,
     disorder_eclient_play(client, tracks[n], 0, 0);
 }
 
-#if 0
-static void activate_remove(GtkMenuItem attribute((unused)) *menuitem,
-                            gpointer attribute((unused)) user_data) {
-  /* TODO remove all selected tracks */
-}
-#endif
-
 /** @brief Called when the menu's properties option is activated */
-static void activate_properties(GtkMenuItem attribute((unused)) *menuitem,
-                                gpointer attribute((unused)) user_data) {
+static void activate_track_properties(GtkMenuItem attribute((unused)) *menuitem,
+                                      gpointer attribute((unused)) user_data) {
   int ntracks;
-  char **tracks = gather_selected(&ntracks);
+  const char **tracks = gather_selected(&ntracks);
 
   properties(ntracks, tracks);
 }
 
 /** @brief Determine whether the menu's play option should be sensitive */
-static gboolean sensitive_play(struct choosenode attribute((unused)) *cn) {
+static gboolean sensitive_track_play(struct choosenode attribute((unused)) *cn) {
   return (!!files_selected
           && (disorder_eclient_state(client) & DISORDER_CONNECTED));
 }
 
-#if 0
-static gboolean sensitive_remove(struct choosenode attribute((unused)) *cn) {
-  return FALSE;                         /* not implemented yet */
-}
-#endif
-
 /** @brief Determine whether the menu's properties option should be sensitive */
-static gboolean sensitive_properties(struct choosenode attribute((unused)) *cn) {
+static gboolean sensitive_track_properties(struct choosenode attribute((unused)) *cn) {
   return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
+
+/* Directory menu items ---------------------------------------------------- */
+
+/** @brief Return the file children of @p cn
+ *
+ * The list is terminated by a null pointer.
+ */
+static const char **dir_files(struct choosenode *cn, int *nfiles) {
+  const char **files = xcalloc(cn->children.nvec + 1, sizeof (char *));
+  int n, m;
+
+  for(n = m = 0; n < cn->children.nvec; ++n) 
+    if(!(cn->children.vec[n]->flags & CN_EXPANDABLE))
+      files[m++] = cn->children.vec[n]->path;
+  files[m] = 0;
+  if(nfiles) *nfiles = m;
+  return files;
+}
+
+static void play_dir(struct choosenode *cn,
+                     void attribute((unused)) *wfu) {
+  int ntracks, n;
+  const char **tracks = dir_files(cn, &ntracks);
+  
+  gtk_label_set_text(GTK_LABEL(report_label), "adding track to queue");
+  for(n = 0; n < ntracks; ++n)
+    disorder_eclient_play(client, tracks[n], 0, 0);
+}
+
+static void properties_dir(struct choosenode *cn,
+                           void attribute((unused)) *wfu) {
+  int ntracks;
+  const char **tracks = dir_files(cn, &ntracks);
+  
+  properties(ntracks, tracks);
+}
+
+static void select_dir(struct choosenode *cn,
+                       void attribute((unused)) *wfu) {
+  int n;
+
+  clear_selection(root);
+  for(n = 0; n < cn->children.nvec; ++n) 
+    set_selection(cn->children.vec[n], 1);
+}
+
+/** @brief Ensure @p cn is expanded and then call @p callback */
+static void call_with_dir(struct choosenode *cn,
+                          when_filled_callback *whenfilled,
+                          void *wfu) {
+  if(!(cn->flags & CN_EXPANDABLE))
+    return;                             /* something went wrong */
+  if(cn->flags & CN_EXPANDED)
+    /* @p cn is already open */
+    whenfilled(cn, wfu);
+  else {
+    /* @p cn is not open, arrange for the callback to go off when it is
+     * opened */
+    cn->whenfilled = whenfilled;
+    cn->wfu = wfu;
+    expand_node(cn);
+  }
+}
+
+/** @brief Called when the directory menu's play option is activated */
+static void activate_dir_play(GtkMenuItem attribute((unused)) *menuitem,
+                              gpointer user_data) {
+  struct choosenode *const cn = (struct choosenode *)user_data;
+
+  call_with_dir(cn, play_dir, 0);
+}
+
+/** @brief Called when the directory menu's properties option is activated */
+static void activate_dir_properties(GtkMenuItem attribute((unused)) *menuitem,
+                                    gpointer user_data) {
+  struct choosenode *const cn = (struct choosenode *)user_data;
+
+  call_with_dir(cn, properties_dir, 0);
+}
+
+/** @brief Called when the directory menu's select option is activated */
+static void activate_dir_select(GtkMenuItem attribute((unused)) *menuitem,
+                                gpointer user_data) {
+  struct choosenode *const cn = (struct choosenode *)user_data;
+
+  call_with_dir(cn, select_dir,  0);
+}
+
+/** @brief Determine whether the directory menu's play option should be sensitive */
+static gboolean sensitive_dir_play(struct choosenode attribute((unused)) *cn) {
+  return !!(disorder_eclient_state(client) & DISORDER_CONNECTED);
+}
+
+/** @brief Determine whether the directory menu's properties option should be sensitive */
+static gboolean sensitive_dir_properties(struct choosenode attribute((unused)) *cn) {
+  return !!(disorder_eclient_state(client) & DISORDER_CONNECTED);
+}
+
+/** @brief Determine whether the directory menu's select option should be sensitive */
+static gboolean sensitive_dir_select(struct choosenode attribute((unused)) *cn) {
+  return TRUE;
+}
+
+
 
 /* Main menu plumbing ------------------------------------------------------ */
 
@@ -1022,7 +1166,7 @@ static int choose_selectall_sensitive(GtkWidget attribute((unused)) *w) {
 
 /** @brief Called when the edit menu's properties option is activated */
 static void choose_properties_activate(GtkWidget attribute((unused)) *w) {
-  activate_properties(0, 0);
+  activate_track_properties(0, 0);
 }
 
 /** @brief Called when the edit menu's select all option is activated
@@ -1097,14 +1241,28 @@ GtkWidget *choose_widget(void) {
                  CN_EXPANDABLE, fill_root_node);
   realroot = root;
   expand_node(root);                    /* will call redisplay_tree */
-  /* Create the popup menu */
+  /* Create the popup menus */
   NW(menu);
-  menu = gtk_menu_new();
-  g_signal_connect(menu, "destroy", G_CALLBACK(gtk_widget_destroyed), &menu);
-  for(n = 0; n < NMENUITEMS; ++n) {
+  track_menu = gtk_menu_new();
+  g_signal_connect(track_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
+                   &track_menu);
+  for(n = 0; track_menuitems[n].name; ++n) {
     NW(menu_item);
-    menuitems[n].w = gtk_menu_item_new_with_label(menuitems[n].name);
-    gtk_menu_attach(GTK_MENU(menu), menuitems[n].w, 0, 1, n, n + 1);
+    track_menuitems[n].w = 
+      gtk_menu_item_new_with_label(track_menuitems[n].name);
+    gtk_menu_attach(GTK_MENU(track_menu), track_menuitems[n].w,
+                    0, 1, n, n + 1);
+  }
+  NW(menu);
+  dir_menu = gtk_menu_new();
+  g_signal_connect(dir_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
+                   &dir_menu);
+  for(n = 0; dir_menuitems[n].name; ++n) {
+    NW(menu_item);
+    dir_menuitems[n].w = 
+      gtk_menu_item_new_with_label(dir_menuitems[n].name);
+    gtk_menu_attach(GTK_MENU(dir_menu), dir_menuitems[n].w,
+                    0, 1, n, n + 1);
   }
   /* The layout is scrollable */
   scrolled = scroll_widget(GTK_WIDGET(chooselayout), "choose");
