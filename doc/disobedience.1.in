@@ -24,36 +24,7 @@ disobedience \- GUI client for DisOrder jukebox
 .RI [ OPTIONS ]
 .SH DESCRIPTION
 .B disobedience
-is a graphical client for DisOrder.  It is a work in progress and many features
-are not implemented yet.  However everything in this man page is either
-implemented or marked as missing.
-.SH OPTIONS
-.TP
-.B --config \fIPATH\fR, \fB-c \fIPATH
-Set the configuration file.  The default is
-.IR pkgconfdir/config .
-.TP
-.B --debug\fR, \fB-d
-Enable debugging.
-.TP
-.B --help\fR, \fB-h
-Display a usage message.
-.TP
-.B --version\fR, \fB-V
-Display version number.
-.SS "GTK+ Options"
-Additional options are supported by the GTK+ library.  Refer to GTK+
-documentation for further information.  Under X11 they include:
-.TP
-.B --display \fIDISPLAY\fR
-The X display to use.
-.TP
-.B --screen \fISCREEN\fR
-The screen number to use.
-.\" If know enough to use it you know enough to find it
-.\" .TP
-.\" .B --sync
-.\" Make all X requests synchronously.
+is a graphical client for DisOrder.
 .SH "WINDOWS AND ICONS"
 .SS "File Menu"
 This only has one option, "Quit", which terminates the program.
@@ -64,7 +35,9 @@ This has the following options:
 Select all tracks in whichever of the Queue or Recent tabs are showing.
 .TP
 .B Properties
-Edit the details of the selected tracks.
+Edit the details of the selected tracks.  See
+.B "Properties Window"
+below.
 .SS "Help Menu"
 This has only one option, "About DisOrder", which pops up a box giving the
 name, author and version number of the software.
@@ -155,15 +128,31 @@ for each tag.
 To start a new search just edit the contents of the search box.  The cancel
 button to its right clears the current search.
 .PP
-Right clicking will pop up a menu with the following options:
+Right clicking over a track will pop up a menu with the following options:
 .TP
 .B Play
 Play selected tracks.
 .TP
 .B Properties
-Edit properties of selected tracks.
+Edit properties of selected tracks.  See
+.B "Properties Window"
+below.
 .PP
-A middle click on a file will add it to the queue.
+A middle click on a track will add it to the queue.
+.PP
+Right clicking over a directory will pop up a menu with the following options:
+.TP
+.B "Play all tracks"
+Play all the tracks in the directory, in the order they appear on screen.
+.TP
+.B "Track properties"
+Edit properties of all tracks in the directory.
+.TP
+.B "Select all tracks"
+Select all the tracks in the directory (and deselect everything else).
+.PP
+Note that these options do not apply recursively - only the tracks in the
+relevant directory are affected, not those in its subdirectories.
 .SS "Properties Window"
 This window contains details of one or more tracks and allows them to be
 edited.
@@ -193,9 +182,37 @@ Select all tracks (queue/recent)
 .TP
 .B CTRL+Q
 Quit.
+.SH OPTIONS
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.  The default is
+.IR pkgconfdir/config .
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SS "GTK+ Options"
+Additional options are supported by the GTK+ library.  Refer to GTK+
+documentation for further information.  Under X11 they include:
+.TP
+.B --display \fIDISPLAY\fR
+The X display to use.
+.TP
+.B --screen \fISCREEN\fR
+The screen number to use.
+.\" If know enough to use it you know enough to find it
+.\" .TP
+.\" .B --sync
+.\" Make all X requests synchronously.
 .SH "GTK+ RESOURCES"
 You can override these resources in order to customize the appearance of
-Disobedience.  TODO example that actually works.
+Disobedience.
+.\" TODO example that actually works.
 .SS "Widget Names"
 .TP
 .B disobedience.*.choose
@@ -244,6 +261,10 @@ chmod 600 .disorder/passwd
 .RE
 .SH "SEE ALSO"
 .BR disorder_config (5)
+.PP
+.B http://www.greenend.org.uk/rjk/disorder/
+.br
+- DisOrder home page
 .PP
 .B http://www.gtk.org/api/2.6/gtk/gtk-x11.html
 .br
