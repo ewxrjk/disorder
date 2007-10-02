@@ -8,6 +8,8 @@ it is not recommended that you run the server on this platform.
 
 Things you will need to do:
 
+configure with --with-server.
+
 Make sure that ~jukebox/Library/Logs/CrashReporter/ (or whatever)
 exists and is writable by the jukebox user.
 

@@ -4,9 +4,6 @@ See ChangeLog.d/* for detailed revision history.
 
 ** General
 
-There is a new client, 'Disobedience', that depends on the GTK+ library.
-Feedback on the interface would be very welcome.
-
 Tracks can now have tags associated with them.  See tags in disorder(1)
 or the preferences documentation for the web interface or Disobedience.
 
@@ -14,6 +11,21 @@ The search facility knows how to limit results by tag (see search
 documentation for any interface) as well as by word search.  It is
 possible to limit random play by tag (see required-tags and
 prohibited-tags in disorder_config(5)).
+
+** Disobedience
+
+There is a new client, 'Disobedience', that depends on the GTK+ library.
+Feedback on the interface would be very welcome.
+
+** Web Interface
+
+The "New" screen display tracks recently added to the database.  From
+here they can be played or their preferences changed.
+
+** Network Play
+
+DisOrder can broadcast audio over a network, allowing it to be played on
+multiple client machines.  See README.streams for details.
 
 ** Server
 
@@ -40,16 +52,6 @@ tracks kept on the queue to be controlled.
 
 There is a new utility disorder-decode which can decode OGG, MP3, WAV
 and FLAC.  The example config file uses it.
-
-** Web Interface
-
-The "New" screen display tracks recently added to the database.  From
-here they can be played or their preferences changed.
-
-** Network Play
-
-DisOrder can broadcast audio over a network, allowing it to be played on
-multiple client machines.  See README.streams for details.
 
 ** disorderfm
 

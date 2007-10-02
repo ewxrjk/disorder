@@ -153,6 +153,25 @@ Select all the tracks in the directory (and deselect everything else).
 .PP
 Note that these options do not apply recursively - only the tracks in the
 relevant directory are affected, not those in its subdirectories.
+.SS "Added Tab"
+This displays a list of tracks recently added to the server's database.  The
+most recently added track is at the top.
+.PP
+Left clicking a track will select it.  CTRL and SHIFT work as above to select
+muliple files.
+.PP
+Right clicking over a track will pop up a menu with the following options:
+.TP
+.B "Track properties"
+Edit properties of selected tracks.  See
+.B "Properties Window"
+below.
+.TP
+.B "Play track"
+Play selected tracks.
+.TP
+.B "Select All Tracks"
+Select all tracks.
 .SS "Properties Window"
 This window contains details of one or more tracks and allows them to be
 edited.

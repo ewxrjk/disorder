@@ -80,16 +80,19 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
      --without-gtk          Don't build GTK+ client (Disobedience)
      --without-python       Don't build Python support
 
-   See README.client for setting up a standalone client.
+   See README.client for setting up a standalone client (or read the
+   disobedience man page).
+
+   The server is only built by default under Linux.  See README.mac concerning
+   its use under OS X.
 
 2. Install it.  Most of the installation is done via the install target:
 
      make installdirs install
 
-   The CGI interface has to be installed separately, and you must use Libtool
-   to install it.  For instance:
+   The CGI interface has to be installed separately:
 
-     ./libtool --mode=install install -m 755 clients/disorder.cgi /usr/local/lib/cgi-bin/disorder
+     install -m 755 clients/disorder.cgi /usr/local/lib/cgi-bin/disorder
 
    Depending on how your system is configured you may need to link the disorder
    libao driver into the right directory:
