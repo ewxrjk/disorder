@@ -96,6 +96,9 @@ struct transformlist {
 struct config {
   /* server config */
 
+  /** @brief Authorization algorithm */
+  char *authorization_algorithm;
+  
   /** @brief All players */
   struct stringlistlist player;
 

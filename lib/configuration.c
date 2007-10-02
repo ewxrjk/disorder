@@ -51,6 +51,7 @@
 #include "printf.h"
 #include "regsub.h"
 #include "signame.h"
+#include "authhash.h"
 
 /** @brief Path to config file 
  *
@@ -812,6 +813,20 @@ static int validate_port(const struct config_state attribute((unused)) *cs,
   }
 }
 
+static int validate_algo(const struct config_state attribute((unused)) *cs,
+			 int nvec,
+			 char **vec) {
+  if(nvec != 1) {
+    error(0, "%s:%d: invalid algorithm specification", cs->path, cs->line);
+    return -1;
+  }
+  if(!valid_authhash(vec[0])) {
+    error(0, "%s:%d: unsuported algorithm '%s'", cs->path, cs->line, vec[0]);
+    return -1;
+  }
+  return 0;
+}
+
 /** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
 /** @brief Item name and and offset */
@@ -821,6 +836,7 @@ static int validate_port(const struct config_state attribute((unused)) *cs,
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
+  { C(authorization_algorithm), &type_string,    validate_algo },
   { C(broadcast),        &type_stringlist,       validate_addrport },
   { C(broadcast_from),   &type_stringlist,       validate_addrport },
   { C(channel),          &type_string,           validate_channel },
@@ -975,6 +991,7 @@ static struct config *config_default(void) {
   c->queue_pad = 10;
   c->speaker_backend = -1;
   c->multicast_ttl = 1;
+  c->authorization_algorithm = xstrdup("sha1");
   return c;
 }
 

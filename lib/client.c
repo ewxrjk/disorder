@@ -207,11 +207,12 @@ int disorder_connect_sock(disorder_client *c,
 			  const char *username,
 			  const char *password,
 			  const char *ident) {
-  int fd = -1, fd2 = -1;
+  int fd = -1, fd2 = -1, nrvec;
   unsigned char *nonce;
   size_t nl;
   const char *res;
-  char *r;
+  char *r, **rvec;
+  const char *algo = "SHA1";
 
   if(!password) {
     error(0, "no password found");
@@ -243,9 +244,17 @@ int disorder_connect_sock(disorder_client *c,
   c->ident = xstrdup(ident);
   if(disorder_simple(c, &r, 0, (const char *)0))
     return -1;
-  if(!(nonce = unhex(r, &nl)))
+  if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
     return -1;
-  if(!(res = authhash(nonce, nl, password))) goto error;
+  if(nrvec > 1) {
+    algo = *rvec++;
+    --nrvec;
+  }
+  if(!nrvec)
+    return -1;
+  if(!(nonce = unhex(*rvec, &nl)))
+    return -1;
+  if(!(res = authhash(nonce, nl, password, algo))) goto error;
   if(disorder_simple(c, 0, "user", username, res, (char *)0))
     return -1;
   c->user = xstrdup(username);

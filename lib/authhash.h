@@ -21,7 +21,8 @@
 #define AUTHHASH_H
 
 const char *authhash(const void *challenge, size_t nchallenge,
-		     const char *user);
+		     const char *user, const char *algo);
+int valid_authhash(const char *algo);
 
 #endif /* AUTHHASH_H */
 

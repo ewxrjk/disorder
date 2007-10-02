@@ -231,10 +231,10 @@ Unset a global preference.
 Authenticate as \fIUSER\fR.
 .IP
 When a connection is made the server sends a \fB221\fR response before any
-command is received.  As its first field this contains a challenge string
-encoded in hex.
+command is received.  This contains an algorithm name and a challenge encoded
+in hex.  Currently the algorithm name is omitted if it is "sha1".
 .IP
-The \fIRESPONSE\fR consists of the SHA-1 hash of the user's password
+The \fIRESPONSE\fR consists of the selected hash of the user's password
 concatenated with the challenge, encoded in hex.
 .TP
 .B version

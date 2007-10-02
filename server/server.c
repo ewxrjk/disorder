@@ -391,7 +391,8 @@ static int c_user(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
-  res = authhash(c->nonce, sizeof c->nonce, config->allow.s[n].s[1]);
+  res = authhash(c->nonce, sizeof c->nonce, config->allow.s[n].s[1],
+		 config->authorization_algorithm);
   if(wideopen || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
     /* currently we only bother logging remote connections */
@@ -1084,7 +1085,15 @@ static int listen_callback(ev_source *ev,
   c->reader = reader_callback;
   c->l = l;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
-  sink_printf(ev_writer_sink(c->w), "231 %s\n", hex(c->nonce, sizeof c->nonce));
+  if(!strcmp(config->authorization_algorithm, "sha1")
+     || !strcmp(config->authorization_algorithm, "SHA1")) {
+    sink_printf(ev_writer_sink(c->w), "231 %s\n",
+		hex(c->nonce, sizeof c->nonce));
+  } else {
+    sink_printf(ev_writer_sink(c->w), "231 %s %s\n",
+		config->authorization_algorithm,
+		hex(c->nonce, sizeof c->nonce));
+  }
   return 0;
 }
 

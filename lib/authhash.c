@@ -30,44 +30,83 @@
 #include "log.h"
 #include "authhash.h"
 
-#ifndef AUTHHASH
-/** @brief Which hash function to use */
-# define AUTHHASH GCRY_MD_SHA1
-#endif
+/** @brief Structure of algorithm lookup table */
+struct algorithm {
+  const char *name;
+  int id;
+};
+
+/** @brief Algorithm lookup table
+ *
+ * We don't use gcry_md_map_name() since that would import gcrypt's API into
+ * the disorder protocol.
+ */
+static const struct algorithm algorithms[] = {
+  { "SHA1", GCRY_MD_SHA1 },
+  { "sha1", GCRY_MD_SHA1 },
+  { "SHA256", GCRY_MD_SHA256 },
+  { "sha256", GCRY_MD_SHA256 },
+  { "SHA384", GCRY_MD_SHA384 },
+  { "sha384", GCRY_MD_SHA384 },
+  { "SHA512", GCRY_MD_SHA512 },
+  { "sha512", GCRY_MD_SHA512 },
+};
+
+/** @brief Number of supported algorithms */
+#define NALGORITHMS (sizeof algorithms / sizeof *algorithms)
 
 /** @brief Perform the authorization hash function
  * @param challenge Pointer to challange
  * @param nchallenge Size of challenge
  * @param password Password
+ * @param algo Algorithm to use
  *
  * Computes H(challenge|password) and returns it as a newly allocated hex
- * string.  Currently the hash function is SHA-1, but this may be changed in
- * future versions; see @ref AUTHHASH.
+ * string, or returns NULL on error.
  */
 const char *authhash(const void *challenge, size_t nchallenge,
-		     const char *password) {
+		     const char *password, const char *algo) {
   gcrypt_hash_handle h;
   const char *res;
+  size_t n;
+  int id;
 
   assert(challenge != 0);
   assert(password != 0);
+  assert(algo != 0);
+  for(n = 0; n < NALGORITHMS; ++n)
+    if(!strcmp(algo, algorithms[n].name))
+      break;
+  if(n >= NALGORITHMS)
+    return NULL;
+  id = algorithms[n].id;
 #if HAVE_GCRY_ERROR_T
   {
     gcry_error_t e;
     
-    if((e = gcry_md_open(&h, AUTHHASH, 0))) {
+    if((e = gcry_md_open(&h, id, 0))) {
       error(0, "gcry_md_open: %s", gcry_strerror(e));
       return 0;
     }
   }
 #else
-  h = gcry_md_open(AUTHHASH, 0);
+  h = gcry_md_open(id, 0);
 #endif
   gcry_md_write(h, password, strlen(password));
   gcry_md_write(h, challenge, nchallenge);
-  res = hex(gcry_md_read(h, AUTHHASH), gcry_md_get_algo_dlen(AUTHHASH));
+  res = hex(gcry_md_read(h, id), gcry_md_get_algo_dlen(id));
   gcry_md_close(h);
   return res;
+}
+
+/** @brief Return non-zero if @p algo is a valid algorithm */
+int valid_authhash(const char *algo) {
+  size_t n;
+
+  for(n = 0; n < NALGORITHMS; ++n)
+    if(!strcmp(algo, algorithms[n].name))
+      return 1;
+  return 0;
 }
 
 /*

@@ -503,16 +503,31 @@ static void authbanner_opcallback(disorder_eclient *c,
   size_t nonce_len;
   const unsigned char *nonce;
   const char *res;
+  char **rvec;
+  int nrvec;
+  const char *algo = "SHA1";
   
   D(("authbanner_opcallback"));
-  if(c->rc / 100 != 2) {
-    /* Banner told us to go away.  We cannot proceed. */
+  if(c->rc / 100 != 2
+     || !(rvec = split(c->line + 4, &nrvec, SPLIT_QUOTES, 0, 0))
+     || nrvec < 1) {
+    /* Banner told us to go away, or was malformed.  We cannot proceed. */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
     disorder_eclient_close(c);
     return;
   }
+  if(nrvec > 1) {
+    algo = *rvec++;
+    --nrvec;
+  }
   nonce = unhex(c->line +  4, &nonce_len);
-  res = authhash(nonce, nonce_len, config->password);
+  res = authhash(nonce, nonce_len, config->password, algo);
+  if(!res) {
+    protocol_error(c, op, c->rc, "%s: unknown authentication algorithm '%s'",
+                   c->ident, algo);
+    disorder_eclient_close(c);
+    return;
+  }
   stash_command(c, 1/*queuejump*/, authuser_opcallback, 0/*completed*/, 0/*v*/,
                 "user", quoteutf8(config->username), quoteutf8(res),
                 (char *)0);
