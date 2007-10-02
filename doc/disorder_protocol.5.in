@@ -228,14 +228,9 @@ Unset a preference.
 Unset a global preference.
 .TP
 .B user \fIUSER\fR \fIRESPONSE\fR
-Authenticate as \fIUSER\fR.
-.IP
-When a connection is made the server sends a \fB221\fR response before any
-command is received.  This contains an algorithm name and a challenge encoded
-in hex.  Currently the algorithm name is omitted if it is "sha1".
-.IP
-The \fIRESPONSE\fR consists of the selected hash of the user's password
-concatenated with the challenge, encoded in hex.
+Authenticate as \fIUSER\fR.  See
+.B AUTHENTICATION
+below.
 .TP
 .B version
 Send back a response with the server version as the second field.
@@ -296,12 +291,16 @@ for \fBlog\fR.)
 The text part is just commentary (but would normally be a response for this
 command) e.g. \fBplaying\fR.
 .SH AUTHENTICATION
-The server starts by issuing a challenge line, with response code 231.  This
-contains a random challenge encoded in hex.
+When a connection is made the server sends a \fB231\fR response before any
+command is received.  This contains an algorithm name and a challenge encoded
+in hex.
 .PP
-The client should send back a \fBuser\fR command with username and a
-hex-encoded response.  The response is the SHA-1 hash of the user's password
-and the challenge.
+Currently the algorithm name is omitted if it is \fBsha1\fR (but this will
+probably change in a future version).  The other options are \fBsha256\fR,
+\fBsha384\fR and \fBsha512\fR.  \fBSHA1\fR etc work as synonyms.
+.PP
+The \fBuser\fR response consists of the selected hash of the user's password
+concatenated with the challenge, encoded in hex.
 .SH "TRACK INFORMATION"
 Track information is encoded in a line (i.e. using the usual line syntax) as
 pairs of fields.  The first is a name, the second a value.  The names have the
