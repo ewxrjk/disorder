@@ -316,6 +316,10 @@ int disorder_eclient_nop(disorder_eclient *c,
                          disorder_eclient_no_response *completed,
                          void *v);
 
+int disorder_eclient_new_tracks(disorder_eclient *c,
+                                disorder_eclient_list_response *completed,
+                                int max,
+                                void *v);
 #endif
 
 /*

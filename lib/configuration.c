@@ -857,6 +857,7 @@ static const struct conf conf[] = {
   { C(nice_rescan),      &type_integer,          validate_non_negative },
   { C(nice_server),      &type_integer,          validate_any },
   { C(nice_speaker),     &type_integer,          validate_any },
+  { C(noticed_history),  &type_integer,          validate_positive },
   { C(password),         &type_string,           validate_any },
   { C(player),           &type_stringlist_accum, validate_player },
   { C(plugins),          &type_string_accum,     validate_isdir },
@@ -992,6 +993,7 @@ static struct config *config_default(void) {
   c->speaker_backend = -1;
   c->multicast_ttl = 1;
   c->authorization_algorithm = xstrdup("sha1");
+  c->noticed_history = 31;
   return c;
 }
 

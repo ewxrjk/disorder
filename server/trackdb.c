@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 #include "event.h"
 #include "mem.h"
@@ -65,6 +66,9 @@ static int trackdb_alltags_tid(DB_TXN *tid, char ***taglistp);
 static int trackdb_get_global_tid(const char *name,
                                   DB_TXN *tid,
                                   const char **rp);
+static char **trackdb_new_tid(int *ntracksp,
+                              int maxtracks,
+                              DB_TXN *tid);
 
 const struct cache_type cache_files_type = { 86400 };
 unsigned long cache_files_hits, cache_files_misses;
@@ -78,6 +82,7 @@ DB *trackdb_prefsdb;			/* preferences */
 DB *trackdb_searchdb;			/* the search database */
 DB *trackdb_tagsdb;			/* the tags database */
 DB *trackdb_globaldb;                   /* global preferences */
+DB *trackdb_noticeddb;                   /* when track noticed */
 static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
 static int initialized, opened;         /* state */
@@ -247,6 +252,8 @@ void trackdb_open(void) {
                            DB_DUP|DB_DUPSORT, DB_HASH, DB_CREATE, 0666);
   trackdb_prefsdb = open_db("prefs.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
+  trackdb_noticeddb = open_db("noticed.db",
+                             DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
   D(("opened databases"));
 }
 
@@ -267,6 +274,8 @@ void trackdb_close(void) {
     fatal(0, "error closing prefs.db: %s", db_strerror(err));
   if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
     fatal(0, "error closing global.db: %s", db_strerror(err));
+  if((err = trackdb_noticeddb->close(trackdb_noticeddb, 0)))
+    fatal(0, "error closing noticed.db: %s", db_strerror(err));
   trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;
   trackdb_tagsdb = trackdb_globaldb = 0;
   D(("closed databases"));
@@ -673,7 +682,9 @@ done:
 
 /* trackdb_notice() **********************************************************/
 
-/* notice a track */
+/** @brief notice a possiby new  track
+ * @return @c DB_NOTFOUND if new, 0 if already known
+ */
 int trackdb_notice(const char *track,
                    const char *path) {
   int err;
@@ -691,6 +702,9 @@ int trackdb_notice(const char *track,
   return err;
 }
 
+/** @brief notice a possiby new  track
+ * @return @c DB_NOTFOUND if new, 0 if already known, @c DB_LOCK_DEADLOCK also
+ */
 int trackdb_notice_tid(const char *track,
                        const char *path,
                        DB_TXN *tid) {
@@ -698,13 +712,13 @@ int trackdb_notice_tid(const char *track,
   struct kvp *t, *a, *p;
   int t_changed, ret;
   char *alias, **w;
-  
+
   /* notice whether the tracks.db entry changes */
   t_changed = 0;
   /* get any existing tracks entry */
   if((err = gettrackdata(track, &t, &p, 0, 0, tid)) == DB_LOCK_DEADLOCK)
     return err;
-  ret = err;
+  ret = err;                            /* 0 or DB_NOTFOUND */
   /* this is a real track */
   t_changed += kvp_set(&t, "_alias_for", 0);
   t_changed += kvp_set(&t, "_path", path);
@@ -731,6 +745,24 @@ int trackdb_notice_tid(const char *track,
   /* only store the tracks.db entry if it has changed */
   if(t_changed && (err = trackdb_putdata(trackdb_tracksdb, track, t, tid, 0)))
     return err;
+  if(ret == DB_NOTFOUND) {
+    uint32_t timestamp[2];
+    time_t now;
+    DBT key, data;
+
+    time(&now);
+    timestamp[0] = htonl((uint64_t)now >> 32);
+    timestamp[1] = htonl((uint32_t)now);
+    memset(&key, 0, sizeof key);
+    key.data = timestamp;
+    key.size = sizeof timestamp;
+    switch(err = trackdb_noticeddb->put(trackdb_noticeddb, tid, &key,
+                                        make_key(&data, track), 0)) {
+    case 0: break;
+    case DB_LOCK_DEADLOCK: return err;
+    default: fatal(0, "error updating noticed.db: %s", db_strerror(err));
+    }
+  }
   return ret;
 }
 
@@ -1824,6 +1856,68 @@ static int trackdb_get_global_tid(const char *name,
   default:
     fatal(0, "error updating database: %s", db_strerror(err));
   }
+}
+
+/** @brief Retrieve the most recently added tracks
+ * @param ntracksp Where to put count, or 0
+ * @param maxtracks Maximum number of tracks to retrieve
+ * @return null-terminated array of track names
+ *
+ * The most recently added track is first in the array.
+ */
+char **trackdb_new(int *ntracksp,
+                   int maxtracks) {
+  DB_TXN *tid;
+  char **tracks;
+
+  for(;;) {
+    tid = trackdb_begin_transaction();
+    tracks = trackdb_new_tid(ntracksp, maxtracks, tid);
+    if(tracks)
+      break;
+    trackdb_abort_transaction(tid);
+  }
+  trackdb_commit_transaction(tid);
+  return tracks;
+}
+
+/** @brief Retrieve the most recently added tracks
+ * @param ntracksp Where to put count, or 0
+ * @param maxtracks Maximum number of tracks to retrieve, or 0 for all
+ * @param tid Transaction ID
+ * @return null-terminated array of track names, or NULL on deadlock
+ *
+ * The most recently added track is first in the array.
+ */
+static char **trackdb_new_tid(int *ntracksp,
+                              int maxtracks,
+                              DB_TXN *tid) {
+  DBC *c;
+  DBT k, d;
+  int err = 0;
+  struct vector tracks[1];
+
+  vector_init(tracks);
+  c = trackdb_opencursor(trackdb_noticeddb, tid);
+  while((maxtracks <= 0 || tracks->nvec < maxtracks)
+        && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV)))
+    vector_append(tracks, xstrndup(d.data, d.size));
+  switch(err) {
+  case 0:                               /* hit maxtracks */
+  case DB_NOTFOUND:                     /* ran out of tracks */
+    break;
+  case DB_LOCK_DEADLOCK:
+    trackdb_closecursor(c);
+    return 0;
+  default:
+    fatal(0, "error reading noticed.db: %s", db_strerror(err));
+  }
+  if((err = trackdb_closecursor(c)))
+    return 0;                           /* deadlock */
+  vector_terminate(tracks);
+  if(ntracksp)
+    *ntracksp = tracks->nvec;
+  return tracks->vec;
 }
 
 /* tidying up ****************************************************************/

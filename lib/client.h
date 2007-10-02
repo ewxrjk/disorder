@@ -181,6 +181,11 @@ int disorder_unset_global(disorder_client *c, const char *key);
 int disorder_get_global(disorder_client *c, const char *key, char **valuep);
 /* get/unset/set global prefs */
 
+int disorder_new_tracks(disorder_client *c,
+			char ***vecp, int *nvecp,
+			int max);
+/* get new tracks */
+
 #endif /* CLIENT_H */
 
 /*

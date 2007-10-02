@@ -117,6 +117,8 @@ void trackdb_set_global(const char *name,
 const char *trackdb_get_global(const char *name);
 /* get a global pref */
 
+char **trackdb_new(int *ntracksp, int maxtracks);
+
 #endif /* TRACKDB_H */
 
 /*

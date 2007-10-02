@@ -303,6 +303,11 @@ static void do_all(void (*fn)(const struct collection *c)) {
    */
 }
 
+/** @brief Expire noticed.db */
+static void expire_noticed(void) {
+  error(0, "expire_noticed not implemented yet TODO");
+}
+
 int main(int argc, char **argv) {
   int n;
   struct sigaction sa;
@@ -340,6 +345,8 @@ int main(int argc, char **argv) {
     do_all(rescan_collection);
     /* Check that every track still exists */
     recheck_collection(0);
+    /* Expire noticed.db */
+    expire_noticed();
   }
   else {
     /* Rescan specified collections */

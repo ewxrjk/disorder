@@ -268,6 +268,10 @@ is not massively CPU intensive by today's standards but depends on reasonably
 timely scheduling.  If you have limited CPU then it might help to set this to a
 small negative value.  The default is 0.
 .TP
+.B noticed_history
+The maximum days that a track can survive in the database of newly added
+tracks.  The default is 31.
+.TP
 .B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB--\fR]] \fIARGS\fR...
 Specifies the player for files matching the glob \fIPATTERN\fR.  \fIMODULE\fR
 specifies which plugin module to use.

@@ -109,6 +109,10 @@ the queue.  If \fITARGET\fR is listed in the ID list then the tracks are moved
 to just after the first non-listed track before it, or to the head if there is
 no such track.
 .TP
+.B new \fR[\fIMAX\fR]
+Sends the most recently added \fIMAX\fR tracks in a response body.  If the
+argument is ommitted, all recently added tracks are listed.
+.TP
 .B nop
 Do nothing.  Used by
 .BR disobedience (1)

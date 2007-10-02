@@ -914,6 +914,22 @@ static int c_nop(struct conn *c,
   return 1;
 }
 
+static int c_new(struct conn *c,
+		 char **vec,
+		 int nvec) {
+  char **tracks = trackdb_new(0, nvec > 0 ? atoi(vec[0]) : INT_MAX);
+
+  sink_printf(ev_writer_sink(c->w), "253 New track list follows\n");
+  while(*tracks) {
+    sink_printf(ev_writer_sink(c->w), "%s%s\n",
+		**tracks == '.' ? "." : "", *tracks);
+    ++tracks;
+  }
+  sink_writes(ev_writer_sink(c->w), ".\n");
+  return 1;				/* completed */
+
+}
+
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -937,6 +953,7 @@ static const struct command {
   { "log",            0, 0,       c_log,            C_AUTH },
   { "move",           2, 2,       c_move,           C_AUTH },
   { "moveafter",      1, INT_MAX, c_moveafter,      C_AUTH },
+  { "new",            0, 1,       c_new,            C_AUTH },
   { "nop",            0, 0,       c_nop,            C_AUTH },
   { "part",           3, 3,       c_part,           C_AUTH },
   { "pause",          0, 0,       c_pause,          C_AUTH },

@@ -1156,6 +1156,25 @@ int disorder_eclient_nop(disorder_eclient *c,
                 "nop", (char *)0);
 }
 
+/** @brief Get the last @p max added tracks
+ * @param c Client
+ * @param completed Called with list
+ * @param max Number of tracks to get, 0 for all
+ * @param v Passed to @p completed
+ *
+ * The first track in the list is the most recently added.
+ */
+int disorder_eclient_new_tracks(disorder_eclient *c,
+                                disorder_eclient_list_response *completed,
+                                int max,
+                                void *v) {
+  char limit[32];
+
+  sprintf(limit, "%d", max);
+  return simple(c, list_response_opcallback, (void (*)())completed, v,
+                "new", limit, (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

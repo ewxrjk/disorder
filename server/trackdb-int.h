@@ -26,6 +26,7 @@ extern DB_ENV *trackdb_env;
 extern DB *trackdb_tracksdb;
 extern DB *trackdb_prefsdb;
 extern DB *trackdb_searchdb;
+extern DB *trackdb_noticeddb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */
@@ -87,6 +88,7 @@ int trackdb_scan(const char *root,
  * EINTR to cancel the scan. */
 
 /* fill KEY in with S, returns KEY */
+
 static inline DBT *make_key(DBT *key, const char *s) {
   memset(key, 0, sizeof *key);
   key->data = (void *)s;

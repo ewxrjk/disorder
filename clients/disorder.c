@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <pcre.h>
+#include <ctype.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -378,6 +379,26 @@ static void cf_unset_global(disorder_client *c, char **argv) {
   if(disorder_unset_global(c, argv[0])) exit(EXIT_FAILURE);
 }
 
+static int isarg_integer(const char *s) {
+  if(!*s) return 0;
+  while(*s) {
+    if(!isdigit((unsigned char)*s))
+      return 0;
+    ++s;
+  }
+  return 1;
+}
+
+static void cf_new(disorder_client *c,
+		   char **argv) {
+  char **vec;
+
+  if(disorder_new_tracks(c, &vec, 0, argv[0] ? atoi(argv[0]) : 0))
+    exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -415,6 +436,8 @@ static const struct command {
                       "Copy event log to stdout" },
   { "move",           2, 2, cf_move, 0, "TRACK DELTA",
                       "Move a track in the queue" },
+  { "new",            0, 1, cf_new, isarg_integer, "[MAX]",
+                      "Get the most recently added MAX tracks" },
   { "part",           3, 3, cf_part, 0, "TRACK CONTEXT PART",
                       "Find a track name part" },
   { "pause",          0, 0, cf_pause, 0, "",

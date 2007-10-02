@@ -114,6 +114,9 @@ struct config {
   /** @brief Maximum number of recent tracks to record in history */
   long history;
 
+  /** @brief Expiry limit for noticed.db */
+  long noticed_history;
+  
   /** @brief Trusted users */
   struct stringlist trust;
 
