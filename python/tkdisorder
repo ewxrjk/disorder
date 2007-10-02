@@ -18,6 +18,12 @@
 # USA
 #
 
+# THIS PROGRAM IS NO LONGER MAINTAINED.
+#
+# It worked last time I tried running it, but all client maintenance
+# effort is now devoted to the web interface and the GTK+ client
+# (Disobedience).
+
 """Graphical user interface for DisOrder"""
 
 from Tkinter import *
