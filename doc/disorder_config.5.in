@@ -253,7 +253,7 @@ them.  See the example config file for the defaults.
 Set the recan subprocess priority.  The default is 10.
 .IP
 (Note that higher values mean the process gets less CPU time; UNIX priority
-values are the backwards.)
+values are backwards.)
 .TP
 .B nice_server \fIPRIORITY\fR
 Set the server priority.  This is applied to the server at startup time (and
