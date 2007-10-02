@@ -520,7 +520,7 @@ static void authbanner_opcallback(disorder_eclient *c,
     algo = *rvec++;
     --nrvec;
   }
-  nonce = unhex(c->line +  4, &nonce_len);
+  nonce = unhex(rvec[0], &nonce_len);
   res = authhash(nonce, nonce_len, config->password, algo);
   if(!res) {
     protocol_error(c, op, c->rc, "%s: unknown authentication algorithm '%s'",
