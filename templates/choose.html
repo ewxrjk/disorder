@@ -58,9 +58,9 @@ USA
       <img class=button src="@label:images.edit@"
       title="@label:choose.prefsverbose@" alt="@label:choose.prefs@">
      </a>
-     <a class=file href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@">
-      @transform{@file@}{track}{display}@
-     </a>
+     <a class=file
+     href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@"
+     title="@label:choose.play@">@transform{@file@}{track}{display}@</a>
      @if{@eq{@trackstate{@file@}@}{playing}@}{[<b>playing</b>]}@
      @if{@eq{@trackstate{@file@}@}{queued}@}{[<b>queued</b>]}@
     </p>

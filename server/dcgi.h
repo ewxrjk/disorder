@@ -30,10 +30,13 @@ typedef struct dcgi_global {
 #define DC_VOLUME 0x0008
 #define DC_DIRS 0x0010
 #define DC_FILES 0x0020
+#define DC_NEW 0x0040
   struct queue_entry *queue, *playing, *recent;
   int volume_left, volume_right;
   char **files, **dirs;
   int nfiles, ndirs;
+  char **new;
+  int nnew;
 } dcgi_global;
 
 typedef struct dcgi_state {

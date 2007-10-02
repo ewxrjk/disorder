@@ -78,6 +78,9 @@ label	playing.albumverbose	"more tracks from this album"
 # <TITLE> for recently played page
 label	recent.title		"Recently Played"
 
+# <TITLE> for new tracks page
+label	new.title		"New tracks"
+
 # <TITLE> for choose track page
 label	choose.title		"Pick track"
 
@@ -97,6 +100,9 @@ label	choose.prefsverbose	"edit track information"
 # Same, for edit all prefs
 label	choose.allprefs		"Edit all"
 label	choose.allprefsverbose	"edit all track information"
+
+# Caption for play-track links
+label	choose.play		"Add track to queue"
 
 # <TITLE> for search page
 label	search.title		Search
@@ -145,6 +151,7 @@ label	sidebar.choose		Choose
 label	sidebar.random		Random
 label	sidebar.search		Search
 label	sidebar.recent		Recent
+label	sidebar.new		New
 label	sidebar.about		About
 label	sidebar.volume		Volume
 label	sidebar.help		Help
@@ -155,6 +162,7 @@ label	sidebar.playingverbose	"current and queued tracks"
 label	sidebar.chooseverbose	"choose tracks"
 label	sidebar.searchverbose	"word search among track names"
 label	sidebar.recentverbose	"recently played tracks"
+label	sidebar.newverbose	"newly added tracks"
 label	sidebar.aboutverbose	"about DisOrder"
 label	sidebar.volumeverbose	"volume control"
 label	sidebar.helpverbose	"basic user guide"

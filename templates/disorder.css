@@ -24,7 +24,7 @@ h1.title {
   font-size: 18pt
 }
 
-/* playing and recent *********************************************************/
+/* playing, recent and new ***************************************************/
 
 /* table of current and future tracks */
 table.playing {
@@ -34,6 +34,12 @@ table.playing {
 
 /* table of recently played tracks */
 table.recent {
+  width: 100%;			/* use the full available width */
+  border-spacing: 0		/* no unsightly gaps between cells */
+}
+
+/* table of newly added played tracks */
+table.new {
   width: 100%;			/* use the full available width */
   border-spacing: 0		/* no unsightly gaps between cells */
 }

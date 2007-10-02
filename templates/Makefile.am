@@ -21,7 +21,7 @@
 pkgdata_DATA=about.html choose.html credits.html playing.html recent.html \
 	     stdhead.html stylesheet.html search.html about.html volume.html \
 	     sidebar.html prefs.html help.html choosealpha.html topbar.html \
-	     sidebarend.html topbarend.html error.html \
+	     sidebarend.html topbarend.html error.html new.html \
 	     options options.labels \
 	     options.columns
 static_DATA=disorder.css

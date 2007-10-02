@@ -41,6 +41,11 @@ tracks kept on the queue to be controlled.
 There is a new utility disorder-decode which can decode OGG, MP3, WAV
 and FLAC.  The example config file uses it.
 
+** Web Interface
+
+The "New" screen display tracks recently added to the database.  From
+here they can be played or their preferences changed.
+
 ** Network Play
 
 DisOrder can broadcast audio over a network, allowing it to be played on

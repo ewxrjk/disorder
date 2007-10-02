@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,6 +117,8 @@ static void lookups(dcgi_state *ds, unsigned want) {
       disorder_queue(ds->g->client, &ds->g->queue);
     if(need & DC_PLAYING)
       disorder_playing(ds->g->client, &ds->g->playing);
+    if(need & DC_NEW)
+      disorder_new_tracks(ds->g->client, &ds->g->new, &ds->g->nnew, 0);
     if(need & DC_RECENT) {
       /* we need to reverse the order of the list */
       disorder_recent(ds->g->client, &r);
@@ -483,7 +485,7 @@ static void exp_length(int attribute((unused)) nargs,
 		       cgi_sink *output,
 		       void *u) {
   dcgi_state *ds = u;
-  long length;
+  long length = 0;
 
   if(ds->track
      && (ds->track->state == playing_started
@@ -491,8 +493,11 @@ static void exp_length(int attribute((unused)) nargs,
      && ds->track->sofar >= 0)
     cgi_output(output, "%ld:%02ld/",
 	       ds->track->sofar / 60, ds->track->sofar % 60);
-  if(!ds->track || disorder_length(ds->g->client, ds->track->track, &length))
-    length = 0;
+  length = 0;
+  if(ds->track)
+    disorder_length(ds->g->client, ds->track->track, &length);
+  else if(ds->tracks)
+    disorder_length(ds->g->client, ds->tracks[0], &length);
   if(length)
     cgi_output(output, "%ld:%02ld", length / 60, length % 60);
   else
@@ -623,6 +628,25 @@ static void exp_recent(int attribute((unused)) nargs,
     s.track = q;
     expandstring(output, args[0], &s);
     s.index++;
+    s.first = 0;
+  }
+}
+
+static void exp_new(int attribute((unused)) nargs,
+		    char **args,
+		    cgi_sink *output,
+		    void  *u) {
+  dcgi_state *ds = u;
+  dcgi_state s;
+
+  lookups(ds, DC_NEW);
+  memset(&s, 0, sizeof s);
+  s.g = ds->g;
+  s.first = 1;
+  for(s.index = 0; s.index < ds->g->nnew; ++s.index) {
+    s.last = s.index + 1 < ds->g->nnew;
+    s.tracks = &ds->g->new[s.index];
+    expandstring(output, args[0], &s);
     s.first = 0;
   }
 }
@@ -916,6 +940,16 @@ static void exp_isrecent(int attribute((unused)) nargs,
 
   lookups(ds, DC_RECENT);
   sink_printf(output->sink, "%s", bool2str(!!ds->g->recent));
+}
+
+static void exp_isnew(int attribute((unused)) nargs,
+		      char attribute((unused)) **args,
+		      cgi_sink *output,
+		      void *u) {
+  dcgi_state *ds = u;
+
+  lookups(ds, DC_NEW);
+  sink_printf(output->sink, "%s", bool2str(!!ds->g->nnew));
 }
 
 static void exp_id(int attribute((unused)) nargs,
@@ -1385,6 +1419,7 @@ static const struct cgi_expansion expansions[] = {
   { "isfiles", 0, 0, 0, exp_isfiles },
   { "isfirst", 0, 0, 0, exp_isfirst },
   { "islast", 0, 0, 0, exp_islast },
+  { "isnew", 0, 0, 0, exp_isnew },
   { "isplaying", 0, 0, 0, exp_isplaying },
   { "isqueue", 0, 0, 0, exp_isqueue },
   { "isrecent", 0, 0, 0, exp_isrecent },
@@ -1392,6 +1427,7 @@ static const struct cgi_expansion expansions[] = {
   { "length", 0, 0, 0, exp_length },
   { "navigate", 2, 2, EXP_MAGIC, exp_navigate },
   { "ne", 2, 2, 0, exp_ne },
+  { "new", 1, 1, EXP_MAGIC, exp_new },
   { "nfiles", 0, 0, 0, exp_nfiles },
   { "nonce", 0, 0, 0, exp_nonce },
   { "not", 1, 1, 0, exp_not },
