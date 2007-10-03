@@ -22,8 +22,9 @@
  *
  * This program is responsible for transmitting a single coherent audio stream
  * to its destination (over the network, to some sound API, to some
- * subprocess).  It receives connections from decoders via file descriptor
- * passing from the main server and plays them in the right order.
+ * subprocess).  It receives connections from decoders (or rather from the
+ * process that is about to become disorder-normalize) and plays them in the
+ * right order.
  *
  * @b Encodings.  For the <a href="http://www.alsa-project.org/">ALSA</a> API,
  * 8- and 16- bit stereo and mono are supported, with any sample rate (within
