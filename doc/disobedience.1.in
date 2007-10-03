@@ -121,7 +121,7 @@ Left clicking on a file will select it.  As with the queue tab you can use
 SHIFT and CTRL to select multiple files.
 .PP
 The text box at the top is a search form.  If you enter search terms here then
-the display will be limited to tracks containing all those words.  You can also
+tracks containing all those words will be highlighted.  You can also
 limit the results to tracks with particular tags, by including \fBtag:\fITAG\fR
 for each tag.
 .PP

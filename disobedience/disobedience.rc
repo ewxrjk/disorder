@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2006 Richard Kettlewell
+# Copyright (C) 2006, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,6 +49,12 @@ style "disobedience-odd"
   fg[NORMAL] = { 0.0, 0.0, 0.0 }
 }
 
+style "disobedience-search"
+{
+  bg[NORMAL] = { 1.0, 1.0, 0.0 }
+  fg[NORMAL] = { 0.0, 0.0, 0.0 }
+}
+
 style "disobedience-title"
 {
   bg[NORMAL] = { 0.0, 0.0, 0.0 }
@@ -64,6 +70,7 @@ style "disobedience-drag"
 
 # The main tabs
 widget "disobedience.*.choose" style : application "disobedience-default"
+widget "disobedience.*.choose-dir" style : application "disobedience-default"
 widget "disobedience.*.queue" style : application "disobedience-default"
 widget "disobedience.*.recent" style : application "disobedience-default"
 
@@ -75,3 +82,6 @@ widget "disobedience.*.row-playing" style : application "disobedience-playing"
 widget "disobedience.*.row-even" style : application "disobedience-even"
 widget "disobedience.*.row-odd" style : application "disobedience-odd"
 widget "disobedience.*.row-title" style : application "disobedience-title"
+
+# Search results
+widget "disobedience.*.choose-search" style : application "disobedience-search"

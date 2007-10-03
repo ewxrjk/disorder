@@ -651,7 +651,7 @@ static void process_line(disorder_eclient *c, char *line) {
     case 3:
       /* We need to collect the body. */
       c->state = state_body;
-      c->vec.nvec = 0;
+      vector_init(&c->vec);
       break;
     case 4:
       assert(c->log_callbacks != 0);

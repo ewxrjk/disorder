@@ -80,6 +80,7 @@ struct choosenode {
 #define CN_RESOLVING_FILES 0x0020       /**< @brief resolved files inbound */
 #define CN_GETTING_DIRS 0x0040          /**< @brief directories inbound */
 #define CN_GETTING_ANY 0x0070           /**< @brief getting something */
+#define CN_CONTINGENT 0x0080            /**< @brief expansion contingent on search */
   struct nodevector children;           /**< @brief vector of children */
   void (*fill)(struct choosenode *);    /**< @brief request child fill or 0 for leaf */
   GtkWidget *container;                 /**< @brief the container for this row */
@@ -118,7 +119,6 @@ struct choose_menuitem {
 static GtkWidget *chooselayout;
 static GtkWidget *searchentry;          /**< @brief search terms */
 static struct choosenode *root;
-static struct choosenode *realroot;
 static GtkWidget *track_menu;           /**< @brief track popup menu */
 static GtkWidget *dir_menu;             /**< @brief directory popup menu */
 static struct choosenode *last_click;   /**< @brief last clicked node for selection */
@@ -128,6 +128,8 @@ static int search_in_flight;            /**< @brief a search is underway */
 static int search_obsolete;             /**< @brief the current search is void */
 static char **searchresults;            /**< @brief search results */
 static int nsearchresults;              /**< @brief number of results */
+static int nsearchvisible;      /**< @brief number of search results visible */
+static struct hash *searchhash;         /**< @brief hash of search results */
 
 /* Forward Declarations */
 
@@ -145,7 +147,7 @@ static void got_files(void *v, int nvec, char **vec);
 static void got_resolved_file(void *v, const char *track);
 static void got_dirs(void *v, int nvec, char **vec);
 
-static void expand_node(struct choosenode *cn);
+static void expand_node(struct choosenode *cn, int contingent);
 static void contract_node(struct choosenode *cn);
 static void updated_node(struct choosenode *cn, int redisplay);
 
@@ -157,6 +159,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y);
 static void undisplay_tree(struct choosenode *cn);
 static void initiate_search(void);
 static void delete_widgets(struct choosenode *cn);
+static void expand_from(struct choosenode *cn);
 
 static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
                                GdkEventButton *event,
@@ -191,8 +194,48 @@ static struct choose_menuitem dir_menuitems[] = {
   { 0, 0, 0, 0, 0 }
 };
 
-
 /* Maintaining the data structure ------------------------------------------ */
+
+static char *flags(const struct choosenode *cn) {
+  unsigned f = cn->flags, n;
+  struct dynstr d[1];
+  
+  static const char *bits[] = {
+    "expandable",
+    "expanded",
+    "displayed",
+    "selected",
+    "getting_files",
+    "resolving_files",
+    "getting_dirs",
+    "contingent"
+  };
+#define NBITS (sizeof bits / sizeof *bits)
+
+  dynstr_init(d);
+  if(!f)
+    dynstr_append(d, '0');
+  else {
+    for(n = 0; n < NBITS; ++n) {
+      const unsigned bit = 1 << n;
+      if(f & bit) {
+        if(d->nvec)
+          dynstr_append(d, '|');
+        dynstr_append_string(d, bits[n]);
+        f ^= bit;
+      }
+    }
+    if(f) {
+      char buf[32];
+      if(d->nvec)
+        dynstr_append(d, '|');
+      sprintf(buf, "%#x", f);
+      dynstr_append_string(d, buf);
+    }
+  }
+  dynstr_terminate(d);
+  return d->vec;
+}
 
 /** @brief Create a new node */
 static struct choosenode *newnode(struct choosenode *parent,
@@ -230,6 +273,11 @@ static void filled(struct choosenode *cn) {
   if(whenfilled) {
     cn->whenfilled = 0;
     whenfilled(cn, cn->wfu);
+  }
+  if(nsearchvisible < nsearchresults) {
+    /* There is still search expansion work to do */
+    D(("filled %s %d/%d", cn->path, nsearchvisible, nsearchresults));
+    expand_from(cn);
   }
 }
 
@@ -350,7 +398,7 @@ static void got_files(void *v, int nvec, char **vec) {
   struct choosenode *cn = cbd->u.choosenode;
   int n;
 
-  D(("got_files %d files for %s", nvec, cn->path));
+  D(("got_files %d files for %s %s", nvec, cn->path, flags(cn)));
   /* Complicated by the need to resolve aliases.  We can save a bit of effort
    * by re-using cbd though. */
   cn->flags &= ~CN_GETTING_FILES;
@@ -359,6 +407,10 @@ static void got_files(void *v, int nvec, char **vec) {
     for(n = 0; n < nvec; ++n)
       disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
   }
+  /* If there are no files and the directories are all read by now, we're
+   * done */
+  if(!(cn->flags & CN_GETTING_ANY))
+    filled(cn);
 }
 
 /** @brief Called with an alias resolved filename */
@@ -366,6 +418,7 @@ static void got_resolved_file(void *v, const char *track) {
   struct callbackdata *cbd = v;
   struct choosenode *cn = cbd->u.choosenode, *file_cn;
 
+  D(("resolved %s %s %d left", cn->path, flags(cn), cn->pending - 1));
   /* TODO as below */
   file_cn = newnode(cn, track,
                     trackname_transform("track", track, "display"),
@@ -386,7 +439,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
   struct choosenode *cn = cbd->u.choosenode;
   int n;
 
-  D(("got_dirs %d dirs for %s", nvec, cn->path));
+  D(("got_dirs %d dirs for %s %s", nvec, cn->path, flags(cn)));
   /* TODO this depends on local configuration for trackname_transform().
    * This will work, since the defaults are now built-in, but it'll be
    * (potentially) different to the server's configured settings.
@@ -427,8 +480,8 @@ static void fill_directory_node(struct choosenode *cn) {
 }
 
 /** @brief Expand a node */
-static void expand_node(struct choosenode *cn) {
-  D(("expand_node %s", cn->path));
+static void expand_node(struct choosenode *cn, int contingent) {
+  D(("expand_node %s %d %s", cn->path, contingent, flags(cn)));
   assert(cn->flags & CN_EXPANDABLE);
   /* If node is already expanded do nothing. */
   if(cn->flags & CN_EXPANDED) return;
@@ -436,8 +489,72 @@ static void expand_node(struct choosenode *cn) {
    * completed it will called updated_node() and we can redraw at that
    * point. */
   cn->flags |= CN_EXPANDED;
+  if(contingent)
+    cn->flags |= CN_CONTINGENT;
+  else
+    cn->flags &= ~CN_CONTINGENT;
+  /* If this node is not contingently expanded, mark all its parents back to
+   * the root as not contingent either, so they won't be contracted when the
+   * search results change */
+  if(!contingent) {
+    struct choosenode *cnp;
+
+    for(cnp = cn->parent; cnp; cnp = cnp->parent)
+      cnp->flags &= ~CN_CONTINGENT;
+  }
   /* TODO: visual feedback */
   cn->fill(cn);
+}
+
+/** @brief Make sure all the search results below @p cn are expanded
+ * @param cn Node to start at
+ */
+static void expand_from(struct choosenode *cn) {
+  int n;
+  const size_t pathlen = strlen(cn->path);
+
+  if(nsearchvisible == nsearchresults)
+    /* We're done */
+    return;
+  /* Are any of the search tracks at/below this point? */
+  if(cn != root) {
+    for(n = 0; n < nsearchresults; ++n)
+      if(strlen(searchresults[n]) >= pathlen
+         && !strncmp(cn->path, searchresults[n], pathlen)
+         && (searchresults[n][pathlen] == 0
+             || searchresults[n][pathlen] == '/'))
+        break;
+    if(n >= nsearchresults)
+      /* This is neither a search result nor an ancestor directory of one */
+      return;
+  }
+  D(("expand_from %d/%d visible %s", 
+     nsearchvisible, nsearchresults, cn->path));
+  if(cn->flags & CN_EXPANDABLE) {
+    if(cn->flags & CN_EXPANDED)
+      /* This node is marked as expanded already.  children.nvec might be 0,
+       * indicating that expansion is still underway.  We should get another
+       * callback when it is expanded. */
+      for(n = 0; n < cn->children.nvec; ++n)
+        expand_from(cn->children.vec[n]);
+    else {
+      /* This node is not expanded yet */
+      expand_node(cn, 1);
+    }
+  } else
+    /* This is an actual search result */
+    ++nsearchvisible;
+}
+
+/** @brief Contract all contingently expanded nodes below @p cn */
+static void contract_contingent(struct choosenode *cn) {
+  int n;
+
+  if(cn->flags & CN_CONTINGENT)
+    contract_node(cn);
+  else
+    for(n = 0; n < cn->children.nvec; ++n)
+      contract_contingent(cn->children.vec[n]);
 }
 
 /** @brief Contract a node */
@@ -446,7 +563,7 @@ static void contract_node(struct choosenode *cn) {
   assert(cn->flags & CN_EXPANDABLE);
   /* If node is already contracted do nothing. */
   if(!(cn->flags & CN_EXPANDED)) return;
-  cn->flags &= ~CN_EXPANDED;
+  cn->flags &= ~(CN_EXPANDED|CN_CONTINGENT);
   /* Clear selection below this node */
   clear_selection(cn);
   /* Zot children.  We never used to do this but the result would be that over
@@ -484,62 +601,9 @@ static void updated_node(struct choosenode *cn, int redisplay) {
 
 /* Searching --------------------------------------------------------------- */
 
-/** @brief qsort() callback for ordering tracks */
-static int compare_track_for_qsort(const void *a, const void *b) {
-  return compare_path(*(char **)a, *(char **)b);
-}
-
-/** @brief Return true iff @p file is a child of @p dir */
-static int is_child(const char *dir, const char *file) {
-  const size_t dlen = strlen(dir);
-
-  return (!strncmp(file, dir, dlen)
-          && file[dlen] == '/'
-          && strchr(file + dlen + 1, '/') == 0);
-}
-
-/** @brief Return true iff @p file is a descendant of @p dir */
-static int is_descendant(const char *dir, const char *file) {
-  const size_t dlen = strlen(dir);
-
-  return !strncmp(file, dir, dlen) && file[dlen] == '/';
-}
-
-/** @brief Called to fill a node in the search results tree */
-static void fill_search_node(struct choosenode *cn) {
-  int n;
-  const size_t plen = strlen(cn->path);
-  const char *s;
-  char *dir, *last = 0;
-
-  D(("fill_search_node %s", cn->path));
-  /* We depend on the search results being sorted as by compare_path(). */
-  clear_children(cn);
-  for(n = 0; n < nsearchresults; ++n) {
-    /* We only care about descendants of CN */
-    if(!is_descendant(cn->path, searchresults[n]))
-       continue;
-    s = strchr(searchresults[n] + plen + 1, '/');
-    if(s) {
-      /* We've identified a subdirectory of CN. */
-      dir = xstrndup(searchresults[n], s - searchresults[n]);
-      if(!last || strcmp(dir, last)) {
-        /* Not a duplicate */
-        last = dir;
-        newnode(cn, dir,
-                trackname_transform("dir", dir, "display"),
-                trackname_transform("dir", dir, "sort"),
-                CN_EXPANDABLE, fill_search_node);
-      }
-    } else {
-      /* We've identified a file in CN */
-      newnode(cn, searchresults[n],
-              trackname_transform("track", searchresults[n], "display"),
-              trackname_transform("track", searchresults[n], "sort"),
-              0/*flags*/, 0/*fill*/);
-    }
-  }
-  updated_node(cn, 1);
+/** @brief Return true if @p track is a search result */
+static int is_search_result(const char *track) {
+  return searchhash && hash_find(searchhash, track);
 }
 
 /** @brief Called with a list of search results
@@ -549,71 +613,32 @@ static void fill_search_node(struct choosenode *cn) {
  * we're not searching for anything in particular. */
 static void search_completed(void attribute((unused)) *v,
                              int nvec, char **vec) {
-  struct choosenode *cn;
   int n;
-  const char *dir;
 
   search_in_flight = 0;
+  /* Contract any choosenodes that were only expanded to show search
+   * results */
+  contract_contingent(root);
   if(search_obsolete) {
     /* This search has been obsoleted by user input since it started.
      * Therefore we throw away the result and search again. */
     search_obsolete = 0;
     initiate_search();
   } else {
+    /* Stash the search results */
+    searchresults = vec;
+    nsearchresults = nvec;
     if(nvec) {
-      /* We will replace the choose tree with a tree structured view of search
-       * results.  First we must disabled the choose tree's widgets. */
-      delete_widgets(root);
-      /* Put the tracks into order, grouped by directory.  They'll probably
-       * come back this way anyway in current versions of the server, but it's
-       * cheap not to rely on it (compared with the massive effort we expend
-       * later on) */
-      qsort(vec, nvec, sizeof(char *), compare_track_for_qsort);
-      searchresults = vec;
-      nsearchresults = nvec;
-      cn = root = newnode(0/*parent*/, "", "Search results", "",
-                  CN_EXPANDABLE|CN_EXPANDED, fill_search_node);
-      /* Construct the initial tree.  We do this in a single pass and expand
-       * everything, so you can actually see your search results. */
-      for(n = 0; n < nsearchresults; ++n) {
-        /* Firstly we might need to go up a few directories to each an ancestor
-         * of this track */
-        while(!is_descendant(cn->path, searchresults[n])) {
-          /* We report the update on each node the last time we see it (With
-           * display=0, the main purpose of this is to get the order of the
-           * children right.) */
-          updated_node(cn, 0);
-          cn = cn->parent;
-        }
-        /* Secondly we might need to insert some new directories */
-        while(!is_child(cn->path, searchresults[n])) {
-          /* Figure out the subdirectory */
-          dir = xstrndup(searchresults[n],
-                         strchr(searchresults[n] + strlen(cn->path) + 1,
-                                '/') - searchresults[n]);
-          cn = newnode(cn, dir,
-                       trackname_transform("dir", dir, "display"),
-                       trackname_transform("dir", dir, "sort"),
-                       CN_EXPANDABLE|CN_EXPANDED, fill_search_node);
-        }
-        /* Finally we can insert the track as a child of the current
-         * directory */
-        newnode(cn, searchresults[n],
-                trackname_transform("track", searchresults[n], "display"),
-                trackname_transform("track", searchresults[n], "sort"),
-                0/*flags*/, 0/*fill*/);
-      }
-      while(cn) {
-        /* Update all the nodes back up to the root */
-        updated_node(cn, 0);
-        cn = cn->parent;
-      }
-      /* Now it's worth displaying the tree */
-      redisplay_tree();
-    } else if(root != realroot) {
-      delete_widgets(root);
-      root = realroot;
-      redisplay_tree();
+      /* Create a new search hash for fast identification of results */
+      searchhash = hash_new(1);
+      for(n = 0; n < nvec; ++n)
+        hash_add(searchhash, vec[n], "", HASH_INSERT_OR_REPLACE);
+      /* We don't yet know that the results are visible */
+      nsearchvisible = 0;
+      /* Initiate expansion */
+      expand_from(root);
+    } else {
+      searchhash = 0;                   /* for the gc */
     }
   }
 }
@@ -714,6 +739,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   GtkRequisition req;
   struct displaydata d, cd;
   GdkPixbuf *pb;
+  const char *name;
   
   D(("display_tree %s %d,%d", cn->path, x, y));
 
@@ -759,13 +785,17 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     g_signal_connect(cn->container, "button-press-event", 
                      G_CALLBACK(clicked_choosenode), cn);
     g_object_ref(cn->container);
-    gtk_widget_set_name(cn->label, "choose");
-    gtk_widget_set_name(cn->container, "choose");
     /* Show everything by default */
     gtk_widget_show_all(cn->container);
     MTAG_POP();
   }
   assert(cn->container);
+  /* Make sure the widget name is right */
+  name = (cn->flags & CN_EXPANDABLE
+          ? "choose-dir"
+          : is_search_result(cn->path) ? "choose-search" : "choose");
+  gtk_widget_set_name(cn->label, name);
+  gtk_widget_set_name(cn->container, name);
   /* Make sure the icon is right */
   if(cn->flags & CN_EXPANDABLE)
     gtk_arrow_set(GTK_ARROW(cn->arrow),
@@ -893,7 +923,7 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
       if(cn->flags & CN_EXPANDED)
         contract_node(cn);
       else
-        expand_node(cn);
+        expand_node(cn, 0/*!contingent*/);
       last_click = 0;
     } else {
       /* This is a file.  Adjust selection status */
@@ -1105,7 +1135,7 @@ static void call_with_dir(struct choosenode *cn,
      * opened */
     cn->whenfilled = whenfilled;
     cn->wfu = wfu;
-    expand_node(cn);
+    expand_node(cn, 0/*not contingnet upon search*/);
   }
 }
 
@@ -1240,8 +1270,7 @@ GtkWidget *choose_widget(void) {
   chooselayout = gtk_layout_new(0, 0);
   root = newnode(0/*parent*/, "<root>", "All files", "",
                  CN_EXPANDABLE, fill_root_node);
-  realroot = root;
-  expand_node(root);                    /* will call redisplay_tree */
+  expand_node(root, 0);                 /* will call redisplay_tree */
   /* Create the popup menus */
   NW(menu);
   track_menu = gtk_menu_new();
