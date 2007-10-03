@@ -611,6 +611,7 @@ static void search_completed(void attribute((unused)) *v,
       expand_from(root);
     } else {
       searchhash = 0;                   /* for the gc */
+      redisplay_tree();                 /* remove search markers */
     }
   }
 }
