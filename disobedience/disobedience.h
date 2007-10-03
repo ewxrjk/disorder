@@ -58,6 +58,7 @@
 
 struct queuelike;
 struct choosenode;
+struct progress_window;
 
 /** @brief Callback data structure
  *
@@ -129,6 +130,14 @@ GdkPixbuf *find_image(const char *name);
 
 void popup_error(const char *msg);
 /* Pop up an error message */
+
+struct progress_window *progress_window_new(const char *title);
+/* Pop up a progress window */
+
+void progress_window_progress(struct progress_window *pw,
+			      int progress,
+			      int limit);
+/* Report current progress */
 
 void register_monitor(monitor_callback *callback,
                       void *u,

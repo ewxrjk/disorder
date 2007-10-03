@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006 Richard Kettlewell
+ * Copyright (C) 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -156,7 +156,7 @@ static int prefs_total;                 /* Total prefs */
 static struct prefdata *prefdatas;      /* Current prefdatas */
 static GtkWidget *properties_window;
 static GtkWidget *properties_table;
-static GtkWidget *progress_window, *progress_bar;
+static struct progress_window *pw;
 
 static void propagate_clicked(GtkButton attribute((unused)) *button,
                               gpointer userdata) {
@@ -286,22 +286,19 @@ void properties(int ntracks, const char **tracks) {
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(GTK_WIDGET(properties_table)->parent->parent),
                                  GTK_POLICY_NEVER,
                                  GTK_POLICY_AUTOMATIC);
+  /* Zot any pre-existing progress window just in case */
+  if(pw)
+    progress_window_progress(pw, 0, 0);
   /* Pop up a progress bar while we're waiting */
-  progress_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  g_signal_connect(progress_window, "destroy",
-		   G_CALLBACK(gtk_widget_destroyed), &progress_window);
-  gtk_window_set_default_size(GTK_WINDOW(progress_window), 360, -1);
-  gtk_window_set_title(GTK_WINDOW(progress_window),
-                       "Fetching Track Properties");
-  progress_bar = gtk_progress_bar_new();
-  gtk_container_add(GTK_CONTAINER(progress_window), progress_bar);
-  gtk_widget_show_all(progress_window);
+  pw = progress_window_new("Fetching Track Properties");
 }
 
 /* Everything is filled in now */
 static void prefdata_alldone(void) {
-  if(progress_window)
-    gtk_widget_destroy(progress_window);
+  if(pw) {
+    progress_window_progress(pw, 0, 0);
+    pw = 0;
+  }
   /* Default size may be too small */
   gtk_window_set_default_size(GTK_WINDOW(properties_window), 480, 512);
   /* TODO: relate default size to required size more closely */
@@ -464,9 +461,8 @@ static void prefdata_completed_common(struct prefdata *f,
                    GTK_EXPAND|GTK_FILL/*xoptions*/, 0/*yoptions*/,
                    1, 1);
   --prefs_unfilled;
-  if(prefs_total && progress_window)
-    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress_bar),
-                                  1.0 - (double)prefs_unfilled / prefs_total);
+  if(prefs_total)
+    progress_window_progress(pw, prefs_total - prefs_unfilled, prefs_total);
   if(!prefs_unfilled)
     prefdata_alldone();
 }

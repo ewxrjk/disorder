@@ -124,12 +124,14 @@ static GtkWidget *dir_menu;             /**< @brief directory popup menu */
 static struct choosenode *last_click;   /**< @brief last clicked node for selection */
 static int files_visible;               /**< @brief total files visible */
 static int files_selected;              /**< @brief total files selected */
+static int gets_in_flight;              /**< @brief total gets in flight */
 static int search_in_flight;            /**< @brief a search is underway */
 static int search_obsolete;             /**< @brief the current search is void */
 static char **searchresults;            /**< @brief search results */
 static int nsearchresults;              /**< @brief number of results */
 static int nsearchvisible;      /**< @brief number of search results visible */
 static struct hash *searchhash;         /**< @brief hash of search results */
+struct progress_window *spw;            /**< @brief progress window */
 
 /* Forward Declarations */
 
@@ -141,7 +143,6 @@ static struct choosenode *newnode(struct choosenode *parent,
                                   unsigned flags,
                                   void (*fill)(struct choosenode *));
 static void fill_root_node(struct choosenode *cn);
-static void fill_letter_node(struct choosenode *cn);
 static void fill_directory_node(struct choosenode *cn);
 static void got_files(void *v, int nvec, char **vec);
 static void got_resolved_file(void *v, const char *track);
@@ -279,39 +280,28 @@ static void filled(struct choosenode *cn) {
     D(("filled %s %d/%d", cn->path, nsearchvisible, nsearchresults));
     expand_from(cn);
   }
+  if(gets_in_flight == 0 && nsearchvisible < nsearchresults)
+    expand_from(root);
 }
 
 /** @brief Fill the root */
 static void fill_root_node(struct choosenode *cn) {
-  int ch;
-  char *name;
   struct callbackdata *cbd;
 
   D(("fill_root_node"));
   clear_children(cn);
-  if(choosealpha) {
-    if(!cn->children.nvec) {              /* Only need to do this once */
-      for(ch = 'A'; ch <= 'Z'; ++ch) {
-        byte_xasprintf(&name, "%c", ch);
-        newnode(cn, "<letter>", name, name, CN_EXPANDABLE, fill_letter_node);
-      }
-      newnode(cn, "<letter>", "*", "~", CN_EXPANDABLE, fill_letter_node);
-    }
-    updated_node(cn, 1);
-    filled(cn);
-  } else {
-    /* More de-duping possible here */
-    if(cn->flags & CN_GETTING_ANY)
-      return;
-    gtk_label_set_text(GTK_LABEL(report_label), "getting files");
-    cbd = xmalloc(sizeof *cbd);
-    cbd->u.choosenode = cn;
-    disorder_eclient_dirs(client, got_dirs, "", 0, cbd);
-    cbd = xmalloc(sizeof *cbd);
-    cbd->u.choosenode = cn;
-    disorder_eclient_files(client, got_files, "", 0, cbd);
-    cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
-  }
+  /* More de-duping possible here */
+  if(cn->flags & CN_GETTING_ANY)
+    return;
+  gtk_label_set_text(GTK_LABEL(report_label), "getting files");
+  cbd = xmalloc(sizeof *cbd);
+  cbd->u.choosenode = cn;
+  disorder_eclient_dirs(client, got_dirs, "", 0, cbd);
+  cbd = xmalloc(sizeof *cbd);
+  cbd->u.choosenode = cn;
+  disorder_eclient_files(client, got_files, "", 0, cbd);
+  cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
+  gets_in_flight += 2;
 }
 
 /** @brief Delete all the widgets owned by @p cn */
@@ -360,38 +350,6 @@ static void clear_children(struct choosenode *cn) {
   cn->children.nvec = 0;
 }
 
-/** @brief Fill a letter node */
-static void fill_letter_node(struct choosenode *cn) {
-  const char *regexp;
-  struct callbackdata *cbd;
-
-  D(("fill_letter_node %s", cn->display));
-  if(cn->flags & CN_GETTING_ANY)
-    return;
-  switch(cn->display[0]) {
-  default:
-    byte_xasprintf((char **)&regexp, "^(the )?%c", tolower(cn->display[0]));
-    break;
-  case 'T':
-    regexp = "^(?!the [^t])t";
-    break;
-  case '*':
-    regexp = "^[^a-z]";
-    break;
-  }
-  /* TODO: caching */
-  /* TODO: de-dupe against fill_directory_node */
-  gtk_label_set_text(GTK_LABEL(report_label), "getting files");
-  clear_children(cn);
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_dirs(client, got_dirs, "", regexp, cbd);
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_files(client, got_files, "", regexp, cbd);
-  cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
-}
-
 /** @brief Called with a list of files just below some node */
 static void got_files(void *v, int nvec, char **vec) {
   struct callbackdata *cbd = v;
@@ -402,10 +360,13 @@ static void got_files(void *v, int nvec, char **vec) {
   /* Complicated by the need to resolve aliases.  We can save a bit of effort
    * by re-using cbd though. */
   cn->flags &= ~CN_GETTING_FILES;
+  --gets_in_flight;
   if((cn->pending = nvec)) {
     cn->flags |= CN_RESOLVING_FILES;
-    for(n = 0; n < nvec; ++n)
+    for(n = 0; n < nvec; ++n) {
       disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
+      ++gets_in_flight;
+    }
   }
   /* If there are no files and the directories are all read by now, we're
    * done */
@@ -424,6 +385,7 @@ static void got_resolved_file(void *v, const char *track) {
                     trackname_transform("track", track, "display"),
                     trackname_transform("track", track, "sort"),
                     0/*flags*/, 0/*fill*/);
+  --gets_in_flight;
   /* Only bother updating when we've got the lot */
   if(--cn->pending == 0) {
     cn->flags &= ~CN_RESOLVING_FILES;
@@ -447,6 +409,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
    * Really we want a variant of files/dirs that produces both the
    * raw filename and the transformed name for a chosen context.
    */
+  --gets_in_flight;
   for(n = 0; n < nvec; ++n)
     newnode(cn, vec[n],
             trackname_transform("dir", vec[n], "display"),
@@ -464,7 +427,6 @@ static void fill_directory_node(struct choosenode *cn) {
 
   D(("fill_directory_node %s", cn->path));
   /* TODO: caching */
-  /* TODO: de-dupe against fill_letter_node */
   if(cn->flags & CN_GETTING_ANY)
     return;
   assert(report_label != 0);
@@ -477,6 +439,7 @@ static void fill_directory_node(struct choosenode *cn) {
   cbd->u.choosenode = cn;
   disorder_eclient_files(client, got_files, cn->path, 0, cbd);
   cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
+  gets_in_flight += 2;
 }
 
 /** @brief Expand a node */
@@ -511,23 +474,13 @@ static void expand_node(struct choosenode *cn, int contingent) {
  */
 static void expand_from(struct choosenode *cn) {
   int n;
-  const size_t pathlen = strlen(cn->path);
 
   if(nsearchvisible == nsearchresults)
     /* We're done */
     return;
   /* Are any of the search tracks at/below this point? */
-  if(cn != root) {
-    for(n = 0; n < nsearchresults; ++n)
-      if(strlen(searchresults[n]) >= pathlen
-         && !strncmp(cn->path, searchresults[n], pathlen)
-         && (searchresults[n][pathlen] == 0
-             || searchresults[n][pathlen] == '/'))
-        break;
-    if(n >= nsearchresults)
-      /* This is neither a search result nor an ancestor directory of one */
-      return;
-  }
+  if(!(cn == root || hash_find(searchhash, cn->path)))
+    return;
   D(("expand_from %d/%d visible %s", 
      nsearchvisible, nsearchresults, cn->path));
   if(cn->flags & CN_EXPANDABLE) {
@@ -535,15 +488,17 @@ static void expand_from(struct choosenode *cn) {
       /* This node is marked as expanded already.  children.nvec might be 0,
        * indicating that expansion is still underway.  We should get another
        * callback when it is expanded. */
-      for(n = 0; n < cn->children.nvec; ++n)
+      for(n = 0; n < cn->children.nvec && gets_in_flight < 10; ++n)
         expand_from(cn->children.vec[n]);
     else {
       /* This node is not expanded yet */
       expand_node(cn, 1);
     }
-  } else
+  } else {
     /* This is an actual search result */
     ++nsearchvisible;
+    progress_window_progress(spw, nsearchvisible, nsearchresults);
+  }
 }
 
 /** @brief Contract all contingently expanded nodes below @p cn */
@@ -614,6 +569,7 @@ static int is_search_result(const char *track) {
 static void search_completed(void attribute((unused)) *v,
                              int nvec, char **vec) {
   int n;
+  char *s;
 
   search_in_flight = 0;
   /* Contract any choosenodes that were only expanded to show search
@@ -631,10 +587,26 @@ static void search_completed(void attribute((unused)) *v,
     if(nvec) {
       /* Create a new search hash for fast identification of results */
       searchhash = hash_new(1);
-      for(n = 0; n < nvec; ++n)
+      for(n = 0; n < nvec; ++n) {
+        /* The filename itself lives in the hash */
         hash_add(searchhash, vec[n], "", HASH_INSERT_OR_REPLACE);
+        /* So do its ancestor directories */
+        for(s = vec[n] + 1; *s; ++s) {
+          if(*s == '/') {
+            *s = 0;
+            hash_add(searchhash, vec[n], "", HASH_INSERT_OR_REPLACE);
+            *s = '/';
+          }
+        }
+      }
       /* We don't yet know that the results are visible */
       nsearchvisible = 0;
+      if(spw) {
+        progress_window_progress(spw, 0, 0);
+        spw = 0;
+      }
+      if(nsearchresults > 50)
+        spw = progress_window_new("Fetching search results");
       /* Initiate expansion */
       expand_from(root);
     } else {

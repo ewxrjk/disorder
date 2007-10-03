@@ -69,9 +69,6 @@ int volume_r;
 
 double goesupto = 10;                   /* volume upper bound */
 
-/** @brief Break up choose tab by initial letter */
-int choosealpha;
-
 /** @brief True if a NOP is in flight */
 static int nop_in_flight;
 
@@ -320,7 +317,6 @@ static const struct option options[] = {
   { "version", no_argument, 0, 'V' },
   { "config", required_argument, 0, 'c' },
   { "tufnel", no_argument, 0, 't' },
-  { "choosealpha", no_argument, 0, 'C' },
   { "debug", no_argument, 0, 'd' },
   { 0, 0, 0, 0 }
 };
@@ -364,14 +360,13 @@ int main(int argc, char **argv) {
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtk_init(&argc, &argv);
   gtk_rc_parse_string(style);
-  while((n = getopt_long(argc, argv, "hVc:dtH", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 't': goesupto = 11; break;
-    case 'C': choosealpha = 1; break;   /* not well tested any more */
     default: fatal(0, "invalid option");
     }
   }
