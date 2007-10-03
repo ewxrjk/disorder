@@ -91,6 +91,8 @@ struct choosenode {
 
   when_filled_callback *whenfilled;     /**< @brief called when filled or 0 */
   void *wfu;                            /**< @brief passed to @c whenfilled */
+  int ymin;                             /**< @brief least Y value */
+  int ymax;                             /**< @brief greatest Y value */
 };
 
 /** @brief One item in the popup menu */
@@ -117,6 +119,7 @@ struct choose_menuitem {
 /* Variables */
 
 static GtkWidget *chooselayout;
+static GtkAdjustment *vadjust;
 static GtkWidget *searchentry;          /**< @brief search terms */
 static struct choosenode *root;
 static GtkWidget *track_menu;           /**< @brief track popup menu */
@@ -498,6 +501,10 @@ static void expand_from(struct choosenode *cn) {
     /* This is an actual search result */
     ++nsearchvisible;
     progress_window_progress(spw, nsearchvisible, nsearchresults);
+    if(nsearchvisible == nsearchresults)
+      /* This is the last track to become visible, we'll make sure it's in
+       * range so that at least one is. */
+      gtk_adjustment_clamp_page(vadjust, cn->ymax, cn->ymin);
   }
 }
 
@@ -794,6 +801,8 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   gtk_widget_size_request(cn->container, &req);
   d.width = x + req.width;
   d.height = y + req.height;
+  cn->ymin = y;
+  cn->ymax = d.height;
   if(cn->flags & CN_EXPANDED) {
     /* We'll offset children by the size of the arrow whatever it might be. */
     assert(cn->arrow);
@@ -1268,7 +1277,8 @@ GtkWidget *choose_widget(void) {
                     0, 1, n, n + 1);
   }
   /* The layout is scrollable */
-  scrolled = scroll_widget(GTK_WIDGET(chooselayout), "choose");
+  scrolled = scroll_widget(chooselayout, "choose");
+  vadjust = gtk_layout_get_vadjustment(GTK_LAYOUT(chooselayout));
 
   /* The scrollable layout and the search hbox go together in a vbox */
   NW(vbox);
