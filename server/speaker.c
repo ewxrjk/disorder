@@ -66,6 +66,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/un.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -90,6 +91,9 @@ struct pollfd fds[NFDS];
 
 /** @brief Next free slot in @ref fds */
 int fdno;
+
+/** @brief Listen socket */
+static int listenfd;
 
 static time_t last_report;              /* when we last reported */
 static int paused;                      /* pause status */
@@ -179,15 +183,6 @@ static void destroy(struct track *t) {
   free(t);
 }
 
-/** @brief Notice a new connection */
-static void acquire(struct track *t, int fd) {
-  D(("acquire %s %d", t->id, fd));
-  if(t->fd != -1)
-    xclose(t->fd);
-  t->fd = fd;
-  nonblock(fd);
-}
-
 /** @brief Read data into a sample buffer
  * @param t Pointer to track
  * @return 0 on success, -1 on EOF
@@ -249,7 +244,7 @@ void abandon(void) {
   memset(&sm, 0, sizeof sm);
   sm.type = SM_FINISHED;
   strcpy(sm.id, playing->id);
-  speaker_send(1, &sm, 0);
+  speaker_send(1, &sm);
   removetrack(playing->id);
   destroy(playing);
   playing = 0;
@@ -350,7 +345,7 @@ static void report(void) {
     sm.type = paused ? SM_PAUSED : SM_PLAYING;
     strcpy(sm.id, playing->id);
     sm.data = playing->played / config->sample_format.rate;
-    speaker_send(1, &sm, 0);
+    speaker_send(1, &sm);
   }
   time(&last_report);
 }
@@ -400,7 +395,7 @@ static int playable(void) {
 static void mainloop(void) {
   struct track *t;
   struct speaker_message sm;
-  int n, fd, stdin_slot, timeout;
+  int n, fd, stdin_slot, timeout, listen_slot;
 
   while(getppid() != 1) {
     fdno = 0;
@@ -409,9 +404,14 @@ static void mainloop(void) {
     timeout = 1000;
     /* Always ready for commands from the main server. */
     stdin_slot = addfd(0, POLLIN);
+    /* Also always ready for inbound connections */
+    listen_slot = addfd(listenfd, POLLIN);
     /* Try to read sample data for the currently playing track if there is
      * buffer space. */
-    if(playing && !playing->eof && playing->used < (sizeof playing->buffer))
+    if(playing
+       && playing->fd >= 0
+       && !playing->eof
+       && playing->used < (sizeof playing->buffer))
       playing->slot = addfd(playing->fd, POLLIN);
     else if(playing)
       playing->slot = -1;
@@ -432,7 +432,9 @@ static void mainloop(void) {
      * nothing important can't be monitored. */
     for(t = tracks; t; t = t->next)
       if(t != playing) {
-        if(!t->eof && t->used < sizeof t->buffer) {
+        if(t->fd >= 0
+           && !t->eof
+           && t->used < sizeof t->buffer) {
           t->slot = addfd(t->fd,  POLLIN | POLLHUP);
         } else
           t->slot = -1;
@@ -459,25 +461,54 @@ static void mainloop(void) {
         play(3 * FRAMES);
       }
     }
+    /* Perhaps a connection has arrived */
+    if(fds[listen_slot].revents & POLLIN) {
+      struct sockaddr_un addr;
+      socklen_t addrlen = sizeof addr;
+      uint32_t l;
+      char id[24];
+
+      if((fd = accept(listenfd, &addr, &addrlen)) >= 0) {
+        if(read(fd, &l, sizeof l) < 4) {
+          error(errno, "reading length from inbound connection");
+          xclose(fd);
+        } else if(l >= sizeof id) {
+          error(0, "id length too long");
+          xclose(fd);
+        } else if(read(fd, id, l) < (ssize_t)l) {
+          error(errno, "reading id from inbound connection");
+          xclose(fd);
+        } else {
+          id[l] = 0;
+          D(("id %s fd %d", id, fd));
+          t = findtrack(id, 1/*create*/);
+          write(fd, "", 1);             /* write an ack */
+          if(t->fd != -1) {
+            error(0, "got a connection for a track that already has one");
+            xclose(fd);
+          } else {
+            nonblock(fd);
+            t->fd = fd;               /* yay */
+          }
+        }
+      } else
+        error(errno, "accept");
+    }
     /* Perhaps we have a command to process */
     if(fds[stdin_slot].revents & POLLIN) {
       /* There might (in theory) be several commands queued up, but in general
        * this won't be the case, so we don't bother looping around to pick them
        * all up. */ 
-      n = speaker_recv(0, &sm, &fd);
+      n = speaker_recv(0, &sm);
+      /* TODO */
       if(n > 0)
 	switch(sm.type) {
-	case SM_PREPARE:
-          D(("SM_PREPARE %s %d", sm.id, fd));
-	  if(fd == -1) fatal(0, "got SM_PREPARE but no file descriptor");
-	  t = findtrack(sm.id, 1);
-          acquire(t, fd);
-	  break;
 	case SM_PLAY:
-          D(("SM_PLAY %s %d", sm.id, fd));
           if(playing) fatal(0, "got SM_PLAY but already playing something");
 	  t = findtrack(sm.id, 1);
-          if(fd != -1) acquire(t, fd);
+          D(("SM_PLAY %s fd %d", t->id, t->fd));
+          if(t->fd == -1)
+            error(0, "cannot play track because no connection arrived");
           playing = t;
           /* We attempt to play straight away rather than going round the loop.
            * play() is clever enough to perform any activation that is
@@ -507,7 +538,7 @@ static void mainloop(void) {
 	    if(t == playing) {
               sm.type = SM_FINISHED;
               strcpy(sm.id, playing->id);
-              speaker_send(1, &sm, 0);
+              speaker_send(1, &sm);
 	      playing = 0;
             }
 	    destroy(t);
@@ -526,7 +557,9 @@ static void mainloop(void) {
     }
     /* Read in any buffered data */
     for(t = tracks; t; t = t->next)
-      if(t->slot != -1 && (fds[t->slot].revents & (POLLIN | POLLHUP)))
+      if(t->fd != -1
+         && t->slot != -1
+         && (fds[t->slot].revents & (POLLIN | POLLHUP)))
          fill(t);
     /* Maybe we finished playing a track somewhere in the above */
     maybe_finished();
@@ -542,6 +575,8 @@ static void mainloop(void) {
 
 int main(int argc, char **argv) {
   int n;
+  struct sockaddr_un addr;
+  static const int one = 1;
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
@@ -582,6 +617,20 @@ int main(int argc, char **argv) {
   backend = backends[n];
   /* backend-specific initialization */
   backend->init();
+  /* set up the listen socket */
+  listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
+  memset(&addr, 0, sizeof addr);
+  addr.sun_family = AF_UNIX;
+  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker",
+           config->home);
+  if(unlink(addr.sun_path) < 0 && errno != ENOENT)
+    error(errno, "removing %s", addr.sun_path);
+  xsetsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+  if(bind(listenfd, &addr, sizeof addr) < 0)
+    fatal(errno, "error binding socket to %s", addr.sun_path);
+  xlisten(listenfd, 128);
+  nonblock(listenfd);
+  info("listening on %s", addr.sun_path);
   mainloop();
   info("stopped (parent terminated)");
   exit(0);

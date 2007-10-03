@@ -27,7 +27,8 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/uio.h>
+#include <unistd.h>
+#include <stddef.h>
 
 #include "speaker-protocol.h"
 #include "log.h"
@@ -35,84 +36,31 @@
 /** @brief Send a speaker message
  * @param fd File descriptor to send to
  * @param sm Pointer to message
- * @param datafd File descriptoxr to pass with message or -1
- *
- * @p datafd will be the output from some decoder.
  */
-void speaker_send(int fd, const struct speaker_message *sm, int datafd) {
-  struct msghdr m;
-  struct iovec iov;
-  union {
-    struct cmsghdr cmsg;
-    char size[CMSG_SPACE(sizeof (int))];
-  } u;
+void speaker_send(int fd, const struct speaker_message *sm) {
   int ret;
 
-  memset(&m, 0, sizeof m);
-  m.msg_iov = &iov;
-  m.msg_iovlen = 1;
-  iov.iov_base = (void *)sm;
-  iov.iov_len = sizeof *sm;
-  if(datafd != -1) {
-    m.msg_control = (void *)&u.cmsg;
-    m.msg_controllen = sizeof u;
-    memset(&u, 0, sizeof u);
-    u.cmsg.cmsg_len = CMSG_LEN(sizeof (int));
-    u.cmsg.cmsg_level = SOL_SOCKET;
-    u.cmsg.cmsg_type = SCM_RIGHTS;
-    *(int *)CMSG_DATA(&u.cmsg) = datafd;
-  }
   do {
-    ret = sendmsg(fd, &m, 0);
+    ret = write(fd, sm, sizeof *sm);
   } while(ret < 0 && errno == EINTR);
   if(ret < 0)
-    fatal(errno, "sendmsg");
+    fatal(errno, "write");
 }
 
 /** @brief Receive a speaker message
  * @param fd File descriptor to read from
  * @param sm Where to store received message
- * @param datafd Where to store received file descriptor or NULL
  * @return -ve on @c EAGAIN, 0 at EOF, +ve on success
- *
- * If @p datafd is NULL but a file descriptor is nonetheless received,
- * the process is terminated with an error.
  */
-int speaker_recv(int fd, struct speaker_message *sm, int *datafd) {
-  struct msghdr m;
-  struct iovec iov;
-  union {
-    struct cmsghdr cmsg;
-    char size[CMSG_SPACE(sizeof (int))];
-  } u;
+int speaker_recv(int fd, struct speaker_message *sm) {
   int ret;
 
-  memset(&m, 0, sizeof m);
-  m.msg_iov = &iov;
-  m.msg_iovlen = 1;
-  iov.iov_base = (void *)sm;
-  iov.iov_len = sizeof *sm;
-  if(datafd) {
-    m.msg_control = (void *)&u.cmsg;
-    m.msg_controllen = sizeof u;
-    memset(&u, 0, sizeof u);
-    u.cmsg.cmsg_len = CMSG_LEN(sizeof (int));
-    u.cmsg.cmsg_level = SOL_SOCKET;
-    u.cmsg.cmsg_type = SCM_RIGHTS;
-    *datafd = -1;
-  }
   do {
-    ret = recvmsg(fd, &m, MSG_DONTWAIT);
+    ret = read(fd, sm, sizeof *sm);
   } while(ret < 0 && errno == EINTR);
   if(ret < 0) {
     if(errno != EAGAIN) fatal(errno, "recvmsg");
     return -1;
-  }
-  if((size_t)m.msg_controllen >= CMSG_LEN(sizeof (int))) {
-    if(!datafd)
-      fatal(0, "got an unexpected file descriptor from recvmsg");
-    else
-      *datafd = *(int *)CMSG_DATA(&u.cmsg);
   }
   return ret;
 }

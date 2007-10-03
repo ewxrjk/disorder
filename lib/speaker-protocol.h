@@ -32,7 +32,6 @@ struct speaker_message {
   /** @brief Message type
    *
    * Messges from the main server:
-   * - @ref SM_PREPARE
    * - @ref SM_PLAY
    * - @ref SM_PAUSE
    * - @ref SM_RESUME
@@ -54,12 +53,6 @@ struct speaker_message {
 };
 
 /* messages from the main DisOrder server */
-/** @brief Prepare track @c id
- *
- * This message will include a file descriptor.  The speaker starts buffering
- * audio data read from this file against the time that it must be played.
- */
-#define SM_PREPARE 0
 
 /** @brief Play track @c id
  *
@@ -96,13 +89,12 @@ struct speaker_message {
  */
 #define SM_PLAYING 131
 
-void speaker_send(int fd, const struct speaker_message *sm, int datafd);
-/* Send a message.  DATAFD is passed too if not -1.  Does not close DATAFD. */
+void speaker_send(int fd, const struct speaker_message *sm);
+/* Send a message. */
 
-int speaker_recv(int fd, struct speaker_message *sm, int *datafd);
-/* Receive a message.  If DATAFD is not null then can receive an FD.  Return 0
- * on EOF, +ve if a message is read, -1 on EAGAIN, terminates on any other
- * error. */
+int speaker_recv(int fd, struct speaker_message *sm);
+/* Receive a message.  Return 0 on EOF, +ve if a message is read, -1 on EAGAIN,
+ * terminates on any other error. */
 
 /** @brief One chunk in a stream */
 struct stream_header {

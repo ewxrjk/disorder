@@ -36,6 +36,7 @@
 #include <pcre.h>
 #include <ao/ao.h>
 #include <sys/wait.h>
+#include <sys/un.h>
 
 #include "event.h"
 #include "log.h"
@@ -95,7 +96,7 @@ static int speaker_terminated(ev_source attribute((unused)) *ev,
 static int speaker_readable(ev_source *ev, int fd,
 			    void attribute((unused)) *u) {
   struct speaker_message sm;
-  int ret = speaker_recv(fd, &sm, 0);
+  int ret = speaker_recv(fd, &sm);
   
   if(ret < 0) return 0;			/* EAGAIN */
   if(!ret) {				/* EOF */
@@ -169,7 +170,7 @@ void speaker_reload(void) {
 
   memset(&sm, 0, sizeof sm);
   sm.type = SM_RELOAD;
-  speaker_send(speaker_fd, &sm, -1);
+  speaker_send(speaker_fd, &sm);
 }
 
 /* timeout for play retry */
@@ -238,9 +239,9 @@ static int player_finished(ev_source *ev,
   switch(q->state) {
   case playing_unplayed:
   case playing_random:
-    /* If this was an SM_PREPARE track then either it failed or we deliberately
-     * stopped it because it was removed from the queue or moved down it.  So
-     * leave it state alone for future use. */
+    /* If this was a pre-prepared track then either it failed or we
+     * deliberately stopped it because it was removed from the queue or moved
+     * down it.  So leave it state alone for future use. */
     break;
   default:
     /* We actually started playing this track. */
@@ -285,13 +286,18 @@ static int find_player(const struct queue_entry *q) {
 #define START_HARDFAIL 1		/* Track is broken. */
 #define START_SOFTFAIL 2	   /* Track OK, system (temporarily?) broken */
 
-/* Play or prepare Q */
+/** @brief Play or prepare @p q
+ * @param ev Event loop
+ * @param q Track to play/prepare
+ * @param prepare_only If true, only prepares track
+ * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFTAIL
+ */
 static int start(ev_source *ev,
 		 struct queue_entry *q,
-		 int smop) {
+		 int prepare_only) {
   int n, lfd;
   const char *p;
-  int np[2], sp[2];
+  int np[2], sfd;
   struct speaker_message sm;
   char buffer[64];
   int optc;
@@ -302,16 +308,19 @@ static int start(ev_source *ev,
   const char *waitdevice = 0;
   const char *const *optv;
   pid_t pid, npid;
+  struct sockaddr_un addr;
+  uint32_t l;
 
   memset(&sm, 0, sizeof sm);
+  D(("start %s %d", q->id, prepare_only));
   if(find_player_pid(q->id) > 0) {
-    if(smop == SM_PREPARE) return START_OK;
-    /* We have already sent an SM_PREPARE for this track so we just need to
-     * tell the speaker process to start actually playing the queued up audio
-     * data */
+    if(prepare_only) return START_OK;
+    /* We have already prepared this track so we just need to tell the speaker
+     * process to start actually playing the queued up audio data */
     strcpy(sm.id, q->id);
     sm.type = SM_PLAY;
-    speaker_send(speaker_fd, &sm, -1);
+    speaker_send(speaker_fd, &sm);
+    D(("sent SM_PLAY for %s", sm.id));
     return START_OK;
   }
   /* Find the player plugin. */
@@ -320,7 +329,7 @@ static int start(ev_source *ev,
     return START_HARDFAIL;
   q->type = play_get_type(q->pl);
   /* Can't prepare non-raw tracks. */
-  if(smop == SM_PREPARE
+  if(prepare_only
      && (q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return START_OK;
   /* Call the prefork function. */
@@ -365,52 +374,62 @@ static int start(ev_source *ev,
     xclose(lfd);			/* tidy up */
     setpgid(0, 0);
     if((q->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
-      /* "Raw" format players need special treatment:
-       * 1) their output needs to go via the disorder-normalize process
-       * 2) the output of that needs to be passed to the disorder-speaker
-       *    process.
+      /* "Raw" format players always have their output send down a pipe
+       * to the disorder-normalize process.  This will connect to the
+       * speaker process to actually play the audio data.
        */
       /* np will be the pipe to disorder-normalize */
       if(socketpair(PF_UNIX, SOCK_STREAM, 0, np) < 0)
 	fatal(errno, "error calling socketpair");
       xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
       xshutdown(np[1], SHUT_RD);	/* decoder writes to np[1] */
-      /* sp will be the pipe to disorder-speaker */
-      sm.type = smop;
-      if(socketpair(PF_UNIX, SOCK_STREAM, 0, sp) < 0)
-	fatal(errno, "error calling socketpair");
-      xshutdown(sp[0], SHUT_WR);	/* speaker reads from sp[0] */
-      xshutdown(sp[1], SHUT_RD);	/* normalize writes to sp[1] */
       /* Start disorder-normalize */
       if(!(npid = xfork())) {
 	if(!xfork()) {
+	  /* Connect to the speaker process */
+	  memset(&addr, 0, sizeof addr);
+	  addr.sun_family = AF_UNIX;
+	  snprintf(addr.sun_path, sizeof addr.sun_path,
+		   "%s/speaker", config->home);
+	  sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
+	  if(connect(sfd, &addr, sizeof addr) < 0)
+	    fatal(errno, "connecting to %s", addr.sun_path);
+	  l = strlen(q->id);
+	  if(write(sfd, &l, sizeof l) < 0
+	     || write(sfd, q->id, l) < 0)
+	    fatal(errno, "writing to %s", addr.sun_path);
+	  /* Await the ack */
+	  read(sfd, &l, 1);
+	  /* Plumbing */
 	  xdup2(np[0], 0);
-	  xdup2(sp[1], 1);
+	  xdup2(sfd, 1);
 	  xclose(np[0]);
 	  xclose(np[1]);
-	  xclose(sp[0]);
-	  xclose(sp[1]);
+	  xclose(sfd);
+	  /* Ask the speaker to actually start playing the track; we do it here
+	   * so it's definitely after ack. */
+	  if(!prepare_only) {
+	    strcpy(sm.id, q->id);
+	    sm.type = SM_PLAY;
+	    speaker_send(speaker_fd, &sm);
+	    D(("sent SM_PLAY for %s", sm.id));
+	  }
 	  execlp("disorder-normalize", "disorder-normalize", (char *)0);
 	  fatal(errno, "executing disorder-normalize");
+	  /* end of the innermost fork */
 	}
 	_exit(0);
-      } else {
-	int w;
-
-	while(waitpid(npid, &w, 0) < 0 && errno == EINTR)
-	  ;
+	/* end of the middle fork */
       }
-      /* Send the speaker process the file descriptor to read from */
-      strcpy(sm.id, q->id);
-      speaker_send(speaker_fd, &sm, sp[0]);
+      /* Wait for the middle fork to finish */
+      while(waitpid(npid, &n, 0) < 0 && errno == EINTR)
+	;
       /* Pass the file descriptor to the driver in an environment
        * variable. */
       snprintf(buffer, sizeof buffer, "DISORDER_RAW_FD=%d", np[1]);
       if(putenv(buffer) < 0)
 	fatal(errno, "error calling putenv");
       /* Close all the FDs we don't need */
-      xclose(sp[0]);
-      xclose(sp[1]);
       xclose(np[0]);
     }
     if(waitdevice) {
@@ -466,7 +485,7 @@ int prepare(ev_source *ev,
   q->type = play_get_type(q->pl);
   if((q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return 0;				/* Not a raw player */
-  return start(ev, q, SM_PREPARE);	/* Prepare it */
+  return start(ev, q, 1/*prepare_only*/); /* Prepare it */
 }
 
 void abandon(ev_source attribute((unused)) *ev,
@@ -484,7 +503,7 @@ void abandon(ev_source attribute((unused)) *ev,
   memset(&sm, 0, sizeof sm);
   sm.type = SM_CANCEL;
   strcpy(sm.id, q->id);
-  speaker_send(speaker_fd, &sm, -1);
+  speaker_send(speaker_fd, &sm);
 }
 
 int add_random_track(void) {
@@ -542,7 +561,7 @@ void play(ev_source *ev) {
     return;
   D(("taken %p (%s) from queue", (void *)q, q->track));
   /* Try to start playing. */
-  switch(start(ev, q, SM_PLAY)) {
+  switch(start(ev, q, 0/*!prepare_only*/)) {
   case START_HARDFAIL:
     if(q == qhead.next) {
       queue_remove(q, 0);		/* Abandon this track. */
@@ -645,7 +664,7 @@ void scratch(const char *who, const char *id) {
       memset(&sm, 0, sizeof sm);
       sm.type = SM_CANCEL;
       strcpy(sm.id, playing->id);
-      speaker_send(speaker_fd, &sm, -1);
+      speaker_send(speaker_fd, &sm);
       D(("sending SM_CANCEL for %s", playing->id));
     }
     /* put a scratch track onto the front of the queue (but don't
@@ -713,7 +732,7 @@ int pause_playing(const char *who) {
   case DISORDER_PLAYER_RAW:
     memset(&sm, 0, sizeof sm);
     sm.type = SM_PAUSE;
-    speaker_send(speaker_fd, &sm, -1);
+    speaker_send(speaker_fd, &sm);
     break;
   }
   if(who) info("paused by %s", who);
@@ -744,7 +763,7 @@ void resume_playing(const char *who) {
   case DISORDER_PLAYER_RAW:
     memset(&sm, 0, sizeof sm);
     sm.type = SM_RESUME;
-    speaker_send(speaker_fd, &sm, -1);
+    speaker_send(speaker_fd, &sm);
     break;
   }
   if(who) info("resumed by %s", who);
