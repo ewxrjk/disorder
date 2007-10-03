@@ -129,7 +129,7 @@ void trackdb_init(int recover) {
                               |DB_CREATE
                               |recover_type[recover],
                               0666)))
-    fatal(0, "trackdb_env->open: %s", db_strerror(err));
+    fatal(0, "trackdb_env->open %s: %s", config->home, db_strerror(err));
   trackdb_env->set_errpfx(trackdb_env, "DB");
   trackdb_env->set_errfile(trackdb_env, stderr);
   trackdb_env->set_verbose(trackdb_env, DB_VERB_DEADLOCK, 1);

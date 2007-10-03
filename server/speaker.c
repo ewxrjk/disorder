@@ -469,7 +469,7 @@ static void mainloop(void) {
       uint32_t l;
       char id[24];
 
-      if((fd = accept(listenfd, &addr, &addrlen)) >= 0) {
+      if((fd = accept(listenfd, (struct sockaddr *)&addr, &addrlen)) >= 0) {
         if(read(fd, &l, sizeof l) < 4) {
           error(errno, "reading length from inbound connection");
           xclose(fd);
@@ -627,7 +627,7 @@ int main(int argc, char **argv) {
   if(unlink(addr.sun_path) < 0 && errno != ENOENT)
     error(errno, "removing %s", addr.sun_path);
   xsetsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
-  if(bind(listenfd, &addr, sizeof addr) < 0)
+  if(bind(listenfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
     fatal(errno, "error binding socket to %s", addr.sun_path);
   xlisten(listenfd, 128);
   nonblock(listenfd);

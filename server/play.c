@@ -392,7 +392,7 @@ static int start(ev_source *ev,
 	  snprintf(addr.sun_path, sizeof addr.sun_path,
 		   "%s/speaker", config->home);
 	  sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
-	  if(connect(sfd, &addr, sizeof addr) < 0)
+	  if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
 	    fatal(errno, "connecting to %s", addr.sun_path);
 	  l = strlen(q->id);
 	  if(write(sfd, &l, sizeof l) < 0

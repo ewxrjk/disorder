@@ -1,9 +1,8 @@
 DisOrder on OS X
 ================
 
-The server builds on OS X.  However the kernel panics when I run it
-(kernel 8.10.1).  Until Apple can provide a stable operating system,
-it is not recommended that you run the server on this platform.
+The server builds on OS X.  It is not well tested in this environment.
+Please report successes and failures!
 
 
 Things you will need to do:
