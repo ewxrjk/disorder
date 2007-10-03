@@ -200,7 +200,7 @@ static struct choose_menuitem dir_menuitems[] = {
 
 /* Maintaining the data structure ------------------------------------------ */
 
-static char *flags(const struct choosenode *cn) {
+static char *cnflags(const struct choosenode *cn) {
   unsigned f = cn->flags, n;
   struct dynstr d[1];
   
@@ -359,7 +359,7 @@ static void got_files(void *v, int nvec, char **vec) {
   struct choosenode *cn = cbd->u.choosenode;
   int n;
 
-  D(("got_files %d files for %s %s", nvec, cn->path, flags(cn)));
+  D(("got_files %d files for %s %s", nvec, cn->path, cnflags(cn)));
   /* Complicated by the need to resolve aliases.  We can save a bit of effort
    * by re-using cbd though. */
   cn->flags &= ~CN_GETTING_FILES;
@@ -382,7 +382,7 @@ static void got_resolved_file(void *v, const char *track) {
   struct callbackdata *cbd = v;
   struct choosenode *cn = cbd->u.choosenode, *file_cn;
 
-  D(("resolved %s %s %d left", cn->path, flags(cn), cn->pending - 1));
+  D(("resolved %s %s %d left", cn->path, cnflags(cn), cn->pending - 1));
   /* TODO as below */
   file_cn = newnode(cn, track,
                     trackname_transform("track", track, "display"),
@@ -404,7 +404,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
   struct choosenode *cn = cbd->u.choosenode;
   int n;
 
-  D(("got_dirs %d dirs for %s %s", nvec, cn->path, flags(cn)));
+  D(("got_dirs %d dirs for %s %s", nvec, cn->path, cnflags(cn)));
   /* TODO this depends on local configuration for trackname_transform().
    * This will work, since the defaults are now built-in, but it'll be
    * (potentially) different to the server's configured settings.
@@ -447,7 +447,7 @@ static void fill_directory_node(struct choosenode *cn) {
 
 /** @brief Expand a node */
 static void expand_node(struct choosenode *cn, int contingent) {
-  D(("expand_node %s %d %s", cn->path, contingent, flags(cn)));
+  D(("expand_node %s %d %s", cn->path, contingent, cnflags(cn)));
   assert(cn->flags & CN_EXPANDABLE);
   /* If node is already expanded do nothing. */
   if(cn->flags & CN_EXPANDED) return;
