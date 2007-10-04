@@ -119,6 +119,8 @@ const char *trackdb_get_global(const char *name);
 
 char **trackdb_new(int *ntracksp, int maxtracks);
 
+void trackdb_expire_noticed(time_t when);
+
 #endif /* TRACKDB_H */
 
 /*

@@ -34,6 +34,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -305,7 +306,10 @@ static void do_all(void (*fn)(const struct collection *c)) {
 
 /** @brief Expire noticed.db */
 static void expire_noticed(void) {
-  error(0, "expire_noticed not implemented yet TODO");
+  time_t now;
+
+  time(&now);
+  trackdb_expire_noticed(now - config->noticed_history * 86400);
 }
 
 int main(int argc, char **argv) {

@@ -69,6 +69,7 @@ static int trackdb_get_global_tid(const char *name,
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
                               DB_TXN *tid);
+static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid);
 
 const struct cache_type cache_files_type = { 86400 };
 unsigned long cache_files_hits, cache_files_misses;
@@ -1919,6 +1920,63 @@ static char **trackdb_new_tid(int *ntracksp,
   if(ntracksp)
     *ntracksp = tracks->nvec;
   return tracks->vec;
+}
+
+/** @brief Expire noticed.db
+ * @param earliest Earliest timestamp to keep
+ */
+void trackdb_expire_noticed(time_t earliest) {
+  DB_TXN *tid;
+
+  for(;;) {
+    tid = trackdb_begin_transaction();
+    if(!trackdb_expire_noticed_tid(earliest, tid))
+      break;
+    trackdb_abort_transaction(tid);
+  }
+  trackdb_commit_transaction(tid);
+}
+
+/** @brief Expire noticed.db
+ * @param earliest Earliest timestamp to keep
+ * @param tid Transaction ID
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
+static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid) {
+  DBC *c;
+  DBT k, d;
+  int err = 0, ret;
+  time_t when;
+  uint32_t *kk;
+  int count = 0;
+
+  c = trackdb_opencursor(trackdb_noticeddb, tid);
+  while(!(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_NEXT))) {
+    kk = k.data;
+    when = (time_t)(((uint64_t)ntohl(kk[0]) << 32) + ntohl(kk[1]));
+    if(when >= earliest)
+      break;
+    if((err = c->c_del(c, 0))) {
+      if(err != DB_LOCK_DEADLOCK)
+        fatal(0, "error deleting expired noticed.db entry: %s",
+              db_strerror(err));
+      break;
+    }
+    ++count;
+  }
+  if(err == DB_NOTFOUND)
+    err = 0;
+  if(err && err != DB_LOCK_DEADLOCK)
+    fatal(0, "error expiring noticed.db: %s", db_strerror(err));
+  ret = err;
+  if((err = trackdb_closecursor(c))) {
+    if(err != DB_LOCK_DEADLOCK)
+      fatal(0, "error closing cursor: %s", db_strerror(err));
+    ret = err;
+  }
+  if(!ret && count)
+    info("expired %d tracks from noticed.db", count);
+  return ret;
 }
 
 /* tidying up ****************************************************************/
