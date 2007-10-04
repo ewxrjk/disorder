@@ -53,8 +53,9 @@ void xgettimeofday(struct timeval *, struct timezone *);
 /* the above all call @fatal@ if the system call fails */
 
 void nonblock(int fd);
+void blocking(int fd);
 void cloexec(int fd);
-/* make @fd@ non-blocking/close-on-exec; call @fatal@ on error. */
+/* make @fd@ non-blocking/blocking/close-on-exec; call @fatal@ on error. */
 
 int mustnotbeminus1(const char *what, int value);
 /* If @value@ is -1, report an error including @what@. */

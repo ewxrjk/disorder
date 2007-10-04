@@ -66,6 +66,13 @@ void nonblock(int fd) {
 					fcntl(fd, F_GETFL)) | O_NONBLOCK));
 }
 
+void blocking(int fd) {
+  mustnotbeminus1("fcntl F_SETFL",
+		  fcntl(fd, F_SETFL,
+			mustnotbeminus1("fcntl F_GETFL",
+					fcntl(fd, F_GETFL)) & ~O_NONBLOCK));
+}
+
 void cloexec(int fd) {
   mustnotbeminus1("fcntl F_SETFD",
 		  fcntl(fd, F_SETFD,

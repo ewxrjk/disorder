@@ -47,9 +47,10 @@ disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 disorder_speaker_SOURCES=speaker.c speaker.h \
 		         speaker-command.c \
 			 speaker-network.c \
+			 speaker-coreaudio.c \
 			 speaker-alsa.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_decode_SOURCES=decode.c

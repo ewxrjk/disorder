@@ -128,6 +128,7 @@ static int speaker_readable(ev_source *ev, int fd,
 void speaker_setup(ev_source *ev) {
   int sp[2], lfd;
   pid_t pid;
+  struct speaker_message sm;
 
   if(socketpair(PF_UNIX, SOCK_DGRAM, 0, sp) < 0)
     fatal(errno, "error calling socketpair");
@@ -160,8 +161,9 @@ void speaker_setup(ev_source *ev) {
   speaker_fd = sp[1];
   xclose(sp[0]);
   cloexec(speaker_fd);
-  /* Don't need to make speaker_fd nonblocking because speaker_recv() uses
-   * MSG_DONTWAIT. */
+  /* Wait for the speaker to be ready */
+  speaker_recv(speaker_fd, &sm);
+  nonblock(speaker_fd);
   ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0);
 }
 
@@ -383,6 +385,8 @@ static int start(ev_source *ev,
 	fatal(errno, "error calling socketpair");
       xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
       xshutdown(np[1], SHUT_RD);	/* decoder writes to np[1] */
+      blocking(np[0]);
+      blocking(np[1]);
       /* Start disorder-normalize */
       if(!(npid = xfork())) {
 	if(!xfork()) {

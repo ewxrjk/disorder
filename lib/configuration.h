@@ -182,6 +182,7 @@ struct config {
 #define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
 #define BACKEND_COMMAND 1		/**< Execute a command */
 #define BACKEND_NETWORK 2		/**< Transmit RTP  */
+#define BACKEND_COREAUDIO 3		/**< Use Core Audio (Mac only) */
 
   /** @brief Home directory for state files */
   const char *home;

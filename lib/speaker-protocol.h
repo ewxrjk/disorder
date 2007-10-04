@@ -89,6 +89,12 @@ struct speaker_message {
  */
 #define SM_PLAYING 131
 
+/** @brief Speaker process is ready
+ *
+ * This is sent once at startup when the speaker has finished its
+ * initialization. */
+#define SM_READY 132
+
 void speaker_send(int fd, const struct speaker_message *sm);
 /* Send a message. */
 
@@ -98,6 +104,9 @@ int speaker_recv(int fd, struct speaker_message *sm);
 
 /** @brief One chunk in a stream */
 struct stream_header {
+  /** @brief Number of bytes */
+  uint32_t nbytes;
+
   /** @brief Frames per second */
   uint32_t rate;
 
@@ -116,9 +125,6 @@ struct stream_header {
 #else
 # define ENDIAN_NATIVE ENDIAN_LITTLE
 #endif
-  
-  /** @brief Number of bytes */
-  uint32_t nbytes;
 } attribute((packed));
 
 static inline int formats_equal(const struct stream_header *a,

@@ -450,7 +450,15 @@ static int set_backend(const struct config_state *cs,
     *valuep = BACKEND_COMMAND;
   else if(!strcmp(vec[0], "network"))
     *valuep = BACKEND_NETWORK;
-  else {
+  else if(!strcmp(vec[0], "coreaudio")) {
+#if HAVE_COREAUDIO_AUDIOHARDWARE_H
+    *valuep = BACKEND_COREAUDIO;
+#else
+    error(0, "%s:%d: Core Audio is not available on this platform",
+	  cs->path, cs->line);
+    return -1;
+#endif
+  } else {
     error(0, "%s:%d: invalid '%s' value '%s'",
 	  cs->path, cs->line, whoami->name, vec[0]);
     return -1;
@@ -1070,6 +1078,8 @@ static void config_postdefaults(struct config *c,
     else {
 #if API_ALSA
       c->speaker_backend = BACKEND_ALSA;
+#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
+      c->speaker_backend = BACKEND_COREAUDIO;
 #else
       c->speaker_backend = BACKEND_COMMAND;
 #endif
@@ -1081,12 +1091,19 @@ static void config_postdefaults(struct config *c,
     if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
       fatal(0, "speaker_backend is network but broadcast is not set");
   }
-  if(c->speaker_backend) {
+  if(c->speaker_backend == BACKEND_NETWORK) {
     /* Override sample format */
     c->sample_format.rate = 44100;
     c->sample_format.channels = 2;
     c->sample_format.bits = 16;
     c->sample_format.endian = ENDIAN_BIG;
+  }
+  if(c->speaker_backend == BACKEND_COREAUDIO) {
+    /* Override sample format */
+    c->sample_format.rate = 44100;
+    c->sample_format.channels = 2;
+    c->sample_format.bits = 16;
+    c->sample_format.endian = ENDIAN_NATIVE;
   }
 }
 

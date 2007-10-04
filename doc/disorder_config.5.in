@@ -345,6 +345,16 @@ The number of channels.
 .PP
 The default is
 .BR 16/44100/2 .
+.PP
+With the
+.B network
+backend the sample format is forced to
+.B 16/44100/2b
+and with the
+.B coreaudio
+backend it is forced to
+.BR 16/44100/2 ,
+in both cases regardless of what is specified in the configuration file.
 .RE
 .TP
 .B signal \fINAME\fR
@@ -363,10 +373,14 @@ available:
 Use the ALSA API.  This is only available on Linux systems, on which it is the
 default.
 .TP
+.B coreaudio
+Use Apple Core Audio.  This only available on OS X systems, on which it is the
+default.
+.TP
 .B command
 Execute a command.  This is the default if
 .B speaker_command
-is specified, or (currently) on non-Linux systems.
+is specified, or if no native is available.
 .TP
 .B network
 Transmit audio over the network.  This is the default if

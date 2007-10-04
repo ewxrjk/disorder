@@ -212,6 +212,7 @@ extern struct track *playing;
 extern const struct speaker_backend network_backend;
 extern const struct speaker_backend alsa_backend;
 extern const struct speaker_backend command_backend;
+extern const struct speaker_backend coreaudio_backend;
 
 extern struct pollfd fds[NFDS];
 extern int fdno;

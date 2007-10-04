@@ -377,6 +377,9 @@ static const struct speaker_backend *backends[] = {
 #endif
   &command_backend,
   &network_backend,
+#if HAVE_COREAUDIO_AUDIOHARDWARE_H
+  &coreaudio_backend,
+#endif
   0
 };
 
@@ -470,6 +473,7 @@ static void mainloop(void) {
       char id[24];
 
       if((fd = accept(listenfd, (struct sockaddr *)&addr, &addrlen)) >= 0) {
+        blocking(fd);
         if(read(fd, &l, sizeof l) < 4) {
           error(errno, "reading length from inbound connection");
           xclose(fd);
@@ -578,6 +582,7 @@ int main(int argc, char **argv) {
   int n;
   struct sockaddr_un addr;
   static const int one = 1;
+  struct speaker_message sm;
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
@@ -632,6 +637,9 @@ int main(int argc, char **argv) {
   xlisten(listenfd, 128);
   nonblock(listenfd);
   info("listening on %s", addr.sun_path);
+  memset(&sm, 0, sizeof sm);
+  sm.type = SM_READY;
+  speaker_send(1, &sm);
   mainloop();
   info("stopped (parent terminated)");
   exit(0);
