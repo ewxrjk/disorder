@@ -186,7 +186,8 @@ static void volumecheck_after(long offset) {
 /* We fix the path to include the bindir and sbindir we were installed into */
 static void fix_path(void) {
   char *path = getenv("PATH");
-  char *newpath;
+  static char *newpath;
+  /* static or libgc collects it! */
 
   if(!path)
     error(0, "PATH is not set at all!");

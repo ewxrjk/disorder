@@ -134,9 +134,11 @@ int main(int argc, char attribute((unused)) **argv) {
       if(r < 0) {
         if(errno != EINTR)
           fatal(errno, "error reading header");
-      } else if(r == 0)
-        fatal(0, "EOF reading header");
-      else
+      } else if(r == 0) {
+        if(n)
+          fatal(0, "EOF reading header");
+        break;
+      } else
         n += r;
     }
     /* Sanity check the header */

@@ -343,8 +343,11 @@ static int start(ev_source *ev,
     }
   /* Use the second arg as the tag if available (it's probably a command name),
    * otherwise the module name. */
-  lfd = logfd(ev, (config->player.s[n].s[2]
-		   ? config->player.s[n].s[2] : config->player.s[n].s[1]));
+  if(!isatty(2))
+    lfd = logfd(ev, (config->player.s[n].s[2]
+		     ? config->player.s[n].s[2] : config->player.s[n].s[1]));
+  else
+    lfd = -1;
   optc = config->player.s[n].n - 2;
   optv = (void *)&config->player.s[n].s[2];
   while(optc > 0 && optv[0][0] == '-') {
@@ -371,9 +374,11 @@ static int start(ev_source *ev,
     exitfn = _exit;
     ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
-    xdup2(lfd, 1);
-    xdup2(lfd, 2);
-    xclose(lfd);			/* tidy up */
+    if(lfd != -1) {
+      xdup2(lfd, 1);
+      xdup2(lfd, 2);
+      xclose(lfd);			/* tidy up */
+    }
     setpgid(0, 0);
     if((q->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       /* "Raw" format players always have their output send down a pipe
@@ -467,11 +472,13 @@ static int start(ev_source *ev,
     error(errno, "error calling fork");
     if(q->type & DISORDER_PLAYER_PREFORK)
       play_cleanup(q->pl, q->data);	/* else would leak */
-    xclose(lfd);
+    if(lfd != -1)
+      xclose(lfd);
     return START_SOFTFAIL;
   }
   store_player_pid(q->id, pid);
-  xclose(lfd);
+  if(lfd != -1)
+    xclose(lfd);
   setpgid(pid, pid);
   ev_child(ev, pid, 0, player_finished, q);
   D(("player subprocess ID %lu", (unsigned long)pid));

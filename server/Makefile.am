@@ -48,6 +48,7 @@ disorder_speaker_SOURCES=speaker.c speaker.h \
 		         speaker-command.c \
 			 speaker-network.c \
 			 speaker-coreaudio.c \
+			 speaker-oss.c \
 			 speaker-alsa.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)

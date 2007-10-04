@@ -458,6 +458,14 @@ static int set_backend(const struct config_state *cs,
 	  cs->path, cs->line);
     return -1;
 #endif
+  } else if(!strcmp(vec[0], "oss")) {
+#if HAVE_SYS_SOUNDCARD_H
+    *valuep = BACKEND_OSS;
+#else
+    error(0, "%s:%d: OSS is not available on this platform",
+	  cs->path, cs->line);
+    return -1;
+#endif
   } else {
     error(0, "%s:%d: invalid '%s' value '%s'",
 	  cs->path, cs->line, whoami->name, vec[0]);
@@ -1091,20 +1099,21 @@ static void config_postdefaults(struct config *c,
     if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
       fatal(0, "speaker_backend is network but broadcast is not set");
   }
-  if(c->speaker_backend == BACKEND_NETWORK) {
-    /* Override sample format */
+  /* Override sample format */
+  switch(c->speaker_backend) {
+  case BACKEND_NETWORK:
     c->sample_format.rate = 44100;
     c->sample_format.channels = 2;
     c->sample_format.bits = 16;
     c->sample_format.endian = ENDIAN_BIG;
-  }
-  if(c->speaker_backend == BACKEND_COREAUDIO) {
-    /* Override sample format */
+    break;
+  case BACKEND_COREAUDIO:
     c->sample_format.rate = 44100;
     c->sample_format.channels = 2;
     c->sample_format.bits = 16;
     c->sample_format.endian = ENDIAN_NATIVE;
-  }
+    break; 
+ }
 }
 
 /** @brief (Re-)read the config file

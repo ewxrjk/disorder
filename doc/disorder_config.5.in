@@ -1,3 +1,4 @@
+
 .\"
 .\" Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
 .\"
@@ -349,7 +350,7 @@ The default is
 With the
 .B network
 backend the sample format is forced to
-.B 16/44100/2b
+.B 16b/44100/2
 and with the
 .B coreaudio
 backend it is forced to
@@ -376,6 +377,10 @@ default.
 .B coreaudio
 Use Apple Core Audio.  This only available on OS X systems, on which it is the
 default.
+.TP
+.B oss
+Use the OSS (/dev/dsp) API.  Not available on all platforms.  Not well
+maintained at the moment.
 .TP
 .B command
 Execute a command.  This is the default if

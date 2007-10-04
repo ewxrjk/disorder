@@ -380,6 +380,9 @@ static const struct speaker_backend *backends[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   &coreaudio_backend,
 #endif
+#if HAVE_SYS_SOUNDCARD_H
+  &oss_backend,
+#endif
   0
 };
 

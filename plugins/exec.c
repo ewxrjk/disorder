@@ -46,7 +46,7 @@ void disorder_play_track(const char *const *parameters,
   vec[j++] = path;
   vec[j] = 0;
   execvp(vec[0], (char **)vec);
-  disorder_fatal(errno, "error executing %s", vec[0]);
+  disorder_fatal(errno, "executing %s", vec[0]);
 }
 
 /*
