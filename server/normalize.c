@@ -141,6 +141,8 @@ int main(int argc, char attribute((unused)) **argv) {
       } else
         n += r;
     }
+    if(!n)
+      break;
     /* Sanity check the header */
     if(header.rate < 100 || header.rate > 1000000)
       fatal(0, "implausible rate %"PRId32"Hz (%#"PRIx32")",
