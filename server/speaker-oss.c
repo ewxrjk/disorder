@@ -71,6 +71,10 @@ static void oss_activate(void) {
 	device = "/dev/dsp";
       else if(access("/dev/audio", W_OK) == 0)
 	device = "/dev/audio";
+      else {
+        error(0, "cannot determine default OSS device");
+        goto failed;
+      }
     } else
       device = config->device;	/* just believe the user */
     /* Open the device */
@@ -111,8 +115,10 @@ static void oss_activate(void) {
   return;
 failed:
   device_state = device_error;
-  if(ossfd >= 0)
+  if(ossfd >= 0) {
     xclose(ossfd);
+    ossfd = -1;
+  }
 }
 
 /** @brief Play via OSS */
