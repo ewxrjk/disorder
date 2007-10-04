@@ -127,12 +127,18 @@ int main(int argc, char attribute((unused)) **argv) {
   }
   memset(&latest_format, 0, sizeof latest_format);
   for(;;) {
-    if((n = read(0, &header, sizeof header)) < 0)
-      fatal(errno, "read error");
-    else if(n == 0)
-      exit(0);
-    else if((size_t)n < sizeof header)
-      fatal(0, "short header");
+    n = 0;
+    while((size_t)n < sizeof header) {
+      int r = read(0, (char *)&header + n, sizeof header - n);
+
+      if(r < 0) {
+        if(errno != EINTR)
+          fatal(errno, "error reading header");
+      } else if(r == 0)
+        fatal(0, "EOF reading header");
+      else
+        n += r;
+    }
     /* Sanity check the header */
     if(header.rate < 100 || header.rate > 1000000)
       fatal(0, "implausible rate %"PRId32"Hz (%#"PRIx32")",
