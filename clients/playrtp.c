@@ -469,13 +469,11 @@ int main(int argc, char **argv) {
 #if HAVE_ALSA_ASOUNDLIB_H
     case 'a': backend = playrtp_alsa; break;
 #endif
-#if 0
 #if HAVE_SYS_SOUNDCARD_H      
     case 'o': backend = playrtp_oss; break;
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H      
     case 'c': backend = playrtp_coreaudio; break;
-#endif
 #endif
     default: fatal(0, "invalid option");
     }
