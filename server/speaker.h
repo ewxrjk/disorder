@@ -47,9 +47,13 @@
 
 /** @brief Bytes to send per network packet
  *
+ * This is the maximum number of bytes we pass to write(2); to determine actual
+ * packet sizes, add a UDP header and an IP header (and a link layer header if
+ * it's the link layer size you care about).
+ *
  * Don't make this too big or arithmetic will start to overflow.
  */
-#define NETWORK_BYTES (1024+sizeof(struct rtp_header))
+#define NETWORK_BYTES (1500-8/*UDP*/-40/*IP*/-8/*conservatism*/)
 
 /** @brief Maximum RTP playahead (ms) */
 #define RTP_AHEAD_MS 1000
