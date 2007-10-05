@@ -109,12 +109,26 @@ static inline int lt_packet(const struct packet *a, const struct packet *b) {
   return lt(a->timestamp, b->timestamp);
 }
 
+/** @brief Return true if @p p contains @p timestamp
+ *
+ * Containment implies that a sample @p timestamp exists within the packet.
+ */
+static inline int contains(const struct packet *p, uint32_t timestamp) {
+  const uint32_t packet_start = p->timestamp;
+  const uint32_t packet_end = p->timestamp + p->nsamples;
+
+  return (ge(timestamp, packet_start)
+          && lt(timestamp, packet_end));
+}
+
 /** @struct pheap 
  * @brief Binary heap of packets ordered by timestamp */
 HEAP_TYPE(pheap, struct packet *, lt_packet);
 
-struct packet *new_packet(void);
-void free_packet(struct packet *p);
+struct packet *playrtp_new_packet(void);
+void playrtp_free_packet(struct packet *p);
+void playrtp_fill_buffer(void);
+struct packet *playrtp_next_packet(void);
 
 extern const char *device;
 extern struct packet *received_packets;
@@ -128,7 +142,9 @@ extern uint32_t next_timestamp;
 extern int active;
 extern pthread_mutex_t lock;
 extern pthread_cond_t cond;
+extern unsigned minbuffer;
 
+void playrtp_oss(void), playrtp_alsa(void), playrtp_coreaudio(void);
 
 #endif /* PLAYRTP_H */
 

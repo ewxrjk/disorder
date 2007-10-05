@@ -63,7 +63,7 @@ static size_t count_free_packets;
 static pthread_mutex_t mem_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief Return a new packet */
-struct packet *new_packet(void) {
+struct packet *playrtp_new_packet(void) {
   struct packet *p;
   
   pthread_mutex_lock(&mem_lock);
@@ -83,7 +83,7 @@ struct packet *new_packet(void) {
 }
 
 /** @brief Free a packet */
-void free_packet(struct packet *p) {
+void playrtp_free_packet(struct packet *p) {
   union free_packet *u = (union free_packet *)p;
   pthread_mutex_lock(&mem_lock);
   u->next = free_packets;

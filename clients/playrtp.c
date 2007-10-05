@@ -34,11 +34,12 @@
  *
  * The main thread is responsible for actually playing audio.  In ALSA this
  * means it waits until ALSA says it's ready for more audio which it then
- * plays.
+ * plays.  See @ref clients/playrtp-alsa.c.
  *
  * In Core Audio the main thread is only responsible for starting and stopping
  * play: the system does the actual playback in its own private thread, and
- * calls adioproc() to fetch the audio data.
+ * calls adioproc() to fetch the audio data.  See @ref
+ * clients/playrtp-coreaudio.c.
  *
  * Sometimes it happens that there is no audio available to play.  This may
  * because the server went away, or a packet was dropped, or the server
@@ -63,6 +64,7 @@
 #include <sys/uio.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "log.h"
 #include "mem.h"
@@ -75,13 +77,6 @@
 #include "heap.h"
 #include "timeval.h"
 #include "playrtp.h"
-
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-# include <CoreAudio/AudioHardware.h>
-#endif
-#if API_ALSA
-#include <alsa/asoundlib.h>
-#endif
 
 #define readahead linux_headers_are_borked
 
@@ -97,7 +92,7 @@ const char *device;
 /** @brief Minimum low watermark
  *
  * We'll stop playing if there's only this many samples in the buffer. */
-static unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
+unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
 
 /** @brief Buffer high watermark
  *
@@ -166,6 +161,19 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 /** @brief Condition variable signalled whenever @ref packets is changed */
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
+#if API_ALSA
+# define DEFAULT_BACKEND playrtp_alsa
+#elif HAVE_SYS_SOUNDCARD_H
+# define DEFAULT_BACKEND playrtp_oss
+#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
+# define DEFAULT_BACKEND playrtp_coreaudio
+#else
+# error No known backend
+#endif
+
+/** @brief Backend to play with */
+static void (*backend)(void) = &DEFAULT_BACKEND;
+
 HEAP_DEFINE(pheap, struct packet *, lt_packet);
 
 static const struct option options[] = {
@@ -178,6 +186,15 @@ static const struct option options[] = {
   { "buffer", required_argument, 0, 'b' },
   { "rcvbuf", required_argument, 0, 'R' },
   { "multicast", required_argument, 0, 'M' },
+#if HAVE_SYS_SOUNDCARD_H
+  { "oss", no_argument, 0, 'o' },
+#endif
+#if API_ALSA
+  { "alsa", no_argument, 0, 'a' },
+#endif
+#if HAVE_COREAUDIO_AUDIOHARDWARE_H
+  { "core-audio", no_argument, 0, 'c' },
+#endif
   { 0, 0, 0, 0 }
 };
 
@@ -189,7 +206,7 @@ static void drop_first_packet(void) {
   if(pheap_count(&packets)) {
     struct packet *const p = pheap_remove(&packets);
     nsamples -= p->nsamples;
-    free_packet(p);
+    playrtp_free_packet(p);
     pthread_cond_broadcast(&cond);
   }
 }
@@ -243,7 +260,7 @@ static void *queue_thread(void attribute((unused)) *arg) {
  * thread which reads packets off the list and adds them to the heap.
  *
  * We keep memory allocation (mostly) very fast by keeping pre-allocated
- * packets around; see @ref new_packet().
+ * packets around; see @ref playrtp_new_packet().
  */
 static void *listen_thread(void attribute((unused)) *arg) {
   struct packet *p = 0;
@@ -255,7 +272,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
 
   for(;;) {
     if(!p)
-      p = new_packet();
+      p = playrtp_new_packet();
     iov[0].iov_base = &header;
     iov[0].iov_len = sizeof header;
     iov[1].iov_base = p->samples_raw;
@@ -322,23 +339,11 @@ static void *listen_thread(void attribute((unused)) *arg) {
   }
 }
 
-/** @brief Return true if @p p contains @p timestamp
- *
- * Containment implies that a sample @p timestamp exists within the packet.
- */
-static inline int contains(const struct packet *p, uint32_t timestamp) {
-  const uint32_t packet_start = p->timestamp;
-  const uint32_t packet_end = p->timestamp + p->nsamples;
-
-  return (ge(timestamp, packet_start)
-          && lt(timestamp, packet_end));
-}
-
 /** @brief Wait until the buffer is adequately full
  *
  * Must be called with @ref lock held.
  */
-static void fill_buffer(void) {
+void playrtp_fill_buffer(void) {
   while(nsamples)
     drop_first_packet();
   info("Buffering...");
@@ -357,7 +362,7 @@ static void fill_buffer(void) {
  *
  * Must be called with @ref lock held.
  */
-static struct packet *next_packet(void) {
+struct packet *playrtp_next_packet(void) {
   while(pheap_count(&packets)) {
     struct packet *const p = pheap_first(&packets);
     if(le(p->timestamp + p->nsamples, next_timestamp)) {
@@ -370,214 +375,6 @@ static struct packet *next_packet(void) {
   }
   return 0;
 }
-
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-/** @brief Callback from Core Audio */
-static OSStatus adioproc
-    (AudioDeviceID attribute((unused)) inDevice,
-     const AudioTimeStamp attribute((unused)) *inNow,
-     const AudioBufferList attribute((unused)) *inInputData,
-     const AudioTimeStamp attribute((unused)) *inInputTime,
-     AudioBufferList *outOutputData,
-     const AudioTimeStamp attribute((unused)) *inOutputTime,
-     void attribute((unused)) *inClientData) {
-  UInt32 nbuffers = outOutputData->mNumberBuffers;
-  AudioBuffer *ab = outOutputData->mBuffers;
-  uint32_t samples_available;
-
-  pthread_mutex_lock(&lock);
-  while(nbuffers > 0) {
-    float *samplesOut = ab->mData;
-    size_t samplesOutLeft = ab->mDataByteSize / sizeof (float);
-
-    while(samplesOutLeft > 0) {
-      const struct packet *p = next_packet();
-      if(p && contains(p, next_timestamp)) {
-        /* This packet is ready to play */
-        const uint32_t packet_end = p->timestamp + p->nsamples;
-        const uint32_t offset = next_timestamp - p->timestamp;
-        const uint16_t *ptr = (void *)(p->samples_raw + offset);
-
-        samples_available = packet_end - next_timestamp;
-        if(samples_available > samplesOutLeft)
-          samples_available = samplesOutLeft;
-        next_timestamp += samples_available;
-        samplesOutLeft -= samples_available;
-        while(samples_available-- > 0)
-          *samplesOut++ = (int16_t)ntohs(*ptr++) * (0.5 / 32767);
-        /* We don't bother junking the packet - that'll be dealt with next time
-         * round */
-      } else {
-        /* No packet is ready to play (and there might be no packet at all) */
-        samples_available = p ? p->timestamp - next_timestamp
-                              : samplesOutLeft;
-        if(samples_available > samplesOutLeft)
-          samples_available = samplesOutLeft;
-        //info("infill by %"PRIu32, samples_available);
-        /* Conveniently the buffer is 0 to start with */
-        next_timestamp += samples_available;
-        samplesOut += samples_available;
-        samplesOutLeft -= samples_available;
-      }
-    }
-    ++ab;
-    --nbuffers;
-  }
-  pthread_mutex_unlock(&lock);
-  return 0;
-}
-#endif
-
-
-#if API_ALSA
-/** @brief PCM handle */
-static snd_pcm_t *pcm;
-
-/** @brief True when @ref pcm is up and running */
-static int alsa_prepared = 1;
-
-/** @brief Initialize @ref pcm */
-static void setup_alsa(void) {
-  snd_pcm_hw_params_t *hwparams;
-  snd_pcm_sw_params_t *swparams;
-  /* Only support one format for now */
-  const int sample_format = SND_PCM_FORMAT_S16_BE;
-  unsigned rate = 44100;
-  const int channels = 2;
-  const int samplesize = channels * sizeof(uint16_t);
-  snd_pcm_uframes_t pcm_bufsize = MAXSAMPLES * samplesize * 3;
-  /* If we can write more than this many samples we'll get a wakeup */
-  const int avail_min = 256;
-  int err;
-  
-  /* Open ALSA */
-  if((err = snd_pcm_open(&pcm,
-                         device ? device : "default",
-                         SND_PCM_STREAM_PLAYBACK,
-                         SND_PCM_NONBLOCK)))
-    fatal(0, "error from snd_pcm_open: %d", err);
-  /* Set up 'hardware' parameters */
-  snd_pcm_hw_params_alloca(&hwparams);
-  if((err = snd_pcm_hw_params_any(pcm, hwparams)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_any: %d", err);
-  if((err = snd_pcm_hw_params_set_access(pcm, hwparams,
-                                         SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
-  if((err = snd_pcm_hw_params_set_format(pcm, hwparams,
-                                         sample_format)) < 0)
-    
-    fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
-          sample_format, err);
-  if((err = snd_pcm_hw_params_set_rate_near(pcm, hwparams, &rate, 0)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_rate (%d): %d",
-          rate, err);
-  if((err = snd_pcm_hw_params_set_channels(pcm, hwparams,
-                                           channels)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
-          channels, err);
-  if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
-                                                   &pcm_bufsize)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-          MAXSAMPLES * samplesize * 3, err);
-  if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
-    fatal(0, "error calling snd_pcm_hw_params: %d", err);
-  /* Set up 'software' parameters */
-  snd_pcm_sw_params_alloca(&swparams);
-  if((err = snd_pcm_sw_params_current(pcm, swparams)) < 0)
-    fatal(0, "error calling snd_pcm_sw_params_current: %d", err);
-  if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, avail_min)) < 0)
-    fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
-          avail_min, err);
-  if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
-    fatal(0, "error calling snd_pcm_sw_params: %d", err);
-}
-
-/** @brief Wait until ALSA wants some audio */
-static void wait_alsa(void) {
-  struct pollfd fds[64];
-  int nfds, err;
-  unsigned short events;
-
-  for(;;) {
-    do {
-      if((nfds = snd_pcm_poll_descriptors(pcm,
-                                          fds, sizeof fds / sizeof *fds)) < 0)
-        fatal(0, "error calling snd_pcm_poll_descriptors: %d", nfds);
-    } while(poll(fds, nfds, -1) < 0 && errno == EINTR);
-    if((err = snd_pcm_poll_descriptors_revents(pcm, fds, nfds, &events)))
-      fatal(0, "error calling snd_pcm_poll_descriptors_revents: %d", err);
-    if(events & POLLOUT)
-      return;
-  }
-}
-
-/** @brief Play some sound via ALSA
- * @param s Pointer to sample data
- * @param n Number of samples
- * @return 0 on success, -1 on non-fatal error
- */
-static int alsa_writei(const void *s, size_t n) {
-  /* Do the write */
-  const snd_pcm_sframes_t frames_written = snd_pcm_writei(pcm, s, n / 2);
-  if(frames_written < 0) {
-    /* Something went wrong */
-    switch(frames_written) {
-    case -EAGAIN:
-      return 0;
-    case -EPIPE:
-      error(0, "error calling snd_pcm_writei: %ld",
-            (long)frames_written);
-      return -1;
-    default:
-      fatal(0, "error calling snd_pcm_writei: %ld",
-            (long)frames_written);
-    }
-  } else {
-    /* Success */
-    next_timestamp += frames_written * 2;
-    return 0;
-  }
-}
-
-/** @brief Play the relevant part of a packet
- * @param p Packet to play
- * @return 0 on success, -1 on non-fatal error
- */
-static int alsa_play(const struct packet *p) {
-  return alsa_writei(p->samples_raw + next_timestamp - p->timestamp,
-                     (p->timestamp + p->nsamples) - next_timestamp);
-}
-
-/** @brief Play some silence
- * @param p Next packet or NULL
- * @return 0 on success, -1 on non-fatal error
- */
-static int alsa_infill(const struct packet *p) {
-  static const uint16_t zeros[INFILL_SAMPLES];
-  size_t samples_available = INFILL_SAMPLES;
-
-  if(p && samples_available > p->timestamp - next_timestamp)
-    samples_available = p->timestamp - next_timestamp;
-  return alsa_writei(zeros, samples_available);
-}
-
-/** @brief Reset ALSA state after we lost synchronization */
-static void alsa_reset(int hard_reset) {
-  int err;
-
-  if((err = snd_pcm_nonblock(pcm, 0)))
-    fatal(0, "error calling snd_pcm_nonblock: %d", err);
-  if(hard_reset) {
-    if((err = snd_pcm_drop(pcm)))
-      fatal(0, "error calling snd_pcm_drop: %d", err);
-  } else
-    if((err = snd_pcm_drain(pcm)))
-      fatal(0, "error calling snd_pcm_drain: %d", err);
-  if((err = snd_pcm_nonblock(pcm, 1)))
-    fatal(0, "error calling snd_pcm_nonblock: %d", err);
-  alsa_prepared = 0;
-}
-#endif
 
 /** @brief Play an RTP stream
  *
@@ -595,115 +392,8 @@ static void play_rtp(void) {
   pthread_create(&ltid, 0, listen_thread, 0);
   /* We have a second thread to add received packets to the queue */
   pthread_create(&ltid, 0, queue_thread, 0);
-#if API_ALSA
-  {
-    struct packet *p;
-    int escape, err;
-
-    /* Open the sound device */
-    setup_alsa();
-    pthread_mutex_lock(&lock);
-    for(;;) {
-      /* Wait for the buffer to fill up a bit */
-      fill_buffer();
-      if(!alsa_prepared) {
-        if((err = snd_pcm_prepare(pcm)))
-          fatal(0, "error calling snd_pcm_prepare: %d", err);
-        alsa_prepared = 1;
-      }
-      escape = 0;
-      info("Playing...");
-      /* Keep playing until the buffer empties out, or ALSA tells us to get
-       * lost */
-      while((nsamples >= minbuffer
-             || (nsamples > 0
-                 && contains(pheap_first(&packets), next_timestamp)))
-            && !escape) {
-        /* Wait for ALSA to ask us for more data */
-        pthread_mutex_unlock(&lock);
-        wait_alsa();
-        pthread_mutex_lock(&lock);
-        /* ALSA is ready for more data, find something to play */
-        p = next_packet();
-        /* Play it or play some silence */
-        if(contains(p, next_timestamp))
-          escape = alsa_play(p);
-        else
-          escape = alsa_infill(p);
-      }
-      active = 0;
-      /* We stop playing for a bit until the buffer re-fills */
-      pthread_mutex_unlock(&lock);
-      alsa_reset(escape);
-      pthread_mutex_lock(&lock);
-    }
-
-  }
-#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-  {
-    OSStatus status;
-    UInt32 propertySize;
-    AudioDeviceID adid;
-    AudioStreamBasicDescription asbd;
-
-    /* If this looks suspiciously like libao's macosx driver there's an
-     * excellent reason for that... */
-
-    /* TODO report errors as strings not numbers */
-    propertySize = sizeof adid;
-    status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
-                                      &propertySize, &adid);
-    if(status)
-      fatal(0, "AudioHardwareGetProperty: %d", (int)status);
-    if(adid == kAudioDeviceUnknown)
-      fatal(0, "no output device");
-    propertySize = sizeof asbd;
-    status = AudioDeviceGetProperty(adid, 0, false,
-                                    kAudioDevicePropertyStreamFormat,
-                                    &propertySize, &asbd);
-    if(status)
-      fatal(0, "AudioHardwareGetProperty: %d", (int)status);
-    D(("mSampleRate       %f", asbd.mSampleRate));
-    D(("mFormatID         %08lx", asbd.mFormatID));
-    D(("mFormatFlags      %08lx", asbd.mFormatFlags));
-    D(("mBytesPerPacket   %08lx", asbd.mBytesPerPacket));
-    D(("mFramesPerPacket  %08lx", asbd.mFramesPerPacket));
-    D(("mBytesPerFrame    %08lx", asbd.mBytesPerFrame));
-    D(("mChannelsPerFrame %08lx", asbd.mChannelsPerFrame));
-    D(("mBitsPerChannel   %08lx", asbd.mBitsPerChannel));
-    D(("mReserved         %08lx", asbd.mReserved));
-    if(asbd.mFormatID != kAudioFormatLinearPCM)
-      fatal(0, "audio device does not support kAudioFormatLinearPCM");
-    status = AudioDeviceAddIOProc(adid, adioproc, 0);
-    if(status)
-      fatal(0, "AudioDeviceAddIOProc: %d", (int)status);
-    pthread_mutex_lock(&lock);
-    for(;;) {
-      /* Wait for the buffer to fill up a bit */
-      fill_buffer();
-      /* Start playing now */
-      info("Playing...");
-      next_timestamp = pheap_first(&packets)->timestamp;
-      active = 1;
-      status = AudioDeviceStart(adid, adioproc);
-      if(status)
-        fatal(0, "AudioDeviceStart: %d", (int)status);
-      /* Wait until the buffer empties out */
-      while(nsamples >= minbuffer
-            || (nsamples > 0
-                && contains(pheap_first(&packets), next_timestamp)))
-        pthread_cond_wait(&cond, &lock);
-      /* Stop playing for a bit until the buffer re-fills */
-      status = AudioDeviceStop(adid, adioproc);
-      if(status)
-        fatal(0, "AudioDeviceStop: %d", (int)status);
-      active = 0;
-      /* Go back round */
-    }
-  }
-#else
-# error No known audio API
-#endif
+  /* The rest of the work is backend-specific */
+  backend();
 }
 
 /* display usage message and terminate */
@@ -717,6 +407,15 @@ static void help(void) {
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
           "  --multicast, -M GROUP   Join multicast group\n"
+#if API_ALSA
+          "  --alsa, -a              Use ALSA to play audio\n"
+#endif
+#if HAVE_SYS_SOUNDCARD_H
+          "  --oss, -o               Use OSS to play audio\n"
+#endif
+#if HAVE_COREAUDIO_AUDIOHARDWARE_H
+          "  --core-audio, -c        Use Core Audio to play audio\n"
+#endif
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
           );
@@ -755,7 +454,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aoc", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -767,6 +466,17 @@ int main(int argc, char **argv) {
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
     case 'M': multicast_group = optarg; break;
+#if API_ALSA
+    case 'a': backend = playrtp_alsa; break;
+#endif
+#if 0
+#if HAVE_SYS_SOUNDCARD_H      
+    case 'o': backend = playrtp_oss; break;
+#endif
+#if HAVE_COREAUDIO_AUDIOHARDWARE_H      
+    case 'c': backend = playrtp_coreaudio; break;
+#endif
+#endif
     default: fatal(0, "invalid option");
     }
   }
