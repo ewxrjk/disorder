@@ -161,7 +161,7 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 /** @brief Condition variable signalled whenever @ref packets is changed */
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
 # define DEFAULT_BACKEND playrtp_alsa
 #elif HAVE_SYS_SOUNDCARD_H
 # define DEFAULT_BACKEND playrtp_oss
@@ -189,7 +189,7 @@ static const struct option options[] = {
 #if HAVE_SYS_SOUNDCARD_H
   { "oss", no_argument, 0, 'o' },
 #endif
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
   { "alsa", no_argument, 0, 'a' },
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
@@ -407,7 +407,7 @@ static void help(void) {
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
           "  --multicast, -M GROUP   Join multicast group\n"
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
           "  --alsa, -a              Use ALSA to play audio\n"
 #endif
 #if HAVE_SYS_SOUNDCARD_H
@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
     case 'M': multicast_group = optarg; break;
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
     case 'a': backend = playrtp_alsa; break;
 #endif
 #if 0

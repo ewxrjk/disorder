@@ -372,7 +372,7 @@ int addfd(int fd, int events) {
 
 /** @brief Table of speaker backends */
 static const struct speaker_backend *backends[] = {
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
   &alsa_backend,
 #endif
   &command_backend,

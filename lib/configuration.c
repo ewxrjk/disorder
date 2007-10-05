@@ -439,7 +439,7 @@ static int set_backend(const struct config_state *cs,
     return -1;
   }
   if(!strcmp(vec[0], "alsa")) {
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
     *valuep = BACKEND_ALSA;
 #else
     error(0, "%s:%d: ALSA is not available on this platform",
@@ -1084,8 +1084,10 @@ static void config_postdefaults(struct config *c,
     else if(c->broadcast.n)
       c->speaker_backend = BACKEND_NETWORK;
     else {
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
       c->speaker_backend = BACKEND_ALSA;
+#elif HAVE_SYS_SOUNDCARD_H
+      c->speaker_backend = BACKEND_OSS;
 #elif HAVE_COREAUDIO_AUDIOHARDWARE_H
       c->speaker_backend = BACKEND_COREAUDIO;
 #else

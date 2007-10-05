@@ -22,7 +22,7 @@
 
 #include <config.h>
 
-#if API_ALSA
+#if HAVE_ALSA_ASOUNDLIB_H
 
 #include "types.h"
 

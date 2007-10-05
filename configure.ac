@@ -34,16 +34,13 @@ want_python=yes
 
 case "$host" in
 *linux* | *Linux* )
-  want_alsa=yes
   want_server=yes
   ;;
 *-apple-darwin* )
-  want_alsa=no
   want_server=no
   COREAUDIO="-framework CoreAudio"
   ;;
 * )
-  want_alsa=no
   want_server=no
   ;;
 esac
@@ -129,6 +126,8 @@ AC_CHECK_LIB(gcrypt, gcry_md_open,
 AC_CHECK_LIB(pcre, pcre_compile,
 	     [AC_SUBST(LIBPCRE,[-lpcre])],
 	     [missing_libraries="$missing_libraries libpcre"])
+AC_CHECK_LIB([asound], [snd_pcm_open],
+             [AC_SUBST(LIBASOUND,[-lasound])])
 if test $want_server = yes; then
   RJK_CHECK_LIB(db, db_create, [#include <db.h>],
 	       [AC_SUBST(LIBDB,[-ldb])],
@@ -149,12 +148,6 @@ if test $want_server = yes; then
   AC_CHECK_LIB([FLAC], [FLAC__stream_decoder_new],
 	       [AC_SUBST(LIBFLAC,[-lFLAC])],
 	       [missing_libraries="$missing_libraries libFLAC"])
-fi
-if test $want_alsa = yes; then
-  AC_CHECK_LIB([asound], [snd_pcm_open],
-               [AC_SUBST(LIBASOUND,[-lasound])],
-	       [missing_libraries="$missing_libraries libasound"])
-  AC_DEFINE([API_ALSA],[1],[define to use the ALSA API])
 fi
 
 if test $want_gtk = yes; then
@@ -189,15 +182,14 @@ RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for header files.
 RJK_FIND_GC_H
-AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h])
+AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h])
+# We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.
-# We don't bother checking very standard stuff
 if test $want_server = yes; then
   AC_CHECK_HEADERS([db.h],[:],[
     missing_headers="$missing_headers $ac_header"
   ])
-  AC_CHECK_HEADERS([sys/soundcard.h]) dnl can cope without
 fi
 AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 		 getopt.h iconv.h langinfo.h \
