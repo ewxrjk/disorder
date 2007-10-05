@@ -182,7 +182,7 @@ RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for header files.
 RJK_FIND_GC_H
-AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h])
+AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h linux/empeg.h])
 # We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.

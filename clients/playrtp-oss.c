@@ -35,6 +35,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#if HAVE_LINUX_EMPEG_H
+# include <linux/empeg.h>
+#endif
 
 #include "mem.h"
 #include "log.h"
@@ -45,6 +48,15 @@
 
 /** @brief /dev/dsp (or whatever) */
 static int playrtp_oss_fd = -1;
+
+/** @brief Audio buffer */
+static char *playrtp_oss_buffer;
+
+/** @brief Size of @ref playrtp_oss_buffer in bytes */
+static int playrtp_oss_bufsize;
+
+/** @brief Number of bytes used in @ref playrtp_oss_buffer */
+static int playrtp_oss_bufused;
 
 /** @brief Open and configure the OSS audio device */
 static void playrtp_oss_enable(void) {
@@ -68,7 +80,46 @@ static void playrtp_oss_enable(void) {
       fatal(errno, "ioctl SNDCTL_DSP_SPEED");
     if(rate != 44100)
       error(0, "asking for 44100Hz, got %dHz", rate);
+    if(ioctl(playrtp_oss_fd, SNDCTL_DSP_GETBLKSIZE, &playrtp_oss_bufsize) < 0)
+      fatal(errno, "ioctl SNDCTL_DSP_GETBLKSIZE");
+    playrtp_oss_buffer = xmalloc(playrtp_oss_bufsize);
+    playrtp_oss_bufused = 0;
+    info("OSS buffer size %d", playrtp_oss_bufsize);
     nonblock(playrtp_oss_fd);
+  }
+}
+
+/** @brief Flush the OSS output buffer
+ * @return 0 on success, non-0 on error
+ */
+static int playrtp_oss_flush(void) {
+  int nbyteswritten;
+
+  if(!playrtp_oss_bufused)
+    return 0;                           /* nothing to do */
+  /* 0 out the unused portion of the buffer */
+  memset(playrtp_oss_buffer + playrtp_oss_bufused, 0,
+         playrtp_oss_bufsize - playrtp_oss_bufused);
+  for(;;) {
+    nbyteswritten = write(playrtp_oss_fd,
+                          playrtp_oss_buffer, playrtp_oss_bufsize);
+    if(nbyteswritten < 0) {
+      switch(errno) {
+      case EINTR:
+        break;                          /* try again */
+      case EAGAIN:
+        return 0;                       /* try later */
+      default:
+        error(errno, "error writing to %s", device);
+        return -1;
+      }
+    } else {
+      if(nbyteswritten < playrtp_oss_bufsize)
+        error(0, "%s: short write (%d/%d)",
+              device, nbyteswritten, playrtp_oss_bufsize);
+      playrtp_oss_bufused = 0;
+      return 0;
+    }
   }
 }
 
@@ -91,11 +142,15 @@ static void playrtp_oss_wait(void) {
  * @param hard If nonzero, drop pending data
  */
 static void playrtp_oss_disable(int hard) {
-  if(hard)
+  if(hard) {
     if(ioctl(playrtp_oss_fd, SNDCTL_DSP_RESET, 0) < 0)
       error(errno, "ioctl SNDCTL_DSP_RESET");
+  } else
+    playrtp_oss_flush();
   xclose(playrtp_oss_fd);
   playrtp_oss_fd = -1;
+  free(playrtp_oss_buffer);
+  playrtp_oss_buffer = 0;
 }
 
 /** @brief Write samples to OSS output device
@@ -103,23 +158,23 @@ static void playrtp_oss_disable(int hard) {
  * @param nsamples Number of samples
  * @return 0 on success, non-0 on error
  */
-static int playrtp_oss_write(const void *data, size_t samples) {
-  const ssize_t nbyteswritten = write(playrtp_oss_fd, data,
-				      samples * sizeof (int16_t));
+static int playrtp_oss_write(const char *data, size_t samples) {
+  long bytes = samples * sizeof(int16_t);
+  while(bytes > 0) {
+    int n = playrtp_oss_bufsize - playrtp_oss_bufused;
 
-  if(nbyteswritten < 0) {
-    switch(errno) {
-    case EAGAIN:
-    case EINTR:
-      return 0;
-    default:
-      error(errno, "error writing to %s", device);
-      return -1;
-    }
-  } else {
-    next_timestamp += nbyteswritten / 2;
-    return 0;
+    if(n > bytes)
+      n = bytes;
+    memcpy(playrtp_oss_buffer + playrtp_oss_bufused, data, n);
+    bytes -= n;
+    data += n;
+    playrtp_oss_bufused += n;
+    if(playrtp_oss_bufused == playrtp_oss_bufsize)
+      if(playrtp_oss_flush())
+        return -1;
   }
+  next_timestamp += samples;
+  return 0;
 }
 
 /** @brief Play some data from packet @p p
@@ -127,8 +182,9 @@ static int playrtp_oss_write(const void *data, size_t samples) {
  * @p p is assumed to contain @ref next_timestamp.
  */
 static int playrtp_oss_play(const struct packet *p) {
-  return playrtp_oss_write(p->samples_raw + next_timestamp - p->timestamp,
-			   (p->timestamp + p->nsamples) - next_timestamp);
+  return playrtp_oss_write
+    ((const char *)(p->samples_raw + next_timestamp - p->timestamp),
+     (p->timestamp + p->nsamples) - next_timestamp);
 }
 
 /** @brief Play some silence before packet @p p
@@ -136,7 +192,7 @@ static int playrtp_oss_play(const struct packet *p) {
  * @p p is assumed to be entirely before @ref next_timestamp.
  */
 static int playrtp_oss_infill(const struct packet *p) {
-  static const uint16_t zeros[INFILL_SAMPLES];
+  static const char zeros[INFILL_SAMPLES * sizeof(int16_t)];
   size_t samples_available = INFILL_SAMPLES;
 
   if(p && samples_available > p->timestamp - next_timestamp)
