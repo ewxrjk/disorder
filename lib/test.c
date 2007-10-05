@@ -380,6 +380,7 @@ static inline int int_lt(int a, int b) { return a < b; }
 /** @struct iheap
  * @brief A heap with @c int elements */
 HEAP_TYPE(iheap, int, int_lt);
+HEAP_DEFINE(iheap, int, int_lt);
 
 /** @brief Tests for @ref heap.h */
 static void test_heap(void) {

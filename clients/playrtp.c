@@ -36,7 +36,7 @@
  * means it waits until ALSA says it's ready for more audio which it then
  * plays.
  *
- * InCore Audio the main thread is only responsible for starting and stopping
+ * In Core Audio the main thread is only responsible for starting and stopping
  * play: the system does the actual playback in its own private thread, and
  * calls adioproc() to fetch the audio data.
  *
@@ -62,6 +62,7 @@
 #include <locale.h>
 #include <sys/uio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "log.h"
 #include "mem.h"
@@ -73,6 +74,7 @@
 #include "vector.h"
 #include "heap.h"
 #include "timeval.h"
+#include "playrtp.h"
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 # include <CoreAudio/AudioHardware.h>
@@ -90,13 +92,7 @@ static int rtpfd;
 static FILE *logfp;
 
 /** @brief Output device */
-static const char *device;
-
-/** @brief Maximum samples per packet we'll support
- *
- * NB that two channels = two samples in this program.
- */
-#define MAXSAMPLES 2048
+const char *device;
 
 /** @brief Minimum low watermark
  *
@@ -113,79 +109,6 @@ static unsigned readahead = 2 * 2 * 44100;
  * We'll stop reading from the network if we have this many samples. */
 static unsigned maxbuffer;
 
-/** @brief Number of samples to infill by in one go
- *
- * This is an upper bound - in practice we expect the underlying audio API to
- * only ask for a much smaller number of samples in any one go.
- */
-#define INFILL_SAMPLES (44100 * 2)      /* 1s */
-
-/** @brief Received packet
- *
- * Received packets are kept in a binary heap (see @ref pheap) ordered by
- * timestamp.
- */
-struct packet {
-  /** @brief Next packet in @ref next_free_packet or @ref received_packets */
-  struct packet *next;
-  
-  /** @brief Number of samples in this packet */
-  uint32_t nsamples;
-
-  /** @brief Timestamp from RTP packet
-   *
-   * NB that "timestamps" are really sample counters.  Use lt() or lt_packet()
-   * to compare timestamps. 
-   */
-  uint32_t timestamp;
-
-  /** @brief Flags
-   *
-   * Valid values are:
-   * - @ref IDLE - the idle bit was set in the RTP packet
-   */
-  unsigned flags;
-/** @brief idle bit set in RTP packet*/
-#define IDLE 0x0001
-
-  /** @brief Raw sample data
-   *
-   * Only the first @p nsamples samples are defined; the rest is uninitialized
-   * data.
-   */
-  uint16_t samples_raw[MAXSAMPLES];
-};
-
-/** @brief Return true iff \f$a < b\f$ in sequence-space arithmetic
- *
- * Specifically it returns true if \f$(a-b) mod 2^{32} < 2^{31}\f$.
- *
- * See also lt_packet().
- */
-static inline int lt(uint32_t a, uint32_t b) {
-  return (uint32_t)(a - b) & 0x80000000;
-}
-
-/** @brief Return true iff a >= b in sequence-space arithmetic */
-static inline int ge(uint32_t a, uint32_t b) {
-  return !lt(a, b);
-}
-
-/** @brief Return true iff a > b in sequence-space arithmetic */
-static inline int gt(uint32_t a, uint32_t b) {
-  return lt(b, a);
-}
-
-/** @brief Return true iff a <= b in sequence-space arithmetic */
-static inline int le(uint32_t a, uint32_t b) {
-  return !lt(b, a);
-}
-
-/** @brief Ordering for packets, used by @ref pheap */
-static inline int lt_packet(const struct packet *a, const struct packet *b) {
-  return lt(a->timestamp, b->timestamp);
-}
-
 /** @brief Received packets
  * Protected by @ref receive_lock
  *
@@ -193,94 +116,57 @@ static inline int lt_packet(const struct packet *a, const struct packet *b) {
  * it and adds them to @ref packets.  Whenever a packet is added to it, @ref
  * receive_cond is signalled.
  */
-static struct packet *received_packets;
+struct packet *received_packets;
 
 /** @brief Tail of @ref received_packets
  * Protected by @ref receive_lock
  */
-static struct packet **received_tail = &received_packets;
+struct packet **received_tail = &received_packets;
 
 /** @brief Lock protecting @ref received_packets 
  *
  * Only listen_thread() and queue_thread() ever hold this lock.  It is vital
  * that queue_thread() not hold it any longer than it strictly has to. */
-static pthread_mutex_t receive_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t receive_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief Condition variable signalled when @ref received_packets is updated
  *
  * Used by listen_thread() to notify queue_thread() that it has added another
  * packet to @ref received_packets. */
-static pthread_cond_t receive_cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t receive_cond = PTHREAD_COND_INITIALIZER;
 
 /** @brief Length of @ref received_packets */
-static uint32_t nreceived;
-
-/** @struct pheap 
- * @brief Binary heap of packets ordered by timestamp */
-HEAP_TYPE(pheap, struct packet *, lt_packet);
+uint32_t nreceived;
 
 /** @brief Binary heap of received packets */
-static struct pheap packets;
+struct pheap packets;
 
 /** @brief Total number of samples available
  *
  * We make this volatile because we inspect it without a protecting lock,
  * so the usual pthread_* guarantees aren't available.
  */
-static volatile uint32_t nsamples;
+volatile uint32_t nsamples;
 
 /** @brief Timestamp of next packet to play.
  *
  * This is set to the timestamp of the last packet, plus the number of
  * samples it contained.  Only valid if @ref active is nonzero.
  */
-static uint32_t next_timestamp;
+uint32_t next_timestamp;
 
 /** @brief True if actively playing
  *
  * This is true when playing and false when just buffering. */
-static int active;
+int active;
 
 /** @brief Lock protecting @ref packets */
-static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief Condition variable signalled whenever @ref packets is changed */
-static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-/** @brief Structure of free packet list */
-union free_packet {
-  struct packet p;
-  union free_packet *next;
-};
-
-/** @brief Linked list of free packets
- *
- * This is a linked list of formerly used packets.  For preference we re-use
- * packets that have already been used rather than unused ones, to limit the
- * size of the program's working set.  If there are no free packets in the list
- * we try @ref next_free_packet instead.
- *
- * Must hold @ref lock when accessing this.
- */
-static union free_packet *free_packets;
-
-/** @brief Array of new free packets 
- *
- * There are @ref count_free_packets ready to use at this address.  If there
- * are none left we allocate more memory.
- *
- * Must hold @ref lock when accessing this.
- */
-static union free_packet *next_free_packet;
-
-/** @brief Count of new free packets at @ref next_free_packet
- *
- * Must hold @ref lock when accessing this.
- */
-static size_t count_free_packets;
-
-/** @brief Lock protecting packet allocator */
-static pthread_mutex_t mem_lock = PTHREAD_MUTEX_INITIALIZER;
+HEAP_DEFINE(pheap, struct packet *, lt_packet);
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -294,35 +180,6 @@ static const struct option options[] = {
   { "multicast", required_argument, 0, 'M' },
   { 0, 0, 0, 0 }
 };
-
-/** @brief Return a new packet */
-static struct packet *new_packet(void) {
-  struct packet *p;
-  
-  pthread_mutex_lock(&mem_lock);
-  if(free_packets) {
-    p = &free_packets->p;
-    free_packets = free_packets->next;
-  } else {
-    if(!count_free_packets) {
-      next_free_packet = xcalloc(1024, sizeof (union free_packet));
-      count_free_packets = 1024;
-    }
-    p = &(next_free_packet++)->p;
-    --count_free_packets;
-  }
-  pthread_mutex_unlock(&mem_lock);
-  return p;
-}
-
-/** @brief Free a packet */
-static void free_packet(struct packet *p) {
-  union free_packet *u = (union free_packet *)p;
-  pthread_mutex_lock(&mem_lock);
-  u->next = free_packets;
-  free_packets = u;
-  pthread_mutex_unlock(&mem_lock);
-}
 
 /** @brief Drop the first packet
  *
