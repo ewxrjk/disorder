@@ -629,6 +629,23 @@ int disorder_get_global(disorder_client *c, const char *key, char **valuep) {
   return disorder_simple(c, valuep, "get-global", key, (char *)0);
 }
 
+int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
+  char *r;
+  int rc, n;
+  char **vec;
+
+  if((rc = disorder_simple(c, &r, "rtp-address", (char *)0)))
+    return rc;
+  vec = split(r, &n, SPLIT_QUOTES, 0, 0);
+  if(n != 2) {
+    error(0, "malformed rtp-address reply");
+    return -1;
+  }
+  *addressp = vec[0];
+  *portp = vec[1];
+  return 0;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

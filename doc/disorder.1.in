@@ -152,6 +152,9 @@ Resolve aliases for \fITRACK\fR and print out the real track name.
 .B resume
 Resume the current track after a pause.
 .TP
+.B rtp-address
+Report the RTP brodcast address used by the server (if any).
+.TP
 .B scratch
 Scratch the currently playing track.
 .TP
@@ -168,7 +171,7 @@ for example:
 You can limit the search to tracks with a particular tag, too, using the
 \fBtag:\fR modifier.  For example:
 .IP
-.B "disorder search 'love tag:depressing'
+.B "disorder search 'love tag:depressing'"
 .TP
 .B set \fITRACK\fR \fIKEY\fR \fIVALUE\fR
 Set the preference \fIKEY\fR for \fITRACK\fR to \fIVALUE\fR.

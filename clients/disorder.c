@@ -399,6 +399,14 @@ static void cf_new(disorder_client *c,
     xprintf("%s\n", nullcheck(utf82mb(*vec++)));
 }
 
+static void cf_rtp_address(disorder_client *c,
+			   char attribute((unused)) **argv) {
+  char *address, *port;
+
+  if(disorder_rtp_address(c, &address, &port)) exit(EXIT_FAILURE);
+  xprintf("address: %s\nport: %s\n", address, port);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -467,6 +475,8 @@ static const struct command {
                       "Resolve alias for TRACK" },
   { "resume",         0, 0, cf_resume, 0, "",
                       "Resume after a pause" },
+  { "rtp-address",    0, 0, cf_rtp_address, 0, "",
+                      "Report server's broadcast address" },
   { "scratch",        0, 0, cf_scratch, 0, "",
                       "Scratch the currently playing track" },
   { "scratch-id",     1, 1, cf_scratch, 0, "ID",

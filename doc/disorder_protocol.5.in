@@ -192,6 +192,10 @@ Resolve a track name, i.e. if this is an alias then return the real track name.
 .B resume
 Resume the current track after a \fBpause\fR command.
 .TP
+.B rtp-address
+Reports the RTP broadcast (or multicast) address, in the form \fIADDRESS
+PORT\fR.
+.TP
 .B scratch \fR[\fIID\fR]
 Remove the track identified by \fIID\fR, or the currently playing track if no
 \fIID\fR is specified.  If \fBrestrict scratch\fR is enabled in the server's
@@ -282,10 +286,6 @@ Text part is a potentially variable result.
 .TP
 .B 3
 Text part is just commentary; a dot-stuffed body follows.
-.TP
-.B 4
-Text part is just commentary; an indefinite dot-stuffed body follows.  (Used
-for \fBlog\fR.)
 .TP
 .B 4
 Text part is just commentary; an indefinite dot-stuffed body follows.  (Used

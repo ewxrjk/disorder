@@ -186,6 +186,8 @@ int disorder_new_tracks(disorder_client *c,
 			int max);
 /* get new tracks */
 
+int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
+
 #endif /* CLIENT_H */
 
 /*

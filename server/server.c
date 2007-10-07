@@ -930,6 +930,18 @@ static int c_new(struct conn *c,
 
 }
 
+static int c_rtp_address(struct conn *c,
+			 char attribute((unused)) **vec,
+			 int attribute((unused)) nvec) {
+  if(config->speaker_backend == BACKEND_NETWORK) {
+    sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
+		quoteutf8(config->broadcast.s[0]),
+		quoteutf8(config->broadcast.s[1]));
+  } else
+    sink_writes(ev_writer_sink(c->w), "550 No RTP\n");
+  return 1;
+}
+ 
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -970,6 +982,7 @@ static const struct command {
   { "rescan",         0, 0,       c_rescan,         C_AUTH|C_TRUSTED },
   { "resolve",        1, 1,       c_resolve,        C_AUTH },
   { "resume",         0, 0,       c_resume,         C_AUTH },
+  { "rtp-address",    0, 0,       c_rtp_address,    C_AUTH },
   { "scratch",        0, 1,       c_scratch,        C_AUTH },
   { "search",         1, 1,       c_search,         C_AUTH },
   { "set",            3, 3,       c_set,            C_AUTH, },
