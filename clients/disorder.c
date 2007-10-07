@@ -533,7 +533,6 @@ static void help_commands(void) {
 int main(int argc, char **argv) {
   int n, i, j;
   disorder_client *c = 0;
-  const char *s;
   int status = 0;
   struct vector args;
 
@@ -554,7 +553,6 @@ int main(int argc, char **argv) {
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
   if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
-  s = config_get_file("socket");
   if(disorder_connect(c)) exit(EXIT_FAILURE);
   n = optind;
   /* accumulate command args */
