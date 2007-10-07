@@ -76,6 +76,7 @@
 #include "vector.h"
 #include "heap.h"
 #include "timeval.h"
+#include "client.h"
 #include "playrtp.h"
 
 #define readahead linux_headers_are_borked
@@ -195,6 +196,7 @@ static const struct option options[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   { "core-audio", no_argument, 0, 'c' },
 #endif
+  { "config", required_argument, 0, 'C' },
   { 0, 0, 0, 0 }
 };
 
@@ -407,6 +409,7 @@ static void help(void) {
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
           "  --multicast, -M GROUP   Join multicast group\n"
+          "  --config, -C PATH       Set configuration file\n"
 #if HAVE_ALSA_ASOUNDLIB_H
           "  --alsa, -a              Use ALSA to play audio\n"
 #endif
@@ -440,6 +443,8 @@ int main(int argc, char **argv) {
   char *multicast_group = 0;
   struct ip_mreq mreq;
   struct ipv6_mreq mreq6;
+  disorder_client *c;
+  char *address, *port;
 
   static const struct addrinfo prefs = {
     AI_PASSIVE,
@@ -454,7 +459,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aoc", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -475,20 +480,36 @@ int main(int argc, char **argv) {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H      
     case 'c': backend = playrtp_coreaudio; break;
 #endif
+    case 'C': configfile = optarg; break;
     default: fatal(0, "invalid option");
     }
   }
+  if(config_read(0)) fatal(0, "cannot read configuration");
   if(!maxbuffer)
     maxbuffer = 4 * readahead;
   argc -= optind;
   argv += optind;
-  if(argc < 1 || argc > 2)
-    fatal(0, "usage: disorder-playrtp [OPTIONS] ADDRESS [PORT]");
-  sl.n = argc;
-  sl.s = argv;
+  switch(argc) {
+  case 0:
+  case 1:
+    if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
+    if(disorder_connect(c)) exit(EXIT_FAILURE);
+    if(disorder_rtp_address(c, &address, &port)) exit(EXIT_FAILURE);
+    sl.n = 1;
+    sl.s = &port;
+    /* set multicast_group if address is a multicast address */
+    break;
+  case 2:
+    sl.n = argc;
+    sl.s = argv;
+    break;
+  default:
+    fatal(0, "usage: disorder-playrtp [OPTIONS] [ADDRESS [PORT]]");
+  }
   /* Listen for inbound audio data */
   if(!(res = get_address(&sl, &prefs, &sockname)))
     exit(1);
+  info("listening on %s", sockname);
   if((rtpfd = socket(res->ai_family,
                      res->ai_socktype,
                      res->ai_protocol)) < 0)
