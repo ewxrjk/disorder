@@ -18,26 +18,25 @@
  * USA
  */
 /** @file clients/playrtp-oss.c
- * @brief RTP player - OSS support
+ * @brief RTP player - OSS and empeg support
  */
 
 #include <config.h>
 
-#if HAVE_SYS_SOUNDCARD_H
+#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
 #include "types.h"
 
 #include <poll.h>
 #include <sys/ioctl.h>
+#if !EMPEG_HOST
 #include <sys/soundcard.h>
+#endif
 #include <assert.h>
 #include <pthread.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#if HAVE_LINUX_EMPEG_H
-# include <linux/empeg.h>
-#endif
 
 #include "mem.h"
 #include "log.h"
@@ -61,6 +60,16 @@ static int playrtp_oss_bufused;
 /** @brief Open and configure the OSS audio device */
 static void playrtp_oss_enable(void) {
   if(playrtp_oss_fd == -1) {
+#if EMPEG_HOST
+    /* empeg audio driver only knows /dev/audio, only supports the equivalent
+     * of AFMT_S16_NE, has a fixed buffer size, and does not support the
+     * SNDCTL_ ioctls. */
+    if(!device)
+      device = "/dev/audio";
+    if((playrtp_oss_fd = open(device, O_WRONLY)) < 0)
+      fatal(errno, "error opening %s", device);
+    playrtp_oss_bufsize = 4608;
+#else
     int rate = 44100, stereo = 1, format = AFMT_S16_BE;
     if(!device) {
       if(access("/dev/dsp", W_OK) == 0)
@@ -82,9 +91,10 @@ static void playrtp_oss_enable(void) {
       error(0, "asking for 44100Hz, got %dHz", rate);
     if(ioctl(playrtp_oss_fd, SNDCTL_DSP_GETBLKSIZE, &playrtp_oss_bufsize) < 0)
       fatal(errno, "ioctl SNDCTL_DSP_GETBLKSIZE");
+    info("OSS buffer size %d", playrtp_oss_bufsize);
+#endif
     playrtp_oss_buffer = xmalloc(playrtp_oss_bufsize);
     playrtp_oss_bufused = 0;
-    info("OSS buffer size %d", playrtp_oss_bufsize);
     nonblock(playrtp_oss_fd);
   }
 }
@@ -100,6 +110,16 @@ static int playrtp_oss_flush(void) {
   /* 0 out the unused portion of the buffer */
   memset(playrtp_oss_buffer + playrtp_oss_bufused, 0,
          playrtp_oss_bufsize - playrtp_oss_bufused);
+#if EMPEG_HOST 
+  /* empeg audio driver insists on native-endian samples */
+  {
+    uint16_t *ptr,
+      *const limit = (uint16_t *)(playrtp_oss_buffer + playrtp_oss_bufused);
+
+    for(ptr = (uint16_t *)playrtp_oss_buffer; ptr < limit; ++ptr)
+      *ptr = ntohs(*ptr);
+  }
+#endif
   for(;;) {
     nbyteswritten = write(playrtp_oss_fd,
                           playrtp_oss_buffer, playrtp_oss_bufsize);
@@ -143,8 +163,11 @@ static void playrtp_oss_wait(void) {
  */
 static void playrtp_oss_disable(int hard) {
   if(hard) {
+#if !EMPEG_HOST
+    /* No SNDCTL_DSP_ ioctls on empeg */
     if(ioctl(playrtp_oss_fd, SNDCTL_DSP_RESET, 0) < 0)
       error(errno, "ioctl SNDCTL_DSP_RESET");
+#endif
   } else
     playrtp_oss_flush();
   xclose(playrtp_oss_fd);

@@ -32,20 +32,6 @@ AC_CANONICAL_HOST
 want_gtk=yes
 want_python=yes
 
-case "$host" in
-*linux* | *Linux* )
-  want_server=yes
-  ;;
-*-apple-darwin* )
-  want_server=no
-  COREAUDIO="-framework CoreAudio"
-  ;;
-* )
-  want_server=no
-  ;;
-esac
-AC_SUBST([COREAUDIO])
-
 # Checks for programs.
 AC_PROG_CC
 AC_SET_MAKE
@@ -54,6 +40,31 @@ if test "x$GCC" = xyes; then
 else
   gcc_werror=""
 fi
+
+AC_MSG_CHECKING([for a known target platform])
+case "$host" in
+*empeg* )
+  AC_DEFINE([EMPEG_HOST],[1],[define if host is an empeg car stereo])
+  # work around broken toolchain
+  AC_CHECK_LIB([gpg-error], [gpg_strerror])
+  want_server=no
+  AC_MSG_RESULT([empeg car stereo])
+ ;;
+*linux* | *Linux* )
+  want_server=yes
+  AC_MSG_RESULT([Linux])
+  ;;
+*-apple-darwin* )
+  want_server=no
+  COREAUDIO="-framework CoreAudio"
+  AC_MSG_RESULT([Mac OS X])
+  ;;
+* )
+  want_server=no
+  AC_MSG_RESULT([unknown, winging it])
+  ;;
+esac
+AC_SUBST([COREAUDIO])
 
 AC_ARG_WITH([server],
 	    [AS_HELP_STRING([--without-server],
@@ -182,7 +193,7 @@ RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for header files.
 RJK_FIND_GC_H
-AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h linux/empeg.h])
+AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h])
 # We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.

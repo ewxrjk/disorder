@@ -163,7 +163,7 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 #if HAVE_ALSA_ASOUNDLIB_H
 # define DEFAULT_BACKEND playrtp_alsa
-#elif HAVE_SYS_SOUNDCARD_H
+#elif HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
 # define DEFAULT_BACKEND playrtp_oss
 #elif HAVE_COREAUDIO_AUDIOHARDWARE_H
 # define DEFAULT_BACKEND playrtp_coreaudio
@@ -186,7 +186,7 @@ static const struct option options[] = {
   { "buffer", required_argument, 0, 'b' },
   { "rcvbuf", required_argument, 0, 'R' },
   { "multicast", required_argument, 0, 'M' },
-#if HAVE_SYS_SOUNDCARD_H
+#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
   { "oss", no_argument, 0, 'o' },
 #endif
 #if HAVE_ALSA_ASOUNDLIB_H
@@ -410,7 +410,7 @@ static void help(void) {
 #if HAVE_ALSA_ASOUNDLIB_H
           "  --alsa, -a              Use ALSA to play audio\n"
 #endif
-#if HAVE_SYS_SOUNDCARD_H
+#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
           "  --oss, -o               Use OSS to play audio\n"
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
 #if HAVE_ALSA_ASOUNDLIB_H
     case 'a': backend = playrtp_alsa; break;
 #endif
-#if HAVE_SYS_SOUNDCARD_H      
+#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
     case 'o': backend = playrtp_oss; break;
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H      
