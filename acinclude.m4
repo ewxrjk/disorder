@@ -95,7 +95,7 @@ AC_DEFUN([RJK_REQUIRE_PCRE_UTF8],[
                   ])],
                   [rjk_cv_pcre_utf8=yes],
                   [rjk_cv_pcre_utf8=no],
-                  [AC_MSG_ERROR([cross-compiling, cannot check libpcre behaviour])])
+                  [AC_MSG_WARN([cross-compiling, cannot check libpcre behaviour])])
     LIBS="$save_LIBS"
   ])
   if test $rjk_cv_pcre_utf8 = no; then

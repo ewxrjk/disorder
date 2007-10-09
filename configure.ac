@@ -44,24 +44,25 @@ fi
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
 *empeg* )
+  AC_MSG_RESULT([empeg car stereo])
   AC_DEFINE([EMPEG_HOST],[1],[define if host is an empeg car stereo])
   # work around broken toolchain
   AC_CHECK_LIB([gpg-error], [gpg_strerror])
+  AC_CHECK_LIB([pthread], [pthread_create])
   want_server=no
-  AC_MSG_RESULT([empeg car stereo])
  ;;
 *linux* | *Linux* )
-  want_server=yes
   AC_MSG_RESULT([Linux])
+  want_server=yes
   ;;
 *-apple-darwin* )
+  AC_MSG_RESULT([Mac OS X])
   want_server=no
   COREAUDIO="-framework CoreAudio"
-  AC_MSG_RESULT([Mac OS X])
   ;;
 * )
-  want_server=no
   AC_MSG_RESULT([unknown, winging it])
+  want_server=no
   ;;
 esac
 AC_SUBST([COREAUDIO])

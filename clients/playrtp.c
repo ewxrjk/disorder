@@ -65,6 +65,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #include "log.h"
 #include "mem.h"
@@ -80,6 +81,11 @@
 #include "playrtp.h"
 
 #define readahead linux_headers_are_borked
+
+/** @brief Obsolete synonym */
+#ifndef IPV6_JOIN_GROUP
+# define IPV6_JOIN_GROUP IPV6_ADD_MEMBERSHIP
+#endif
 
 /** @brief RTP socket */
 static int rtpfd;

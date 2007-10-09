@@ -33,6 +33,7 @@
 
 #include "printf.h"
 #include "sink.h"
+#include "vacopy.h"
 
 enum flags {
   f_thousands = 1,
