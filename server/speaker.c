@@ -432,7 +432,7 @@ static void mainloop(void) {
        * instead, but the post-poll code will cope even if it's
        * device_closed. */
       if(device_state == device_open)
-        backend->beforepoll();
+        backend->beforepoll(&timeout);
     }
     /* If any other tracks don't have a full buffer, try to read sample data
      * from them.  We do this last of all, so that if we run out of slots,

@@ -306,14 +306,16 @@ static size_t network_play(size_t frames) {
 static int bfd_slot;
 
 /** @brief Set up poll array for network play */
-static void network_beforepoll(void) {
+static void network_beforepoll(int *timeoutp) {
   struct timeval now;
   uint64_t target_us;
   uint64_t target_rtp_time;
+  const int64_t samples_per_second = config->sample_format.rate
+                                   * config->sample_format.channels;
   const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                 * config->sample_format.rate
-                                 * config->sample_format.channels
+                                 * samples_per_second
                                  / 1000);
+  int64_t lead, ahead_ms;
   
   /* If we're starting then initialize the base time */
   if(!rtp_time)
@@ -326,8 +328,17 @@ static void network_beforepoll(void) {
   target_rtp_time = (target_us * config->sample_format.rate
                                * config->sample_format.channels)
                      / 1000000;
-  if((int64_t)(rtp_time - target_rtp_time) < samples_ahead)
+  lead = rtp_time - target_rtp_time;
+  if(lead < samples_ahead)
+    /* We've not reached the desired lead, write as fast as we can */
     bfd_slot = addfd(bfd, POLLOUT);
+  else {
+    /* We've reached the desired lead, we can afford to wait a bit even if the
+     * IP stack thinks it can accept more. */
+    ahead_ms = 1000 * (lead - samples_ahead) / samples_per_second;
+    if(ahead_ms < *timeoutp)
+      *timeoutp = ahead_ms;
+  }
 }
 
 /** @brief Process poll() results for network play */

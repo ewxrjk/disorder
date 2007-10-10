@@ -167,12 +167,18 @@ struct speaker_backend {
   void (*deactivate)(void);
 
   /** @brief Called before poll()
+   * @param timeoutp Pointer to timeout
    *
-   * Called before the call to poll().  Should call addfd() to update
-   * the FD array and stash the slot number somewhere safe.  This will
-   * only be called if @ref device_state = @ref device_open.
+   * Called before the call to poll().
+   *
+   * If desirable, should call addfd() to update the FD array and stash the
+   * slot number somewhere safe.  This will only be called if @ref device_state
+   * is @ref device_open.
+   *
+   * @p timeoutp points to the poll timeout value in milliseconds.  It may be
+   * reduced, but never increased.
    */
-  void (*beforepoll)(void);
+  void (*beforepoll)(int *timeoutp);
 
   /** @brief Called after poll()
    * @return 1 if output device ready for play, 0 otherwise

@@ -142,7 +142,7 @@ static size_t oss_play(size_t frames) {
 static int oss_slot;
 
 /** @brief Fill in poll fd array for OSS */
-static void oss_beforepoll(void) {
+static void oss_beforepoll(int attribute((unused)) *timeoutp) {
   oss_slot = addfd(ossfd, POLLOUT|POLLERR);
 }
 

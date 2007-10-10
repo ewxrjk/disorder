@@ -219,7 +219,7 @@ static size_t alsa_play(size_t frames) {
 static int alsa_slots, alsa_nslots = -1;
 
 /** @brief Fill in poll fd array for ALSA */
-static void alsa_beforepoll(void) {
+static void alsa_beforepoll(int attribute((unused)) *timeoutp) {
   /* We send sample data to ALSA as fast as it can accept it, relying on
    * the fact that it has a relatively small buffer to minimize pause
    * latency. */

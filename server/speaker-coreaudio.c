@@ -202,7 +202,7 @@ static size_t coreaudio_play(size_t frames) {
 }
 
 /** @brief Fill in poll fd array for Core Audio */
-static void coreaudio_beforepoll(void) {
+static void coreaudio_beforepoll(int attribute((unused)) *timeoutp) {
   pfd_slot = addfd(pfd[1], POLLOUT);
 }
 

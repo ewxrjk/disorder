@@ -96,7 +96,7 @@ static size_t command_play(size_t frames) {
 }
 
 /** @brief Update poll array for writing to subprocess */
-static void command_beforepoll(void) {
+static void command_beforepoll(int attribute((unused)) *timeoutp) {
   /* We send sample data to the subprocess as fast as it can accept it.
    * This isn't ideal as pause latency can be very high as a result. */
   if(cmdfd >= 0)
