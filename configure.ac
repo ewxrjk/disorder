@@ -49,6 +49,8 @@ case "$host" in
   # work around broken toolchain
   AC_CHECK_LIB([gpg-error], [gpg_strerror])
   AC_CHECK_LIB([pthread], [pthread_create])
+  # lib/queue.c really wants to be split into server and non-server bits
+  AC_CHECK_LIB([dl], [dlopen])
   want_server=no
  ;;
 *linux* | *Linux* )

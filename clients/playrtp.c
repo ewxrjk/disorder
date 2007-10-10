@@ -66,6 +66,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
 #include "log.h"
 #include "mem.h"
