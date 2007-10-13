@@ -32,6 +32,11 @@ AC_CANONICAL_HOST
 want_gtk=yes
 want_python=yes
 
+# APIs we want
+want_alsa=yes
+want_oss=yes
+want_coreaudio=yes
+
 # Checks for programs.
 AC_PROG_CC
 AC_SET_MAKE
@@ -40,6 +45,19 @@ if test "x$GCC" = xyes; then
 else
   gcc_werror=""
 fi
+
+AC_ARG_WITH([alsa],
+	    [AS_HELP_STRING([--without-alsa],
+			    [do not build with ALSA support])],
+	    [want_alsa=$withval])
+AC_ARG_WITH([oss],
+	    [AS_HELP_STRING([--without-oss],
+			    [do not build with OSS support])],
+	    [want_oss=$withval])
+AC_ARG_WITH([coreaudio],
+	    [AS_HELP_STRING([--without-coreaudio],
+			    [do not build with Core Audio support])],
+	    [want_coreaudio=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -59,8 +77,10 @@ case "$host" in
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
-  want_server=no
-  COREAUDIO="-framework CoreAudio"
+  want_server=yes
+  if test $want_coreaudio = yes; then
+    COREAUDIO="-framework CoreAudio"
+  fi
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
@@ -140,8 +160,10 @@ AC_CHECK_LIB(gcrypt, gcry_md_open,
 AC_CHECK_LIB(pcre, pcre_compile,
 	     [AC_SUBST(LIBPCRE,[-lpcre])],
 	     [missing_libraries="$missing_libraries libpcre"])
-AC_CHECK_LIB([asound], [snd_pcm_open],
-             [AC_SUBST(LIBASOUND,[-lasound])])
+if test $want_alsa = yes; then
+  AC_CHECK_LIB([asound], [snd_pcm_open],
+               [AC_SUBST(LIBASOUND,[-lasound])])
+fi
 if test $want_server = yes; then
   RJK_CHECK_LIB(db, db_create, [#include <db.h>],
 	       [AC_SUBST(LIBDB,[-ldb])],
@@ -196,7 +218,16 @@ RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for header files.
 RJK_FIND_GC_H
-AC_CHECK_HEADERS([inttypes.h CoreAudio/AudioHardware.h sys/soundcard.h alsa/asoundlib.h])
+if test $want_oss = yes; then
+  AC_CHECK_HEADERS([sys/soundcard.h])
+fi
+if test $want_alsa = yes; then
+  AC_CHECK_HEADERS([alsa/asoundlib.h])
+fi
+if test $want_coreaudio = yes; then
+  AC_CHECK_HEADERS([CoreAudio/AudioHardware.h])
+fi
+AC_CHECK_HEADERS([inttypes.h])
 # We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.
