@@ -126,7 +126,8 @@ limit the results to tracks with particular tags, by including \fBtag:\fITAG\fR
 for each tag.
 .PP
 To start a new search just edit the contents of the search box.  The cancel
-button to its right clears the current search.
+button to its right clears the current search.  The up and down arrows will
+scroll the window to make the previous or next search result visible.
 .PP
 Right clicking over a track will pop up a menu with the following options:
 .TP
