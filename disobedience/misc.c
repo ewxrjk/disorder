@@ -106,6 +106,30 @@ void popup_error(const char *msg) {
   gtk_widget_destroy(w);
 }
 
+/** @brief Create a button with an icon in it
+ * @param path (relative) path to image
+ * @param tooltip Tooltip or NULL to not set one
+ * @return Button
+ */
+GtkWidget *iconbutton(const char *path, const char *tip) {
+  GtkWidget *button, *content;;
+  GdkPixbuf *pb;
+
+  NW(button);
+  button = gtk_button_new();
+  if((pb = find_image(path))) {
+    NW(image);
+    content = gtk_image_new_from_pixbuf(pb);
+  } else {
+    NW(label);
+    content = gtk_label_new(path);
+  }
+  gtk_container_add(GTK_CONTAINER(button), content);
+  if(tip)
+    gtk_tooltips_set_tip(tips, button, tip, "");
+  return button;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

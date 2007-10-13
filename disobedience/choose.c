@@ -121,6 +121,8 @@ struct choose_menuitem {
 static GtkWidget *chooselayout;
 static GtkAdjustment *vadjust;
 static GtkWidget *searchentry;          /**< @brief search terms */
+static GtkWidget *nextsearch;           /**< @brief next search result */
+static GtkWidget *prevsearch;           /**< @brief previous search result */
 static struct choosenode *root;
 static GtkWidget *track_menu;           /**< @brief track popup menu */
 static GtkWidget *dir_menu;             /**< @brief directory popup menu */
@@ -134,7 +136,8 @@ static char **searchresults;            /**< @brief search results */
 static int nsearchresults;              /**< @brief number of results */
 static int nsearchvisible;      /**< @brief number of search results visible */
 static struct hash *searchhash;         /**< @brief hash of search results */
-struct progress_window *spw;            /**< @brief progress window */
+static struct progress_window *spw;     /**< @brief progress window */
+static struct choosenode **searchnodes; /**< @brief choosenodes of search results */
 
 /* Forward Declarations */
 
@@ -164,6 +167,7 @@ static void undisplay_tree(struct choosenode *cn);
 static void initiate_search(void);
 static void delete_widgets(struct choosenode *cn);
 static void expand_from(struct choosenode *cn);
+static struct choosenode *first_search_result(struct choosenode *cn);
 
 static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
                                GdkEventButton *event,
@@ -501,10 +505,11 @@ static void expand_from(struct choosenode *cn) {
     /* This is an actual search result */
     ++nsearchvisible;
     progress_window_progress(spw, nsearchvisible, nsearchresults);
-    if(nsearchvisible == nsearchresults)
-      /* This is the last track to become visible, we'll make sure it's in
-       * range so that at least one is. */
-      gtk_adjustment_clamp_page(vadjust, cn->ymax, cn->ymin);
+    if(nsearchvisible == nsearchresults) {
+      /* We've got the lot.  We make sure the first result is visible. */
+      cn = first_search_result(root);
+      gtk_adjustment_clamp_page(vadjust, cn->ymin, cn->ymax);
+    }
   }
 }
 
@@ -563,9 +568,32 @@ static void updated_node(struct choosenode *cn, int redisplay) {
 
 /* Searching --------------------------------------------------------------- */
 
-/** @brief Return true if @p track is a search result */
+/** @brief Return true if @p track is a search result
+ *
+ * In particular the return value is one more than the index of the track
+ * @p searchresults.
+ */
 static int is_search_result(const char *track) {
-  return searchhash && hash_find(searchhash, track);
+  void *r;
+
+  if(searchhash && (r = hash_find(searchhash, track)))
+    return 1 + *(int *)r;
+  else
+    return 0;
+}
+
+/** @brief Return the first search result at or below @p cn */
+static struct choosenode *first_search_result(struct choosenode *cn) {
+  int n;
+  struct choosenode *r;
+
+  if(cn->flags & CN_EXPANDABLE) {
+    for(n = 0; n < cn->children.nvec; ++n)
+      if((r = first_search_result(cn->children.vec[n])))
+        return r;
+  } else if(is_search_result(cn->path))
+    return cn;
+  return 0;
 }
 
 /** @brief Called with a list of search results
@@ -593,15 +621,18 @@ static void search_completed(void attribute((unused)) *v,
     nsearchresults = nvec;
     if(nvec) {
       /* Create a new search hash for fast identification of results */
-      searchhash = hash_new(1);
+      searchhash = hash_new(sizeof(int));
       for(n = 0; n < nvec; ++n) {
+        int *const ip = xmalloc(sizeof (int *));
+        static const int minus_1 = -1;
+        *ip = n;
         /* The filename itself lives in the hash */
-        hash_add(searchhash, vec[n], "", HASH_INSERT_OR_REPLACE);
+        hash_add(searchhash, vec[n], ip, HASH_INSERT_OR_REPLACE);
         /* So do its ancestor directories */
         for(s = vec[n] + 1; *s; ++s) {
           if(*s == '/') {
             *s = 0;
-            hash_add(searchhash, vec[n], "", HASH_INSERT_OR_REPLACE);
+            hash_add(searchhash, vec[n], &minus_1, HASH_INSERT_OR_REPLACE);
             *s = '/';
           }
         }
@@ -616,9 +647,15 @@ static void search_completed(void attribute((unused)) *v,
         spw = progress_window_new("Fetching search results");
       /* Initiate expansion */
       expand_from(root);
+      /* The search results buttons are usable */
+      gtk_widget_set_sensitive(nextsearch, 1);
+      gtk_widget_set_sensitive(prevsearch, 1);
     } else {
       searchhash = 0;                   /* for the gc */
       redisplay_tree();                 /* remove search markers */
+      /* The search results buttons are not usable */
+      gtk_widget_set_sensitive(nextsearch, 0);
+      gtk_widget_set_sensitive(prevsearch, 0);
     }
   }
 }
@@ -666,6 +703,50 @@ static void clearsearch_clicked(GtkButton attribute((unused)) *button,
   gtk_entry_set_text(GTK_ENTRY(searchentry), "");
 }
 
+/** @brief Called when the 'next search result' button is clicked */
+static void next_clicked(GtkButton attribute((unused)) *button,
+                         gpointer attribute((unused)) userdata) {
+  /* We want to find the highest (lowest ymax) track that is below the current
+   * visible range */
+  int n;
+  const gdouble bottom = gtk_adjustment_get_value(vadjust) + vadjust->page_size;
+  const struct choosenode *candidate = 0;
+
+  for(n = 0; n < nsearchresults; ++n) {
+    const struct choosenode *const cn = searchnodes[n];
+
+    if(cn
+       && cn->ymax > bottom
+       && (candidate == 0
+           || cn->ymax < candidate->ymax))
+      candidate = cn;
+  }
+  if(candidate)
+    gtk_adjustment_clamp_page(vadjust, candidate->ymin, candidate->ymax);
+}
+
+/** @brief Called when the 'previous search result' button is clicked */
+static void prev_clicked(GtkButton attribute((unused)) *button,
+                         gpointer attribute((unused)) userdata) {
+  /* We want to find the lowest (greated ymax) track that is above the current
+   * visible range */
+  int n;
+  const gdouble top = gtk_adjustment_get_value(vadjust);
+  const struct choosenode *candidate = 0;
+
+  for(n = 0; n < nsearchresults; ++n) {
+    const struct choosenode *const cn = searchnodes[n];
+
+    if(cn
+       && cn->ymin  < top
+       && (candidate == 0
+           || cn->ymax > candidate->ymax))
+      candidate = cn;
+  }
+  if(candidate)
+    gtk_adjustment_clamp_page(vadjust, candidate->ymin, candidate->ymax);
+}
+
 /* Display functions ------------------------------------------------------- */
 
 /** @brief Delete all the widgets in the tree */
@@ -690,6 +771,8 @@ static void redisplay_tree(void) {
   files_visible = 0;
   /* Correct the layout and find out how much space it uses */
   MTAG_PUSH("display_tree");
+  searchnodes = nsearchresults ? xcalloc(nsearchresults, 
+                                         sizeof (struct choosenode *)) : 0;
   d = display_tree(root, 0, 0);
   MTAG_POP();
   /* We must set the total size or scrolling will not work (it wouldn't be hard
@@ -710,6 +793,9 @@ static void redisplay_tree(void) {
 }
 
 /** @brief Recursive step for redisplay_tree()
+ * @param cn Node to display
+ * @param x X coordinate for @p cn
+ * @param y Y coordinate for @p cn
  *
  * Makes sure all displayed widgets from CN down exist and are in their proper
  * place and return the maximum space used.
@@ -720,6 +806,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   struct displaydata d, cd;
   GdkPixbuf *pb;
   const char *name;
+  const int search_result = is_search_result(cn->path);
   
   D(("display_tree %s %d,%d", cn->path, x, y));
 
@@ -773,7 +860,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   /* Make sure the widget name is right */
   name = (cn->flags & CN_EXPANDABLE
           ? "choose-dir"
-          : is_search_result(cn->path) ? "choose-search" : "choose");
+          : search_result ? "choose-search" : "choose");
   gtk_widget_set_name(cn->label, name);
   gtk_widget_set_name(cn->container, name);
   /* Make sure the icon is right */
@@ -823,6 +910,9 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     if(cn->flags & CN_SELECTED)
       ++files_selected;
   }
+  /* update the search results array */
+  if(search_result)
+    searchnodes[search_result - 1] = cn;
   /* report back how much space we used */
   D(("display_tree %s %d,%d total size %dx%d", cn->path, x, y,
      d.width, d.height));
@@ -1237,14 +1327,28 @@ GtkWidget *choose_widget(void) {
                    G_CALLBACK(clearsearch_clicked), 0);
   gtk_tooltips_set_tip(tips, clearsearch, "Clear search terms", "");
 
+  /* Up and down buttons to find previous/next results; initially they are not
+   * usable as there are no search results. */
+  prevsearch = iconbutton("up.png", "Previous search result");
+  g_signal_connect(G_OBJECT(prevsearch), "clicked",
+                   G_CALLBACK(prev_clicked), 0);
+  gtk_widget_set_sensitive(prevsearch, 0);
+  nextsearch = iconbutton("down.png", "Next search result");
+  g_signal_connect(G_OBJECT(nextsearch), "clicked",
+                   G_CALLBACK(next_clicked), 0);
+  gtk_widget_set_sensitive(nextsearch, 0);
 
-  /* hbox packs the search box and the cancel button together on a line */
+  /* hbox packs the search tools button together on a line */
   NW(hbox);
   hbox = gtk_hbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
   gtk_box_pack_start(GTK_BOX(hbox), searchentry,
                      TRUE/*expand*/, TRUE/*fill*/, 0/*padding*/);
-  gtk_box_pack_end(GTK_BOX(hbox), clearsearch,
-                   FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
+  gtk_box_pack_start(GTK_BOX(hbox), prevsearch,
+                     FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
+  gtk_box_pack_start(GTK_BOX(hbox), nextsearch,
+                     FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
+  gtk_box_pack_start(GTK_BOX(hbox), clearsearch,
+                     FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
   
   /* chooselayout contains the currently visible subset of the track
    * namespace */

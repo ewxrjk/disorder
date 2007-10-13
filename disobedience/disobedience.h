@@ -139,6 +139,8 @@ void progress_window_progress(struct progress_window *pw,
 			      int limit);
 /* Report current progress */
 
+GtkWidget *iconbutton(const char *path, const char *tip);
+
 void register_monitor(monitor_callback *callback,
                       void *u,
                       unsigned long mask);
