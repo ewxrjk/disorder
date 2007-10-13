@@ -30,6 +30,7 @@ disorderd_SOURCES=disorderd.c				\
 	daemonize.c daemonize.h				\
 	play.c play.h 					\
 	server.c server.h     				\
+	server-queue.c server-queue.h			\
 	state.c state.h					\
 	trackdb.c trackdb.h trackdb-int.h exports.c 	\
 	../lib/memgc.c

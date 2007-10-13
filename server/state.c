@@ -41,6 +41,7 @@
 #include "configuration.h"
 #include "log.h"
 #include "queue.h"
+#include "server-queue.h"
 #include "server.h"
 #include "printf.h"
 #include "addr.h"

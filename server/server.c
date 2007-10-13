@@ -42,6 +42,7 @@
 #include "server.h"
 #include "syscalls.h"
 #include "queue.h"
+#include "server-queue.h"
 #include "play.h"
 #include "log.h"
 #include "mem.h"

@@ -43,6 +43,7 @@
 #include "mem.h"
 #include "configuration.h"
 #include "queue.h"
+#include "server-queue.h"
 #include "trackdb.h"
 #include "play.h"
 #include "plugin.h"

@@ -26,7 +26,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=disorder.c authorize.c authorize.h \
 	../lib/memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDL) $(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c \
@@ -45,7 +45,7 @@ filename_bytes_SOURCES=filename-bytes.c
 test_eclient_SOURCES=test-eclient.c \
 	../lib/memgc.c
 test_eclient_LDADD=../lib/libdisorder.a \
-	$(LIBDL) $(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
 test_eclient_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:
