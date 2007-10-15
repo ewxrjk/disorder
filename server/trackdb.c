@@ -683,7 +683,7 @@ done:
 
 /* trackdb_notice() **********************************************************/
 
-/** @brief notice a possiby new  track
+/** @brief notice a possibly new track
  * @return @c DB_NOTFOUND if new, 0 if already known
  */
 int trackdb_notice(const char *track,
@@ -703,7 +703,7 @@ int trackdb_notice(const char *track,
   return err;
 }
 
-/** @brief notice a possiby new  track
+/** @brief notice a possibly new track
  * @return @c DB_NOTFOUND if new, 0 if already known, @c DB_LOCK_DEADLOCK also
  */
 int trackdb_notice_tid(const char *track,
