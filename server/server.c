@@ -778,8 +778,8 @@ static int c_log(struct conn *c,
 static void post_move_cleanup(void) {
   struct queue_entry *q;
 
-  /* If we have caused the random track to not be at the end then we make it no
-   * longer be random. */
+  /* If we have caused any random tracks to not be at the end then we make them
+   * no longer be random. */
   for(q = qhead.next; q != &qhead; q = q->next)
     if(q->state == playing_random && q->next != &qhead)
       q->state = playing_unplayed;
