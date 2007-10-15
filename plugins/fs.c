@@ -39,12 +39,9 @@ void disorder_scan(const char *path) {
   char *np;
 
   if(stat(path, &sb) < 0) {
-    disorder_error(errno, "cannot lstat %s", path);
+    disorder_error(errno, "cannot stat %s", path);
     return;
   }
-  /* skip files that aren't world-readable */
-  if(!(sb.st_mode & 0004))
-    return;
   if(S_ISDIR(sb.st_mode)) {
     if(!(dp = opendir(path))) {
       disorder_error(errno, "cannot open directory %s", path);
@@ -60,9 +57,14 @@ void disorder_scan(const char *path) {
     if(errno)
       disorder_error(errno, "error reading directory %s", path);
     closedir(dp);
-  } else if(S_ISREG(sb.st_mode))
+  } else if(S_ISREG(sb.st_mode)) {
+    if(access(path, R_OK) < 0) {
+      disorder_error(errno, "cannot access file %s", path);
+      return;
+    }
     if(printf("%s%c", path, 0) < 0)
       disorder_fatal(errno, "error writing to scanner output pipe");
+  }
 }
 
 int disorder_check(const char attribute((unused)) *root, const char *path) {
