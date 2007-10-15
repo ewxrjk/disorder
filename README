@@ -94,11 +94,6 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
      install -m 755 clients/disorder.cgi /usr/local/lib/cgi-bin/disorder
 
-   Depending on how your system is configured you may need to link the disorder
-   libao driver into the right directory:
-
-     ln -s /usr/local/lib/ao/plugins-2/libdisorder.so /usr/lib/ao/plugins-2/.
-
 3. Create a 'jukebox' user and group, with the jukebox group being the default
    group of the jukebox user.  The server will run as this user and group.
    Check that this user can read your music files and write to the audio

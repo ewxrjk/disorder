@@ -21,8 +21,27 @@
 
 aolib_LTLIBRARIES=libdisorder.la
 aolibdir=${libdir}/ao/plugins-2
+finkaolibdir=${finkdir}/lib/ao/plugins-2
+usraolibdir=/usr/lib/ao/plugins-2
 AM_CPPFLAGS=-I${top_srcdir}/lib
 
 libdisorder_la_SOURCES=disorder.c
 libdisorder_la_LDFLAGS=-module
 
+# Link ao driver into right location.  If you have some other location then
+# you'll need to modify this or link it manually.
+install-data-hook:
+	@if test -d ${DESTDIR}${finkaolibdir} \
+	   && test ${finkaolibdir} != ${aolibdir}; then \
+	  echo rm -f ${DESTDIR}${finkaolibdir}/libdisorder.*; \
+	  rm -f ${DESTDIR}${finkaolibdir}/libdisorder.*; \
+	  echo ln ${aolibdir}/libdisorder.* ${DESTDIR}${finkaolibdir}; \
+	  ln ${DESTDIR}${aolibdir}/libdisorder.* ${DESTDIR}${finkaolibdir}; \
+	fi
+	@if test -d ${DESTDIR}${usraolibdir} \
+	   && test ${usraolibdir} != ${aolibdir}; then \
+	  echo rm -f ${DESTDIR}${usraolibdir}/libdisorder.*; \
+	  rm -f ${DESTDIR}${usraolibdir}/libdisorder.*; \
+	  echo ln ${DESTDIR}${aolibdir}/libdisorder.* ${DESTDIR}${usraolibdir}; \
+	  ln ${DESTDIR}${aolibdir}/libdisorder.* ${DESTDIR}${usraolibdir}; \
+	fi

@@ -136,6 +136,7 @@ if test "x$FINK" != xnone; then
   AC_CACHE_CHECK([fink install directory],[rjk_cv_finkprefix],[
     rjk_cv_finkprefix="`echo "$FINK" | sed 's,/bin/fink$,,'`"
   ])
+  finkdir="${rjk_cv_finkprefix}"
   finkbindir="${rjk_cv_finkprefix}/bin"
   CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/gc -I${rjk_cv_finkprefix}/include"
   if test $want_server = yes; then
@@ -145,6 +146,7 @@ if test "x$FINK" != xnone; then
 else
   finkbindir=""
 fi
+AC_SUBST([finkdir])
 AC_SUBST([finkbindir])
 
 # Checks for libraries.
