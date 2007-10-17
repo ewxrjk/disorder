@@ -17,11 +17,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/user.h
+ * @brief Jukebox user management
+ */
 
 #ifndef USER_H
 #define USER_H
 
 void become_mortal(void);
+void make_home(void);
 
 #endif /* USER_H */
 

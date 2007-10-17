@@ -146,16 +146,7 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    suitable; install it in /etc/init.d, adapting it as necessary, and make
    appropriate links from /etc/rc[0-6].d.
 
-7. Make sure the state directory (/var/disorder or /usr/local/var/disorder or
-   as determined by configure) exists and is writable by the jukebox user.
-
-     mkdir -m 755 /var/disorder
-     chown disorder:root /var/disorder
-
-   If you want to use some other directory you must put use the 'home' command
-   in the configuration file.
-
-8. Start the server.
+7. Start the server.
 
    On Linux systems with sysv-style init:
 
@@ -166,35 +157,35 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    start up correctly there should be an error message.  Correct the problem
    and try again.
 
-9. After a minute it should start to play something.  Try scratching it, as any
+8. After a minute it should start to play something.  Try scratching it, as any
    of the users you set up in step 5:
 
      disorder scratch
 
    The track should stop playing, and (if you set any up) a scratch sound play.
 
-10. Add any other users you want to config.private.  Each user's password
-    should be stored in a file in their home directory, ~/.disorder/passwd,
-    which should be readable only by them, and should take the form of a single
-    line:
+9. Add any other users you want to config.private.  Each user's password
+   should be stored in a file in their home directory, ~/.disorder/passwd,
+   which should be readable only by them, and should take the form of a single
+   line:
 
-      password MYPASSWORD
+     password MYPASSWORD
 
-    (root doesn't need this as the client can read it out of config.private
-    when running as root.)
+   (root doesn't need this as the client can read it out of config.private
+   when running as root.)
 
-    Note that the server must be reloaded (e.g. by 'disorder reconfigure')
-    when new users are added.
+   Note that the server must be reloaded (e.g. by 'disorder reconfigure')
+   when new users are added.
 
-    Alternatively the administrator can create /etc/disorder/config.USERNAME
-    containing the same thing as above.  It can either be owned by the user and
-    mode 400, or owned by root and the user's group (if you have per-user
-    groups) and mode 440.
+   Alternatively the administrator can create /etc/disorder/config.USERNAME
+   containing the same thing as above.  It can either be owned by the user and
+   mode 400, or owned by root and the user's group (if you have per-user
+   groups) and mode 440.
 
-    You can use 'disorder authorize' to automatically pick passwords and
-    create these files.
+   You can use 'disorder authorize' to automatically pick passwords and
+   create these files.
 
-11. Optionally source completion.bash from /etc/profile or similar, for
+10. Optionally source completion.bash from /etc/profile or similar, for
     example:
 
       . /usr/local/share/disorder/completion.bash

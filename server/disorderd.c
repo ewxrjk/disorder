@@ -246,6 +246,8 @@ int main(int argc, char **argv) {
   /* read config */
   if(config_read(1))
     fatal(0, "cannot read configuration");
+  /* make sure the home directory exists and has suitable permissions */
+  make_home();
   /* Start the speaker process (as root! - so it can choose its nice value) */
   speaker_setup(ev);
   /* set server nice value _after_ starting the speaker, so that they

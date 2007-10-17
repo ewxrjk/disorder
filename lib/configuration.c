@@ -593,6 +593,19 @@ static const struct conftype
   }								\
 } while(0)
 
+static int validate_isabspath(const struct config_state *cs,
+			      int nvec, char **vec) {
+  int n;
+
+  for(n = 0; n < nvec; ++n)
+    if(vec[n][0] != '/') {
+      error(errno, "%s:%d: %s: not an absolute path", 
+	    cs->path, cs->line, vec[n]);
+      return -1;
+    }
+  return 0;
+}
+
 static int validate_isdir(const struct config_state *cs,
 			  int nvec, char **vec) {
   VALIDATE_FILE(S_ISDIR, "directory");
@@ -863,7 +876,7 @@ static const struct conf conf[] = {
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
-  { C(home),             &type_string,           validate_isdir },
+  { C(home),             &type_string,           validate_isabspath },
   { C(listen),           &type_stringlist,       validate_port },
   { C(lock),             &type_boolean,          validate_any },
   { C(mixer),            &type_string,           validate_ischr },

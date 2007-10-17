@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/user.c
+ * @brief Jukebox user management
+ */
 
 #include <config.h>
 #include "types.h"
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
@@ -30,7 +34,12 @@
 #include "user.h"
 #include "log.h"
 #include "configuration.h"
+#include "mem.h"
 
+/** @brief Become the jukebox user
+ *
+ * If a jukebox user is configured then becomes that user.
+ */
 void become_mortal(void) {
   struct passwd *pw;
   
@@ -51,6 +60,41 @@ void become_mortal(void) {
     if(getegid() != pw->pw_gid) fatal(0, "wrong effective gid");
     if(setuid(0) != -1) fatal(0, "setuid(0) unexpectedly succeeded");
     if(seteuid(0) != -1) fatal(0, "seteuid(0) unexpectedly succeeded");
+  }
+}
+
+/** @brief Create the jukebox state directory
+ *
+ * If the home directory does not exist then creates it and assigns
+ * it suitable permissions.
+ */
+void make_home(void) {
+  struct stat sb;
+  struct passwd *pw;
+  char *home, *p;
+  
+  if(stat(config->home, &sb) < 0) {
+    /* create parent directories */
+    home = xstrdup(config->home);
+    p = home;
+    while(*p) {
+      if(*p == '/' && p > home) {
+        *p = 0;
+        mkdir(home, 0755);
+        *p = '/';
+      }
+      ++p;
+    }
+    /* create the directory itself */
+    if(mkdir(config->home, 02755) < 0)
+      fatal(errno, "error creating %s", config->home);
+    /* make sure it has the right ownership */
+    if(config->user) {
+      if(!(pw = getpwnam(config->user)))
+        fatal(0, "cannot find user %s", config->user);
+      if(chown(config->home, pw->pw_uid, pw->pw_gid) < 0)
+        fatal(errno, "error chowning %s", config->home);
+    }
   }
 }
 
