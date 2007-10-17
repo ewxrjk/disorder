@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@
 #include "mixer.h"
 #include "eventlog.h"
 #include "printf.h"
+#include "setup.h"
 
 static ev_source *ev;
 
@@ -248,6 +249,8 @@ int main(int argc, char **argv) {
     fatal(0, "cannot read configuration");
   /* make sure the home directory exists and has suitable permissions */
   make_home();
+  /* create the default login */
+  make_root_login();
   /* Start the speaker process (as root! - so it can choose its nice value) */
   speaker_setup(ev);
   /* set server nice value _after_ starting the speaker, so that they

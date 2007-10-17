@@ -31,6 +31,7 @@ disorderd_SOURCES=disorderd.c				\
 	play.c play.h 					\
 	server.c server.h     				\
 	server-queue.c server-queue.h			\
+	setup.c setup.h					\
 	state.c state.h					\
 	trackdb.c trackdb.h trackdb-int.h exports.c 	\
 	../lib/memgc.c

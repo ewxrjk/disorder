@@ -123,30 +123,13 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    See README.raw for details on setting up "raw format" players, which allow
    for pausing and gapless play.
 
-5. Create /etc/disorder/config.private.  This should be readable only by the
-   jukebox group:
-
-     touch /etc/disorder/config.private
-     chown root:jukebox /etc/disorder/config.private
-     chmod 640 /etc/disorder/config.private
-
-   Set up a username and password for root, for example with line like this:
-
-     allow root somepassword
-
-   Use (for instance) pwgen(1) to create the password.  DO NOT use your root
-   password - this is a password to give root access to the server, not to give
-   access to the root login.
-
-   See disorderd(8) and disorder_config(5) for more details.
-
-6. Make sure the server is started at boot time.
+5. Make sure the server is started at boot time.
 
    On many Linux systems, examples/disorder.init should be more or less
    suitable; install it in /etc/init.d, adapting it as necessary, and make
    appropriate links from /etc/rc[0-6].d.
 
-7. Start the server.
+6. Start the server.
 
    On Linux systems with sysv-style init:
 
@@ -157,14 +140,14 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    start up correctly there should be an error message.  Correct the problem
    and try again.
 
-8. After a minute it should start to play something.  Try scratching it, as any
+7. After a minute it should start to play something.  Try scratching it, as any
    of the users you set up in step 5:
 
      disorder scratch
 
    The track should stop playing, and (if you set any up) a scratch sound play.
 
-9. Add any other users you want to config.private.  Each user's password
+8. Add any other users you want to config.private.  Each user's password
    should be stored in a file in their home directory, ~/.disorder/passwd,
    which should be readable only by them, and should take the form of a single
    line:
@@ -185,12 +168,12 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    You can use 'disorder authorize' to automatically pick passwords and
    create these files.
 
-10. Optionally source completion.bash from /etc/profile or similar, for
-    example:
+9. Optionally source completion.bash from /etc/profile or similar, for
+   example:
 
-      . /usr/local/share/disorder/completion.bash
+     . /usr/local/share/disorder/completion.bash
 
-    This provides completion over disorder command and option names.
+   This provides completion over disorder command and option names.
 
 
 Web Interface

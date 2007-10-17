@@ -509,6 +509,9 @@ Configuration files are read in the following order:
 .I pkgconfdir/config.private
 Should be readable only by the jukebox group, and contain \fBallow\fR
 commands for authorised users.
+.IP
+If this file does not exist at startup then the server will create it with a
+randomly chosen password for the root user.
 .TP
 .I pkgconfdir/config.\fRUSER
 Per-user system-controlled client configuration.  Optional but if it
