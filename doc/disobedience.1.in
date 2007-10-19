@@ -27,7 +27,13 @@ disobedience \- GUI client for DisOrder jukebox
 is a graphical client for DisOrder.
 .SH "WINDOWS AND ICONS"
 .SS "File Menu"
-This only has one option, "Quit", which terminates the program.
+This has the following options:
+.TP
+.B Login
+Brings up the \fBLogin Details Window\fR; see below.
+.TP
+.B Quit
+Terminates the program.
 .SS "Edit Menu"
 This has the following options:
 .TP
@@ -173,6 +179,35 @@ Play selected tracks.
 .TP
 .B "Select All Tracks"
 Select all tracks.
+.SS "Login Details Window"
+The login details window allows you to edit the connection details and
+authorization information used by Disobedience.  It has four text entry fields:
+.TP
+.B Hostname
+The host to connect to.
+.TP
+.B Service
+The service name or port number to connect to.
+.TP
+.B "User name"
+The user name to log in as.
+.TP
+.B Password
+The password to use when logging in.  Note that this is NOT your login password
+but is your password to the DisOrder server.
+.PP
+It has three buttons:
+.TP
+.B Login
+This button attempts to (re-)connect to the server with the currently displayed
+settings.  The settings are not saved.
+.TP
+.B Save
+This button saves the current settings in 
+.IR $HOME/.disorder/passwd .
+.TP
+.B Cancel
+This button closes the window.
 .SS "Properties Window"
 This window contains details of one or more tracks and allows them to be
 edited.
@@ -199,6 +234,9 @@ all changes.
 .TP
 .B CTRL+A
 Select all tracks (queue/recent)
+.TP
+.B CTRL+L
+Brings up the \fBLogin Details Window\fR.
 .TP
 .B CTRL+Q
 Quit.
@@ -258,27 +296,15 @@ If you are using
 on the same host as the server then no additional configuration should be
 required.
 .PP
-If it is running on a different host then the server will need a
-.B listen
-directive in its configuration and the clien a matching
-.B connect
-directive.  Also the client will need user passwords, either in
-.IR pkgconfdir/config. USER
-or
-.IR ~ USER /.disorder.passwd .
+If it is running on a different host then the easiest way to set it up is to
+use the login details window in Disobedience.  Enter the connection details,
+use Login to connect to the server, and then use Save to store them for future
+sessions.
 .PP
-You might use commands such as the following to set up a standalone instance of
-Disobedience:
-.PP
-.RS
-.nf
-cd
-mkdir .disorder
-echo password <your password> > .disorder/passwd
-echo connect <hostname> <port> >> .disorder/passwd
-chmod 600 .disorder/passwd
-.fi
-.RE
+The other clients read their configuration from the same location so after
+setting up with Disobedience, tools such as
+.BR disorder (1)
+should work as well.
 .SH "SEE ALSO"
 .BR disorder_config (5)
 .PP
