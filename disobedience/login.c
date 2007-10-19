@@ -125,10 +125,12 @@ static void login_save(GtkButton attribute((unused)) *button,
        GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
        GTK_MESSAGE_QUESTION,
        GTK_BUTTONS_NONE,
-       "File %s already exists", path);
+       "File %s already exists.", path);
+    gtk_window_set_title(GTK_WINDOW(yorn),
+                         "Configuration file already exists");
     gtk_dialog_add_buttons(GTK_DIALOG(yorn),
-                           "Overwrite", GTK_RESPONSE_ACCEPT,
-                           "Cancel", GTK_RESPONSE_REJECT,
+                           "Overwrite it", GTK_RESPONSE_ACCEPT,
+                           "Don't save after all", GTK_RESPONSE_REJECT,
                            (char *)0);
     if(gtk_dialog_run(GTK_DIALOG(yorn)) != GTK_RESPONSE_ACCEPT)
       goto done;
