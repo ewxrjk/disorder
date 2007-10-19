@@ -186,17 +186,17 @@ static const struct button buttons[] = {
   {
     "Login",
     login_ok,
-    "Login with these settings",
+    "(Re-)connect using these settings",
   },
   {
     GTK_STOCK_SAVE,
     login_save,
-    "Save these settings",
+    "Save these settings and close window",
   },
   {
-    GTK_STOCK_CANCEL,
+    GTK_STOCK_CLOSE,
     login_cancel,
-    "Discard all changes and close window"
+    "Discard changes and close window"
   },
 };
 

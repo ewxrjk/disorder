@@ -206,8 +206,8 @@ settings.  The settings are not saved.
 This button saves the current settings in 
 .IR $HOME/.disorder/passwd .
 .TP
-.B Cancel
-This button closes the window.
+.B Close
+This button closes the window, discarding any unsaved changes.
 .SS "Properties Window"
 This window contains details of one or more tracks and allows them to be
 edited.
