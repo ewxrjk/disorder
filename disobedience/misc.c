@@ -93,13 +93,13 @@ GdkPixbuf *find_image(const char *name) {
   return pb;
 }
 
-/** @brief Pop up an error message */
-void popup_error(const char *msg) {
+/** @brief Pop up a message */
+void popup_msg(GtkMessageType mt, const char *msg) {
   GtkWidget *w;
 
   w = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                              GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-                             GTK_MESSAGE_ERROR,
+                             mt,
                              GTK_BUTTONS_CLOSE,
                              "%s", msg);
   gtk_dialog_run(GTK_DIALOG(w));
@@ -107,14 +107,14 @@ void popup_error(const char *msg) {
 }
 
 /** @brief Pop up an error message */
-void fpopup_error(const char *fmt, ...) {
+void fpopup_msg(GtkMessageType mt, const char *fmt, ...) {
   va_list ap;
   char *msg;
 
   va_start(ap, fmt);
   byte_xvasprintf(&msg, fmt, ap);
   va_end(ap);
-  popup_error(msg);
+  popup_msg(mt, msg);
 }
 
 /** @brief Create a button with an icon in it

@@ -137,10 +137,10 @@ GdkPixbuf *find_image(const char *name);
 /* Get the pixbuf for an image.  Returns a null pointer if it cannot be
  * found. */
 
-void popup_error(const char *msg);
-/* Pop up an error message */
+void popup_msg(GtkMessageType mt, const char *msg);
+/* Pop up a message */
 
-void fpopup_error(const char *fmt, ...);
+void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 
 struct progress_window *progress_window_new(const char *title);
 /* Pop up a progress window */

@@ -185,7 +185,7 @@ void properties(int ntracks, const char **tracks) {
   }
   assert(properties_table == 0);
   if(ntracks > INT_MAX / NPREFS) {
-    popup_error("Too many tracks selected");
+    popup_msg(GTK_MESSAGE_ERROR, "Too many tracks selected");
     return;
   }
   /* Create a new properties window */

@@ -26,6 +26,7 @@
 #include "filepart.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 /** @brief One field in the login window */
 struct login_window_item {
@@ -87,8 +88,22 @@ static void update_config(void) {
   size_t n;
 
   for(n = 0; n < NLWIS; ++n)
-    lwis[n].set(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n])));
+    lwis[n].set(xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
 }
+
+#if 0
+static int modified_config(void) {
+  size_t n;
+
+  for(n = 0; n < NLWIS; ++n) {
+    const char *entered = gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]));
+    const char *current = lwis[n].get();
+    if(strcmp(entered, current))
+      return 1;
+  }
+  return 0;
+}
+#endif
 
 static void login_ok(GtkButton attribute((unused)) *button,
                      gpointer attribute((unused)) userdata) {
@@ -100,15 +115,34 @@ static void login_save(GtkButton attribute((unused)) *button,
                        gpointer attribute((unused)) userdata) {
   char *path = config_userconf(0, 0), *tmp;
   FILE *fp;
+  GtkWidget *yorn = 0;
 
   update_config();
+  /* See if the file already exists */
+  if(access(path, F_OK) == 0) {
+    yorn = gtk_message_dialog_new
+      (GTK_WINDOW(login_window),
+       GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+       GTK_MESSAGE_QUESTION,
+       GTK_BUTTONS_NONE,
+       "File %s already exists", path);
+    gtk_dialog_add_buttons(GTK_DIALOG(yorn),
+                           "Overwrite", GTK_RESPONSE_ACCEPT,
+                           "Cancel", GTK_RESPONSE_REJECT,
+                           (char *)0);
+    if(gtk_dialog_run(GTK_DIALOG(yorn)) != GTK_RESPONSE_ACCEPT)
+      goto done;
+    gtk_widget_destroy(yorn);
+    yorn = 0;
+  }
   byte_xasprintf(&tmp, "%s.tmp", path);
   /* Make sure the directory exists; don't care if it already exists. */
   mkdir(d_dirname(tmp), 02700);
   /* Write out the file */
   if(!(fp = fopen(tmp, "w"))) {
-    fpopup_error("error opening %s: %s", tmp, strerror(errno));
-    return;
+    fpopup_msg(GTK_MESSAGE_ERROR, "error opening %s: %s",
+               tmp, strerror(errno));
+    goto done;
   }
   if(fprintf(fp, "username %s\n"
              "password %s\n"
@@ -117,19 +151,30 @@ static void login_save(GtkButton attribute((unused)) *button,
              quoteutf8(config->password),
              quoteutf8(config->connect.s[0]),
              quoteutf8(config->connect.s[1])) < 0) {
-    fpopup_error("error writing to %s: %s", tmp, strerror(errno));
+    fpopup_msg(GTK_MESSAGE_ERROR, "error writing to %s: %s",
+               tmp, strerror(errno));
     fclose(fp);
-    return;
+    goto done;
   }
   if(fclose(fp) < 0) {
-    fpopup_error("error closing %s: %s", tmp, strerror(errno));
-    return;
+    fpopup_msg(GTK_MESSAGE_ERROR, "error closing %s: %s",
+               tmp, strerror(errno));
+    goto done;
   }
   /* Rename into place */
   if(rename(tmp, path) < 0) {
-    fpopup_error("error renaming %s: %s", tmp, strerror(errno));
-    return;
+    fpopup_msg(GTK_MESSAGE_ERROR, "error renaming %s: %s",
+               tmp, strerror(errno));
+    goto done;
   }
+  fpopup_msg(GTK_MESSAGE_INFO, "Saved login configuration to %s", path);
+  gtk_widget_destroy(login_window);
+done:
+  if(yorn)
+    gtk_widget_destroy(yorn);
+  /* OS X WM likes to hide it */
+  if(login_window)
+    gtk_window_present(GTK_WINDOW(login_window));
 }
 
 static void login_cancel(GtkButton attribute((unused)) *button,
@@ -140,7 +185,7 @@ static void login_cancel(GtkButton attribute((unused)) *button,
 /* Buttons that appear at the bottom of the window */
 static const struct button buttons[] = {
   {
-    GTK_STOCK_OK,
+    "Login",
     login_ok,
     "Login with these settings",
   },

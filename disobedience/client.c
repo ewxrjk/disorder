@@ -154,7 +154,7 @@ static void gtkclient_report(void attribute((unused)) *u,
 void popup_protocol_error(int attribute((unused)) code,
                           const char *msg) {
   gtk_label_set_text(GTK_LABEL(report_label), msg);
-  popup_error(msg);
+  popup_msg(GTK_MESSAGE_ERROR, msg);
 }
 
 /** @brief Table of eclient callbacks */
