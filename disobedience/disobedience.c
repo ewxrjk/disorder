@@ -49,6 +49,9 @@ GtkWidget *tabs;
 /** @brief Main client */
 disorder_eclient *client;
 
+/** @brief Log client */
+disorder_eclient *logclient;
+
 /** @brief Last reported state
  *
  * This is updated by log_state().
@@ -74,6 +77,12 @@ static int nop_in_flight;
 
 /** @brief Global tooltip group */
 GtkTooltips *tips;
+
+/** @brief Linked list of functions to call when we reset login parameters */
+static struct reset_callback_node {
+  struct reset_callback_node *next;
+  reset_callback *callback;
+} *resets;
 
 /* Window creation --------------------------------------------------------- */
 
@@ -345,9 +354,28 @@ static void version(void) {
   exit(0);
 }
 
+/* reset state */
+void reset(void) {
+  struct reset_callback_node *r;
+
+  /* reset the clients */
+  disorder_eclient_close(client);
+  disorder_eclient_close(logclient);
+  for(r = resets; r; r = r->next)
+    r->callback();
+}
+
+/** @brief Register a reset callback */
+void register_reset(reset_callback *callback) {
+  struct reset_callback_node *const r = xmalloc(sizeof *r);
+
+  r->next = resets;
+  r->callback = callback;
+  resets = r;
+}
+
 int main(int argc, char **argv) {
   int n;
-  disorder_eclient *logclient;
 
   mem_init();
   /* garbage-collect PCRE's memory */
@@ -401,6 +429,7 @@ int main(int argc, char **argv) {
                      maybe_send_nop,
                      0/*data*/,
                      0/*notify*/);
+  register_reset(properties_reset);
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
   D(("enter main loop"));

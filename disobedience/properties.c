@@ -127,11 +127,7 @@ static const struct pref {
 #define NPREFS (int)(sizeof prefs / sizeof *prefs)
 
 /* Buttons that appear at the bottom of the window */
-static const struct button {
-  const gchar *stock;
-  void (*clicked)(GtkButton *button, gpointer userdata);
-  const char *tip;
-} buttons[] = {
+static const struct button buttons[] = {
   {
     GTK_STOCK_OK,
     properties_ok,
@@ -174,7 +170,7 @@ static void propagate_clicked(GtkButton attribute((unused)) *button,
 void properties(int ntracks, const char **tracks) {
   int n, m;
   struct prefdata *f;
-  GtkWidget *hbox, *vbox, *button, *label, *entry, *propagate, *content;
+  GtkWidget *buttonbox, *vbox, *label, *entry, *propagate, *content;
   GdkPixbuf *pb;
   
   /* If no tracks, do nothign */
@@ -266,21 +262,14 @@ void properties(int ntracks, const char **tracks) {
   }
   prefs_unfilled = prefs_total;
   /* Buttons */
-  hbox = gtk_hbox_new(FALSE, 1);
-  for(n = 0; n < NBUTTONS; ++n) {
-    button = gtk_button_new_from_stock(buttons[n].stock);
-    g_signal_connect(G_OBJECT(button), "clicked",
-                     G_CALLBACK(buttons[n].clicked), 0);
-    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
-    gtk_tooltips_set_tip(tips, button, buttons[n].tip, "");
-  }
+  buttonbox = create_buttons(buttons, NBUTTONS);
   /* Put it all together */
   vbox = gtk_vbox_new(FALSE, 1);
   gtk_box_pack_start(GTK_BOX(vbox), 
                      scroll_widget(properties_table,
                                    "properties"),
                      TRUE, TRUE, 1);
-  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 1);
+  gtk_box_pack_start(GTK_BOX(vbox), buttonbox, FALSE, FALSE, 1);
   gtk_container_add(GTK_CONTAINER(properties_window), vbox);
   /* The table only really wants to be vertically scrollable */
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(GTK_WIDGET(properties_table)->parent->parent),
@@ -497,6 +486,15 @@ static void properties_apply(GtkButton attribute((unused)) *button,
 static void properties_cancel(GtkButton attribute((unused)) *button,
                               gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(properties_window);
+}
+
+/** @brief Called on client reset
+ *
+ * Destroys the current properties window.
+ */
+void properties_reset(void) {
+  if(properties_window)
+    gtk_widget_destroy(properties_window);
 }
 
 /*

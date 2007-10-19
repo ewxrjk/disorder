@@ -1186,6 +1186,8 @@ char *config_private(void) {
 char *config_userconf(const char *home, const struct passwd *pw) {
   char *s;
 
+  if(!home && !pw && !(pw = getpwuid(getuid())))
+    fatal(0, "cannot determine our username");
   byte_xasprintf(&s, "%s/.disorder/passwd", home ? home : pw->pw_dir);
   return s;
 }

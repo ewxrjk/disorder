@@ -1288,6 +1288,15 @@ static const struct tabtype tabtype_choose = {
 
 /* Public entry points ----------------------------------------------------- */
 
+/** @brief Called to entirely reset the choose screen */
+static void choose_reset(void) {
+  if(root)
+    undisplay_tree(root);
+  root = newnode(0/*parent*/, "<root>", "All files", "",
+                 CN_EXPANDABLE, fill_root_node);
+  expand_node(root, 0);                 /* will call redisplay_tree */
+}
+
 /** @brief Create a track choice widget */
 GtkWidget *choose_widget(void) {
   int n;
@@ -1354,9 +1363,8 @@ GtkWidget *choose_widget(void) {
    * namespace */
   NW(layout);
   chooselayout = gtk_layout_new(0, 0);
-  root = newnode(0/*parent*/, "<root>", "All files", "",
-                 CN_EXPANDABLE, fill_root_node);
-  expand_node(root, 0);                 /* will call redisplay_tree */
+  choose_reset();
+  register_reset(choose_reset);
   /* Create the popup menus */
   NW(menu);
   track_menu = gtk_menu_new();

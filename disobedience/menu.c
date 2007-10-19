@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006 Richard Kettlewell
+ * Copyright (C) 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,6 +69,13 @@ static void properties_item(gpointer attribute((unused)) callback_data,
   t->properties_activate(tab);
 }
 
+/** @brief Called when the login option is activated */
+static void login(gpointer attribute((unused)) callback_data,
+                  guint attribute((unused)) callback_action,
+                  GtkWidget attribute((unused)) *menu_item) {
+  login_box();
+}
+
 /** @brief Update menu state
  *
  * Determines option sensitivity according to the current tab and adjusts the
@@ -130,6 +137,8 @@ static void about_popup_got_version(void attribute((unused)) *v,
 GtkWidget *menubar(GtkWidget *w) {
   static const GtkItemFactoryEntry entries[] = {
     { (char *)"/File", 0,  0, 0, (char *)"<Branch>", 0 },
+    { (char *)"/File/Login", (char *)"<CTRL>L", login, 0,
+      0, 0 },
     { (char *)"/File/Quit Disobedience", (char *)"<CTRL>Q", quit_program, 0,
       (char *)"<StockItem>", GTK_STOCK_QUIT },
     { (char *)"/Edit", 0,  0, 0, (char *)"<Branch>", 0 },

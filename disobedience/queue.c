@@ -1313,6 +1313,7 @@ GtkWidget *queue_widget(void) {
   g_timeout_add(1000/*ms*/, adjust_sofar, 0);
   /* Arrange a callback whenever the playing state changes */ 
   register_monitor(playing_update, 0,  DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
+  register_reset(queue_update);
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
@@ -1367,6 +1368,7 @@ static struct queue_menuitem recent_menu[] = {
 /** @brief Create the recently-played list */
 GtkWidget *recent_widget(void) {
   D(("recent_widget"));
+  register_reset(recent_update);
   return queuelike(&ql_recent, fixup_recent, 0, recent_menu, "recent",
                    maincolumns, NMAINCOLUMNS);
 }
@@ -1399,6 +1401,7 @@ static struct queue_menuitem added_menu[] = {
 /** @brief Create the newly-added list */
 GtkWidget *added_widget(void) {
   D(("added_widget"));
+  register_reset(added_update);
   return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu, "added",
                    addedcolumns, NADDEDCOLUMNS);
 }

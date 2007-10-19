@@ -90,6 +90,13 @@ struct tabtype {
   void (*selectall_activate)(GtkWidget *tab);
 };
 
+/** @brief Button definitions */
+struct button {
+  const gchar *stock;
+  void (*clicked)(GtkButton *button, gpointer userdata);
+  const char *tip;
+};
+
 /* Variables --------------------------------------------------------------- */
 
 extern GMainLoop *mainloop;
@@ -121,6 +128,8 @@ void popup_protocol_error(int code,
 void properties(int ntracks, const char **tracks);
 /* Pop up a properties window for a list of tracks */
 
+void properties_reset(void);
+
 GtkWidget *scroll_widget(GtkWidget *child, const char *name);
 /* Wrap a widget up for scrolling */
 
@@ -130,6 +139,8 @@ GdkPixbuf *find_image(const char *name);
 
 void popup_error(const char *msg);
 /* Pop up an error message */
+
+void fpopup_error(const char *fmt, ...);
 
 struct progress_window *progress_window_new(const char *title);
 /* Pop up a progress window */
@@ -141,10 +152,21 @@ void progress_window_progress(struct progress_window *pw,
 
 GtkWidget *iconbutton(const char *path, const char *tip);
 
+GtkWidget *create_buttons(const struct button *buttons,
+                          size_t nbuttons);
+
 void register_monitor(monitor_callback *callback,
                       void *u,
                       unsigned long mask);
 /* Register a state monitor */
+
+/** @brief Type signature for a reset callback */
+typedef void reset_callback(void);
+
+void register_reset(reset_callback *callback);
+/* Register a reset callback */
+
+void reset(void);
 
 void all_update(void);
 /* Update everything */
@@ -203,6 +225,8 @@ GtkWidget *choose_widget(void);
 
 void choose_update(void);
 /* Called when we think the choose tree might need updating */
+
+void login_box(void);
 
 /* Widget leakage debugging rubbish ---------------------------------------- */
 
