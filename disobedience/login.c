@@ -172,9 +172,6 @@ static void login_save(GtkButton attribute((unused)) *button,
 done:
   if(yorn)
     gtk_widget_destroy(yorn);
-  /* OS X WM likes to hide it */
-  if(login_window)
-    gtk_window_present(GTK_WINDOW(login_window));
 }
 
 static void login_cancel(GtkButton attribute((unused)) *button,
@@ -247,6 +244,8 @@ void login_box(void) {
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox,
                      FALSE/*expand*/, FALSE/*fill*/, 1/*padding*/);
   gtk_container_add(GTK_CONTAINER(login_window), vbox);
+  gtk_window_set_transient_for(GTK_WINDOW(login_window),
+                               GTK_WINDOW(toplevel));
   gtk_widget_show_all(login_window);
 }
 
