@@ -64,6 +64,16 @@ not take effect until the currently playing track finishes.
 The play button controls whether tracks will be played at all.  As above it
 does not take effect until the currently playing track finishes.
 .TP
+.B "Network play button"
+The network play buttons enables or disables a background
+.BR disorder-playrtp (1)
+process.  If you quit Disobedience the player will continue playing and can be
+disabled from a later run of Disobedience.
+.IP
+The player will log to
+.I ~/.disorder/HOSTNAME-rtp.log
+so look there if it does not seem to be working.
+.TP
 .B "Volume slider"
 The volume slider indicates the current volume level and can be used to adjust
 it.  0 is silent and 10 is maximum volume.
@@ -305,7 +315,15 @@ The other clients read their configuration from the same location so after
 setting up with Disobedience, tools such as
 .BR disorder (1)
 should work as well.
+.SH FILES
+.TP
+.I ~/.disorder/HOSTNAME-rtp
+Socket for communication with RTP player.
+.TP
+.I ~/.disorder/HOSTNAME-rtp.log
+Log file for RTP player.
 .SH "SEE ALSO"
+.BR disorder-playrtp (1),
 .BR disorder_config (5)
 .PP
 .B http://www.greenend.org.uk/rjk/disorder/
