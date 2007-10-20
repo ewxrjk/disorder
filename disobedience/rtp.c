@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
 
 /** @brief Path to RTP player's control socket */
 static char *rtp_socket;
@@ -37,12 +38,17 @@ static char *rtp_log;
 static void rtp_init(void) {
   if(!rtp_socket) {
     const char *home = getenv("HOME");
-    char *dir;
+    char *dir, *base;
+    struct utsname uts;
 
-    byte_xasprintf(&dir, "%s/.disorder", home);
+    byte_xasprintf(&dir, "%s/.disorder/", home);
     mkdir(dir, 02700);
-    byte_xasprintf(&rtp_socket, "%s/rtp", dir);
-    byte_xasprintf(&rtp_log, "%s/rtp.log", dir);
+    if(uname(&uts) < 0)
+      byte_xasprintf(&base, "%s/", dir);
+    else
+      byte_xasprintf(&base, "%s/%s-", dir, uts.nodename);
+    byte_xasprintf(&rtp_socket, "%srtp", base);
+    byte_xasprintf(&rtp_log, "%srtp.log", base);
   }
 }
 
