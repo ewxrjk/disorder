@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ int authorize(const char *user) {
   gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
   pwhex = hex(pwbin, sizeof pwbin);
 
-  /* create config.USER, to end up with mode 440 user:jukebox */
+  /* create config.USER, to end up with mode 400 user:<anything> */
   if((fd = open(t, O_WRONLY|O_CREAT|O_EXCL, 0600)) < 0)
     fatal(errno, "error creating %s", t);
   if(fchown(fd, pw->pw_uid, -1) < 0)
