@@ -1,16 +1,23 @@
 DisOrder
 ========
 
-This program is used to play random and chosen tracks from a collection of
-digital audio files (for instance MP3 and OGG files).  If you just set it going
-it plays random tracks from your collection, but you can also ask for specific
-tracks to be played, either via a command line program or a web interface, and
-you can 'scratch' the current track.
+DisOrder is a multi-user software jukebox.
+   * It can play either selected tracks or pick tracks at random.
+   * It supports OGG, MP3, FLAC and WAV files, and can be configured to support
+     anything you can supply a player for (up to a point).
+   * It supports both ALSA and OSS and can also broadcast an RTP stream over a
+     LAN; a player for the latter is included.
+   * Tracks may be selected either via a hierarchical interface or by a fast
+     word search.
+   * It has a web interface (allowing access from graphical web browsers) and a
+     GTK+ interface that runs on Linux and Mac systems.
+   * Playing tracks can be paused or cancelled ("scratched").
 
 See CHANGES for details of recent changes to DisOrder.
 
-Currently it only runs on Linux.  It could probably be ported to other UNIX
-variants in some cases without too much effort.  Things you will need:
+The server supports Linux and can be made to on a Mac.  The clients work on
+both Linux and the Mac.  It could probably be ported to some other UNIX
+variants in without too much effort.  Things you will need:
 
 Build dependencies:
   Name             Tested              Notes
@@ -140,8 +147,7 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    start up correctly there should be an error message.  Correct the problem
    and try again.
 
-7. After a minute it should start to play something.  Try scratching it, as any
-   of the users you set up in step 5:
+7. After a minute it should start to play something.  Try scratching it:
 
      disorder scratch
 
@@ -153,6 +159,11 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
 
    This will automatically choose a random password and add new line to
    /etc/disorder/config.private and create /etc/disorder/config.USERNAME.
+
+   Those users should now be able to access the server from the same host as it
+   runs on, either via the disorder command or Disobedience.  To run
+   Disobedience from some other host, File->Login allows hostnames, passwords
+   etc to be configured.
 
 9. Optionally source completion.bash from /etc/profile or similar, for
    example:
