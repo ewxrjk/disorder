@@ -22,11 +22,13 @@
  */
 
 #include "disobedience.h"
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/un.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 
 /** @brief Path to RTP player's control socket */
 static char *rtp_socket;
