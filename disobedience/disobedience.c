@@ -75,8 +75,20 @@ double goesupto = 10;                   /* volume upper bound */
 /** @brief True if a NOP is in flight */
 static int nop_in_flight;
 
+/** @brief True if an rtp-address command is in flight */
+static int rtp_address_in_flight;
+
 /** @brief Global tooltip group */
 GtkTooltips *tips;
+
+/** @brief True if RTP play is available
+ *
+ * This is a bit of a bodge...
+ */
+int rtp_supported;
+
+/** @brief True if RTP play is enabled */
+int rtp_is_running;
 
 /** @brief Linked list of functions to call when we reset login parameters */
 static struct reset_callback_node {
@@ -316,7 +328,42 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
     nop_in_flight = 1;
     disorder_eclient_nop(client, nop_completed, 0);
   }
+  if(rtp_supported) {
+    const int old_state = rtp_is_running;
+    rtp_is_running = rtp_running();
+    if(old_state != rtp_is_running)
+      control_monitor(0);
+  }
   return TRUE;                          /* keep call me please */
+}
+
+/** @brief Called when a rtp-address command succeeds */
+static void got_rtp_address(void attribute((unused)) *v,
+                            int attribute((unused)) nvec,
+                            char attribute((unused)) **vec) {
+  rtp_address_in_flight = 0;
+  rtp_supported = 1;
+  rtp_is_running = rtp_running();
+  control_monitor(0);
+}
+
+/** @brief Called when a rtp-address command fails */
+static void no_rtp_address(struct callbackdata attribute((unused)) *cbd,
+                           int attribute((unused)) code,
+                           const char attribute((unused)) *msg) {
+  rtp_address_in_flight = 0;
+  rtp_supported = 0;
+  rtp_is_running = 0;
+  control_monitor(0);
+}
+
+/** @brief Called to check whether RTP play is available */
+static void check_rtp_address(void) {
+  if(!rtp_address_in_flight) {
+    struct callbackdata *const cbd = xmalloc(sizeof *cbd);
+    cbd->onerror = no_rtp_address;
+    disorder_eclient_rtp_address(client, got_rtp_address, cbd);
+  }
 }
 
 /* main -------------------------------------------------------------------- */
@@ -361,8 +408,11 @@ void reset(void) {
   /* reset the clients */
   disorder_eclient_close(client);
   disorder_eclient_close(logclient);
+  rtp_supported = 0;
   for(r = resets; r; r = r->next)
     r->callback();
+  /* Might be a new server so re-check */
+  check_rtp_address();
 }
 
 /** @brief Register a reset callback */
@@ -432,6 +482,8 @@ int main(int argc, char **argv) {
   register_reset(properties_reset);
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
+  /* See if RTP play supported */
+  check_rtp_address();
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);

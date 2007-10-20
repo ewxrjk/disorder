@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/inputline.c
+ * @brief Line input
+ */
 
 #include <config.h>
 #include "types.h"
@@ -31,6 +34,18 @@
 #include "charset.h"
 #include "inputline.h"
 
+/** @brief Read a line from @p fp
+ * @param tag Used in error messages
+ * @param fp Stream to read from
+ * @param lp Where to store newly allocated string
+ * @param newline Newline character
+ * @return 0 on success, -1 on error or eof.
+ *
+ * The newline is not included in the string.  If the last line of a
+ * stream does not have a newline then that line is still returned.
+ *
+ * @p *lp is only set if the return value was 0.
+ */
 int inputline(const char *tag, FILE *fp, char **lp, int newline) {
   struct dynstr d;
   int ch;

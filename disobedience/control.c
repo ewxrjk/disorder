@@ -42,7 +42,16 @@ static void update_random_enable(const struct icon *);
 static void update_random_disable(const struct icon *);
 static void update_enable(const struct icon *);
 static void update_disable(const struct icon *);
+static void update_rtp(const struct icon *);
+static void update_nortp(const struct icon *);
 static void clicked_icon(GtkButton *, gpointer);
+
+static int enable_rtp(disorder_eclient *c,
+                      disorder_eclient_no_response *completed,
+                      void *v);
+static int disable_rtp(disorder_eclient *c,
+                       disorder_eclient_no_response *completed,
+                       void *v);
 
 static double left(double v, double b);
 static double right(double v, double b);
@@ -101,6 +110,10 @@ static struct icon icons[] = {
     disorder_eclient_enable, 0 },
   { "notescross.png", "Disable play", clicked_icon, update_disable,
     disorder_eclient_disable, 0 },
+  { "speaker.png", "Play network stream", clicked_icon, update_rtp,
+    enable_rtp, 0 },
+  { "speakercross.png", "Stop playing network stream", clicked_icon, update_nortp,
+    disable_rtp, 0 },
 };
 
 /** @brief Count of icons */
@@ -110,7 +123,7 @@ static GtkAdjustment *volume_adj;
 static GtkAdjustment *balance_adj;
 
 /** @brief Called whenever last_state changes in any way */
-static void control_monitor(void attribute((unused)) *u) {
+void control_monitor(void attribute((unused)) *u) {
   int n;
 
   D(("control_monitor"));
@@ -265,6 +278,18 @@ static void update_disable(const struct icon *icon) {
   update_icon(icon, visible, usable);
 }
 
+static void update_rtp(const struct icon *icon) {
+  const int visible = !rtp_is_running;
+  const int usable = rtp_supported;
+  update_icon(icon, visible, usable);
+}
+
+static void update_nortp(const struct icon *icon) {
+  const int visible = rtp_is_running;
+  const int usable = rtp_supported;
+  update_icon(icon, visible, usable);
+}
+
 static void clicked_icon(GtkButton attribute((unused)) *button,
                          gpointer userdata) {
   const struct icon *icon = userdata;
@@ -375,6 +400,30 @@ static double balance(double l, double r) {
     return 1 - l / r;
   else                                  /* left = right */
     return 0;
+}
+
+/** @brief Called to enable RTP play
+ *
+ * Rather odd signature is to fit in with the other icons which all call @ref
+ * lib/eclient.h functions.
+ */
+static int enable_rtp(disorder_eclient attribute((unused)) *c,
+                      disorder_eclient_no_response attribute((unused)) *completed,
+                      void attribute((unused)) *v) {
+  start_rtp();
+  return 0;
+}
+
+/** @brief Called to disable RTP play
+ *
+ * Rather odd signature is to fit in with the other icons which all call @ref
+ * lib/eclient.h functions.
+ */
+static int disable_rtp(disorder_eclient attribute((unused)) *c,
+                       disorder_eclient_no_response attribute((unused)) *completed,
+                       void attribute((unused)) *v) {
+  stop_rtp();
+  return 0;
 }
 
 /*

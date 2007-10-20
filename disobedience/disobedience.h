@@ -111,6 +111,9 @@ extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
 extern int choosealpha;                 /* break up choose by letter */
 extern GtkTooltips *tips;
+extern int rtp_supported;
+extern int rtp_is_running;
+
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
@@ -189,6 +192,8 @@ GtkWidget *control_widget(void);
 void volume_update(void);
 /* Called whenever we think the volume control has changed */
 
+void control_monitor(void *u);
+
 /* Queue/Recent/Added */
 
 GtkWidget *queue_widget(void);
@@ -226,7 +231,15 @@ GtkWidget *choose_widget(void);
 void choose_update(void);
 /* Called when we think the choose tree might need updating */
 
+/* Login details */
+
 void login_box(void);
+
+/* RTP */
+
+int rtp_running(void);
+void start_rtp(void);
+void stop_rtp(void);
 
 /* Widget leakage debugging rubbish ---------------------------------------- */
 

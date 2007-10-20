@@ -67,6 +67,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <sys/un.h>
 
 #include "log.h"
 #include "mem.h"
@@ -80,6 +81,7 @@
 #include "timeval.h"
 #include "client.h"
 #include "playrtp.h"
+#include "inputline.h"
 
 #define readahead linux_headers_are_borked
 
@@ -184,6 +186,9 @@ static void (*backend)(void) = &DEFAULT_BACKEND;
 
 HEAP_DEFINE(pheap, struct packet *, lt_packet);
 
+/** @brief Control socket or NULL */
+const char *control_socket;
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -203,9 +208,76 @@ static const struct option options[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   { "core-audio", no_argument, 0, 'c' },
 #endif
+  { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
   { 0, 0, 0, 0 }
 };
+
+/** @brief Control thread
+ *
+ * This thread is responsible for accepting control commands from Disobedience
+ * (or other controllers) over an AF_UNIX stream socket with a path specified
+ * by the @c --socket option.  The protocol uses simple string commands and
+ * replies:
+ *
+ * - @c stop will shut the player down
+ * - @c query will send back the reply @c running
+ * - anything else is ignored
+ *
+ * Commands and response strings terminated by shutting down the connection or
+ * by a newline.  No attempt is made to multiplex multiple clients so it is
+ * important that the command be sent as soon as the connection is made - it is
+ * assumed that both parties to the protocol are entirely cooperating with one
+ * another.
+ */
+static void *control_thread(void attribute((unused)) *arg) {
+  struct sockaddr_un sa;
+  int sfd, cfd;
+  char *line;
+  socklen_t salen;
+  FILE *fp;
+
+  assert(control_socket);
+  unlink(control_socket);
+  memset(&sa, 0, sizeof sa);
+  sa.sun_family = AF_UNIX;
+  strcpy(sa.sun_path, control_socket);
+  sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
+  if(bind(sfd, (const struct sockaddr *)&sa, sizeof sa) < 0)
+    fatal(errno, "error binding to %s", control_socket);
+  if(listen(sfd, 128) < 0)
+    fatal(errno, "error calling listen on %s", control_socket);
+  info("listening on %s", control_socket);
+  for(;;) {
+    salen = sizeof sa;
+    cfd = accept(sfd, (struct sockaddr *)&sa, &salen);
+    if(cfd < 0) {
+      switch(errno) {
+      case EINTR:
+      case EAGAIN:
+        break;
+      default:
+        fatal(errno, "error calling accept on %s", control_socket);
+      }
+    }
+    if(!(fp = fdopen(cfd, "r+"))) {
+      error(errno, "error calling fdopen for %s connection", control_socket);
+      close(cfd);
+      continue;
+    }
+    if(!inputline(control_socket, fp, &line, '\n')) {
+      if(!strcmp(line, "stop")) {
+        info("stopped via %s", control_socket);
+        exit(0);                          /* terminate immediately */
+      }
+      if(!strcmp(line, "query"))
+        fprintf(fp, "running");
+      xfree(line);
+    }
+    if(fclose(fp) < 0)
+      error(errno, "error closing %s connection", control_socket);
+  }
+}
 
 /** @brief Drop the first packet
  *
@@ -396,11 +468,14 @@ struct packet *playrtp_next_packet(void) {
  */
 static void play_rtp(void) {
   pthread_t ltid;
+  int err;
 
   /* We receive and convert audio data in a background thread */
-  pthread_create(&ltid, 0, listen_thread, 0);
+  if((err = pthread_create(&ltid, 0, listen_thread, 0)))
+    fatal(err, "pthread_create listen_thread");
   /* We have a second thread to add received packets to the queue */
-  pthread_create(&ltid, 0, queue_thread, 0);
+  if((err = pthread_create(&ltid, 0, queue_thread, 0)))
+    fatal(err, "pthread_create queue_thread");
   /* The rest of the work is backend-specific */
   backend();
 }
@@ -441,7 +516,7 @@ static void version(void) {
 }
 
 int main(int argc, char **argv) {
-  int n;
+  int n, err;
   struct addrinfo *res;
   struct stringlist sl;
   char *sockname;
@@ -488,6 +563,7 @@ int main(int argc, char **argv) {
     case 'c': backend = playrtp_coreaudio; break;
 #endif
     case 'C': configfile = optarg; break;
+    case 's': control_socket = optarg; break;
     default: fatal(0, "invalid option");
     }
   }
@@ -561,6 +637,12 @@ int main(int argc, char **argv) {
     info("default socket receive buffer %d", rcvbuf);
   if(logfp)
     info("WARNING: -L option can impact performance");
+  if(control_socket) {
+    pthread_t tid;
+
+    if((err = pthread_create(&tid, 0, control_thread, 0)))
+      fatal(err, "pthread_create control_thread");
+  }
   play_rtp();
   return 0;
 }

@@ -321,6 +321,11 @@ int disorder_eclient_new_tracks(disorder_eclient *c,
                                 disorder_eclient_list_response *completed,
                                 int max,
                                 void *v);
+
+int disorder_eclient_rtp_address(disorder_eclient *c,
+                                 disorder_eclient_list_response *completed,
+                                 void *v);
+
 #endif
 
 /*

@@ -1177,6 +1177,35 @@ int disorder_eclient_new_tracks(disorder_eclient *c,
                 "new", limit, (char *)0);
 }
 
+static void rtp_response_opcallback(disorder_eclient *c,
+                                    struct operation *op) {
+  D(("rtp_response_opcallback"));
+  if(c->rc / 100 == 2) {
+    if(op->completed) {
+      int nvec;
+      char **vec = split(c->line + 4, &nvec, SPLIT_QUOTES, 0, 0);
+
+      ((disorder_eclient_list_response *)op->completed)(op->v, nvec, vec);
+    }
+  } else
+    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+}
+
+/** @brief Determine the RTP target address
+ * @param c Client
+ * @param completed Called with address details
+ * @param v Passed to @p completed
+ *
+ * The address details will be two elements, the first being the hostname and
+ * the second the service (port).
+ */
+int disorder_eclient_rtp_address(disorder_eclient *c,
+                                 disorder_eclient_list_response *completed,
+                                 void *v) {
+  return simple(c, rtp_response_opcallback, (void (*)())completed, v,
+                "rtp-address", (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log
