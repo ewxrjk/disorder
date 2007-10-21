@@ -41,6 +41,8 @@ style.h: ${srcdir}/disobedience.rc ${top_srcdir}/scripts/text2c
 	${top_srcdir}/scripts/text2c style ${srcdir}/disobedience.rc > $@.tmp
 	mv $@.tmp $@
 
+help.o: manual.h
+
 manual.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
 	rm -f $@.new
 	$(top_srcdir)/scripts/htmlman $< >$@.new

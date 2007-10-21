@@ -216,7 +216,7 @@ void popup_help(void) {
   gtk_container_add(GTK_CONTAINER(help_window),
 		    scroll_widget(view,
 				  "help"));
-  gtk_window_set_default_size(GTK_WINDOW(help_window), 480, 512);
+  gtk_window_set_default_size(GTK_WINDOW(help_window), 512, 512);
   gtk_widget_show_all(help_window);
 }
 
