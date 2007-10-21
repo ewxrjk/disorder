@@ -113,7 +113,7 @@ extern int choosealpha;                 /* break up choose by letter */
 extern GtkTooltips *tips;
 extern int rtp_supported;
 extern int rtp_is_running;
-
+extern GtkItemFactory *mainmenufactory;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 

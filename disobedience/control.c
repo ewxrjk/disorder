@@ -45,6 +45,7 @@ static void update_disable(const struct icon *);
 static void update_rtp(const struct icon *);
 static void update_nortp(const struct icon *);
 static void clicked_icon(GtkButton *, gpointer);
+static void clicked_menu(GtkMenuItem *, gpointer userdata);
 
 static int enable_rtp(disorder_eclient *c,
                       disorder_eclient_no_response *completed,
@@ -79,8 +80,8 @@ struct icon {
   /** @brief Text for tooltip */
   const char *tip;
 
-  /** @brief Called when button is clicked (activated) */
-  void (*clicked)(GtkButton *button, gpointer userdata);
+  /** @brief Associated menu item or NULL */
+  const char *menuitem;
 
   /** @brief Called to update button when state may have changed */
   void (*update)(const struct icon *i);
@@ -92,28 +93,40 @@ struct icon {
 
   /** @brief Pointer to button */
   GtkWidget *button;
+
+  /** @brief Pointer to menu item */
+  GtkWidget *item;
 };
 
 /** @brief Table of all icons */
 static struct icon icons[] = {
-  { "pause.png", "Pause playing track", clicked_icon, update_pause,
-    disorder_eclient_pause, 0 },
-  { "play.png", "Resume playing track", clicked_icon, update_play,
-    disorder_eclient_resume, 0 },
-  { "cross.png", "Cancel playing track", clicked_icon, update_scratch,
-    disorder_eclient_scratch_playing, 0 },
-  { "random.png", "Enable random play", clicked_icon, update_random_enable,
-    disorder_eclient_random_enable, 0 },
-  { "randomcross.png", "Disable random play", clicked_icon, update_random_disable,
-    disorder_eclient_random_disable, 0 },
-  { "notes.png", "Enable play", clicked_icon, update_enable,
-    disorder_eclient_enable, 0 },
-  { "notescross.png", "Disable play", clicked_icon, update_disable,
-    disorder_eclient_disable, 0 },
-  { "speaker.png", "Play network stream", clicked_icon, update_rtp,
-    enable_rtp, 0 },
-  { "speakercross.png", "Stop playing network stream", clicked_icon, update_nortp,
-    disable_rtp, 0 },
+  { "pause.png", "Pause playing track", 0,
+    update_pause,
+    disorder_eclient_pause, 0, 0 },
+  { "play.png", "Resume playing track", 0,
+    update_play,
+    disorder_eclient_resume, 0, 0 },
+  { "cross.png", "Cancel playing track", "<GdisorderMain>/Control/Scratch",
+    update_scratch,
+    disorder_eclient_scratch_playing, 0, 0 },
+  { "random.png", "Enable random play", 0,
+    update_random_enable,
+    disorder_eclient_random_enable, 0, 0 },
+  { "randomcross.png", "Disable random play", 0,
+    update_random_disable,
+    disorder_eclient_random_disable, 0, 0 },
+  { "notes.png", "Enable play", 0,
+    update_enable,
+    disorder_eclient_enable, 0, 0 },
+  { "notescross.png", "Disable play", 0,
+    update_disable,
+    disorder_eclient_disable, 0, 0 },
+  { "speaker.png", "Play network stream", 0,
+    update_rtp,
+    enable_rtp, 0, 0 },
+  { "speakercross.png", "Stop playing network stream", 0,
+    update_nortp,
+    disable_rtp, 0, 0 },
 };
 
 /** @brief Count of icons */
@@ -141,6 +154,7 @@ GtkWidget *control_widget(void) {
 
   NW(hbox);
   D(("control_widget"));
+  assert(mainmenufactory);              /* ordering must be right */
   for(n = 0; n < NICONS; ++n) {
     NW(button);
     icons[n].button = gtk_button_new();
@@ -154,13 +168,19 @@ GtkWidget *control_widget(void) {
     gtk_container_add(GTK_CONTAINER(icons[n].button), content);
     gtk_tooltips_set_tip(tips, icons[n].button, icons[n].tip, "");
     g_signal_connect(G_OBJECT(icons[n].button), "clicked",
-                     G_CALLBACK(icons[n].clicked), &icons[n]);
+                     G_CALLBACK(clicked_icon), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
      * taller things in the control bar */
     NW(vbox);
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), icons[n].button, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
+    if(icons[n].menuitem) {
+      icons[n].item = gtk_item_factory_get_widget(mainmenufactory,
+                                                  icons[n].menuitem);
+      g_signal_connect(G_OBJECT(icons[n].item), "activate",
+                       G_CALLBACK(clicked_menu), &icons[n]);
+    }
   }
   /* create the adjustments for the volume control */
   NW(adjustment);
@@ -234,6 +254,12 @@ static void update_icon(const struct icon *icon,
   /* Only both updating usability if the button is visible */
   if(visible)
     gtk_widget_set_sensitive(icon->button, usable);
+  if(icon->item) {
+    /* There's an associated menu item */
+    (visible ? gtk_widget_show : gtk_widget_hide)(icon->item);
+    if(visible)
+      gtk_widget_set_sensitive(icon->item, usable);
+  }
 }
 
 static void update_pause(const struct icon *icon) {
@@ -291,6 +317,13 @@ static void update_nortp(const struct icon *icon) {
 }
 
 static void clicked_icon(GtkButton attribute((unused)) *button,
+                         gpointer userdata) {
+  const struct icon *icon = userdata;
+
+  icon->action(client, 0, 0);
+}
+
+static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 

@@ -26,6 +26,9 @@
 static GtkWidget *selectall_widget;
 static GtkWidget *properties_widget;
 
+/** @brief Main menu widgets */
+GtkItemFactory *mainmenufactory;
+
 static void about_popup_got_version(void *v, const char *value);
 
 /** @brief Called when the quit option is activated
@@ -141,35 +144,39 @@ GtkWidget *menubar(GtkWidget *w) {
       0, 0 },
     { (char *)"/File/Quit Disobedience", (char *)"<CTRL>Q", quit_program, 0,
       (char *)"<StockItem>", GTK_STOCK_QUIT },
+
     { (char *)"/Edit", 0,  0, 0, (char *)"<Branch>", 0 },
     { (char *)"/Edit/Select all tracks", (char *)"<CTRL>A", select_all, 0,
       0, 0 },
     { (char *)"/Edit/Track properties", 0, properties_item, 0,
       0, 0 },
+
+    { (char *)"/Control", 0, 0, 0, (char *)"<Branch>", 0 },
+    { (char *)"/Control/Scratch", (char *)"<CTRL>S", 0, 0, 0, 0 },
+    
     { (char *)"/Help", 0,  0, 0, (char *)"<Branch>", 0 },
     { (char *)"/Help/About DisOrder", 0,  about_popup, 0,
       (char *)"<StockItem>", GTK_STOCK_ABOUT },
   };
 
-  GtkItemFactory *itemfactory;
   GtkAccelGroup *accel = gtk_accel_group_new();
 
   D(("add_menubar"));
   /* TODO: item factories are deprecated in favour of some XML thing */
-  itemfactory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<GdisorderMain>",
-                                     accel);
-  gtk_item_factory_create_items(itemfactory,
+  mainmenufactory = gtk_item_factory_new(GTK_TYPE_MENU_BAR, "<GdisorderMain>",
+                                         accel);
+  gtk_item_factory_create_items(mainmenufactory,
                                 sizeof entries / sizeof *entries,
                                 (GtkItemFactoryEntry *)entries,
                                 0);
   gtk_window_add_accel_group(GTK_WINDOW(w), accel);
-  selectall_widget = gtk_item_factory_get_widget(itemfactory,
+  selectall_widget = gtk_item_factory_get_widget(mainmenufactory,
 						 "<GdisorderMain>/Edit/Select all tracks");
-  properties_widget = gtk_item_factory_get_widget(itemfactory,
+  properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
   assert(selectall_widget != 0);
   assert(properties_widget != 0);
-  return gtk_item_factory_get_widget(itemfactory,
+  return gtk_item_factory_get_widget(mainmenufactory,
                                      "<GdisorderMain>");
   /* menu bar had better not expand vertically if the window is too big */
 }
