@@ -46,6 +46,7 @@ static void update_rtp(const struct icon *);
 static void update_nortp(const struct icon *);
 static void clicked_icon(GtkButton *, gpointer);
 static void clicked_menu(GtkMenuItem *, gpointer userdata);
+static void toggled_menu(GtkCheckMenuItem *, gpointer userdata);
 
 static int enable_rtp(disorder_eclient *c,
                       disorder_eclient_no_response *completed,
@@ -91,6 +92,9 @@ struct icon {
                 disorder_eclient_no_response *completed,
                 void *v);
 
+  /** @brief Flag */
+  unsigned flags;
+  
   /** @brief Pointer to button */
   GtkWidget *button;
 
@@ -98,35 +102,104 @@ struct icon {
   GtkWidget *item;
 };
 
+/** @brief This is the active half of a pair */
+#define ICON_ACTIVE 0x0001
+
+/** @brief This is the inactive half of a pair */
+#define ICON_INACTIVE 0x0002
+
 /** @brief Table of all icons */
 static struct icon icons[] = {
-  { "pause.png", "Pause playing track", 0,
-    update_pause,
-    disorder_eclient_pause, 0, 0 },
-  { "play.png", "Resume playing track", 0,
-    update_play,
-    disorder_eclient_resume, 0, 0 },
-  { "cross.png", "Cancel playing track", "<GdisorderMain>/Control/Scratch",
-    update_scratch,
-    disorder_eclient_scratch_playing, 0, 0 },
-  { "random.png", "Enable random play", 0,
-    update_random_enable,
-    disorder_eclient_random_enable, 0, 0 },
-  { "randomcross.png", "Disable random play", 0,
-    update_random_disable,
-    disorder_eclient_random_disable, 0, 0 },
-  { "notes.png", "Enable play", 0,
-    update_enable,
-    disorder_eclient_enable, 0, 0 },
-  { "notescross.png", "Disable play", 0,
-    update_disable,
-    disorder_eclient_disable, 0, 0 },
-  { "speaker.png", "Play network stream", 0,
-    update_rtp,
-    enable_rtp, 0, 0 },
-  { "speakercross.png", "Stop playing network stream", 0,
-    update_nortp,
-    disable_rtp, 0, 0 },
+  {
+    "pause.png",                        /* icon */
+    "Pause playing track",              /* tip */
+    0,                                  /* menuitem */
+    update_pause,                       /* update */
+    disorder_eclient_pause,             /* action */
+    ICON_INACTIVE,                      /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "play.png",                         /* icon */
+    "Resume playing track",             /* tip */
+    0,                                  /* menuitem */
+    update_play,                        /* update */
+    disorder_eclient_resume,            /* action */
+    ICON_ACTIVE,                        /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "cross.png",                        /* icon */
+    "Cancel playing track",             /* tip */
+    "<GdisorderMain>/Control/Scratch",  /* menuitem */
+    update_scratch,                     /* update */
+    disorder_eclient_scratch_playing,   /* action */
+    0,                                  /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "random.png",                       /* icon */
+    "Enable random play",               /* tip */
+    "<GdisorderMain>/Control/Random play", /* menuitem */
+    update_random_enable,               /* update */
+    disorder_eclient_random_enable,     /* action */
+    ICON_INACTIVE,                      /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "randomcross.png",                  /* icon */
+    "Disable random play",              /* tip */
+    "<GdisorderMain>/Control/Random play", /* menuitem */
+    update_random_disable,              /* update */
+    disorder_eclient_random_disable,    /* action */
+    ICON_ACTIVE,                        /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "notes.png",                        /* icon */
+    "Enable play",                      /* tip */
+    0,                                  /* menuitem */
+    update_enable,                      /* update */
+    disorder_eclient_enable,            /* action */
+    ICON_INACTIVE,                      /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "notescross.png",                   /* icon */
+    "Disable play",                     /* tip */
+    0,                                  /* menuitem */
+    update_disable,                     /* update */
+    disorder_eclient_disable,           /* action */
+    ICON_ACTIVE,                        /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "speaker.png",                      /* icon */
+    "Play network stream",              /* tip */
+    0,                                  /* menuitem */
+    update_rtp,                         /* update */
+    enable_rtp,                         /* action */
+    ICON_INACTIVE,                      /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
+  {
+    "speakercross.png",                 /* icon */
+    "Stop playing network stream",      /* tip */
+    0,                                  /* menuitem */
+    update_nortp,                       /* update */
+    disable_rtp,                        /* action */
+    ICON_ACTIVE,                        /* flags */
+    0,                                  /* button */
+    0                                   /* item */
+  },
 };
 
 /** @brief Count of icons */
@@ -178,8 +251,19 @@ GtkWidget *control_widget(void) {
     if(icons[n].menuitem) {
       icons[n].item = gtk_item_factory_get_widget(mainmenufactory,
                                                   icons[n].menuitem);
-      g_signal_connect(G_OBJECT(icons[n].item), "activate",
-                       G_CALLBACK(clicked_menu), &icons[n]);
+      switch(icons[n].flags & (ICON_ACTIVE|ICON_INACTIVE)) {
+      case ICON_ACTIVE:
+        g_signal_connect(G_OBJECT(icons[n].item), "toggled",
+                         G_CALLBACK(toggled_menu), &icons[n]);
+        break;
+      case ICON_INACTIVE:
+        /* Don't connect two instances of the signal! */
+        break;
+      default:
+        g_signal_connect(G_OBJECT(icons[n].item), "activate",
+                         G_CALLBACK(clicked_menu), &icons[n]);
+        break;
+      }
     }
   }
   /* create the adjustments for the volume control */
@@ -255,10 +339,13 @@ static void update_icon(const struct icon *icon,
   if(visible)
     gtk_widget_set_sensitive(icon->button, usable);
   if(icon->item) {
-    /* There's an associated menu item */
-    (visible ? gtk_widget_show : gtk_widget_hide)(icon->item);
-    if(visible)
-      gtk_widget_set_sensitive(icon->item, usable);
+    /* There's an associated menu item.  These are always visible, but may not
+     * be usable. */
+    if((icon->flags & (ICON_ACTIVE|ICON_INACTIVE)) == ICON_ACTIVE) {
+      /* The active half of a pair */
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item), visible);
+    }
+    gtk_widget_set_sensitive(icon->item, usable);
   }
 }
 
@@ -328,6 +415,22 @@ static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
   const struct icon *icon = userdata;
 
   icon->action(client, 0, 0);
+}
+
+static void toggled_menu(GtkCheckMenuItem *menuitem,
+                         gpointer userdata) {
+  const struct icon *icon = userdata;
+  size_t n;
+
+  /* This is a bit fiddlier than the others, we need to find the action for the
+   * new state.  If the new state is active then we want the ICON_INACTIVE
+   * version and vica versa. */
+  for(n = 0; n < NICONS; ++n)
+    if(icons[n].item == icon->item
+       && !!(icons[n].flags & ICON_INACTIVE) == !!menuitem->active)
+      break;
+  if(n < NICONS)
+    icons[n].action(client, 0, 0);
 }
 
 /** @brief Called when the volume has been adjusted */

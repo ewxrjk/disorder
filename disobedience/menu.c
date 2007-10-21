@@ -139,24 +139,97 @@ static void about_popup_got_version(void attribute((unused)) *v,
 /** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *w) {
   static const GtkItemFactoryEntry entries[] = {
-    { (char *)"/File", 0,  0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/File/Login", (char *)"<CTRL>L", login, 0,
-      0, 0 },
-    { (char *)"/File/Quit Disobedience", (char *)"<CTRL>Q", quit_program, 0,
-      (char *)"<StockItem>", GTK_STOCK_QUIT },
-
-    { (char *)"/Edit", 0,  0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/Edit/Select all tracks", (char *)"<CTRL>A", select_all, 0,
-      0, 0 },
-    { (char *)"/Edit/Track properties", 0, properties_item, 0,
-      0, 0 },
-
-    { (char *)"/Control", 0, 0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/Control/Scratch", (char *)"<CTRL>S", 0, 0, 0, 0 },
+    {
+      (char *)"/File",                  /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+    { 
+      (char *)"/File/Login",            /* path */
+      (char *)"<CTRL>L",                /* accelerator */
+      login,                            /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/File/Quit Disobedience", /* path */
+      (char *)"<CTRL>Q",                /* accelerator */
+      quit_program,                     /* callback */
+      0,                                /* callback_action */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_QUIT                    /* extra_data */
+    },
     
-    { (char *)"/Help", 0,  0, 0, (char *)"<Branch>", 0 },
-    { (char *)"/Help/About DisOrder", 0,  about_popup, 0,
-      (char *)"<StockItem>", GTK_STOCK_ABOUT },
+    {
+      (char *)"/Edit",                  /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Edit/Select all tracks", /* path */
+      (char *)"<CTRL>A",                /* accelerator */
+      select_all,                       /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Edit/Track properties", /* path */
+      0,                                /* accelerator */
+      properties_item,                  /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    
+    {
+      (char *)"/Control",               /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Control/Scratch",       /* path */
+      (char *)"<CTRL>S",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Control/Random play",   /* path */
+      (char *)"<CTRL>R",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<CheckItem>",            /* item_type */
+      0                                 /* extra_data */
+    },
+    
+    {
+      (char *)"/Help",                  /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Help/About DisOrder",   /* path */
+      0,                                /* accelerator */
+      about_popup,                      /* callback */
+      0,                                /* callback_action */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_ABOUT                   /* extra_data */
+    },
   };
 
   GtkAccelGroup *accel = gtk_accel_group_new();
