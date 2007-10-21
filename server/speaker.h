@@ -56,7 +56,7 @@
 #define NETWORK_BYTES (1500-8/*UDP*/-40/*IP*/-8/*conservatism*/)
 
 /** @brief Maximum RTP playahead (ms) */
-#define RTP_AHEAD_MS 1000
+#define RTP_AHEAD_MS 100
 
 /** @brief Maximum number of FDs to poll for */
 #define NFDS 256
