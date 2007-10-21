@@ -22,6 +22,7 @@ bin_PROGRAMS=disobedience
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
+PNGS:=$(wildcard ${top_srcdir}/images/*.png)
 
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 		  choose.c misc.c style.h control.c properties.c menu.c \
@@ -52,6 +53,22 @@ manual.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
 manual.h: manual.html ${top_srcdir}/scripts/text2c
 	${top_srcdir}/scripts/text2c manual manual.html > $@.tmp
 	mv $@.tmp $@
+
+misc.o: images.h
+
+images.h: $(PNGS)
+	exec > @$.new;							\
+	for png in $(PNGS); do						\
+	  name=`echo $$png | sed 's,.*/,,;s,\.png,,;'`;			\
+	  gdk-pixbuf-csource --raw --name=image_$$name $$png;		\
+	done;								\
+	echo "static const struct image images[] = {";			\
+	for png in $(PNGS); do						\
+	  name=`echo $$png | sed 's,.*/,,;s,\.png,,;'`;			\
+	  echo "  { \"$$name.png\", image_$$name },";			\
+	done;								\
+	echo "};"
+	mv @$.new $@
 
 EXTRA_DIST=disobedience.rc
 

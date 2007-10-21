@@ -83,7 +83,6 @@ archpkg([disorder-playrtp], [	m4_dnl
 ])
 
 archpkg([disobedience], [	m4_dnl
-	$(MAKE) DESTDIR=`pwd`/debian/disobedience -C images installdirs install
 	mkdir -p debian/disobedience/usr/bin
 	mkdir -p debian/disobedience/usr/share/man/man1
 	$(INSTALL) -m 755 disobedience/disobedience \

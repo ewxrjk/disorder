@@ -22,6 +22,14 @@
  */
 
 #include "disobedience.h"
+#include "table.h"
+
+struct image {
+  const char *name;
+  const guint8 *data;
+};
+
+#include "images.h"
 
 /* Miscellaneous GTK+ stuff ------------------------------------------------ */
 
@@ -80,12 +88,22 @@ GdkPixbuf *find_image(const char *name) {
   GdkPixbuf *pb;
   char *path;
   GError *err = 0;
+  int n;
 
   if(!(pb = (GdkPixbuf *)cache_get(&image_cache_type, name))) {
-    byte_xasprintf(&path, "%s/static/%s", pkgdatadir, name);
-    if(!(pb = gdk_pixbuf_new_from_file(path, &err))) {
-      error(0, "%s", err->message);
-      return 0;
+    if((n = TABLE_FIND(images, struct image, name, name)) >= 0) {
+      /* Use the built-in copy */
+      if(!(pb = gdk_pixbuf_new_from_inline(-1, images[n].data, FALSE, &err))) {
+        error(0, "%s", err->message);
+        return 0;
+      }
+    } else {
+      /* See if there's a copy on disk */
+      byte_xasprintf(&path, "%s/static/%s", pkgdatadir, name);
+      if(!(pb = gdk_pixbuf_new_from_file(path, &err))) {
+        error(0, "%s", err->message);
+        return 0;
+      }
     }
     NW(cached_image);
     cache_put(&image_cache_type, name,  pb);
