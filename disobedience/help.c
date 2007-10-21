@@ -191,6 +191,7 @@ static void insert_html(GtkTextBuffer *buffer,
   html_parse(&insert_html_callbacks, html, s);
 }
 
+/** @brief Create a GtkTextBuffer with @p html rendered into it */
 static GtkTextBuffer *html_buffer(const char *html) {
   GtkTextBuffer *buffer = gtk_text_buffer_new(NULL);
 
@@ -198,8 +199,10 @@ static GtkTextBuffer *html_buffer(const char *html) {
   return buffer;
 }
 
+/** @brief The manual page window */
 static GtkWidget *help_window;
 
+/** @brief Pop up the manual page in a window */
 void popup_help(void) {
   GtkWidget *view;
   
@@ -210,7 +213,7 @@ void popup_help(void) {
   help_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   g_signal_connect(help_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &help_window);
-  gtk_window_set_title(GTK_WINDOW(help_window), "Disobedience Manual");
+  gtk_window_set_title(GTK_WINDOW(help_window), "Disobedience Manual Page");
   view = gtk_text_view_new_with_buffer(html_buffer(manual));
   gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
   gtk_container_add(GTK_CONTAINER(help_window),
