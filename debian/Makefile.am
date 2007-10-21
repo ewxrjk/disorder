@@ -29,6 +29,8 @@ rules: ${autorules_m4} ${rules_m4}
 	chmod 555 rules.tmp
 	mv -f rules.tmp rules
 
-EXTRA_DIST=README.Debian autorules.m4 config control copyright \
-	   disorder.config htaccess postinst prerm rules.m4 templates    \
-	   rules conffiles postrm changelog options.debian
+EXTRA_DIST=README.Debian autorules.m4 config.disorder control copyright \
+	   etc.disorder.options etc.disorder.config htaccess \
+	   postinst.disorder prerm.disorder postrm.disorder \
+	   templates.disorder conffiles.disorder \
+	   rules.m4 rules changelog
