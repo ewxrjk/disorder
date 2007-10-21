@@ -46,6 +46,6 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder.3 disorder-dump.8.in disorder_protocol.5.in \
 	   tkdisorder.1 disorder-deadlock.8.in disorder-rescan.8.in \
 	   disobedience.1.in disorderfm.1.in disorder-speaker.8 \
-	   disorder-playrtp.1.in disorder-decode.8.in
+	   disorder-playrtp.1.in disorder-decode.8.in disorder-normalize.8
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN)
