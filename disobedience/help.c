@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/help.c
+ * @brief Help support
+ */
 
 #include "disobedience.h"
 #include "table.h"
@@ -37,17 +40,25 @@ struct tag {
   GtkTextTag *tag;
 };
 
+/** @brief Initialize the bold tag
+ *
+ * This doesn't seem to work on OS X though the italic and monospace tags are
+ * fine, and bold is OK on Linux, even connecting to the Apple X swerver.
+ */
 static void init_bold(GtkTextTag *tag) {
   g_object_set(G_OBJECT(tag), "weight", PANGO_WEIGHT_BOLD, (char *)0);
 }
 
+/** @brief Initialize the italic tag */
 static void init_italic(GtkTextTag *tag) {
   g_object_set(G_OBJECT(tag), "style", PANGO_STYLE_ITALIC, (char *)0);
 }
 
+/** @brief Initialize the pre tag */
 static void init_pre(GtkTextTag *tag) {
   g_object_set(G_OBJECT(tag), "family", "monospace", (char *)0);
 }
+
 /** @brief Table of known tags
  *
  * Keep in alphabetical order
