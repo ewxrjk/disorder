@@ -31,7 +31,7 @@ complete -o default \
              random-enable recent reconfigure remove rescan scratch
              search set set-volume shutdown stats unset version resolve
              part pause resume scratch-id get-global set-global unset-global
-             tags
+             tags new rtp-address
              -h --help -H --help-commands --version -V --config -c
              --length --debug -d" \
 	 disorder
