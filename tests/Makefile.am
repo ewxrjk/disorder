@@ -22,4 +22,6 @@ check:
 	PATH=../server:$$PATH \
 	PYTHONPATH=../python \
 		topsrcdir=${top_srcdir} \
-		${PYTHON} alltests
+		${PYTHON} ${srcdir}/alltests
+
+EXTRA_DIST=alltests dtest.py nothing.py
