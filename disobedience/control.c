@@ -113,20 +113,20 @@ static struct icon icons[] = {
   {
     "pause.png",                        /* icon */
     "Pause playing track",              /* tip */
-    0,                                  /* menuitem */
+    "<GdisorderMain>/Control/Playing",  /* menuitem */
     update_pause,                       /* update */
     disorder_eclient_pause,             /* action */
-    ICON_INACTIVE,                      /* flags */
+    ICON_ACTIVE,                        /* flags */
     0,                                  /* button */
     0                                   /* item */
   },
   {
     "play.png",                         /* icon */
     "Resume playing track",             /* tip */
-    0,                                  /* menuitem */
+    "<GdisorderMain>/Control/Playing",  /* menuitem */
     update_play,                        /* update */
     disorder_eclient_resume,            /* action */
-    ICON_ACTIVE,                        /* flags */
+    ICON_INACTIVE,                      /* flags */
     0,                                  /* button */
     0                                   /* item */
   },
@@ -183,7 +183,7 @@ static struct icon icons[] = {
   {
     "speaker.png",                      /* icon */
     "Play network stream",              /* tip */
-    0,                                  /* menuitem */
+    "<GdisorderMain>/Control/Network player", /* menuitem */
     update_rtp,                         /* update */
     enable_rtp,                         /* action */
     ICON_INACTIVE,                      /* flags */
@@ -193,7 +193,7 @@ static struct icon icons[] = {
   {
     "speakercross.png",                 /* icon */
     "Stop playing network stream",      /* tip */
-    0,                                  /* menuitem */
+    "<GdisorderMain>/Control/Network player", /* menuitem */
     update_nortp,                       /* update */
     disable_rtp,                        /* action */
     ICON_ACTIVE,                        /* flags */

@@ -206,8 +206,24 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     {
+      (char *)"/Control/Playing",       /* path */
+      (char *)"<CTRL>P",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<CheckItem>",            /* item_type */
+      0                                 /* extra_data */
+    },
+    {
       (char *)"/Control/Random play",   /* path */
       (char *)"<CTRL>R",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<CheckItem>",            /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Control/Network player", /* path */
+      (char *)"<CTRL>N",                /* accelerator */
       0,                                /* callback */
       0,                                /* callback_action */
       (char *)"<CheckItem>",            /* item_type */
