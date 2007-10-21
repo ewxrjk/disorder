@@ -45,13 +45,17 @@ static void init_italic(GtkTextTag *tag) {
   g_object_set(G_OBJECT(tag), "style", PANGO_STYLE_ITALIC, (char *)0);
 }
 
+static void init_pre(GtkTextTag *tag) {
+  g_object_set(G_OBJECT(tag), "family", "monospace", (char *)0);
+}
 /** @brief Table of known tags
  *
  * Keep in alphabetical order
  */
 static  struct tag tags[] = {
   { "b", init_bold, 0 },
-  { "i", init_italic, 0 }
+  { "i", init_italic, 0 },
+  { "pre", init_pre, 0 }
 };
 
 /** @brief Number of known tags */
@@ -64,6 +68,12 @@ struct state {
 
   /** @brief True if we are inside <body> */
   int body;
+
+  /** @brief True if inside <pre> */
+  int pre;
+
+  /** @brief True if a space is required before any non-space */
+  int space;
 
   /** @brief Stack of marks corresponding to tags */
   struct markstack marks[1];
@@ -78,7 +88,9 @@ static void html_open(const char *tag,
   GtkTextIter iter[1];
 
   if(!strcmp(tag, "body"))
-    s->body = 1;
+    ++s->body;
+  else if(!strcmp(tag, "pre"))
+    ++s->pre;
   if(!s->body)
     return;
   /* push a mark for the start of the region */
@@ -99,7 +111,11 @@ static void html_close(const char *tag,
   int n;
 
   if(!strcmp(tag, "body"))
-    s->body = 0;
+    --s->body;
+  else if(!strcmp(tag, "pre")) {
+    --s->pre;
+    s->space = 0;
+  }
   if(!s->body)
     return;
   /* see if this is a known tag */
@@ -125,6 +141,24 @@ static void html_text(const char *text,
   /* ignore header */
   if(!s->body)
     return;
+  if(!s->pre) {
+    char *formatted = xmalloc(strlen(text) + 1), *t = formatted;
+    /* normalize spacing */
+    while(*text) {
+      if(isspace((unsigned char)*text)) {
+	s->space = 1;
+	++text;
+      } else {
+	if(s->space) {
+	  *t++ = ' ';
+	  s->space = 0;
+	}
+	*t++ = *text++;
+      }
+    }
+    *t = 0;
+    text = formatted;
+  }
   gtk_text_buffer_insert_at_cursor(s->buffer, text, strlen(text));
 }
 
@@ -178,9 +212,11 @@ void popup_help(void) {
 		   G_CALLBACK(gtk_widget_destroyed), &help_window);
   gtk_window_set_title(GTK_WINDOW(help_window), "Disobedience Manual");
   view = gtk_text_view_new_with_buffer(html_buffer(manual));
+  gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
   gtk_container_add(GTK_CONTAINER(help_window),
 		    scroll_widget(view,
 				  "help"));
+  gtk_window_set_default_size(GTK_WINDOW(help_window), 480, 512);
   gtk_widget_show_all(help_window);
 }
 
