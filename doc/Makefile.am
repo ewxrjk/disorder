@@ -36,7 +36,7 @@ HTMLMAN=$(foreach man,$(man_MANS),$(man).html)
 
 $(HTMLMAN) : %.html : % $(top_srcdir)/scripts/htmlman
 	rm -f $@.new
-	$(top_srcdir)/scripts/htmlman $< >$@.new
+	$(top_srcdir)/scripts/htmlman -stdhead $< >$@.new
 	chmod 444 $@.new
 	mv -f $@.new $@
 

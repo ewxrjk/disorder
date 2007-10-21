@@ -235,6 +235,10 @@ void choose_update(void);
 
 void login_box(void);
 
+/* Help */
+
+void popup_help(void);
+
 /* RTP */
 
 int rtp_running(void);

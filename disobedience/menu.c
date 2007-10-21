@@ -111,6 +111,14 @@ static void about_popup(gpointer attribute((unused)) callback_data,
                            0);
 }
 
+static void manual_popup(gpointer attribute((unused)) callback_data,
+                       guint attribute((unused)) callback_action,
+                       GtkWidget attribute((unused)) *menu_item) {
+  D(("manual_popup"));
+
+  popup_help();
+}
+
 /** @brief Callde when version arrives, displays about... popup */
 static void about_popup_got_version(void attribute((unused)) *v,
                                     const char *value) {
@@ -236,6 +244,14 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* callback */
       0,                                /* callback_action */
       (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Help/Manual page",      /* path */
+      0,                                /* accelerator */
+      manual_popup,                     /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
       0                                 /* extra_data */
     },
     {

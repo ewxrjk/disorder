@@ -20,7 +20,11 @@
 #ifndef CHARSET_H
 #define CHARSET_H
 
+struct dynstr;
+
 /* Character encoding conversion routines */
+
+int one_ucs42utf8(uint32_t c, struct dynstr *d);
 
 uint32_t *utf82ucs4(const char *mb);
 char *ucs42utf8(const uint32_t *u);

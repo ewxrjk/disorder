@@ -38,6 +38,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	hash.c hash.h					\
 	heap.h						\
 	hex.c hex.h					\
+	html.c html.h					\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\

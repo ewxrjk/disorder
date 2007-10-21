@@ -91,6 +91,33 @@ uint32_t *utf82ucs4(const char *mb) {
   return d.vec;
 }
 
+/** @brief Convert one UCS-4 character to UTF-8
+ * @param c Character to convert
+ * @param d Dynamic string to append UTF-8 sequence to
+ * @return 0 on success, -1 on error
+ */
+int one_ucs42utf8(uint32_t c, struct dynstr *d) {
+  if(c < 0x80)
+    dynstr_append(d, c);
+  else if(c < 0x800) {
+    dynstr_append(d, 0xC0 | (c >> 6));
+    dynstr_append(d, 0x80 | (c & 0x3F));
+  } else if(c < 0x10000) {
+    dynstr_append(d, 0xE0 | (c >> 12));
+    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
+    dynstr_append(d, 0x80 | (c & 0x3F));
+  } else if(c < 0x110000) {
+    dynstr_append(d, 0xF0 | (c >> 18));
+    dynstr_append(d, 0x80 | ((c >> 12) & 0x3F));
+    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
+    dynstr_append(d, 0x80 | (c & 0x3F));
+  } else {
+    error(0, "invalid UCS-4 character %#"PRIx32, c);
+    return -1;
+  }
+  return 0;
+}
+
 /** @brief Convert UCS-4 to UTF-8
  * @param u Pointer to 0-terminated UCS-4 string
  * @return Pointer to 0-terminated UTF-8 string
@@ -103,24 +130,8 @@ char *ucs42utf8(const uint32_t *u) {
 
   dynstr_init(&d);
   while((c = *u++)) {
-    if(c < 0x80)
-      dynstr_append(&d, c);
-    else if(c < 0x800) {
-      dynstr_append(&d, 0xC0 | (c >> 6));
-      dynstr_append(&d, 0x80 | (c & 0x3F));
-    } else if(c < 0x10000) {
-      dynstr_append(&d, 0xE0 | (c >> 12));
-      dynstr_append(&d, 0x80 | ((c >> 6) & 0x3F));
-      dynstr_append(&d, 0x80 | (c & 0x3F));
-    } else if(c < 0x110000) {
-      dynstr_append(&d, 0xF0 | (c >> 18));
-      dynstr_append(&d, 0x80 | ((c >> 12) & 0x3F));
-      dynstr_append(&d, 0x80 | ((c >> 6) & 0x3F));
-      dynstr_append(&d, 0x80 | (c & 0x3F));
-    } else {
-      error(0, "invalid UCS-4 character");
+    if(one_ucs42utf8(c, &d))
       return 0;
-    }
   }
   dynstr_terminate(&d);
   return d.vec;

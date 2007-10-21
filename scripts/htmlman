@@ -21,20 +21,41 @@
 
 set -e
 
+stdhead=false
+
+while test $# -gt 0; do
+  case "$1" in
+  -stdhead )
+    stdhead=true
+    ;;
+  -* )
+    echo >&2 "ERROR: unknown option $1"
+    exit 1
+    ;;
+  * )
+    break
+  esac
+  shift
+done
+
 title=$(basename $1)
 
-cat <<EOF
-<html>
- <head>
-@include{stdhead}@
-  <title>$title</title>
- </head>
- <body>
-@include{@label{menu}@}@
-EOF
+echo "<html>"
+echo " <head>"
+if $stdhead; then
+  echo "@include{stdhead}@"
+fi
+echo "  <title>$title</title>"
+echo " </head>"
+echo " <body>"
+if $stdhead; then
+  echo "@include{@label{menu}@}@"
+fi
 printf "   <pre class=manpage>"
 # this is kind of painful using only BREs
-nroff -man "$1" | sed 's/&/\&amp;/g;
+nroff -man "$1" | sed \
+                      '1d;$d;
+                       s/&/\&amp;/g;
                        s/</\&lt;/g;
                        s/>/\&gt;/g;
                        s/@/\&#64;/g;
@@ -43,9 +64,9 @@ nroff -man "$1" | sed 's/&/\&amp;/g;
                        s!_\(.\)!<i>\1</i>!g;
                        s!_\(&[#0-9a-z][0-9a-z]*;\)!<i>\1</i>!g;
                        s!</\([bi]\)><\1>!!g'
-cat <<EOF
-</pre>
-@include{@label{menu}@end}@
- </body>
-</html>
-EOF
+echo "</pre>"
+if $stdhead; then
+  echo "@include{@label{menu}@end}@"
+fi
+echo " </body>"
+echo "</html>"
