@@ -44,6 +44,23 @@ Select all tracks in whichever of the Queue or Recent tabs are showing.
 Edit the details of the selected tracks.  See
 .B "Properties Window"
 below.
+.SS "Control Menu"
+This has the following options:
+.TP
+.B Scratch
+Interrupts the currently playing track.
+.TP
+.B Playing
+Pause and resume the current track.
+.TP
+.B "Random play"
+Enable and disable random play.  Does not take effect until the currently
+playing track finishes.
+.TP
+.B "Network player"
+Enables or disables network play.  See
+.B "NETWORK PLAY"
+below.
 .SS "Help Menu"
 This has only one option, "About DisOrder", which pops up a box giving the
 name, author and version number of the software.
@@ -65,14 +82,9 @@ The play button controls whether tracks will be played at all.  As above it
 does not take effect until the currently playing track finishes.
 .TP
 .B "Network play button"
-The network play buttons enables or disables a background
-.BR disorder-playrtp (1)
-process.  If you quit Disobedience the player will continue playing and can be
-disabled from a later run of Disobedience.
-.IP
-The player will log to
-.I ~/.disorder/HOSTNAME-rtp.log
-so look there if it does not seem to be working.
+The network play buttons enables or disables network play.  See
+.B "NETWORK PLAY"
+below.
 .TP
 .B "Volume slider"
 The volume slider indicates the current volume level and can be used to adjust
@@ -250,6 +262,18 @@ Brings up the \fBLogin Details Window\fR.
 .TP
 .B CTRL+Q
 Quit.
+.SH "NETWORK PLAY"
+Network play uses a background
+.BR disorder-playrtp (1)
+process.  If you quit Disobedience the player will continue playing and can be
+disabled from a later run of Disobedience.
+.PP
+The player will log to
+.I ~/.disorder/HOSTNAME-rtp.log
+so look there if it does not seem to be working.
+.PP
+You can stop it without running Disobedience by the command
+.BR "killall disorder-playrtp" .
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
