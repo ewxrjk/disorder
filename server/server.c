@@ -1110,8 +1110,10 @@ static int listen_callback(ev_source *ev,
   cloexec(fd);
   c->tag = tags++;
   c->ev = ev;
-  c->w = ev_writer_new(ev, fd, writer_error, c);
-  c->r = ev_reader_new(ev, fd, redirect_reader_callback, reader_error, c);
+  c->w = ev_writer_new(ev, fd, writer_error, c,
+		       "client writer");
+  c->r = ev_reader_new(ev, fd, redirect_reader_callback, reader_error, c,
+		       "client reader");
   c->fd = fd;
   c->reader = reader_callback;
   c->l = l;
@@ -1147,7 +1149,8 @@ int server_start(ev_source *ev, int pf,
   cloexec(fd);
   l->name = name;
   l->pf = pf;
-  if(ev_listen(ev, fd, listen_callback, l)) exit(EXIT_FAILURE);
+  if(ev_listen(ev, fd, listen_callback, l, "server listener"))
+    exit(EXIT_FAILURE);
   return fd;
 }
 

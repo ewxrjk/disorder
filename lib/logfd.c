@@ -80,7 +80,8 @@ int logfd(ev_source *ev, const char *tag) {
   xpipe(p);
   cloexec(p[0]);
   nonblock(p[0]);
-  if(!ev_reader_new(ev, p[0], logfd_readable, logfd_error, (void *)tag))
+  if(!ev_reader_new(ev, p[0], logfd_readable, logfd_error, (void *)tag,
+                    "logfd"))
     fatal(errno, "error calling ev_reader_new");
   return p[1];
 }

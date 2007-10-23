@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004 Richard Kettlewell
+ * Copyright (C) 2004, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,8 @@ int ev_fd(ev_source *ev,
 	  ev_fdmode mode,
 	  int fd,
 	  ev_fd_callback *callback,
-	  void *u);
+	  void *u,
+	  const char *what);
 /* register a callback on a file descriptor */
 
 int ev_fd_cancel(ev_source *ev,
@@ -146,7 +147,8 @@ typedef int ev_listen_callback(ev_source *ev,
 int ev_listen(ev_source *ev,
 	      int fd,
 	      ev_listen_callback *callback,
-	      void *u);
+	      void *u,
+	      const char *what);
 /* register a socket listener callback.  @bind@ and @listen@ should
  * already have been called. */
 
@@ -168,7 +170,8 @@ typedef int ev_error_callback(ev_source *ev,
 ev_writer *ev_writer_new(ev_source *ev,
 			 int fd,
 			 ev_error_callback *callback,
-			 void *u);
+			 void *u,
+			 const char *what);
 /* create a new buffered writer, writing to @fd@.  Calls @error@ if an
  * error occurs. */
 
@@ -202,7 +205,8 @@ ev_reader *ev_reader_new(ev_source *ev,
 			 int fd,
 			 ev_reader_callback *callback,
 			 ev_error_callback *error_callback,
-			 void *u);
+			 void *u,
+			 const char *what);
 /* register a new reader.  @callback@ will be called whenever data is
  * available. */
 

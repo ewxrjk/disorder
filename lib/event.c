@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@ struct fd {
   int fd;
   ev_fd_callback *callback;
   void *u;
+  const char *what;
 };
 
 struct fdmode {
@@ -130,6 +131,7 @@ int ev_run(ev_source *ev) {
     int ret;
     int maxfd;
     struct timeout *t, **tt;
+    struct stat sb;
 
     xgettimeofday(&now, 0);
     /* Handle timeouts.  We don't want to handle any timeouts that are added
@@ -188,6 +190,19 @@ int ev_run(ev_source *ev) {
     xsigprocmask(SIG_BLOCK, &ev->sigmask, 0);
     if(n < 0) {
       error(errno, "error calling select");
+      if(errno == EBADF) {
+	/* If there's a bad FD in the mix then check them all and log what we
+	 * find, to ease debugging */
+	for(mode = 0; mode < ev_nmodes; ++mode) {
+	  for(n = 0; n < ev->mode[mode].nfds; ++n) {
+	    const int fd = ev->mode[mode].fds[n].fd;
+
+	    if(FD_ISSET(fd, &ev->mode[mode].enabled)
+	       && fstat(fd, &sb) < 0)
+	      error(errno, "fstat %d (%s)", fd, ev->mode[mode].fds[n].what);
+	  }
+	}
+      }
       return -1;
     }
     if(n > 0) {
@@ -219,7 +234,8 @@ int ev_fd(ev_source *ev,
 	  ev_fdmode mode,
 	  int fd,
 	  ev_fd_callback *callback,
-	  void *u) {
+	  void *u,
+	  const char *what) {
   int n;
 
   D(("registering %s fd %d callback %p %p", modenames[mode], fd,
@@ -238,6 +254,7 @@ int ev_fd(ev_source *ev,
   ev->mode[mode].fds[n].fd = fd;
   ev->mode[mode].fds[n].callback = callback;
   ev->mode[mode].fds[n].u = u;
+  ev->mode[mode].fds[n].what = what;
   if(fd > ev->mode[mode].maxfd)
     ev->mode[mode].maxfd = fd;
   ev->escape = 1;
@@ -385,7 +402,7 @@ int ev_signal(ev_source *ev,
       nonblock(ev->sigpipe[n]);
       cloexec(ev->sigpipe[n]);
     }
-    if(ev_fd(ev, ev_read, ev->sigpipe[0], signal_read, 0)) {
+    if(ev_fd(ev, ev_read, ev->sigpipe[0], signal_read, 0, "sigpipe read")) {
       close_sigpipe(ev);
       return -1;
     }
@@ -575,13 +592,14 @@ static int listen_callback(ev_source *ev, int fd, void *u) {
 int ev_listen(ev_source *ev,
 	      int fd,
 	      ev_listen_callback *callback,
-	      void *u) {
+	      void *u,
+	      const char *what) {
   struct listen_state *l = xmalloc(sizeof *l);
 
   D(("registering listener fd %d callback %p %p", fd, (void *)callback, u));
   l->callback = callback;
   l->u = u;
-  return ev_fd(ev, ev_read, fd, listen_callback, l);
+  return ev_fd(ev, ev_read, fd, listen_callback, l, what);
 }
 
 int ev_listen_cancel(ev_source *ev, int fd) {
@@ -680,7 +698,8 @@ static int ev_writer_write(struct sink *sk, const void *s, int n) {
 ev_writer *ev_writer_new(ev_source *ev,
 			 int fd,
 			 ev_error_callback *callback,
-			 void *u) {
+			 void *u,
+			 const char *what) {
   ev_writer *w = xmalloc(sizeof *w);
 
   D(("registering writer fd %d callback %p %p", fd, (void *)callback, u));
@@ -689,7 +708,7 @@ ev_writer *ev_writer_new(ev_source *ev,
   w->callback = callback;
   w->u = u;
   w->ev = ev;
-  if(ev_fd(ev, ev_write, fd, writer_callback, w))
+  if(ev_fd(ev, ev_write, fd, writer_callback, w, what))
     return 0;
   ev_fd_disable(ev, ev_write, fd);
   return w;
@@ -771,7 +790,8 @@ ev_reader *ev_reader_new(ev_source *ev,
 			 int fd,
 			 ev_reader_callback *callback,
 			 ev_error_callback *error_callback,
-			 void *u) {
+			 void *u,
+			 const char *what) {
   ev_reader *r = xmalloc(sizeof *r);
 
   D(("registering reader fd %d callback %p %p %p",
@@ -781,7 +801,7 @@ ev_reader *ev_reader_new(ev_source *ev,
   r->error_callback = error_callback;
   r->u = u;
   r->ev = ev;
-  if(ev_fd(ev, ev_read, fd, reader_callback, r))
+  if(ev_fd(ev, ev_read, fd, reader_callback, r, what))
     return 0;
   return r;
 }
