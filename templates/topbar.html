@@ -1,38 +1,32 @@
 <p class=menubar>
   <a class=@if{@eq{@action@}{playing}@}{activemenu}{inactivemenu}@
  href="@url@"
- title="@label:sidebar.playingverbose@">@label:sidebar.playing@</a>
-  <a class=@if{@eq{@action@}{recent}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.playingverbose@">@label:sidebar.playing@</a><!--
+  --><a class=@if{@eq{@action@}{recent}@}{activemenu}{inactivemenu}@
  href="@url@?action=recent&amp;nonce=@nonce@"
- title="@label:sidebar.recentverbose@">@label:sidebar.recent@</a>
-  <a class=@if{@eq{@action@}{new}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.recentverbose@">@label:sidebar.recent@</a><!--
+  --><a class=@if{@eq{@action@}{new}@}{activemenu}{inactivemenu}@
  href="@url@?action=new&amp;nonce=@nonce@"
- title="@label:sidebar.newverbose@">@label:sidebar.new@</a>
-  <a class=@if{@or{@eq{@action@}{choose}@}
+ title="@label:sidebar.newverbose@">@label:sidebar.new@</a><!--
+  --><a class=@if{@or{@eq{@action@}{choose}@}
                   {@eq{@action@}{choosealpha}@}@}
               {activemenu}
               {inactivemenu}@
  href="@url@?action=@label:sidebar.choosewhich@&amp;nonce=@nonce@"
- title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</a>
-  <a class=@if{@eq{@action@}{search}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</a><!--
+  --><a class=@if{@eq{@action@}{search}@}{activemenu}{inactivemenu}@
  href="@url@?action=search&amp;nonce=@nonce@"
- title="@label:sidebar.searchverbose@">@label:sidebar.search@</a>
-<!-- disabled by default since now available from 'manage'
-  <a class=@if{@eq{@action@}{volume}@}{activemenu}{inactivemenu}@
- href="@url@?action=volume&amp;nonce=@nonce@"
- title="@label:sidebar.volumeverbose@">@label:sidebar.volume@</a>
--->
-  <a class=@if{@eq{@action@}{manage}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.searchverbose@">@label:sidebar.search@</a><!--
+  --><a class=@if{@eq{@action@}{manage}@}{activemenu}{inactivemenu}@
  href="@url@?mgmt=true"
- title="@label:sidebar.manageverbose@">@label:sidebar.manage@</a>
-  <a class=@if{@eq{@action@}{help}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.manageverbose@">@label:sidebar.manage@</a><!--
+  --><a class=@if{@eq{@action@}{help}@}{activemenu}{inactivemenu}@
  href="@url@?action=help&amp;nonce=@nonce@"
- title="@label:sidebar.helpverbose@">@label:sidebar.help@</a>
-  <a class=@if{@eq{@action@}{about}@}{activemenu}{inactivemenu}@
+ title="@label:sidebar.helpverbose@">@label:sidebar.help@</a><!--
+  --><a class=@if{@eq{@action@}{about}@}{activemenu}{inactivemenu}@
  href="@url@?action=about&amp;nonce=@nonce@"
- title="@label:sidebar.aboutverbose@">@label:sidebar.about@</a>
-</p>
-<hr>
+ title="@label:sidebar.aboutverbose@">@label:sidebar.about@</a><!--
+--></p>
 @@
 <!--
 This file is part of DisOrder.

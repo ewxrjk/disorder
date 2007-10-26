@@ -1,7 +1,7 @@
-/* default colors */
 body {
   color: black;
-  background-color: white
+  background-color: white;
+  margin: 0
 }
 
 /* general link colors */
@@ -352,19 +352,43 @@ a.sidebarlink:visited {
 /* topbar *********************************************************************/
 
 p.menubar {
-  word-spacing: 1em
+  word-spacing: 1em;
+  width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  background-color: white;
+  color: black;
+  border-top-style: solid;
+  border-bottom-style: solid;
+  border-color: black;
+  border-width: 1px;
+  margin-top: 0;
+  margin-bottom: 0
 }
 
 .activemenu {
   font-family: sans-serif;
   font-weight: bold;
-  font-size: 14pt
+  font-size: 14pt;
+  border-style: none;
+  border-left-style: solid;
+  border-right-style: solid;
+  border-color: black;
+  border-width: 1px;
+  padding: 3px;
+  background-color: #c0ffc0
 }
 
 .inactivemenu {
   font-family: sans-serif;
   font-weight: bold;
-  font-size: 14pt
+  font-size: 14pt;
+  border-style: none;
+  border-left-style: solid;
+  border-right-style: solid;
+  border-color: black;
+  border-width: 1px;
+  padding: 3px
 }
 
 a.inactivemenu,a.inactivemenu:visited {
@@ -374,12 +398,12 @@ a.inactivemenu,a.inactivemenu:visited {
 
 a.activemenu,a.activemenu:visited {
   text-decoration: none;
-  color: red
+  color: black
 }
 
 a.activemenu:active,a.inactivemenu:active {
   text-decoration: none;
-  color: red
+  color: black
 }
 
 /* prefs **********************************************************************/
@@ -452,10 +476,16 @@ p.volume {
 
 /* miscelleanous **************************************************************/
 
+div.textcontent {
+  margin-left: 8px;
+  margin-right: 8px
+}
+
 /* credits */
 p.credits {
   font-size: small;		/* because visually intrusive */
-  text-align: right
+  text-align: right;
+  margin-right: 8px
 }
 /*
 This file is part of DisOrder.
