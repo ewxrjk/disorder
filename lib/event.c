@@ -262,8 +262,13 @@ int ev_run(ev_source *ev) {
 
 	    if(FD_ISSET(fd, &ev->mode[mode].enabled)
 	       && fstat(fd, &sb) < 0)
-	      error(errno, "fstat %d (%s)", fd, ev->mode[mode].fds[n].what);
+	      error(errno, "mode %s fstat %d (%s)",
+		    modenames[mode], fd, ev->mode[mode].fds[n].what);
 	  }
+	  for(n = 0; n < maxfd; ++n)
+	    if(FD_ISSET(n, &ev->mode[mode].enabled)
+	       && fstat(n, &sb) < 0)
+	      error(errno, "mode %s fstat %d", modenames[mode], n);
 	}
       }
       return -1;
@@ -429,9 +434,9 @@ void ev_report(ev_source *ev) {
 	  break;
       }
       if(n < ev->mode[mode].nfds)
-	snprintf(b, sizeof  b, "%d(%s)", fd, ev->mode[mode].fds[n].what);
+	snprintf(b, sizeof b, "%d(%s)", fd, ev->mode[mode].fds[n].what);
       else
-	snprintf(b, sizeof  b, "%d", fd);
+	snprintf(b, sizeof b, "%d", fd);
       dynstr_append(d, ' ');
       dynstr_append_string(d, b);
     }
