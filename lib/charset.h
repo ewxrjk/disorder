@@ -66,6 +66,8 @@ static inline char *nullcheck(char *s) {
 int ucs4cmp(const uint32_t *a, const uint32_t *b);
 /* like strcmp */
 
+const char *truncate_for_display(const char *s, long max);
+
 #endif /* CHARSET_H */
 
 /*

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004 Richard Kettlewell
+ * Copyright (C) 2004, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,54 +29,40 @@
 #include "table.h"
 #include "words.h"
 #include "utf8.h"
+#include "log.h"
+#include "charset.h"
 
-#include "casefold.h"
-#include "unicodegc.h"
+#include "unidata.h"
 
 const char *casefold(const char *ptr) {
   struct dynstr d;
-  int l, r, m;
   uint32_t c;
-  const struct cm *t;
-  const char *start, *s = ptr;
+  const char *s = ptr;
 
   dynstr_init(&d);
   while(*s) {
-    start = s;
+    /* Convert UTF-8 to UCS-32 */
     PARSE_UTF8(s, c, return ptr);
-    /* seek the folded equivalent */
-    t = cm[c & CM_MASK];
-    l = 0;
-    r = cmn[c & CM_MASK] - 1;
-    while(l <= r && c != t[m = (l + r) / 2].ch)
-      if(c < t[m].ch)
-	r = m - 1;
-      else
-	l = m + 1;
-    if(l <= r)
-      dynstr_append_string(&d, t[m].tr);
-    else
-      dynstr_append_bytes(&d, start, s - start);
+    /* Normalize */
+    if(c < UNICODE_NCHARS) {
+      /* If this a known character, convert it to lower case */
+      const struct unidata *const ud = &unidata[c / 256][c % 256];
+      c += ud->lower_offset;
+    }
+    /* Convert UCS-4 back to UTF-8 */
+    one_ucs42utf8(c, &d);
   }
   dynstr_terminate(&d);
   return d.vec;
 }
 
 static enum unicode_gc_cat cat(uint32_t c) {
-  int l, r, m;
-
-  l = 0;
-  r = sizeof gcs / sizeof *gcs;
-  while(l <= r) {
-    m = (l + r) / 2;
-    if(c < gcs[m].l)
-      r = m - 1;
-    else if(c > gcs[m].h)
-      l = m + 1;
-    else
-      return gcs[m].cat;
-  }
-  return unicode_gc_none;
+  if(c < UNICODE_NCHARS) {
+    /* If this a known character, convert it to lower case */
+    const struct unidata *const ud = &unidata[c / 256][c % 256];
+    return ud->gc;
+  } else
+    return unicode_gc_Cn;
 }
 
 /* XXX this is a bit kludgy */
@@ -151,7 +137,7 @@ char **words(const char *s, int *nvecp) {
     case unicode_gc_Pf:
     case unicode_gc_Pi:
     case unicode_gc_Po:
-    case unicode_gc_none:
+    case unicode_gc_Cn:
       /* control and punctuation is completely ignored */
       break;
 

@@ -203,6 +203,9 @@ struct config {
   /** @brief Canonical URL of web interface */
   const char *url;
 
+  /** @brief Short display limit */
+  long short_display;
+
   /** @brief Maximum refresh interval for web interface (seconds) */
   long refresh;
 

@@ -54,6 +54,7 @@
 #include "regsub.h"
 #include "defs.h"
 #include "trackname.h"
+#include "charset.h"
 
 static void expand(cgi_sink *output,
 		   const char *template,
@@ -567,8 +568,11 @@ static void exp_part(int nargs,
     default:
       abort();
     }
-    if(disorder_part(ds->g->client, (char **)&s, track, context, part))
+    if(disorder_part(ds->g->client, (char **)&s, track,
+		     !strcmp(context, "short") ? "display" : context, part))
       fatal(0, "disorder_part() failed");
+    if(!strcmp(context, "short"))
+      s = truncate_for_display(s, config->short_display);
     cgi_output(output, "%s", s);
   } else
     sink_printf(output->sink, "&nbsp;");
