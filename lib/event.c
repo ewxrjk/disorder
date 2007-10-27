@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/event.c
+ * @brief DisOrder event loop
+ */
 
 #include <config.h>
 
@@ -42,7 +45,9 @@
 #include "syscalls.h"
 #include "printf.h"
 #include "sink.h"
+#include "vector.h"
 
+/** @brief A timeout */
 struct timeout {
   struct timeout *next;
   struct timeval when;
@@ -51,6 +56,7 @@ struct timeout {
   int resolve;
 };
 
+/** @brief A file descriptor in one mode */
 struct fd {
   int fd;
   ev_fd_callback *callback;
@@ -58,20 +64,35 @@ struct fd {
   const char *what;
 };
 
+/** @brief All the file descriptors in a given mode */
 struct fdmode {
+  /** @brief Mask of active file descriptors passed to @c select() */
   fd_set enabled;
+
+  /** @brief File descriptor mask returned from @c select() */
   fd_set tripped;
-  int nfds, fdslots;
+
+  /** @brief Number of file descriptors in @p fds */
+  int nfds;
+
+  /** @brief Number of slots in @p fds */
+  int fdslots;
+
+  /** @brief Array of all active file descriptors */
   struct fd *fds;
+
+  /** @brief Highest-numbered file descriptor or 0 */
   int maxfd;
 };
 
+/** @brief A signal handler */
 struct signal {
   struct sigaction oldsa;
   ev_signal_callback *callback;
   void *u;
 };
 
+/** @brief A child process */
 struct child {
   pid_t pid;
   int options;
@@ -79,21 +100,55 @@ struct child {
   void *u;
 };
 
+/** @brief An event loop */
 struct ev_source {
+  /** @brief File descriptors, per mode */
   struct fdmode mode[ev_nmodes];
+
+  /** @brief Sorted linked list of timeouts
+   *
+   * We could use @ref HEAP_TYPE now, but there aren't many timeouts.
+   */
   struct timeout *timeouts;
+
+  /** @brief Array of handled signals */
   struct signal signals[NSIG];
+
+  /** @brief Mask of handled signals */
   sigset_t sigmask;
+
+  /** @brief Escape early from handling of @c select() results
+   *
+   * This is set if any of the file descriptor arrays are invalidated, since
+   * it's then not safe for processing of them to continue.
+   */
   int escape;
+
+  /** @brief Signal handling pipe
+   *
+   * The signal handle writes signal numbers down this pipe.
+   */
   int sigpipe[2];
-  int nchildren, nchildslots;
+
+  /** @brief Number of child processes in @p children */
+  int nchildren;
+
+  /** @brief Number of slots in @p children */
+  int nchildslots;
+
+  /** @brief Array of child processes */
   struct child *children;
 };
 
+/** @brief Names of file descriptor modes */
 static const char *modenames[] = { "read", "write", "except" };
 
 /* utilities ******************************************************************/
 
+/** @brief Great-than comparison for timevals
+ *
+ * Ought to be in @file lib/timeval.h
+ */
 static inline int gt(const struct timeval *a, const struct timeval *b) {
   if(a->tv_sec > b->tv_sec)
     return 1;
@@ -103,12 +158,17 @@ static inline int gt(const struct timeval *a, const struct timeval *b) {
   return 0;
 }
 
+/** @brief Greater-than-or-equal comparison for timevals
+ *
+ * Ought to be in @file lib/timeval.h
+ */
 static inline int ge(const struct timeval *a, const struct timeval *b) {
   return !gt(b, a);
 }
 
 /* creation *******************************************************************/
 
+/** @brief Create a new event loop */
 ev_source *ev_new(void) {
   ev_source *ev = xmalloc(sizeof *ev);
   int n;
@@ -123,6 +183,9 @@ ev_source *ev_new(void) {
 
 /* event loop *****************************************************************/
 
+/** @brief Run the event loop
+ * @return -1 on error, non-0 if any callback returned non-0
+ */
 int ev_run(ev_source *ev) {
   for(;;) {
     struct timeval now;
@@ -230,6 +293,18 @@ int ev_run(ev_source *ev) {
 
 /* file descriptors ***********************************************************/
 
+/** @brief Register a file descriptor
+ * @param ev Event loop
+ * @param mode @c ev_read or @c ev_write
+ * @param fd File descriptor
+ * @param callback Called when @p is readable/writable
+ * @param u Passed to @p callback
+ * @param what Text description
+ * @return 0 on success, non-0 on error
+ *
+ * Sets @ref ev_source::escape, so no further processing of file descriptors
+ * will occur this time round the event loop.
+ */
 int ev_fd(ev_source *ev,
 	  ev_fdmode mode,
 	  int fd,
@@ -261,6 +336,15 @@ int ev_fd(ev_source *ev,
   return 0;
 }
 
+/** @brief Cancel a file descriptor
+ * @param ev Event loop
+ * @param mode @c ev_read or @c ev_write
+ * @param fd File descriptor
+ * @return 0 on success, non-0 on error
+ *
+ * Sets @ref ev_source::escape, so no further processing of file descriptors
+ * will occur this time round the event loop.
+ */
 int ev_fd_cancel(ev_source *ev, ev_fdmode mode, int fd) {
   int n;
   int maxfd;
@@ -288,12 +372,30 @@ int ev_fd_cancel(ev_source *ev, ev_fdmode mode, int fd) {
   return 0;
 }
 
+/** @brief Re-enable a file descriptor
+ * @param ev Event loop
+ * @param mode @c ev_read or @c ev_write
+ * @param fd File descriptor
+ * @return 0 on success, non-0 on error
+ *
+ * It is harmless if @p fd is currently disabled, but it must not have been
+ * cancelled.
+ */
 int ev_fd_enable(ev_source *ev, ev_fdmode mode, int fd) {
   D(("enabling mode %s fd %d", modenames[mode], fd));
   FD_SET(fd, &ev->mode[mode].enabled);
   return 0;
 }
 
+/** @brief Temporarily disable a file descriptor
+ * @param ev Event loop
+ * @param mode @c ev_read or @c ev_write
+ * @param fd File descriptor
+ * @return 0 on success, non-0 on error
+ *
+ * Re-enable with ev_fd_enable().  It is harmless if @p fd is already disabled,
+ * but it must not have been cancelled.
+ */
 int ev_fd_disable(ev_source *ev, ev_fdmode mode, int fd) {
   D(("disabling mode %s fd %d", modenames[mode], fd));
   FD_CLR(fd, &ev->mode[mode].enabled);
@@ -301,8 +403,60 @@ int ev_fd_disable(ev_source *ev, ev_fdmode mode, int fd) {
   return 0;
 }
 
+/** @brief Log a report of file descriptor state */
+void ev_report(ev_source *ev) {
+  int n, fd;
+  ev_fdmode mode;
+  struct dynstr d[1];
+  char b[4096];
+
+  dynstr_init(d);
+  for(mode = 0; mode < ev_nmodes; ++mode) {
+    info("mode %s maxfd %d", modenames[mode], ev->mode[mode].maxfd);
+    for(n = 0; n < ev->mode[mode].nfds; ++n) {
+      fd = ev->mode[mode].fds[n].fd;
+      info("fd %s %d%s%s (%s)", modenames[mode], fd,
+	   FD_ISSET(fd, &ev->mode[mode].enabled) ? " enabled" : "",
+	   FD_ISSET(fd, &ev->mode[mode].tripped) ? " tripped" : "",
+	   ev->mode[mode].fds[n].what);
+    }
+    d->nvec = 0;
+    for(fd = 0; fd <= ev->mode[mode].maxfd; ++fd) {
+      if(!FD_ISSET(fd, &ev->mode[mode].enabled))
+	continue;
+      for(n = 0; n < ev->mode[mode].nfds; ++n) {
+	if(ev->mode[mode].fds[n].fd == fd)
+	  break;
+      }
+      if(n < ev->mode[mode].nfds)
+	snprintf(b, sizeof  b, "%d(%s)", fd, ev->mode[mode].fds[n].what);
+      else
+	snprintf(b, sizeof  b, "%d", fd);
+      dynstr_append(d, ' ');
+      dynstr_append_string(d, b);
+    }
+    dynstr_terminate(d);
+    info("%s enabled:%s", modenames[mode], d->vec);
+  }
+}
+
 /* timeouts *******************************************************************/
 
+/** @brief Register a timeout
+ * @param ev Event source
+ * @param handle Where to store timeout handle, or @c NULL
+ * @param when Earliest time to call @p callback, or @c NULL
+ * @param callback Function to call at or after @p when
+ * @param u Passed to @p callback
+ * @return 0 on success, non-0 on error
+ *
+ * If @p when is a null pointer then a time of 0 is assumed.  The effect is to
+ * call the timeout handler from ev_run() next time around the event loop.
+ * This is used internally to schedule various operations if it is not
+ * convenient to call them from the current place in the call stack, or
+ * externally to ensure that other clients of the event loop get a look in when
+ * performing some lengthy operation.
+ */
 int ev_timeout(ev_source *ev,
 	       ev_timeout_handle *handlep,
 	       const struct timeval *when,
@@ -328,6 +482,11 @@ int ev_timeout(ev_source *ev,
   return 0;
 }
 
+/** @brief Cancel a timeout
+ * @param ev Event loop
+ * @param handle Handle returned from ev_timeout()
+ * @return 0 on success, non-0 on error
+ */
 int ev_timeout_cancel(ev_source *ev,
 		      ev_timeout_handle handle) {
   struct timeout *t = handle, *p, **pp;
@@ -343,8 +502,19 @@ int ev_timeout_cancel(ev_source *ev,
 
 /* signals ********************************************************************/
 
+/** @brief Mapping of signals to pipe write ends
+ *
+ * The pipes are per-event loop, it's possible in theory for there to be
+ * multiple event loops (e.g. in different threads), although in fact DisOrder
+ * does not do this.
+ */
 static int sigfd[NSIG];
 
+/** @brief The signal handler
+ * @param s Signal number
+ *
+ * Writes to @c sigfd[s].
+ */
 static void sighandler(int s) {
   unsigned char sc = s;
   static const char errmsg[] = "error writing to signal pipe";
@@ -356,6 +526,7 @@ static void sighandler(int s) {
   }
 }
 
+/** @brief Read callback for signals */
 static int signal_read(ev_source *ev,
 		       int attribute((unused)) fd,
 		       void attribute((unused)) *u) {
@@ -374,6 +545,7 @@ static int signal_read(ev_source *ev,
   return 0;
 }
 
+/** @brief Close the signal pipe */
 static void close_sigpipe(ev_source *ev) {
   int save_errno = errno;
 
@@ -383,6 +555,16 @@ static void close_sigpipe(ev_source *ev) {
   errno = save_errno;
 }
 
+/** @brief Register a signal handler
+ * @param ev Event loop
+ * @param sig Signal to handle
+ * @param callback Called when signal is delivered
+ * @param u Passed to @p callback
+ * @return 0 on success, non-0 on error
+ *
+ * Note that @p callback is called from inside ev_run(), not from inside the
+ * signal handler, so the usual restrictions on signal handlers do not apply.
+ */
 int ev_signal(ev_source *ev,
 	      int sig,
 	      ev_signal_callback *callback,
@@ -420,6 +602,11 @@ int ev_signal(ev_source *ev,
   return 0;
 }
 
+/** @brief Cancel a signal handler
+ * @param ev Event loop
+ * @param sig Signal to cancel
+ * @return 0 on success, non-0 on error
+ */
 int ev_signal_cancel(ev_source *ev,
 		     int sig) {
   sigset_t ss;
@@ -434,6 +621,12 @@ int ev_signal_cancel(ev_source *ev,
   return 0;
 }
 
+/** @brief Clean up signal handling
+ * @param ev Event loop
+ *
+ * This function can be called from inside a fork.  It restores signal
+ * handlers, unblocks the signals, and closes the signal pipe for @p ev.
+ */
 void ev_signal_atfork(ev_source *ev) {
   int sig;
 
@@ -453,6 +646,7 @@ void ev_signal_atfork(ev_source *ev) {
 
 /* child processes ************************************************************/
 
+/** @brief Called on SIGCHLD */
 static int sigchld_callback(ev_source *ev,
 			    int attribute((unused)) sig,
 			    void attribute((unused)) *u) {
@@ -496,11 +690,29 @@ static int sigchld_callback(ev_source *ev,
   return 0;
 }
 
+/** @brief Configure event loop for child process handling
+ * @return 0 on success, non-0 on error
+ *
+ * Currently at most one event loop can handle child processes and it must be
+ * distinguished from others by calling this function on it.  This could be
+ * fixed but since no process ever makes use of more than one event loop there
+ * is no need.
+ */
 int ev_child_setup(ev_source *ev) {
   D(("installing SIGCHLD handler"));
   return ev_signal(ev, SIGCHLD, sigchld_callback, 0);
 }
 
+/** @brief Wait for a child process to terminate
+ * @param ev Event loop
+ * @param pid Process ID of child
+ * @param options Options to pass to @c wait4()
+ * @param callback Called when child terminates (or possibly when it stops)
+ * @param u Passed to @p callback
+ * @return 0 on success, non-0 on error
+ *
+ * You must have called ev_child_setup() on @p ev once first.
+ */
 int ev_child(ev_source *ev,
 	     pid_t pid,
 	     int options,
@@ -524,6 +736,11 @@ int ev_child(ev_source *ev,
   return 0;
 }
 
+/** @brief Stop waiting for a child process
+ * @param ev Event loop
+ * @param pid Child process ID
+ * @return 0 on success, non-0 on error
+ */ 
 int ev_child_cancel(ev_source *ev,
 		    pid_t pid) {
   int n;
@@ -539,11 +756,13 @@ int ev_child_cancel(ev_source *ev,
 
 /* socket listeners ***********************************************************/
 
+/** @brief State for a socket listener */
 struct listen_state {
   ev_listen_callback *callback;
   void *u;
 };
 
+/** @brief Called when a listenign socket is readable */
 static int listen_callback(ev_source *ev, int fd, void *u) {
   const struct listen_state *l = u;
   int newfd;
@@ -589,6 +808,14 @@ static int listen_callback(ev_source *ev, int fd, void *u) {
   return 0;
 }
 
+/** @brief Listen on a socket for inbound stream connections
+ * @param ev Event source
+ * @param fd File descriptor of socket
+ * @param callback Called when a new connection arrives
+ * @param u Passed to @p callback
+ * @param what Text description of socket
+ * @return 0 on success, non-0 on error
+ */
 int ev_listen(ev_source *ev,
 	      int fd,
 	      ev_listen_callback *callback,
@@ -602,6 +829,11 @@ int ev_listen(ev_source *ev,
   return ev_fd(ev, ev_read, fd, listen_callback, l, what);
 }
 
+/** @brief Stop listening on a socket
+ * @param ev Event loop
+ * @param fd File descriptor of socket
+ * @return 0 on success, non-0 on error
+ */ 
 int ev_listen_cancel(ev_source *ev, int fd) {
   D(("cancelling listener fd %d", fd));
   return ev_fd_cancel(ev, ev_read, fd);
@@ -609,11 +841,12 @@ int ev_listen_cancel(ev_source *ev, int fd) {
 
 /* buffer *********************************************************************/
 
+/** @brief Buffer structure */
 struct buffer {
   char *base, *start, *end, *top;
 };
 
-/* make sure there is @bytes@ available at @b->end@ */
+/* @brief Make sure there is @p bytes available at @c b->end */
 static void buffer_space(struct buffer *b, size_t bytes) {
   D(("buffer_space %p %p %p %p want %lu",
      (void *)b->base, (void *)b->start, (void *)b->end, (void *)b->top,
@@ -645,6 +878,7 @@ static void buffer_space(struct buffer *b, size_t bytes) {
 
 /* buffered writer ************************************************************/
 
+/** @brief State structure for a buffered writer */
 struct ev_writer {
   struct sink s;
   struct buffer b;
@@ -655,6 +889,7 @@ struct ev_writer {
   ev_source *ev;
 };
 
+/** @brief Called when a writer's file descriptor is writable */
 static int writer_callback(ev_source *ev, int fd, void *u) {
   ev_writer *w = u;
   int n;
@@ -684,6 +919,13 @@ static int writer_callback(ev_source *ev, int fd, void *u) {
   return 0;
 }
 
+/** @brief Write bytes to a writer's buffer
+ *
+ * This is the sink write callback.
+ *
+ * Calls ev_fd_enable() if necessary (i.e. if the buffer was empty but
+ * now is not).
+ */
 static int ev_writer_write(struct sink *sk, const void *s, int n) {
   ev_writer *w = (ev_writer *)sk;
   
@@ -695,6 +937,14 @@ static int ev_writer_write(struct sink *sk, const void *s, int n) {
   return 0;
 }
 
+/** @brief Create a new buffered writer
+ * @param ev Event loop
+ * @param fd File descriptor to write to
+ * @param callback Called if an error occurs and when finished
+ * @param u Passed to @p callback
+ * @param what Text description
+ * @return New writer or @c NULL
+ */ 
 ev_writer *ev_writer_new(ev_source *ev,
 			 int fd,
 			 ev_error_callback *callback,
@@ -714,10 +964,21 @@ ev_writer *ev_writer_new(ev_source *ev,
   return w;
 }
 
+/** @brief Return the sink associated with a writer
+ * @param w Writer
+ * @return Pointer to sink
+ *
+ * Writing to the sink will arrange for those bytes to be written to the file
+ * descriptor as and when it is writable.
+ */
 struct sink *ev_writer_sink(ev_writer *w) {
   return &w->s;
 }
 
+/** @brief Shutdown callback
+ *
+ * See ev_writer_close().
+ */
 static int writer_shutdown(ev_source *ev,
 			   const attribute((unused)) struct timeval *now,
 			   void *u) {
@@ -726,6 +987,17 @@ static int writer_shutdown(ev_source *ev,
   return w->callback(ev, w->fd, 0, w->u);
 }
 
+/** @brief Close a writer
+ * @param w Writer to close
+ * @return 0 on success, non-0 on error
+ *
+ * Close a writer.  No more bytes should be written to its sink.
+ *
+ * When the last byte has been written the callback will be called with an
+ * error code of 0.  It is guaranteed that this will NOT happen before
+ * ev_writer_close() returns (although the file descriptor for the writer might
+ * be cancelled by the time it returns).
+ */
 int ev_writer_close(ev_writer *w) {
   D(("close writer fd %d", w->fd));
   w->eof = 1;
@@ -737,17 +1009,34 @@ int ev_writer_close(ev_writer *w) {
   return 0;
 }
 
+/** @brief Cancel a writer discarding any buffered data
+ * @param w Writer to close
+ * @return 0 on success, non-0 on error
+ *
+ * This cancels a writer immediately.  Any unwritten buffered data is discarded
+ * and the error callback is never called.  This is appropriate to call if (for
+ * instance) the read half of a TCP connection is known to have failed and the
+ * writer is therefore obsolete.
+ */
 int ev_writer_cancel(ev_writer *w) {
   D(("cancel writer fd %d", w->fd));
   return ev_fd_cancel(w->ev, ev_write, w->fd);
 }
 
+/** @brief Attempt to flush a writer
+ * @param w Writer to flush
+ * @return 0 on success, non-0 on error
+ *
+ * Does a speculative write of any buffered data.  Does not block if it cannot
+ * be written.
+ */
 int ev_writer_flush(ev_writer *w) {
   return writer_callback(w->ev, w->fd, w);
 }
 
 /* buffered reader ************************************************************/
 
+/** @brief State structure for a buffered reader */
 struct ev_reader {
   struct buffer b;
   int fd;
@@ -758,6 +1047,7 @@ struct ev_reader {
   int eof;
 };
 
+/** @brief Called when a reader's @p fd is readable */
 static int reader_callback(ev_source *ev, int fd, void *u) {
   ev_reader *r = u;
   int n;
@@ -786,6 +1076,15 @@ static int reader_callback(ev_source *ev, int fd, void *u) {
   return 0;
 }
 
+/** @brief Create a new buffered reader
+ * @param ev Event loop
+ * @param fd File descriptor to read from
+ * @param callback Called when new data is available
+ * @param error_callback Called if an error occurs
+ * @param u Passed to callbacks
+ * @param what Text description
+ * @return New reader or @c NULL
+ */
 ev_reader *ev_reader_new(ev_source *ev,
 			 int fd,
 			 ev_reader_callback *callback,
@@ -810,20 +1109,39 @@ void ev_reader_buffer(ev_reader *r, size_t nbytes) {
   buffer_space(&r->b, nbytes - (r->b.end - r->b.start));
 }
 
+/** @brief Consume @p n bytes from the reader's buffer
+ * @param r Reader
+ * @param n Number of bytes to consume
+ *
+ * Tells the reader than the next @p n bytes have been dealt with and can now
+ * be discarded.
+ */
 void ev_reader_consume(ev_reader *r, size_t n) {
   r->b.start += n;
 }
 
+/** @brief Cancel a reader
+ * @param r Reader
+ * @return 0 on success, non-0 on error
+ */
 int ev_reader_cancel(ev_reader *r) {
   D(("cancel reader fd %d", r->fd));
   return ev_fd_cancel(r->ev, ev_read, r->fd);
 }
 
+/** @brief Temporarily disable a reader
+ * @param r Reader
+ * @return 0 on success, non-0 on error
+ *
+ * No further callbacks for this reader will be made.  Re-enable with
+ * ev_reader_enable().
+ */
 int ev_reader_disable(ev_reader *r) {
   D(("disable reader fd %d", r->fd));
   return r->eof ? 0 : ev_fd_disable(r->ev, ev_read, r->fd);
 }
 
+/** @brief Called from ev_run() for ev_reader_incomplete() */
 static int reader_continuation(ev_source attribute((unused)) *ev,
 			       const attribute((unused)) struct timeval *now,
 			       void *u) {
@@ -834,6 +1152,15 @@ static int reader_continuation(ev_source attribute((unused)) *ev,
   return r->callback(ev, r, r->fd, r->b.start, r->b.end - r->b.start, r->eof, r->u);
 }
 
+/** @brief Arrange another callback
+ * @param r reader
+ * @return 0 on success, non-0 on error
+ *
+ * Indicates that the reader can process more input but would like to yield to
+ * other clients of the event loop.  Input will be disabled but it will be
+ * re-enabled on the next iteration of the event loop and the read callback
+ * will be called again (even if no further bytes are available).
+ */
 int ev_reader_incomplete(ev_reader *r) {
   if(ev_fd_disable(r->ev, ev_read, r->fd)) return -1;
   return ev_timeout(r->ev, 0, 0, reader_continuation, r);
@@ -848,6 +1175,20 @@ static int reader_enabled(ev_source *ev,
   return r->callback(ev, r, r->fd, r->b.start, r->b.end - r->b.start, r->eof, r->u);
 }
 
+/** @brief Re-enable reading
+ * @param r reader
+ * @return 0 on success, non-0 on error
+ *
+ * If there is unconsumed data then you get a callback next time round the
+ * event loop even if nothing new has been read.
+ *
+ * The idea is in your read callback you come across a line (or whatever) that
+ * can't be processed immediately.  So you set up processing and disable
+ * reading with ev_reader_disable().  Later when you finish processing you
+ * re-enable.  You'll automatically get another callback directly from the
+ * event loop (i.e. not from inside ev_reader_enable()) so you can handle the
+ * next line (or whatever) if the whole thing has in fact already arrived.
+ */
 int ev_reader_enable(ev_reader *r) {
   D(("enable reader fd %d", r->fd));
   return ((r->eof ? 0 : ev_fd_enable(r->ev, ev_read, r->fd))

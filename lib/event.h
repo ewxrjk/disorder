@@ -70,6 +70,8 @@ int ev_fd_enable(ev_source *ev,
 		 int fd);
 /* re-enable callbacks on a file descriptor */
 
+void ev_report(ev_source *ev);
+
 /* timeouts *******************************************************************/
 
 typedef int ev_timeout_callback(ev_source *ev,

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,6 +140,8 @@ static int reader_error(ev_source attribute((unused)) *ev,
   D(("server reader_error %d %d", fd, errno_value));
   error(errno, "S%x read error on socket", c->tag);
   ev_writer_cancel(c->w);
+  ev_report(ev);
+  info("closing fd %d", fd);
   xclose(fd);
   return 0;
 }
