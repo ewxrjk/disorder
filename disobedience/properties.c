@@ -190,11 +190,13 @@ void properties(int ntracks, const char **tracks) {
   }
   /* Create a new properties window */
   properties_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_widget_modify_bg(properties_window, GTK_STATE_NORMAL, &tool_bg);
   g_signal_connect(properties_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_window);
   /* Most of the action is the table of preferences */
   properties_table = gtk_table_new((NPREFS + 1) * ntracks, 2 + ntracks > 1,
                                    FALSE);
+  gtk_widget_modify_bg(properties_table, GTK_STATE_NORMAL, &tool_bg);
   g_signal_connect(properties_table, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_table);
   gtk_window_set_title(GTK_WINDOW(properties_window), "Track Properties");
@@ -206,6 +208,7 @@ void properties(int ntracks, const char **tracks) {
     /* The track itself */
     /* Caption */
     label = gtk_label_new("Track");
+    gtk_widget_modify_fg(label, GTK_STATE_NORMAL, &tool_fg);
     gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
     gtk_table_attach(GTK_TABLE(properties_table),
                      label,
@@ -227,6 +230,7 @@ void properties(int ntracks, const char **tracks) {
     for(m = 0; m < NPREFS; ++m) {
       /* Caption */
       label = gtk_label_new(prefs[m].label);
+      gtk_widget_modify_fg(label, GTK_STATE_NORMAL, &tool_fg);
       gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
       gtk_table_attach(GTK_TABLE(properties_table),
                        label,
@@ -384,6 +388,8 @@ static void kickoff_boolean(struct prefdata *f) {
 
 static void completed_boolean(struct prefdata *f) {
   f->widget = gtk_check_button_new();
+  gtk_widget_modify_bg(f->widget, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_modify_bg(f->widget, GTK_STATE_PRELIGHT, &tool_active);
   if(!f->value)
     /* Not set, use the default */
     f->value = f->p->default_value;

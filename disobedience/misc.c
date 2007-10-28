@@ -64,6 +64,8 @@ GtkWidget *scroll_widget(GtkWidget *child) {
     /* Child widget requires a viewport */
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller),
                                           child);
+    gtk_widget_modify_bg(gtk_bin_get_child(GTK_BIN(scroller)),
+                         GTK_STATE_NORMAL, &tool_bg);
   }
   set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->hscrollbar);
   set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->vscrollbar);
@@ -164,6 +166,14 @@ GtkWidget *create_buttons(const struct button *buttons,
 
   for(n = 0; n < nbuttons; ++n) {
     GtkWidget *const button = gtk_button_new_from_stock(buttons[n].stock);
+    gtk_widget_modify_bg(button, GTK_STATE_NORMAL, &tool_bg);
+    gtk_widget_modify_bg(button, GTK_STATE_ACTIVE, &tool_active);
+    gtk_widget_modify_bg(button, GTK_STATE_PRELIGHT, &tool_active);
+    gtk_widget_modify_bg(button, GTK_STATE_SELECTED, &tool_active);
+    gtk_widget_modify_fg(button, GTK_STATE_NORMAL, &tool_fg);
+    gtk_widget_modify_fg(button, GTK_STATE_ACTIVE, &tool_fg);
+    gtk_widget_modify_fg(button, GTK_STATE_PRELIGHT, &tool_fg);
+    gtk_widget_modify_fg(button, GTK_STATE_SELECTED, &tool_fg);
     g_signal_connect(G_OBJECT(button), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
     gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
