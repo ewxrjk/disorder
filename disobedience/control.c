@@ -235,6 +235,7 @@ GtkWidget *control_widget(void) {
     gtk_widget_modify_bg(icons[n].button, GTK_STATE_ACTIVE, &tool_active);
     gtk_widget_modify_bg(icons[n].button, GTK_STATE_PRELIGHT, &tool_active);
     gtk_widget_modify_bg(icons[n].button, GTK_STATE_SELECTED, &tool_active);
+    gtk_widget_modify_bg(icons[n].button, GTK_STATE_INSENSITIVE, &tool_active);
     if((pb = find_image(icons[n].icon))) {
       NW(image);
       content = gtk_image_new_from_pixbuf(pb);

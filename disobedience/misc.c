@@ -169,11 +169,13 @@ GtkWidget *create_buttons(const struct button *buttons,
     gtk_widget_modify_bg(button, GTK_STATE_NORMAL, &tool_bg);
     gtk_widget_modify_bg(button, GTK_STATE_ACTIVE, &tool_active);
     gtk_widget_modify_bg(button, GTK_STATE_PRELIGHT, &tool_active);
-    gtk_widget_modify_bg(button, GTK_STATE_SELECTED, &tool_active);
+    gtk_widget_modify_bg(button, GTK_STATE_SELECTED, &tool_active); 
+    gtk_widget_modify_bg(button, GTK_STATE_INSENSITIVE, &tool_active);
     gtk_widget_modify_fg(button, GTK_STATE_NORMAL, &tool_fg);
     gtk_widget_modify_fg(button, GTK_STATE_ACTIVE, &tool_fg);
     gtk_widget_modify_fg(button, GTK_STATE_PRELIGHT, &tool_fg);
     gtk_widget_modify_fg(button, GTK_STATE_SELECTED, &tool_fg);
+    gtk_widget_modify_fg(button, GTK_STATE_INSENSITIVE, &tool_fg);
     g_signal_connect(G_OBJECT(button), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
     gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
