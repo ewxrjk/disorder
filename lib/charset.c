@@ -33,6 +33,7 @@
 #include "configuration.h"
 #include "utf8.h"
 #include "vector.h"
+#include "unidata.h"
 
 /** @brief Low-level converstion routine
  * @param from Source encoding
@@ -175,6 +176,66 @@ int ucs4cmp(const uint32_t *a, const uint32_t *b) {
   if(*a > *b) return 1;
   else if(*a < *b) return -1;
   else return 0;
+}
+
+/** @brief Return nonzero if @p c is a combining character */
+static int combining(int c) {
+  if(c < UNICODE_NCHARS) {
+    const struct unidata *const ud = &unidata[c / 256][c % 256];
+
+    return ud->gc == unicode_gc_Mn || ud->ccc != 0;
+  }
+  /* Assume unknown characters are noncombining */
+  return 0;
+}
+
+/** @brief Truncate a string for display purposes
+ * @param s Pointer to UTF-8 string
+ * @param max Maximum number of columns
+ * @return @p or truncated string (never NULL)
+ *
+ * We don't correctly support bidi or double-width characters yet, nor
+ * locate default grapheme cluster boundaries for saner truncation.
+ */
+const char *truncate_for_display(const char *s, long max) {
+  const char *t = s, *r, *cut = 0;
+  char *truncated;
+  uint32_t c;
+  long n = 0;
+
+  /* We need to discover two things: firstly whether the string is
+   * longer than @p max glyphs and secondly if it is not, where to cut
+   * the string.
+   *
+   * Combining characters follow their base character (unicode
+   * standard 5.0 s2.11), so after each base character we must 
+   */
+  while(*t) {
+    PARSE_UTF8(t, c, return s);
+    if(combining(c))
+      /* This must be an initial combining character.  We just skip it. */
+      continue;
+    /* So c must be a base character.  It may be followed by any
+     * number of combining characters.  We advance past them. */
+    do {
+      r = t;
+      PARSE_UTF8(t, c, return s);
+    } while(combining(c));
+    /* Last character wasn't a combining character so back up */
+    t = r;
+    ++n;
+    /* So now there are N glyphs before position T.  We might
+     * therefore have reached the cut position. */
+    if(n == max - 3)
+      cut = t;
+  }
+  /* If the string is short enough we return it unmodified */
+  if(n < max)
+    return s;
+  truncated = xmalloc_noptr(cut - s + 4);
+  memcpy(truncated, s, cut - s);
+  strcpy(truncated + (cut - s), "...");
+  return truncated;
 }
 
 /*

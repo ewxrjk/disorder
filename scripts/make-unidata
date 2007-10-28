@@ -1,0 +1,117 @@
+#! /usr/bin/perl -w
+#
+# Generate a two-level table describing (some of) the fields of UnicodeData.txt
+use strict;
+
+sub out {
+    print @_ or die "$!\n";
+}
+
+sub key {
+    my $d = shift;
+    local $_;
+
+    return join("-", map($d->{$_}, sort keys %$d));
+}
+
+my %cats = ();			# known general categories
+my %data = ();			# mapping of codepoints to information
+my %comp = ();			# 
+my $max = 0;			# maximum codepoint
+
+while(<>) {
+    my @f = split(/;/, $_);
+    my $c = hex($f[0]);		# codepoint
+    next if $c >= 0xE0000;	# ignore various high-numbered stuff
+    my $name = $f[1];
+    my $gc = $f[2];		# general category
+    my $ccc = $f[3];		# canonical combining class
+    my $sum = hex($f[12]) || $c; # simple upper case mapping
+    my $slm = hex($f[13]) || $c; # simple lower case mapping
+    # recalculate the upper/lower case mappings as offsets
+    my $ud = $sum - $c;
+    my $ld = $slm - $c;
+    $data{$c} = {
+	"gc" => $gc,
+	"ccc" => $ccc,
+	"ud" => $ud,
+	"ld" => $ld
+	};
+    $cats{$gc} = 1;
+    $max = $c if $c > $max;
+}
+
+$max += 255 - ($max % 256);	# round up
+
+# Make sure there are no gaps
+for(my $c = 0; $c <= $max; ++$c) {
+    if(!exists $data{$c}) {
+	$data{$c} = {
+	    "gc" => "Cn",	# not assigned
+	    "ccc" => 0,
+	    "ud" => 0,
+	    "ld" => 0
+	    };
+    }
+}
+$cats{'Cn'} = 1;
+
+open(STDOUT, ">unidata.h") or die "unidata.h: $!\n";
+
+out("#ifndef UNIDATA_H\n",
+    "#define UNIDATA_H\n");
+
+out("enum unicode_gc_cat {\n",
+    join(",\n",
+	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
+    
+out("struct unidata {\n",
+    "  enum unicode_gc_cat gc;\n",
+    "  int ccc;\n",
+    "  int upper_offset;\n",
+    "  int lower_offset;\n",
+    "};\n");
+
+out("extern const struct unidata *const unidata[];\n");
+
+out("#define UNICODE_NCHARS ", ($max + 1), "\n");
+
+out("#endif\n");
+
+close STDOUT or die "unidata.h: $!\n";
+
+open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
+
+out("#include \"unidata.h\"\n");
+
+# Visit all the 256-character blocks in turn and generate the required
+# subtables
+my %subtable = ();		# base->subtable number
+my %subtableno = ();		# subtable number -> content
+my $subtablecounter = 0;	# counter for subtable numbers
+for(my $base = 0; $base <= $max; $base += 256) {
+    my @t;
+    for(my $c = $base; $c <= $base + 255; ++$c) {
+	my $d = $data{$c};
+	push(@t,
+	     "  { unicode_gc_$d->{gc}, $d->{ccc}, $d->{ud}, $d->{ld} }");
+    }
+    my $t = join(",\n", @t);
+    if(!exists $subtable{$t}) {
+	out("static const struct unidata subtable$subtablecounter\[] = {\n",
+	    "$t\n",
+	    "};\n");
+	$subtable{$t} = $subtablecounter++;
+    }
+    $subtableno{$base} = $subtable{$t};
+}
+
+out("const struct unidata *const unidata[] = {\n");
+for(my $base = 0; $base <= $max; $base += 256) {
+    out("  subtable$subtableno{$base},\n");
+}
+out("};\n");
+
+close STDOUT or die "unidata.c: $!\n";
+
+print STDERR "max=$max, subtables=$subtablecounter\n";

@@ -896,6 +896,7 @@ static const struct conf conf[] = {
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
+  { C(short_display),    &type_integer,          validate_positive },
   { C(signal),           &type_signal,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
   { C(speaker_backend),  &type_backend,          validate_any },
@@ -1023,6 +1024,7 @@ static struct config *config_default(void) {
   c->multicast_ttl = 1;
   c->authorization_algorithm = xstrdup("sha1");
   c->noticed_history = 31;
+  c->short_display = 32;
   return c;
 }
 

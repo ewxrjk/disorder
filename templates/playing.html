@@ -140,11 +140,12 @@ USA
       <td class=who>@if{@eq{@who@}{}@}{@if{@eq{@state@}{random}@}{@label:playing.randomtrack@}{&nbsp;}@}{@who@}@</td>
       <td class=artist><a class=directory
        href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
-       title="@label:playing.artistverbose@">@part:artist@</a></td>
+       title="@label:playing.artistverbose@">@part{short}{artist}@</a></td>
       <td class=album><a class=directory
        href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
-       title="@label:playing.albumverbose@">@part:album@</a></td>
-      <td class=title>@part:title@</td>
+       title="@label:playing.albumverbose@">@part{short}{album}@</a></td>
+      <td class=title><span
+       title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@scratchable@}{<a class=imgbutton
        href="@url@?action=scratch&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
@@ -170,9 +171,16 @@ USA
      <tr class=@parity@>
       <td class=when>@when@</td>
       <td class=who>@if{@eq{@who@}{}@}{@if{@eq{@state@}{random}@}{@label:queue.randomtrack@}{&nbsp;}@}{@who@}@</td>
-      <td class=artist><a class=directory href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@">@part:artist@</a></td>
-      <td class=album><a class=directory href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@">@part:album@</a></td>
-      <td class=title>@part:title@</td>
+      <td class=artist><a 
+       title="@part{artist}@"
+       class=directory
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@">@part{short}{artist}@</a></td>
+      <td class=album><a
+       title="@part{album}@"
+       class=directory 
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@">@part{short}{album}@</a></td>
+      <td class=title><span
+       title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@removable@}{<a class=imgbutton
        href="@url@?action=remove&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img

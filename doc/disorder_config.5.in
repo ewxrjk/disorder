@@ -448,6 +448,10 @@ Connect to the address specified by \fIHOST\fR and port specified by
 .B refresh \fISECONDS\fR
 Specifies the maximum refresh period in seconds.  Default 15.
 .TP
+.B short_display \fICHARACTERS\fR
+Defines the maximum number of characters to include in a \fBshort\fR name
+part.  Default 30.
+.TP
 .B templates \fIPATH\fR ...
 Specifies the directory containing templates used by the web
 interface.  If a template appears in more than one template directory
@@ -812,12 +816,18 @@ an even or odd position in \fB@queue@\fR, \fB@recent@\fR or \fB@files@\fR.
 .TP
 .B @part{\fICONTEXT\fB}{\fIPART\fB}@
 Expands to track name part \fIPART\fR using context \fICONTEXT\fR for the
-current track.  The context may be omitted (and normally would be) and defaults
+current track.  The context may be omitted and defaults
 to \fBdisplay\fR.
+.IP
+The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
+the \fBshort_display\fR limit.
 .TP
 .B @part{\fICONTEXT\fB}{\fIPART\fB}{\fITRACK\fB}@
 Expands to track name part \fIPART\fR using context \fICONTEXT\fR for
 \fITRACK\fR.  In this usage the context may not be omitted.
+.IP
+The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
+the \fBshort_display\fR limit.
 .TP
 .B @paused@
 Expands to \fBtrue\fR if the current track is paused, else \fBfalse\fR.
