@@ -46,9 +46,6 @@ GdkColor tool_fg = { 0, 0x0000, 0x0000, 0x0000 };
 /** @brief Foreground colors for inactive tools */
 GdkColor inactive_tool_fg = { 0, 0x8000, 0x8000, 0x8000 };
 
-/** @brief Background for inactive tools (e.g. noncurrent tabs) */
-GdkColor offtool_bg = { 0, 0xC400, 0xC200, 0xBD00 };
-
 /** @brief Background color for the various layouts */
 GdkColor layout_bg = { 0, 0xFFFF, 0xFFFF, 0xFFFF };
 
@@ -97,7 +94,6 @@ struct colordesc {
 static const struct colordesc colors[] = {
   COLOR(tool_bg, "Tool background color"),
   COLOR(tool_fg, "Tool foreground color"),
-  COLOR(offtool_bg, "Subsiduary tool color"),
   COLOR(layout_bg, "Layout background color"),
   COLOR(title_bg, "Title row background color"),
   COLOR(title_fg, "Title row foreground color"),

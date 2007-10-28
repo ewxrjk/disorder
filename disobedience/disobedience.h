@@ -247,7 +247,7 @@ void stop_rtp(void);
 
 /* Appearance */
 
-extern GdkColor tool_bg, tool_fg, offtool_bg, layout_bg, even_bg, odd_bg;
+extern GdkColor tool_bg, tool_fg, layout_bg, even_bg, odd_bg;
 extern GdkColor active_bg, selected_bg, selected_fg, search_bg;
 extern GdkColor title_bg, title_fg, item_fg, drag_target, tool_active;
 
