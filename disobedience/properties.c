@@ -266,8 +266,7 @@ void properties(int ntracks, const char **tracks) {
   /* Put it all together */
   vbox = gtk_vbox_new(FALSE, 1);
   gtk_box_pack_start(GTK_BOX(vbox), 
-                     scroll_widget(properties_table,
-                                   "properties"),
+                     scroll_widget(properties_table),
                      TRUE, TRUE, 1);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox, FALSE, FALSE, 1);
   gtk_container_add(GTK_CONTAINER(properties_window), vbox);

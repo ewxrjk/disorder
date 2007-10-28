@@ -227,9 +227,7 @@ void popup_help(void) {
   gtk_window_set_title(GTK_WINDOW(help_window), "Disobedience Manual Page");
   view = gtk_text_view_new_with_buffer(html_buffer(manual));
   gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
-  gtk_container_add(GTK_CONTAINER(help_window),
-		    scroll_widget(view,
-				  "help"));
+  gtk_container_add(GTK_CONTAINER(help_window), scroll_widget(view));
   gtk_window_set_default_size(GTK_WINDOW(help_window), 512, 512);
   gtk_widget_show_all(help_window);
 }

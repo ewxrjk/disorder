@@ -30,8 +30,6 @@
 /* Apologies for the numerous de-consting casts, but GLib et al do not seem to
  * have heard of const. */
 
-#include "style.h"                      /* generated style */
-
 /* Variables --------------------------------------------------------------- */
 
 /** @brief Event loop */
@@ -138,6 +136,12 @@ static GtkWidget *report_box(void) {
 /** @brief Create and populate the main tab group */
 static GtkWidget *notebook(void) {
   tabs = gtk_notebook_new();
+  /* The current tab is _NORMAL, the rest are _ACTIVE, which is bizarre but
+   * produces not too dreadful appearance */
+  gtk_widget_modify_bg(tabs, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_modify_bg(tabs, GTK_STATE_ACTIVE, &tool_active);
+  gtk_widget_modify_fg(tabs, GTK_STATE_NORMAL, &tool_fg);
+  gtk_widget_modify_fg(tabs, GTK_STATE_ACTIVE, &tool_fg);
   g_signal_connect(tabs, "switch-page", G_CALLBACK(tab_switched), 0);
   gtk_notebook_append_page(GTK_NOTEBOOK(tabs), queue_widget(),
                            gtk_label_new("Queue"));
@@ -182,7 +186,7 @@ static void make_toplevel_window(void) {
                    FALSE,             /* expand */
                    FALSE,             /* fill */
                    0);
-  gtk_widget_set_name(toplevel, "disobedience");
+  gtk_widget_modify_bg(toplevel, GTK_STATE_NORMAL, &tool_bg);
 }
 
 #if MDEBUG
@@ -437,7 +441,6 @@ int main(int argc, char **argv) {
 #endif
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtk_init(&argc, &argv);
-  gtk_rc_parse_string(style);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -449,6 +452,7 @@ int main(int argc, char **argv) {
     }
   }
   signal(SIGPIPE, SIG_IGN);
+  load_appearance();
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);

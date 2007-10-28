@@ -174,9 +174,6 @@ struct queue_menuitem {
  * ql_added.
  */
 struct queuelike {
-  /** @brief Name of this queue */
-  const char *name;
-
   /** @brief Called when an update completes */
   void (*notify)(void);
 
@@ -509,9 +506,15 @@ static void update_queue(struct queuelike *ql, struct queue_entry *newq) {
   selection_cleanup(ql->selection);
 }
 
-/** @brief Wrap up a widget for putting into the queue or title */
+/** @brief Wrap up a widget for putting into the queue or title
+ * @param label Label to contain
+ * @param color Pointer to color
+ * @param wp Updated with maximum width (or NULL)
+ * @return New widget
+ */
 static GtkWidget *wrap_queue_cell(GtkWidget *label,
-                                  const char *name,
+                                  const GdkColor *bgcolor,
+                                  const GdkColor *fgcolor,
                                   int *wp) {
   GtkRequisition req;
   GtkWidget *bg;
@@ -529,9 +532,13 @@ static GtkWidget *wrap_queue_cell(GtkWidget *label,
     gtk_widget_size_request(label, &req);
     if(req.width > *wp) *wp = req.width;
   }
-  /* Set widget names */
-  gtk_widget_set_name(bg, name);
-  gtk_widget_set_name(label, name);
+  /* Set colors */
+  gtk_widget_modify_bg(bg, GTK_STATE_NORMAL, bgcolor);
+  gtk_widget_modify_bg(bg, GTK_STATE_SELECTED, &selected_bg);
+  gtk_widget_modify_bg(bg, GTK_STATE_PRELIGHT, &selected_bg);
+  gtk_widget_modify_fg(label, GTK_STATE_NORMAL, fgcolor);
+  gtk_widget_modify_fg(label, GTK_STATE_SELECTED, &selected_fg);
+  gtk_widget_modify_fg(label, GTK_STATE_PRELIGHT, &selected_fg);
   return bg;
 }
 
@@ -540,20 +547,22 @@ static GtkWidget *get_queue_cell(struct queuelike *ql,
                                  const struct queue_entry *q,
                                  int row,
                                  int col,
-                                 const char *name,
+                                 const GdkColor *bgcolor,
+                                 const GdkColor *fgcolor,
                                  int *wp) {
   GtkWidget *label;
   D(("get_queue_cell %d %d", row, col));
   label = ql->columns[col].widget(ql, q, ql->columns[col].data);
   gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-  return wrap_queue_cell(label, name, wp);
+  return wrap_queue_cell(label, bgcolor, fgcolor, wp);
 }
 
 /** @brief Add a padding cell to the end of a row */
-static GtkWidget *get_padding_cell(const char *name) {
+static GtkWidget *get_padding_cell(const GdkColor *bgcolor,
+                                   const GdkColor *fgcolor) {
   D(("get_padding_cell"));
   NW(label);
-  return wrap_queue_cell(gtk_label_new(""), name, 0);
+  return wrap_queue_cell(gtk_label_new(""), bgcolor, fgcolor, 0);
 }
 
 /* User button press and menu ---------------------------------------------- */
@@ -804,7 +813,7 @@ static gboolean queue_drag_motion(GtkWidget attribute((unused)) *widget,
       g_signal_connect(ql->dragmark, "destroy",
                        G_CALLBACK(gtk_widget_destroyed), &ql->dragmark);
       gtk_widget_set_size_request(ql->dragmark, 10240, row ? 4 : 2);
-      gtk_widget_set_name(ql->dragmark, "queue-drag");
+      gtk_widget_modify_bg(ql->dragmark, GTK_STATE_NORMAL, &drag_target);
       gtk_layout_put(GTK_LAYOUT(ql->mainlayout), ql->dragmark, 0, 
                      (row + 1) * ql->mainrowheight - !!row);
     } else
@@ -906,7 +915,7 @@ static void redisplay_queue(struct queuelike *ql) {
   struct queue_entry *q;
   int row, col;
   GList *c, *children;
-  const char *name;
+  const GdkColor *bgcolor;
   GtkRequisition req;  
   GtkWidget *w;
   int maxwidths[MAXCOLUMNS], x, y, titlerowheight;
@@ -946,15 +955,16 @@ static void redisplay_queue(struct queuelike *ql) {
     /* Construct the widgets */
     for(q = ql->q, row = 0; q; q = q->next, ++row) {
       /* Figure out the widget name for this row */
-      if(q == playing_track) name = "row-playing";
-      else name = row % 2 ? "row-even" : "row-odd";
+      if(q == playing_track) bgcolor = &active_bg;
+      else bgcolor = row % 2 ? &even_bg : &odd_bg;
       /* Make the widget for each column */
       for(col = 0; col <= ql->ncolumns; ++col) {
         /* Create and store the widget */
         if(col < ql->ncolumns)
-          w = get_queue_cell(ql, q, row, col, name, &maxwidths[col]);
+          w = get_queue_cell(ql, q, row, col, bgcolor, &item_fg,
+                             &maxwidths[col]);
         else
-          w = get_padding_cell(name);
+          w = get_padding_cell(bgcolor, &item_fg);
         ql->cells[row * (ql->ncolumns + 1) + col] = w;
         /* Maybe mark it draggable */
         if(draggable_row(q)) {
@@ -1059,7 +1069,6 @@ static GtkWidget *queuelike(struct queuelike *ql,
                             struct queue_entry *(*fixup)(struct queue_entry *),
                             void (*notify)(void),
                             struct queue_menuitem *menuitems,
-                            const char *name,
                             const struct column *columns,
                             int ncolumns) {
   GtkWidget *vbox, *mainscroll, *titlescroll, *label;
@@ -1070,7 +1079,6 @@ static GtkWidget *queuelike(struct queuelike *ql,
   ql->fixup = fixup;
   ql->notify = notify;
   ql->menuitems = menuitems;
-  ql->name = name;
   ql->mainrowheight = !0;                /* else division by 0 */
   ql->selection = selection_new();
   ql->columns = columns;
@@ -1078,11 +1086,12 @@ static GtkWidget *queuelike(struct queuelike *ql,
   /* Create the layouts */
   NW(layout);
   ql->mainlayout = gtk_layout_new(0, 0);
+  gtk_widget_modify_bg(ql->mainlayout, GTK_STATE_NORMAL, &layout_bg);
   NW(layout);
   ql->titlelayout = gtk_layout_new(0, 0);
   /* Scroll the layouts */
-  ql->mainscroll = mainscroll = scroll_widget(ql->mainlayout, name);
-  titlescroll = scroll_widget(ql->titlelayout, name);
+  ql->mainscroll = mainscroll = scroll_widget(ql->mainlayout);
+  titlescroll = scroll_widget(ql->titlelayout);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(titlescroll),
                                  GTK_POLICY_NEVER, GTK_POLICY_NEVER);
   mainadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(mainscroll));
@@ -1094,10 +1103,10 @@ static GtkWidget *queuelike(struct queuelike *ql,
     NW(label);
     label = gtk_label_new(ql->columns[col].name);
     gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-    ql->titlecells[col] = wrap_queue_cell(label, "row-title", 0);
+    ql->titlecells[col] = wrap_queue_cell(label, &title_bg, &title_fg, 0);
     gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   }
-  ql->titlecells[col] = get_padding_cell("row-title");
+  ql->titlecells[col] = get_padding_cell(&title_bg, &title_fg);
   gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   /* Pack the lot together in a vbox */
   NW(vbox);
@@ -1123,6 +1132,7 @@ static GtkWidget *queuelike(struct queuelike *ql,
   g_signal_connect(ql->mainlayout, "button-press-event",
                    G_CALLBACK(mainlayout_button), ql);
 #endif
+  set_tool_colors(ql->menu);
   return vbox;
 }
 
@@ -1317,7 +1327,7 @@ GtkWidget *queue_widget(void) {
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
-                   "queue", maincolumns, NMAINCOLUMNS);
+                   maincolumns, NMAINCOLUMNS);
 }
 
 /** @brief Arrange an update of the queue widget
@@ -1369,7 +1379,7 @@ static struct queue_menuitem recent_menu[] = {
 GtkWidget *recent_widget(void) {
   D(("recent_widget"));
   register_reset(recent_update);
-  return queuelike(&ql_recent, fixup_recent, 0, recent_menu, "recent",
+  return queuelike(&ql_recent, fixup_recent, 0, recent_menu,
                    maincolumns, NMAINCOLUMNS);
 }
 
@@ -1402,7 +1412,7 @@ static struct queue_menuitem added_menu[] = {
 GtkWidget *added_widget(void) {
   D(("added_widget"));
   register_reset(added_update);
-  return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu, "added",
+  return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu,
                    addedcolumns, NADDEDCOLUMNS);
 }
 

@@ -133,7 +133,7 @@ void properties(int ntracks, const char **tracks);
 
 void properties_reset(void);
 
-GtkWidget *scroll_widget(GtkWidget *child, const char *name);
+GtkWidget *scroll_widget(GtkWidget *child);
 /* Wrap a widget up for scrolling */
 
 GdkPixbuf *find_image(const char *name);
@@ -244,6 +244,17 @@ void popup_help(void);
 int rtp_running(void);
 void start_rtp(void);
 void stop_rtp(void);
+
+/* Appearance */
+
+extern GdkColor tool_bg, tool_fg, offtool_bg, layout_bg, even_bg, odd_bg;
+extern GdkColor active_bg, selected_bg, selected_fg, search_bg;
+extern GdkColor title_bg, title_fg, item_fg, drag_target, tool_active;
+
+void save_appearance(void);
+void load_appearance(void);
+void set_tool_colors(GtkWidget *w);
+void set_slider_colors(GtkWidget *w);
 
 /* Widget leakage debugging rubbish ---------------------------------------- */
 

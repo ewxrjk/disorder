@@ -231,6 +231,10 @@ GtkWidget *control_widget(void) {
   for(n = 0; n < NICONS; ++n) {
     NW(button);
     icons[n].button = gtk_button_new();
+    gtk_widget_modify_bg(icons[n].button, GTK_STATE_NORMAL, &tool_bg);
+    gtk_widget_modify_bg(icons[n].button, GTK_STATE_ACTIVE, &tool_active);
+    gtk_widget_modify_bg(icons[n].button, GTK_STATE_PRELIGHT, &tool_active);
+    gtk_widget_modify_bg(icons[n].button, GTK_STATE_SELECTED, &tool_active);
     if((pb = find_image(icons[n].icon))) {
       NW(image);
       content = gtk_image_new_from_pixbuf(pb);
@@ -279,6 +283,8 @@ GtkWidget *control_widget(void) {
   v = gtk_hscale_new(volume_adj);
   NW(hscale);
   b = gtk_hscale_new(balance_adj);
+  set_slider_colors(v);
+  set_slider_colors(b);
   gtk_scale_set_digits(GTK_SCALE(v), 10);
   gtk_scale_set_digits(GTK_SCALE(b), 10);
   gtk_widget_set_size_request(v, 192, -1);

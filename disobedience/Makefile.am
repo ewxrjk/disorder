@@ -25,9 +25,9 @@ AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
 PNGS:=$(wildcard ${top_srcdir}/images/*.png)
 
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
-		  choose.c misc.c style.h control.c properties.c menu.c \
+		  choose.c misc.c control.c properties.c menu.c \
 		  log.c progress.c login.c rtp.c help.c \
-		  ../lib/memgc.c
+		  ../lib/memgc.c appearance.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
@@ -35,12 +35,6 @@ install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
 
 check: check-help
-
-disobedience.o: style.h
-
-style.h: ${srcdir}/disobedience.rc ${top_srcdir}/scripts/text2c
-	${top_srcdir}/scripts/text2c style ${srcdir}/disobedience.rc > $@.tmp
-	mv $@.tmp $@
 
 help.o: manual.h
 
@@ -69,8 +63,6 @@ images.h: $(PNGS)
 	done;								\
 	echo "};"
 	mv @$.new $@
-
-EXTRA_DIST=disobedience.rc
 
 # check everything has working --help
 check-help: all

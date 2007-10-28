@@ -805,7 +805,6 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   GtkRequisition req;
   struct displaydata d, cd;
   GdkPixbuf *pb;
-  const char *name;
   const int search_result = is_search_result(cn->path);
   
   D(("display_tree %s %d,%d", cn->path, x, y));
@@ -857,12 +856,16 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     MTAG_POP();
   }
   assert(cn->container);
-  /* Make sure the widget name is right */
-  name = (cn->flags & CN_EXPANDABLE
-          ? "choose-dir"
-          : search_result ? "choose-search" : "choose");
-  gtk_widget_set_name(cn->label, name);
-  gtk_widget_set_name(cn->container, name);
+  /* Set colors */
+  if(search_result)
+    gtk_widget_modify_bg(cn->container, GTK_STATE_NORMAL, &search_bg);
+  else
+    gtk_widget_modify_bg(cn->container, GTK_STATE_NORMAL, &layout_bg);
+  gtk_widget_modify_bg(cn->container, GTK_STATE_SELECTED, &selected_bg);
+  gtk_widget_modify_bg(cn->container, GTK_STATE_PRELIGHT, &selected_bg);
+  gtk_widget_modify_fg(cn->label, GTK_STATE_NORMAL, &item_fg);
+  gtk_widget_modify_fg(cn->label, GTK_STATE_SELECTED, &selected_fg);
+  gtk_widget_modify_fg(cn->label, GTK_STATE_PRELIGHT, &selected_fg);
   /* Make sure the icon is right */
   if(cn->flags & CN_EXPANDABLE)
     gtk_arrow_set(GTK_ARROW(cn->arrow),
@@ -1077,6 +1080,7 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
       menuitems[n].handlerid = g_signal_connect
         (menuitems[n].w, "activate", G_CALLBACK(menuitems[n].activate), cn);
     }
+    set_tool_colors(menu);
     /* Pop up the menu */
     gtk_widget_show_all(menu);
     gtk_menu_popup(GTK_MENU(menu), 0, 0, 0, 0,
@@ -1332,6 +1336,10 @@ GtkWidget *choose_widget(void) {
   /* Cancel button to clear the search */
   NW(button);
   clearsearch = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+  gtk_widget_modify_bg(clearsearch, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_modify_bg(clearsearch, GTK_STATE_ACTIVE, &tool_active);
+  gtk_widget_modify_bg(clearsearch, GTK_STATE_PRELIGHT, &tool_active);
+  gtk_widget_modify_bg(clearsearch, GTK_STATE_SELECTED, &tool_active);
   g_signal_connect(G_OBJECT(clearsearch), "clicked",
                    G_CALLBACK(clearsearch_clicked), 0);
   gtk_tooltips_set_tip(tips, clearsearch, "Clear search terms", "");
@@ -1342,10 +1350,20 @@ GtkWidget *choose_widget(void) {
   g_signal_connect(G_OBJECT(prevsearch), "clicked",
                    G_CALLBACK(prev_clicked), 0);
   gtk_widget_set_sensitive(prevsearch, 0);
+  gtk_widget_modify_bg(prevsearch, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_modify_bg(prevsearch, GTK_STATE_ACTIVE, &tool_active);
+  gtk_widget_modify_bg(prevsearch, GTK_STATE_PRELIGHT, &tool_active);
+  gtk_widget_modify_bg(prevsearch, GTK_STATE_SELECTED, &tool_active);
+  gtk_widget_modify_bg(prevsearch, GTK_STATE_INSENSITIVE, &tool_active);
   nextsearch = iconbutton("down.png", "Next search result");
   g_signal_connect(G_OBJECT(nextsearch), "clicked",
                    G_CALLBACK(next_clicked), 0);
   gtk_widget_set_sensitive(nextsearch, 0);
+  gtk_widget_modify_bg(nextsearch, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_modify_bg(nextsearch, GTK_STATE_ACTIVE, &tool_active);
+  gtk_widget_modify_bg(nextsearch, GTK_STATE_PRELIGHT, &tool_active);
+  gtk_widget_modify_bg(nextsearch, GTK_STATE_SELECTED, &tool_active);
+  gtk_widget_modify_bg(nextsearch, GTK_STATE_INSENSITIVE, &tool_active);
 
   /* hbox packs the search tools button together on a line */
   NW(hbox);
@@ -1363,6 +1381,7 @@ GtkWidget *choose_widget(void) {
    * namespace */
   NW(layout);
   chooselayout = gtk_layout_new(0, 0);
+  gtk_widget_modify_bg(chooselayout, GTK_STATE_NORMAL, &layout_bg);
   choose_reset();
   register_reset(choose_reset);
   /* Create the popup menus */
@@ -1389,7 +1408,7 @@ GtkWidget *choose_widget(void) {
                     0, 1, n, n + 1);
   }
   /* The layout is scrollable */
-  scrolled = scroll_widget(chooselayout, "choose");
+  scrolled = scroll_widget(chooselayout);
   vadjust = gtk_layout_get_vadjustment(GTK_LAYOUT(chooselayout));
 
   /* The scrollable layout and the search hbox go together in a vbox */

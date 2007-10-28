@@ -39,11 +39,9 @@ WT(cached_image);
 
 /** @brief Put scrollbars around a widget
  * @param child Widget to surround
- * @param widgetname Name for (both) widgets
  * @return Scroll widget
  */
-GtkWidget *scroll_widget(GtkWidget *child,
-                         const char *widgetname) {
+GtkWidget *scroll_widget(GtkWidget *child) {
   GtkWidget *scroller = gtk_scrolled_window_new(0, 0);
   GtkAdjustment *adj;
 
@@ -67,9 +65,8 @@ GtkWidget *scroll_widget(GtkWidget *child,
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller),
                                           child);
   }
-  /* Apply a name to the widget so it can be recolored */
-  gtk_widget_set_name(GTK_BIN(scroller)->child, widgetname);
-  gtk_widget_set_name(scroller, widgetname);
+  set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->hscrollbar);
+  set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->vscrollbar);
   return scroller;
 }
 

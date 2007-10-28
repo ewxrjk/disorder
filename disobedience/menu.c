@@ -146,6 +146,8 @@ static void about_popup_got_version(void attribute((unused)) *v,
 
 /** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *w) {
+  GtkWidget *m;
+
   static const GtkItemFactoryEntry entries[] = {
     {
       (char *)"/File",                  /* path */
@@ -281,9 +283,10 @@ GtkWidget *menubar(GtkWidget *w) {
 						  "<GdisorderMain>/Edit/Track properties");
   assert(selectall_widget != 0);
   assert(properties_widget != 0);
-  return gtk_item_factory_get_widget(mainmenufactory,
-                                     "<GdisorderMain>");
-  /* menu bar had better not expand vertically if the window is too big */
+  m = gtk_item_factory_get_widget(mainmenufactory,
+                                  "<GdisorderMain>");
+  set_tool_colors(m);
+  return m;
 }
 
 /*
