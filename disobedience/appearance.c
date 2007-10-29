@@ -163,34 +163,34 @@ void load_appearance(void) {
     if(errno != ENOENT)
       fpopup_msg(GTK_MESSAGE_ERROR, "error opening %s: %s",
                  path, strerror(errno));
-    return;
-  }
-  while(!inputline(path, fp, &line, '\n')) {
-    if(!(vec = split(line, &nvec, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0))
-       || !nvec)
-      continue;
-    if(!strcmp(vec[0], "color")) {
-      if(nvec != 5) {
-        error(0, "%s: malformed '%s' command", path, vec[0]);
+  } else {
+    while(!inputline(path, fp, &line, '\n')) {
+      if(!(vec = split(line, &nvec, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0))
+         || !nvec)
         continue;
-      }
-      for(n = 0; n < NCOLORS && strcmp(colors[n].name, vec[1]); ++n)
-        ;
-      if(n >= NCOLORS) {
-        error(0, "%s: unknown color '%s'", path, vec[1]);
-        continue;
-      }
-      colors[n].color->red = strtoul(vec[2], 0, 0);
-      colors[n].color->green = strtoul(vec[3], 0, 0);
-      colors[n].color->blue = strtoul(vec[4], 0, 0);
-    } else
-      /* mention errors but otherwise ignore them */
-      error(0, "%s: unknown command '%s'", path, vec[0]);
-  }
-  if(ferror(fp)) {
-    fpopup_msg(GTK_MESSAGE_ERROR, "error reading %s: %s",
-               path, strerror(errno));
-    fclose(fp);
+      if(!strcmp(vec[0], "color")) {
+        if(nvec != 5) {
+          error(0, "%s: malformed '%s' command", path, vec[0]);
+          continue;
+        }
+        for(n = 0; n < NCOLORS && strcmp(colors[n].name, vec[1]); ++n)
+          ;
+        if(n >= NCOLORS) {
+          error(0, "%s: unknown color '%s'", path, vec[1]);
+          continue;
+        }
+        colors[n].color->red = strtoul(vec[2], 0, 0);
+        colors[n].color->green = strtoul(vec[3], 0, 0);
+        colors[n].color->blue = strtoul(vec[4], 0, 0);
+      } else
+        /* mention errors but otherwise ignore them */
+        error(0, "%s: unknown command '%s'", path, vec[0]);
+    }
+    if(ferror(fp)) {
+      fpopup_msg(GTK_MESSAGE_ERROR, "error reading %s: %s",
+                 path, strerror(errno));
+      fclose(fp);
+    }
   }
   tool_active = tool_bg;
   tool_active.red = clamp(105 * tool_active.red / 100);
