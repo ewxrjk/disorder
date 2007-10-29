@@ -124,21 +124,54 @@ static void about_popup_got_version(void attribute((unused)) *v,
                                     const char *value) {
   GtkWidget *w;
   char *server_version_string;
+  GtkWidget *hbox, *vbox, *title;
 
   byte_xasprintf(&server_version_string, "Server version %s", value);
-  w = gtk_dialog_new_with_buttons("About DisOrder",
+  w = gtk_dialog_new_with_buttons("About Disobedience",
                                   GTK_WINDOW(toplevel),
                                   (GTK_DIALOG_MODAL
                                    |GTK_DIALOG_DESTROY_WITH_PARENT),
                                   GTK_STOCK_OK,
                                   GTK_RESPONSE_ACCEPT,
                                   (char *)NULL);
-  gtk_container_add(GTK_CONTAINER(GTK_DIALOG(w)->vbox),
-                    gtk_label_new("DisOrder client " VERSION));
-  gtk_container_add(GTK_CONTAINER(GTK_DIALOG(w)->vbox),
-                    gtk_label_new(server_version_string));
-  gtk_container_add(GTK_CONTAINER(GTK_DIALOG(w)->vbox),
-                    gtk_label_new("(c) 2004-2007 Richard Kettlewell"));
+  hbox = gtk_hbox_new(FALSE/*homogeneous*/, 1/*padding*/);
+  vbox = gtk_vbox_new(FALSE/*homogeneous*/, 1/*padding*/);
+  gtk_box_pack_start(GTK_BOX(hbox),
+                     gtk_image_new_from_pixbuf(find_image("duck.png")),
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     4/*padding*/);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_label_new("Disobedience " VERSION),
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     1/*padding*/);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_label_new(server_version_string),
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     1/*padding*/);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_label_new("(c) 2004-2007 Richard Kettlewell"),
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     1/*padding*/);
+  gtk_box_pack_end(GTK_BOX(hbox),
+                   vbox,
+                   FALSE/*expand*/,
+                   FALSE/*fill*/,
+                   0/*padding*/);
+  title = gtk_label_new(0);
+  gtk_label_set_markup(GTK_LABEL(title),
+                       "<span font_desc=\"Sans 36\">Disobedience</span>");
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(w)->vbox), title,
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     0/*padding*/);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(w)->vbox), hbox,
+                     FALSE/*expand*/,
+                     FALSE/*fill*/,
+                     0/*padding*/);
   set_tool_colors(w);
   gtk_widget_show_all(w);
   gtk_dialog_run(GTK_DIALOG(w));
