@@ -139,6 +139,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
                     gtk_label_new(server_version_string));
   gtk_container_add(GTK_CONTAINER(GTK_DIALOG(w)->vbox),
                     gtk_label_new("(c) 2004-2007 Richard Kettlewell"));
+  set_tool_colors(w);
   gtk_widget_show_all(w);
   gtk_dialog_run(GTK_DIALOG(w));
   gtk_widget_destroy(w);
