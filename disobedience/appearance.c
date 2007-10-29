@@ -31,7 +31,7 @@
 
 #include "disobedience.h"
 #include "inputline.h"
-#include "split.h"!
+#include "split.h"
 #include <sys/stat.h>
 
 /** @brief Background colors for tools - menus, icons, etc. */
