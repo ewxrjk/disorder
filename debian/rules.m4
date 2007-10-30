@@ -29,10 +29,10 @@ archpkg([disorder], [	m4_dnl
 	rm -f debian/disorder/usr/bin/disobedience
 	rm -f debian/disorder/usr/share/man/man1/disorder-playrtp.1
 	rm -f debian/disorder/usr/share/man/man1/disobedience.1
-	mkdir -m 755 -p debian/disorder/etc/disorder
-	mkdir -m 755 -p debian/disorder/etc/init.d
-	mkdir -m 755 -p debian/disorder/usr/lib/cgi-bin/disorder
-	mkdir -m 755 -p debian/disorder/var/lib/disorder
+	$(MKDIR) debian/disorder/etc/disorder
+	$(MKDIR) debian/disorder/etc/init.d
+	$(MKDIR) debian/disorder/usr/lib/cgi-bin/disorder
+	$(MKDIR) debian/disorder/var/lib/disorder
 	$(INSTALL_SCRIPT) examples/disorder.init \
 		debian/disorder/etc/init.d/disorder
 	$(INSTALL_DATA) debian/etc.disorder.config \
@@ -61,8 +61,8 @@ archpkg([disorder], [	m4_dnl
 ])
 
 archpkg([disorder-playrtp], [	m4_dnl
-	mkdir -p debian/disorder-playrtp/usr/bin
-	mkdir -p debian/disorder-playrtp/usr/share/man/man1
+	$(MKDIR) debian/disorder-playrtp/usr/bin
+	$(MKDIR) debian/disorder-playrtp/usr/share/man/man1
 	$(INSTALL_PROGRAM) clients/disorder-playrtp \
 		debian/disorder-playrtp/usr/bin/disorder-playrtp
 	$(INSTALL_DATA) doc/disorder-playrtp.1 \
@@ -77,11 +77,18 @@ archpkg([disorder-playrtp], [	m4_dnl
 ])
 
 archpkg([disobedience], [	m4_dnl
-	mkdir -p debian/disobedience/usr/bin
-	mkdir -p debian/disobedience/usr/share/man/man1
+	$(MKDIR) debian/disobedience/usr/bin
+	$(MKDIR) debian/disobedience/usr/share/man/man1
+	$(MKDIR) debian/disobedience/usr/share/pixmaps
+	$(MKDIR) debian/disobedience/usr/share/menu
 	$(MAKE) -C disobedience install DESTDIR=`pwd`/debian/disobedience
 	$(INSTALL_DATA) doc/disobedience.1 \
 		debian/disobedience/usr/share/man/man1/disobedience.1
+	$(INSTALL_DATA) images/disobedience16x16.xpm \
+		        images/disobedience32x32.xpm \
+			debian/disobedience/usr/share/pixmaps
+	$(INSTALL_DATA) debian/usr.share.menu.disobedience \
+		debian/disobedience/usr/share/menu/disobedience
 	$(INSTALL_DATA) debian/etc.disorder.config \
 		debian/disorder/etc/disorder/config
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \

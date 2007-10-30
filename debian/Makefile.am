@@ -33,4 +33,4 @@ EXTRA_DIST=README.Debian autorules.m4 config.disorder control copyright \
 	   etc.disorder.options etc.disorder.config htaccess \
 	   postinst.disorder prerm.disorder postrm.disorder \
 	   templates.disorder conffiles.disorder \
-	   rules.m4 rules changelog
+	   rules.m4 rules changelog usr.share.menu.disobedience

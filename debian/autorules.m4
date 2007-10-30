@@ -26,6 +26,7 @@ CONFIGURE=--prefix=/usr
 INSTALL_DATA=$(INSTALL) -p -o root -g root -m 644
 INSTALL_PROGRAM=$(INSTALL) -p -o root -g root -m 755
 INSTALL_SCRIPT=$(INSTALL) -p -o root -g root -m 755
+MKDIR=mkdir -p -m 755
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 CFLAGS=-O0 -g
@@ -67,9 +68,9 @@ cleanpkg-$1:
 .PHONY: pkg-$1
 pkg-$1: [build]
 	rm -rf debian/$1
-	mkdir -p debian/$1
-	mkdir -p debian/$1/DEBIAN
-	mkdir -p debian/$1/usr/share/doc/$1
+	$(MKDIR) debian/$1
+	$(MKDIR) debian/$1/DEBIAN
+	$(MKDIR) debian/$1/usr/share/doc/$1
 	cp debian/copyright \
 		debian/$1/usr/share/doc/$1/copyright
 	cp debian/changelog \

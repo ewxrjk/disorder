@@ -25,6 +25,6 @@ propagate.png speaker.png speakercross.png
 
 staticdir=${pkgdatadir}/static
 
-EXTRA_DIST=$(static_DATA) duck.png
+EXTRA_DIST=$(static_DATA) duck.png disobedience16x16.xpm disobedience32x32.xpm
 
 CLEANFILES=$(SEDFILES)

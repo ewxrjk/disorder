@@ -1,0 +1,8 @@
+?package(disobedience):\
+	needs="x11" \
+	section="Apps/Sound" \
+	title="Disobedience" \
+        icon16x16="/usr/share/pixmaps/disobedience16x16.xpm" \
+        icon32x32="/usr/share/pixmaps/disobedience32x32.xpm" \
+	longtitle="DisOrder client" \
+	command="/usr/bin/disobedience"
