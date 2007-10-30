@@ -1,3 +1,9 @@
+disorder (1.5.99+dev5) unstable; urgency=low
+
+  * Newer Disobedience
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Tue, 30 Oct 2007 18:32:25 +0000
+
 disorder (1.5.99+dev4) unstable; urgency=low
 
   * New version for newer Disobedience, playrtp

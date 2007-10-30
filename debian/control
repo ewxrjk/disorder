@@ -1,17 +1,24 @@
 Source: disorder
 Maintainer: Richard Kettlewell <richard+disorder@sfere.greenend.org.uk>
+Uploaders: Ian Jackson <ian@davenant.greenend.org.uk>
 Priority: optional
-Standards-Version: 3.0.1.0
+Standards-Version: 3.7.2.2
 Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libao-dev, python, libflac-dev, libgtk2.0-dev
 
 Package: disorder
 Architecture: any
 Section: sound
 Priority: extra
-Depends: httpd,pwgen,sox,debconf,${shlibs:Depends}
+Depends: httpd-cgi,pwgen,sox,debconf,${shlibs:Depends}
 Suggests: disorder-playrtp,disobedience
 Description: Play random or selected digital audio files continuously
- Controlled from the command line or via a web-based interface.
+ DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
+ and other formats with suitable configuration.  It is capable of playing
+ either via a locally attached sound device or over the network using
+ an RTP stream.  It can be managed via a web interface or the graphical
+ client Disobedience.
+ .
+ This package contains the server and the web interface.
 
 Package: disorder-playrtp
 Architecture: any
@@ -19,8 +26,13 @@ Section: sound
 Priority: extra
 Depends: ${shlibs:Depends}
 Description: Network play client for DisOrder
-  Plays RTP streams issued by DisOrder.  This is only useful if you
-  have an install of the disorder package somewhere.
+ DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
+ and other formats with suitable configuration.  It is capable of playing
+ either via a locally attached sound device or over the network using
+ an RTP stream.
+ .
+ This package contains the RTP player.  It can play audio streams generated
+ by the server, received over a LAN.
 
 Package: disobedience
 Architecture: any
@@ -29,6 +41,10 @@ Priority: extra
 Depends: ${shlibs:Depends}
 Suggests: disorder-playrtp
 Description: Controller GUI for DisOrder
-  Allows DisOrder users to remotely control what is played, etc.
-  This is only useful if you have an install of the disorder package
-  somewhere.
+ DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
+ and other formats with suitable configuration.  It is capable of playing
+ either via a locally attached sound device or over the network using
+ an RTP stream.
+ .
+ This package contains the graphical client for controlling the
+ DisOrder software jukebox over a network.

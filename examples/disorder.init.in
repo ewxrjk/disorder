@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,26 +30,26 @@ start() {
   if ${CLIENT} >/dev/null 2>&1; then
     : already running
   else
-    printf "Starting disorderd... "
+    printf "Starting DisOrder server: disorderd"
     ${DAEMON}
-    echo done
+    echo .
   fi
 }
 
 stop() {
   if ${CLIENT} >/dev/null 2>&1; then
-    printf "Stopping disorderd... "
+    printf "Stopping DisOrder server: disorderd"
     ${CLIENT} shutdown
-    echo done
+    echo .
   else
     : not running
   fi
 }
 
 reload() {
-  printf "Reconfiguring disorderd... "
+  printf "Reloading DisOrder server configuration..."
   ${CLIENT} reconfigure
-  echo done
+  echo done.
 }
 
 restart() {

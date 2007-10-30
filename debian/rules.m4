@@ -33,70 +33,61 @@ archpkg([disorder], [	m4_dnl
 	mkdir -m 755 -p debian/disorder/etc/init.d
 	mkdir -m 755 -p debian/disorder/usr/lib/cgi-bin/disorder
 	mkdir -m 755 -p debian/disorder/var/lib/disorder
-	mkdir -m 755 -p debian/disorder/usr/share/doc/disorder/ChangeLog.d
-	$(INSTALL) -m 755 examples/disorder.init \
+	$(INSTALL_SCRIPT) examples/disorder.init \
 		debian/disorder/etc/init.d/disorder
-	$(INSTALL) -m 644 debian/etc.disorder.config \
+	$(INSTALL_DATA) debian/etc.disorder.config \
 		debian/disorder/etc/disorder/config
-	$(INSTALL) -m 644 debian/etc.disorder.options \
+	$(INSTALL_DATA) debian/etc.disorder.options \
 		debian/disorder/etc/disorder/options
-	$(LIBTOOL) --mode=install $(INSTALL) -m 755 server/disorder.cgi \
+	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) server/disorder.cgi \
 		$(shell pwd)/debian/disorder/usr/lib/cgi-bin/disorder/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder \
 		debian/disorder/usr/bin/* \
 		debian/disorder/usr/lib/cgi-bin/disorder/* \
 		debian/disorder/usr/sbin/* \
 		debian/disorder/usr/lib/disorder/*.so*
-	$(INSTALL) -m 644 debian/htaccess \
+	$(INSTALL_DATA) debian/htaccess \
 		debian/disorder/usr/lib/cgi-bin/disorder/.htaccess
-	$(INSTALL) -m 644 CHANGES README debian/README.Debian \
+	$(INSTALL_DATA) CHANGES README debian/README.Debian \
 		BUGS README.* \
 		debian/disorder/usr/share/doc/disorder/.
-	$(INSTALL) -m 644 ChangeLog.d/*--* \
-		debian/disorder/usr/share/doc/disorder/ChangeLog.d
-	$(INSTALL) -m 644 COPYING debian/disorder/usr/share/doc/disorder/GPL
-	gzip -9f debian/disorder/usr/share/doc/disorder/ChangeLog.d/*--* \
+	bzr log > debian/disorder/usr/share/doc/disorder/changelog
+	gzip -9f debian/disorder/usr/share/doc/disorder/changelog \
 		 debian/disorder/usr/share/doc/disorder/CHANGES \
 		 debian/disorder/usr/share/doc/disorder/README \
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
-		 debian/disorder/usr/share/doc/disorder/GPL \
 		 debian/disorder/usr/share/man/man*/*
 ])
 
 archpkg([disorder-playrtp], [	m4_dnl
 	mkdir -p debian/disorder-playrtp/usr/bin
 	mkdir -p debian/disorder-playrtp/usr/share/man/man1
-	$(INSTALL) -m 755 clients/disorder-playrtp \
+	$(INSTALL_PROGRAM) clients/disorder-playrtp \
 		debian/disorder-playrtp/usr/bin/disorder-playrtp
-	$(INSTALL) -m 755 doc/disorder-playrtp.1 \
+	$(INSTALL_DATA) doc/disorder-playrtp.1 \
 		debian/disorder-playrtp/usr/share/man/man1/disorder-playrtp.1
 	dpkg-shlibdeps -Tdebian/substvars.disorder-playrtp \
 		debian/disorder-playrtp/usr/bin/*
-	$(INSTALL) -m 644 debian/README.RTP \
+	$(INSTALL_DATA) debian/README.RTP \
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/README
-	$(INSTALL) -m 644 COPYING debian/disorder-playrtp/usr/share/doc/disorder-playrtp/GPL
-	$(INSTALL) -m 644 CHANGES debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES
-	gzip -9f debian/disorder-playrtp/usr/share/doc/disorder-playrtp/GPL \
-	         debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES \
+	$(INSTALL_DATA) CHANGES debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES
+	gzip -9f debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES \
 		 debian/disorder-playrtp/usr/share/man/man*/*
 ])
 
 archpkg([disobedience], [	m4_dnl
 	mkdir -p debian/disobedience/usr/bin
 	mkdir -p debian/disobedience/usr/share/man/man1
-	$(INSTALL) -m 755 disobedience/disobedience \
-		debian/disobedience/usr/bin/disobedience
-	$(INSTALL) -m 755 doc/disobedience.1 \
+	$(MAKE) -C disobedience install DESTDIR=`pwd`/debian/disobedience
+	$(INSTALL_DATA) doc/disobedience.1 \
 		debian/disobedience/usr/share/man/man1/disobedience.1
-	$(INSTALL) -m 644 debian/etc.disorder.config \
+	$(INSTALL_DATA) debian/etc.disorder.config \
 		debian/disorder/etc/disorder/config
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \
 		debian/disobedience/usr/bin/*
-	$(INSTALL) -m 644 COPYING debian/disobedience/usr/share/doc/disobedience/GPL
-	$(INSTALL) -m 644 CHANGES debian/disobedience/usr/share/doc/disobedience/CHANGES
-	gzip -9f debian/disobedience/usr/share/doc/disobedience/GPL \
-	         debian/disobedience/usr/share/doc/disobedience/CHANGES \
+	$(INSTALL_DATA) CHANGES debian/disobedience/usr/share/doc/disobedience/CHANGES
+	gzip -9f debian/disobedience/usr/share/doc/disobedience/CHANGES \
 		 debian/disobedience/usr/share/man/man*/*
 ])
 

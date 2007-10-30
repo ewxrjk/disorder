@@ -23,6 +23,23 @@
 INSTALL=install
 CONFIGURE=--prefix=/usr
 
+INSTALL_DATA=$(INSTALL) -p -o root -g root -m 644
+INSTALL_PROGRAM=$(INSTALL) -p -o root -g root -m 755
+INSTALL_SCRIPT=$(INSTALL) -p -o root -g root -m 755
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+CFLAGS=-O0 -g
+else
+CFLAGS=-O2 -g
+endif
+export CFLAGS
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+INSTALL_PROGRAM += -s
+endif
+export INSTALL_DATA
+export INSTALL_SCRIPT
+export INSTALL_PROGRAM
+
 m4_divert(-1)m4_dnl
 
 m4_changequote([,])
