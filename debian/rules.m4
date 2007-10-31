@@ -24,30 +24,19 @@ LIBTOOL=./libtool
 build
 
 archpkg([disorder], [	m4_dnl
-	$(MAKE) DESTDIR=`pwd`/debian/disorder staticdir=/var/www/disorder installdirs install
+	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C doc
+	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C clients
+	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C lib
+	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C scripts
+	rm -rf debian/disorder/usr/share/man/man8
+	rm -rf debian/disorder/usr/share/disorder/*.html
 	rm -f debian/disorder/usr/bin/disorder-playrtp
 	rm -f debian/disorder/usr/bin/disobedience
 	rm -f debian/disorder/usr/share/man/man1/disorder-playrtp.1
 	rm -f debian/disorder/usr/share/man/man1/disobedience.1
 	$(MKDIR) debian/disorder/etc/disorder
-	$(MKDIR) debian/disorder/etc/init.d
-	$(MKDIR) debian/disorder/usr/lib/cgi-bin/disorder
-	$(MKDIR) debian/disorder/var/lib/disorder
-	$(INSTALL_SCRIPT) examples/disorder.init \
-		debian/disorder/etc/init.d/disorder
-	$(INSTALL_DATA) debian/etc.disorder.config \
-		debian/disorder/etc/disorder/config
-	$(INSTALL_DATA) debian/etc.disorder.options \
-		debian/disorder/etc/disorder/options
-	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) server/disorder.cgi \
-		$(shell pwd)/debian/disorder/usr/lib/cgi-bin/disorder/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder \
-		debian/disorder/usr/bin/* \
-		debian/disorder/usr/lib/cgi-bin/disorder/* \
-		debian/disorder/usr/sbin/* \
-		debian/disorder/usr/lib/disorder/*.so*
-	$(INSTALL_DATA) debian/htaccess \
-		debian/disorder/usr/lib/cgi-bin/disorder/.htaccess
+		debian/disorder/usr/bin/*
 	$(INSTALL_DATA) CHANGES README debian/README.Debian \
 		BUGS README.* \
 		debian/disorder/usr/share/doc/disorder/.
@@ -58,6 +47,39 @@ archpkg([disorder], [	m4_dnl
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
 		 debian/disorder/usr/share/man/man*/*
+])
+
+archpkg([disorder-server], [	m4_dnl
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C images
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C server
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C templates
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C driver
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C plugins
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C sounds
+	$(MAKE) DESTDIR=`pwd`/debian/disorder-server staticdir=/var/www/disorder installdirs install -C doc
+	rm -rf debian/disorder-server/usr/share/man/man1
+	rm -rf debian/disorder-server/usr/share/man/man3
+	rm -rf debian/disorder-server/usr/share/man/man5
+	$(MKDIR) debian/disorder-server/etc/disorder
+	$(MKDIR) debian/disorder-server/etc/init.d
+	$(MKDIR) debian/disorder-server/usr/lib/cgi-bin/disorder
+	$(MKDIR) debian/disorder-server/var/lib/disorder
+	$(INSTALL_SCRIPT) examples/disorder.init \
+		debian/disorder-server/etc/init.d/disorder
+	$(INSTALL_DATA) debian/etc.disorder.config \
+		debian/disorder-server/etc/disorder/config
+	$(INSTALL_DATA) debian/etc.disorder.options \
+		debian/disorder-server/etc/disorder/options
+	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) server/disorder.cgi \
+		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder/disorder
+	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
+		debian/disorder-server/usr/lib/cgi-bin/disorder/* \
+		debian/disorder-server/usr/sbin/* \
+		debian/disorder-server/usr/lib/disorder/*.so*
+	$(INSTALL_DATA) debian/htaccess \
+		debian/disorder-server/usr/lib/cgi-bin/disorder/.htaccess
+	rm -rf debian/disorder-server/usr/share/doc/disorder-server
+	ln -s disorder debian/disorder-server/usr/share/doc/disorder-server
 ])
 
 archpkg([disorder-playrtp], [	m4_dnl
@@ -89,13 +111,10 @@ archpkg([disobedience], [	m4_dnl
 			debian/disobedience/usr/share/pixmaps
 	$(INSTALL_DATA) debian/usr.share.menu.disobedience \
 		debian/disobedience/usr/share/menu/disobedience
-	$(INSTALL_DATA) debian/etc.disorder.config \
-		debian/disorder/etc/disorder/config
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \
 		debian/disobedience/usr/bin/*
-	$(INSTALL_DATA) CHANGES debian/disobedience/usr/share/doc/disobedience/CHANGES
-	gzip -9f debian/disobedience/usr/share/doc/disobedience/CHANGES \
-		 debian/disobedience/usr/share/man/man*/*
+	rm -rf debian/disobedience/usr/share/doc/disobedience
+	ln -s disorder debian/disobedience/usr/share/doc/disobedience
 ])
 
 binary
