@@ -71,15 +71,15 @@ pkg-$1: [build]
 	$(MKDIR) debian/$1
 	$(MKDIR) debian/$1/DEBIAN
 	$(MKDIR) debian/$1/usr/share/doc/$1
-	cp debian/copyright \
+	$(INSTALL_DATA) debian/copyright \
 		debian/$1/usr/share/doc/$1/copyright
-	cp debian/changelog \
+	$(INSTALL_DATA) debian/changelog \
 		debian/$1/usr/share/doc/$1/changelog.Debian
 	gzip -9 debian/$1/usr/share/doc/$1/changelog.Debian
 	@for f in preinst postinst prerm postrm conffiles templates config; do\
 	  if test -e debian/$$f.$1; then\
-	    echo cp debian/$$f.$1 debian/$1/DEBIAN/$$f; \
-	    cp debian/$$f.$1 debian/$1/DEBIAN/$$f; \
+	    echo $(INSTALL_SCRIPT) debian/$$f.$1 debian/$1/DEBIAN/$$f; \
+	    $(INSTALL_SCRIPT) debian/$$f.$1 debian/$1/DEBIAN/$$f; \
 	  fi;\
 	done
 $2	dpkg-gencontrol -isp -p$1 -Pdebian/$1 -Tdebian/substvars.$1

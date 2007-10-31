@@ -1,6 +1,7 @@
+#! /bin/sh
 #
 # This file is part of DisOrder
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,20 +19,12 @@
 # USA
 #
 
-noinst_SCRIPTS=rules
+set -e
 
-autorules_m4=${srcdir}/autorules.m4
-rules_m4=${srcdir}/rules.m4
-
-rules: ${autorules_m4} ${rules_m4}
-	rm -f rules.tmp
-	m4 -P ${autorules_m4} ${rules_m4} > rules.tmp
-	chmod 555 rules.tmp
-	mv -f rules.tmp rules
-
-EXTRA_DIST=README.Debian autorules.m4 config.disorder control copyright \
-	   etc.disorder.options etc.disorder.config htaccess \
-	   postinst.disorder prerm.disorder postrm.disorder \
-	   templates.disorder conffiles.disorder \
-	   rules.m4 rules changelog usr.share.menu.disobedience \
-	   postinst.disobedience
+case "$1" in
+configure )
+  if type update-menus >/dev/null 2>&1; then
+    update-menus
+  fi
+  ;;
+esac
