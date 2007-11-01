@@ -44,6 +44,11 @@ void trackdb_close(void);
 char **trackdb_stats(int *nstatsp);
 /* return a list of database stats */
 
+void trackdb_stats_subprocess(struct ev_source *ev,
+                              void (*done)(char *data, void *u),
+                              void *u);
+/* collect stats in background and call done() with results */
+
 int trackdb_set(const char *track,
                 const char *name,
                 const char *value);

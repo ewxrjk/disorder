@@ -154,7 +154,8 @@ static int reap_db_deadlock(ev_source attribute((unused)) *ev,
   return 0;
 }
 
-static pid_t subprogram(ev_source *ev, const char *prog) {
+static pid_t subprogram(ev_source *ev, const char *prog,
+                        int outputfd) {
   pid_t pid;
   int lfd;
 
@@ -170,6 +171,11 @@ static pid_t subprogram(ev_source *ev, const char *prog) {
     if(lfd != -1) {
       xdup2(lfd, 1);
       xdup2(lfd, 2);
+      xclose(lfd);
+    }
+    if(outputfd != -1) {
+      xdup2(outputfd, 1);
+      xclose(outputfd);
     }
     /* If we were negatively niced, undo it.  We don't bother checking for
      * error, it's not that important. */
@@ -186,7 +192,7 @@ static pid_t subprogram(ev_source *ev, const char *prog) {
 /* start deadlock manager */
 void trackdb_master(ev_source *ev) {
   assert(db_deadlock_pid == -1);
-  db_deadlock_pid = subprogram(ev, DEADLOCK);
+  db_deadlock_pid = subprogram(ev, DEADLOCK, -1);
   ev_child(ev, db_deadlock_pid, 0, reap_db_deadlock, 0);
   D(("started deadlock manager"));
 }
@@ -952,7 +958,6 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
 char **trackdb_stats(int *nstatsp) {
   DB_TXN *tid;
   struct vector v;
-  char *s;
   
   vector_init(&v);
   for(;;) {
@@ -968,12 +973,6 @@ char **trackdb_stats(int *nstatsp) {
     if(get_stats(&v, trackdb_prefsdb, SI(hash), tid)) goto fail;
     vector_append(&v, (char *)"");
     if(search_league(&v, 10, tid)) goto fail;
-    vector_append(&v, (char *)"");
-    vector_append(&v, (char *)"Server stats:");
-    byte_xasprintf(&s, "track lookup cache hits: %lu", cache_files_hits);
-    vector_append(&v, (char *)s);
-    byte_xasprintf(&s, "track lookup cache misses: %lu", cache_files_misses);
-    vector_append(&v, (char *)s);
     vector_terminate(&v);
     break;
 fail:
@@ -982,6 +981,91 @@ fail:
   trackdb_commit_transaction(tid);
   if(nstatsp) *nstatsp = v.nvec;
   return v.vec;
+}
+
+struct stats_details {
+  void (*done)(char *data, void *u);
+  void *u;
+  int exited;                           /* subprocess exited */
+  int closed;                           /* pipe close */
+  int wstat;                            /* wait status from subprocess */
+  struct dynstr data[1];                /* data read from pipe */
+};
+
+static void stats_complete(struct stats_details *d) {
+  char *s;
+  
+  if(!(d->exited && d->closed))
+    return;
+  byte_xasprintf(&s, "\n"
+                 "Server stats:\n"
+                 "track lookup cache hits: %lu\n"
+                 "track lookup cache misses: %lu\n",
+                 cache_files_hits,
+                 cache_files_misses);
+  dynstr_append_string(d->data, s);
+  dynstr_terminate(d->data);
+  d->done(d->data->vec, d->u);
+}
+
+static int stats_finished(ev_source attribute((unused)) *ev,
+                          pid_t attribute((unused)) pid,
+                          int status,
+                          const struct rusage attribute((unused)) *rusage,
+                          void *u) {
+  struct stats_details *const d = u;
+
+  d->exited = 1;
+  if(status)
+    error(0, "disorder-stats %s", wstat(status));
+  stats_complete(d);
+  return 0;
+}
+
+static int stats_read(ev_source attribute((unused)) *ev,
+                      ev_reader *reader,
+                      int attribute((unused)) fd,
+                      void *ptr,
+                      size_t bytes,
+                      int eof,
+                      void *u) {
+  struct stats_details *const d = u;
+
+  dynstr_append_bytes(d->data, ptr, bytes);
+  ev_reader_consume(reader, bytes);
+  if(eof)
+    d->closed = 1;
+  stats_complete(d);
+  return 0;
+}
+
+static int stats_error(ev_source attribute((unused)) *ev,
+                       int attribute((unused)) fd,
+                       int errno_value,
+                       void *u) {
+  struct stats_details *const d = u;
+
+  error(errno_value, "error reading from pipe to disorder-stats");
+  d->closed = 1;
+  stats_complete(d);
+  return 0;
+}
+
+void trackdb_stats_subprocess(ev_source *ev,
+                              void (*done)(char *data, void *u),
+                              void *u) {
+  int p[2];
+  pid_t pid;
+  struct stats_details *d = xmalloc(sizeof *d);
+
+  dynstr_init(d->data);
+  d->done = done;
+  d->u = u;
+  xpipe(p);
+  pid = subprogram(ev, "disorder-stats", p[1]);
+  xclose(p[1]);
+  ev_child(ev, pid, 0, stats_finished, d);
+  ev_reader_new(ev, p[0], stats_read, stats_error, d, "disorder-stats reader");
 }
 
 /* set a pref (remove if value=0) */
@@ -1758,7 +1842,7 @@ void trackdb_rescan(ev_source *ev) {
     error(0, "rescan already underway");
     return;
   }
-  rescan_pid = subprogram(ev, RESCAN);
+  rescan_pid = subprogram(ev, RESCAN, -1);
   ev_child(ev, rescan_pid, 0, reap_rescan, 0);
   D(("started rescanner"));
   

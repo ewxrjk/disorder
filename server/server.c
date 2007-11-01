@@ -665,21 +665,19 @@ static int c_random_enabled(struct conn *c,
   return 1;			/* completed */
 }
 
+static void got_stats(char *stats, void *u) {
+  struct conn *const c = u;
+
+  sink_printf(ev_writer_sink(c->w), "253 stats\n%s\n.\n", stats);
+  /* Now we can start processing commands again */
+  ev_reader_enable(c->r);
+}
+
 static int c_stats(struct conn *c,
 		   char attribute((unused)) **vec,
 		   int attribute((unused)) nvec) {
-  char **v;
-  int nv, n;
-
-  v = trackdb_stats(&nv);
-  sink_printf(ev_writer_sink(c->w), "253 stats\n");
-  for(n = 0; n < nv; ++n) {
-    if(v[n][0] == '.')
-      sink_writes(ev_writer_sink(c->w), ".");
-    sink_printf(ev_writer_sink(c->w), "%s\n", v[n]);
-  }
-  sink_writes(ev_writer_sink(c->w), ".\n");
-  return 1;
+  trackdb_stats_subprocess(c->ev, got_stats, c);
+  return 0;				/* not yet complete */
 }
 
 static int c_volume(struct conn *c,
