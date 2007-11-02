@@ -19,7 +19,7 @@
 #
 
 EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
-README.upgrades README.client
+README.upgrades README.client README.mac README.raw
 SUBDIRS=@subdirs@
 
 dist-hook:
@@ -27,3 +27,6 @@ dist-hook:
 
 echo-distdir:
 	@echo $(distdir)
+
+echo-version:
+	@echo $(VERSION)

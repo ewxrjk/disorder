@@ -29,9 +29,11 @@ rules: ${autorules_m4} ${rules_m4}
 	chmod 555 rules.tmp
 	mv -f rules.tmp rules
 
-EXTRA_DIST=README.Debian autorules.m4 config.disorder control copyright \
+EXTRA_DIST=README.Debian autorules.m4 config.disorder-server control \
+	   copyright README.RTP \
 	   etc.disorder.options etc.disorder.config htaccess \
-	   postinst.disorder prerm.disorder postrm.disorder \
-	   templates.disorder conffiles.disorder \
+	   postinst.disorder-server prerm.disorder-server \
+	   postrm.disorder-server \
+	   templates.disorder-server conffiles.disorder-server \
 	   rules.m4 rules changelog usr.share.menu.disobedience \
 	   postinst.disobedience

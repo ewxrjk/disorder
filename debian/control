@@ -1,5 +1,5 @@
 Source: disorder
-Maintainer: Richard Kettlewell <richard+disorder@sfere.greenend.org.uk>
+Maintainer: Richard Kettlewell <debian-disorder@greenend.org.uk>
 Uploaders: Ian Jackson <ian@davenant.greenend.org.uk>
 Priority: optional
 Standards-Version: 3.7.2.2

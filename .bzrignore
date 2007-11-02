@@ -116,3 +116,5 @@ debian/disorder-server
 doc/disorder-stats.8
 doc/disorder-stats.8.html
 server/disorder-stats
+*.deb
+*.dsc

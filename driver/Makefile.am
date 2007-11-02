@@ -28,9 +28,14 @@ AM_CPPFLAGS=-I${top_srcdir}/lib
 libdisorder_la_SOURCES=disorder.c
 libdisorder_la_LDFLAGS=-module
 
+install-data-hook:
+
 # Link ao driver into right location.  If you have some other location then
 # you'll need to modify this or link it manually.
-install-data-hook:
+#
+# We don't mess with this for now; since disorder-decode covers some common
+# cases, the libao driver is less useful than it was.
+link-ao-driver:
 	@if test -d ${DESTDIR}${finkaolibdir} \
 	   && test ${finkaolibdir} != ${aolibdir}; then \
 	  echo rm -f ${DESTDIR}${finkaolibdir}/libdisorder.*; \

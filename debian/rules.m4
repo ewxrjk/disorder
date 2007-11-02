@@ -20,6 +20,7 @@
 
 CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man
 LIBTOOL=./libtool
+FAKEROOT=fakeroot
 
 build
 
@@ -116,6 +117,25 @@ archpkg([disobedience], [	m4_dnl
 	rm -rf debian/disobedience/usr/share/doc/disobedience
 	ln -s disorder debian/disobedience/usr/share/doc/disobedience
 ])
+
+DEBVERSION:=$(shell dpkg-parsechangelog|awk '/Version:/ {print $$2}')
+DSC:=disorder_$(DEBVERSION).dsc
+DEBSRC:=disorder_$(DEBVERSION).tar.gz
+VERSION:=$(shell $(MAKE) echo-version)
+
+source:
+	$(MAKE) dist
+	rm -rf disorder-$(VERSION)
+	tar xfz disorder-$(VERSION).tar.gz
+	dpkg-source -b disorder-$(VERSION)
+	rm -rf disorder-$(VERSION) disorder-$(VERSION).tar.gz
+
+source-check: source
+	rm -rf disorder-$(DEBVERSION)
+	dpkg-source -x $(DSC)
+	cd disorder-$(DEBVERSION) && dpkg-buildpackage -r$(FAKEROOT)
+
+.PHONY: source source-check
 
 binary
 
