@@ -266,7 +266,7 @@ int ev_run(ev_source *ev) {
 	      error(errno, "mode %s fstat %d (%s)",
 		    modenames[mode], fd, ev->mode[mode].fds[n].what);
 	  }
-	  for(n = 0; n < maxfd; ++n)
+	  for(n = 0; n <= maxfd; ++n)
 	    if(FD_ISSET(n, &ev->mode[mode].enabled)
 	       && fstat(n, &sb) < 0)
 	      error(errno, "mode %s fstat %d", modenames[mode], n);
