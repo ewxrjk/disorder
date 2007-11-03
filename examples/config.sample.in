@@ -12,6 +12,15 @@ player *.ogg execraw disorder-decode
 player *.wav execraw disorder-decode
 player *.flac execraw disorder-decode
 
+# Track length calculators
+#
+# If you add new formats then can add a plugin module to calculate the
+# length of a track.  See disorder(3) for the interface.
+tracklength *.mp3 disorder-tracklength
+tracklength *.ogg disorder-tracklength
+tracklength *.wav disorder-tracklength
+tracklength *.flac disorder-tracklength
+
 # Use the fs module to list files under /export/mp3.  The encoding
 # is ISO-8859-1.
 collection fs ISO-8859-1 /export/mp3

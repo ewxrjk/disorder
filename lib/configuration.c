@@ -635,6 +635,17 @@ static int validate_player(const struct config_state *cs,
   return 0;
 }
 
+static int validate_tracklength(const struct config_state *cs,
+				int nvec,
+				char attribute((unused)) **vec) {
+  if(nvec < 2) {
+    error(0, "%s:%d: should be at least 'tracklength PATTERN MODULE'",
+	  cs->path, cs->line);
+    return -1;
+  }
+  return 0;
+}
+
 static int validate_allow(const struct config_state *cs,
 			  int nvec,
 			  char attribute((unused)) **vec) {
@@ -903,6 +914,7 @@ static const struct conf conf[] = {
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
+  { C(tracklength),      &type_stringlist_accum, validate_tracklength },
   { C(transform),        &type_transform,        validate_any },
   { C(trust),            &type_string_accum,     validate_any },
   { C(url),              &type_string,           validate_url },

@@ -42,4 +42,4 @@ autoheader
 automake -a || true		# for INSTALL
 automake --foreign -a
 cd "$here"
-$srcdir/configure "$@" --sysconfdir=/etc --localstatedir=/var
+$srcdir/configure --sysconfdir=/etc --localstatedir=/var "$@"

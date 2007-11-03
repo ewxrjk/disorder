@@ -18,16 +18,16 @@
 # USA
 #
 
-pkglib_LTLIBRARIES=tracklength.la fs.la notify.la exec.la shell.la \
+pkglib_LTLIBRARIES=disorder-tracklength.la fs.la notify.la exec.la shell.la \
 		   execraw.la
 AM_CPPFLAGS=-I${top_srcdir}/lib
 
 notify_la_SOURCES=notify.c
 notify_la_LDFLAGS=-module
 
-tracklength_la_SOURCES=tracklength.c mad.c madshim.h ../lib/wav.h ../lib/wav.c
-tracklength_la_LDFLAGS=-module
-tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC)
+disorder_tracklength_la_SOURCES=tracklength.c mad.c madshim.h ../lib/wav.h ../lib/wav.c
+disorder_tracklength_la_LDFLAGS=-module
+disorder_tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC)
 
 fs_la_SOURCES=fs.c
 fs_la_LDFLAGS=-module

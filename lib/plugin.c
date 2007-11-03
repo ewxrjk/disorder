@@ -58,6 +58,7 @@ const struct plugin *open_plugin(const char *name,
   for(pl = plugins; pl && strcmp(pl->name, name); pl = pl->next)
     ;
   if(pl) return pl;
+  /* Search the plugin path */
   for(n = 0; n <= config->plugins.n; ++n) {
     byte_xasprintf(&p, "%s/%s" SOSUFFIX,
 		   n == config->plugins.n ? pkglibdir : config->plugins.s[n],
@@ -106,13 +107,18 @@ const void *get_plugin_object(const struct plugin *pl,
 
 typedef long tracklength_fn(const char *track, const char *path);
 
-long tracklength(const char *track, const char *path) {
-  static tracklength_fn *f = 0;
+/** Compute the length of a track
+ * @param plugin plugin to use, as configured
+ * @param track UTF-8 name of track
+ * @param path file system path or 0
+ * @return length of track in seconds, 0 for unknown, -1 for error
+ */
+long tracklength(const char *plugin, const char *track, const char *path) {
+  tracklength_fn *f = 0;
 
-  if(!f)
-    f = (tracklength_fn *)get_plugin_function(open_plugin("tracklength",
-							  PLUGIN_FATAL),
-					      "disorder_tracklength");
+  f = (tracklength_fn *)get_plugin_function(open_plugin(plugin,
+							PLUGIN_FATAL),
+					    "disorder_tracklength");
   return (*f)(track, path);
 }
 

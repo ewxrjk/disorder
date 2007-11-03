@@ -42,11 +42,7 @@ const void *get_plugin_object(const struct plugin *handle,
 
 /* track length computation ***************************************************/
 
-long tracklength(const char *track, const char *path);
-/* compute the length of the track.  @track@ is the UTF-8 name of the
- * track, @path@ is the file system name (or 0 for tracks that don't
- * exist in the filesystem).  The return value should be a positive
- * number of seconds, 0 for unknown or -1 if an error occurred. */
+long tracklength(const char *plugin, const char *track, const char *path);
 
 /* collection interface *******************************************************/
 

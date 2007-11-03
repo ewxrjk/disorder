@@ -102,6 +102,9 @@ struct config {
   /** @brief All players */
   struct stringlistlist player;
 
+  /** @brief All tracklength plugins */
+  struct stringlistlist tracklength;
+
   /** @brief Allowed users */
   struct stringlistlist allow;
 

@@ -320,6 +320,12 @@ the shell quoting rules.
 .RE
 .IP
 If multiple player commands match a track then the first match is used.
+.IP
+For the server to be able to calculate track lengths, there should be a
+.B tracklength
+command corresponding to each
+.B player
+command.
 .TP
 .B prefsync \fISECONDS\fR
 The interval at which the preferences log file will be synchronised.  Defaults
@@ -328,6 +334,20 @@ to 3600, i.e. one hour.
 .B queue_pad \fICOUNT\fR
 The target size of the queue.  If random play is enabled then randomly picked
 tracks will be added until the queue is at least this big.
+.TP
+.B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
+Determine which operations are restricted to the submitter of a
+track.  By default, no operations are restricted, i.e. anyone can
+scratch or remove anything.
+.IP
+If \fBrestrict scratch\fR or \fBrestrict remove\fR are set then only the user
+that submitted a track can scratch or remove it, respectively.
+.IP
+If \fBrestrict move\fR is set then only trusted users can move tracks around in
+the queue.
+.IP
+If \fBrestrict\fR is used more than once then only the final use has any
+effect.
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).  The
@@ -413,20 +433,6 @@ is invoked to translate it.  If
 .B sox
 is not installed then this will not work.
 .TP
-.B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
-Determine which operations are restricted to the submitter of a
-track.  By default, no operations are restricted, i.e. anyone can
-scratch or remove anything.
-.IP
-If \fBrestrict scratch\fR or \fBrestrict remove\fR are set then only the user
-that submitted a track can scratch or remove it, respectively.
-.IP
-If \fBrestrict move\fR is set then only trusted users can move tracks around in
-the queue.
-.IP
-If \fBrestrict\fR is used more than once then only the final use has any
-effect.
-.TP
 .B scratch \fIPATH\fR
 Specifies a scratch.  When a track is scratched, a scratch track is
 played at random.
@@ -438,6 +444,10 @@ UTF-8 (which means that ASCII will do).
 .B stopword \fIWORD\fR ...
 Specifies one or more stopwords that should not take part in searches
 over track names.
+.TP
+.B tracklength \fIPATTERN\fR \fIMODULE\fR
+Specifies the module used to calculate the length of files matching
+\fIPATTERN\fR.  \fIMODULE\fR specifies which plugin module to use.
 .SS "Client Configuration"
 .TP
 .B connect \fIHOST SERVICE\fR

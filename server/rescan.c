@@ -198,8 +198,8 @@ static int recheck_callback(const char *track,
   const struct collection *c = cs->c;
   const char *path = kvp_get(data, "_path");
   char buffer[20];
-  int err;
-  long n;
+  int err, n;
+  long length;
 
   if(aborted()) return EINTR;
   D(("rechecking %s", track));
@@ -222,13 +222,20 @@ static int recheck_callback(const char *track,
   /* make sure we know the length */
   if(!kvp_get(data, "_length")) {
     D(("recalculating length of %s", track));
-    n = tracklength(track, path);
-    if(n > 0) {
-      byte_snprintf(buffer, sizeof buffer, "%ld", n);
-      kvp_set(&data, "_length", buffer);
-      if((err = trackdb_putdata(trackdb_tracksdb, track, data, tid, 0)))
-        return err;
-      ++cs->nlength;
+    for(n = 0; n < config->tracklength.n; ++n)
+      if(fnmatch(config->tracklength.s[n].s[0], track, 0) == 0)
+        break;
+    if(n >= config->tracklength.n)
+      error(0, "no tracklength plugin found for %s", track);
+    else {
+      length = tracklength(config->tracklength.s[n].s[1], track, path);
+      if(length > 0) {
+        byte_snprintf(buffer, sizeof buffer, "%ld", length);
+        kvp_set(&data, "_length", buffer);
+        if((err = trackdb_putdata(trackdb_tracksdb, track, data, tid, 0)))
+          return err;
+        ++cs->nlength;
+      }
     }
   }
   return 0;
