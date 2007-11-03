@@ -115,10 +115,12 @@ static int writer_error(ev_source attribute((unused)) *ev,
     /* writer is done */
     c->w = 0;
     if(c->r == 0) {
-      D(("server writer_error closes %d", fd));
+      //D(("server writer_error closes %d", fd));
+      info("server writer_error closes %d because all done", fd); /* TODO */
       xclose(fd);		/* reader is done too, close */
     } else {
-      D(("server writer_error shutdown %d SHUT_WR", fd));
+      //D(("server writer_error shutdown %d SHUT_WR", fd));
+      info("server writer_error shutdown %d SHUT_WR", fd); /* TODO */
       xshutdown(fd, SHUT_WR);	/* reader is not done yet */
     }
   } else {
@@ -126,6 +128,7 @@ static int writer_error(ev_source attribute((unused)) *ev,
       error(errno_value, "S%x write error on socket", c->tag);
     if(c->r)
       ev_reader_cancel(c->r);
+    info("server writer_error closes %d because errno=%d", fd, errno_value); /* TODO */
     xclose(fd);
   }
   return 0;
@@ -141,7 +144,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
   error(errno, "S%x read error on socket", c->tag);
   ev_writer_cancel(c->w);
   ev_report(ev);
-  info("closing fd %d", fd);
+  info("reader_error closing fd %d", fd); /* TODO */
   xclose(fd);
   return 0;
 }
