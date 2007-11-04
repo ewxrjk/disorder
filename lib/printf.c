@@ -145,6 +145,7 @@ static int check_integer(const struct conversion *c) {
   case l_intmax_t:
   case l_size_t:
   case l_longdouble:
+  case l_ptrdiff_t:
     return 0;
   default:
     return -1;

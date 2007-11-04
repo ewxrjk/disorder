@@ -177,6 +177,11 @@ ev_writer *ev_writer_new(ev_source *ev,
 /* create a new buffered writer, writing to @fd@.  Calls @error@ if an
  * error occurs. */
 
+int ev_writer_time_bound(ev_writer *ev,
+			 int new_time_bound);
+int ev_writer_space_bound(ev_writer *ev,
+			  int new_space_bound);
+
 int ev_writer_close(ev_writer *w);
 /* close a writer (i.e. promise not to write to it any more) */
 

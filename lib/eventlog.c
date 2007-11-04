@@ -66,7 +66,7 @@ static void veventlog(const char *keyword, const char *raw, va_list ap) {
   for(p = outputs; p; p = pnext) {
     /* We must be able to cope with eventlog_remove() being called from inside
      * the callback */
-    pnext = p;
+    pnext = p->next;
     p->fn(d.vec, p->user);
   }
 }

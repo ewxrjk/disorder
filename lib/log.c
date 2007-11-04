@@ -92,8 +92,10 @@ static void format(char buffer[], size_t bufsize, const char *fmt, va_list ap) {
   int ch;
   size_t n = 0;
   
-  if(byte_vsnprintf(t, sizeof t, fmt, ap) < 0)
-    strcpy(t, "[byte_vsnprintf failed]");
+  if(byte_vsnprintf(t, sizeof t, fmt, ap) < 0) {
+    strcpy(t, "[byte_vsnprintf failed: ");
+    strncat(t, fmt, sizeof t - strlen(t) - 1);
+  }
   p = t;
   while((ch = (unsigned char)*p++)) {
     if(ch >= ' ' && ch <= 126) {
