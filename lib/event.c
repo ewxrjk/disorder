@@ -978,6 +978,8 @@ ev_writer *ev_writer_new(ev_source *ev,
  * descriptor as and when it is writable.
  */
 struct sink *ev_writer_sink(ev_writer *w) {
+  if(!w)
+    fatal(0, "ev_write_sink called with null writer");
   return &w->s;
 }
 

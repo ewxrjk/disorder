@@ -142,7 +142,10 @@ static int reader_error(ev_source attribute((unused)) *ev,
 
   D(("server reader_error %d %d", fd, errno_value));
   error(errno, "S%x read error on socket", c->tag);
-  ev_writer_cancel(c->w);
+  if(c->w) {
+    ev_writer_cancel(c->w);
+    c->w = 0;
+  }
   ev_report(ev);
   info("reader_error closing fd %d", fd); /* TODO */
   xclose(fd);
@@ -732,8 +735,11 @@ static int logging_reader_callback(ev_source *ev,
 
   /* don't log to this conn any more */
   eventlog_remove(c->lo);
-  /* terminate the log output */
-  sink_writes(ev_writer_sink(c->w), ".\n");
+  if(c->w) {
+    /* Terminate the log output, but only if the writer hasn't been killed off
+     * from a failure on some earlier write */
+    sink_writes(ev_writer_sink(c->w), ".\n");
+  }
   /* restore the reader callback */
   c->reader = reader_callback;
   /* ...and exit via it */
@@ -743,6 +749,11 @@ static int logging_reader_callback(ev_source *ev,
 static void logclient(const char *msg, void *user) {
   struct conn *c = user;
 
+  if(!c->w || !c->r) {
+    /* This connection has gone up in smoke for some reason */
+    eventlog_remove(c->lo);
+    return;
+  }
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" %s\n",
 	      (uintmax_t)time(0), msg);
 }

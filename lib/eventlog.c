@@ -48,7 +48,7 @@ void eventlog_remove(struct eventlog_output *lo) {
 }
 
 static void veventlog(const char *keyword, const char *raw, va_list ap) {
-  struct eventlog_output *p;
+  struct eventlog_output *p, *pnext;
   struct dynstr d;
   const char *param;
 
@@ -63,8 +63,12 @@ static void veventlog(const char *keyword, const char *raw, va_list ap) {
     dynstr_append_string(&d, raw);
   }
   dynstr_terminate(&d);
-  for(p = outputs; p; p = p->next)
+  for(p = outputs; p; p = pnext) {
+    /* We must be able to cope with eventlog_remove() being called from inside
+     * the callback */
+    pnext = p;
     p->fn(d.vec, p->user);
+  }
 }
 
 void eventlog_raw(const char *keyword, const char *raw, ...) {
