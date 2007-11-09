@@ -918,10 +918,15 @@ static int writer_shutdown(ev_source *ev,
 			   const attribute((unused)) struct timeval *now,
 			   void *u) {
   ev_writer *w = u;
+  int fd;
 
+  if(w->fd == -1)
+    return 0;				/* already closed */
   ev_timeout_cancel(ev, w->timeout);
   w->timeout = 0;
-  return w->callback(ev, w->fd, w->syntherror, w->u);
+  fd = w->fd;
+  w->fd = -1;
+  return w->callback(ev, fd, w->syntherror, w->u);
 }
 
 /** @brief Called when a writer's @p timebound expires */
@@ -929,10 +934,15 @@ static int writer_timebound_exceeded(ev_source *ev,
 				     const struct timeval attribute((unused)) *now,
 				     void *u) {
   ev_writer *const w = u;
+  int fd;
 
+  if(w->fd == -1)
+    return 0;				/* already closed */
   error(0, "abandoning writer %s because no writes within %ds",
 	w->what, w->timebound);
-  return w->callback(ev, w->fd, ETIMEDOUT, w->u);
+  fd = w->fd;
+  w->fd = -1;
+  return w->callback(ev, fd, ETIMEDOUT, w->u);
 }
 
 /** @brief Set the time bound callback (if not set already) */
@@ -952,6 +962,8 @@ static int writer_callback(ev_source *ev, int fd, void *u) {
   ev_writer *const w = u;
   int n;
 
+  if(w->fd == -1)
+    return 0;
   n = write(fd, w->b.start, w->b.end - w->b.start);
   D(("callback for writer fd %d, %ld bytes, n=%d, errno=%d",
      fd, (long)(w->b.end - w->b.start), n, errno));
@@ -962,6 +974,7 @@ static int writer_callback(ev_source *ev, int fd, void *u) {
     if(w->b.start == w->b.end) {
       if(w->eof) {
 	ev_fd_cancel(ev, ev_write, fd);
+	w->fd = -1;
 	return w->callback(ev, fd, 0, w->u);
       } else
 	ev_fd_disable(ev, ev_write, fd);
@@ -974,6 +987,7 @@ static int writer_callback(ev_source *ev, int fd, void *u) {
       break;
     default:
       ev_fd_cancel(ev, ev_write, fd);
+      w->fd = -1;
       return w->callback(ev, fd, errno, w->u);
     }
   }
