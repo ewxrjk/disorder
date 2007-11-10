@@ -245,14 +245,16 @@ int rtp_running(void);
 void start_rtp(void);
 void stop_rtp(void);
 
-/* Appearance */
+/* Settings */
 
 extern GdkColor tool_bg, tool_fg, layout_bg, even_bg, odd_bg;
 extern GdkColor active_bg, selected_bg, selected_fg, search_bg;
 extern GdkColor title_bg, title_fg, item_fg, drag_target, tool_active;
 
-void save_appearance(void);
-void load_appearance(void);
+extern const char *browser;
+
+void save_settings(void);
+void load_settings(void);
 void set_tool_colors(GtkWidget *w);
 void set_slider_colors(GtkWidget *w);
 

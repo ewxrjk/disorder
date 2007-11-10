@@ -109,8 +109,6 @@ doc/disorder-normalize.8.html
 doc/disorder-decode.8.html
 doc/disorder-decode.8
 doc/plumbing.png
-disobedience/manual.h
-disobedience/manual.html
 disobedience/images.h
 debian/disorder-server
 doc/disorder-stats.8
@@ -118,3 +116,4 @@ doc/disorder-stats.8.html
 server/disorder-stats
 *.deb
 *.dsc
+disobedience/disobedience.html

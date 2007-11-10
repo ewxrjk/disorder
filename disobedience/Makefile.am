@@ -19,6 +19,7 @@
 #
 
 bin_PROGRAMS=disobedience
+doc_DATA=disobedience.html
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
@@ -27,7 +28,7 @@ PNGS:=$(wildcard ${top_srcdir}/images/*.png)
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 		  choose.c misc.c control.c properties.c menu.c \
 		  log.c progress.c login.c rtp.c help.c \
-		  ../lib/memgc.c appearance.c
+		  ../lib/memgc.c settings.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
@@ -36,17 +37,11 @@ install-exec-hook:
 
 check: check-help
 
-help.o: manual.h
-
-manual.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
+disobedience.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
 	rm -f $@.new
 	$(top_srcdir)/scripts/htmlman $< >$@.new
 	chmod 444 $@.new
 	mv -f $@.new $@
-
-manual.h: manual.html ${top_srcdir}/scripts/text2c
-	${top_srcdir}/scripts/text2c manual manual.html > $@.tmp
-	mv $@.tmp $@
 
 misc.o: images.h
 

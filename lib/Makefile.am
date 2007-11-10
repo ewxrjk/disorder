@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005, 2006, s007 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	hash.c hash.h					\
 	heap.h						\
 	hex.c hex.h					\
-	html.c html.h					\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
@@ -82,6 +81,7 @@ definitions.h: Makefile
 	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
 	echo "#define BINDIR \"${bindir}/\"" >> $@.new
 	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new
+	echo "#define DOCDIR \"${docdir}/\"" >> $@.new
 	@if cmp $@.new $@; then \
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi

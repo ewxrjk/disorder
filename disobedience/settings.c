@@ -17,8 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file disobedience/appearance.c
- * @brief Visual appearance of Disobedience
+/** @file disobedience/settings.c
+ * @brief Disobedience settings
  *
  * Originally I attempted to use a built-in rc file to configure
  * Disobedience's colors.  This is quite convenient but fails in the
@@ -79,6 +79,9 @@ GdkColor search_bg = { 0, 0xFFFF, 0xFFFF, 0x0000 };
 /** @brief Drag target color */
 GdkColor drag_target = { 0, 0x6666, 0x6666, 0x6666 };
 
+/** @brief HTML displayer */
+const char *browser = BROWSER;
+
 struct colordesc {
   GdkColor *color;
   const char *name;
@@ -109,7 +112,7 @@ static const struct colordesc colors[] = {
 
 #define NCOLORS (sizeof colors / sizeof *colors)
 
-void save_appearance(void) {
+void save_settings(void) {
   char *dir, *path, *tmp;
   FILE *fp = 0;
   size_t n;
@@ -151,7 +154,7 @@ static inline unsigned clamp(unsigned n) {
   return n > 0xFFFF ? 0xFFFF : n;
 }
 
-void load_appearance(void) {
+void load_settings(void) {
   char *path, *line;
   FILE *fp;
   size_t n;

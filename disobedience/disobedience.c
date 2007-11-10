@@ -452,7 +452,7 @@ int main(int argc, char **argv) {
     }
   }
   signal(SIGPIPE, SIG_IGN);
-  load_appearance();
+  load_settings();
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);

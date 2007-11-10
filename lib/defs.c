@@ -56,6 +56,9 @@ const char sbindir[] = SBINDIR;
  */
 const char finkbindir[] = FINKBINDIR;
 
+/** @brief Package documentation directory */
+const char docdir[] = DOCDIR;
+
 /*
 Local Variables:
 c-basic-offset:2

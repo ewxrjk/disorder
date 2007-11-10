@@ -79,6 +79,7 @@ case "$host" in
   if test $want_coreaudio = yes; then
     COREAUDIO="-framework CoreAudio"
   fi
+  BROWSER=open
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
@@ -86,6 +87,25 @@ case "$host" in
   ;;
 esac
 AC_SUBST([COREAUDIO])
+
+AC_ARG_WITH([browser],
+            [AS_HELP_STRING([--with-browser=BROWSER],
+			    [use BROWSER to display HTML])],
+            [browser=$withval])
+
+AC_CACHE_CHECK([default HTML viewer],[rjk_cv_browser],[
+  rjk_cv_browser=UNKNOWN
+  for candidate in x-www-browser firefox mozilla konqueror netscape; do
+    if type $candidate >/dev/null 2>&1; then
+      rjk_cv_browser="$candidate"
+      break
+    fi
+  done
+])
+if test -z "$browser"; then
+  browser="$rjk_cv_browser"
+fi
+AC_DEFINE_UNQUOTED([BROWSER],["$browser"],[HTML viewer])
 
 AC_ARG_WITH([server],
 	    [AS_HELP_STRING([--without-server],
