@@ -22,7 +22,6 @@
  */
 
 #include "disobedience.h"
-#include "table.h"
 #include "html.h"
 #include "manual.h"
 
@@ -36,8 +35,6 @@ struct tag {
   /** @brief Called to set up the tag */
   void (*init)(GtkTextTag *tag);
   
-  /** @brief GTK+ tag object */
-  GtkTextTag *tag;
 };
 
 /** @brief Initialize the bold tag
@@ -63,10 +60,10 @@ static void init_pre(GtkTextTag *tag) {
  *
  * Keep in alphabetical order
  */
-static  struct tag tags[] = {
-  { "b", init_bold, 0 },
-  { "i", init_italic, 0 },
-  { "pre", init_pre, 0 }
+static const struct tag tags[] = {
+  { "b", init_bold },
+  { "i", init_italic },
+  { "pre", init_pre }
 };
 
 /** @brief Number of known tags */
@@ -76,6 +73,9 @@ static  struct tag tags[] = {
 struct state {
   /** @brief The buffer to insert into */
   GtkTextBuffer *buffer;
+
+  /** @brief The buffer's tag table */
+  GtkTextTagTable *tagtable;
 
   /** @brief True if we are inside <body> */
   int body;
@@ -119,7 +119,7 @@ static void html_close(const char *tag,
 		       void *u) {
   struct state *const s = u;
   GtkTextIter start[1], end[1];
-  int n;
+  GtkTextTag *texttag;
 
   if(!strcmp(tag, "body"))
     --s->body;
@@ -130,7 +130,8 @@ static void html_close(const char *tag,
   if(!s->body)
     return;
   /* see if this is a known tag */
-  if((n = TABLE_FIND(tags, struct tag, name, tag)) < 0)
+  texttag = gtk_text_tag_table_lookup(s->tagtable, tag);
+  if(!texttag)
     return;
   /* pop the mark at the start of the region */
   assert(s->marks->nvec > 0);
@@ -138,8 +139,8 @@ static void html_close(const char *tag,
 				   s->marks->vec[--s->marks->nvec]);
   gtk_text_buffer_get_iter_at_mark(s->buffer, end,
 				   gtk_text_buffer_get_insert(s->buffer));
-  /* apply a tag */
-  gtk_text_buffer_apply_tag(s->buffer, tags[n].tag, start, end);
+  /* apply the tag */
+  gtk_text_buffer_apply_tag(s->buffer, texttag, start, end);
   /* don't need the start mark any more */
   gtk_text_buffer_delete_mark(s->buffer, s->marks->vec[s->marks->nvec]);
 }
@@ -185,19 +186,17 @@ static void insert_html(GtkTextBuffer *buffer,
 			const char *html) {
   struct state s[1];
   size_t n;
-  GtkTextTagTable *tagtable;
 
   memset(s, 0, sizeof *s);
   s->buffer = buffer;
   markstack_init(s->marks);
   /* initialize tags */
-  if(!tags[0].tag)
-    for(n = 0; n < NTAGS; ++n)
-      tags[n].init(tags[n].tag = gtk_text_tag_new(0));
-  /* add tags to this buffer */
-  tagtable = gtk_text_buffer_get_tag_table(s->buffer);
-  for(n = 0; n < NTAGS; ++n)
-    gtk_text_tag_table_add(tagtable, tags[n].tag);
+  s->tagtable = gtk_text_buffer_get_tag_table(s->buffer);
+  for(n = 0; n < NTAGS; ++n) {
+    GtkTextTag *const tag = gtk_text_tag_new(tags[n].name);
+    tags[n].init(tag);
+    gtk_text_tag_table_add(s->tagtable, tag);
+  }
   /* convert the input */
   html_parse(&insert_html_callbacks, html, s);
 }
