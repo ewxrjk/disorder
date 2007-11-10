@@ -197,7 +197,7 @@ static long tl_flac(const char *path) {
 fail:
     if(fd)
       FLAC__file_decoder_delete(fd);
-  }#
+  }
 #else
   {
     FLAC__StreamDecoder *sd = 0;
