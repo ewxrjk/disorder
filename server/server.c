@@ -109,13 +109,16 @@ static int writer_error(ev_source attribute((unused)) *ev,
   struct conn *c = u;
 
   D(("server writer_error %d", errno_value));
+  info("writer_error S%x %d", c->tag, errno_value);
   if(errno_value == 0) {
     /* writer is done */
     error(errno_value, "S%x writer completed", c->tag);	/* TODO */
   } else {
     if(errno_value != EPIPE)
       error(errno_value, "S%x write error on socket", c->tag);
+    info("cancel reader");
     ev_reader_cancel(c->r);
+    info("done cancel reader");
   }
   ev_report(ev);
   return 0;
@@ -127,7 +130,8 @@ static int reader_error(ev_source attribute((unused)) *ev,
   struct conn *c = u;
 
   D(("server reader_error %d", errno_value));
-  error(errno, "S%x read error on socket", c->tag);
+  info("reader_error S%x %d", c->tag, errno_value);
+  error(errno_value, "S%x read error on socket", c->tag);
   ev_writer_close(c->w);
   ev_report(ev);
   return 0;
@@ -1082,7 +1086,6 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   if(eof) {
     if(bytes)
       error(0, "S%x unterminated line", c->tag);
-    c->r = 0;
     return ev_writer_close(c->w);
   }
   return 0;

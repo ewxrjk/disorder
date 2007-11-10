@@ -976,10 +976,12 @@ static int writer_shutdown(ev_source *ev,
   ev_fd_cancel(ev, ev_write, w->fd);
   w->timeout = 0;
   if(w->reader) {
+    info("found a tied reader");
     /* If there is a reader still around we just untie it */
     w->reader->writer = 0;
     shutdown(w->fd, SHUT_WR);		/* there'll be no more writes */
   } else {
+    info("no tied reader");
     /* There's no reader so we are free to close the FD */
     xclose(w->fd);
   }
@@ -1237,10 +1239,12 @@ static int reader_shutdown(ev_source *ev,
   ev_fd_cancel(ev, ev_read, r->fd);
   r->eof = 1;
   if(r->writer) {
+    info("found a tied writer");
     /* If there is a writer still around we just untie it */
     r->writer->reader = 0;
     shutdown(r->fd, SHUT_RD);		/* there'll be no more reads */
   } else {
+    info("no tied writer found");
     /* There's no writer so we are free to close the FD */
     xclose(r->fd);
   }
