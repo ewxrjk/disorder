@@ -34,7 +34,15 @@
 #include <fnmatch.h>
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
-#include <FLAC/file_decoder.h>
+
+/* libFLAC has had an API change and stupidly taken away the old API */
+#if HAVE_FLAC_FILE_DECODER_H
+# include <FLAC/file_decoder.h>
+#else
+# include <FLAC/stream_decoder.h>
+#define FLAC__FileDecoder FLAC__StreamDecoder
+#define FLAC__FileDecoderState FLAC__StreamDecoderState
+#endif
 
 #include "log.h"
 #include "syscalls.h"
@@ -372,6 +380,7 @@ static FLAC__StreamDecoderWriteStatus flac_write
 
 /** @brief FLAC file decoder */
 static void decode_flac(void) {
+#if HAVE_FLAC_FILE_DECODER_H
   FLAC__FileDecoder *fd = 0;
   FLAC__FileDecoderState fs;
 
@@ -385,6 +394,15 @@ static void decode_flac(void) {
   if((fs = FLAC__file_decoder_init(fd)))
     fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
   FLAC__file_decoder_process_until_end_of_file(fd);
+#else
+  FLAC__StreamDecoder *sd = 0;
+  FLAC__StreamDecoderInitStatus is;
+
+  if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
+                                          flac_error, 0)))
+    fatal(0, "FLAC__stream_decoder_init_file %s: %s",
+          path, FLAC__StreamDecoderInitStatusString[is]);
+#endif
 }
 
 /** @brief Lookup table of decoders */

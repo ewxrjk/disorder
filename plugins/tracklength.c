@@ -32,7 +32,15 @@
 
 #include <vorbis/vorbisfile.h>
 #include <mad.h>
-#include <FLAC/file_decoder.h>
+/* libFLAC has had an API change and stupidly taken away the old API */
+#if HAVE_FLAC_FILE_DECODER_H
+# include <FLAC/file_decoder.h>
+#else
+# include <FLAC/stream_decoder.h>
+#define FLAC__FileDecoder FLAC__StreamDecoder
+#define FLAC__FileDecoderState FLAC__StreamDecoderState
+#endif
+
 
 #include <disorder.h>
 
@@ -159,33 +167,58 @@ static FLAC__StreamDecoderWriteStatus flac_write
 }
 
 static long tl_flac(const char *path) {
-  FLAC__FileDecoder *fd = 0;
-  FLAC__FileDecoderState fs;
   struct flac_state state[1];
 
   state->duration = -1;			/* error */
   state->path = path;
-  if(!(fd = FLAC__file_decoder_new())) {
-    disorder_error(0, "FLAC__file_decoder_new failed");
-    goto fail;
-  }
-  if(!(FLAC__file_decoder_set_filename(fd, path))) {
-    disorder_error(0, "FLAC__file_set_filename failed");
-    goto fail;
-  }
-  FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
-  FLAC__file_decoder_set_error_callback(fd, flac_error);
-  FLAC__file_decoder_set_write_callback(fd, flac_write);
-  FLAC__file_decoder_set_client_data(fd, state);
-  if((fs = FLAC__file_decoder_init(fd))) {
-    disorder_error(0, "FLAC__file_decoder_init: %s",
-		   FLAC__FileDecoderStateString[fs]);
-    goto fail;
-  }
-  FLAC__file_decoder_process_until_end_of_metadata(fd);
+#if HAVE_FLAC_FILE_DECODER_H 
+  {
+    FLAC__FileDecoder *fd = 0;
+    FLAC__FileDecoderState fs;
+    
+    if(!(fd = FLAC__file_decoder_new())) {
+      disorder_error(0, "FLAC__file_decoder_new failed");
+      goto fail;
+    }
+    if(!(FLAC__file_decoder_set_filename(fd, path))) {
+      disorder_error(0, "FLAC__file_set_filename failed");
+      goto fail;
+    }
+    FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
+    FLAC__file_decoder_set_error_callback(fd, flac_error);
+    FLAC__file_decoder_set_write_callback(fd, flac_write);
+    FLAC__file_decoder_set_client_data(fd, state);
+    if((fs = FLAC__file_decoder_init(fd))) {
+      disorder_error(0, "FLAC__file_decoder_init: %s",
+		     FLAC__FileDecoderStateString[fs]);
+      goto fail;
+    }
+    FLAC__file_decoder_process_until_end_of_metadata(fd);
 fail:
-  if(fd)
-    FLAC__file_decoder_delete(fd);
+    if(fd)
+      FLAC__file_decoder_delete(fd);
+  }#
+#else
+  {
+    FLAC__StreamDecoder *sd = 0;
+    FLAC__StreamDecoderInitStatus is;
+    
+    if(!(sd = FLAC__stream_decoder_new())) {
+      disorder_error(0, "FLAC__stream_decoder_new failed");
+      goto fail;
+    }
+    if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
+					    flac_error, state))) {
+      disorder_error(0, "FLAC__stream_decoder_init_file %s: %s",
+		     path, FLAC__StreamDecoderInitStatusString[is]);
+      goto fail;
+    }
+    FLAC__stream_decoder_process_until_end_of_metadata(sd);
+fail:
+    if(sd)
+      FLAC__stream_decoder_delete(sd);
+  }
+#endif
   return state->duration;
 }
 
