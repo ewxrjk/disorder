@@ -79,7 +79,7 @@ case "$host" in
   if test $want_coreaudio = yes; then
     COREAUDIO="-framework CoreAudio"
   fi
-  BROWSER=open
+  browser=open
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
