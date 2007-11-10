@@ -47,8 +47,9 @@ pid_t xfork(void) {
   return pid;
 }
 
-void xclose(int fd) {
-  mustnotbeminus1("close", close(fd));
+void xclose_guts(const char *path, int line, int fd) {
+  if(close(fd) < 0)
+    fatal(errno, "%s:%d: close %d", path, line, fd);
 }
 
 void xdup2(int fd1, int fd2) {

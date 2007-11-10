@@ -34,7 +34,8 @@ struct timezone;
 #include "types.h"
 
 pid_t xfork(void);
-void xclose(int);
+void xclose_guts(const char *, int, int);
+#define xclose(fd) xclose_guts(__FILE__, __LINE__, fd)
 void xdup2(int, int);
 void xpipe(int *);
 int xfcntl(int, int, long);
