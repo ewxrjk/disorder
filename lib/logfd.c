@@ -30,14 +30,9 @@
 #include "event.h"
 #include "log.h"
 
-struct logfd_state {
-  const char *tag;
-};
-
 /* called when bytes are available and at eof */
 static int logfd_readable(ev_source attribute((unused)) *ev,
 			  ev_reader *reader,
-			  int fd,
 			  void *ptr,
 			  size_t bytes,
 			  int eof,
@@ -57,23 +52,31 @@ static int logfd_readable(ev_source attribute((unused)) *ev,
     info("%s: %.*s", tag, (int)bytes, (char *)ptr);
     ev_reader_consume(reader, bytes);
   }
-  if(eof)
-    xclose(fd);
   return 0;
 }
 
 /* called when a read error occurs */
 static int logfd_error(ev_source attribute((unused)) *ev,
-		       int fd,
 		       int errno_value,
 		       void *u) {
   const char *tag = u;
   
   error(errno_value, "error reading log pipe from %s", tag);
-  xclose(fd);
   return 0;
 }
 
+/** @brief Create file descriptor for a subprocess to log to
+ * @param ev Event loop
+ * @param tag Tag for this log
+ * @return File descriptor
+ *
+ * Returns a file descriptor which a subprocess can log to.  The normal thing
+ * to do would be to dup2() this fd onto the subprocess's stderr (and to close
+ * it in the parent).
+ *
+ * Any lines written to this fd (i.e. by the subprocess) will be logged via
+ * info(), with @p tag included.
+ */
 int logfd(ev_source *ev, const char *tag) {
   int p[2];
 

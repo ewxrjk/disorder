@@ -162,12 +162,22 @@ int ev_listen_cancel(ev_source *ev,
 
 typedef struct ev_writer ev_writer;
 
+/** @brief Error callback for @ref ev_reader and @ref ev_writer
+ * @param ev Event loop
+ * @param errno_value Errno value (might be 0)
+ * @param u As passed to ev_writer_new() or ev_reader_new()
+ * @return 0 on success, non-0 on error
+ *
+ * This is called for a writer in the following situations:
+ * - on error, with @p errno_value != 0
+ * - when all buffered data has been written, with @p errno_value = 0
+ * - after called ev_writer_cancel(), with @p errno_value = 0
+ *
+ * It is called for a reader only on error, with @p errno_value != 0.
+ */
 typedef int ev_error_callback(ev_source *ev,
-			      int fd,
 			      int errno_value,
 			      void *u);
-/* called when an error occurs on a writer.  Called with @errno_value@
- * of 0 when finished. */
 
 ev_writer *ev_writer_new(ev_source *ev,
 			 int fd,
@@ -198,15 +208,35 @@ struct sink *ev_writer_sink(ev_writer *w) attribute((const));
 
 typedef struct ev_reader ev_reader;
 
+/** @brief Called when data is available to read
+ * @param ev Event loop
+ * @param reader Reader
+ * @param fd File descriptor we read from
+ * @param ptr Pointer to first byte
+ * @param bytes Number of bytes available
+ * @param eof True if EOF has been detected
+ * @param u As passed to ev_reader_new()
+ * @return 0 on succes, non-0 on error
+ *
+ * This callback should call ev_reader_consume() to indicate how many bytes you
+ * actually used.  If you do not call it then it is assumed no bytes were
+ * consumed.
+ *
+ * If having consumed some number of bytes it is not possible to do any further
+ * processing until more data is available then the callback can just return.
+ * Note that this is not allowed if @p eof was set.
+ *
+ * If on the other hand it would be possible to do more processing immediately
+ * with the bytes available, but this is undesirable for some other reason,
+ * then ev_reader_incomplete() should be called.  This will arrange a further
+ * callback in the very near future even if no more bytes are read.
+ */
 typedef int ev_reader_callback(ev_source *ev,
 			       ev_reader *reader,
-			       int fd,
 			       void *ptr,
 			       size_t bytes,
 			       int eof,
 			       void *u);
-/* Called when data is read or an error occurs.  @ptr@ and @bytes@
- * indicate the amount of data available. @eof@ will be 1 at eof. */
 
 ev_reader *ev_reader_new(ev_source *ev,
 			 int fd,
@@ -218,9 +248,10 @@ ev_reader *ev_reader_new(ev_source *ev,
  * available. */
 
 void ev_reader_buffer(ev_reader *r, size_t nbytes);
-/* specify a buffer size *case */
+/* specify a buffer size */
 
-void ev_reader_consume(ev_reader *r, size_t nbytes);
+void ev_reader_consume(ev_reader *r
+		       , size_t nbytes);
 /* consume @nbytes@ bytes. */
 
 int ev_reader_cancel(ev_reader *r);
@@ -246,6 +277,8 @@ int ev_reader_enable(ev_reader *r);
  * so you can handle the next line (or whatever) if the whole thing
  * has in fact already arrived.
  */
+
+int ev_tie(ev_reader *r, ev_writer *w);
 
 #endif /* EVENT_H */
 

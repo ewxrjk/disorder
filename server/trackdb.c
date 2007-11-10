@@ -1024,7 +1024,6 @@ static int stats_finished(ev_source attribute((unused)) *ev,
 
 static int stats_read(ev_source attribute((unused)) *ev,
                       ev_reader *reader,
-                      int attribute((unused)) fd,
                       void *ptr,
                       size_t bytes,
                       int eof,
@@ -1040,7 +1039,6 @@ static int stats_read(ev_source attribute((unused)) *ev,
 }
 
 static int stats_error(ev_source attribute((unused)) *ev,
-                       int attribute((unused)) fd,
                        int errno_value,
                        void *u) {
   struct stats_details *const d = u;

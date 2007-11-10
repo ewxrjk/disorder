@@ -96,7 +96,6 @@ struct conn {
 
 static int reader_callback(ev_source *ev,
 			   ev_reader *reader,
-			   int fd,
 			   void *ptr,
 			   size_t bytes,
 			   int eof,
@@ -105,50 +104,32 @@ static int reader_callback(ev_source *ev,
 static const char *noyes[] = { "no", "yes" };
 
 static int writer_error(ev_source attribute((unused)) *ev,
-			int fd,
 			int errno_value,
 			void *u) {
   struct conn *c = u;
 
-  D(("server writer_error %d %d", fd, errno_value));
+  D(("server writer_error %d", errno_value));
   if(errno_value == 0) {
     /* writer is done */
-    c->w = 0;
-    if(c->r == 0) {
-      //D(("server writer_error closes %d", fd));
-      info("server writer_error closes %d because all done", fd); /* TODO */
-      xclose(fd);		/* reader is done too, close */
-    } else {
-      //D(("server writer_error shutdown %d SHUT_WR", fd));
-      info("server writer_error shutdown %d SHUT_WR", fd); /* TODO */
-      xshutdown(fd, SHUT_WR);	/* reader is not done yet */
-    }
+    error(errno_value, "S%x writer completed", c->tag);	/* TODO */
   } else {
     if(errno_value != EPIPE)
       error(errno_value, "S%x write error on socket", c->tag);
-    if(c->r)
-      ev_reader_cancel(c->r);
-    info("server writer_error closes %d because errno=%d", fd, errno_value); /* TODO */
-    xclose(fd);
+    ev_reader_cancel(c->r);
   }
+  ev_report(ev);
   return 0;
 }
 
 static int reader_error(ev_source attribute((unused)) *ev,
-			int fd,
 			int errno_value,
 			void *u) {
   struct conn *c = u;
 
-  D(("server reader_error %d %d", fd, errno_value));
+  D(("server reader_error %d", errno_value));
   error(errno, "S%x read error on socket", c->tag);
-  if(c->w) {
-    ev_writer_cancel(c->w);
-    c->w = 0;
-  }
+  ev_writer_close(c->w);
   ev_report(ev);
-  info("reader_error closing fd %d", fd); /* TODO */
-  xclose(fd);
   return 0;
 }
 
@@ -726,7 +707,6 @@ static int c_volume(struct conn *c,
 /* we are logging, and some data is available to read */
 static int logging_reader_callback(ev_source *ev,
 				   ev_reader *reader,
-				   int fd,
 				   void *ptr,
 				   size_t bytes,
 				   int eof,
@@ -743,7 +723,7 @@ static int logging_reader_callback(ev_source *ev,
   /* restore the reader callback */
   c->reader = reader_callback;
   /* ...and exit via it */
-  return c->reader(ev, reader, fd, ptr, bytes, eof, u);
+  return c->reader(ev, reader, ptr, bytes, eof, u);
 }
 
 static void logclient(const char *msg, void *user) {
@@ -1061,20 +1041,18 @@ static int command(struct conn *c, char *line) {
 /* redirect to the right reader callback for our current state */
 static int redirect_reader_callback(ev_source *ev,
 				    ev_reader *reader,
-				    int fd,
 				    void *ptr,
 				    size_t bytes,
 				    int eof,
 				    void *u) {
   struct conn *c = u;
 
-  return c->reader(ev, reader, fd, ptr, bytes, eof, u);
+  return c->reader(ev, reader, ptr, bytes, eof, u);
 }
 
 /* the main command reader */
 static int reader_callback(ev_source attribute((unused)) *ev,
 			   ev_reader *reader,
-			   int attribute((unused)) fd,
 			   void *ptr,
 			   size_t bytes,
 			   int eof,
@@ -1128,6 +1106,7 @@ static int listen_callback(ev_source *ev,
 		       "client writer");
   c->r = ev_reader_new(ev, fd, redirect_reader_callback, reader_error, c,
 		       "client reader");
+  ev_tie(c->r, c->w);
   c->fd = fd;
   c->reader = reader_callback;
   c->l = l;
