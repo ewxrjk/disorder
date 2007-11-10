@@ -389,6 +389,28 @@ if test $want_server = yes; then
 fi
 
 if test "x$GCC" = xyes; then
+  # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29478
+  AC_CACHE_CHECK([checking for GCC bug 29478],[rjk_cv_pr29478],[
+    old_CC="$CC"
+    if test $GCC = yes; then
+      CC="$CC -Wall -Werror"
+    fi
+    AC_COMPILE_IFELSE([
+      static int x(char *f) {
+       return *f;
+      }
+      int z(const char *g) {
+	return x((char *)g);
+      }],
+      [rjk_cv_pr29478=no],
+      [rjk_cv_pr29478=yes]
+    )
+    CC="$old_CC"
+  ])
+  if test $rjk_cv_pr29478 = yes; then
+    gcc_werror=''
+  fi
+
   # a reasonable default set of warnings
   CC="${CC} -Wall -W -Wpointer-arith -Wbad-function-cast \
 	-Wwrite-strings -Wmissing-prototypes \
@@ -398,19 +420,21 @@ if test "x$GCC" = xyes; then
   GTK_CFLAGS="`echo \"$GTK_CFLAGS\"|sed 's/-I/-isystem /g'`"
   GLIB_CFLAGS="`echo \"$GLIB_CFLAGS\"|sed 's/-I/-isystem /g'`"
 
-  # GCC 2.95 doesn't know to ignore warnings from system headers
-  AC_CACHE_CHECK([whether -Werror is usable],
-                  rjk_cv_werror, [
-    save_CFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} ${GTK_CFLAGS} -Werror"
-    AC_TRY_COMPILE([#include <gtk/gtk.h>],
-                   [],
-                   [rjk_cv_werror=yes],
-                   [rjk_cv_werror=no])
-    CFLAGS="${save_CFLAGS}"
-  ])
-  if test $rjk_cv_werror = no; then
-    gcc_werror=''
+  if test "$gcc_werror" != ''; then
+    # GCC 2.95 doesn't know to ignore warnings from system headers
+    AC_CACHE_CHECK([whether -Werror is usable],
+		    rjk_cv_werror, [
+      save_CFLAGS="${CFLAGS}"
+      CFLAGS="${CFLAGS} ${GTK_CFLAGS} -Werror"
+      AC_TRY_COMPILE([#include <gtk/gtk.h>],
+		     [],
+		     [rjk_cv_werror=yes],
+		     [rjk_cv_werror=no])
+      CFLAGS="${save_CFLAGS}"
+    ])
+    if test $rjk_cv_werror = no; then
+      gcc_werror=''
+    fi
   fi
   CC="${CC} $gcc_werror"
 
@@ -469,3 +493,7 @@ AC_CONFIG_FILES([Makefile
 		 examples/Makefile
 		 tests/Makefile])
 AC_OUTPUT
+
+if test $GCC = yes && test "$gcc_werror" = ''; then
+  AC_MSG_WARN([building without -Werror])
+fi
