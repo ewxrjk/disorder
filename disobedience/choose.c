@@ -786,6 +786,10 @@ static void redisplay_tree(const char *why) {
     /*fprintf(stderr, "redisplay_tree %s suppressed\n", why);*/
     return;
   }
+  if(gets_in_flight) {
+    /*fprintf(stderr, "redisplay_tree %s suppressed (gets_in_flight)\n", why);*/
+    return;
+  }
   /*fprintf(stderr, "redisplay_tree %s   *** NOT SUPPRESSED ***\n", why);*/
   /* We'll count these up empirically each time */
   files_selected = 0;

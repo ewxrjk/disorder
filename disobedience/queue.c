@@ -1322,7 +1322,7 @@ GtkWidget *queue_widget(void) {
   /* Arrange periodic update of the so-far played field */
   g_timeout_add(1000/*ms*/, adjust_sofar, 0);
   /* Arrange a callback whenever the playing state changes */ 
-  register_monitor(playing_update, 0,  DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
+  register_monitor(playing_update, 0, DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
   register_reset(queue_update);
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
