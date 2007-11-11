@@ -177,7 +177,7 @@ struct queuelike {
   /** @brief Called when an update completes */
   void (*notify)(void);
 
-  /** @brief Called to  fix up the queue after update
+  /** @brief Called to fix up the queue after update
    * @param q The list passed back from the server
    * @return Assigned to @c ql->q
    */
@@ -258,7 +258,7 @@ static void dump_layout(const struct queuelike *ql) {
 static void namepart_completed_or_failed(void) {
   D(("namepart_completed_or_failed"));
   --namepart_lookups_outstanding;
-  if(!namepart_lookups_outstanding || namepart_completions_deferred > 24) {
+  if(!namepart_lookups_outstanding) {
     redisplay_queue(&ql_queue);
     redisplay_queue(&ql_recent);
     redisplay_queue(&ql_added);
