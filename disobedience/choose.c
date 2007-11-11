@@ -138,6 +138,7 @@ static int nsearchvisible;      /**< @brief number of search results visible */
 static struct hash *searchhash;         /**< @brief hash of search results */
 static struct progress_window *spw;     /**< @brief progress window */
 static struct choosenode **searchnodes; /**< @brief choosenodes of search results */
+static int suppress_redisplay;          /**< @brief suppress redisplay */
 
 /* Forward Declarations */
 
@@ -156,12 +157,13 @@ static void got_dirs(void *v, int nvec, char **vec);
 
 static void expand_node(struct choosenode *cn, int contingent);
 static void contract_node(struct choosenode *cn);
-static void updated_node(struct choosenode *cn, int redisplay);
+static void updated_node(struct choosenode *cn, int redisplay,
+                         const char *why);
 
 static void display_selection(struct choosenode *cn);
 static void clear_selection(struct choosenode *cn);
 
-static void redisplay_tree(void);
+static void redisplay_tree(const char *why);
 static struct displaydata display_tree(struct choosenode *cn, int x, int y);
 static void undisplay_tree(struct choosenode *cn);
 static void initiate_search(void);
@@ -396,7 +398,7 @@ static void got_resolved_file(void *v, const char *track) {
   /* Only bother updating when we've got the lot */
   if(--cn->pending == 0) {
     cn->flags &= ~CN_RESOLVING_FILES;
-    updated_node(cn, 1);
+    updated_node(cn, 1, "got_resolved_file");
     if(!(cn->flags & CN_GETTING_ANY))
       filled(cn);
   }
@@ -422,7 +424,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
             trackname_transform("dir", vec[n], "display"),
             trackname_transform("dir", vec[n], "sort"),
             CN_EXPANDABLE, fill_directory_node);
-  updated_node(cn, 1);
+  updated_node(cn, 1, "got_dirs");
   cn->flags &= ~CN_GETTING_DIRS;
   if(!(cn->flags & CN_GETTING_ANY))
     filled(cn);
@@ -506,6 +508,10 @@ static void expand_from(struct choosenode *cn) {
     ++nsearchvisible;
     progress_window_progress(spw, nsearchvisible, nsearchresults);
     if(nsearchvisible == nsearchresults) {
+      if(suppress_redisplay) {
+        suppress_redisplay = 0;
+        redisplay_tree("all search results visible");
+      }
       /* We've got the lot.  We make sure the first result is visible. */
       cn = first_search_result(root);
       gtk_adjustment_clamp_page(vadjust, cn->ymin, cn->ymax);
@@ -539,7 +545,7 @@ static void contract_node(struct choosenode *cn) {
    * anyone complains we can make it an option. */
   clear_children(cn);
   /* We can contract a node immediately. */
-  redisplay_tree();
+  redisplay_tree("contract_node");
 }
 
 /** @brief qsort() callback for ordering choosenodes */
@@ -553,7 +559,8 @@ static int compare_choosenode(const void *av, const void *bv) {
 }
 
 /** @brief Called when an expandable node is updated.   */
-static void updated_node(struct choosenode *cn, int redisplay) {
+static void updated_node(struct choosenode *cn, int redisplay,
+                         const char *why) {
   D(("updated_node %s", cn->path));
   assert(cn->flags & CN_EXPANDABLE);
   /* It might be that the node has been de-expanded since we requested the
@@ -562,8 +569,12 @@ static void updated_node(struct choosenode *cn, int redisplay) {
   /* Sort children */
   qsort(cn->children.vec, cn->children.nvec, sizeof (struct choosenode *),
         compare_choosenode);
-  if(redisplay)
-    redisplay_tree();
+  if(redisplay) {
+    char whywhy[1024];
+
+    snprintf(whywhy, sizeof whywhy, "updated_node %s", why);
+    redisplay_tree(whywhy);
+  }
 }
 
 /* Searching --------------------------------------------------------------- */
@@ -609,7 +620,9 @@ static void search_completed(void attribute((unused)) *v,
   search_in_flight = 0;
   /* Contract any choosenodes that were only expanded to show search
    * results */
+  suppress_redisplay = 1;
   contract_contingent(root);
+  suppress_redisplay = 0;
   if(search_obsolete) {
     /* This search has been obsoleted by user input since it started.
      * Therefore we throw away the result and search again. */
@@ -650,9 +663,10 @@ static void search_completed(void attribute((unused)) *v,
       /* The search results buttons are usable */
       gtk_widget_set_sensitive(nextsearch, 1);
       gtk_widget_set_sensitive(prevsearch, 1);
+      suppress_redisplay = 1;           /* avoid lots of redisplays */
     } else {
       searchhash = 0;                   /* for the gc */
-      redisplay_tree();                 /* remove search markers */
+      redisplay_tree("no search results"); /* remove search markers */
       /* The search results buttons are not usable */
       gtk_widget_set_sensitive(nextsearch, 0);
       gtk_widget_set_sensitive(prevsearch, 0);
@@ -761,11 +775,16 @@ static void delete_widgets(struct choosenode *cn) {
 }
 
 /** @brief Update the display */
-static void redisplay_tree(void) {
+static void redisplay_tree(const char *why) {
   struct displaydata d;
   guint oldwidth, oldheight;
 
-  D(("redisplay_tree"));
+  D(("redisplay_tree %s", why));
+  if(suppress_redisplay) {
+    /*fprintf(stderr, "redisplay_tree %s suppressed\n", why);*/
+    return;
+  }
+  /*fprintf(stderr, "redisplay_tree %s   *** NOT SUPPRESSED ***\n", why);*/
   /* We'll count these up empirically each time */
   files_selected = 0;
   files_visible = 0;
@@ -1425,7 +1444,7 @@ GtkWidget *choose_widget(void) {
 
 /** @brief Called when something we care about here might have changed */
 void choose_update(void) {
-  redisplay_tree();
+  redisplay_tree("choose_update");
 }
 
 /*
