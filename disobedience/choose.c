@@ -26,8 +26,71 @@
  */
 
 #include "disobedience.h"
+#include "timeval.h"
 
 /* Choose track ------------------------------------------------------------ */
+
+#if TDEBUG
+/* Timing */
+static struct {
+  struct timeval total;
+  struct timeval gtkbits;
+  struct timeval menuupdate;
+  struct timeval new_widgets;
+  struct timeval undisplay;
+  struct timeval colors;
+  struct timeval markers;
+  struct timeval location;
+  struct timeval selection;
+} times;
+
+#define BEGIN(WHAT) do {                        \
+  struct timeval started##WHAT, finished##WHAT; \
+  xgettimeofday(&started##WHAT, 0)
+
+#define END(WHAT)                                                       \
+  xgettimeofday(&finished##WHAT, 0);                                    \
+  times.WHAT = tvadd(times.WHAT, tvsub(finished##WHAT, started##WHAT)); \
+} while(0)
+
+#define INIT() memset(&times, 0, sizeof times)
+
+#define REPORT() do {                           \
+  fprintf(stderr, "total=%g\n"                  \
+          "gtkbits=%g\n"                        \
+          "menuupdate=%g\n"                     \
+          "new_widgets=%g\n"                    \
+          "undisplay=%g\n"                      \
+          "colors=%g\n"                         \
+          "markers=%g\n"                        \
+          "location=%g\n"                       \
+          "selection=%g\n"                      \
+          "accumulation=%g\n"                   \
+          "\n",                                 \
+          tvdouble(times.total),                \
+          tvdouble(times.gtkbits),              \
+          tvdouble(times.menuupdate),           \
+          tvdouble(times.new_widgets),          \
+          tvdouble(times.undisplay),            \
+          tvdouble(times.colors),               \
+          tvdouble(times.markers),              \
+          tvdouble(times.location),             \
+          tvdouble(times.selection),            \
+          (tvdouble(times.gtkbits)              \
+           + tvdouble(times.menuupdate)         \
+           + tvdouble(times.new_widgets)        \
+           + tvdouble(times.undisplay)          \
+           + tvdouble(times.colors)             \
+           + tvdouble(times.markers)            \
+           + tvdouble(times.location)           \
+           + tvdouble(times.selection)));       \
+} while(0)
+#else
+#define BEGIN(WHAT) do {
+#define END(WHAT) } while(0)
+#define INIT() ((void)0)
+#define REPORT() ((void)0)
+#endif
 
 WT(label);
 WT(event_box);
@@ -790,6 +853,8 @@ static void redisplay_tree(const char *why) {
     /*fprintf(stderr, "redisplay_tree %s suppressed (gets_in_flight)\n", why);*/
     return;
   }
+  INIT();
+  BEGIN(total);
   /*fprintf(stderr, "redisplay_tree %s   *** NOT SUPPRESSED ***\n", why);*/
   /* We'll count these up empirically each time */
   files_selected = 0;
@@ -800,6 +865,8 @@ static void redisplay_tree(const char *why) {
                                          sizeof (struct choosenode *)) : 0;
   d = display_tree(root, 0, 0);
   MTAG_POP();
+
+  BEGIN(gtkbits);
   /* We must set the total size or scrolling will not work (it wouldn't be hard
    * for GtkLayout to figure it out for itself but presumably you're supposed
    * to be able to have widgets off the edge of the layuot.)
@@ -813,8 +880,13 @@ static void redisplay_tree(const char *why) {
   if(oldwidth > d.width || oldheight > d.height)
     gtk_widget_queue_draw(chooselayout);
   gtk_layout_set_size(GTK_LAYOUT(chooselayout), d.width, d.height);
+  END(gtkbits);
   /* Notify the main menu of any recent changes */
+  BEGIN(menuupdate);
   menu_update(-1);
+  END(menuupdate);
+  END(total);
+  REPORT();
 }
 
 /** @brief Recursive step for redisplay_tree()
@@ -840,6 +912,7 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
    * A non-expandable item has just a text label and no arrow.
    */
   if(!cn->container) {
+    BEGIN(new_widgets);
     MTAG_PUSH("make_widgets_1");
     /* Widgets need to be created */
     NW(hbox);
@@ -879,9 +952,14 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     /* Show everything by default */
     gtk_widget_show_all(cn->container);
     MTAG_POP();
+    END(new_widgets);
   }
   assert(cn->container);
   /* Set colors */
+  BEGIN(colors);
+  /* This section turns out to reliably take >50% of the elapsed time when
+   * displaying the tree, both when it's largely unexpanded and when it's
+   * heavily expanded. */
   if(search_result)
     gtk_widget_modify_bg(cn->container, GTK_STATE_NORMAL, &search_bg);
   else
@@ -891,7 +969,9 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   gtk_widget_modify_fg(cn->label, GTK_STATE_NORMAL, &item_fg);
   gtk_widget_modify_fg(cn->label, GTK_STATE_SELECTED, &selected_fg);
   gtk_widget_modify_fg(cn->label, GTK_STATE_PRELIGHT, &selected_fg);
+  END(colors);
   /* Make sure the icon is right */
+  BEGIN(markers);
   if(cn->flags & CN_EXPANDABLE)
     gtk_arrow_set(GTK_ARROW(cn->arrow),
                   cn->flags & CN_EXPANDED ? GTK_ARROW_DOWN : GTK_ARROW_RIGHT,
@@ -900,7 +980,9 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     /* Make sure the queued marker is right */
     /* TODO: doesn't always work */
     (queued(cn->path) ? gtk_widget_show : gtk_widget_hide)(cn->marker);
+  END(markers);
   /* Put the widget in the right place */
+  BEGIN(location);
   if(cn->flags & CN_DISPLAYED)
     gtk_layout_move(GTK_LAYOUT(chooselayout), cn->container, x, y);
   else {
@@ -909,9 +991,12 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     /* Now chooselayout has a ref to the container */
     g_object_unref(cn->container);
   }
+  END(location);
   /* Set the widget's selection status */
+  BEGIN(selection);
   if(!(cn->flags & CN_EXPANDABLE))
     display_selection(cn);
+  END(selection);
   /* Find the size used so we can get vertical positioning right. */
   gtk_widget_size_request(cn->container, &req);
   d.width = x + req.width;
@@ -930,8 +1015,10 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
       d.height = cd.height;
     }
   } else {
+    BEGIN(undisplay);
     for(n = 0; n < cn->children.nvec; ++n)
       undisplay_tree(cn->children.vec[n]);
+    END(undisplay);
   }
   if(!(cn->flags & CN_EXPANDABLE)) {
     ++files_visible;

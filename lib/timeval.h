@@ -38,6 +38,27 @@ static inline struct timeval tvsub(const struct timeval a,
   return r;
 }
 
+static inline struct timeval tvadd(const struct timeval a,
+                                   const struct timeval b) {
+  struct timeval r;
+
+  r.tv_sec = a.tv_sec + b.tv_sec;
+  r.tv_usec = a.tv_usec + b.tv_usec;
+  if(r.tv_usec < 0) {
+    r.tv_usec += 1000000;
+    r.tv_sec--;
+  }
+  if(r.tv_usec > 999999) {
+    r.tv_usec -= 1000000;
+    r.tv_sec++;
+  }
+  return r;
+}
+
+static inline double tvdouble(const struct timeval a) {
+  return a.tv_sec + a.tv_usec / 1000000.0;
+}
+
 static inline int64_t tvsub_us(const struct timeval a,
                                const struct timeval b) {
   return (((uint64_t)a.tv_sec * 1000000 + a.tv_usec)
