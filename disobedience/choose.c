@@ -381,6 +381,8 @@ static void got_files(void *v, int nvec, char **vec) {
    * done */
   if(!(cn->flags & CN_GETTING_ANY))
     filled(cn);
+  if(!gets_in_flight)
+    redisplay_tree("got_files");
 }
 
 /** @brief Called with an alias resolved filename */
@@ -398,7 +400,7 @@ static void got_resolved_file(void *v, const char *track) {
   /* Only bother updating when we've got the lot */
   if(--cn->pending == 0) {
     cn->flags &= ~CN_RESOLVING_FILES;
-    updated_node(cn, 1, "got_resolved_file");
+    updated_node(cn, gets_in_flight == 0, "got_resolved_file");
     if(!(cn->flags & CN_GETTING_ANY))
       filled(cn);
   }
@@ -424,7 +426,7 @@ static void got_dirs(void *v, int nvec, char **vec) {
             trackname_transform("dir", vec[n], "display"),
             trackname_transform("dir", vec[n], "sort"),
             CN_EXPANDABLE, fill_directory_node);
-  updated_node(cn, 1, "got_dirs");
+  updated_node(cn, gets_in_flight == 0, "got_dirs");
   cn->flags &= ~CN_GETTING_DIRS;
   if(!(cn->flags & CN_GETTING_ANY))
     filled(cn);
