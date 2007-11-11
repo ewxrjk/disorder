@@ -1,3 +1,9 @@
+disorder (1.5.99+dev7) unstable; urgency=low
+
+  * New Disobedience now it's a bit quicker
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 11 Nov 2007 17:51:25 +0000
+
 disorder (1.5.99+dev6) unstable; urgency=low
 
   * Split disorder into disorder (base) and disorder-server
