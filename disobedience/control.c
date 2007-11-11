@@ -22,6 +22,7 @@
  */
 
 #include "disobedience.h"
+#include "mixer.h"
 
 /* Forward declarations ---------------------------------------------------- */
 
@@ -440,10 +441,15 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
   b = nearbyint(5 * b) / 5;
   /* Set the volume.  We don't want a reply, we'll get the actual new volume
    * from the log. */
-  disorder_eclient_volume(client, 0,
-                          nearbyint(left(v, b) * 100),
-                          nearbyint(right(v, b) * 100),
-                          0);
+  if(rtp_supported) {
+    int l = nearbyint(left(v, b) * 100), r = nearbyint(right(v, b) * 100);
+    mixer_control(&l, &r, 1);
+  } else
+    /* We don't want a reply, we'll get the actual new volume from the log. */
+    disorder_eclient_volume(client, 0,
+                            nearbyint(left(v, b) * 100),
+                            nearbyint(right(v, b) * 100),
+                            0);
 }
 
 /** @brief Formats the volume value */

@@ -22,6 +22,7 @@
  */
 
 #include "disobedience.h"
+#include "mixer.h"
 
 #include <getopt.h>
 #include <locale.h>
@@ -274,8 +275,8 @@ static const GMemVTable glib_memvtable = {
 };
 #endif
 
-/** @brief Called once every 10 minutes */
-static gboolean periodic(gpointer attribute((unused)) data) {
+/** @brief Called occasionally */
+static gboolean periodic_slow(gpointer attribute((unused)) data) {
   D(("periodic"));
   /* Expire cached data */
   cache_expire();
@@ -292,11 +293,9 @@ static gboolean periodic(gpointer attribute((unused)) data) {
   return TRUE;                          /* don't remove me */
 }
 
-/** @brief Called from time to time
- *
- * Used for debugging purposes
- */
-static gboolean heartbeat(gpointer attribute((unused)) data) {
+/** @brief Called frequently */
+static gboolean periodic_fast(gpointer attribute((unused)) data) {
+#if 0                                   /* debugging hack */
   static struct timeval last;
   struct timeval now;
   double delta;
@@ -311,6 +310,15 @@ static gboolean heartbeat(gpointer attribute((unused)) data) {
               delta);
   }
   last = now;
+#endif
+  if(rtp_supported) {
+    int nl, nr;
+    if(!mixer_control(&nl, &nr, 0) && (nl != volume_l || nr != volume_r)) {
+      volume_l = nl;
+      volume_r = nr;
+      volume_update();
+    }
+  }
   return TRUE;
 }
 
@@ -459,16 +467,9 @@ int main(int argc, char **argv) {
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))
     return 1;                           /* already reported an error */
-  /* periodic operations (e.g. expiring the cache) */
-#if MDEBUG || MTRACK
-  g_timeout_add(5000/*milliseconds*/, periodic, 0);
-#else
-  g_timeout_add(600000/*milliseconds*/, periodic, 0);
-#endif
-  /* The point of this is to try and get a handle on mysterious
-   * unresponsiveness.  It's not very useful in production use. */
-  if(0)
-    g_timeout_add(1000/*milliseconds*/, heartbeat, 0);
+  /* periodic operations (e.g. expiring the cache, checking local volume) */
+  g_timeout_add(600000/*milliseconds*/, periodic_slow, 0);
+  g_timeout_add(1000/*milliseconds*/, periodic_fast, 0);
   /* global tooltips */
   tips = gtk_tooltips_new();
   make_toplevel_window();

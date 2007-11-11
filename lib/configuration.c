@@ -1037,6 +1037,8 @@ static struct config *config_default(void) {
   c->authorization_algorithm = xstrdup("sha1");
   c->noticed_history = 31;
   c->short_display = 32;
+  c->mixer = xstrdup("/dev/mixer");
+  c->channel = xstrdup("pcm");
   return c;
 }
 

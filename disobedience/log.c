@@ -187,7 +187,7 @@ static void log_state(void attribute((unused)) *v,
 /** @brief Called when volume changes */
 static void log_volume(void attribute((unused)) *v,
                        int l, int r) {
-  if(volume_l != l || volume_r != r) {
+  if(!rtp_supported && (volume_l != l || volume_r != r)) {
     volume_l = l;
     volume_r = r;
     volume_update();
