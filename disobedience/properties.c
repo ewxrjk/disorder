@@ -170,8 +170,7 @@ static void propagate_clicked(GtkButton attribute((unused)) *button,
 void properties(int ntracks, const char **tracks) {
   int n, m;
   struct prefdata *f;
-  GtkWidget *buttonbox, *vbox, *label, *entry, *propagate, *content;
-  GdkPixbuf *pb;
+  GtkWidget *buttonbox, *vbox, *label, *entry, *propagate;
   
   /* If no tracks, do nothign */
   if(!ntracks)
@@ -190,13 +189,13 @@ void properties(int ntracks, const char **tracks) {
   }
   /* Create a new properties window */
   properties_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_widget_modify_bg(properties_window, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_set_style(properties_window, tool_style);
   g_signal_connect(properties_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_window);
   /* Most of the action is the table of preferences */
   properties_table = gtk_table_new((NPREFS + 1) * ntracks, 2 + ntracks > 1,
                                    FALSE);
-  gtk_widget_modify_bg(properties_table, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_set_style(properties_table, tool_style);
   g_signal_connect(properties_table, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_table);
   gtk_window_set_title(GTK_WINDOW(properties_window), "Track Properties");
@@ -208,7 +207,7 @@ void properties(int ntracks, const char **tracks) {
     /* The track itself */
     /* Caption */
     label = gtk_label_new("Track");
-    gtk_widget_modify_fg(label, GTK_STATE_NORMAL, &tool_fg);
+    gtk_widget_set_style(label, tool_style);
     gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
     gtk_table_attach(GTK_TABLE(properties_table),
                      label,
@@ -218,6 +217,7 @@ void properties(int ntracks, const char **tracks) {
 		     1, 1);
     /* The track name */
     entry = gtk_entry_new();
+    gtk_widget_set_style(entry, tool_style);
     gtk_entry_set_text(GTK_ENTRY(entry), tracks[n]);
     gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
     gtk_table_attach(GTK_TABLE(properties_table),
@@ -230,7 +230,7 @@ void properties(int ntracks, const char **tracks) {
     for(m = 0; m < NPREFS; ++m) {
       /* Caption */
       label = gtk_label_new(prefs[m].label);
-      gtk_widget_modify_fg(label, GTK_STATE_NORMAL, &tool_fg);
+      gtk_widget_set_style(label, tool_style);
       gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
       gtk_table_attach(GTK_TABLE(properties_table),
                        label,
@@ -246,13 +246,7 @@ void properties(int ntracks, const char **tracks) {
       prefs[m].type->kickoff(f);
       if(ntracks > 1) {
         /* Propagation button */
-        propagate = gtk_button_new();
-        if((pb = find_image("propagate.png")))
-          content = gtk_image_new_from_pixbuf(pb);
-        else
-          content = gtk_label_new("propagate.png");
-        gtk_container_add(GTK_CONTAINER(propagate), content);
-        gtk_tooltips_set_tip(tips, propagate, "Copy to other tracks", "");
+        propagate = iconbutton("propagate.png", "Copy to other tracks");
         g_signal_connect(G_OBJECT(propagate), "clicked",
                          G_CALLBACK(propagate_clicked), f);
         gtk_table_attach(GTK_TABLE(properties_table),
@@ -388,8 +382,7 @@ static void kickoff_boolean(struct prefdata *f) {
 
 static void completed_boolean(struct prefdata *f) {
   f->widget = gtk_check_button_new();
-  gtk_widget_modify_bg(f->widget, GTK_STATE_NORMAL, &tool_bg);
-  gtk_widget_modify_bg(f->widget, GTK_STATE_PRELIGHT, &tool_active);
+  gtk_widget_set_style(f->widget, tool_style);
   if(!f->value)
     /* Not set, use the default */
     f->value = f->p->default_value;

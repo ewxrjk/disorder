@@ -215,16 +215,16 @@ void login_box(void) {
   default_connect();
   /* Create a new login window */
   login_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_widget_modify_bg(login_window, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_set_style(login_window, tool_style);
   g_signal_connect(login_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &login_window);
   gtk_window_set_title(GTK_WINDOW(login_window), "Login Details");
   /* Construct the form */
   table = gtk_table_new(NLWIS + 1/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
-  gtk_widget_modify_bg(table, GTK_STATE_NORMAL, &tool_bg);
+  gtk_widget_set_style(table, tool_style);
   for(n = 0; n < NLWIS; ++n) {
     label = gtk_label_new(lwis[n].description);
-    gtk_widget_modify_fg(table, GTK_STATE_NORMAL, &tool_fg);
+    gtk_widget_set_style(label, tool_style);
     gtk_misc_set_alignment(GTK_MISC(label), 1/*right*/, 0/*bottom*/);
     gtk_table_attach(GTK_TABLE(table), label,
 		     0, 1,              /* left/right_attach */
@@ -232,6 +232,7 @@ void login_box(void) {
 		     GTK_FILL, 0,       /* x/yoptions */
 		     1, 1);             /* x/ypadding */
     entry = gtk_entry_new();
+    gtk_widget_set_style(entry, tool_style);
     gtk_entry_set_visibility(GTK_ENTRY(entry),
                              lwis[n].flags & LWI_HIDDEN ? FALSE : TRUE);
     gtk_entry_set_text(GTK_ENTRY(entry), lwis[n].get());

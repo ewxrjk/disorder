@@ -247,16 +247,21 @@ void stop_rtp(void);
 
 /* Settings */
 
-extern GdkColor tool_bg, tool_fg, layout_bg, even_bg, odd_bg;
-extern GdkColor active_bg, selected_bg, selected_fg, search_bg;
-extern GdkColor title_bg, title_fg, item_fg, drag_target, tool_active;
+void init_styles(void);
+extern GtkStyle *layout_style;
+extern GtkStyle *title_style;
+extern GtkStyle *even_style;
+extern GtkStyle *odd_style;
+extern GtkStyle *active_style;
+extern GtkStyle *tool_style;
+extern GtkStyle *search_style;
+extern GtkStyle *drag_style;
 
 extern const char *browser;
 
 void save_settings(void);
 void load_settings(void);
 void set_tool_colors(GtkWidget *w);
-void set_slider_colors(GtkWidget *w);
 
 /* Widget leakage debugging rubbish ---------------------------------------- */
 

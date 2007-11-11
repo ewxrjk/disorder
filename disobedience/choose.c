@@ -957,18 +957,13 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
   assert(cn->container);
   /* Set colors */
   BEGIN(colors);
-  /* This section turns out to reliably take >50% of the elapsed time when
-   * displaying the tree, both when it's largely unexpanded and when it's
-   * heavily expanded. */
-  if(search_result)
-    gtk_widget_modify_bg(cn->container, GTK_STATE_NORMAL, &search_bg);
-  else
-    gtk_widget_modify_bg(cn->container, GTK_STATE_NORMAL, &layout_bg);
-  gtk_widget_modify_bg(cn->container, GTK_STATE_SELECTED, &selected_bg);
-  gtk_widget_modify_bg(cn->container, GTK_STATE_PRELIGHT, &selected_bg);
-  gtk_widget_modify_fg(cn->label, GTK_STATE_NORMAL, &item_fg);
-  gtk_widget_modify_fg(cn->label, GTK_STATE_SELECTED, &selected_fg);
-  gtk_widget_modify_fg(cn->label, GTK_STATE_PRELIGHT, &selected_fg);
+  if(search_result) {
+    gtk_widget_set_style(cn->container, search_style);
+    gtk_widget_set_style(cn->label, search_style);
+  } else {
+    gtk_widget_set_style(cn->container, layout_style);
+    gtk_widget_set_style(cn->label, layout_style);
+  }
   END(colors);
   /* Make sure the icon is right */
   BEGIN(markers);
@@ -1442,16 +1437,14 @@ GtkWidget *choose_widget(void) {
   /* Text entry box for search terms */
   NW(entry);
   searchentry = gtk_entry_new();
+  gtk_widget_set_style(searchentry, tool_style);
   g_signal_connect(searchentry, "changed", G_CALLBACK(searchentry_changed), 0);
   gtk_tooltips_set_tip(tips, searchentry, "Enter search terms here; search is automatic", "");
 
   /* Cancel button to clear the search */
   NW(button);
   clearsearch = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-  gtk_widget_modify_bg(clearsearch, GTK_STATE_NORMAL, &tool_bg);
-  gtk_widget_modify_bg(clearsearch, GTK_STATE_ACTIVE, &tool_active);
-  gtk_widget_modify_bg(clearsearch, GTK_STATE_PRELIGHT, &tool_active);
-  gtk_widget_modify_bg(clearsearch, GTK_STATE_SELECTED, &tool_active);
+  gtk_widget_set_style(clearsearch, tool_style);
   g_signal_connect(G_OBJECT(clearsearch), "clicked",
                    G_CALLBACK(clearsearch_clicked), 0);
   gtk_tooltips_set_tip(tips, clearsearch, "Clear search terms", "");
@@ -1461,21 +1454,13 @@ GtkWidget *choose_widget(void) {
   prevsearch = iconbutton("up.png", "Previous search result");
   g_signal_connect(G_OBJECT(prevsearch), "clicked",
                    G_CALLBACK(prev_clicked), 0);
+  gtk_widget_set_style(prevsearch, tool_style);
   gtk_widget_set_sensitive(prevsearch, 0);
-  gtk_widget_modify_bg(prevsearch, GTK_STATE_NORMAL, &tool_bg);
-  gtk_widget_modify_bg(prevsearch, GTK_STATE_ACTIVE, &tool_active);
-  gtk_widget_modify_bg(prevsearch, GTK_STATE_PRELIGHT, &tool_active);
-  gtk_widget_modify_bg(prevsearch, GTK_STATE_SELECTED, &tool_active);
-  gtk_widget_modify_bg(prevsearch, GTK_STATE_INSENSITIVE, &tool_active);
   nextsearch = iconbutton("down.png", "Next search result");
   g_signal_connect(G_OBJECT(nextsearch), "clicked",
                    G_CALLBACK(next_clicked), 0);
+  gtk_widget_set_style(nextsearch, tool_style);
   gtk_widget_set_sensitive(nextsearch, 0);
-  gtk_widget_modify_bg(nextsearch, GTK_STATE_NORMAL, &tool_bg);
-  gtk_widget_modify_bg(nextsearch, GTK_STATE_ACTIVE, &tool_active);
-  gtk_widget_modify_bg(nextsearch, GTK_STATE_PRELIGHT, &tool_active);
-  gtk_widget_modify_bg(nextsearch, GTK_STATE_SELECTED, &tool_active);
-  gtk_widget_modify_bg(nextsearch, GTK_STATE_INSENSITIVE, &tool_active);
 
   /* hbox packs the search tools button together on a line */
   NW(hbox);
@@ -1493,29 +1478,33 @@ GtkWidget *choose_widget(void) {
    * namespace */
   NW(layout);
   chooselayout = gtk_layout_new(0, 0);
-  gtk_widget_modify_bg(chooselayout, GTK_STATE_NORMAL, &layout_bg);
+  gtk_widget_set_style(chooselayout, layout_style);
   choose_reset();
   register_reset(choose_reset);
   /* Create the popup menus */
   NW(menu);
   track_menu = gtk_menu_new();
+  gtk_widget_set_style(track_menu, tool_style);
   g_signal_connect(track_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &track_menu);
   for(n = 0; track_menuitems[n].name; ++n) {
     NW(menu_item);
     track_menuitems[n].w = 
       gtk_menu_item_new_with_label(track_menuitems[n].name);
+    gtk_widget_set_style(track_menuitems[n].w, tool_style);
     gtk_menu_attach(GTK_MENU(track_menu), track_menuitems[n].w,
                     0, 1, n, n + 1);
   }
   NW(menu);
   dir_menu = gtk_menu_new();
+  gtk_widget_set_style(dir_menu, tool_style);
   g_signal_connect(dir_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &dir_menu);
   for(n = 0; dir_menuitems[n].name; ++n) {
     NW(menu_item);
     dir_menuitems[n].w = 
       gtk_menu_item_new_with_label(dir_menuitems[n].name);
+    gtk_widget_set_style(dir_menuitems[n].w, tool_style);
     gtk_menu_attach(GTK_MENU(dir_menu), dir_menuitems[n].w,
                     0, 1, n, n + 1);
   }

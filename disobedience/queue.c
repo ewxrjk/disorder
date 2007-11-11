@@ -513,8 +513,7 @@ static void update_queue(struct queuelike *ql, struct queue_entry *newq) {
  * @return New widget
  */
 static GtkWidget *wrap_queue_cell(GtkWidget *label,
-                                  const GdkColor *bgcolor,
-                                  const GdkColor *fgcolor,
+                                  GtkStyle *style,
                                   int *wp) {
   GtkRequisition req;
   GtkWidget *bg;
@@ -533,12 +532,8 @@ static GtkWidget *wrap_queue_cell(GtkWidget *label,
     if(req.width > *wp) *wp = req.width;
   }
   /* Set colors */
-  gtk_widget_modify_bg(bg, GTK_STATE_NORMAL, bgcolor);
-  gtk_widget_modify_bg(bg, GTK_STATE_SELECTED, &selected_bg);
-  gtk_widget_modify_bg(bg, GTK_STATE_PRELIGHT, &selected_bg);
-  gtk_widget_modify_fg(label, GTK_STATE_NORMAL, fgcolor);
-  gtk_widget_modify_fg(label, GTK_STATE_SELECTED, &selected_fg);
-  gtk_widget_modify_fg(label, GTK_STATE_PRELIGHT, &selected_fg);
+  gtk_widget_set_style(bg, style);
+  gtk_widget_set_style(label, style);
   return bg;
 }
 
@@ -547,22 +542,20 @@ static GtkWidget *get_queue_cell(struct queuelike *ql,
                                  const struct queue_entry *q,
                                  int row,
                                  int col,
-                                 const GdkColor *bgcolor,
-                                 const GdkColor *fgcolor,
+                                 GtkStyle *style,
                                  int *wp) {
   GtkWidget *label;
   D(("get_queue_cell %d %d", row, col));
   label = ql->columns[col].widget(ql, q, ql->columns[col].data);
   gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-  return wrap_queue_cell(label, bgcolor, fgcolor, wp);
+  return wrap_queue_cell(label, style, wp);
 }
 
 /** @brief Add a padding cell to the end of a row */
-static GtkWidget *get_padding_cell(const GdkColor *bgcolor,
-                                   const GdkColor *fgcolor) {
+static GtkWidget *get_padding_cell(GtkStyle *style) {
   D(("get_padding_cell"));
   NW(label);
-  return wrap_queue_cell(gtk_label_new(""), bgcolor, fgcolor, 0);
+  return wrap_queue_cell(gtk_label_new(""), style, 0);
 }
 
 /* User button press and menu ---------------------------------------------- */
@@ -813,7 +806,7 @@ static gboolean queue_drag_motion(GtkWidget attribute((unused)) *widget,
       g_signal_connect(ql->dragmark, "destroy",
                        G_CALLBACK(gtk_widget_destroyed), &ql->dragmark);
       gtk_widget_set_size_request(ql->dragmark, 10240, row ? 4 : 2);
-      gtk_widget_modify_bg(ql->dragmark, GTK_STATE_NORMAL, &drag_target);
+      gtk_widget_set_style(ql->dragmark, drag_style);
       gtk_layout_put(GTK_LAYOUT(ql->mainlayout), ql->dragmark, 0, 
                      (row + 1) * ql->mainrowheight - !!row);
     } else
@@ -915,7 +908,7 @@ static void redisplay_queue(struct queuelike *ql) {
   struct queue_entry *q;
   int row, col;
   GList *c, *children;
-  const GdkColor *bgcolor;
+  GtkStyle *style;
   GtkRequisition req;  
   GtkWidget *w;
   int maxwidths[MAXCOLUMNS], x, y, titlerowheight;
@@ -955,16 +948,15 @@ static void redisplay_queue(struct queuelike *ql) {
     /* Construct the widgets */
     for(q = ql->q, row = 0; q; q = q->next, ++row) {
       /* Figure out the widget name for this row */
-      if(q == playing_track) bgcolor = &active_bg;
-      else bgcolor = row % 2 ? &even_bg : &odd_bg;
+      if(q == playing_track) style = active_style;
+      else style = row % 2 ? even_style : odd_style;
       /* Make the widget for each column */
       for(col = 0; col <= ql->ncolumns; ++col) {
         /* Create and store the widget */
         if(col < ql->ncolumns)
-          w = get_queue_cell(ql, q, row, col, bgcolor, &item_fg,
-                             &maxwidths[col]);
+          w = get_queue_cell(ql, q, row, col, style, &maxwidths[col]);
         else
-          w = get_padding_cell(bgcolor, &item_fg);
+          w = get_padding_cell(style);
         ql->cells[row * (ql->ncolumns + 1) + col] = w;
         /* Maybe mark it draggable */
         if(draggable_row(q)) {
@@ -1086,9 +1078,10 @@ static GtkWidget *queuelike(struct queuelike *ql,
   /* Create the layouts */
   NW(layout);
   ql->mainlayout = gtk_layout_new(0, 0);
-  gtk_widget_modify_bg(ql->mainlayout, GTK_STATE_NORMAL, &layout_bg);
+  gtk_widget_set_style(ql->mainlayout, layout_style);
   NW(layout);
   ql->titlelayout = gtk_layout_new(0, 0);
+  gtk_widget_set_style(ql->titlelayout, title_style);
   /* Scroll the layouts */
   ql->mainscroll = mainscroll = scroll_widget(ql->mainlayout);
   titlescroll = scroll_widget(ql->titlelayout);
@@ -1103,10 +1096,10 @@ static GtkWidget *queuelike(struct queuelike *ql,
     NW(label);
     label = gtk_label_new(ql->columns[col].name);
     gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-    ql->titlecells[col] = wrap_queue_cell(label, &title_bg, &title_fg, 0);
+    ql->titlecells[col] = wrap_queue_cell(label, title_style, 0);
     gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   }
-  ql->titlecells[col] = get_padding_cell(&title_bg, &title_fg);
+  ql->titlecells[col] = get_padding_cell(title_style);
   gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
   /* Pack the lot together in a vbox */
   NW(vbox);

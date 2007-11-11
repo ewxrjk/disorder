@@ -220,8 +220,6 @@ void control_monitor(void attribute((unused)) *u) {
 /** @brief Create the control bar */
 GtkWidget *control_widget(void) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
-  GtkWidget *content;
-  GdkPixbuf *pb;
   GtkWidget *v, *b;
   int n;
 
@@ -230,21 +228,7 @@ GtkWidget *control_widget(void) {
   assert(mainmenufactory);              /* ordering must be right */
   for(n = 0; n < NICONS; ++n) {
     NW(button);
-    icons[n].button = gtk_button_new();
-    gtk_widget_modify_bg(icons[n].button, GTK_STATE_NORMAL, &tool_bg);
-    gtk_widget_modify_bg(icons[n].button, GTK_STATE_ACTIVE, &tool_active);
-    gtk_widget_modify_bg(icons[n].button, GTK_STATE_PRELIGHT, &tool_active);
-    gtk_widget_modify_bg(icons[n].button, GTK_STATE_SELECTED, &tool_active);
-    gtk_widget_modify_bg(icons[n].button, GTK_STATE_INSENSITIVE, &tool_active);
-    if((pb = find_image(icons[n].icon))) {
-      NW(image);
-      content = gtk_image_new_from_pixbuf(pb);
-    } else {
-      NW(label);
-      content = gtk_label_new(icons[n].icon);
-    }
-    gtk_container_add(GTK_CONTAINER(icons[n].button), content);
-    gtk_tooltips_set_tip(tips, icons[n].button, icons[n].tip, "");
+    icons[n].button = iconbutton(icons[n].icon, icons[n].tip);
     g_signal_connect(G_OBJECT(icons[n].button), "clicked",
                      G_CALLBACK(clicked_icon), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
@@ -284,8 +268,8 @@ GtkWidget *control_widget(void) {
   v = gtk_hscale_new(volume_adj);
   NW(hscale);
   b = gtk_hscale_new(balance_adj);
-  set_slider_colors(v);
-  set_slider_colors(b);
+  gtk_widget_set_style(v, tool_style);
+  gtk_widget_set_style(b, tool_style);
   gtk_scale_set_digits(GTK_SCALE(v), 10);
   gtk_scale_set_digits(GTK_SCALE(b), 10);
   gtk_widget_set_size_request(v, 192, -1);

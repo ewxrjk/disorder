@@ -45,6 +45,7 @@ GtkWidget *scroll_widget(GtkWidget *child) {
   GtkWidget *scroller = gtk_scrolled_window_new(0, 0);
   GtkAdjustment *adj;
 
+  gtk_widget_set_style(scroller, tool_style);
   D(("scroll_widget"));
   /* Why isn't _AUTOMATIC the default? */
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller),
@@ -64,11 +65,10 @@ GtkWidget *scroll_widget(GtkWidget *child) {
     /* Child widget requires a viewport */
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller),
                                           child);
-    gtk_widget_modify_bg(gtk_bin_get_child(GTK_BIN(scroller)),
-                         GTK_STATE_NORMAL, &tool_bg);
+    gtk_widget_set_style(gtk_bin_get_child(GTK_BIN(scroller)), tool_style);
   }
-  set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->hscrollbar);
-  set_slider_colors(GTK_SCROLLED_WINDOW(scroller)->vscrollbar);
+  gtk_widget_set_style(GTK_SCROLLED_WINDOW(scroller)->hscrollbar, tool_style);
+  gtk_widget_set_style(GTK_SCROLLED_WINDOW(scroller)->vscrollbar, tool_style);
   return scroller;
 }
 
@@ -119,6 +119,7 @@ void popup_msg(GtkMessageType mt, const char *msg) {
                              mt,
                              GTK_BUTTONS_CLOSE,
                              "%s", msg);
+  gtk_widget_set_style(w, tool_style);
   gtk_dialog_run(GTK_DIALOG(w));
   gtk_widget_destroy(w);
 }
@@ -140,7 +141,7 @@ void fpopup_msg(GtkMessageType mt, const char *fmt, ...) {
  * @return Button
  */
 GtkWidget *iconbutton(const char *path, const char *tip) {
-  GtkWidget *button, *content;;
+  GtkWidget *button, *content;
   GdkPixbuf *pb;
 
   NW(button);
@@ -152,6 +153,8 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
     NW(label);
     content = gtk_label_new(path);
   }
+  gtk_widget_set_style(button, tool_style);
+  gtk_widget_set_style(content, tool_style);
   gtk_container_add(GTK_CONTAINER(button), content);
   if(tip)
     gtk_tooltips_set_tip(tips, button, tip, "");
@@ -166,16 +169,7 @@ GtkWidget *create_buttons(const struct button *buttons,
 
   for(n = 0; n < nbuttons; ++n) {
     GtkWidget *const button = gtk_button_new_from_stock(buttons[n].stock);
-    gtk_widget_modify_bg(button, GTK_STATE_NORMAL, &tool_bg);
-    gtk_widget_modify_bg(button, GTK_STATE_ACTIVE, &tool_active);
-    gtk_widget_modify_bg(button, GTK_STATE_PRELIGHT, &tool_active);
-    gtk_widget_modify_bg(button, GTK_STATE_SELECTED, &tool_active); 
-    gtk_widget_modify_bg(button, GTK_STATE_INSENSITIVE, &tool_active);
-    gtk_widget_modify_fg(button, GTK_STATE_NORMAL, &tool_fg);
-    gtk_widget_modify_fg(button, GTK_STATE_ACTIVE, &tool_fg);
-    gtk_widget_modify_fg(button, GTK_STATE_PRELIGHT, &tool_fg);
-    gtk_widget_modify_fg(button, GTK_STATE_SELECTED, &tool_fg);
-    gtk_widget_modify_fg(button, GTK_STATE_INSENSITIVE, &tool_fg);
+    gtk_widget_set_style(button, tool_style);
     g_signal_connect(G_OBJECT(button), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
     gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
