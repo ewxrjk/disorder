@@ -478,7 +478,7 @@ int main(int argc, char **argv) {
   gtk_widget_show_all(toplevel);
   /* issue a NOP every so often */
   g_timeout_add_full(G_PRIORITY_LOW,
-                     1000/*interval, ms*/,
+                     2000/*interval, ms*/,
                      maybe_send_nop,
                      0/*data*/,
                      0/*notify*/);
