@@ -81,16 +81,30 @@ struct listener {
   int pf;
 };
 
+/** @brief One client connection */
 struct conn {
+  /** @brief Read commands from here */
   ev_reader *r;
+  /** @brief Send responses to here */
   ev_writer *w;
+  /** @brief Underlying file descriptor */
   int fd;
+  /** @brief Unique identifier for connection used in log messages */
   unsigned tag;
+  /** @brief Login name or NULL */
   char *who;
+  /** @brief Event loop */
   ev_source *ev;
+  /** @brief Nonce chosen for this connection */
   unsigned char nonce[NONCE_SIZE];
+  /** @brief Current reader callback
+   *
+   * We change this depending on whether we're servicing the @b log command
+   */
   ev_reader_callback *reader;
+  /** @brief Event log output sending to this connection */
   struct eventlog_output *lo;
+  /** @brief Parent listener */
   const struct listener *l;
 };
 
@@ -103,6 +117,10 @@ static int reader_callback(ev_source *ev,
 
 static const char *noyes[] = { "no", "yes" };
 
+/** @brief Called when a connection's writer fails or is shut down
+ *
+ * If the connection still has a raeder that is cancelled.
+ */
 static int writer_error(ev_source attribute((unused)) *ev,
 			int errno_value,
 			void *u) {
@@ -128,6 +146,10 @@ static int writer_error(ev_source attribute((unused)) *ev,
   return 0;
 }
 
+/** @brief Called when a conncetion's reader fails or is shut down
+ *
+ * If connection still has a writer then it is closed.
+ */
 static int reader_error(ev_source attribute((unused)) *ev,
 			int errno_value,
 			void *u) {
@@ -144,7 +166,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
   return 0;
 }
 
-/* return true if we are talking to a trusted user */
+/** @brief Return true if we are talking to a trusted user */
 static int trusted(struct conn *c) {
   int n;
   
@@ -715,26 +737,31 @@ static int c_volume(struct conn *c,
   return 1;
 }
 
-/* we are logging, and some data is available to read */
-static int logging_reader_callback(ev_source *ev,
+/** @brief Called when data arrives on a log connection
+ *
+ * We just discard all such data.  The client may occasionally send data as a
+ * keepalive.
+ */
+static int logging_reader_callback(ev_source attribute((unused)) *ev,
 				   ev_reader *reader,
-				   void *ptr,
+				   void attribute((unused)) *ptr,
 				   size_t bytes,
-				   int eof,
-				   void *u) {
+				   int attribute((unused)) eof,
+				   void attribute((unused)) *u) {
   struct conn *c = u;
 
-  /* don't log to this conn any more */
-  eventlog_remove(c->lo);
-  if(c->w) {
-    /* Terminate the log output, but only if the writer hasn't been killed off
-     * from a failure on some earlier write */
-    sink_writes(ev_writer_sink(c->w), ".\n");
+  ev_reader_consume(reader, bytes);
+  if(eof) {
+    /* Oops, that's all for now */
+    info("logging reader eof");
+    if(c->w) {
+      info("close writer");
+      ev_writer_close(c->w);
+      c->w = 0;
+    }
+    c->r = 0;
   }
-  /* restore the reader callback */
-  c->reader = reader_callback;
-  /* ...and exit via it */
-  return c->reader(ev, reader, ptr, bytes, eof, u);
+  return 0;
 }
 
 static void logclient(const char *msg, void *user) {
@@ -1093,7 +1120,13 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   if(eof) {
     if(bytes)
       error(0, "S%x unterminated line", c->tag);
-    return ev_writer_close(c->w);
+    info("normal reader close");
+    c->r = 0;
+    if(c->w) {
+      info("close associated writer");
+      ev_writer_close(c->w);
+      c->w = 0;
+    }
   }
   return 0;
 }

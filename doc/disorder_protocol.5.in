@@ -90,9 +90,9 @@ Gets the length of the track in seconds.  On success the second field of the
 response line will have the value.
 .TP
 .B log
-Sends event log messages in a response body.  The command will only terminate (and
-close the response body with a final dot) when a further command is readable on
-the control connection.
+Sends event log messages in a response body.  The command will never terminate.
+Any further data sent to the server will be discarded (explicitly; i.e. it will
+not accumulate in a buffer somewhere).
 .IP
 See \fBEVENT LOG\fR below for more details.
 .TP
