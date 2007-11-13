@@ -116,10 +116,14 @@ static int writer_error(ev_source attribute((unused)) *ev,
   } else {
     if(errno_value != EPIPE)
       error(errno_value, "S%x write error on socket", c->tag);
-    info("cancel reader");
-    ev_reader_cancel(c->r);
+    if(c->r) {
+      info("cancel reader");
+      ev_reader_cancel(c->r);
+      c->r = 0;
+    }
     info("done cancel reader");
   }
+  c->w = 0;
   ev_report(ev);
   return 0;
 }
@@ -132,7 +136,10 @@ static int reader_error(ev_source attribute((unused)) *ev,
   D(("server reader_error %d", errno_value));
   info("reader_error S%x %d", c->tag, errno_value);
   error(errno_value, "S%x read error on socket", c->tag);
-  ev_writer_close(c->w);
+  if(c->w)
+    ev_writer_close(c->w);
+  c->w = 0;
+  c->r = 0;
   ev_report(ev);
   return 0;
 }

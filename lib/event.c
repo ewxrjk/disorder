@@ -388,6 +388,7 @@ int ev_fd_cancel(ev_source *ev, ev_fdmode mode, int fd) {
  * cancelled.
  */
 int ev_fd_enable(ev_source *ev, ev_fdmode mode, int fd) {
+  assert(fd >= 0);
   D(("enabling mode %s fd %d", modenames[mode], fd));
   FD_SET(fd, &ev->mode[mode].enabled);
   return 0;
@@ -971,7 +972,7 @@ static int writer_shutdown(ev_source *ev,
 
   if(w->fd == -1)
     return 0;				/* already shut down */
-  info("writer_shutdown fd=%d", w->fd);
+  info("writer_shutdown fd=%d error=%d", w->fd, w->error);
   ev_timeout_cancel(ev, w->timeout);
   ev_fd_cancel(ev, ev_write, w->fd);
   w->timeout = 0;
@@ -1066,6 +1067,8 @@ static int ev_writer_write(struct sink *sk, const void *s, int n) {
 
   if(!n)
     return 0;				/* avoid silliness */
+  if(w->fd == -1)
+    error(0, "ev_writer_write on %s after shutdown", w->what);
   if(w->spacebound && w->b.end - w->b.start + n > w->spacebound) {
     /* The new buffer contents will exceed the space bound.  We assume that the
      * remote client has gone away and TCP hasn't noticed yet, or that it's got

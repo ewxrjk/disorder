@@ -586,6 +586,7 @@ int main(int argc, char **argv) {
   struct sockaddr_un addr;
   static const int one = 1;
   struct speaker_message sm;
+  const char *d;
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
@@ -599,7 +600,7 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
-  if(getenv("DISORDER_DEBUG_SPEAKER")) debugging = 1;
+  if((d = getenv("DISORDER_DEBUG_SPEAKER"))) debugging = atoi(d);
   /* If stderr is a TTY then log there, otherwise to syslog. */
   if(!isatty(2)) {
     openlog(progname, LOG_PID, LOG_DAEMON);
