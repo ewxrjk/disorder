@@ -350,20 +350,24 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
 static void got_rtp_address(void attribute((unused)) *v,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
+  ++suppress_actions;
   rtp_address_in_flight = 0;
   rtp_supported = 1;
   rtp_is_running = rtp_running();
   control_monitor(0);
+  --suppress_actions;
 }
 
 /** @brief Called when a rtp-address command fails */
 static void no_rtp_address(struct callbackdata attribute((unused)) *cbd,
                            int attribute((unused)) code,
                            const char attribute((unused)) *msg) {
+  ++suppress_actions;
   rtp_address_in_flight = 0;
   rtp_supported = 0;
   rtp_is_running = 0;
   control_monitor(0);
+  --suppress_actions;
 }
 
 /** @brief Called to check whether RTP play is available */
@@ -487,6 +491,7 @@ int main(int argc, char **argv) {
   disorder_eclient_log(logclient, &log_callbacks, 0);
   /* See if RTP play supported */
   check_rtp_address();
+  suppress_actions = 0;
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);

@@ -83,10 +83,12 @@ static struct monitor *monitors;
 
 /** @brief Update everything */
 void all_update(void) {
+  ++suppress_actions;
   queue_update();
   recent_update();
   volume_update();
   added_update();
+  --suppress_actions;
 }
 
 /** @brief Called when the client connects
@@ -167,7 +169,8 @@ static void log_state(void attribute((unused)) *v,
   const struct monitor *m;
   unsigned long changes = state ^ last_state;
   static int first = 1;
-  
+
+  ++suppress_actions;
   if(first) {
     changes = -1UL;
     first = 0;
@@ -182,6 +185,7 @@ static void log_state(void attribute((unused)) *v,
     if(changes & m->mask)
       m->callback(m->u);
   }
+  --suppress_actions;
 }
 
 /** @brief Called when volume changes */
@@ -190,7 +194,9 @@ static void log_volume(void attribute((unused)) *v,
   if(!rtp_supported && (volume_l != l || volume_r != r)) {
     volume_l = l;
     volume_r = r;
+    ++suppress_actions;
     volume_update();
+    --suppress_actions;
   }
 }
 

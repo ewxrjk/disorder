@@ -67,8 +67,8 @@ static gchar *format_balance(GtkScale *scale, gdouble value);
 
 /* Control bar ------------------------------------------------------------- */
 
-/** @brief Guard against feedback loop in volume control */
-static int suppress_set_volume;
+/** @brief Guard against feedback */
+int suppress_actions = 1;
 
 /** @brief Definition of an icon
  *
@@ -303,10 +303,10 @@ void volume_update(void) {
   D(("volume_update"));
   l = volume_l / 100.0;
   r = volume_r / 100.0;
-  ++suppress_set_volume;
+  ++suppress_actions;
   gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
   gtk_adjustment_set_value(balance_adj, balance(l, r));
-  --suppress_set_volume;
+  --suppress_actions;
 }
 
 /** @brief Update the state of one of the control icons
@@ -399,14 +399,16 @@ static void clicked_icon(GtkButton attribute((unused)) *button,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 
-  icon->action(client, 0, 0);
+  if(!suppress_actions)  
+    icon->action(client, 0, 0);
 }
 
 static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 
-  icon->action(client, 0, 0);
+  if(!suppress_actions)
+    icon->action(client, 0, 0);
 }
 
 static void toggled_menu(GtkCheckMenuItem *menuitem,
@@ -414,6 +416,8 @@ static void toggled_menu(GtkCheckMenuItem *menuitem,
   const struct icon *icon = userdata;
   size_t n;
 
+  if(suppress_actions)
+    return;
   /* This is a bit fiddlier than the others, we need to find the action for the
    * new state.  If the new state is active then we want the ICON_INACTIVE
    * version and vica versa. */
@@ -431,7 +435,7 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
   double v = gtk_adjustment_get_value(volume_adj) / goesupto;
   double b = gtk_adjustment_get_value(balance_adj);
 
-  if(suppress_set_volume)
+  if(suppress_actions)
     /* This is the result of an update from the server, not a change from the
      * user.  Don't feedback! */
     return;

@@ -194,6 +194,8 @@ void volume_update(void);
 
 void control_monitor(void *u);
 
+extern int suppress_actions;
+
 /* Queue/Recent/Added */
 
 GtkWidget *queue_widget(void);
