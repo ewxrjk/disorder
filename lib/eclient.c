@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
+#include <time.h>
 
 #include "log.h"
 #include "mem.h"
