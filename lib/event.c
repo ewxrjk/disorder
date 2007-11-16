@@ -419,15 +419,17 @@ void ev_report(ev_source *ev) {
   struct dynstr d[1];
   char b[4096];
 
+  if(!debugging)
+    return;
   dynstr_init(d);
   for(mode = 0; mode < ev_nmodes; ++mode) {
-    info("mode %s maxfd %d", modenames[mode], ev->mode[mode].maxfd);
+    D(("mode %s maxfd %d", modenames[mode], ev->mode[mode].maxfd));
     for(n = 0; n < ev->mode[mode].nfds; ++n) {
       fd = ev->mode[mode].fds[n].fd;
-      info("fd %s %d%s%s (%s)", modenames[mode], fd,
-	   FD_ISSET(fd, &ev->mode[mode].enabled) ? " enabled" : "",
-	   FD_ISSET(fd, &ev->mode[mode].tripped) ? " tripped" : "",
-	   ev->mode[mode].fds[n].what);
+      D(("fd %s %d%s%s (%s)", modenames[mode], fd,
+	 FD_ISSET(fd, &ev->mode[mode].enabled) ? " enabled" : "",
+	 FD_ISSET(fd, &ev->mode[mode].tripped) ? " tripped" : "",
+	 ev->mode[mode].fds[n].what));
     }
     d->nvec = 0;
     for(fd = 0; fd <= ev->mode[mode].maxfd; ++fd) {
@@ -445,7 +447,7 @@ void ev_report(ev_source *ev) {
       dynstr_append_string(d, b);
     }
     dynstr_terminate(d);
-    info("%s enabled:%s", modenames[mode], d->vec);
+    D(("%s enabled:%s", modenames[mode], d->vec));
   }
 }
 
@@ -972,17 +974,17 @@ static int writer_shutdown(ev_source *ev,
 
   if(w->fd == -1)
     return 0;				/* already shut down */
-  info("writer_shutdown fd=%d error=%d", w->fd, w->error);
+  D(("writer_shutdown fd=%d error=%d", w->fd, w->error));
   ev_timeout_cancel(ev, w->timeout);
   ev_fd_cancel(ev, ev_write, w->fd);
   w->timeout = 0;
   if(w->reader) {
-    info("found a tied reader");
+    D(("found a tied reader"));
     /* If there is a reader still around we just untie it */
     w->reader->writer = 0;
     shutdown(w->fd, SHUT_WR);		/* there'll be no more writes */
   } else {
-    info("no tied reader");
+    D(("no tied reader"));
     /* There's no reader so we are free to close the FD */
     xclose(w->fd);
   }
@@ -1238,16 +1240,16 @@ static int reader_shutdown(ev_source *ev,
 
   if(r->fd == -1)
     return 0;				/* already shut down */
-  info("reader_shutdown fd=%d", r->fd);
+  D(("reader_shutdown fd=%d", r->fd));
   ev_fd_cancel(ev, ev_read, r->fd);
   r->eof = 1;
   if(r->writer) {
-    info("found a tied writer");
+    D(("found a tied writer"));
     /* If there is a writer still around we just untie it */
     r->writer->reader = 0;
     shutdown(r->fd, SHUT_RD);		/* there'll be no more reads */
   } else {
-    info("no tied writer found");
+    D(("no tied writer found"));
     /* There's no writer so we are free to close the FD */
     xclose(r->fd);
   }
