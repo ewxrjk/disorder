@@ -126,20 +126,19 @@ static int writer_error(ev_source attribute((unused)) *ev,
 			void *u) {
   struct conn *c = u;
 
-  D(("server writer_error %d", errno_value));
-  info("writer_error S%x %d", c->tag, errno_value);
+  D(("server writer_error S%x %d", c->tag, errno_value));
   if(errno_value == 0) {
     /* writer is done */
-    error(errno_value, "S%x writer completed", c->tag);	/* TODO */
+    D(("S%x writer completed", c->tag));
   } else {
     if(errno_value != EPIPE)
       error(errno_value, "S%x write error on socket", c->tag);
     if(c->r) {
-      info("cancel reader");
+      D(("cancel reader"));
       ev_reader_cancel(c->r);
       c->r = 0;
     }
-    info("done cancel reader");
+    D(("done cancel reader"));
   }
   c->w = 0;
   ev_report(ev);
@@ -155,8 +154,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
 			void *u) {
   struct conn *c = u;
 
-  D(("server reader_error %d", errno_value));
-  info("reader_error S%x %d", c->tag, errno_value);
+  D(("server reader_error S%x %d", c->tag, errno_value));
   error(errno_value, "S%x read error on socket", c->tag);
   if(c->w)
     ev_writer_close(c->w);
@@ -753,9 +751,9 @@ static int logging_reader_callback(ev_source attribute((unused)) *ev,
   ev_reader_consume(reader, bytes);
   if(eof) {
     /* Oops, that's all for now */
-    info("logging reader eof");
+    D(("logging reader eof"));
     if(c->w) {
-      info("close writer");
+      D(("close writer"));
       ev_writer_close(c->w);
       c->w = 0;
     }
@@ -1120,10 +1118,10 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   if(eof) {
     if(bytes)
       error(0, "S%x unterminated line", c->tag);
-    info("normal reader close");
+    D(("normal reader close"));
     c->r = 0;
     if(c->w) {
-      info("close associated writer");
+      D(("close associated writer"));
       ev_writer_close(c->w);
       c->w = 0;
     }
