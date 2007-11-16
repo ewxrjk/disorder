@@ -58,6 +58,9 @@
 
 /* TODO: more commands */
 
+/** @brief How often to send data to the server when receiving logs */
+#define LOG_PROD_INTERVAL 10
+
 /* Types *********************************************************************/
 
 /** @brief Client state */
@@ -125,9 +128,23 @@ struct disorder_eclient {
   int rc;                               /**< @brief response code */
   char *line;                           /**< @brief complete line */
   struct vector vec;                    /**< @brief body */
-  const disorder_eclient_log_callbacks *log_callbacks; /**< @brief log callbacks */
+
+  const disorder_eclient_log_callbacks *log_callbacks;
+  /**< @brief log callbacks
+   *
+   * Once disorder_eclient_log() has been issued this is always set.  When we
+   * re-connect it is checked to re-issue the log command.
+   */
   void *log_v;                          /**< @brief user data */
   unsigned long statebits;              /**< @brief latest state */
+
+  time_t last_prod;
+  /**< @brief last time we sent a prod
+   *
+   * When we are receiving log data we send a "prod" byte to the server from
+   * time to time so that we detect broken connections reasonably quickly.  The
+   * server just ignores these bytes.
+   */
 };
 
 /* Forward declarations ******************************************************/
@@ -308,6 +325,7 @@ static int protocol_error(disorder_eclient *c, struct operation *op,
  */
 void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
   struct operation *op;
+  time_t now;
   
   D(("disorder_eclient_polled fd=%d state=%s mode=[%s %s]",
      c->fd, states[c->state],
@@ -376,6 +394,14 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
       c->callbacks->report(c->u, 0);
   }
 
+  /* Queue up a byte to send */
+  if(c->state == state_log
+     && c->output.nvec == 0
+     && time(&now) - c->last_prod > LOG_PROD_INTERVAL) {
+    put(c, "x", 1);
+    c->last_prod = now;
+  }
+  
   if(c->state == state_cmdresponse
      || c->state == state_body
      || c->state == state_log) {
@@ -455,6 +481,7 @@ static int start_connect(void *cc,
     return comms_error(c, "socket: %s", strerror(errno));
   c->eof = 0;
   nonblock(c->fd);
+  cloexec(c->fd);
   if(connect(c->fd, sa, len) < 0) {
     switch(errno) {
     case EINTR:
