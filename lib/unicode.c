@@ -51,13 +51,13 @@
  * @param ndp Where to store length of destination string (or NULL)
  * @return Newly allocated destination string or NULL on error
  *
- * If the UTF-32 is not valid then NULL is returned.  A UTF-32 code
- * point is invalid if:
+ * If the UTF-32 is not valid then NULL is returned.  A UTF-32 code point is
+ * invalid if:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
  *
- * The return value is always 0-terminated.  The value returned via @p
- * *ndp does not include the terminator.
+ * The return value is always 0-terminated.  The value returned via @p *ndp
+ * does not include the terminator.
  */
 char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *ndp) {
   struct dynstr d;
@@ -72,7 +72,7 @@ char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *ndp) {
       dynstr_append(&d, 0xC0 | (c >> 6));
       dynstr_append(&d, 0x80 | (c & 0x3F));
     } else if(c < 0x10000) {
-      if(c >= 0xDF800 && c <= 0xDFFF)
+      if(c >= 0xD800 && c <= 0xDFFF)
 	goto error;
       dynstr_append(&d, 0xE0 | (c >> 12));
       dynstr_append(&d, 0x80 | ((c >> 6) & 0x3F));
@@ -101,8 +101,8 @@ error:
  * @param ndp Where to store length of destination string (or NULL)
  * @return Newly allocated destination string or NULL
  *
- * The return value is always 0-terminated.  The value returned via @p
- * *ndp does not include the terminator.
+ * The return value is always 0-terminated.  The value returned via @p *ndp
+ * does not include the terminator.
  *
  * If the UTF-8 is not valid then NULL is returned.  A UTF-8 sequence
  * for a code point is invalid if:
@@ -119,8 +119,8 @@ uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *ndp) {
   while(ns > 0) {
     c = *ss++;
     --ns;
-    /* 
-     * Acceptable UTF-8 is:
+    /* Acceptable UTF-8 is that which codes for Unicode Scalar Values
+     * (Unicode 5.0.0 s3.9 D76)
      *
      * 0xxxxxxx
      * 7 data bits gives 0x00 - 0x7F and all are acceptable
@@ -136,9 +136,9 @@ uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *ndp) {
      * 21 data bits gives 0x00000000 - 0x001FFFFF
      * but only           0x00010000 - 0x0010FFFF are acceptable
      *
-     * It is NOT always the case that the data bits in the first byte
-     * are always non-0 for the acceptable values, so we do a separate
-     * check after decoding.
+     * It is NOT always the case that the data bits in the first byte are
+     * always non-0 for the acceptable values, so we do a separate check after
+     * decoding.
      */
     if(c < 0x80)
       c32 = c;
@@ -193,8 +193,7 @@ error:
  * @param s Pointer to 0-terminated string
  * @return Length of string in code points (excluding terminator)
  *
- * Unlike the conversion functions no validity checking is done on the
- * string.
+ * Unlike the conversion functions no validity checking is done on the string.
  */
 size_t utf32_len(const uint32_t *s) {
   const uint32_t *t = s;
@@ -274,12 +273,11 @@ static void utf32__sort_ccc(uint32_t *s, size_t ns, uint32_t *buffer) {
  * @param ns Length of @p s
  * @return 0 on success, -1 on error
  *
- * @p s is modified in-place.  See Unicode 5.0 s3.11 for details of
- * the ordering.
+ * @p s is modified in-place.  See Unicode 5.0 s3.11 for details of the
+ * ordering.
  *
- * Currently we only support a maximum of 1024 combining characters
- * after each base character.  If this limit is exceeded then -1 is
- * returned.
+ * Currently we only support a maximum of 1024 combining characters after each
+ * base character.  If this limit is exceeded then -1 is returned.
  */
 static int utf32__canonical_ordering(uint32_t *s, size_t ns) {
   size_t nc;
@@ -370,7 +368,7 @@ static void utf32__decompose_one_compat(struct dynstr_ucs4 *d, uint32_t c) {
   dynstr_ucs4_init(&d);                                 \
   while(ns) {                                           \
     c = *s++;                                           \
-    if((c >= 0xDF800 && c <= 0xDFFF) || c > 0x10FFFF)   \
+    if((c >= 0xD800 && c <= 0xDFFF) || c > 0x10FFFF)    \
       goto error;                                       \
     utf32__decompose_one_##WHICH(&d, c);                \
     --ns;                                               \
@@ -397,8 +395,7 @@ error:                                                  \
  * (at the time of writing!) passes the NFD tests defined in Unicode 5.0's
  * NormalizationTest.txt.
  *
- * Returns NULL if the string is not valid for either of the following
- * reasons:
+ * Returns NULL if the string is not valid for either of the following reasons:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
  */
@@ -417,8 +414,7 @@ uint32_t *utf32_decompose_canon(const uint32_t *s, size_t ns, size_t *ndp) {
  * Form KD and (at the time of writing!) passes the NFKD tests defined in
  * Unicode 5.0's NormalizationTest.txt.
  *
- * Returns NULL if the string is not valid for either of the following
- * reasons:
+ * Returns NULL if the string is not valid for either of the following reasons:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
  */
@@ -426,22 +422,19 @@ uint32_t *utf32_decompose_compat(const uint32_t *s, size_t ns, size_t *ndp) {
   utf32__decompose_generic(compat);
 }
 
-/** @brief Case-fold @p C
- * @param D String to append to
- * @param C Character to fold
- */
-static inline void utf32__casefold_one_canon(struct dynstr_ucs4 *d, uint32_t c) {
-  const uint32_t *cf =                                                  
-     (c < UNICODE_NCHARS                                              
-      ? unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].casefold
-      : 0);                                                             
-  if(cf) {                                                              
-    /* Found a case-fold mapping in the table */                        
-    while(*cf)                                                          
-      utf32__decompose_one_canon(d, *cf++);                            
-  } else                                                               
-    utf32__decompose_one_canon(d, c);  
-}
+/** @brief Single-character case-fold and decompose operation */
+#define utf32__casefold_one(WHICH) do {                                 \
+  const uint32_t *cf =                                                  \
+     (c < UNICODE_NCHARS                                                \
+      ? unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].casefold      \
+      : 0);                                                             \
+  if(cf) {                                                              \
+    /* Found a case-fold mapping in the table */                        \
+    while(*cf)                                                          \
+      utf32__decompose_one_##WHICH(&d, *cf++);                          \
+  } else                                                                \
+    utf32__decompose_one_##WHICH(&d, c);                                \
+} while(0)
 
 /** @brief Case-fold @p [s,s+ns)
  * @param s Pointer to string
@@ -450,10 +443,9 @@ static inline void utf32__casefold_one_canon(struct dynstr_ucs4 *d, uint32_t c) 
  * @return Pointer to result string, or NULL
  *
  * Case-fold the string at @p s according to full default case-folding rules
- * (s3.13).  The result will be in NFD.
+ * (s3.13) for caseless matching.  The result will be in NFD.
  *
- * Returns NULL if the string is not valid for either of the following
- * reasons:
+ * Returns NULL if the string is not valid for either of the following reasons:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
  */
@@ -484,13 +476,77 @@ uint32_t *utf32_casefold_canon(const uint32_t *s, size_t ns, size_t *ndp) {
   dynstr_ucs4_init(&d);
   while(ns) {
     c = *s++;
-    if((c >= 0xDF800 && c <= 0xDFFF) || c > 0x10FFFF)
+    if((c >= 0xD800 && c <= 0xDFFF) || c > 0x10FFFF)
       goto error;
-    utf32__casefold_one_canon(&d, c);
+    utf32__casefold_one(canon);
     --ns;
   }
   if(utf32__canonical_ordering(d.vec, d.nvec))
     goto error;
+  dynstr_ucs4_terminate(&d);
+  if(ndp)
+    *ndp = d.nvec;
+  return d.vec;
+error:
+  xfree(d.vec);
+  xfree(ss);
+  return 0;
+}
+
+/** @brief Compatibilit case-fold @p [s,s+ns)
+ * @param s Pointer to string
+ * @param ns Length of string
+ * @param ndp Where to store length of result
+ * @return Pointer to result string, or NULL
+ *
+ * Case-fold the string at @p s according to full default case-folding rules
+ * (s3.13) for compatibility caseless matching.  The result will be in NFKD.
+ *
+ * Returns NULL if the string is not valid for either of the following reasons:
+ * - it codes for a UTF-16 surrogate
+ * - it codes for a value outside the unicode code space
+ */
+uint32_t *utf32_casefold_compat(const uint32_t *s, size_t ns, size_t *ndp) {
+  struct dynstr_ucs4 d;
+  uint32_t c;
+  size_t n;
+  uint32_t *ss = 0;
+
+  for(n = 0; n < ns; ++n) {
+    c = s[n];
+    if(c < UNICODE_NCHARS
+       && (unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].flags
+           & unicode_normalize_before_casefold))
+      break;
+  }
+  if(n < ns) {
+    /* We need a preliminary _canonical_ decomposition */
+    if(!(ss = utf32_decompose_canon(s, ns, &ns)))
+      return 0;
+    s = ss;
+  }
+  /* This computes NFKD(toCaseFold(s)) */
+#define compat_casefold_middle() do {                   \
+  dynstr_ucs4_init(&d);                                 \
+  while(ns) {                                           \
+    c = *s++;                                           \
+    if((c >= 0xD800 && c <= 0xDFFF) || c > 0x10FFFF)    \
+      goto error;                                       \
+    utf32__casefold_one(compat);                        \
+    --ns;                                               \
+  }                                                     \
+  if(utf32__canonical_ordering(d.vec, d.nvec))          \
+    goto error;                                         \
+} while(0)
+  /* Do the inner (NFKD o toCaseFold) */
+  compat_casefold_middle();
+  /* We can do away with the NFD'd copy of the input now */
+  xfree(ss);
+  s = ss = d.vec;
+  ns = d.nvec;
+  /* Do the outer (NFKD o toCaseFold) */
+  compat_casefold_middle();
+  /* That's all */
   dynstr_ucs4_terminate(&d);
   if(ndp)
     *ndp = d.nvec;
@@ -603,11 +659,9 @@ char *utf8_casefold_canon(const char *s, size_t ns, size_t *ndp) {
  * Returns NULL if the string is not valid; see utf8_to_utf32() for reasons why
  * this might be.
  */
-#if 0
 char *utf8_casefold_compat(const char *s, size_t ns, size_t *ndp) {
   utf8__transform(utf32_casefold_compat);
 }
-#endif
 
 /*@}*/
 

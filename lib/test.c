@@ -355,13 +355,17 @@ static void test_hex(void) {
 
 static void test_casefold(void) {
   uint32_t c, l;
-  const char *input, *folded, *expected;
+  const char *input, *canon_folded, *compat_folded, *canon_expected, *compat_expected;
 
   fprintf(stderr, "test_casefold\n");
+
+  /* This isn't a very exhaustive test.  Unlike for normalization, there don't
+   * seem to be any public test vectors for these algorithms. */
   
   for(c = 1; c < 256; ++c) {
     input = utf32_to_utf8(&c, 1, 0);
-    folded = utf8_casefold_canon(input, strlen(input), 0);
+    canon_folded = utf8_casefold_canon(input, strlen(input), 0);
+    compat_folded = utf8_casefold_compat(input, strlen(input), 0);
     switch(c) {
     default:
       if((c >= 'A' && c <= 'Z')
@@ -374,17 +378,26 @@ static void test_casefold(void) {
       l = 0x3BC;			/* GREEK SMALL LETTER MU */
       break;
     case 0xDF:				/* LATIN SMALL LETTER SHARP S */
-      insist(!strcmp(folded, "ss"));
+      insist(!strcmp(canon_folded, "ss"));
+      insist(!strcmp(compat_folded, "ss"));
       l = 0;
       break;
     }
     if(l) {
       /* Case-folded data is now normalized */
-      expected = ucs42utf8(utf32_decompose_canon(&l, 1, 0));
-      if(strcmp(folded, expected)) {
-	fprintf(stderr, "%s:%d: casefolding %#lx got '%s', expected '%s'\n",
+      canon_expected = ucs42utf8(utf32_decompose_canon(&l, 1, 0));
+      if(strcmp(canon_folded, canon_expected)) {
+	fprintf(stderr, "%s:%d: canon-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
-		format(folded), format(expected));
+		format(canon_folded), format(canon_expected));
+	++errors;
+      }
+      ++tests;
+      compat_expected = ucs42utf8(utf32_decompose_compat(&l, 1, 0));
+      if(strcmp(compat_folded, compat_expected)) {
+	fprintf(stderr, "%s:%d: compat-casefolding %#lx got '%s', expected '%s'\n",
+		__FILE__, __LINE__, (unsigned long)c,
+		format(compat_folded), format(compat_expected));
 	++errors;
       }
       ++tests;
@@ -555,6 +568,7 @@ int main(void) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */
-
