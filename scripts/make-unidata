@@ -1,6 +1,48 @@
 #! /usr/bin/perl -w
 #
-# Generate a two-level table describing (some of) the fields of UnicodeData.txt
+# This file is part of DisOrder.
+# Copyright (C) 2007 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+#
+# Generate Unicode support tables
+#
+# This script will download data from unicode.org if the required files
+# aren't in the current directory.
+#
+# After modifying this script you should run:
+#  make -C lib rebuild-unicode check
+#
+# Things not supported yet:
+#  - SpecialCasing.txt data for case mapping
+#  - Title case offsets
+#  - Some kind of hinting for composition
+#  - Word boundary support
+#  - ...
+#
+# NB the generated files DO NOT offer a stable ABI and so are not immediately
+# suitable for use in a general-purpose library.  Things that would need to
+# be done:
+#  - Hide unidata.h from applications; it will never be ABI- or even API-stable.
+#  - Stablized General_Category values
+#  - Extend the unicode.h API to general utility rather than just what
+#    DisOrder needs.
+#  - ...
+#
 use strict;
 
 sub out {
@@ -14,34 +56,79 @@ sub key {
     return join("-", map($d->{$_}, sort keys %$d));
 }
 
+# Size of a subtable
+#
+# This can be varied to trade off the number of subtables against their size.
+our $modulus = 128;
+
 my %cats = ();			# known general categories
 my %data = ();			# mapping of codepoints to information
-my %comp = ();			# 
 my $max = 0;			# maximum codepoint
+my $maxccc = 0;			# maximum combining class
+my $maxud = 0;
+my $minud = 0;			# max/min upper case offset
+my $maxld = 0;
+my $minld = 0;			# max/min lower case offset
 
+# Make sure we have our desired input files.  We explicitly specify a
+# Unicode standard version to make sure that a given version of DisOrder
+# supports a given version of Unicode.
+sub need_input {
+    my $f = shift;
+    if(!-e $f) {
+	system("wget http://www.unicode.org/Public/5.0.0/ucd/$f");
+	chmod(0444, $f);
+    }
+}
+
+need_input("UnicodeData.txt");
+need_input("CaseFolding.txt");
+
+# Read the main data file
+open(STDIN, "<UnicodeData.txt") or die "UnicodeData.txt: $!\n";
 while(<>) {
     my @f = split(/;/, $_);
     my $c = hex($f[0]);		# codepoint
     next if $c >= 0xE0000;	# ignore various high-numbered stuff
+    # TODO justify this exclusion!
     my $name = $f[1];
-    my $gc = $f[2];		# general category
-    my $ccc = $f[3];		# canonical combining class
-    my $sum = hex($f[12]) || $c; # simple upper case mapping
-    my $slm = hex($f[13]) || $c; # simple lower case mapping
+    my $gc = $f[2];		# General_Category
+    my $ccc = $f[3];		# Canonical_Combining_Class
+    my $dm = $f[5];		# Decomposition_Type + Decomposition_Mapping
+    my $sum = hex($f[12]) || $c; # Simple_Uppercase_Mapping
+    my $slm = hex($f[13]) || $c; # Simple_Lowercase_Mapping
     # recalculate the upper/lower case mappings as offsets
     my $ud = $sum - $c;
     my $ld = $slm - $c;
+    # update bounds on various values
+    $maxccc = $ccc if $ccc > $maxccc; # assumed never to be -ve
+    $minud = $ud if $ud < $minud;
+    $maxud = $ud if $ud > $maxud;
+    $minld = $ld if $ld < $minld;
+    $maxld = $ld if $ld > $maxld;
     $data{$c} = {
 	"gc" => $gc,
 	"ccc" => $ccc,
 	"ud" => $ud,
-	"ld" => $ld
+	"ld" => $ld,
 	};
+    if($dm ne '') {
+	if($dm !~ /</) {
+	    # This is a canonical decomposition
+	    $data{$c}->{canon} = $dm;
+	    $data{$c}->{compat} = $dm;
+	} else {
+	    # This is only a compatibility decomposition
+	    $dm =~ s/^<.*>\s*//;
+	    $data{$c}->{compat} = $dm;
+	}
+    }
     $cats{$gc} = 1;
     $max = $c if $c > $max;
 }
 
-$max += 255 - ($max % 256);	# round up
+# Round up the maximum value to a whole number of subtables
+$max += ($modulus - 1) - ($max % $modulus);
 
 # Make sure there are no gaps
 for(my $c = 0; $c <= $max; ++$c) {
@@ -56,25 +143,95 @@ for(my $c = 0; $c <= $max; ++$c) {
 }
 $cats{'Cn'} = 1;
 
+# Read the casefolding data too
+open(STDIN, "<CaseFolding.txt") or die "CaseFolding.txt: $!\n";
+while(<>) {
+    chomp;
+    next if /^\#/ or $_ eq '';
+    my @f = split(/\s*;\s*/, $_);
+    # Full case folding means use status C and F.
+    # We discard status T, Turkish users may wish to change this.
+    if($f[1] eq 'C' or $f[1] eq 'F') {
+	my $c = hex($f[0]);
+	$data{$c}->{casefold} = $f[2];
+	# We are particularly interest in combining characters that
+	# case-fold to non-combining characters, or characters that
+	# case-fold to sequences with combining characters in non-initial
+	# positions, as these required decomposiiton before case-folding
+	my @d = map(hex($_), split(/\s+/, $data{$c}->{casefold}));
+	if($data{$c}->{ccc} != 0) {
+	    # This is a combining character
+	    if($data{$d[0]}->{ccc} == 0) {
+		# The first character of its case-folded form is NOT
+		# a combining character.  The field name is the example
+		# explicitly mentioned in the spec.
+		$data{$c}->{ypogegrammeni} = 1;
+	    }
+	} else {
+	    # This is a non-combining character; inspect the non-initial
+	    # code points of the case-folded sequence
+	    shift(@d);
+	    if(grep($data{$_}->{ccc} != 0, @d)) {
+		# Some non-initial code point in the case-folded for is NOT a
+		# a combining character.
+		$data{$c}->{ypogegrammeni} = 1;
+	    }
+	}
+    }
+}
+
+# Generate the header file
 open(STDOUT, ">unidata.h") or die "unidata.h: $!\n";
 
-out("#ifndef UNIDATA_H\n",
+out("/* Automatically generated file, see scripts/make-unidata */\n",
+    "#ifndef UNIDATA_H\n",
     "#define UNIDATA_H\n");
 
+# TODO choose stable values for General_Category
 out("enum unicode_gc_cat {\n",
     join(",\n",
 	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
-    
+
+out("enum unicode_flags {\n",
+    "  unicode_normalize_before_casefold = 1\n",
+    "};\n",
+    "\n");
+
+# Choose the narrowest type that will fit the required values
+sub choosetype {
+    my ($min, $max) = @_;
+    if($min >= 0) {
+	return "char" if $max <= 127;
+	return "unsigned char" if $max <= 255;
+	return "int16_t" if $max < 32767;
+	return "uint16_t" if $max < 65535;
+	return "int32_t";
+    } else {
+	return "char" if $min >= -127 && $max <= 127;
+	return "int16_t" if $min >= -32767 && $max <= 32767;
+	return "int32_t";
+    }
+}
+
 out("struct unidata {\n",
-    "  enum unicode_gc_cat gc;\n",
-    "  int ccc;\n",
-    "  int upper_offset;\n",
-    "  int lower_offset;\n",
+    "  const uint32_t *compat;\n",
+    "  const uint32_t *canon;\n",
+    "  const uint32_t *casefold;\n",
+    "  ".choosetype($minud, $maxud)." upper_offset;\n",
+    "  ".choosetype($minld, $maxld)." lower_offset;\n",
+    "  ".choosetype(0, $maxccc)." ccc;\n",
+    "  char gc;\n",
+    "  uint8_t flags;\n",
     "};\n");
+# compat, canon and casefold do have have non-BMP characters, so we
+# can't use a simple 16-bit table.  We could use UTF-8 or UTF-16
+# though, saving a bit of space (probably not that much...) at the
+# cost of marginally reduced performance and additional complexity
 
 out("extern const struct unidata *const unidata[];\n");
 
 out("#define UNICODE_NCHARS ", ($max + 1), "\n");
+out("#define UNICODE_MODULUS $modulus\n");
 
 out("#endif\n");
 
@@ -82,36 +239,118 @@ close STDOUT or die "unidata.h: $!\n";
 
 open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
 
-out("#include \"unidata.h\"\n");
+out("/* Automatically generated file, see scripts/make-unidata */\n",
+    "#include <config.h>\n",
+    "#include \"types.h\"\n",
+    "#include \"unidata.h\"\n");
 
-# Visit all the 256-character blocks in turn and generate the required
-# subtables
+# Short aliases for general category codes
+
+out(map(sprintf("#define %s unicode_gc_%s\n", $_, $_), sort keys %cats));
+
+# Generate the decomposition mapping tables.  We look out for duplicates
+# in order to save space and report this as decompsaved at the end.  In
+# Unicode 5.0.0 this saves 1795 entries, which is at least 14Kbytes.
+my $decompnum = 0;
+my %decompnums = ();
+my $decompsaved = 0;
+out("static const uint32_t ");
+for(my $c = 0; $c <= $max; ++$c) {
+    # If canon is set then compat will be too and will be identical.
+    # If compat is set the canon might be clear.  So we use the
+    # compat version and fix up the symbols after.
+    if(exists $data{$c}->{compat}) {
+	my $s = join(",",
+		     (map(hex($_), split(/\s+/, $data{$c}->{compat})), 0));
+	if(!exists $decompnums{$s}) {
+	    out(",\n") if $decompnum != 0;
+	    out("cd$decompnum\[]={$s}");
+	    $decompnums{$s} = $decompnum++;
+	} else {
+	    ++$decompsaved;
+	}
+	$data{$c}->{compatsym} = "cd$decompnums{$s}";
+	if(exists $data{$c}->{canon}) {
+	    $data{$c}->{canonsym} = "cd$decompnums{$s}";
+	}
+    }
+}
+out(";\n");
+
+# ...and the case folding table.  Again we compress equal entries to save
+# space.  In Unicode 5.0.0 this saves 51 entries or at least 408 bytes.
+# This doesns't seem as worthwhile as the decomposition mapping saving above.
+my $cfnum = 0;
+my %cfnums = ();
+my $cfsaved = 0;
+out("static const uint32_t ");
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c}->{casefold}) {
+	my $s = join(",",
+		     (map(hex($_), split(/\s+/, $data{$c}->{casefold})), 0));
+	if(!exists $cfnums{$s}) {
+	    out(",\n") if $cfnum != 0;
+	    out("cf$cfnum\[]={$s}");
+	    $cfnums{$s} = $cfnum++;
+	} else {
+	    ++$cfsaved;
+	}
+	$data{$c}->{cfsym} = "cf$cfnums{$s}";
+    }
+}
+out(";\n");
+
+# Visit all the $modulus-character blocks in turn and generate the
+# required subtables.  As above we spot duplicates to save space.  In
+# Unicode 5.0.0 with $modulus=128 and current table data this saves
+# 1372 subtables or at least three and a half megabytes on 32-bit
+# platforms.
+
 my %subtable = ();		# base->subtable number
 my %subtableno = ();		# subtable number -> content
 my $subtablecounter = 0;	# counter for subtable numbers
-for(my $base = 0; $base <= $max; $base += 256) {
+my $subtablessaved = 0;		# number of tables saved
+for(my $base = 0; $base <= $max; $base += $modulus) {
     my @t;
-    for(my $c = $base; $c <= $base + 255; ++$c) {
+    for(my $c = $base; $c < $base + $modulus; ++$c) {
 	my $d = $data{$c};
-	push(@t,
-	     "  { unicode_gc_$d->{gc}, $d->{ccc}, $d->{ud}, $d->{ld} }");
+	my $canonsym = ($data{$c}->{canonsym} or "0");
+	my $compatsym = ($data{$c}->{compatsym} or "0");
+	my $cfsym = ($data{$c}->{cfsym} or "0");
+	my $flags = ($data{$c}->{ypogegrammeni}
+		     ? "unicode_normalize_before_casefold"
+		     : 0);
+	push(@t, "{".
+	     join(",",
+		  $compatsym,
+		  $canonsym,
+		  $cfsym,
+		  "$d->{ud}",
+		  "$d->{ld}",
+		  "$d->{ccc}",
+		  "$d->{gc}",
+		  $flags,
+	     )."}");
     }
     my $t = join(",\n", @t);
     if(!exists $subtable{$t}) {
-	out("static const struct unidata subtable$subtablecounter\[] = {\n",
+	out("static const struct unidata st$subtablecounter\[] = {\n",
 	    "$t\n",
 	    "};\n");
 	$subtable{$t} = $subtablecounter++;
+    } else {
+	++$subtablessaved;
     }
     $subtableno{$base} = $subtable{$t};
 }
 
-out("const struct unidata *const unidata[] = {\n");
-for(my $base = 0; $base <= $max; $base += 256) {
-    out("  subtable$subtableno{$base},\n");
+out("const struct unidata*const unidata[]={\n");
+for(my $base = 0; $base <= $max; $base += $modulus) {
+    out("st$subtableno{$base},\n");
 }
 out("};\n");
 
 close STDOUT or die "unidata.c: $!\n";
 
-print STDERR "max=$max, subtables=$subtablecounter\n";
+print STDERR "max=$max, subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
+print STDERR "decompsaved=$decompsaved cfsaved=$cfsaved\n";

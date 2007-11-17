@@ -63,6 +63,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	timeval.h					\
 	trackname.c trackname.h				\
 	user.h user.c					\
+	unicode.h unicode.c				\
 	unidata.h unidata.c				\
 	utf8.h utf8.c					\
 	vacopy.h					\
@@ -94,6 +95,9 @@ test_DEPENDENCIES=libdisorder.a
 
 check: test #test.i
 	./test
+
+rebuild-unicode:
+	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata
 
 %.i: %.c
 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new

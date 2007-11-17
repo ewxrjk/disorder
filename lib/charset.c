@@ -181,7 +181,7 @@ int ucs4cmp(const uint32_t *a, const uint32_t *b) {
 /** @brief Return nonzero if @p c is a combining character */
 static int combining(int c) {
   if(c < UNICODE_NCHARS) {
-    const struct unidata *const ud = &unidata[c / 256][c % 256];
+    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
 
     return ud->gc == unicode_gc_Mn || ud->ccc != 0;
   }

@@ -33,33 +33,16 @@
 #include "charset.h"
 
 #include "unidata.h"
+#include "unicode.h"
 
 const char *casefold(const char *ptr) {
-  struct dynstr d;
-  uint32_t c;
-  const char *s = ptr;
-
-  dynstr_init(&d);
-  while(*s) {
-    /* Convert UTF-8 to UCS-32 */
-    PARSE_UTF8(s, c, return ptr);
-    /* Normalize */
-    if(c < UNICODE_NCHARS) {
-      /* If this a known character, convert it to lower case */
-      const struct unidata *const ud = &unidata[c / 256][c % 256];
-      c += ud->lower_offset;
-    }
-    /* Convert UCS-4 back to UTF-8 */
-    one_ucs42utf8(c, &d);
-  }
-  dynstr_terminate(&d);
-  return d.vec;
+  return utf8_casefold_canon(ptr, strlen(ptr), 0);
 }
 
 static enum unicode_gc_cat cat(uint32_t c) {
   if(c < UNICODE_NCHARS) {
     /* If this a known character, convert it to lower case */
-    const struct unidata *const ud = &unidata[c / 256][c % 256];
+    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
     return ud->gc;
   } else
     return unicode_gc_Cn;

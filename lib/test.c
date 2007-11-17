@@ -28,6 +28,8 @@
 #include <errno.h>
 #include <ctype.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "utf8.h"
 #include "mem.h"
@@ -38,6 +40,8 @@
 #include "hex.h"
 #include "words.h"
 #include "heap.h"
+#include "unicode.h"
+#include "inputline.h"
 
 static int tests, errors;
 
@@ -62,6 +66,24 @@ static const char *format(const char *s) {
       dynstr_append(&d, c);
     else {
       sprintf(buf, "\\x%02X", (unsigned)c);
+      dynstr_append_string(&d, buf);
+    }
+  }
+  dynstr_terminate(&d);
+  return d.vec;
+}
+
+static const char *format_utf32(const uint32_t *s) {
+  struct dynstr d;
+  uint32_t c;
+  char buf[64];
+  
+  dynstr_init(&d);
+  while((c = *s++)) {
+    if(c >= 32 && c <= 127)
+      dynstr_append(&d, c);
+    else {
+      sprintf(buf, "\\x%04lX", (unsigned long)c);
       dynstr_append_string(&d, buf);
     }
   }
@@ -332,16 +354,14 @@ static void test_hex(void) {
 }
 
 static void test_casefold(void) {
-  uint32_t c, l, u[2];
-  const char *s, *ls;
+  uint32_t c, l;
+  const char *input, *folded, *expected;
 
   fprintf(stderr, "test_casefold\n");
-
+  
   for(c = 1; c < 256; ++c) {
-    u[0] = c;
-    u[1] = 0;
-    s = ucs42utf8(u);
-    ls = casefold(s);
+    input = utf32_to_utf8(&c, 1, 0);
+    folded = utf8_casefold_canon(input, strlen(input), 0);
     switch(c) {
     default:
       if((c >= 'A' && c <= 'Z')
@@ -350,25 +370,21 @@ static void test_casefold(void) {
       else
 	l = c;
       break;
-#if 0
-      /* unidata-based case folding doens't support special cases */
     case 0xB5:				/* MICRO SIGN */
-      l = 0x39C;			/* GREEK SMALL LETTER MU */
+      l = 0x3BC;			/* GREEK SMALL LETTER MU */
       break;
     case 0xDF:				/* LATIN SMALL LETTER SHARP S */
-      insist(!strcmp(ls, "ss"));
+      insist(!strcmp(folded, "ss"));
       l = 0;
       break;
-#endif
     }
     if(l) {
-      u[0] = l;
-      u[1] = 0;
-      s = ucs42utf8(u);
-      if(strcmp(s, ls)) {
+      /* Case-folded data is now normalized */
+      expected = ucs42utf8(utf32_decompose_canon(&l, 1, 0));
+      if(strcmp(folded, expected)) {
 	fprintf(stderr, "%s:%d: casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
-		format(ls), format(s));
+		format(folded), format(expected));
 	++errors;
       }
       ++tests;
@@ -404,6 +420,84 @@ static void test_heap(void) {
     last = latest;
   }
   putchar('\n');
+}
+
+/** @brief Tests for @ref lib/unicode.h */
+static void test_unicode(void) {
+  FILE *fp;
+  int lineno = 0;
+  char *l, *lp;
+  uint32_t buffer[1024];
+  uint32_t *c[6], *NFD_c[6],  *NFKD_c[6]; /* 1-indexed */
+  int cn, bn;
+
+  fprintf(stderr, "test_unicode\n");
+  if(!(fp = fopen("NormalizationTest.txt", "r"))) {
+    system("wget http://www.unicode.org/Public/5.0.0/ucd/NormalizationTest.txt");
+    chmod("NormalizationTest.txt", 0444);
+    if(!(fp = fopen("NormalizationTest.txt", "r"))) {
+      perror("NormalizationTest.txt");
+      ++tests;				/* don't know how many... */
+      ++errors;
+      return;
+    }
+  }
+  while(!inputline("NormalizationTest.txt", fp, &l, '\n')) {
+    ++lineno;
+    if(*l == '#' || *l == '@')
+      continue;
+    bn = 0;
+    cn = 1;
+    lp = l;
+    c[cn++] = &buffer[bn];
+    while(*lp && *lp != '#') {
+      if(*lp == ' ') {
+	++lp;
+	continue;
+      }
+      if(*lp == ';') {
+	buffer[bn++] = 0;
+	if(cn == 6)
+	  break;
+	c[cn++] = &buffer[bn];
+	++lp;
+	continue;
+      }
+      buffer[bn++] = strtoul(lp, &lp, 16);
+    }
+    buffer[bn] = 0;
+    assert(cn == 6);
+    for(cn = 1; cn <= 5; ++cn) {
+      NFD_c[cn] = utf32_decompose_canon(c[cn], utf32_len(c[cn]), 0);
+      NFKD_c[cn] = utf32_decompose_compat(c[cn], utf32_len(c[cn]), 0);
+    }
+#define unt_check(T, A, B) do {					\
+    ++tests;							\
+    if(utf32_cmp(c[A], T##_c[B])) {				\
+      fprintf(stderr, "L%d: c%d != "#T"(c%d)\n", lineno, A, B);	\
+      fprintf(stderr, "    c%d:      %s\n",			\
+              A, format_utf32(c[A]));				\
+      fprintf(stderr, "%4s(c%d): %s\n",				\
+              #T, B, format_utf32(T##_c[B]));			\
+      ++errors;							\
+    }								\
+  } while(0)
+    unt_check(NFD, 3, 1);
+    unt_check(NFD, 3, 2);
+    unt_check(NFD, 3, 3);
+    unt_check(NFD, 5, 4);
+    unt_check(NFD, 5, 5);
+    unt_check(NFKD, 5, 1);
+    unt_check(NFKD, 5, 2);
+    unt_check(NFKD, 5, 3);
+    unt_check(NFKD, 5, 4);
+    unt_check(NFKD, 5, 5);
+    for(cn = 1; cn <= 5; ++cn) {
+      xfree(NFD_c[cn]);
+      xfree(NFKD_c[cn]);
+    }
+    xfree(l);
+  }
 }
 
 int main(void) {
@@ -444,6 +538,8 @@ int main(void) {
   /* split.c */
   /* syscalls.c */
   /* table.c */
+  /* unicode.c */
+  test_unicode();
   /* utf8.c */
   test_utf8();
   /* vector.c */

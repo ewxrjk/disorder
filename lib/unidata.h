@@ -1,3 +1,4 @@
+/* Automatically generated file, see scripts/make-unidata */
 #ifndef UNIDATA_H
 #define UNIDATA_H
 enum unicode_gc_cat {
@@ -32,12 +33,21 @@ enum unicode_gc_cat {
   unicode_gc_Zp,
   unicode_gc_Zs
 };
+enum unicode_flags {
+  unicode_normalize_before_casefold = 1
+};
+
 struct unidata {
-  enum unicode_gc_cat gc;
-  int ccc;
-  int upper_offset;
-  int lower_offset;
+  const uint32_t *compat;
+  const uint32_t *canon;
+  const uint32_t *casefold;
+  int16_t upper_offset;
+  int16_t lower_offset;
+  unsigned char ccc;
+  char gc;
+  uint8_t flags;
 };
 extern const struct unidata *const unidata[];
-#define UNICODE_NCHARS 195328
+#define UNICODE_NCHARS 195200
+#define UNICODE_MODULUS 128
 #endif
