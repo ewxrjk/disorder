@@ -41,7 +41,6 @@ const char *casefold(const char *ptr) {
 
 static enum unicode_gc_cat cat(uint32_t c) {
   if(c < UNICODE_NCHARS) {
-    /* If this a known character, convert it to lower case */
     const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
     return ud->gc;
   } else

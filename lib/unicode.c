@@ -21,7 +21,8 @@
  * @brief Unicode support functions
  *
  * Here by UTF-8 and UTF-8 we mean the encoding forms of those names (not the
- * encoding schemes).
+ * encoding schemes).  The primary encoding form is UTF-32 but convenience
+ * wrappers using UTF-8 are provided for a number of functions.
  *
  * The idea is that all the strings that hit the database will be in a
  * particular normalization form, and for the search and tags database
@@ -570,6 +571,125 @@ int utf32_cmp(const uint32_t *a, const uint32_t *b) {
     ++b;
   }
   return *a < *b ? -1 : (*a > *b ? 1 : 0);
+}
+
+/** @brief Return the General_Category value for @p c
+ * @param Code point
+ * @return General_Category property value
+ */
+static inline enum unicode_gc_cat utf32__general_category(uint32_t c) {
+  if(c < UNICODE_NCHARS) {
+    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
+    return ud->gc;
+  } else
+    return unicode_gc_Cn;
+}
+
+/** @brief Check Grapheme_Cluster_Break property
+ * @param c Code point
+ * @return 0 if it is as described, 1 otherwise
+ */
+static int utf32__is_control_or_cr_or_lf(uint32_t c) {
+  switch(utf32__general_category(c)) {
+  default:
+    return 0;
+  case unicode_gc_Zl:
+  case unicode_gc_Zp:
+  case unicode_gc_Cc:
+    return 1;
+  case unicode_gc_Cf:
+    if(c == 0x200C || c == 0x200D)
+      return 0;
+    return 1;
+  }
+}
+
+#define Hangul_Syllable_Type_NA 0
+#define Hangul_Syllable_Type_L 0x1100
+#define Hangul_Syllable_Type_V 0x1160
+#define Hangul_Syllable_Type_T 0x11A8
+#define Hangul_Syllable_Type_LV 0xAC00
+#define Hangul_Syllable_Type_LVT 0xAC01
+
+/** @brief Determine Hangul_Syllable_Type of @p c
+ * @param c Code point
+ * @return Equivalance class of @p c, or Hangul_Syllable_Type_NA 
+ *
+ * If this is a Hangul character then a representative member of its
+ * equivalence class is returned.  Otherwise Hangul_Syllable_Type_NA is
+ * returned.
+ */
+static uint32_t utf32__hangul_syllable_type(uint32_t c) {
+  /* Dispose of the bulk of the non-Hangul code points first */
+  if(c < 0x1100) return Hangul_Syllable_Type_NA;
+  if(c > 0x1200 && c < 0xAC00) return Hangul_Syllable_Type_NA;
+  if(c >= 0xD800) return Hangul_Syllable_Type_NA;
+  /* Now we pick out the assigned Hangul code points */
+  if((c >= 0x1100 && c <= 0x1159) || c == 0x115F) return Hangul_Syllable_Type_L;
+  if(c >= 0x1160 && c <= 0x11A2) return Hangul_Syllable_Type_V;
+  if(c >= 0x11A8 && c <= 0x11F9) return Hangul_Syllable_Type_T;
+  if(c >= 0xAC00 && c <= 0xD7A3) {
+    if(c % 28 == 16)
+      return Hangul_Syllable_Type_LV;
+    else
+      return Hangul_Syllable_Type_LVT;
+  }
+  return Hangul_Syllable_Type_NA;
+}
+
+/** @brief Identify a grapheme cluster boundary
+ * @param s Start of string (must be NFD)
+ * @param ns Length of string
+ * @param n Index within string (in [0,ns].)
+ * @return 1 at a grapheme cluster boundary, 0 otherwise
+ *
+ * This function identifies default grapheme cluster boundaries as described in
+ * UAX #29 s3.  It returns 1 if @p n points at the code point just after a
+ * grapheme cluster boundary (including the hypothetical code point just after
+ * the end of the string).
+ *
+ * The string must be in NFD (or NFKD) for this function to work (currently).
+ */
+int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
+  uint32_t before, after;
+  uint32_t hbefore, hafter;
+  /* GB1 and GB2 */
+  if(n == 0 || n == ns)
+    return 1;
+  /* Now we know that s[n-1] and s[n] are safe to inspect */
+  /* GB3 */
+  before = s[n-1];
+  after = s[n];
+  if(before == 0x000D && after == 0x000A)
+    return 0;
+  /* GB4 and GB5 */
+  if(utf32__is_control_or_cr_or_lf(before)
+     || utf32__is_control_or_cr_or_lf(after))
+    return 1;
+  hbefore = utf32__hangul_syllable_type(before);
+  hafter = utf32__hangul_syllable_type(after);
+  /* GB6 */
+  if(hbefore == Hangul_Syllable_Type_L
+     && hafter != Hangul_Syllable_Type_NA)
+    return 0;
+  /* GB7 */
+  if((hbefore == Hangul_Syllable_Type_LV
+      || hbefore == Hangul_Syllable_Type_V)
+     && (hafter == Hangul_Syllable_Type_V
+         || hafter == Hangul_Syllable_Type_T))
+    return 0;
+  /* GB8 */
+  if((hbefore == Hangul_Syllable_Type_LVT
+      || hbefore == Hangul_Syllable_Type_T)
+     && hafter == Hangul_Syllable_Type_T)
+    return 0;
+  /* GB9 */
+  if(after < UNICODE_NCHARS
+     && (unidata[after / UNICODE_MODULUS][after % UNICODE_MODULUS].flags
+         & unicode_grapheme_break_extend))
+    return 0;
+  /* GB10 */
+  return 1;
 }
 
 /*@}*/

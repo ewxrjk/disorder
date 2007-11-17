@@ -44,6 +44,7 @@
 #  - ...
 #
 use strict;
+use File::Basename;
 
 sub out {
     print @_ or die "$!\n";
@@ -74,15 +75,17 @@ my $minld = 0;			# max/min lower case offset
 # Unicode standard version to make sure that a given version of DisOrder
 # supports a given version of Unicode.
 sub need_input {
-    my $f = shift;
-    if(!-e $f) {
-	system("wget http://www.unicode.org/Public/5.0.0/ucd/$f");
-	chmod(0444, $f);
+    my $path = shift;
+    my $lpath = basename($path);
+    if(!-e $lpath) {
+	system("wget http://www.unicode.org/Public/5.0.0/ucd/$path");
+	chmod(0444, $lpath) or die "$lpath: $!\n";
     }
 }
 
 need_input("UnicodeData.txt");
 need_input("CaseFolding.txt");
+need_input("auxiliary/GraphemeBreakProperty.txt");
 
 # Read the main data file
 open(STDIN, "<UnicodeData.txt") or die "UnicodeData.txt: $!\n";
@@ -125,6 +128,29 @@ while(<>) {
     }
     $cats{$gc} = 1;
     $max = $c if $c > $max;
+}
+
+# Grapheme break data
+# NB we do this BEFORE filling in blanks so that the Hangul characters
+# don't get filled in; we can compute their properties mechanically.
+open(STDIN, "<GraphemeBreakProperty.txt") or die "GraphemeBreakProperty.txt: $!\n";
+while(<>) {
+    chomp;
+    s/\s*\#.*//;
+    next if $_ eq '';
+    my ($range, $propval) = split(/\s*;\s*/, $_);
+    if($range =~ /(.*)\.\.(.*)/) {
+	for my $c (hex($1) .. hex($2)) {
+	    if(exists $data{$c}) {
+		$data{$c}->{gbreak} = $propval;
+	    }
+	}
+    } else {
+	my $c = hex($range);
+	if(exists $data{$c}) {
+	    $data{$c}->{gbreak} = $propval;
+	}
+    }
 }
 
 # Round up the maximum value to a whole number of subtables
@@ -193,7 +219,8 @@ out("enum unicode_gc_cat {\n",
 	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
 
 out("enum unicode_flags {\n",
-    "  unicode_normalize_before_casefold = 1\n",
+    "  unicode_normalize_before_casefold = 1,\n",
+    "  unicode_grapheme_break_extend = 2\n",
     "};\n",
     "\n");
 
@@ -317,9 +344,18 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 	my $canonsym = ($data{$c}->{canonsym} or "0");
 	my $compatsym = ($data{$c}->{compatsym} or "0");
 	my $cfsym = ($data{$c}->{cfsym} or "0");
-	my $flags = ($data{$c}->{ypogegrammeni}
-		     ? "unicode_normalize_before_casefold"
-		     : 0);
+	my @flags = ();
+	if($data{$c}->{ypogegrammeni}) {
+	    push(@flags, "unicode_normalize_before_casefold");
+	}
+	# Currently we only store the Extend class, using a bit that would
+	# otherwise be wasted.  The other classes are readily computable.
+	# If there is a conveninet way to compute Extend at runtime I have
+	# yet to discover it.
+	if(exists $data{$c}->{gbreak} and $data{$c}->{gbreak} eq 'Extend') {
+	    push(@flags, "unicode_grapheme_break_extend");
+	}
+	my $flags = @flags ? join("|", @flags) : 0;
 	push(@t, "{".
 	     join(",",
 		  $compatsym,

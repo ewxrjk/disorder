@@ -42,6 +42,7 @@ char *utf8_casefold_canon(const char *s, size_t ns, size_t *ndp);
 uint32_t *utf32_casefold_compat(const uint32_t *s, size_t ns, size_t *ndp);
 char *utf8_casefold_compat(const char *s, size_t ns, size_t *ndp);
 
+int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n);
 
 #endif /* UNICODE_H */
 

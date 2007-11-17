@@ -34,7 +34,8 @@ enum unicode_gc_cat {
   unicode_gc_Zs
 };
 enum unicode_flags {
-  unicode_normalize_before_casefold = 1
+  unicode_normalize_before_casefold = 1,
+  unicode_grapheme_break_extend = 2
 };
 
 struct unidata {
