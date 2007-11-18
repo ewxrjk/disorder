@@ -122,3 +122,4 @@ lib/CaseFolding.txt
 lib/UnicodeData.txt
 lib/GraphemeBreakProperty.txt
 lib/GraphemeBreakTest.txt
+lib/WordBreakProperty.txt

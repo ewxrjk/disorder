@@ -74,21 +74,19 @@ my $minld = 0;			# max/min lower case offset
 # Make sure we have our desired input files.  We explicitly specify a
 # Unicode standard version to make sure that a given version of DisOrder
 # supports a given version of Unicode.
-sub need_input {
+sub input {
     my $path = shift;
     my $lpath = basename($path);
     if(!-e $lpath) {
 	system("wget http://www.unicode.org/Public/5.0.0/ucd/$path");
 	chmod(0444, $lpath) or die "$lpath: $!\n";
     }
+    open(STDIN, "<$lpath") or die "$lpath: $!\n";
 }
 
-need_input("UnicodeData.txt");
-need_input("CaseFolding.txt");
-need_input("auxiliary/GraphemeBreakProperty.txt");
 
 # Read the main data file
-open(STDIN, "<UnicodeData.txt") or die "UnicodeData.txt: $!\n";
+input("UnicodeData.txt");
 while(<>) {
     my @f = split(/;/, $_);
     my $c = hex($f[0]);		# codepoint
@@ -130,27 +128,51 @@ while(<>) {
     $max = $c if $c > $max;
 }
 
-# Grapheme break data
-# NB we do this BEFORE filling in blanks so that the Hangul characters
-# don't get filled in; we can compute their properties mechanically.
-open(STDIN, "<GraphemeBreakProperty.txt") or die "GraphemeBreakProperty.txt: $!\n";
-while(<>) {
-    chomp;
-    s/\s*\#.*//;
-    next if $_ eq '';
-    my ($range, $propval) = split(/\s*;\s*/, $_);
-    if($range =~ /(.*)\.\.(.*)/) {
-	for my $c (hex($1) .. hex($2)) {
+sub read_prop_with_ranges {
+    my $path = shift;
+    my $propkey = shift;
+    input($path);
+    while(<>) {
+	chomp;
+	s/\s*\#.*//;
+	next if $_ eq '';
+	my ($range, $propval) = split(/\s*;\s*/, $_);
+	if($range =~ /(.*)\.\.(.*)/) {
+	    for my $c (hex($1) .. hex($2)) {
+		if(exists $data{$c}) {
+		    $data{$c}->{$propkey} = $propval;
+		}
+	    }
+	} else {
+	    my $c = hex($range);
 	    if(exists $data{$c}) {
-		$data{$c}->{gbreak} = $propval;
+		$data{$c}->{$propkey} = $propval;
 	    }
 	}
-    } else {
-	my $c = hex($range);
-	if(exists $data{$c}) {
-	    $data{$c}->{gbreak} = $propval;
+    }
+}
+
+# Grapheme_Break
+# NB we do this BEFORE filling in blanks so that the Hangul characters
+# don't get filled in; we can compute their properties mechanically.
+read_prop_with_ranges("auxiliary/GraphemeBreakProperty.txt", "gbreak");
+
+# Word_Break
+# Same remarks about Hangul as above.  This one currently seems just too
+# complicated to do programmatically so we'll take a byte to store it.
+read_prop_with_ranges("auxiliary/WordBreakProperty.txt", "wbreak");
+
+# Make the list of Word_Break values
+my %wbpropvals = ();
+for my $c (keys %data) {
+    if(!exists $data{$c}->{wbreak}) {
+	if(exists $data{$c}->{gbreak} && $data{$c}->{gbreak} eq 'Extend') {
+	    $data{$c}->{wbreak} = 'Extend';
+	} else {
+	    $data{$c}->{wbreak} = 'Other';
 	}
     }
+    $wbpropvals{$data{$c}->{wbreak}} = 1;
 }
 
 # Round up the maximum value to a whole number of subtables
@@ -163,14 +185,15 @@ for(my $c = 0; $c <= $max; ++$c) {
 	    "gc" => "Cn",	# not assigned
 	    "ccc" => 0,
 	    "ud" => 0,
-	    "ld" => 0
+	    "ld" => 0,
+	    "wbreak" => 'Other',
 	    };
     }
 }
 $cats{'Cn'} = 1;
 
 # Read the casefolding data too
-open(STDIN, "<CaseFolding.txt") or die "CaseFolding.txt: $!\n";
+input("CaseFolding.txt");
 while(<>) {
     chomp;
     next if /^\#/ or $_ eq '';
@@ -218,9 +241,13 @@ out("enum unicode_gc_cat {\n",
     join(",\n",
 	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
 
+out("enum unicode_Word_Break {\n",
+    join(",\n",
+	 map("  unicode_Word_Break_$_", sort keys %wbpropvals)),
+    "\n};\n");
+
 out("enum unicode_flags {\n",
-    "  unicode_normalize_before_casefold = 1,\n",
-    "  unicode_grapheme_break_extend = 2\n",
+    "  unicode_normalize_before_casefold = 1\n",
     "};\n",
     "\n");
 
@@ -249,6 +276,7 @@ out("struct unidata {\n",
     "  ".choosetype(0, $maxccc)." ccc;\n",
     "  char gc;\n",
     "  uint8_t flags;\n",
+    "  char word_break;\n",
     "};\n");
 # compat, canon and casefold do have have non-BMP characters, so we
 # can't use a simple 16-bit table.  We could use UTF-8 or UTF-16
@@ -348,24 +376,18 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 	if($data{$c}->{ypogegrammeni}) {
 	    push(@flags, "unicode_normalize_before_casefold");
 	}
-	# Currently we only store the Extend class, using a bit that would
-	# otherwise be wasted.  The other classes are readily computable.
-	# If there is a conveninet way to compute Extend at runtime I have
-	# yet to discover it.
-	if(exists $data{$c}->{gbreak} and $data{$c}->{gbreak} eq 'Extend') {
-	    push(@flags, "unicode_grapheme_break_extend");
-	}
 	my $flags = @flags ? join("|", @flags) : 0;
 	push(@t, "{".
 	     join(",",
 		  $compatsym,
 		  $canonsym,
 		  $cfsym,
-		  "$d->{ud}",
-		  "$d->{ld}",
-		  "$d->{ccc}",
-		  "$d->{gc}",
+		  $d->{ud},
+		  $d->{ld},
+		  $d->{ccc},
+		  $d->{gc},
 		  $flags,
+		  "unicode_Word_Break_$d->{wbreak}",
 	     )."}");
     }
     my $t = join(",\n", @t);

@@ -33,9 +33,19 @@ enum unicode_gc_cat {
   unicode_gc_Zp,
   unicode_gc_Zs
 };
+enum unicode_Word_Break {
+  unicode_Word_Break_ALetter,
+  unicode_Word_Break_Extend,
+  unicode_Word_Break_ExtendNumLet,
+  unicode_Word_Break_Format,
+  unicode_Word_Break_Katakana,
+  unicode_Word_Break_MidLetter,
+  unicode_Word_Break_MidNum,
+  unicode_Word_Break_Numeric,
+  unicode_Word_Break_Other
+};
 enum unicode_flags {
-  unicode_normalize_before_casefold = 1,
-  unicode_grapheme_break_extend = 2
+  unicode_normalize_before_casefold = 1
 };
 
 struct unidata {
@@ -47,6 +57,7 @@ struct unidata {
   unsigned char ccc;
   char gc;
   uint8_t flags;
+  char word_break;
 };
 extern const struct unidata *const unidata[];
 #define UNICODE_NCHARS 195200

@@ -637,6 +637,20 @@ static uint32_t utf32__hangul_syllable_type(uint32_t c) {
   return Hangul_Syllable_Type_NA;
 }
 
+/** @brief Determine Word_Break property
+ * @param c Code point
+ * @return Word_Break property value of @p c
+ */
+static enum unicode_Word_Break utf32__word_break(uint32_t c) {
+  if(c < 0xAC00 || c > 0xD7A3) {
+    if(c < UNICODE_NCHARS)
+      return unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].word_break;
+    else
+      return unicode_Word_Break_Other;
+  } else
+    return unicode_Word_Break_ALetter;
+}
+
 /** @brief Identify a grapheme cluster boundary
  * @param s Start of string (must be NFD)
  * @param ns Length of string
@@ -647,8 +661,6 @@ static uint32_t utf32__hangul_syllable_type(uint32_t c) {
  * UAX #29 s3.  It returns 1 if @p n points at the code point just after a
  * grapheme cluster boundary (including the hypothetical code point just after
  * the end of the string).
- *
- * The string must be in NFD (or NFKD) for this function to work (currently).
  */
 int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
   uint32_t before, after;
@@ -687,11 +699,170 @@ int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
      && hafter == Hangul_Syllable_Type_T)
     return 0;
   /* GB9 */
-  if(after < UNICODE_NCHARS
-     && (unidata[after / UNICODE_MODULUS][after % UNICODE_MODULUS].flags
-         & unicode_grapheme_break_extend))
+  if(utf32__word_break(after) == unicode_Word_Break_Extend)
     return 0;
   /* GB10 */
+  return 1;
+}
+
+/** @brief Return true if code point @p n is part of an initial sequence of Format/Extend
+ * @param s Start of string
+ * @param ns Length of string
+ * @param n Start position
+ * @return True if it is, false otherwise
+ *
+ * This whole stack is not very efficient; we assume we don't see many of the
+ * problematic characters.
+ */
+static int utf32__is_initial_sequence(const uint32_t *s,
+                                      size_t attribute((unused)) ns,
+                                      size_t n) {
+  enum unicode_Word_Break wb;
+
+  while(n > 0) {
+    --n;
+    wb = utf32__word_break(s[n]);
+    if(wb != unicode_Word_Break_Extend
+       && wb != unicode_Word_Break_Format)
+      return 0;
+  }
+  return 1;
+}
+
+/** @brief Return the index of the first non-Extend/Format character from n
+ * @param s Start of string
+ * @param ns Length of string
+ * @param n Start position
+ * @return Index of first suitable character or @p ns
+ */
+static size_t utf32__first_not_ignorable(const uint32_t *s, size_t ns,
+                                         size_t n) {
+  while(n < ns) {
+    const enum unicode_Word_Break wb = utf32__word_break(s[n]);
+    if((wb != unicode_Word_Break_Extend
+        && wb != unicode_Word_Break_Format)
+       || utf32__is_initial_sequence(s, ns, n))
+      return n;
+    ++n;
+  }
+  return ns;
+}
+
+/** @brief Return the index of the last non-Extend/Format character from n
+ * @param s Start of string
+ * @param ns Length of string
+ * @param n Start position
+ * @return Index of first suitable character or (size_t)-1
+ */
+static size_t utf32__last_not_ignorable(const uint32_t *s, size_t ns,
+                                        size_t n) {
+  do {
+    const enum unicode_Word_Break wb = utf32__word_break(s[n]);
+    if((wb != unicode_Word_Break_Extend
+        && wb != unicode_Word_Break_Format)
+       || utf32__is_initial_sequence(s, ns, n))
+      return n;
+  } while(n--);
+  return n;                             /* will be (size_t)-1 */
+}
+
+/** @brief Identify a word boundary
+ * @param s Start of string (must be NFD)
+ * @param ns Length of string
+ * @param n Index within string (in [0,ns].)
+ * @return 1 at a word boundary, 0 otherwise
+ *
+ * This function identifies default word boundaries as described in UAX #29 s4.
+ * It returns 1 if @p n points at the code point just after a word boundary
+ * (including the hypothetical code point just after the end of the string).
+ */
+int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
+  enum unicode_Word_Break twobefore, before, after, twoafter;
+  size_t nn;
+
+  /* WB1 and WB2 */
+  if(n == 0 || n == ns)
+    return 1;
+  /* WB3 */
+  if(s[n-1] == 0x000D && s[n] == 0x000A)
+    return 0;
+  /* WB4 */
+  /* The stated requirement here is to ignore code points with a Word_Break
+   * value of _Extend or _Format wherever they may appear unless they are part
+   * of an initial sequence of such characters. */
+  twobefore = before = after = twoafter = unicode_Word_Break_Other;
+  nn = utf32__last_not_ignorable(s, ns, n - 1/* > 0 */);
+  if(nn != (size_t)-1) {
+    before = utf32__word_break(s[nn]);
+    if(nn != 0) {
+      nn = utf32__last_not_ignorable(s, ns, nn - 1);
+      if(nn != (size_t)-1)
+        twobefore = utf32__word_break(s[nn]);
+    }
+  }
+  nn = utf32__first_not_ignorable(s, ns, n);
+  if(nn < ns) {
+    after = utf32__word_break(s[nn]);
+    if(nn < ns) {
+      nn = utf32__first_not_ignorable(s, ns, nn + 1);
+      if(nn < ns)
+        twoafter = utf32__word_break(s[nn]);
+    }
+  }
+  /* WB5 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB6 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_MidLetter
+     && twoafter == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB7 */
+  if(twobefore == unicode_Word_Break_ALetter
+     && before == unicode_Word_Break_MidLetter
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB8 */  
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB9 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB10 */
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+   /* WB11 */
+  if(twobefore == unicode_Word_Break_Numeric
+     && before == unicode_Word_Break_MidNum
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB12 */
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_MidNum
+     && twoafter == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB13 */
+  if(before == unicode_Word_Break_Katakana
+     && after == unicode_Word_Break_Katakana)
+    return 0;
+  /* WB13a */
+  if((before == unicode_Word_Break_ALetter
+      || before == unicode_Word_Break_Numeric
+      || before == unicode_Word_Break_Katakana
+      || before == unicode_Word_Break_ExtendNumLet)
+     && after == unicode_Word_Break_ExtendNumLet)
+    return 0;
+  /* WB13b */
+  if(before == unicode_Word_Break_ExtendNumLet
+     && (after == unicode_Word_Break_ALetter
+         || after == unicode_Word_Break_Numeric
+         || after == unicode_Word_Break_Katakana))
+    return 0;
+  /* WB14 */
   return 1;
 }
 
