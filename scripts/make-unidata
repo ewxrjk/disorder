@@ -94,6 +94,8 @@ while(<>) {
     # TODO justify this exclusion!
     my $name = $f[1];
     my $gc = $f[2];		# General_Category
+    $cats{$gc} = 1;		# always record all GCs
+    next if $name =~ /(first|last)>/i; # ignore placeholders
     my $ccc = $f[3];		# Canonical_Combining_Class
     my $dm = $f[5];		# Decomposition_Type + Decomposition_Mapping
     my $sum = hex($f[12]) || $c; # Simple_Uppercase_Mapping
@@ -457,6 +459,7 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 
 out("const struct unidata*const unidata[]={\n");
 for(my $base = 0; $base <= $max; $base += $modulus) {
+    #out("st$subtableno{$base} /* ".sprintf("%04x", $base)." */,\n");
     out("st$subtableno{$base},\n");
 }
 out("};\n");

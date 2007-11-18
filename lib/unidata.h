@@ -39,8 +39,6 @@ enum unicode_Grapheme_Break {
   unicode_Grapheme_Break_Extend,
   unicode_Grapheme_Break_L,
   unicode_Grapheme_Break_LF,
-  unicode_Grapheme_Break_LV,
-  unicode_Grapheme_Break_LVT,
   unicode_Grapheme_Break_Other,
   unicode_Grapheme_Break_T,
   unicode_Grapheme_Break_V
