@@ -467,7 +467,7 @@ static FILE *open_unicode_test(const char *path) {
   return fp;
 }
 
-/** @brief Run breaking tests for utf32_is_gcb() etc */
+/** @brief Run breaking tests for utf32_grapheme_boundary() etc */
 static void breaktest(const char *path,
                       int (*breakfn)(const uint32_t *, size_t, size_t)) {
   FILE *fp = open_unicode_test(path);
@@ -591,7 +591,7 @@ static void test_unicode(void) {
     xfree(l);
   }
   fclose(fp);
-  breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_gcb);
+  breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_grapheme_boundary);
   breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
 }
 

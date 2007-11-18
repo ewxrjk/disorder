@@ -589,56 +589,12 @@ static inline enum unicode_General_Category utf32__general_category(uint32_t c) 
   return utf32__unidata(c)->general_category;
 }
 
-/** @brief Check Grapheme_Cluster_Break property
+/** @brief Determine Grapheme_Break property
  * @param c Code point
- * @return 0 if it is as described, 1 otherwise
+ * @return Grapheme_Break property value of @p c
  */
-static int utf32__is_control_or_cr_or_lf(uint32_t c) {
-  switch(utf32__general_category(c)) {
-  default:
-    return 0;
-  case unicode_General_Category_Zl:
-  case unicode_General_Category_Zp:
-  case unicode_General_Category_Cc:
-    return 1;
-  case unicode_General_Category_Cf:
-    if(c == 0x200C || c == 0x200D)
-      return 0;
-    return 1;
-  }
-}
-
-#define Hangul_Syllable_Type_NA 0
-#define Hangul_Syllable_Type_L 0x1100
-#define Hangul_Syllable_Type_V 0x1160
-#define Hangul_Syllable_Type_T 0x11A8
-#define Hangul_Syllable_Type_LV 0xAC00
-#define Hangul_Syllable_Type_LVT 0xAC01
-
-/** @brief Determine Hangul_Syllable_Type of @p c
- * @param c Code point
- * @return Equivalance class of @p c, or Hangul_Syllable_Type_NA 
- *
- * If this is a Hangul character then a representative member of its
- * equivalence class is returned.  Otherwise Hangul_Syllable_Type_NA is
- * returned.
- */
-static uint32_t utf32__hangul_syllable_type(uint32_t c) {
-  /* Dispose of the bulk of the non-Hangul code points first */
-  if(c < 0x1100) return Hangul_Syllable_Type_NA;
-  if(c > 0x1200 && c < 0xAC00) return Hangul_Syllable_Type_NA;
-  if(c >= 0xD800) return Hangul_Syllable_Type_NA;
-  /* Now we pick out the assigned Hangul code points */
-  if((c >= 0x1100 && c <= 0x1159) || c == 0x115F) return Hangul_Syllable_Type_L;
-  if(c >= 0x1160 && c <= 0x11A2) return Hangul_Syllable_Type_V;
-  if(c >= 0x11A8 && c <= 0x11F9) return Hangul_Syllable_Type_T;
-  if(c >= 0xAC00 && c <= 0xD7A3) {
-    if(c % 28 == 16)
-      return Hangul_Syllable_Type_LV;
-    else
-      return Hangul_Syllable_Type_LVT;
-  }
-  return Hangul_Syllable_Type_NA;
+static enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
+  return utf32__unidata(c)->grapheme_break;
 }
 
 /** @brief Determine Word_Break property
@@ -660,9 +616,9 @@ static enum unicode_Word_Break utf32__word_break(uint32_t c) {
  * grapheme cluster boundary (including the hypothetical code point just after
  * the end of the string).
  */
-int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
+int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n) {
   uint32_t before, after;
-  uint32_t hbefore, hafter;
+  enum unicode_Grapheme_Break gbbefore, gbafter;
   /* GB1 and GB2 */
   if(n == 0 || n == ns)
     return 1;
@@ -672,29 +628,35 @@ int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
   after = s[n];
   if(before == 0x000D && after == 0x000A)
     return 0;
-  /* GB4 and GB5 */
-  if(utf32__is_control_or_cr_or_lf(before)
-     || utf32__is_control_or_cr_or_lf(after))
+  gbbefore = utf32__grapheme_break(before);
+  gbafter = utf32__grapheme_break(after);
+  /* GB4 */
+  if(gbbefore == unicode_Grapheme_Break_Control
+     || before == 0x000D
+     || before == 0x000A)
     return 1;
-  hbefore = utf32__hangul_syllable_type(before);
-  hafter = utf32__hangul_syllable_type(after);
+  /* GB5 */
+  if(gbafter == unicode_Grapheme_Break_Control
+     || after == 0x000D
+     || after == 0x000A)
+    return 1;
   /* GB6 */
-  if(hbefore == Hangul_Syllable_Type_L
-     && (hafter == Hangul_Syllable_Type_L
-         || hafter == Hangul_Syllable_Type_V
-         || hafter == Hangul_Syllable_Type_LV
-         || hafter == Hangul_Syllable_Type_LVT))
+  if(gbbefore == unicode_Grapheme_Break_L
+     && (gbafter == unicode_Grapheme_Break_L
+         || gbafter == unicode_Grapheme_Break_V
+         || gbafter == unicode_Grapheme_Break_LV
+         || gbafter == unicode_Grapheme_Break_LVT))
     return 0;
   /* GB7 */
-  if((hbefore == Hangul_Syllable_Type_LV
-      || hbefore == Hangul_Syllable_Type_V)
-     && (hafter == Hangul_Syllable_Type_V
-         || hafter == Hangul_Syllable_Type_T))
+  if((gbbefore == unicode_Grapheme_Break_LV
+      || gbbefore == unicode_Grapheme_Break_V)
+     && (gbafter == unicode_Grapheme_Break_V
+         || gbafter == unicode_Grapheme_Break_T))
     return 0;
   /* GB8 */
-  if((hbefore == Hangul_Syllable_Type_LVT
-      || hbefore == Hangul_Syllable_Type_T)
-     && hafter == Hangul_Syllable_Type_T)
+  if((gbbefore == unicode_Grapheme_Break_LVT
+      || gbbefore == unicode_Grapheme_Break_T)
+     && gbafter == unicode_Grapheme_Break_T)
     return 0;
   /* GB9 */
   if(utf32__word_break(after) == unicode_Word_Break_Extend)
