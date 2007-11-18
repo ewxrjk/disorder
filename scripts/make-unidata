@@ -152,27 +152,40 @@ sub read_prop_with_ranges {
     }
 }
 
-# Grapheme_Break
+# Grapheme_Break etc
 # NB we do this BEFORE filling in blanks so that the Hangul characters
 # don't get filled in; we can compute their properties mechanically.
 read_prop_with_ranges("auxiliary/GraphemeBreakProperty.txt", "gbreak");
-
-# Word_Break
-# Same remarks about Hangul as above.  This one currently seems just too
-# complicated to do programmatically so we'll take a byte to store it.
 read_prop_with_ranges("auxiliary/WordBreakProperty.txt", "wbreak");
+read_prop_with_ranges("auxiliary/SentenceBreakProperty.txt", "sbreak");
 
-# Make the list of Word_Break values
-my %wbpropvals = ();
+# Compute the full list and fill in the Extend category properly
+my %gbreak = ();
+my %wbreak = ();
+my %sbreak = ();
 for my $c (keys %data) {
+    if(!exists $data{$c}->{gbreak}) {
+	$data{$c}->{gbreak} = 'Other';
+    }
+    $gbreak{$data{$c}->{gbreak}} = 1;
+
     if(!exists $data{$c}->{wbreak}) {
-	if(exists $data{$c}->{gbreak} && $data{$c}->{gbreak} eq 'Extend') {
+	if($data{$c}->{gbreak} eq 'Extend') {
 	    $data{$c}->{wbreak} = 'Extend';
 	} else {
 	    $data{$c}->{wbreak} = 'Other';
 	}
     }
-    $wbpropvals{$data{$c}->{wbreak}} = 1;
+    $wbreak{$data{$c}->{wbreak}} = 1;
+
+    if(!exists $data{$c}->{sbreak}) {
+	if($data{$c}->{gbreak} eq 'Extend') {
+	    $data{$c}->{sbreak} = 'Extend';
+	} else {
+	    $data{$c}->{sbreak} = 'Other';
+	}
+    }
+    $sbreak{$data{$c}->{sbreak}} = 1;
 }
 
 # Round up the maximum value to a whole number of subtables
@@ -187,6 +200,8 @@ for(my $c = 0; $c <= $max; ++$c) {
 	    "ud" => 0,
 	    "ld" => 0,
 	    "wbreak" => 'Other',
+	    "gbreak" => 'Other',
+	    "sbreak" => 'Other',
 	    };
     }
 }
@@ -241,11 +256,23 @@ out("enum unicode_gc_cat {\n",
     join(",\n",
 	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
 
+out("enum unicode_Grapheme_Break {\n",
+    join(",\n",
+	 map("  unicode_Grapheme_Break_$_", sort keys %gbreak)),
+    "\n};\n");
+out("extern const char *const unicode_Grapheme_Break_names[];\n");
+
 out("enum unicode_Word_Break {\n",
     join(",\n",
-	 map("  unicode_Word_Break_$_", sort keys %wbpropvals)),
+	 map("  unicode_Word_Break_$_", sort keys %wbreak)),
     "\n};\n");
 out("extern const char *const unicode_Word_Break_names[];\n");
+
+out("enum unicode_Sentence_Break {\n",
+    join(",\n",
+	 map("  unicode_Sentence_Break_$_", sort keys %sbreak)),
+    "\n};\n");
+out("extern const char *const unicode_Sentence_Break_names[];\n");
 
 out("enum unicode_flags {\n",
     "  unicode_normalize_before_casefold = 1\n",
@@ -277,7 +304,9 @@ out("struct unidata {\n",
     "  ".choosetype(0, $maxccc)." ccc;\n",
     "  char gc;\n",
     "  uint8_t flags;\n",
+    "  char grapheme_break;\n",
     "  char word_break;\n",
+    "  char sentence_break;\n",
     "};\n");
 # compat, canon and casefold do have have non-BMP characters, so we
 # can't use a simple 16-bit table.  We could use UTF-8 or UTF-16
@@ -300,15 +329,25 @@ out("/* Automatically generated file, see scripts/make-unidata */\n",
     "#include \"types.h\"\n",
     "#include \"unidata.h\"\n");
 
-# Short aliases for general category codes
+# Short aliases to keep .c file small
 
 out(map(sprintf("#define %s unicode_gc_%s\n", $_, $_), sort keys %cats));
+out(map(sprintf("#define GB%s unicode_Grapheme_Break_%s\n", $_, $_), sort keys %gbreak));
+out(map(sprintf("#define WB%s unicode_Word_Break_%s\n", $_, $_), sort keys %wbreak));
+out(map(sprintf("#define SB%s unicode_Sentence_Break_%s\n", $_, $_), sort keys %sbreak));
 
-# Names for Word_Break property
-
+# Names for *_Break properties
+out("const char *const unicode_Grapheme_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %gbreak)),
+    "\n};\n");
 out("const char *const unicode_Word_Break_names[] = {\n",
     join(",\n",
-	 map("  \"$_\"", sort keys %wbpropvals)),
+	 map("  \"$_\"", sort keys %wbreak)),
+    "\n};\n");
+out("const char *const unicode_Sentence_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %sbreak)),
     "\n};\n");
 
 # Generate the decomposition mapping tables.  We look out for duplicates
@@ -395,7 +434,9 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 		  $d->{ccc},
 		  $d->{gc},
 		  $flags,
-		  "unicode_Word_Break_$d->{wbreak}",
+		  "GB$d->{gbreak}",
+		  "WB$d->{wbreak}",
+		  "SB$d->{sbreak}",
 	     )."}");
     }
     my $t = join(",\n", @t);

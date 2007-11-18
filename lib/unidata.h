@@ -33,6 +33,19 @@ enum unicode_gc_cat {
   unicode_gc_Zp,
   unicode_gc_Zs
 };
+enum unicode_Grapheme_Break {
+  unicode_Grapheme_Break_CR,
+  unicode_Grapheme_Break_Control,
+  unicode_Grapheme_Break_Extend,
+  unicode_Grapheme_Break_L,
+  unicode_Grapheme_Break_LF,
+  unicode_Grapheme_Break_LV,
+  unicode_Grapheme_Break_LVT,
+  unicode_Grapheme_Break_Other,
+  unicode_Grapheme_Break_T,
+  unicode_Grapheme_Break_V
+};
+extern const char *const unicode_Grapheme_Break_names[];
 enum unicode_Word_Break {
   unicode_Word_Break_ALetter,
   unicode_Word_Break_Extend,
@@ -45,6 +58,21 @@ enum unicode_Word_Break {
   unicode_Word_Break_Other
 };
 extern const char *const unicode_Word_Break_names[];
+enum unicode_Sentence_Break {
+  unicode_Sentence_Break_ATerm,
+  unicode_Sentence_Break_Close,
+  unicode_Sentence_Break_Extend,
+  unicode_Sentence_Break_Format,
+  unicode_Sentence_Break_Lower,
+  unicode_Sentence_Break_Numeric,
+  unicode_Sentence_Break_OLetter,
+  unicode_Sentence_Break_Other,
+  unicode_Sentence_Break_STerm,
+  unicode_Sentence_Break_Sep,
+  unicode_Sentence_Break_Sp,
+  unicode_Sentence_Break_Upper
+};
+extern const char *const unicode_Sentence_Break_names[];
 enum unicode_flags {
   unicode_normalize_before_casefold = 1
 };
@@ -58,7 +86,9 @@ struct unidata {
   unsigned char ccc;
   char gc;
   uint8_t flags;
+  char grapheme_break;
   char word_break;
+  char sentence_break;
 };
 extern const struct unidata *const unidata[];
 #define UNICODE_NCHARS 195200

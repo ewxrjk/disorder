@@ -842,7 +842,7 @@ int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
 }
 
 /*@}*/
-/** @defgroup Functions that operate on UTF-8 strings */
+/** @defgroup utf8 Functions that operate on UTF-8 strings */
 /*@{*/
 
 /** @brief Wrapper to transform a UTF-8 string using the UTF-32 function */
