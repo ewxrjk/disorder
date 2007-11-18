@@ -222,69 +222,46 @@ error:
  */
 uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *ndp) {
   struct dynstr_ucs4 d;
-  uint32_t c32, c;
+  uint32_t c32;
   const uint8_t *ss = (const uint8_t *)s;
+  int n;
 
   dynstr_ucs4_init(&d);
   while(ns > 0) {
-    c = *ss++;
-    --ns;
-    /* Acceptable UTF-8 is that which codes for Unicode Scalar Values
-     * (Unicode 5.0.0 s3.9 D76)
-     *
-     * 0xxxxxxx
-     * 7 data bits gives 0x00 - 0x7F and all are acceptable
-     * 
-     * 110xxxxx 10xxxxxx
-     * 11 data bits gives 0x0000 - 0x07FF but only 0x0080 - 0x07FF acceptable
-     *   
-     * 1110xxxx 10xxxxxx 10xxxxxx
-     * 16 data bits gives 0x0000 - 0xFFFF but only 0x0800 - 0xFFFF acceptable
-     * (and UTF-16 surrogates are not acceptable)
-     *
-     * 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-     * 21 data bits gives 0x00000000 - 0x001FFFFF
-     * but only           0x00010000 - 0x0010FFFF are acceptable
-     *
-     * It is NOT always the case that the data bits in the first byte are
-     * always non-0 for the acceptable values, so we do a separate check after
-     * decoding.
-     */
-    if(c < 0x80)
-      c32 = c;
-    else if(c <= 0xDF) {
-      if(ns < 1) goto error;
-      c32 = c & 0x1F;
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      if(c32 < 0x80) goto error;
-    } else if(c <= 0xEF) {
-      if(ns < 2) goto error;
-      c32 = c & 0x0F;
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      if(c32 < 0x0800 || (c32 >= 0xD800 && c32 <= 0xDFFF)) goto error;
-    } else if(c <= 0xF7) {
-      if(ns < 3) goto error;
-      c32 = c & 0x07;
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      c = *ss++;
-      if((c & 0xC0) != 0x80) goto error;
-      c32 = (c32 << 6) | (c & 0x3F);
-      if(c32 < 0x00010000 || c32 > 0x0010FFFF) goto error;
+    const struct unicode_utf8_row *const r = &unicode_utf8_valid[*ss];
+    if(r->count <= ns) {
+      switch(r->count) {
+      case 1:
+        c32 = *ss;
+        break;
+      case 2:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x1F;
+        break;
+      case 3:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x0F;
+        break;
+      case 4:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x07;
+        break;
+      default:
+        goto error;
+      }
     } else
       goto error;
+    for(n = 1; n < r->count; ++n) {
+      if(ss[n] < 0x80 || ss[n] > 0xBF)
+        goto error;
+      c32 = (c32 << 6) | (ss[n] & 0x3F);
+    }
     dynstr_ucs4_append(&d, c32);
+    ss += r->count;
+    ns -= r->count;
   }
   dynstr_ucs4_terminate(&d);
   if(ndp)
