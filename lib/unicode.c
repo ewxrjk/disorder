@@ -43,6 +43,115 @@
 #include "unicode.h"
 #include "unidata.h"
 
+/** @defgroup utf32props Unicode Code Point Properties */
+/*@{*/
+
+static const struct unidata *utf32__unidata_hard(uint32_t c);
+
+/** @brief Find definition of code point @p c
+ * @param c Code point
+ * @return Pointer to @ref unidata structure for @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ * The returned pointer is NOT guaranteed to be unique to @p c.
+ */
+static inline const struct unidata *utf32__unidata(uint32_t c) {
+  /* The bottom half of the table contains almost everything of interest
+   * and we can just return the right thing straight away */
+  if(c < UNICODE_BREAK_START)
+    return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
+  else
+    return utf32__unidata_hard(c);
+}
+
+/** @brief Find definition of code point @p c
+ * @param c Code point
+ * @return Pointer to @ref unidata structure for @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ * The returned pointer is NOT guaranteed to be unique to @p c.
+ *
+ * Don't use this function (although it will work fine) - use utf32__unidata()
+ * instead.
+ */
+static const struct unidata *utf32__unidata_hard(uint32_t c) {
+  if(c < UNICODE_BREAK_START)
+    return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
+  /* Within the break everything is unassigned */
+  if(c < UNICODE_BREAK_END)
+    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
+  /* Planes 15 and 16 are (mostly) private use */
+  if((c >= 0xF0000 && c <= 0xFFFFD)
+     || (c >= 0x100000 && c <= 0x10FFFD))
+    return utf32__unidata(0xE000);      /* first Co code point */
+  /* Everything else above the break top is unassigned */
+  if(c >= UNICODE_BREAK_TOP)
+    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
+  /* Currently the rest is language tags and variation selectors */
+  c -= (UNICODE_BREAK_END - UNICODE_BREAK_START);
+  return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
+}
+
+/** @brief Return the combining class of @p c
+ * @param c Code point
+ * @return Combining class of @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static inline int utf32__combining_class(uint32_t c) {
+  return utf32__unidata(c)->ccc;
+}
+
+/** @brief Return the General_Category value for @p c
+ * @param Code point
+ * @return General_Category property value
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static inline enum unicode_General_Category utf32__general_category(uint32_t c) {
+  return utf32__unidata(c)->general_category;
+}
+
+/** @brief Determine Grapheme_Break property
+ * @param c Code point
+ * @return Grapheme_Break property value of @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static inline enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
+  return utf32__unidata(c)->grapheme_break;
+}
+
+/** @brief Determine Word_Break property
+ * @param c Code point
+ * @return Word_Break property value of @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static inline enum unicode_Word_Break utf32__word_break(uint32_t c) {
+  return utf32__unidata(c)->word_break;
+}
+
+/** @brief Determine Sentence_Break property
+ * @param c Code point
+ * @return Word_Break property value of @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static inline enum unicode_Sentence_Break utf32__sentence_break(uint32_t c) {
+  return utf32__unidata(c)->sentence_break;
+}
+
+/** @brief Return true if @p c is ignorable for boundary specifications
+ * @param wb Word break property value
+ * @return non-0 if @p wb is unicode_Word_Break_Extend or unicode_Word_Break_Format
+ */
+static inline int utf32__boundary_ignorable(enum unicode_Word_Break wb) {
+  return (wb == unicode_Word_Break_Extend
+          || wb == unicode_Word_Break_Format);
+}
+
+/*@}*/
 /** @defgroup utftransform Functions that transform between different Unicode encoding forms */
 /*@{*/
 
@@ -187,6 +296,297 @@ error:
 }
 
 /*@}*/
+/** @defgroup utf32iterator UTF-32 string iterators */
+/*@{*/
+
+struct utf32_iterator_data {
+  /** @brief Start of string */
+  const uint32_t *s;
+
+  /** @brief Length of string */
+  size_t ns;
+
+  /** @brief Current position */
+  size_t n;
+
+  /** @brief Last two non-ignorable characters or (uint32_t)-1
+   *
+   * last[1] is the non-Extend/Format character just before position @p n;
+   * last[0] is the one just before that.
+   *
+   * Exception 1: if there is no such non-Extend/Format character then an
+   * Extend/Format character is accepted instead.
+   *
+   * Exception 2: if there is no such character even taking that into account
+   * the value is (uint32_t)-1.
+   */
+  uint32_t last[2];
+};
+
+/** @brief Create a new iterator pointing at the start of a string
+ * @param s Start of string
+ * @param ns Length of string
+ * @return New iterator
+ */
+utf32_iterator utf32_iterator_new(const uint32_t *s, size_t ns) {
+  utf32_iterator it = xmalloc(sizeof *it);
+  it->s = s;
+  it->ns = ns;
+  it->n = 0;
+  it->last[0] = it->last[1] = -1;
+  return it;
+}
+
+/** @brief Initialize an internal private iterator
+ * @param it Iterator
+ * @param s Start of string
+ * @param ns Length of string
+ * @param n Absolute position
+ */
+static void utf32__iterator_init(utf32_iterator it,
+                                 const uint32_t *s, size_t ns, size_t n) {
+  it->s = s;
+  it->ns = ns;
+  it->n = 0;
+  it->last[0] = it->last[1] = -1;
+  utf32_iterator_advance(it, n);
+}
+
+/** @brief Destroy an iterator
+ * @param it Iterator
+ */
+void utf32_iterator_destroy(utf32_iterator it) {
+  xfree(it);
+}
+
+/** @brief Find the current position of an interator
+ * @param it Iterator
+ */
+size_t utf32_iterator_where(utf32_iterator it) {
+  return it->n;
+}
+
+/** @brief Set an iterator's absolute position
+ * @param it Iterator
+ * @param n Absolute position
+ * @return 0 on success, non-0 on error
+ *
+ * It is an error to position the iterator outside the string (but acceptable
+ * to point it at the hypothetical post-final character).  If an invalid value
+ * of @p n is specified then the iterator is not changed.
+ */
+int utf32_iterator_set(utf32_iterator it, size_t n) {
+  /* TODO figure out how far we must back up to be able to re-synchronize; see
+   * UAX #29 s6.4. */
+  if(n > it->ns)
+    return -1;
+  if(n >= it->n)
+    n -= it->n;
+  else {
+    it->n = 0;
+    it->last[0] = it->last[1] = -1;
+  }
+  return utf32_iterator_advance(it, n);
+}
+
+/** @brief Advance an iterator
+ * @param it Iterator
+ * @param count Number of code points to advance by
+ * @return 0 on success, non-0 on error
+ *
+ * It is an error to advance an iterator beyond the hypothetical post-final
+ * character of the string.  If an invalid value of @p n is specified then the
+ * iterator is not changed.
+ *
+ * This function has O(n) time complexity: it works by advancing naively
+ * forwards through the string.
+ */
+int utf32_iterator_advance(utf32_iterator it, size_t count) {
+  if(count <= it->ns - it->n) {
+    while(count > 0) {
+      const uint32_t c = it->s[it->n];
+      const enum unicode_Word_Break wb = utf32__word_break(c);
+      if(it->last[1] == (uint32_t)-1
+         || !utf32__boundary_ignorable(wb)) {
+        it->last[0] = it->last[1];
+        it->last[1] = c;
+      }
+      ++it->n;
+      --count;
+    }
+    return 0;
+  } else
+    return -1;
+}
+
+/** @brief Find the current code point
+ * @param it Iterator
+ * @return Current code point or 0
+ *
+ * If the iterator points at the hypothetical post-final character of the
+ * string then 0 is returned.  NB that this doesn't mean that there aren't any
+ * 0 code points inside the string!
+ */
+uint32_t utf32_iterator_code(utf32_iterator it) {
+  if(it->n < it->ns)
+    return it->s[it->n];
+  else
+    return 0;
+}
+
+/** @brief Test for a grapheme boundary
+ * @param it Iterator
+ * @return Non-0 if pointing just after a grapheme boundary, otherwise 0
+ */
+int utf32_iterator_grapheme_boundary(utf32_iterator it) {
+  uint32_t before, after;
+  enum unicode_Grapheme_Break gbbefore, gbafter;
+  /* GB1 and GB2 */
+  if(it->n == 0 || it->n == it->ns)
+    return 1;
+  /* Now we know that s[n-1] and s[n] are safe to inspect */
+  /* GB3 */
+  before = it->s[it->n-1];
+  after = it->s[it->n];
+  if(before == 0x000D && after == 0x000A)
+    return 0;
+  gbbefore = utf32__grapheme_break(before);
+  gbafter = utf32__grapheme_break(after);
+  /* GB4 */
+  if(gbbefore == unicode_Grapheme_Break_Control
+     || before == 0x000D
+     || before == 0x000A)
+    return 1;
+  /* GB5 */
+  if(gbafter == unicode_Grapheme_Break_Control
+     || after == 0x000D
+     || after == 0x000A)
+    return 1;
+  /* GB6 */
+  if(gbbefore == unicode_Grapheme_Break_L
+     && (gbafter == unicode_Grapheme_Break_L
+         || gbafter == unicode_Grapheme_Break_V
+         || gbafter == unicode_Grapheme_Break_LV
+         || gbafter == unicode_Grapheme_Break_LVT))
+    return 0;
+  /* GB7 */
+  if((gbbefore == unicode_Grapheme_Break_LV
+      || gbbefore == unicode_Grapheme_Break_V)
+     && (gbafter == unicode_Grapheme_Break_V
+         || gbafter == unicode_Grapheme_Break_T))
+    return 0;
+  /* GB8 */
+  if((gbbefore == unicode_Grapheme_Break_LVT
+      || gbbefore == unicode_Grapheme_Break_T)
+     && gbafter == unicode_Grapheme_Break_T)
+    return 0;
+  /* GB9 */
+  if(gbafter == unicode_Grapheme_Break_Extend)
+    return 0;
+  /* GB10 */
+  return 1;
+
+}
+
+/** @brief Test for a word boundary
+ * @param it Iterator
+ * @return Non-0 if pointing just after a word boundary, otherwise 0
+ */
+int utf32_iterator_word_boundary(utf32_iterator it) {
+  enum unicode_Word_Break twobefore, before, after, twoafter;
+  size_t nn;
+
+  /* WB1 and WB2 */
+  if(it->n == 0 || it->n == it->ns)
+    return 1;
+  /* WB3 */
+  if(it->s[it->n-1] == 0x000D && it->s[it->n] == 0x000A)
+    return 0;
+  /* WB4 */
+  /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
+  if(utf32__sentence_break(it->s[it->n-1]) != unicode_Sentence_Break_Sep
+     && utf32__boundary_ignorable(utf32__word_break(it->s[it->n])))
+    return 0;
+  /* Gather the property values we'll need for the rest of the test taking the
+   * s6.2 changes into account */
+  /* First we look at the code points after the proposed boundary */
+  nn = it->n;                           /* <it->ns */
+  after = utf32__word_break(it->s[nn++]);
+  if(!utf32__boundary_ignorable(after)) {
+    /* X (Extend|Format)* -> X */
+    while(nn < it->ns
+          && utf32__boundary_ignorable(utf32__word_break(it->s[nn])))
+      ++nn;
+  }
+  /* It's possible now that nn=ns */
+  if(nn < it->ns)
+    twoafter = utf32__word_break(it->s[nn]);
+  else
+    twoafter = unicode_Word_Break_Other;
+
+  /* We've already recorded the non-ignorable code points before the proposed
+   * boundary */
+  before = utf32__word_break(it->last[1]);
+  twobefore = utf32__word_break(it->last[0]);
+
+  /* WB5 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB6 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_MidLetter
+     && twoafter == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB7 */
+  if(twobefore == unicode_Word_Break_ALetter
+     && before == unicode_Word_Break_MidLetter
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+  /* WB8 */  
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB9 */
+  if(before == unicode_Word_Break_ALetter
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB10 */
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_ALetter)
+    return 0;
+   /* WB11 */
+  if(twobefore == unicode_Word_Break_Numeric
+     && before == unicode_Word_Break_MidNum
+     && after == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB12 */
+  if(before == unicode_Word_Break_Numeric
+     && after == unicode_Word_Break_MidNum
+     && twoafter == unicode_Word_Break_Numeric)
+    return 0;
+  /* WB13 */
+  if(before == unicode_Word_Break_Katakana
+     && after == unicode_Word_Break_Katakana)
+    return 0;
+  /* WB13a */
+  if((before == unicode_Word_Break_ALetter
+      || before == unicode_Word_Break_Numeric
+      || before == unicode_Word_Break_Katakana
+      || before == unicode_Word_Break_ExtendNumLet)
+     && after == unicode_Word_Break_ExtendNumLet)
+    return 0;
+  /* WB13b */
+  if(before == unicode_Word_Break_ExtendNumLet
+     && (after == unicode_Word_Break_ALetter
+         || after == unicode_Word_Break_Numeric
+         || after == unicode_Word_Break_Katakana))
+    return 0;
+  /* WB14 */
+  return 1;
+}
+
+/*@}*/
 /** @defgroup utf32 Functions that operate on UTF-32 strings */
 /*@{*/
 
@@ -202,38 +602,6 @@ size_t utf32_len(const uint32_t *s) {
   while(*t)
     ++t;
   return (size_t)(t - s);
-}
-
-/** @brief Return the @ref unidata structure for code point @p c
- *
- * @p c can be any 32-bit value, a sensible value will be returned regardless.
- */
-static const struct unidata *utf32__unidata(uint32_t c) {
-  /* The bottom half of the table contains almost everything of interest
-   * and we can just return the right thing straight away */
-  if(c < UNICODE_BREAK_START)
-    return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-  /* Within the break everything is unassigned */
-  if(c < UNICODE_BREAK_END)
-    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
-  /* Planes 15 and 16 are (mostly) private use */
-  if((c >= 0xF0000 && c <= 0xFFFFD)
-     || (c >= 0x100000 && c <= 0x10FFFD))
-    return utf32__unidata(0xE000);      /* first Co code point */
-  /* Everything else above the break top is unassigned */
-  if(c >= UNICODE_BREAK_TOP)
-    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
-  /* Currently the rest is language tags and variation selectors */
-  c -= (UNICODE_BREAK_END - UNICODE_BREAK_START);
-  return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-}
-
-/** @brief Return the combining class of @p c
- * @param c Code point
- * @return Combining class of @p c
- */
-static inline int utf32__combining_class(uint32_t c) {
-  return utf32__unidata(c)->ccc;
 }
 
 /** @brief Stably sort [s,s+ns) into descending order of combining class
@@ -581,30 +949,6 @@ int utf32_cmp(const uint32_t *a, const uint32_t *b) {
   return *a < *b ? -1 : (*a > *b ? 1 : 0);
 }
 
-/** @brief Return the General_Category value for @p c
- * @param Code point
- * @return General_Category property value
- */
-static inline enum unicode_General_Category utf32__general_category(uint32_t c) {
-  return utf32__unidata(c)->general_category;
-}
-
-/** @brief Determine Grapheme_Break property
- * @param c Code point
- * @return Grapheme_Break property value of @p c
- */
-static inline enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
-  return utf32__unidata(c)->grapheme_break;
-}
-
-/** @brief Determine Word_Break property
- * @param c Code point
- * @return Word_Break property value of @p c
- */
-static inline enum unicode_Word_Break utf32__word_break(uint32_t c) {
-  return utf32__unidata(c)->word_break;
-}
-
 /** @brief Identify a grapheme cluster boundary
  * @param s Start of string (must be NFD)
  * @param ns Length of string
@@ -617,58 +961,10 @@ static inline enum unicode_Word_Break utf32__word_break(uint32_t c) {
  * the end of the string).
  */
 int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n) {
-  uint32_t before, after;
-  enum unicode_Grapheme_Break gbbefore, gbafter;
-  /* GB1 and GB2 */
-  if(n == 0 || n == ns)
-    return 1;
-  /* Now we know that s[n-1] and s[n] are safe to inspect */
-  /* GB3 */
-  before = s[n-1];
-  after = s[n];
-  if(before == 0x000D && after == 0x000A)
-    return 0;
-  gbbefore = utf32__grapheme_break(before);
-  gbafter = utf32__grapheme_break(after);
-  /* GB4 */
-  if(gbbefore == unicode_Grapheme_Break_Control
-     || before == 0x000D
-     || before == 0x000A)
-    return 1;
-  /* GB5 */
-  if(gbafter == unicode_Grapheme_Break_Control
-     || after == 0x000D
-     || after == 0x000A)
-    return 1;
-  /* GB6 */
-  if(gbbefore == unicode_Grapheme_Break_L
-     && (gbafter == unicode_Grapheme_Break_L
-         || gbafter == unicode_Grapheme_Break_V
-         || gbafter == unicode_Grapheme_Break_LV
-         || gbafter == unicode_Grapheme_Break_LVT))
-    return 0;
-  /* GB7 */
-  if((gbbefore == unicode_Grapheme_Break_LV
-      || gbbefore == unicode_Grapheme_Break_V)
-     && (gbafter == unicode_Grapheme_Break_V
-         || gbafter == unicode_Grapheme_Break_T))
-    return 0;
-  /* GB8 */
-  if((gbbefore == unicode_Grapheme_Break_LVT
-      || gbbefore == unicode_Grapheme_Break_T)
-     && gbafter == unicode_Grapheme_Break_T)
-    return 0;
-  /* GB9 */
-  if(gbafter == unicode_Grapheme_Break_Extend)
-    return 0;
-  /* GB10 */
-  return 1;
-}
+  struct utf32_iterator_data it[1];
 
-/** @brief Return true if @p c is ignorable for boundary specifications */
-static inline int utf32__boundary_ignorable(enum unicode_Word_Break wb) {
-  return (wb == unicode_Word_Break_Extend
-          || wb == unicode_Word_Break_Format);
+  utf32__iterator_init(it, s, ns, n);
+  return utf32_iterator_grapheme_boundary(it);
 }
 
 /** @brief Identify a word boundary
@@ -682,123 +978,10 @@ static inline int utf32__boundary_ignorable(enum unicode_Word_Break wb) {
  * (including the hypothetical code point just after the end of the string).
  */
 int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
-  enum unicode_Word_Break twobefore, before, after, twoafter;
-  size_t nn;
+  struct utf32_iterator_data it[1];
 
-  /* WB1 and WB2 */
-  if(n == 0 || n == ns)
-    return 1;
-  /* WB3 */
-  if(s[n-1] == 0x000D && s[n] == 0x000A)
-    return 0;
-  /* WB4 */
-  /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
-  switch(s[n-1]) {                      /* bit of a bodge */
-  case 0x000A:
-  case 0x000D:
-  case 0x0085:
-  case 0x2028:
-  case 0x2029:
-    break;
-  default:
-    if(utf32__boundary_ignorable(utf32__word_break(s[n])))
-      return 0;
-    break;
-  }
-  /* Gather the property values we'll need for the rest of the test taking the
-   * s6.2 changes into account */
-  /* First we look at the code points after the proposed boundary */
-  nn = n;                               /* <ns */
-  after = utf32__word_break(s[nn++]);
-  if(!utf32__boundary_ignorable(after)) {
-    /* X (Extend|Format)* -> X */
-    while(nn < ns && utf32__boundary_ignorable(utf32__word_break(s[nn])))
-      ++nn;
-  }
-  /* It's possible now that nn=ns */
-  if(nn < ns)
-    twoafter = utf32__word_break(s[nn]);
-  else
-    twoafter = unicode_Word_Break_Other;
-
-  /* Next we look at the code points before the proposed boundary.  This is a
-   * bit fiddlier. */
-  nn = n;
-  while(nn > 0 && utf32__boundary_ignorable(utf32__word_break(s[nn - 1])))
-    --nn;
-  if(nn == 0) {
-    /* s[nn] must be ignorable */
-    before = utf32__word_break(s[nn]);
-    twobefore = unicode_Word_Break_Other;
-  } else {
-    /* s[nn] is ignorable or after the proposed boundary; but s[nn-1] is not
-     * ignorable. */
-    before = utf32__word_break(s[nn - 1]);
-    --nn;
-    /* Repeat the exercise */
-    while(nn > 0 && utf32__boundary_ignorable(utf32__word_break(s[nn - 1])))
-      --nn;
-    if(nn == 0)
-      twobefore = utf32__word_break(s[nn]);
-    else
-      twobefore = utf32__word_break(s[nn - 1]);
-  }
-
-  /* WB5 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_ALetter)
-    return 0;
-  /* WB6 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_MidLetter
-     && twoafter == unicode_Word_Break_ALetter)
-    return 0;
-  /* WB7 */
-  if(twobefore == unicode_Word_Break_ALetter
-     && before == unicode_Word_Break_MidLetter
-     && after == unicode_Word_Break_ALetter)
-    return 0;
-  /* WB8 */  
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_Numeric)
-    return 0;
-  /* WB9 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_Numeric)
-    return 0;
-  /* WB10 */
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_ALetter)
-    return 0;
-   /* WB11 */
-  if(twobefore == unicode_Word_Break_Numeric
-     && before == unicode_Word_Break_MidNum
-     && after == unicode_Word_Break_Numeric)
-    return 0;
-  /* WB12 */
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_MidNum
-     && twoafter == unicode_Word_Break_Numeric)
-    return 0;
-  /* WB13 */
-  if(before == unicode_Word_Break_Katakana
-     && after == unicode_Word_Break_Katakana)
-    return 0;
-  /* WB13a */
-  if((before == unicode_Word_Break_ALetter
-      || before == unicode_Word_Break_Numeric
-      || before == unicode_Word_Break_Katakana
-      || before == unicode_Word_Break_ExtendNumLet)
-     && after == unicode_Word_Break_ExtendNumLet)
-    return 0;
-  /* WB13b */
-  if(before == unicode_Word_Break_ExtendNumLet
-     && (after == unicode_Word_Break_ALetter
-         || after == unicode_Word_Break_Numeric
-         || after == unicode_Word_Break_Katakana))
-    return 0;
-  /* WB14 */
-  return 1;
+  utf32__iterator_init(it, s, ns, n);
+  return utf32_iterator_word_boundary(it);
 }
 
 /*@}*/

@@ -24,6 +24,18 @@
 #ifndef UNICODE_H
 #define UNICODE_H
 
+/** @brief Smart pointer into a string
+ *
+ * Iterators can be efficiently moved either forwards or back to the start of
+ * the string.  They cannot (currently) efficiently be moved backwards.  Their
+ * advantage is that they remember internal state to speed up boundary
+ * detection.
+ *
+ * Iterators can point to any code point of the string, or to a hypothetical
+ * post-final code point of value 0, but not outside the string.
+ */
+typedef struct utf32_iterator_data *utf32_iterator;
+
 char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *nd);
 uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *nd);
 
@@ -44,6 +56,16 @@ char *utf8_casefold_compat(const char *s, size_t ns, size_t *ndp);
 
 int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n);
 int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n);
+
+utf32_iterator utf32_iterator_new(const uint32_t *s, size_t ns);
+void utf32_iterator_destroy(utf32_iterator it);
+
+size_t utf32_iterator_where(utf32_iterator it);
+int utf32_iterator_set(utf32_iterator it, size_t n);
+int utf32_iterator_advance(utf32_iterator it, size_t n);
+uint32_t utf32_iterator_code(utf32_iterator it);
+int utf32_iterator_grapheme_boundary(utf32_iterator it);
+int utf32_iterator_word_boundary(utf32_iterator it);
 
 #endif /* UNICODE_H */
 
