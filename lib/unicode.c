@@ -593,7 +593,7 @@ static inline enum unicode_General_Category utf32__general_category(uint32_t c) 
  * @param c Code point
  * @return Grapheme_Break property value of @p c
  */
-static enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
+static inline enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
   return utf32__unidata(c)->grapheme_break;
 }
 
@@ -601,7 +601,7 @@ static enum unicode_Grapheme_Break utf32__grapheme_break(uint32_t c) {
  * @param c Code point
  * @return Word_Break property value of @p c
  */
-static enum unicode_Word_Break utf32__word_break(uint32_t c) {
+static inline enum unicode_Word_Break utf32__word_break(uint32_t c) {
   return utf32__unidata(c)->word_break;
 }
 
@@ -659,7 +659,7 @@ int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n) {
      && gbafter == unicode_Grapheme_Break_T)
     return 0;
   /* GB9 */
-  if(utf32__word_break(after) == unicode_Word_Break_Extend)
+  if(gbafter == unicode_Grapheme_Break_Extend)
     return 0;
   /* GB10 */
   return 1;
