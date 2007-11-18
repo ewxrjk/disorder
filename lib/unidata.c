@@ -37,6 +37,7 @@
 #define GBExtend unicode_Grapheme_Break_Extend
 #define GBL unicode_Grapheme_Break_L
 #define GBLF unicode_Grapheme_Break_LF
+#define GBLV unicode_Grapheme_Break_LV
 #define GBLVT unicode_Grapheme_Break_LVT
 #define GBOther unicode_Grapheme_Break_Other
 #define GBT unicode_Grapheme_Break_T
@@ -68,6 +69,7 @@ const char *const unicode_Grapheme_Break_names[] = {
   "Extend",
   "L",
   "LF",
+  "LV",
   "LVT",
   "Other",
   "T",
@@ -4664,6 +4666,7 @@ cf955[]={66636,0},
 cf956[]={66637,0},
 cf957[]={66638,0},
 cf958[]={66639,0};
+/* 0000-007F */
 static const struct unidata st0[] = {
 {0,0,0,0,Cc,0,GBControl,WBOther,SBOther},
 {0,0,0,0,Cc,0,GBControl,WBOther,SBOther},
@@ -4794,6 +4797,7 @@ static const struct unidata st0[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cc,0,GBControl,WBOther,SBOther}
 };
+/* 0080-00FF */
 static const struct unidata st1[] = {
 {0,0,0,0,Cc,0,GBControl,WBOther,SBOther},
 {0,0,0,0,Cc,0,GBControl,WBOther,SBOther},
@@ -4924,6 +4928,7 @@ static const struct unidata st1[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd66,cd66,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0100-017F */
 static const struct unidata st2[] = {
 {cd67,cd67,cf58,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd68,cd68,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -5054,6 +5059,7 @@ static const struct unidata st2[] = {
 {cd179,cd179,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd180,0,cf18,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0180-01FF */
 static const struct unidata st3[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,cf122,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -5184,6 +5190,7 @@ static const struct unidata st3[] = {
 {cd238,cd238,cf186,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd239,cd239,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0200-027F */
 static const struct unidata st4[] = {
 {cd240,cd240,cf187,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd241,cd241,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -5314,6 +5321,7 @@ static const struct unidata st4[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0280-02FF */
 static const struct unidata st5[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -5444,6 +5452,7 @@ static const struct unidata st5[] = {
 {0,0,0,0,Sk,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sk,0,GBOther,WBOther,SBOther}
 };
+/* 0300-037F */
 static const struct unidata st6[] = {
 {0,0,0,230,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,230,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -5574,6 +5583,7 @@ static const struct unidata st6[] = {
 {cd309,cd309,0,0,Po,0,GBOther,WBMidNum,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0380-03FF */
 static const struct unidata st7[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -5704,6 +5714,7 @@ static const struct unidata st7[] = {
 {0,0,cf276,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,cf277,0,Lu,0,GBOther,WBALetter,SBUpper}
 };
+/* 0400-047F */
 static const struct unidata st8[] = {
 {cd345,cd345,cf278,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd346,cd346,cf279,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -5834,6 +5845,7 @@ static const struct unidata st8[] = {
 {0,0,cf341,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0480-04FF */
 static const struct unidata st9[] = {
 {0,0,cf342,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -5964,6 +5976,7 @@ static const struct unidata st9[] = {
 {0,0,cf401,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0500-057F */
 static const struct unidata st10[] = {
 {0,0,cf402,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -6094,6 +6107,7 @@ static const struct unidata st10[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 0580-05FF */
 static const struct unidata st11[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -6224,6 +6238,7 @@ static const struct unidata st11[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0600-067F */
 static const struct unidata st12[] = {
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat},
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat},
@@ -6354,6 +6369,7 @@ static const struct unidata st12[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 0680-06FF */
 static const struct unidata st13[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -6484,6 +6500,7 @@ static const struct unidata st13[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 0700-077F */
 static const struct unidata st14[] = {
 {0,0,0,0,Po,0,GBOther,WBOther,SBSTerm},
 {0,0,0,0,Po,0,GBOther,WBOther,SBSTerm},
@@ -6614,6 +6631,7 @@ static const struct unidata st14[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0780-07FF */
 static const struct unidata st15[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -6744,6 +6762,7 @@ static const struct unidata st15[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0800-087F */
 static const struct unidata st16[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -6874,6 +6893,7 @@ static const struct unidata st16[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0900-097F */
 static const struct unidata st17[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -7004,6 +7024,7 @@ static const struct unidata st17[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 0980-09FF */
 static const struct unidata st18[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -7134,6 +7155,7 @@ static const struct unidata st18[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0A00-0A7F */
 static const struct unidata st19[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -7264,6 +7286,7 @@ static const struct unidata st19[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0A80-0AFF */
 static const struct unidata st20[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -7394,6 +7417,7 @@ static const struct unidata st20[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0B00-0B7F */
 static const struct unidata st21[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -7524,6 +7548,7 @@ static const struct unidata st21[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0B80-0BFF */
 static const struct unidata st22[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -7654,6 +7679,7 @@ static const struct unidata st22[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0C00-0C7F */
 static const struct unidata st23[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Mc,0,GBOther,WBALetter,SBOLetter},
@@ -7784,6 +7810,7 @@ static const struct unidata st23[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0C80-0CFF */
 static const struct unidata st24[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -7914,6 +7941,7 @@ static const struct unidata st24[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0D00-0D7F */
 static const struct unidata st25[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -8044,6 +8072,7 @@ static const struct unidata st25[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0D80-0DFF */
 static const struct unidata st26[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -8174,6 +8203,7 @@ static const struct unidata st26[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0E00-0E7F */
 static const struct unidata st27[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -8304,6 +8334,7 @@ static const struct unidata st27[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0E80-0EFF */
 static const struct unidata st28[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -8434,6 +8465,7 @@ static const struct unidata st28[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 0F00-0F7F */
 static const struct unidata st29[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -8564,6 +8596,7 @@ static const struct unidata st29[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mc,0,GBOther,WBALetter,SBOLetter}
 };
+/* 0F80-0FFF */
 static const struct unidata st30[] = {
 {0,0,0,130,Mn,0,GBExtend,WBExtend,SBExtend},
 {cd471,cd471,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -8694,6 +8727,7 @@ static const struct unidata st30[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1000-107F */
 static const struct unidata st31[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -8824,6 +8858,7 @@ static const struct unidata st31[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1080-10FF */
 static const struct unidata st32[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -8954,6 +8989,7 @@ static const struct unidata st32[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1100-117F */
 static const struct unidata st33[] = {
 {0,0,0,0,Lo,0,GBL,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBL,WBALetter,SBOLetter},
@@ -9084,6 +9120,7 @@ static const struct unidata st33[] = {
 {0,0,0,0,Lo,0,GBV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBV,WBALetter,SBOLetter}
 };
+/* 1180-11FF */
 static const struct unidata st34[] = {
 {0,0,0,0,Lo,0,GBV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBV,WBALetter,SBOLetter},
@@ -9214,6 +9251,7 @@ static const struct unidata st34[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1200-127F */
 static const struct unidata st35[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9344,6 +9382,7 @@ static const struct unidata st35[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 1280-12FF */
 static const struct unidata st36[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9474,6 +9513,7 @@ static const struct unidata st36[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 1300-137F */
 static const struct unidata st37[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9604,6 +9644,7 @@ static const struct unidata st37[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1380-13FF */
 static const struct unidata st38[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9734,6 +9775,7 @@ static const struct unidata st38[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1400-147F */
 static const struct unidata st39[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9864,6 +9906,7 @@ static const struct unidata st39[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 1480-14FF */
 static const struct unidata st40[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -9994,6 +10037,7 @@ static const struct unidata st40[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 1600-167F */
 static const struct unidata st41[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -10124,6 +10168,7 @@ static const struct unidata st41[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1680-16FF */
 static const struct unidata st42[] = {
 {0,0,0,0,Zs,0,GBOther,WBOther,SBSp},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -10254,6 +10299,7 @@ static const struct unidata st42[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1700-177F */
 static const struct unidata st43[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -10384,6 +10430,7 @@ static const struct unidata st43[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1780-17FF */
 static const struct unidata st44[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -10514,6 +10561,7 @@ static const struct unidata st44[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1800-187F */
 static const struct unidata st45[] = {
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
@@ -10644,6 +10692,7 @@ static const struct unidata st45[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1880-18FF */
 static const struct unidata st46[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -10774,6 +10823,7 @@ static const struct unidata st46[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1900-197F */
 static const struct unidata st47[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -10904,6 +10954,7 @@ static const struct unidata st47[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1980-19FF */
 static const struct unidata st48[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -11034,6 +11085,7 @@ static const struct unidata st48[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 1A00-1A7F */
 static const struct unidata st49[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -11164,6 +11216,7 @@ static const struct unidata st49[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1B00-1B7F */
 static const struct unidata st50[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -11294,6 +11347,7 @@ static const struct unidata st50[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1D00-1D7F */
 static const struct unidata st51[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -11424,6 +11478,7 @@ static const struct unidata st51[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 1D80-1DFF */
 static const struct unidata st52[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -11554,6 +11609,7 @@ static const struct unidata st52[] = {
 {0,0,0,230,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend}
 };
+/* 1E00-1E7F */
 static const struct unidata st53[] = {
 {cd575,cd575,cf489,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd576,cd576,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -11684,6 +11740,7 @@ static const struct unidata st53[] = {
 {cd701,cd701,cf552,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd702,cd702,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 1E80-1EFF */
 static const struct unidata st54[] = {
 {cd703,cd703,cf553,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd704,cd704,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -11814,6 +11871,7 @@ static const struct unidata st54[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1F00-1F7F */
 static const struct unidata st55[] = {
 {cd821,cd821,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd822,cd822,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -11944,6 +12002,7 @@ static const struct unidata st55[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 1F80-1FFF */
 static const struct unidata st56[] = {
 {cd935,cd935,cf666,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd936,cd936,cf667,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -12074,6 +12133,7 @@ static const struct unidata st56[] = {
 {cd1052,0,0,0,Sk,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2000-207F */
 static const struct unidata st57[] = {
 {cd1053,cd1053,0,0,Zs,0,GBOther,WBOther,SBSp},
 {cd1054,cd1054,0,0,Zs,0,GBOther,WBOther,SBSp},
@@ -12204,6 +12264,7 @@ static const struct unidata st57[] = {
 {cd1081,0,0,0,Pe,0,GBOther,WBOther,SBClose},
 {cd1082,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
+/* 2080-20FF */
 static const struct unidata st58[] = {
 {cd1070,0,0,0,No,0,GBOther,WBOther,SBOther},
 {cd9,0,0,0,No,0,GBOther,WBOther,SBOther},
@@ -12334,6 +12395,7 @@ static const struct unidata st58[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2100-217F */
 static const struct unidata st59[] = {
 {cd1084,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1085,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -12464,6 +12526,7 @@ static const struct unidata st59[] = {
 {cd516,0,0,0,Nl,0,GBOther,WBALetter,SBLower},
 {cd523,0,0,0,Nl,0,GBOther,WBALetter,SBLower}
 };
+/* 2180-21FF */
 static const struct unidata st60[] = {
 {0,0,0,0,Nl,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Nl,0,GBOther,WBALetter,SBOLetter},
@@ -12594,6 +12657,7 @@ static const struct unidata st60[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2200-227F */
 static const struct unidata st61[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -12724,6 +12788,7 @@ static const struct unidata st61[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2280-22FF */
 static const struct unidata st62[] = {
 {cd1173,cd1173,0,0,Sm,0,GBOther,WBOther,SBOther},
 {cd1174,cd1174,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -12854,6 +12919,7 @@ static const struct unidata st62[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2300-237F */
 static const struct unidata st63[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -12984,6 +13050,7 @@ static const struct unidata st63[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 2380-23FF */
 static const struct unidata st64[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13114,6 +13181,7 @@ static const struct unidata st64[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2400-247F */
 static const struct unidata st65[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13244,6 +13312,7 @@ static const struct unidata st65[] = {
 {cd1214,0,0,0,No,0,GBOther,WBOther,SBOther},
 {cd1215,0,0,0,No,0,GBOther,WBOther,SBOther}
 };
+/* 2480-24FF */
 static const struct unidata st66[] = {
 {cd1216,0,0,0,No,0,GBOther,WBOther,SBOther},
 {cd1217,0,0,0,No,0,GBOther,WBOther,SBOther},
@@ -13374,6 +13443,7 @@ static const struct unidata st66[] = {
 {0,0,0,0,No,0,GBOther,WBOther,SBOther},
 {0,0,0,0,No,0,GBOther,WBOther,SBOther}
 };
+/* 2500-257F */
 static const struct unidata st67[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13504,6 +13574,7 @@ static const struct unidata st67[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 2580-25FF */
 static const struct unidata st68[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13634,6 +13705,7 @@ static const struct unidata st68[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2600-267F */
 static const struct unidata st69[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13764,6 +13836,7 @@ static const struct unidata st69[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 2680-26FF */
 static const struct unidata st70[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -13894,6 +13967,7 @@ static const struct unidata st70[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2700-277F */
 static const struct unidata st71[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -14024,6 +14098,7 @@ static const struct unidata st71[] = {
 {0,0,0,0,No,0,GBOther,WBOther,SBOther},
 {0,0,0,0,No,0,GBOther,WBOther,SBOther}
 };
+/* 2780-27FF */
 static const struct unidata st72[] = {
 {0,0,0,0,No,0,GBOther,WBOther,SBOther},
 {0,0,0,0,No,0,GBOther,WBOther,SBOther},
@@ -14154,6 +14229,7 @@ static const struct unidata st72[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2900-297F */
 static const struct unidata st73[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -14284,6 +14360,7 @@ static const struct unidata st73[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2980-29FF */
 static const struct unidata st74[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -14414,6 +14491,7 @@ static const struct unidata st74[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2A00-2A7F */
 static const struct unidata st75[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -14544,6 +14622,7 @@ static const struct unidata st75[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2A80-2AFF */
 static const struct unidata st76[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
@@ -14674,6 +14753,7 @@ static const struct unidata st76[] = {
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sm,0,GBOther,WBOther,SBOther}
 };
+/* 2B00-2B7F */
 static const struct unidata st77[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -14804,6 +14884,7 @@ static const struct unidata st77[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2C00-2C7F */
 static const struct unidata st78[] = {
 {0,0,cf777,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,cf778,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -14934,6 +15015,7 @@ static const struct unidata st78[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2C80-2CFF */
 static const struct unidata st79[] = {
 {0,0,cf832,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -15064,6 +15146,7 @@ static const struct unidata st79[] = {
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther}
 };
+/* 2D00-2D7F */
 static const struct unidata st80[] = {
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {0,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -15194,6 +15277,7 @@ static const struct unidata st80[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2D80-2DFF */
 static const struct unidata st81[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -15324,6 +15408,7 @@ static const struct unidata st81[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2E00-2E7F */
 static const struct unidata st82[] = {
 {0,0,0,0,Po,0,GBOther,WBOther,SBClose},
 {0,0,0,0,Po,0,GBOther,WBOther,SBClose},
@@ -15454,6 +15539,7 @@ static const struct unidata st82[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2E80-2EFF */
 static const struct unidata st83[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -15584,6 +15670,7 @@ static const struct unidata st83[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 2F00-2F7F */
 static const struct unidata st84[] = {
 {cd1281,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1282,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -15714,6 +15801,7 @@ static const struct unidata st84[] = {
 {cd1407,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1408,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 2F80-2FFF */
 static const struct unidata st85[] = {
 {cd1409,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1410,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -15844,6 +15932,7 @@ static const struct unidata st85[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 3000-307F */
 static const struct unidata st86[] = {
 {cd0,0,0,0,Zs,0,GBOther,WBOther,SBSp},
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
@@ -15974,6 +16063,7 @@ static const struct unidata st86[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
+/* 3080-30FF */
 static const struct unidata st87[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -16104,6 +16194,7 @@ static const struct unidata st87[] = {
 {cd1558,cd1558,0,0,Lm,0,GBOther,WBKatakana,SBOLetter},
 {cd1559,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter}
 };
+/* 3100-317F */
 static const struct unidata st88[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -16234,6 +16325,7 @@ static const struct unidata st88[] = {
 {cd1637,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd1638,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* 3180-31FF */
 static const struct unidata st89[] = {
 {cd1639,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd1640,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -16364,6 +16456,7 @@ static const struct unidata st89[] = {
 {0,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter}
 };
+/* 3200-327F */
 static const struct unidata st90[] = {
 {cd1664,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1665,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -16494,6 +16587,7 @@ static const struct unidata st90[] = {
 {cd1763,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 3280-32FF */
 static const struct unidata st91[] = {
 {cd1281,0,0,0,No,0,GBOther,WBOther,SBOther},
 {cd1287,0,0,0,No,0,GBOther,WBOther,SBOther},
@@ -16624,6 +16718,7 @@ static const struct unidata st91[] = {
 {cd1873,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* 3300-337F */
 static const struct unidata st92[] = {
 {cd1874,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd1875,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -16754,6 +16849,7 @@ static const struct unidata st92[] = {
 {cd2000,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd2001,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 3380-33FF */
 static const struct unidata st93[] = {
 {cd2002,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd2003,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -16884,6 +16980,7 @@ static const struct unidata st93[] = {
 {cd2128,0,0,0,So,0,GBOther,WBOther,SBOther},
 {cd2129,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 3400-347F */
 static const struct unidata st94[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -17014,6 +17111,7 @@ static const struct unidata st94[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
+/* 4D80-4DFF */
 static const struct unidata st95[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -17144,6 +17242,7 @@ static const struct unidata st95[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
+/* 9F80-9FFF */
 static const struct unidata st96[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -17274,6 +17373,7 @@ static const struct unidata st96[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* A000-A07F */
 static const struct unidata st97[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -17404,6 +17504,7 @@ static const struct unidata st97[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
+/* A480-A4FF */
 static const struct unidata st98[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -17534,6 +17635,7 @@ static const struct unidata st98[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* A700-A77F */
 static const struct unidata st99[] = {
 {0,0,0,0,Sk,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Sk,0,GBOther,WBOther,SBOther},
@@ -17664,6 +17766,7 @@ static const struct unidata st99[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* A800-A87F */
 static const struct unidata st100[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -17794,7 +17897,9 @@ static const struct unidata st100[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
+/* AC00-AC7F */
 static const struct unidata st101[] = {
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17822,6 +17927,7 @@ static const struct unidata st101[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17849,6 +17955,7 @@ static const struct unidata st101[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17876,6 +17983,7 @@ static const struct unidata st101[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17896,6 +18004,788 @@ static const struct unidata st101[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AC80-ACFF */
+static const struct unidata st102[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AD00-AD7F */
+static const struct unidata st103[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AD80-ADFF */
+static const struct unidata st104[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AE00-AE7F */
+static const struct unidata st105[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AE80-AEFF */
+static const struct unidata st106[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
+};
+/* AF00-AF7F */
+static const struct unidata st107[] = {
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17924,7 +18814,8 @@ static const struct unidata st101[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter}
 };
-static const struct unidata st102[] = {
+/* D780-D7FF */
+static const struct unidata st108[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -17933,7 +18824,7 @@ static const struct unidata st102[] = {
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
-{0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
+{0,0,0,0,Lo,0,GBLV,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBLVT,WBALetter,SBOLetter},
@@ -18054,7 +18945,8 @@ static const struct unidata st102[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st103[] = {
+/* D800-D87F */
+static const struct unidata st109[] = {
 {0,0,0,0,Cs,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cs,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cs,0,GBOther,WBOther,SBOther},
@@ -18184,7 +19076,8 @@ static const struct unidata st103[] = {
 {0,0,0,0,Cs,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cs,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st104[] = {
+/* E000-E07F */
+static const struct unidata st110[] = {
 {0,0,0,0,Co,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Co,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Co,0,GBOther,WBOther,SBOther},
@@ -18314,7 +19207,8 @@ static const struct unidata st104[] = {
 {0,0,0,0,Co,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Co,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st105[] = {
+/* F900-F97F */
+static const struct unidata st111[] = {
 {cd2130,cd2130,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2131,cd2131,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd1439,cd1439,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -18444,7 +19338,8 @@ static const struct unidata st105[] = {
 {cd2248,cd2248,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2249,cd2249,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st106[] = {
+/* F980-F9FF */
+static const struct unidata st112[] = {
 {cd2250,cd2250,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd1318,cd1318,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2251,cd2251,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -18574,7 +19469,8 @@ static const struct unidata st106[] = {
 {cd2366,cd2366,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2367,cd2367,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st107[] = {
+/* FA00-FA7F */
+static const struct unidata st113[] = {
 {cd2368,cd2368,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2369,cd2369,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2370,cd2370,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -18704,7 +19600,8 @@ static const struct unidata st107[] = {
 {cd2464,cd2464,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2465,cd2465,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st108[] = {
+/* FA80-FAFF */
+static const struct unidata st114[] = {
 {cd2466,cd2466,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2467,cd2467,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2468,cd2468,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -18834,7 +19731,8 @@ static const struct unidata st108[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st109[] = {
+/* FB00-FB7F */
+static const struct unidata st115[] = {
 {cd2531,0,cf882,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd2532,0,cf883,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd2533,0,cf884,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -18964,7 +19862,8 @@ static const struct unidata st109[] = {
 {cd2597,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2597,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st110[] = {
+/* FB80-FBFF */
+static const struct unidata st116[] = {
 {cd2597,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2597,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2598,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19094,7 +19993,8 @@ static const struct unidata st110[] = {
 {cd2633,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2633,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st111[] = {
+/* FC00-FC7F */
+static const struct unidata st117[] = {
 {cd2634,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2635,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2636,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19224,7 +20124,8 @@ static const struct unidata st111[] = {
 {cd2686,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2687,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st112[] = {
+/* FC80-FCFF */
+static const struct unidata st118[] = {
 {cd2688,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2692,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2693,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19354,7 +20255,8 @@ static const struct unidata st112[] = {
 {cd2777,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2778,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st113[] = {
+/* FD00-FD7F */
+static const struct unidata st119[] = {
 {cd2779,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2780,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2781,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19484,7 +20386,8 @@ static const struct unidata st113[] = {
 {cd2830,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2831,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st114[] = {
+/* FD80-FDFF */
+static const struct unidata st120[] = {
 {cd2832,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2833,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2834,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19614,7 +20517,8 @@ static const struct unidata st114[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st115[] = {
+/* FE00-FE7F */
+static const struct unidata st121[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -19744,7 +20648,8 @@ static const struct unidata st115[] = {
 {cd2953,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2954,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st116[] = {
+/* FE80-FEFF */
+static const struct unidata st122[] = {
 {cd2955,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2956,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {cd2956,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -19874,7 +20779,8 @@ static const struct unidata st116[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat}
 };
-static const struct unidata st117[] = {
+/* FF00-FF7F */
+static const struct unidata st123[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {cd2907,0,0,0,Po,0,GBOther,WBOther,SBSTerm},
 {cd2994,0,0,0,Po,0,GBOther,WBOther,SBOther},
@@ -20004,7 +20910,8 @@ static const struct unidata st117[] = {
 {cd1840,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter},
 {cd1841,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter}
 };
-static const struct unidata st118[] = {
+/* FF80-FFFF */
+static const struct unidata st124[] = {
 {cd1842,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter},
 {cd1843,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter},
 {cd1844,0,0,0,Lo,0,GBOther,WBKatakana,SBOLetter},
@@ -20134,7 +21041,8 @@ static const struct unidata st118[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st119[] = {
+/* 10000-1007F */
+static const struct unidata st125[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -20264,7 +21172,8 @@ static const struct unidata st119[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st120[] = {
+/* 10080-100FF */
+static const struct unidata st126[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -20394,7 +21303,8 @@ static const struct unidata st120[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st121[] = {
+/* 10100-1017F */
+static const struct unidata st127[] = {
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Po,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -20524,7 +21434,8 @@ static const struct unidata st121[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st122[] = {
+/* 10180-101FF */
+static const struct unidata st128[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -20654,7 +21565,8 @@ static const struct unidata st122[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st123[] = {
+/* 10300-1037F */
+static const struct unidata st129[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -20784,7 +21696,8 @@ static const struct unidata st123[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st124[] = {
+/* 10380-103FF */
+static const struct unidata st130[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -20914,7 +21827,8 @@ static const struct unidata st124[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st125[] = {
+/* 10400-1047F */
+static const struct unidata st131[] = {
 {0,0,cf919,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,cf920,0,Lu,0,GBOther,WBALetter,SBUpper},
 {0,0,cf921,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -21044,7 +21958,8 @@ static const struct unidata st125[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter}
 };
-static const struct unidata st126[] = {
+/* 10480-104FF */
+static const struct unidata st132[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -21174,7 +22089,8 @@ static const struct unidata st126[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st127[] = {
+/* 10800-1087F */
+static const struct unidata st133[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -21304,7 +22220,8 @@ static const struct unidata st127[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st128[] = {
+/* 10900-1097F */
+static const struct unidata st134[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -21434,7 +22351,8 @@ static const struct unidata st128[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st129[] = {
+/* 10A00-10A7F */
+static const struct unidata st135[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -21564,7 +22482,8 @@ static const struct unidata st129[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st130[] = {
+/* 12300-1237F */
+static const struct unidata st136[] = {
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBALetter,SBOLetter},
@@ -21694,7 +22613,8 @@ static const struct unidata st130[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st131[] = {
+/* 12400-1247F */
+static const struct unidata st137[] = {
 {0,0,0,0,Nl,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Nl,0,GBOther,WBALetter,SBOLetter},
 {0,0,0,0,Nl,0,GBOther,WBALetter,SBOLetter},
@@ -21824,7 +22744,8 @@ static const struct unidata st131[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st132[] = {
+/* 1D080-1D0FF */
+static const struct unidata st138[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -21954,7 +22875,8 @@ static const struct unidata st132[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st133[] = {
+/* 1D100-1D17F */
+static const struct unidata st139[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -22084,7 +23006,8 @@ static const struct unidata st133[] = {
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend}
 };
-static const struct unidata st134[] = {
+/* 1D180-1D1FF */
+static const struct unidata st140[] = {
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,220,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -22214,7 +23137,8 @@ static const struct unidata st134[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st135[] = {
+/* 1D200-1D27F */
+static const struct unidata st141[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -22344,7 +23268,8 @@ static const struct unidata st135[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st136[] = {
+/* 1D300-1D37F */
+static const struct unidata st142[] = {
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
 {0,0,0,0,So,0,GBOther,WBOther,SBOther},
@@ -22474,7 +23399,8 @@ static const struct unidata st136[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st137[] = {
+/* 1D400-1D47F */
+static const struct unidata st143[] = {
 {cd491,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd493,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd1086,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -22604,7 +23530,8 @@ static const struct unidata st137[] = {
 {cd511,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd1131,0,0,0,Lu,0,GBOther,WBALetter,SBUpper}
 };
-static const struct unidata st138[] = {
+/* 1D480-1D4FF */
+static const struct unidata st144[] = {
 {cd1271,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd1098,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd2,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -22734,7 +23661,8 @@ static const struct unidata st138[] = {
 {cd530,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd533,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
-static const struct unidata st139[] = {
+/* 1D500-1D57F */
+static const struct unidata st145[] = {
 {cd291,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd301,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd292,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -22864,7 +23792,8 @@ static const struct unidata st139[] = {
 {cd1270,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd509,0,0,0,Lu,0,GBOther,WBALetter,SBUpper}
 };
-static const struct unidata st140[] = {
+/* 1D580-1D5FF */
+static const struct unidata st146[] = {
 {cd510,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd1126,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd511,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -22994,7 +23923,8 @@ static const struct unidata st140[] = {
 {cd1272,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd287,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
-static const struct unidata st141[] = {
+/* 1D600-1D67F */
+static const struct unidata st147[] = {
 {cd180,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd529,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd530,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -23124,7 +24054,8 @@ static const struct unidata st141[] = {
 {cd505,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd507,0,0,0,Lu,0,GBOther,WBALetter,SBUpper}
 };
-static const struct unidata st142[] = {
+/* 1D680-1D6FF */
+static const struct unidata st148[] = {
 {cd1094,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd508,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
 {cd1270,0,0,0,Lu,0,GBOther,WBALetter,SBUpper},
@@ -23254,7 +24185,8 @@ static const struct unidata st142[] = {
 {cd535,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd536,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
-static const struct unidata st143[] = {
+/* 1D700-1D77F */
+static const struct unidata st149[] = {
 {cd343,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd3118,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd3119,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -23384,7 +24316,8 @@ static const struct unidata st143[] = {
 {cd3123,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd338,0,0,0,Ll,0,GBOther,WBALetter,SBLower}
 };
-static const struct unidata st144[] = {
+/* 1D780-1D7FF */
+static const struct unidata st150[] = {
 {cd340,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd341,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
 {cd3124,0,0,0,Ll,0,GBOther,WBALetter,SBLower},
@@ -23514,7 +24447,8 @@ static const struct unidata st144[] = {
 {cd1075,0,0,0,Nd,0,GBOther,WBNumeric,SBNumeric},
 {cd1076,0,0,0,Nd,0,GBOther,WBNumeric,SBNumeric}
 };
-static const struct unidata st145[] = {
+/* 2A680-2A6FF */
+static const struct unidata st151[] = {
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {0,0,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -23644,7 +24578,8 @@ static const struct unidata st145[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st146[] = {
+/* 2F800-2F87F */
+static const struct unidata st152[] = {
 {cd3138,cd3138,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3139,cd3139,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3140,cd3140,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -23774,7 +24709,8 @@ static const struct unidata st146[] = {
 {cd3243,cd3243,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3244,cd3244,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st147[] = {
+/* 2F880-2F8FF */
+static const struct unidata st153[] = {
 {cd3245,cd3245,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3246,cd3246,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3247,cd3247,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -23904,7 +24840,8 @@ static const struct unidata st147[] = {
 {cd3354,cd3354,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3355,cd3355,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st148[] = {
+/* 2F900-2F97F */
+static const struct unidata st154[] = {
 {cd3356,cd3356,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2419,cd2419,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2318,cd2318,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -24034,7 +24971,8 @@ static const struct unidata st148[] = {
 {cd3463,cd3463,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3464,cd3464,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st149[] = {
+/* 2F980-2F9FF */
+static const struct unidata st155[] = {
 {cd3465,cd3465,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3466,cd3466,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3467,cd3467,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -24164,7 +25102,8 @@ static const struct unidata st149[] = {
 {cd2518,cd2518,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd2518,cd2518,0,0,Lo,0,GBOther,WBOther,SBOLetter}
 };
-static const struct unidata st150[] = {
+/* 2FA00-2FA7F */
+static const struct unidata st156[] = {
 {cd3581,cd3581,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3582,cd3582,0,0,Lo,0,GBOther,WBOther,SBOLetter},
 {cd3583,cd3583,0,0,Lo,0,GBOther,WBOther,SBOLetter},
@@ -24294,7 +25233,8 @@ static const struct unidata st150[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther}
 };
-static const struct unidata st151[] = {
+/* E0000-E007F */
+static const struct unidata st157[] = {
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat},
 {0,0,0,0,Cn,0,GBOther,WBOther,SBOther},
@@ -24424,7 +25364,8 @@ static const struct unidata st151[] = {
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat},
 {0,0,0,0,Cf,0,GBControl,WBFormat,SBFormat}
 };
-static const struct unidata st152[] = {
+/* E0100-E017F */
+static const struct unidata st158[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -24554,7 +25495,8 @@ static const struct unidata st152[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend}
 };
-static const struct unidata st153[] = {
+/* E0180-E01FF */
+static const struct unidata st159[] = {
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
 {0,0,0,0,Mn,0,GBExtend,WBExtend,SBExtend},
@@ -25030,164 +25972,158 @@ st16,
 st16,
 st16,
 st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
-st101,
 st102,
 st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st103,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
-st104,
 st104,
 st105,
 st106,
 st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
+st104,
+st105,
+st106,
+st107,
+st101,
+st102,
+st103,
 st108,
 st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st109,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
+st110,
 st110,
 st111,
 st112,
@@ -25201,75 +26137,81 @@ st119,
 st120,
 st121,
 st122,
-st16,
-st16,
 st123,
 st124,
 st125,
 st126,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
 st127,
-st16,
 st128,
 st16,
+st16,
 st129,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st40,
-st40,
-st40,
-st40,
-st40,
-st40,
 st130,
-st16,
 st131,
+st132,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st133,
+st16,
+st134,
+st16,
+st135,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st40,
+st40,
+st40,
+st40,
+st40,
+st40,
+st136,
+st16,
+st137,
 st16,
 st16,
 st16,
@@ -25614,597 +26556,16 @@ st16,
 st16,
 st16,
 st67,
-st132,
-st133,
-st134,
-st135,
-st16,
-st136,
-st16,
-st137,
 st138,
 st139,
 st140,
 st141,
+st16,
 st142,
+st16,
 st143,
 st144,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
-st94,
 st145,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
-st16,
 st146,
 st147,
 st148,
@@ -26221,8 +26582,589 @@ st16,
 st16,
 st16,
 st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
+st94,
 st151,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
 st16,
 st152,
 st153,
+st154,
+st155,
+st156,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st16,
+st157,
+st16,
+st158,
+st159,
 };

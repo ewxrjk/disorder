@@ -646,10 +646,7 @@ static uint32_t utf32__hangul_syllable_type(uint32_t c) {
  * @return Word_Break property value of @p c
  */
 static enum unicode_Word_Break utf32__word_break(uint32_t c) {
-  if(c < 0xAC00 || c > 0xD7A3)
-    return utf32__unidata(c)->word_break;
-  else
-    return unicode_Word_Break_ALetter;
+  return utf32__unidata(c)->word_break;
 }
 
 /** @brief Identify a grapheme cluster boundary

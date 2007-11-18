@@ -31,7 +31,6 @@
 #  - SpecialCasing.txt data for case mapping
 #  - Title case offsets
 #  - Some kind of hinting for composition
-#  - Word boundary support
 #  - ...
 #
 # NB the generated files DO NOT offer a stable ABI and so are not immediately
@@ -131,27 +130,27 @@ while(<>) {
     $maxud = $ud if $ud > $maxud;
     $minld = $ld if $ld < $minld;
     $maxld = $ld if $ld > $maxld;
-    my $d = {
-	"gc" => $gc,
-	"ccc" => $ccc,
-	"ud" => $ud,
-	"ld" => $ld,
-    };
-    if($dm ne '') {
-	if($dm !~ /</) {
-	    # This is a canonical decomposition
-	    $d->{canon} = $dm;
-	    $d->{compat} = $dm;
-	} else {
-	    # This is only a compatibility decomposition
-	    $dm =~ s/^<.*>\s*//;
-	    $d->{compat} = $dm;
-	}
-    }
     if($start != $end) {
-	printf STDERR "> range %04X-%04X is %s\n", $start, $end, $d->{gc};
+	printf STDERR "> range %04X-%04X is %s\n", $start, $end, $gc;
     }
     for($c = $start; $c <= $end; ++$c) {
+	my $d = {
+	    "gc" => $gc,
+	    "ccc" => $ccc,
+	    "ud" => $ud,
+	    "ld" => $ld,
+	};
+	if($dm ne '') {
+	    if($dm !~ /</) {
+		# This is a canonical decomposition
+		$d->{canon} = $dm;
+		$d->{compat} = $dm;
+	    } else {
+		# This is only a compatibility decomposition
+		$dm =~ s/^<.*>\s*//;
+		$d->{compat} = $dm;
+	    }
+	}
 	$data{$c} = $d;
     }
     $cats{$gc} = 1;
@@ -169,22 +168,17 @@ sub read_prop_with_ranges {
 	my ($range, $propval) = split(/\s*;\s*/, $_);
 	if($range =~ /(.*)\.\.(.*)/) {
 	    for my $c (hex($1) .. hex($2)) {
-		if(exists $data{$c}) {
-		    $data{$c}->{$propkey} = $propval;
-		}
+		die "($range)\n" if($c == 0xAC00 and $propkey eq 'gbreak');
+		$data{$c}->{$propkey} = $propval;
 	    }
 	} else {
 	    my $c = hex($range);
-	    if(exists $data{$c}) {
-		$data{$c}->{$propkey} = $propval;
-	    }
+	    $data{$c}->{$propkey} = $propval;
 	}
     }
 }
 
 # Grapheme_Break etc
-# NB we do this BEFORE filling in blanks so that the Hangul characters
-# don't get filled in; we can compute their properties mechanically.
 read_prop_with_ranges("auxiliary/GraphemeBreakProperty.txt", "gbreak");
 read_prop_with_ranges("auxiliary/WordBreakProperty.txt", "wbreak");
 read_prop_with_ranges("auxiliary/SentenceBreakProperty.txt", "sbreak");
@@ -507,6 +501,7 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     }
     my $t = join(",\n", @t);
     if(!exists $subtable{$t}) {
+	out(sprintf("/* %04X-%04X */\n", $base, $base + $modulus - 1));
 	out("static const struct unidata st$subtablecounter\[] = {\n",
 	    "$t\n",
 	    "};\n");
