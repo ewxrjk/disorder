@@ -371,7 +371,7 @@ static void utf32__iterator_init(utf32_iterator it,
   it->ns = ns;
   it->n = 0;
   it->last[0] = it->last[1] = -1;
-  utf32_iterator_advance(it, n);
+  utf32_iterator_set(it, n);
 }
 
 /** @brief Destroy an iterator
@@ -404,15 +404,26 @@ int utf32_iterator_set(utf32_iterator it, size_t n) {
    * non-ignorable code points as we advance forwards, so we'd better pass two
    * such characters on the way back (if such are available).
    */
-  size_t m = n;
-  int i;
+  size_t m;
 
   if(n > it->ns)                        /* range check */
     return -1;
-  for(i = 0; i < 2; ++i)
-    while(m > 0
-          && utf32__boundary_ignorable(utf32__word_break(it->s[m - 1])))
+  /* Walk backwards skipping ignorable code points */
+  m = n;
+  while(m > 0 && (utf32__boundary_ignorable(utf32__word_break(it->s[m-1]))))
+    --m;
+  /* Either m=0 or s[m-1] is not ignorable */
+  if(m > 0) {
+    --m;
+    /* s[m] is our first non-ignorable code; look for a second in the same
+       way **/
+    while(m > 0 && (utf32__boundary_ignorable(utf32__word_break(it->s[m-1]))))
       --m;
+    /* Either m=0 or s[m-1] is not ignorable */
+    if(m > 0)
+      --m;
+  }
+  it->last[0] = it->last[1] = -1;
   it->n = m;
   return utf32_iterator_advance(it, n - m);
 }

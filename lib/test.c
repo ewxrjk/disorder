@@ -514,8 +514,10 @@ static void breaktest(const char *path,
     for(n = 0; n <= bn; ++n) {
       if(breakfn(buffer, bn, n) != break_allowed[n]) {
         fprintf(stderr,
-                "%s:%d: offset %zu: mismatch\n",
-                path, lineno, n);
+                "%s:%d: offset %zu: mismatch\n"
+                "%s\n"
+                "\n",
+                path, lineno, n, l);
         count_error();
       }
       ++tests;
