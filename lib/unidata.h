@@ -39,6 +39,7 @@ enum unicode_Grapheme_Break {
   unicode_Grapheme_Break_Extend,
   unicode_Grapheme_Break_L,
   unicode_Grapheme_Break_LF,
+  unicode_Grapheme_Break_LVT,
   unicode_Grapheme_Break_Other,
   unicode_Grapheme_Break_T,
   unicode_Grapheme_Break_V
@@ -79,8 +80,6 @@ struct unidata {
   const uint32_t *compat;
   const uint32_t *canon;
   const uint32_t *casefold;
-  int16_t upper_offset;
-  int16_t lower_offset;
   unsigned char ccc;
   char general_category;
   uint8_t flags;
@@ -89,6 +88,9 @@ struct unidata {
   char sentence_break;
 };
 extern const struct unidata *const unidata[];
-#define UNICODE_NCHARS 195200
+#define UNICODE_NCHARS 1114112
 #define UNICODE_MODULUS 128
+#define UNICODE_BREAK_START 196608
+#define UNICODE_BREAK_END 917504
+#define UNICODE_BREAK_TOP 918016
 #endif

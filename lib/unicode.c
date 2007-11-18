@@ -209,13 +209,23 @@ size_t utf32_len(const uint32_t *s) {
  * @p c can be any 32-bit value, a sensible value will be returned regardless.
  */
 static const struct unidata *utf32__unidata(uint32_t c) {
-  if(c < UNICODE_NCHARS)
+  /* The bottom half of the table contains almost everything of interest
+   * and we can just return the right thing straight away */
+  if(c < UNICODE_BREAK_START)
     return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-  else if((c >= 0xF0000 && c <= 0xFFFFD)
-          || (c >= 0x100000 && c <= 0x10FFFD))
-    return utf32__unidata(0xE000);      /* Co */
-  else
-    return utf32__unidata(0xFFFF);      /* Cn */
+  /* Within the break everything is unassigned */
+  if(c < UNICODE_BREAK_END)
+    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
+  /* Planes 15 and 16 are (mostly) private use */
+  if((c >= 0xF0000 && c <= 0xFFFFD)
+     || (c >= 0x100000 && c <= 0x10FFFD))
+    return utf32__unidata(0xE000);      /* first Co code point */
+  /* Everything else above the break top is unassigned */
+  if(c >= UNICODE_BREAK_TOP)
+    return utf32__unidata(0xFFFF);      /* guaranteed to be Cn */
+  /* Currently the rest is language tags and variation selectors */
+  c -= (UNICODE_BREAK_END - UNICODE_BREAK_START);
+  return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
 }
 
 /** @brief Return the combining class of @p c

@@ -62,6 +62,17 @@ sub key {
 # This can be varied to trade off the number of subtables against their size.
 our $modulus = 128;
 
+# Where to break the table.  There is a huge empty section of the Unicode
+# code space and we deal with this by simply leaving it out of the table.
+# This complicates the lookup function a little but should not affect
+# performance in the cases we care about.
+our $break_start = 0x30000;
+our $break_end = 0xE0000;
+
+# Similarly we simply omit the very top of the table and sort it out in the
+# lookup function.
+our $break_top = 0xE0200;
+
 my %cats = ();			# known general categories
 my %data = ();			# mapping of codepoints to information
 my $max = 0;			# maximum codepoint
@@ -88,19 +99,25 @@ sub input {
 
 # Read the main data file
 input("UnicodeData.txt");
+my ($start, $end);
 while(<>) {
     my @f = split(/;/, $_);
     my $c = hex($f[0]);		# codepoint
-    next if $c >= 0xE0000;	# ignore various high-numbered stuff
-    # TODO justify this exclusion!
     my $name = $f[1];
+    die "$f[0] $name is in the break\n" 
+	if $c >= $break_start && $c < $break_end;
     my $gc = $f[2];		# General_Category
     # Variuos GCs we don't expect to see in UnicodeData.txt
     $cats{$gc} = 1;		# always record all GCs
-    next if $name =~ /(first|last)>/i; # ignore placeholders
+    if($name =~ /first>/i) {
+	$start = $c;
+	next;
+    } elsif($name =~ /last>/i) {
+	$end = $c;
+    } else {
+	$start = $end = $c;
+    }
     die "unexpected Cn" if $gc eq 'Cn';
-    die "unexpected Co" if $gc eq 'Cn';
-    die "unexpected Cs" if $gc eq 'Cs';
     my $ccc = $f[3];		# Canonical_Combining_Class
     my $dm = $f[5];		# Decomposition_Type + Decomposition_Mapping
     my $sum = hex($f[12]) || $c; # Simple_Uppercase_Mapping
@@ -114,25 +131,31 @@ while(<>) {
     $maxud = $ud if $ud > $maxud;
     $minld = $ld if $ld < $minld;
     $maxld = $ld if $ld > $maxld;
-    $data{$c} = {
+    my $d = {
 	"gc" => $gc,
 	"ccc" => $ccc,
 	"ud" => $ud,
 	"ld" => $ld,
-	};
+    };
     if($dm ne '') {
 	if($dm !~ /</) {
 	    # This is a canonical decomposition
-	    $data{$c}->{canon} = $dm;
-	    $data{$c}->{compat} = $dm;
+	    $d->{canon} = $dm;
+	    $d->{compat} = $dm;
 	} else {
 	    # This is only a compatibility decomposition
 	    $dm =~ s/^<.*>\s*//;
-	    $data{$c}->{compat} = $dm;
+	    $d->{compat} = $dm;
 	}
     }
+    if($start != $end) {
+	printf STDERR "> range %04X-%04X is %s\n", $start, $end, $d->{gc};
+    }
+    for($c = $start; $c <= $end; ++$c) {
+	$data{$c} = $d;
+    }
     $cats{$gc} = 1;
-    $max = $c if $c > $max;
+    $max = $end if $end > $max;
 }
 
 sub read_prop_with_ranges {
@@ -197,17 +220,6 @@ for my $c (keys %data) {
 
 # Round up the maximum value to a whole number of subtables
 $max += ($modulus - 1) - ($max % $modulus);
-
-# Surrogates
-my $Cs = {
-    "gc" => "Cs",		# UTF-16 surrogate
-    "ccc" => 0,
-    "ud" => 0,
-    "ld" => 0
-};
-for(my $c = 0xD800; $c <= 0xDFFF; ++$c) {
-    $data{$c} = $Cs;
-}
 
 # Private use characters
 # We only fill in values below $max, utf32__unidata() 
@@ -343,8 +355,8 @@ out("struct unidata {\n",
     "  const uint32_t *compat;\n",
     "  const uint32_t *canon;\n",
     "  const uint32_t *casefold;\n",
-    "  ".choosetype($minud, $maxud)." upper_offset;\n",
-    "  ".choosetype($minld, $maxld)." lower_offset;\n",
+#    "  ".choosetype($minud, $maxud)." upper_offset;\n",
+#    "  ".choosetype($minld, $maxld)." lower_offset;\n",
     "  ".choosetype(0, $maxccc)." ccc;\n",
     "  char general_category;\n",
     "  uint8_t flags;\n",
@@ -361,6 +373,9 @@ out("extern const struct unidata *const unidata[];\n");
 
 out("#define UNICODE_NCHARS ", ($max + 1), "\n");
 out("#define UNICODE_MODULUS $modulus\n");
+out("#define UNICODE_BREAK_START $break_start\n");
+out("#define UNICODE_BREAK_END $break_end\n");
+out("#define UNICODE_BREAK_TOP $break_top\n");
 
 out("#endif\n");
 
@@ -462,6 +477,8 @@ my %subtableno = ();		# subtable number -> content
 my $subtablecounter = 0;	# counter for subtable numbers
 my $subtablessaved = 0;		# number of tables saved
 for(my $base = 0; $base <= $max; $base += $modulus) {
+    next if $base >= $break_start && $base < $break_end;
+    next if $base >= $break_top;
     my @t;
     for(my $c = $base; $c < $base + $modulus; ++$c) {
 	my $d = $data{$c};
@@ -478,8 +495,8 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 		  $compatsym,
 		  $canonsym,
 		  $cfsym,
-		  $d->{ud},
-		  $d->{ld},
+#		  $d->{ud},
+#		  $d->{ld},
 		  $d->{ccc},
 		  $d->{gc},
 		  $flags,
@@ -502,6 +519,8 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 
 out("const struct unidata *const unidata[]={\n");
 for(my $base = 0; $base <= $max; $base += $modulus) {
+    next if $base >= $break_start && $base < $break_end;
+    next if $base >= $break_top;
     #out("st$subtableno{$base} /* ".sprintf("%04x", $base)." */,\n");
     out("st$subtableno{$base},\n");
 }
