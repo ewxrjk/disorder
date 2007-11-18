@@ -23,14 +23,6 @@
 
 #include "utf8.h"
 
-int validutf8(const char *s) {
-  unsigned long c;
-
-  while(*s)
-    PARSE_UTF8(s, c, return 0);
-  return 1;
-}
-
 /*
 Local Variables:
 c-basic-offset:2

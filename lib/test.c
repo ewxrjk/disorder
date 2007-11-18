@@ -148,6 +148,7 @@ static void test_utf8(void) {
 } while(0)
 
   fprintf(stderr, "test_utf8\n");
+#define validutf8(S) utf8_valid((S), strlen(S))
 
   /* empty string */
 

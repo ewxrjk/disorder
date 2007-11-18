@@ -89,6 +89,10 @@ struct unidata {
   char sentence_break;
 };
 extern const struct unidata *const unidata[];
+extern const struct unicode_utf8_row {
+  uint8_t count;
+  uint8_t min2, max2;
+} unicode_utf8_valid[];
 #define UNICODE_NCHARS 1114112
 #define UNICODE_MODULUS 16
 #define UNICODE_BREAK_START 196608

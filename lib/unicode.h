@@ -38,6 +38,7 @@ typedef struct utf32_iterator_data *utf32_iterator;
 
 char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *nd);
 uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *nd);
+int utf8_valid(const char *s, size_t ns);
 
 size_t utf32_len(const uint32_t *s);
 int utf32_cmp(const uint32_t *a, const uint32_t *b);

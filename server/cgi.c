@@ -52,7 +52,7 @@
 #include "cgi.h"
 #include "printf.h"
 #include "mime.h"
-#include "utf8.h"
+#include "unicode.h"
 
 struct kvp *cgi_args;
 
@@ -187,8 +187,8 @@ void cgi_parse(void) {
   else
     fatal(0, "unknown request method %s", p);
   for(k = cgi_args; k; k = k->next)
-    if(!validutf8(k->name)
-       || !validutf8(k->value))
+    if(!utf8_valid(k->name, strlen(k->name))
+       || !utf8_valid(k->value, strlen(k->value)))
       fatal(0, "invalid UTF-8 sequence in cgi argument");
 }
 

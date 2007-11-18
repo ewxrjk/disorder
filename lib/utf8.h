@@ -52,9 +52,6 @@
   }						\
 } while(0)
 
-int validutf8(const char *s);
-/* return nonzero if S is a valid UTF-8 sequence, else false */
-
 #endif /* UTF8_h */
 
 /*

@@ -295,6 +295,51 @@ error:
   return 0;
 }
 
+/** @brief Test whether [s,s+ns) is valid UTF-8
+ * @param s Start of string
+ * @param ns Length of string
+ * @return non-0 if @p s is valid UTF-8, 0 if it is not valid
+ *
+ * This function is intended to be much faster than calling utf8_to_utf32() and
+ * throwing away the result.
+ */
+int utf8_valid(const char *s, size_t ns) {
+  const uint8_t *ss = (const uint8_t *)s;
+  while(ns > 0) {
+    const struct unicode_utf8_row *const r = &unicode_utf8_valid[*ss];
+    if(r->count <= ns) {
+      switch(r->count) {
+      case 1:
+        break;
+      case 2:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          return 0;
+        break;
+      case 3:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          return 0;
+        if(ss[2] < 0x80 || ss[2] > 0xBF)
+          return 0;
+        break;
+      case 4:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          return 0;
+        if(ss[2] < 0x80 || ss[2] > 0xBF)
+          return 0;
+        if(ss[3] < 0x80 || ss[3] > 0xBF)
+          return 0;
+        break;
+      default:
+        return 0;
+      }
+    } else
+      return 0;
+    ss += r->count;
+    ns -= r->count;
+  }
+  return 1;
+}
+
 /*@}*/
 /** @defgroup utf32iterator UTF-32 string iterators */
 /*@{*/

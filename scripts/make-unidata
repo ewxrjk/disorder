@@ -371,6 +371,11 @@ out("struct unidata {\n",
 
 out("extern const struct unidata *const unidata[];\n");
 
+out("extern const struct unicode_utf8_row {\n",
+    "  uint8_t count;\n",
+    "  uint8_t min2, max2;\n",
+    "} unicode_utf8_valid[];\n");
+
 out("#define UNICODE_NCHARS ", ($max + 1), "\n");
 out("#define UNICODE_MODULUS $modulus\n");
 out("#define UNICODE_BREAK_START $break_start\n");
@@ -524,6 +529,42 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     next if $base >= $break_top;
     #out("st$subtableno{$base} /* ".sprintf("%04x", $base)." */,\n");
     out("st$subtableno{$base},\n");
+}
+out("};\n");
+
+out("const struct unicode_utf8_row unicode_utf8_valid[] = {\n");
+for(my $c = 0; $c <= 0x7F; ++$c) {
+    out(" { 1, 0, 0 }, /* $c */\n");
+}
+for(my $c = 0x80; $c < 0xC2; ++$c) {
+    out(" { 0, 0, 0 }, /* $c */\n");
+}
+for(my $c = 0xC2; $c <= 0xDF; ++$c) {
+    out(" { 2, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xE0; $c <= 0xE0; ++$c) {
+    out(" { 3, 0xA0, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xE1; $c <= 0xEC; ++$c) {
+    out(" { 3, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xED; $c <= 0xED; ++$c) {
+    out(" { 3, 0x80, 0x9F }, /* $c */\n");
+}
+for(my $c = 0xEE; $c <= 0xEF; ++$c) {
+    out(" { 3, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF0; $c <= 0xF0; ++$c) {
+    out(" { 4, 0x90, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF1; $c <= 0xF3; ++$c) {
+    out(" { 4, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF4; $c <= 0xF4; ++$c) {
+    out(" { 4, 0x80, 0x8F }, /* $c */\n");
+}
+for(my $c = 0xF5; $c <= 0xFF; ++$c) {
+    out(" { 0, 0, 0 }, /* $c */\n");
 }
 out("};\n");
 
