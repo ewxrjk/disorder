@@ -1,37 +1,37 @@
 /* Automatically generated file, see scripts/make-unidata */
 #ifndef UNIDATA_H
 #define UNIDATA_H
-enum unicode_gc_cat {
-  unicode_gc_Cc,
-  unicode_gc_Cf,
-  unicode_gc_Cn,
-  unicode_gc_Co,
-  unicode_gc_Cs,
-  unicode_gc_Ll,
-  unicode_gc_Lm,
-  unicode_gc_Lo,
-  unicode_gc_Lt,
-  unicode_gc_Lu,
-  unicode_gc_Mc,
-  unicode_gc_Me,
-  unicode_gc_Mn,
-  unicode_gc_Nd,
-  unicode_gc_Nl,
-  unicode_gc_No,
-  unicode_gc_Pc,
-  unicode_gc_Pd,
-  unicode_gc_Pe,
-  unicode_gc_Pf,
-  unicode_gc_Pi,
-  unicode_gc_Po,
-  unicode_gc_Ps,
-  unicode_gc_Sc,
-  unicode_gc_Sk,
-  unicode_gc_Sm,
-  unicode_gc_So,
-  unicode_gc_Zl,
-  unicode_gc_Zp,
-  unicode_gc_Zs
+enum unicode_General_Category {
+  unicode_General_Category_Cc,
+  unicode_General_Category_Cf,
+  unicode_General_Category_Cn,
+  unicode_General_Category_Co,
+  unicode_General_Category_Cs,
+  unicode_General_Category_Ll,
+  unicode_General_Category_Lm,
+  unicode_General_Category_Lo,
+  unicode_General_Category_Lt,
+  unicode_General_Category_Lu,
+  unicode_General_Category_Mc,
+  unicode_General_Category_Me,
+  unicode_General_Category_Mn,
+  unicode_General_Category_Nd,
+  unicode_General_Category_Nl,
+  unicode_General_Category_No,
+  unicode_General_Category_Pc,
+  unicode_General_Category_Pd,
+  unicode_General_Category_Pe,
+  unicode_General_Category_Pf,
+  unicode_General_Category_Pi,
+  unicode_General_Category_Po,
+  unicode_General_Category_Ps,
+  unicode_General_Category_Sc,
+  unicode_General_Category_Sk,
+  unicode_General_Category_Sm,
+  unicode_General_Category_So,
+  unicode_General_Category_Zl,
+  unicode_General_Category_Zp,
+  unicode_General_Category_Zs
 };
 enum unicode_Grapheme_Break {
   unicode_Grapheme_Break_CR,
@@ -84,7 +84,7 @@ struct unidata {
   int16_t upper_offset;
   int16_t lower_offset;
   unsigned char ccc;
-  char gc;
+  char general_category;
   uint8_t flags;
   char grapheme_break;
   char word_break;

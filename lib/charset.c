@@ -183,7 +183,7 @@ static int combining(int c) {
   if(c < UNICODE_NCHARS) {
     const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
 
-    return ud->gc == unicode_gc_Mn || ud->ccc != 0;
+    return ud->general_category == unicode_General_Category_Mn || ud->ccc != 0;
   }
   /* Assume unknown characters are noncombining */
   return 0;

@@ -39,12 +39,12 @@ const char *casefold(const char *ptr) {
   return utf8_casefold_canon(ptr, strlen(ptr), 0);
 }
 
-static enum unicode_gc_cat cat(uint32_t c) {
+static enum unicode_General_Category cat(uint32_t c) {
   if(c < UNICODE_NCHARS) {
     const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-    return ud->gc;
+    return ud->general_category;
   } else
-    return unicode_gc_Cn;
+    return unicode_General_Category_Cn;
 }
 
 /* XXX this is a bit kludgy */
@@ -73,18 +73,18 @@ char **words(const char *s, int *nvecp) {
     }
     /* do the rest on category */
     switch(cat(c)) {
-    case unicode_gc_Ll:
-    case unicode_gc_Lm:
-    case unicode_gc_Lo:
-    case unicode_gc_Lt:
-    case unicode_gc_Lu:
-    case unicode_gc_Nd:
-    case unicode_gc_Nl:
-    case unicode_gc_No:
-    case unicode_gc_Sc:
-    case unicode_gc_Sk:
-    case unicode_gc_Sm:
-    case unicode_gc_So:
+    case unicode_General_Category_Ll:
+    case unicode_General_Category_Lm:
+    case unicode_General_Category_Lo:
+    case unicode_General_Category_Lt:
+    case unicode_General_Category_Lu:
+    case unicode_General_Category_Nd:
+    case unicode_General_Category_Nl:
+    case unicode_General_Category_No:
+    case unicode_General_Category_Sc:
+    case unicode_General_Category_Sk:
+    case unicode_General_Category_Sm:
+    case unicode_General_Category_So:
       /* letters, digits and symbols are considered to be part of
        * words */
       if(!in_word) {
@@ -94,15 +94,15 @@ char **words(const char *s, int *nvecp) {
       dynstr_append_bytes(&d, start, s - start);
       break;
 
-    case unicode_gc_Cc:
-    case unicode_gc_Cf:
-    case unicode_gc_Co:
-    case unicode_gc_Cs:
-    case unicode_gc_Zl:
-    case unicode_gc_Zp:
-    case unicode_gc_Zs:
-    case unicode_gc_Pe:
-    case unicode_gc_Ps:
+    case unicode_General_Category_Cc:
+    case unicode_General_Category_Cf:
+    case unicode_General_Category_Co:
+    case unicode_General_Category_Cs:
+    case unicode_General_Category_Zl:
+    case unicode_General_Category_Zp:
+    case unicode_General_Category_Zs:
+    case unicode_General_Category_Pe:
+    case unicode_General_Category_Ps:
     separator:
       if(in_word) {
 	dynstr_terminate(&d);
@@ -111,15 +111,15 @@ char **words(const char *s, int *nvecp) {
       }
       break;
 
-    case unicode_gc_Mc:
-    case unicode_gc_Me:
-    case unicode_gc_Mn:
-    case unicode_gc_Pc:
-    case unicode_gc_Pd:
-    case unicode_gc_Pf:
-    case unicode_gc_Pi:
-    case unicode_gc_Po:
-    case unicode_gc_Cn:
+    case unicode_General_Category_Mc:
+    case unicode_General_Category_Me:
+    case unicode_General_Category_Mn:
+    case unicode_General_Category_Pc:
+    case unicode_General_Category_Pd:
+    case unicode_General_Category_Pf:
+    case unicode_General_Category_Pi:
+    case unicode_General_Category_Po:
+    case unicode_General_Category_Cn:
       /* control and punctuation is completely ignored */
       break;
 

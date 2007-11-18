@@ -252,9 +252,9 @@ out("/* Automatically generated file, see scripts/make-unidata */\n",
     "#define UNIDATA_H\n");
 
 # TODO choose stable values for General_Category
-out("enum unicode_gc_cat {\n",
+out("enum unicode_General_Category {\n",
     join(",\n",
-	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
+	 map("  unicode_General_Category_$_", sort keys %cats)), "\n};\n");
 
 out("enum unicode_Grapheme_Break {\n",
     join(",\n",
@@ -302,7 +302,7 @@ out("struct unidata {\n",
     "  ".choosetype($minud, $maxud)." upper_offset;\n",
     "  ".choosetype($minld, $maxld)." lower_offset;\n",
     "  ".choosetype(0, $maxccc)." ccc;\n",
-    "  char gc;\n",
+    "  char general_category;\n",
     "  uint8_t flags;\n",
     "  char grapheme_break;\n",
     "  char word_break;\n",
@@ -331,10 +331,14 @@ out("/* Automatically generated file, see scripts/make-unidata */\n",
 
 # Short aliases to keep .c file small
 
-out(map(sprintf("#define %s unicode_gc_%s\n", $_, $_), sort keys %cats));
-out(map(sprintf("#define GB%s unicode_Grapheme_Break_%s\n", $_, $_), sort keys %gbreak));
-out(map(sprintf("#define WB%s unicode_Word_Break_%s\n", $_, $_), sort keys %wbreak));
-out(map(sprintf("#define SB%s unicode_Sentence_Break_%s\n", $_, $_), sort keys %sbreak));
+out(map(sprintf("#define %s unicode_General_Category_%s\n", $_, $_),
+	sort keys %cats));
+out(map(sprintf("#define GB%s unicode_Grapheme_Break_%s\n", $_, $_),
+	sort keys %gbreak));
+out(map(sprintf("#define WB%s unicode_Word_Break_%s\n", $_, $_),
+	sort keys %wbreak));
+out(map(sprintf("#define SB%s unicode_Sentence_Break_%s\n", $_, $_),
+	sort keys %sbreak));
 
 # Names for *_Break properties
 out("const char *const unicode_Grapheme_Break_names[] = {\n",

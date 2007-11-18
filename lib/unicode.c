@@ -577,12 +577,12 @@ int utf32_cmp(const uint32_t *a, const uint32_t *b) {
  * @param Code point
  * @return General_Category property value
  */
-static inline enum unicode_gc_cat utf32__general_category(uint32_t c) {
+static inline enum unicode_General_Category utf32__general_category(uint32_t c) {
   if(c < UNICODE_NCHARS) {
     const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-    return ud->gc;
+    return ud->general_category;
   } else
-    return unicode_gc_Cn;
+    return unicode_General_Category_Cn;
 }
 
 /** @brief Check Grapheme_Cluster_Break property
@@ -593,11 +593,11 @@ static int utf32__is_control_or_cr_or_lf(uint32_t c) {
   switch(utf32__general_category(c)) {
   default:
     return 0;
-  case unicode_gc_Zl:
-  case unicode_gc_Zp:
-  case unicode_gc_Cc:
+  case unicode_General_Category_Zl:
+  case unicode_General_Category_Zp:
+  case unicode_General_Category_Cc:
     return 1;
-  case unicode_gc_Cf:
+  case unicode_General_Category_Cf:
     if(c == 0x200C || c == 0x200D)
       return 0;
     return 1;
