@@ -398,17 +398,23 @@ size_t utf32_iterator_where(utf32_iterator it) {
  * of @p n is specified then the iterator is not changed.
  */
 int utf32_iterator_set(utf32_iterator it, size_t n) {
-  /* TODO figure out how far we must back up to be able to re-synchronize; see
-   * UAX #29 s6.4. */
-  if(n > it->ns)
+  /* We can't just jump to position @p n; the @p last[] values will be wrong.
+   * What we need is to jump a bit behind @p n and then advance forward,
+   * updating @p last[] along the way.  How far back?  We need to cross two
+   * non-ignorable code points as we advance forwards, so we'd better pass two
+   * such characters on the way back (if such are available).
+   */
+  size_t m = n;
+  int i;
+
+  if(n > it->ns)                        /* range check */
     return -1;
-  if(n >= it->n)
-    n -= it->n;
-  else {
-    it->n = 0;
-    it->last[0] = it->last[1] = -1;
-  }
-  return utf32_iterator_advance(it, n);
+  for(i = 0; i < 2; ++i)
+    while(m > 0
+          && utf32__boundary_ignorable(utf32__word_break(it->s[m - 1])))
+      --m;
+  it->n = m;
+  return utf32_iterator_advance(it, n - m);
 }
 
 /** @brief Advance an iterator
