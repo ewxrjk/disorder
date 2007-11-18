@@ -225,7 +225,7 @@ char *cgi_sgmlquote(const char *s, int raw) {
   int n;
 
   if(!raw) {
-    if(!(ucs = utf82ucs4(s))) exit(EXIT_FAILURE);
+    if(!(ucs = utf8_to_utf32(s, strlen(s), 0))) exit(EXIT_FAILURE);
   } else {
     ucs = xmalloc_noptr((strlen(s) + 1) * sizeof(uint32_t));
     for(n = 0; s[n]; ++n)

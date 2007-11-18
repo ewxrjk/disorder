@@ -139,10 +139,10 @@ static void test_utf8(void) {
   char *u8;					\
 						\
   insist(validutf8(CHARS));			\
-  ucs = utf82ucs4(CHARS);			\
+  ucs = utf8_to_utf32(CHARS, strlen(CHARS), 0); \
   insist(ucs != 0);				\
-  insist(!ucs4cmp(w, ucs));			\
-  u8 = ucs42utf8(ucs);				\
+  insist(!utf32_cmp(w, ucs));			\
+  u8 = utf32_to_utf8(ucs, utf32_len(ucs), 0);   \
   insist(u8 != 0);				\
   insist(!strcmp(u8, CHARS));			\
 } while(0)
@@ -393,8 +393,10 @@ static void test_casefold(void) {
       break;
     }
     if(l) {
+      uint32_t *d;
       /* Case-folded data is now normalized */
-      canon_expected = ucs42utf8(utf32_decompose_canon(&l, 1, 0));
+      d = utf32_decompose_canon(&l, 1, 0);
+      canon_expected = utf32_to_utf8(d, utf32_len(d), 0);
       if(strcmp(canon_folded, canon_expected)) {
 	fprintf(stderr, "%s:%d: canon-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
@@ -402,7 +404,8 @@ static void test_casefold(void) {
 	count_error();
       }
       ++tests;
-      compat_expected = ucs42utf8(utf32_decompose_compat(&l, 1, 0));
+      d = utf32_decompose_compat(&l, 1, 0);
+      compat_expected = utf32_to_utf8(d, utf32_len(d), 0);
       if(strcmp(compat_folded, compat_expected)) {
 	fprintf(stderr, "%s:%d: compat-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,

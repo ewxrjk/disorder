@@ -68,6 +68,26 @@ uint32_t utf32_iterator_code(utf32_iterator it);
 int utf32_iterator_grapheme_boundary(utf32_iterator it);
 int utf32_iterator_word_boundary(utf32_iterator it);
 
+/** @brief Convert 0-terminated UTF-32 to UTF-8
+ * @param s 0-terminated UTF-32 string
+ * @return 0-terminated UTF-8 string or 0 on error
+ *
+ * See utf32_to_utf8() for possible causes of errors.
+ */
+static inline char *utf32nt_to_utf8(const uint32_t *s) {
+  return utf32_to_utf8(s, utf32_len(s), 0);
+}
+
+/** @brief Convert 0-terminated UTF-8 to UTF-32
+ * @param s 0-terminated UTF-8 string
+ * @return 0-terminated UTF-32 string or 0 on error
+ *
+ * See utf8_to_utf32() for possible causes of errors.
+ */
+static inline uint32_t *utf8nt_to_utf32(const char *s) {
+  return utf8_to_utf32(s, strlen(s), 0);
+}
+
 #endif /* UNICODE_H */
 
 /*

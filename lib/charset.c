@@ -70,74 +70,6 @@ static void *convert(const char *from, const char *to,
   return buf;
 }
 
-/** @brief Convert UTF-8 to UCS-4
- * @param mb Pointer to 0-terminated UTF-8 string
- * @return Pointer to 0-terminated UCS-4 string
- *
- * Not everybody's iconv supports UCS-4, and it's inconvenient to have to know
- * our endianness, and it's easy to convert it ourselves, so we do.  See also
- * @ref ucs42utf8().
- */ 
-uint32_t *utf82ucs4(const char *mb) {
-  struct dynstr_ucs4 d;
-  uint32_t c;
-
-  dynstr_ucs4_init(&d);
-  while(*mb) {
-    PARSE_UTF8(mb, c,
-	       error(0, "invalid UTF-8 sequence"); return 0;);
-    dynstr_ucs4_append(&d, c);
-  }
-  dynstr_ucs4_terminate(&d);
-  return d.vec;
-}
-
-/** @brief Convert one UCS-4 character to UTF-8
- * @param c Character to convert
- * @param d Dynamic string to append UTF-8 sequence to
- * @return 0 on success, -1 on error
- */
-int one_ucs42utf8(uint32_t c, struct dynstr *d) {
-  if(c < 0x80)
-    dynstr_append(d, c);
-  else if(c < 0x800) {
-    dynstr_append(d, 0xC0 | (c >> 6));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else if(c < 0x10000) {
-    dynstr_append(d, 0xE0 | (c >> 12));
-    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else if(c < 0x110000) {
-    dynstr_append(d, 0xF0 | (c >> 18));
-    dynstr_append(d, 0x80 | ((c >> 12) & 0x3F));
-    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else {
-    error(0, "invalid UCS-4 character %#"PRIx32, c);
-    return -1;
-  }
-  return 0;
-}
-
-/** @brief Convert UCS-4 to UTF-8
- * @param u Pointer to 0-terminated UCS-4 string
- * @return Pointer to 0-terminated UTF-8 string
- *
- * See @ref utf82ucs4().
- */
-char *ucs42utf8(const uint32_t *u) {
-  struct dynstr d;
-  uint32_t c;
-
-  dynstr_init(&d);
-  while((c = *u++)) {
-    if(one_ucs42utf8(c, &d))
-      return 0;
-  }
-  dynstr_terminate(&d);
-  return d.vec;
-}
-
 /** @brief Convert from the local multibyte encoding to UTF-8 */
 char *mb2utf8(const char *mb) {
   return convert(nl_langinfo(CODESET), "UTF-8", mb, strlen(mb) + 1);
@@ -165,17 +97,6 @@ char *any2any(const char *from,
 	      const char *any) {
   if(from || to) return convert(from, to, any, strlen(any) + 1);
   else return xstrdup(any);
-}
-
-/** @brief strlen workalike for UCS-4 strings
- *
- * We don't rely on the local @c wchar_t being UCS-4.
- */
-int ucs4cmp(const uint32_t *a, const uint32_t *b) {
-  while(*a && *b && *a == *b) ++a, ++b;
-  if(*a > *b) return 1;
-  else if(*a < *b) return -1;
-  else return 0;
 }
 
 /** @brief Return nonzero if @p c is a combining character */
