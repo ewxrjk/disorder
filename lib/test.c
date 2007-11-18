@@ -42,6 +42,7 @@
 #include "heap.h"
 #include "unicode.h"
 #include "inputline.h"
+#include "wstat.h"
 
 static int tests, errors;
 
@@ -435,6 +436,30 @@ static void test_heap(void) {
   putchar('\n');
 }
 
+/** @brief Open a Unicode test file */
+static FILE *open_unicode_test(const char *path) {
+  const char *base;
+  FILE *fp;
+  char buffer[1024];
+  int w;
+
+  if((base = strrchr(path, '/')))
+    ++base;
+  else
+    base = path;
+  if(!(fp = fopen(base, "r"))) {
+    snprintf(buffer, sizeof buffer,
+             "wget http://www.unicode.org/Public/5.0.0/ucd/%s", path);
+    if((w = system(buffer)))
+      fatal(0, "%s: %s", buffer, wstat(w));
+    if(chmod(base, 0444) < 0)
+      fatal(errno, "chmod %s", base);
+    if(!(fp = fopen(base, "r")))
+      fatal(errno, "%s", base);
+  }
+  return fp;
+}
+
 /** @brief Tests for @ref lib/unicode.h */
 static void test_unicode(void) {
   FILE *fp;
@@ -443,18 +468,10 @@ static void test_unicode(void) {
   uint32_t buffer[1024];
   uint32_t *c[6], *NFD_c[6],  *NFKD_c[6]; /* 1-indexed */
   int cn, bn;
+  char break_allowed[1024];
 
   fprintf(stderr, "test_unicode\n");
-  if(!(fp = fopen("NormalizationTest.txt", "r"))) {
-    system("wget http://www.unicode.org/Public/5.0.0/ucd/NormalizationTest.txt");
-    chmod("NormalizationTest.txt", 0444);
-    if(!(fp = fopen("NormalizationTest.txt", "r"))) {
-      perror("NormalizationTest.txt");
-      ++tests;				/* don't know how many... */
-      ++errors;
-      return;
-    }
-  }
+  fp = open_unicode_test("NormalizationTest.txt");
   while(!inputline("NormalizationTest.txt", fp, &l, '\n')) {
     ++lineno;
     if(*l == '#' || *l == '@')
@@ -487,7 +504,9 @@ static void test_unicode(void) {
 #define unt_check(T, A, B) do {					\
     ++tests;							\
     if(utf32_cmp(c[A], T##_c[B])) {				\
-      fprintf(stderr, "L%d: c%d != "#T"(c%d)\n", lineno, A, B);	\
+      fprintf(stderr,                                           \
+              "NormalizationTest.txt:%d: c%d != "#T"(c%d)\n",   \
+              lineno, A, B);                                    \
       fprintf(stderr, "    c%d:      %s\n",			\
               A, format_utf32(c[A]));				\
       fprintf(stderr, "%4s(c%d): %s\n",				\
@@ -508,6 +527,50 @@ static void test_unicode(void) {
     for(cn = 1; cn <= 5; ++cn) {
       xfree(NFD_c[cn]);
       xfree(NFKD_c[cn]);
+    }
+    xfree(l);
+  }
+  fclose(fp);
+  fp = open_unicode_test("auxiliary/GraphemeBreakTest.txt");
+  lineno = 0;
+  while(!inputline("GraphemeBreakTest.txt.txt", fp, &l, '\n')) {
+    ++lineno;
+    if(l[0] == '#') continue;
+    bn = 0;
+    lp = l;
+    while(*lp) {
+      if(*lp == ' ' || *lp == '\t') {
+        ++lp;
+        continue;
+      }
+      if(*lp == '#')
+        break;
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0xB7) {
+        /* 00F7 DIVISION SIGN */
+        break_allowed[bn] = 1;
+        lp += 2;
+        continue;
+      }
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0x97) {
+        /* 00D7 MULTIPLICATION SIGN */
+        break_allowed[bn] = 0;
+        lp += 2;
+        continue;
+      }
+      if(isxdigit((unsigned char)*lp)) {
+        buffer[bn++] = strtoul(lp, &lp, 16);
+        continue;
+      }
+      fatal(0, "GraphemeBreakTest.txt:%d: evil line: %s", lineno, l);
+    }
+    for(cn = 0; cn <= bn; ++cn) {
+      if(utf32_is_gcb(buffer, bn, cn) != break_allowed[cn]) {
+        fprintf(stderr,
+                "GraphemeBreakTest.txt:%d: offset %d: utf32_is_gcb wrong\n",
+                lineno, cn);
+        ++errors;
+      }
+      ++tests;
     }
     xfree(l);
   }

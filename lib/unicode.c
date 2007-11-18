@@ -670,7 +670,10 @@ int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
   hafter = utf32__hangul_syllable_type(after);
   /* GB6 */
   if(hbefore == Hangul_Syllable_Type_L
-     && hafter != Hangul_Syllable_Type_NA)
+     && (hafter == Hangul_Syllable_Type_L
+         || hafter == Hangul_Syllable_Type_V
+         || hafter == Hangul_Syllable_Type_LV
+         || hafter == Hangul_Syllable_Type_LVT))
     return 0;
   /* GB7 */
   if((hbefore == Hangul_Syllable_Type_LV

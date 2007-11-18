@@ -121,3 +121,4 @@ lib/NormalizationTest.txt
 lib/CaseFolding.txt
 lib/UnicodeData.txt
 lib/GraphemeBreakProperty.txt
+lib/GraphemeBreakTest.txt
