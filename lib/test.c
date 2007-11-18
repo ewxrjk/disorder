@@ -567,11 +567,11 @@ static void test_unicode(void) {
       fprintf(stderr,                                           \
               "NormalizationTest.txt:%d: c%d != "#T"(c%d)\n",   \
               lineno, A, B);                                    \
-      fprintf(stderr, "    c%d:      %s\n",			\
+      fprintf(stderr, "      c%d: %s\n",                         \
               A, format_utf32(c[A]));				\
       fprintf(stderr, "%4s(c%d): %s\n",				\
               #T, B, format_utf32(T##_c[B]));			\
-      count_error();							\
+      count_error();						\
     }								\
   } while(0)
     unt_check(NFD, 3, 1);

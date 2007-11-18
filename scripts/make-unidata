@@ -82,6 +82,7 @@ sub input {
 	chmod(0444, $lpath) or die "$lpath: $!\n";
     }
     open(STDIN, "<$lpath") or die "$lpath: $!\n";
+    print STDERR "Reading $lpath...\n";
 }
 
 
@@ -94,8 +95,12 @@ while(<>) {
     # TODO justify this exclusion!
     my $name = $f[1];
     my $gc = $f[2];		# General_Category
+    # Variuos GCs we don't expect to see in UnicodeData.txt
     $cats{$gc} = 1;		# always record all GCs
     next if $name =~ /(first|last)>/i; # ignore placeholders
+    die "unexpected Cn" if $gc eq 'Cn';
+    die "unexpected Co" if $gc eq 'Cn';
+    die "unexpected Cs" if $gc eq 'Cs';
     my $ccc = $f[3];		# Canonical_Combining_Class
     my $dm = $f[5];		# Decomposition_Type + Decomposition_Mapping
     my $sum = hex($f[12]) || $c; # Simple_Uppercase_Mapping
@@ -193,18 +198,54 @@ for my $c (keys %data) {
 # Round up the maximum value to a whole number of subtables
 $max += ($modulus - 1) - ($max % $modulus);
 
-# Make sure there are no gaps
+# Surrogates
+my $Cs = {
+    "gc" => "Cs",		# UTF-16 surrogate
+    "ccc" => 0,
+    "ud" => 0,
+    "ld" => 0
+};
+for(my $c = 0xD800; $c <= 0xDFFF; ++$c) {
+    $data{$c} = $Cs;
+}
+
+# Private use characters
+# We only fill in values below $max, utf32__unidata() 
+my $Co = {
+    "gc" => "Co",
+    "ccc" => 0,
+    "ud" => 0,
+    "ld" => 0
+};
+for(my $c = 0xE000; $c <= 0xF8FF && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+for(my $c = 0xF0000; $c <= 0xFFFFD && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+for(my $c = 0x100000; $c <= 0x10FFFD && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+
+# Anything left is not assigned
+my $Cn = {
+    "gc" => "Cn",		# not assigned
+    "ccc" => 0,
+    "ud" => 0,
+    "ld" => 0
+};
 for(my $c = 0; $c <= $max; ++$c) {
     if(!exists $data{$c}) {
-	$data{$c} = {
-	    "gc" => "Cn",	# not assigned
-	    "ccc" => 0,
-	    "ud" => 0,
-	    "ld" => 0,
-	    "wbreak" => 'Other',
-	    "gbreak" => 'Other',
-	    "sbreak" => 'Other',
-	    };
+	$data{$c} = $Cn;
+    }
+    if(!exists $data{$c}->{wbreak}) {
+	$data{$c}->{wbreak} = 'Other';
+    }
+    if(!exists $data{$c}->{gbreak}) {
+	$data{$c}->{gbreak} = 'Other';
+    }
+    if(!exists $data{$c}->{sbreak}) {
+	$data{$c}->{sbreak} = 'Other';
     }
 }
 $cats{'Cn'} = 1;
@@ -247,6 +288,7 @@ while(<>) {
 }
 
 # Generate the header file
+print STDERR "Generating unidata.h...\n";
 open(STDOUT, ">unidata.h") or die "unidata.h: $!\n";
 
 out("/* Automatically generated file, see scripts/make-unidata */\n",
@@ -324,6 +366,7 @@ out("#endif\n");
 
 close STDOUT or die "unidata.h: $!\n";
 
+print STDERR "Generating unidata.c...\n";
 open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
 
 out("/* Automatically generated file, see scripts/make-unidata */\n",
@@ -367,7 +410,7 @@ for(my $c = 0; $c <= $max; ++$c) {
     # If canon is set then compat will be too and will be identical.
     # If compat is set the canon might be clear.  So we use the
     # compat version and fix up the symbols after.
-    if(exists $data{$c}->{compat}) {
+    if(exists $data{$c} && exists $data{$c}->{compat}) {
 	my $s = join(",",
 		     (map(hex($_), split(/\s+/, $data{$c}->{compat})), 0));
 	if(!exists $decompnums{$s}) {
@@ -393,7 +436,7 @@ my %cfnums = ();
 my $cfsaved = 0;
 out("static const uint32_t ");
 for(my $c = 0; $c <= $max; ++$c) {
-    if(exists $data{$c}->{casefold}) {
+    if(exists $data{$c} && exists $data{$c}->{casefold}) {
 	my $s = join(",",
 		     (map(hex($_), split(/\s+/, $data{$c}->{casefold})), 0));
 	if(!exists $cfnums{$s}) {
@@ -457,7 +500,7 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     $subtableno{$base} = $subtable{$t};
 }
 
-out("const struct unidata*const unidata[]={\n");
+out("const struct unidata *const unidata[]={\n");
 for(my $base = 0; $base <= $max; $base += $modulus) {
     #out("st$subtableno{$base} /* ".sprintf("%04x", $base)." */,\n");
     out("st$subtableno{$base},\n");
@@ -466,5 +509,6 @@ out("};\n");
 
 close STDOUT or die "unidata.c: $!\n";
 
-print STDERR "max=$max, subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
+printf STDERR "max=%04X\n", $max;
+print STDERR "subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
 print STDERR "decompsaved=$decompsaved cfsaved=$cfsaved\n";

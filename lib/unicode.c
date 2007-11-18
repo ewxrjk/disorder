@@ -204,14 +204,26 @@ size_t utf32_len(const uint32_t *s) {
   return (size_t)(t - s);
 }
 
+/** @brief Return the @ref unidata structure for code point @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+static const struct unidata *utf32__unidata(uint32_t c) {
+  if(c < UNICODE_NCHARS)
+    return &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
+  else if((c >= 0xF0000 && c <= 0xFFFFD)
+          || (c >= 0x100000 && c <= 0x10FFFD))
+    return utf32__unidata(0xE000);      /* Co */
+  else
+    return utf32__unidata(0xFFFF);      /* Cn */
+}
+
 /** @brief Return the combining class of @p c
  * @param c Code point
  * @return Combining class of @p c
  */
 static inline int utf32__combining_class(uint32_t c) {
-  if(c < UNICODE_NCHARS)
-    return unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].ccc;
-  return 0;
+  return utf32__unidata(c)->ccc;
 }
 
 /** @brief Stably sort [s,s+ns) into descending order of combining class
@@ -320,10 +332,7 @@ static int utf32__canonical_ordering(uint32_t *s, size_t ns) {
 
 /** @brief Guts of the decomposition lookup functions */
 #define utf32__decompose_one_generic(WHICH) do {                        \
-  const uint32_t *dc =                                                  \
-    (c < UNICODE_NCHARS                                                 \
-     ? unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].WHICH          \
-     : 0);                                                              \
+  const uint32_t *dc = utf32__unidata(c)->WHICH;                        \
   if(dc) {                                                              \
     /* Found a canonical decomposition in the table */                  \
     while(*dc)                                                          \
@@ -425,10 +434,7 @@ uint32_t *utf32_decompose_compat(const uint32_t *s, size_t ns, size_t *ndp) {
 
 /** @brief Single-character case-fold and decompose operation */
 #define utf32__casefold_one(WHICH) do {                                 \
-  const uint32_t *cf =                                                  \
-     (c < UNICODE_NCHARS                                                \
-      ? unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].casefold      \
-      : 0);                                                             \
+  const uint32_t *cf = utf32__unidata(c)->casefold;                     \
   if(cf) {                                                              \
     /* Found a case-fold mapping in the table */                        \
     while(*cf)                                                          \
@@ -461,13 +467,9 @@ uint32_t *utf32_casefold_canon(const uint32_t *s, size_t ns, size_t *ndp) {
    * normalize before we fold.  In Unicode 5.0.0 this means 0345 COMBINING
    * GREEK YPOGEGRAMMENI in its decomposition and the various characters that
    * canonically decompose to it. */
-  for(n = 0; n < ns; ++n) {
-    c = s[n];
-    if(c < UNICODE_NCHARS
-       && (unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].flags
-           & unicode_normalize_before_casefold))
+  for(n = 0; n < ns; ++n)
+    if(utf32__unidata(s[n])->flags & unicode_normalize_before_casefold)
       break;
-  }
   if(n < ns) {
     /* We need a preliminary decomposition */
     if(!(ss = utf32_decompose_canon(s, ns, &ns)))
@@ -513,13 +515,9 @@ uint32_t *utf32_casefold_compat(const uint32_t *s, size_t ns, size_t *ndp) {
   size_t n;
   uint32_t *ss = 0;
 
-  for(n = 0; n < ns; ++n) {
-    c = s[n];
-    if(c < UNICODE_NCHARS
-       && (unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].flags
-           & unicode_normalize_before_casefold))
+  for(n = 0; n < ns; ++n)
+    if(utf32__unidata(s[n])->flags & unicode_normalize_before_casefold)
       break;
-  }
   if(n < ns) {
     /* We need a preliminary _canonical_ decomposition */
     if(!(ss = utf32_decompose_canon(s, ns, &ns)))
@@ -578,11 +576,7 @@ int utf32_cmp(const uint32_t *a, const uint32_t *b) {
  * @return General_Category property value
  */
 static inline enum unicode_General_Category utf32__general_category(uint32_t c) {
-  if(c < UNICODE_NCHARS) {
-    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-    return ud->general_category;
-  } else
-    return unicode_General_Category_Cn;
+  return utf32__unidata(c)->general_category;
 }
 
 /** @brief Check Grapheme_Cluster_Break property
@@ -642,12 +636,9 @@ static uint32_t utf32__hangul_syllable_type(uint32_t c) {
  * @return Word_Break property value of @p c
  */
 static enum unicode_Word_Break utf32__word_break(uint32_t c) {
-  if(c < 0xAC00 || c > 0xD7A3) {
-    if(c < UNICODE_NCHARS)
-      return unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS].word_break;
-    else
-      return unicode_Word_Break_Other;
-  } else
+  if(c < 0xAC00 || c > 0xD7A3)
+    return utf32__unidata(c)->word_break;
+  else
     return unicode_Word_Break_ALetter;
 }
 
