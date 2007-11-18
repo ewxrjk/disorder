@@ -59,7 +59,13 @@ sub key {
 # Size of a subtable
 #
 # This can be varied to trade off the number of subtables against their size.
-our $modulus = 128;
+# 16 gave the smallest results last time I checked (on a Mac with a 32-bit
+# build).
+our $modulus = 16;
+
+if(@ARGV) {
+    $modulus = shift;
+}
 
 # Where to break the table.  There is a huge empty section of the Unicode
 # code space and we deal with this by simply leaving it out of the table.
@@ -523,6 +529,7 @@ out("};\n");
 
 close STDOUT or die "unidata.c: $!\n";
 
+printf STDERR "modulus=%d\n", $modulus;
 printf STDERR "max=%04X\n", $max;
 print STDERR "subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
 print STDERR "decompsaved=$decompsaved cfsaved=$cfsaved\n";

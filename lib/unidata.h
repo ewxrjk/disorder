@@ -90,7 +90,7 @@ struct unidata {
 };
 extern const struct unidata *const unidata[];
 #define UNICODE_NCHARS 1114112
-#define UNICODE_MODULUS 128
+#define UNICODE_MODULUS 16
 #define UNICODE_BREAK_START 196608
 #define UNICODE_BREAK_END 917504
 #define UNICODE_BREAK_TOP 918016
