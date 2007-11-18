@@ -147,15 +147,12 @@ while(<>) {
 	    "ld" => $ld,
 	};
 	if($dm ne '') {
-	    if($dm !~ /</) {
-		# This is a canonical decomposition
-		$d->{canon} = $dm;
-		$d->{compat} = $dm;
-	    } else {
-		# This is only a compatibility decomposition
+	    if($dm =~ /</) {
+		# This is a compatibility decomposition
 		$dm =~ s/^<.*>\s*//;
-		$d->{compat} = $dm;
+		$d->{compat} = 1;
 	    }
+	    $d->{decomp} = $dm;
 	}
 	$data{$c} = $d;
     }
@@ -331,7 +328,8 @@ out("enum unicode_Sentence_Break {\n",
 out("extern const char *const unicode_Sentence_Break_names[];\n");
 
 out("enum unicode_flags {\n",
-    "  unicode_normalize_before_casefold = 1\n",
+    "  unicode_normalize_before_casefold = 1,\n",
+    "  unicode_compatibility_decomposition = 2\n",
     "};\n",
     "\n");
 
@@ -352,8 +350,7 @@ sub choosetype {
 }
 
 out("struct unidata {\n",
-    "  const uint32_t *compat;\n",
-    "  const uint32_t *canon;\n",
+    "  const uint32_t *decomp;\n",
     "  const uint32_t *casefold;\n",
 #    "  ".choosetype($minud, $maxud)." upper_offset;\n",
 #    "  ".choosetype($minld, $maxld)." lower_offset;\n",
@@ -364,7 +361,7 @@ out("struct unidata {\n",
     "  char word_break;\n",
     "  char sentence_break;\n",
     "};\n");
-# compat, canon and casefold do have have non-BMP characters, so we
+# decomp and  casefold do have have non-BMP characters, so we
 # can't use a simple 16-bit table.  We could use UTF-8 or UTF-16
 # though, saving a bit of space (probably not that much...) at the
 # cost of marginally reduced performance and additional complexity
@@ -427,12 +424,9 @@ my %decompnums = ();
 my $decompsaved = 0;
 out("static const uint32_t ");
 for(my $c = 0; $c <= $max; ++$c) {
-    # If canon is set then compat will be too and will be identical.
-    # If compat is set the canon might be clear.  So we use the
-    # compat version and fix up the symbols after.
-    if(exists $data{$c} && exists $data{$c}->{compat}) {
+    if(exists $data{$c} && exists $data{$c}->{decomp}) {
 	my $s = join(",",
-		     (map(hex($_), split(/\s+/, $data{$c}->{compat})), 0));
+		     (map(hex($_), split(/\s+/, $data{$c}->{decomp})), 0));
 	if(!exists $decompnums{$s}) {
 	    out(",\n") if $decompnum != 0;
 	    out("cd$decompnum\[]={$s}");
@@ -440,10 +434,7 @@ for(my $c = 0; $c <= $max; ++$c) {
 	} else {
 	    ++$decompsaved;
 	}
-	$data{$c}->{compatsym} = "cd$decompnums{$s}";
-	if(exists $data{$c}->{canon}) {
-	    $data{$c}->{canonsym} = "cd$decompnums{$s}";
-	}
+	$data{$c}->{decompsym} = "cd$decompnums{$s}";
     }
 }
 out(";\n");
@@ -487,18 +478,19 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     my @t;
     for(my $c = $base; $c < $base + $modulus; ++$c) {
 	my $d = $data{$c};
-	my $canonsym = ($data{$c}->{canonsym} or "0");
-	my $compatsym = ($data{$c}->{compatsym} or "0");
+	my $decompsym = ($data{$c}->{decompsym} or "0");
 	my $cfsym = ($data{$c}->{cfsym} or "0");
 	my @flags = ();
 	if($data{$c}->{ypogegrammeni}) {
 	    push(@flags, "unicode_normalize_before_casefold");
 	}
+	if($data{$c}->{compat}) {
+	    push(@flags, "unicode_compatibility_decomposition");
+	}
 	my $flags = @flags ? join("|", @flags) : 0;
 	push(@t, "{".
 	     join(",",
-		  $compatsym,
-		  $canonsym,
+		  $decompsym,
 		  $cfsym,
 #		  $d->{ud},
 #		  $d->{ld},

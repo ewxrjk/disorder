@@ -74,12 +74,12 @@ enum unicode_Sentence_Break {
 };
 extern const char *const unicode_Sentence_Break_names[];
 enum unicode_flags {
-  unicode_normalize_before_casefold = 1
+  unicode_normalize_before_casefold = 1,
+  unicode_compatibility_decomposition = 2
 };
 
 struct unidata {
-  const uint32_t *compat;
-  const uint32_t *canon;
+  const uint32_t *decomp;
   const uint32_t *casefold;
   unsigned char ccc;
   char general_category;

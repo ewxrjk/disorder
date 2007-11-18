@@ -151,6 +151,28 @@ static inline int utf32__boundary_ignorable(enum unicode_Word_Break wb) {
           || wb == unicode_Word_Break_Format);
 }
 
+/** @brief Return the canonical decomposition of @p c
+ * @param c Code point
+ * @return 0-terminated canonical decomposition, or 0
+ */
+static inline const uint32_t *utf32__decomposition_canon(uint32_t c) {
+  const struct unidata *const data = utf32__unidata(c);
+  const uint32_t *const decomp = data->decomp;
+
+  if(decomp && !(data->flags & unicode_compatibility_decomposition))
+    return decomp;
+  else
+    return 0;
+}
+
+/** @brief Return the compatibility decomposition of @p c
+ * @param c Code point
+ * @return 0-terminated decomposition, or 0
+ */
+static inline const uint32_t *utf32__decomposition_compat(uint32_t c) {
+  return utf32__unidata(c)->decomp;
+}
+
 /*@}*/
 /** @defgroup utftransform Functions that transform between different Unicode encoding forms */
 /*@{*/
@@ -209,7 +231,7 @@ error:
  * @param s Source string
  * @param ns Length of source string in code points
  * @param ndp Where to store length of destination string (or NULL)
- * @return Newly allocated destination string or NULL
+ * @return Newly allocated destination string or NULL on error
  *
  * The return value is always 0-terminated.  The value returned via @p *ndp
  * does not include the terminator.
@@ -396,6 +418,11 @@ size_t utf32_iterator_where(utf32_iterator it) {
  * It is an error to position the iterator outside the string (but acceptable
  * to point it at the hypothetical post-final character).  If an invalid value
  * of @p n is specified then the iterator is not changed.
+ *
+ * This function works by backing up and then advancing to reconstruct the
+ * iterator's internal state for position @p n.  The worst case will be O(n)
+ * time complexity (with a worse constant factor that utf32_iterator_advance())
+ * but the typical case is essentially constant-time.
  */
 int utf32_iterator_set(utf32_iterator it, size_t n) {
   /* We can't just jump to position @p n; the @p last[] values will be wrong.
@@ -476,6 +503,11 @@ uint32_t utf32_iterator_code(utf32_iterator it) {
 /** @brief Test for a grapheme boundary
  * @param it Iterator
  * @return Non-0 if pointing just after a grapheme boundary, otherwise 0
+ *
+ * This function identifies default grapheme cluster boundaries as described in
+ * UAX #29 s3.  It returns non-0 if @p it points at the code point just after a
+ * grapheme cluster boundary (including the hypothetical code point just after
+ * the end of the string).
  */
 int utf32_iterator_grapheme_boundary(utf32_iterator it) {
   uint32_t before, after;
@@ -530,6 +562,11 @@ int utf32_iterator_grapheme_boundary(utf32_iterator it) {
 /** @brief Test for a word boundary
  * @param it Iterator
  * @return Non-0 if pointing just after a word boundary, otherwise 0
+ *
+ * This function identifies default word boundaries as described in UAX #29 s4.
+ * It returns non-0 if @p it points at the code point just after a word
+ * boundary (including the hypothetical code point just after the end of the
+ * string) and 0 otherwise.
  */
 int utf32_iterator_word_boundary(utf32_iterator it) {
   enum unicode_Word_Break twobefore, before, after, twoafter;
@@ -701,13 +738,13 @@ static void utf32__sort_ccc(uint32_t *s, size_t ns, uint32_t *buffer) {
 /** @brief Put combining characters into canonical order
  * @param s Pointer to UTF-32 string
  * @param ns Length of @p s
- * @return 0 on success, -1 on error
+ * @return 0 on success, non-0 on error
  *
  * @p s is modified in-place.  See Unicode 5.0 s3.11 for details of the
  * ordering.
  *
  * Currently we only support a maximum of 1024 combining characters after each
- * base character.  If this limit is exceeded then -1 is returned.
+ * base character.  If this limit is exceeded then a non-0 value is returned.
  */
 static int utf32__canonical_ordering(uint32_t *s, size_t ns) {
   size_t nc;
@@ -749,7 +786,7 @@ static int utf32__canonical_ordering(uint32_t *s, size_t ns) {
 
 /** @brief Guts of the decomposition lookup functions */
 #define utf32__decompose_one_generic(WHICH) do {                        \
-  const uint32_t *dc = utf32__unidata(c)->WHICH;                        \
+  const uint32_t *dc = utf32__decomposition_##WHICH(c);	                \
   if(dc) {                                                              \
     /* Found a canonical decomposition in the table */                  \
     while(*dc)                                                          \
@@ -772,7 +809,7 @@ static int utf32__canonical_ordering(uint32_t *s, size_t ns) {
 /** @brief Recursively compute the canonical decomposition of @p c
  * @param d Dynamic string to store decomposition in
  * @param c Code point to decompose (must be a valid!)
- * @return 0 on success, -1 on error
+ * @return 0 on success, non-0 on error
  */
 static void utf32__decompose_one_canon(struct dynstr_ucs4 *d, uint32_t c) {
   utf32__decompose_one_generic(canon);
@@ -781,7 +818,7 @@ static void utf32__decompose_one_canon(struct dynstr_ucs4 *d, uint32_t c) {
 /** @brief Recursively compute the compatibility decomposition of @p c
  * @param d Dynamic string to store decomposition in
  * @param c Code point to decompose (must be a valid!)
- * @return 0 on success, -1 on error
+ * @return 0 on success, non-0 on error
  */
 static void utf32__decompose_one_compat(struct dynstr_ucs4 *d, uint32_t c) {
   utf32__decompose_one_generic(compat);
@@ -815,7 +852,7 @@ error:                                                  \
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Computes the canonical decomposition of a string and stably sorts combining
  * characters into canonical order.  The result is in Normalization Form D and
@@ -834,7 +871,7 @@ uint32_t *utf32_decompose_canon(const uint32_t *s, size_t ns, size_t *ndp) {
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Computes the compatibility decomposition of a string and stably sorts
  * combining characters into canonical order.  The result is in Normalization
@@ -864,7 +901,7 @@ uint32_t *utf32_decompose_compat(const uint32_t *s, size_t ns, size_t *ndp) {
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Case-fold the string at @p s according to full default case-folding rules
  * (s3.13) for caseless matching.  The result will be in NFD.
@@ -913,11 +950,11 @@ error:
   return 0;
 }
 
-/** @brief Compatibilit case-fold @p [s,s+ns)
+/** @brief Compatibility case-fold @p [s,s+ns)
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Case-fold the string at @p s according to full default case-folding rules
  * (s3.13) for compatibility caseless matching.  The result will be in NFKD.
@@ -995,9 +1032,12 @@ int utf32_cmp(const uint32_t *a, const uint32_t *b) {
  * @return 1 at a grapheme cluster boundary, 0 otherwise
  *
  * This function identifies default grapheme cluster boundaries as described in
- * UAX #29 s3.  It returns 1 if @p n points at the code point just after a
+ * UAX #29 s3.  It returns non-0 if @p n points at the code point just after a
  * grapheme cluster boundary (including the hypothetical code point just after
  * the end of the string).
+ *
+ * This function uses utf32_iterator_set() internally; see that function for
+ * remarks on performance.
  */
 int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n) {
   struct utf32_iterator_data it[1];
@@ -1013,8 +1053,11 @@ int utf32_is_grapheme_boundary(const uint32_t *s, size_t ns, size_t n) {
  * @return 1 at a word boundary, 0 otherwise
  *
  * This function identifies default word boundaries as described in UAX #29 s4.
- * It returns 1 if @p n points at the code point just after a word boundary
+ * It returns non-0 if @p n points at the code point just after a word boundary
  * (including the hypothetical code point just after the end of the string).
+ *
+ * This function uses utf32_iterator_set() internally; see that function for
+ * remarks on performance.
  */
 int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
   struct utf32_iterator_data it[1];
@@ -1046,7 +1089,7 @@ error:                                                          \
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Computes the canonical decomposition of a string and stably sorts combining
  * characters into canonical order.  The result is in Normalization Form D and
@@ -1066,7 +1109,7 @@ char *utf8_decompose_canon(const char *s, size_t ns, size_t *ndp) {
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Computes the compatibility decomposition of a string and stably sorts
  * combining characters into canonical order.  The result is in Normalization
@@ -1086,7 +1129,7 @@ char *utf8_decompose_compat(const char *s, size_t ns, size_t *ndp) {
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Case-fold the string at @p s according to full default case-folding rules
  * (s3.13).  The result will be in NFD.
@@ -1102,7 +1145,7 @@ char *utf8_casefold_canon(const char *s, size_t ns, size_t *ndp) {
  * @param s Pointer to string
  * @param ns Length of string
  * @param ndp Where to store length of result
- * @return Pointer to result string, or NULL
+ * @return Pointer to result string, or NULL on error
  *
  * Case-fold the string at @p s according to full default case-folding rules
  * (s3.13).  The result will be in NFKD.
