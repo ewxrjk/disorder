@@ -44,6 +44,7 @@ enum unicode_Word_Break {
   unicode_Word_Break_Numeric,
   unicode_Word_Break_Other
 };
+extern const char *const unicode_Word_Break_names[];
 enum unicode_flags {
   unicode_normalize_before_casefold = 1
 };

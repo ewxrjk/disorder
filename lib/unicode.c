@@ -705,65 +705,10 @@ int utf32_is_gcb(const uint32_t *s, size_t ns, size_t n) {
   return 1;
 }
 
-/** @brief Return true if code point @p n is part of an initial sequence of Format/Extend
- * @param s Start of string
- * @param ns Length of string
- * @param n Start position
- * @return True if it is, false otherwise
- *
- * This whole stack is not very efficient; we assume we don't see many of the
- * problematic characters.
- */
-static int utf32__is_initial_sequence(const uint32_t *s,
-                                      size_t attribute((unused)) ns,
-                                      size_t n) {
-  enum unicode_Word_Break wb;
-
-  while(n > 0) {
-    --n;
-    wb = utf32__word_break(s[n]);
-    if(wb != unicode_Word_Break_Extend
-       && wb != unicode_Word_Break_Format)
-      return 0;
-  }
-  return 1;
-}
-
-/** @brief Return the index of the first non-Extend/Format character from n
- * @param s Start of string
- * @param ns Length of string
- * @param n Start position
- * @return Index of first suitable character or @p ns
- */
-static size_t utf32__first_not_ignorable(const uint32_t *s, size_t ns,
-                                         size_t n) {
-  while(n < ns) {
-    const enum unicode_Word_Break wb = utf32__word_break(s[n]);
-    if((wb != unicode_Word_Break_Extend
-        && wb != unicode_Word_Break_Format)
-       || utf32__is_initial_sequence(s, ns, n))
-      return n;
-    ++n;
-  }
-  return ns;
-}
-
-/** @brief Return the index of the last non-Extend/Format character from n
- * @param s Start of string
- * @param ns Length of string
- * @param n Start position
- * @return Index of first suitable character or (size_t)-1
- */
-static size_t utf32__last_not_ignorable(const uint32_t *s, size_t ns,
-                                        size_t n) {
-  do {
-    const enum unicode_Word_Break wb = utf32__word_break(s[n]);
-    if((wb != unicode_Word_Break_Extend
-        && wb != unicode_Word_Break_Format)
-       || utf32__is_initial_sequence(s, ns, n))
-      return n;
-  } while(n--);
-  return n;                             /* will be (size_t)-1 */
+/** @brief Return true if @p c is ignorable for boundary specifications */
+static inline int utf32__boundary_ignorable(enum unicode_Word_Break wb) {
+  return (wb == unicode_Word_Break_Extend
+          || wb == unicode_Word_Break_Format);
 }
 
 /** @brief Identify a word boundary
@@ -787,28 +732,58 @@ int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
   if(s[n-1] == 0x000D && s[n] == 0x000A)
     return 0;
   /* WB4 */
-  /* The stated requirement here is to ignore code points with a Word_Break
-   * value of _Extend or _Format wherever they may appear unless they are part
-   * of an initial sequence of such characters. */
-  twobefore = before = after = twoafter = unicode_Word_Break_Other;
-  nn = utf32__last_not_ignorable(s, ns, n - 1/* > 0 */);
-  if(nn != (size_t)-1) {
+  /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
+  switch(s[n-1]) {                      /* bit of a bodge */
+  case 0x000A:
+  case 0x000D:
+  case 0x0085:
+  case 0x2028:
+  case 0x2029:
+    break;
+  default:
+    if(utf32__boundary_ignorable(utf32__word_break(s[n])))
+      return 0;
+    break;
+  }
+  /* Gather the property values we'll need for the rest of the test taking the
+   * s6.2 changes into account */
+  /* First we look at the code points after the proposed boundary */
+  nn = n;                               /* <ns */
+  after = utf32__word_break(s[nn++]);
+  if(!utf32__boundary_ignorable(after)) {
+    /* X (Extend|Format)* -> X */
+    while(nn < ns && utf32__boundary_ignorable(utf32__word_break(s[nn])))
+      ++nn;
+  }
+  /* It's possible now that nn=ns */
+  if(nn < ns)
+    twoafter = utf32__word_break(s[nn]);
+  else
+    twoafter = unicode_Word_Break_Other;
+
+  /* Next we look at the code points before the proposed boundary.  This is a
+   * bit fiddlier. */
+  nn = n;
+  while(nn > 0 && utf32__boundary_ignorable(utf32__word_break(s[nn - 1])))
+    --nn;
+  if(nn == 0) {
+    /* s[nn] must be ignorable */
     before = utf32__word_break(s[nn]);
-    if(nn != 0) {
-      nn = utf32__last_not_ignorable(s, ns, nn - 1);
-      if(nn != (size_t)-1)
-        twobefore = utf32__word_break(s[nn]);
-    }
+    twobefore = unicode_Word_Break_Other;
+  } else {
+    /* s[nn] is ignorable or after the proposed boundary; but s[nn-1] is not
+     * ignorable. */
+    before = utf32__word_break(s[nn - 1]);
+    --nn;
+    /* Repeat the exercise */
+    while(nn > 0 && utf32__boundary_ignorable(utf32__word_break(s[nn - 1])))
+      --nn;
+    if(nn == 0)
+      twobefore = utf32__word_break(s[nn]);
+    else
+      twobefore = utf32__word_break(s[nn - 1]);
   }
-  nn = utf32__first_not_ignorable(s, ns, n);
-  if(nn < ns) {
-    after = utf32__word_break(s[nn]);
-    if(nn < ns) {
-      nn = utf32__first_not_ignorable(s, ns, nn + 1);
-      if(nn < ns)
-        twoafter = utf32__word_break(s[nn]);
-    }
-  }
+
   /* WB5 */
   if(before == unicode_Word_Break_ALetter
      && after == unicode_Word_Break_ALetter)

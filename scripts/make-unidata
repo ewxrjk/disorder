@@ -245,6 +245,7 @@ out("enum unicode_Word_Break {\n",
     join(",\n",
 	 map("  unicode_Word_Break_$_", sort keys %wbpropvals)),
     "\n};\n");
+out("extern const char *const unicode_Word_Break_names[];\n");
 
 out("enum unicode_flags {\n",
     "  unicode_normalize_before_casefold = 1\n",
@@ -302,6 +303,13 @@ out("/* Automatically generated file, see scripts/make-unidata */\n",
 # Short aliases for general category codes
 
 out(map(sprintf("#define %s unicode_gc_%s\n", $_, $_), sort keys %cats));
+
+# Names for Word_Break property
+
+out("const char *const unicode_Word_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %wbpropvals)),
+    "\n};\n");
 
 # Generate the decomposition mapping tables.  We look out for duplicates
 # in order to save space and report this as decompsaved at the end.  In

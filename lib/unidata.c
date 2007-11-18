@@ -32,6 +32,17 @@
 #define Zl unicode_gc_Zl
 #define Zp unicode_gc_Zp
 #define Zs unicode_gc_Zs
+const char *const unicode_Word_Break_names[] = {
+  "ALetter",
+  "Extend",
+  "ExtendNumLet",
+  "Format",
+  "Katakana",
+  "MidLetter",
+  "MidNum",
+  "Numeric",
+  "Other"
+};
 static const uint32_t cd0[]={32,0},
 cd1[]={32,776,0},
 cd2[]={97,0},

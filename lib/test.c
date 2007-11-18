@@ -45,11 +45,18 @@
 #include "wstat.h"
 
 static int tests, errors;
+static int fail_first;
+
+static void count_error() {
+  ++errors;
+  if(fail_first)
+    abort();
+}
 
 /** @brief Checks that @p expr is nonzero */
 #define insist(expr) do {				\
   if(!(expr)) {						\
-    ++errors;						\
+    count_error();						\
     fprintf(stderr, "%s:%d: error checking %s\n",	\
             __FILE__, __LINE__, #expr);			\
   }							\
@@ -99,11 +106,11 @@ static const char *format_utf32(const uint32_t *s) {
   if(w == 0) {							\
     fprintf(stderr, "%s:%d: %s returned 0\n",			\
             __FILE__, __LINE__, #GOT);				\
-    ++errors;							\
+    count_error();							\
   } else if(strcmp(w, g)) {					\
     fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s\n",	\
 	    __FILE__, __LINE__, #GOT, format(g), format(w));	\
-    ++errors;							\
+    count_error();							\
   }								\
   ++tests;							\
  } while(0)
@@ -391,7 +398,7 @@ static void test_casefold(void) {
 	fprintf(stderr, "%s:%d: canon-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
 		format(canon_folded), format(canon_expected));
-	++errors;
+	count_error();
       }
       ++tests;
       compat_expected = ucs42utf8(utf32_decompose_compat(&l, 1, 0));
@@ -399,7 +406,7 @@ static void test_casefold(void) {
 	fprintf(stderr, "%s:%d: compat-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
 		format(compat_folded), format(compat_expected));
-	++errors;
+	count_error();
       }
       ++tests;
     }
@@ -460,6 +467,60 @@ static FILE *open_unicode_test(const char *path) {
   return fp;
 }
 
+/** @brief Run breaking tests for utf32_is_gcb() etc */
+static void breaktest(const char *path,
+                      int (*breakfn)(const uint32_t *, size_t, size_t)) {
+  FILE *fp = open_unicode_test(path);
+  int lineno = 0;
+  char *l, *lp;
+  size_t bn, n;
+  char break_allowed[1024];
+  uint32_t buffer[1024];
+
+  while(!inputline(path, fp, &l, '\n')) {
+    ++lineno;
+    if(l[0] == '#') continue;
+    bn = 0;
+    lp = l;
+    while(*lp) {
+      if(*lp == ' ' || *lp == '\t') {
+        ++lp;
+        continue;
+      }
+      if(*lp == '#')
+        break;
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0xB7) {
+        /* 00F7 DIVISION SIGN */
+        break_allowed[bn] = 1;
+        lp += 2;
+        continue;
+      }
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0x97) {
+        /* 00D7 MULTIPLICATION SIGN */
+        break_allowed[bn] = 0;
+        lp += 2;
+        continue;
+      }
+      if(isxdigit((unsigned char)*lp)) {
+        buffer[bn++] = strtoul(lp, &lp, 16);
+        continue;
+      }
+      fatal(0, "%s:%d: evil line: %s", path, lineno, l);
+    }
+    for(n = 0; n <= bn; ++n) {
+      if(breakfn(buffer, bn, n) != break_allowed[n]) {
+        fprintf(stderr,
+                "%s:%d: offset %zu: mismatch\n",
+                path, lineno, n);
+        count_error();
+      }
+      ++tests;
+    }
+    xfree(l);
+  }
+  fclose(fp);
+}
+
 /** @brief Tests for @ref lib/unicode.h */
 static void test_unicode(void) {
   FILE *fp;
@@ -468,7 +529,6 @@ static void test_unicode(void) {
   uint32_t buffer[1024];
   uint32_t *c[6], *NFD_c[6],  *NFKD_c[6]; /* 1-indexed */
   int cn, bn;
-  char break_allowed[1024];
 
   fprintf(stderr, "test_unicode\n");
   fp = open_unicode_test("NormalizationTest.txt");
@@ -511,7 +571,7 @@ static void test_unicode(void) {
               A, format_utf32(c[A]));				\
       fprintf(stderr, "%4s(c%d): %s\n",				\
               #T, B, format_utf32(T##_c[B]));			\
-      ++errors;							\
+      count_error();							\
     }								\
   } while(0)
     unt_check(NFD, 3, 1);
@@ -531,52 +591,12 @@ static void test_unicode(void) {
     xfree(l);
   }
   fclose(fp);
-  fp = open_unicode_test("auxiliary/GraphemeBreakTest.txt");
-  lineno = 0;
-  while(!inputline("GraphemeBreakTest.txt.txt", fp, &l, '\n')) {
-    ++lineno;
-    if(l[0] == '#') continue;
-    bn = 0;
-    lp = l;
-    while(*lp) {
-      if(*lp == ' ' || *lp == '\t') {
-        ++lp;
-        continue;
-      }
-      if(*lp == '#')
-        break;
-      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0xB7) {
-        /* 00F7 DIVISION SIGN */
-        break_allowed[bn] = 1;
-        lp += 2;
-        continue;
-      }
-      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0x97) {
-        /* 00D7 MULTIPLICATION SIGN */
-        break_allowed[bn] = 0;
-        lp += 2;
-        continue;
-      }
-      if(isxdigit((unsigned char)*lp)) {
-        buffer[bn++] = strtoul(lp, &lp, 16);
-        continue;
-      }
-      fatal(0, "GraphemeBreakTest.txt:%d: evil line: %s", lineno, l);
-    }
-    for(cn = 0; cn <= bn; ++cn) {
-      if(utf32_is_gcb(buffer, bn, cn) != break_allowed[cn]) {
-        fprintf(stderr,
-                "GraphemeBreakTest.txt:%d: offset %d: utf32_is_gcb wrong\n",
-                lineno, cn);
-        ++errors;
-      }
-      ++tests;
-    }
-    xfree(l);
-  }
+  breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_gcb);
+  breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
 }
 
 int main(void) {
+  fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
   insist('\r' == 0x0D);
   insist(' ' == 0x20);
