@@ -55,6 +55,7 @@
  */
 
 #include "disobedience.h"
+#include "charset.h"
 
 /** @brief Horizontal padding for queue cells */
 #define HCELLPADDING 4
@@ -430,7 +431,8 @@ static GtkWidget *column_namepart(const struct queuelike
                                   const char *data) {
   D(("column_namepart"));
   NW(label);
-  return gtk_label_new(namepart(q->track, "display", data));
+  return gtk_label_new(truncate_for_display(namepart(q->track, "display", data),
+                                            config->short_display));
 }
 
 /** @brief Compute the length field */
