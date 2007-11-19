@@ -105,6 +105,10 @@ sub input {
 # Read the main data file
 input("UnicodeData.txt");
 my ($start, $end);
+my $maxcompat = 0;
+my $maxcanon = 0;
+my $hangul_syllable_decomps = 0;
+my $hangul_choseong_decomps = 0;
 while(<>) {
     my @f = split(/;/, $_);
     my $c = hex($f[0]);		# codepoint
@@ -147,12 +151,26 @@ while(<>) {
 	    "ld" => $ld,
 	};
 	if($dm ne '') {
+	    my $maxref;
 	    if($dm =~ /</) {
 		# This is a compatibility decomposition
 		$dm =~ s/^<.*>\s*//;
 		$d->{compat} = 1;
+		$maxref = \$maxcompat;
+	    } else {
+		$maxref = \$maxcanon;
 	    }
 	    $d->{decomp} = [map(hex($_), split(/\s+/, $dm))];
+	    my $len = scalar @{$d->{decomp}};
+	    $$maxref = $len if $len > $$maxref;
+	    if(!$d->{compat}) {
+		if(${$d->{decomp}}[0] >= 0xAC00 && ${$d->{decomp}}[0] <= 0xD7A3) {
+		    ++$hangul_syllable_decomps;
+		}
+		if(${$d->{decomp}}[0] >= 0x1100 && ${$d->{decomp}}[0] <= 0x115F) {
+		    ++$hangul_choseong_decomps;
+		}
+	    }
 	}
 	$data{$c} = $d;
     }
@@ -473,9 +491,7 @@ sub dedupe {
     return "dd$ddnums{$s}";
 }
 
-# Generate the decomposition mapping tables.  We look out for duplicates
-# in order to save space and report this as decompsaved at the end.  In
-# Unicode 5.0.0 this saves 1795 entries, which is at least 14Kbytes.
+# Generate the decomposition mapping tables.
 print STDERR "> decomposition mappings\n";
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c} && exists $data{$c}->{decomp}) {
@@ -485,7 +501,7 @@ for(my $c = 0; $c <= $max; ++$c) {
 
 print STDERR "> composition mappings\n";
 # First we must generate the mapping of each code point to possible
-# compositions
+# compositions.
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c}
        && exists $data{$c}->{decomp}
@@ -495,21 +511,20 @@ for(my $c = 0; $c <= $max; ++$c) {
         # a primary composite.  Find the first code point of the decomposition
 	my $first = ${$data{$c}->{decomp}}[0];
 	if(!exists $data{$first}->{compose}) {
-	    $data{$first}->{compose} = [$first];
+	    $data{$first}->{compose} = [$c];
 	} else {
-	    push(@{$data{$first}->{compose}}, $first);
+	    push(@{$data{$first}->{compose}}, $c);
 	}
     }
 }
+# Then we can generate the tables.
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c} && exists $data{$c}->{compose}) {
 	$data{$c}->{compsym} = dedupe(@{$data{$c}->{compose}}, 0);
     }
 }
 
-# ...and the case folding table.  Again we compress equal entries to save
-# space.  In Unicode 5.0.0 this saves 51 entries or at least 408 bytes.
-# This doesns't seem as worthwhile as the decomposition mapping saving above.
+# The case folding table.
 print STDERR "> case-fold mappings\n";
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c} && exists $data{$c}->{casefold}) {
@@ -631,3 +646,12 @@ printf STDERR "modulus=%d\n", $modulus;
 printf STDERR "max=%04X\n", $max;
 print STDERR "subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
 print STDERR "ddsaved=$ddsaved\n";
+print STDERR "maxcompat=$maxcompat maxcanon=$maxcanon\n";
+print STDERR "$hangul_syllable_decomps canonical decompositions to Hangul syllables\n";
+print STDERR "$hangul_choseong_decomps canonical decompositions to Hangul Choseong\n";
+
+die "We assumed that canonical decompositions were never more than 2 long!\n"
+    if $maxcanon > 2;
+
+die "We assumed no canonical decompositions to Hangul syllables/Choseong!\n"
+    if $hangul_syllable_decomps || $hangul_choseong_decomps;

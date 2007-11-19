@@ -49,6 +49,12 @@ char *utf8_decompose_canon(const char *s, size_t ns, size_t *ndp);
 uint32_t *utf32_decompose_compat(const uint32_t *s, size_t ns, size_t *ndp);
 char *utf8_decompose_compat(const char *s, size_t ns, size_t *ndp);
 
+uint32_t *utf32_compose_canon(const uint32_t *s, size_t ns, size_t *ndp);
+char *utf8_compose_canon(const char *s, size_t ns, size_t *ndp);
+
+uint32_t *utf32_compose_compat(const uint32_t *s, size_t ns, size_t *ndp);
+char *utf8_compose_compat(const char *s, size_t ns, size_t *ndp);
+
 uint32_t *utf32_casefold_canon(const uint32_t *s, size_t ns, size_t *ndp);
 char *utf8_casefold_canon(const char *s, size_t ns, size_t *ndp);
 

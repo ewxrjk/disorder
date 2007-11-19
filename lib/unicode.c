@@ -711,7 +711,7 @@ static void utf32__sort_ccc(uint32_t *s, size_t ns, uint32_t *buffer) {
     /* Merge them back into one, via the buffer */
     bp = buffer;
     while(na > 0 && nb > 0) {
-      /* We want descending order of combining class (hence <)
+      /* We want ascending order of combining class (hence <)
        * and we want stability within combining classes (hence <=)
        */
       if(utf32__combining_class(*a) <= utf32__combining_class(*b)) {
@@ -824,8 +824,153 @@ static void utf32__decompose_one_compat(struct dynstr_ucs4 *d, uint32_t c) {
   utf32__decompose_one_generic(compat);
 }
 
-/** @brief Guts of the decomposition functions */
-#define utf32__decompose_generic(WHICH) do {            \
+/** @brief Magic utf32__compositions() return value for Hangul Choseong */
+static const uint32_t utf32__hangul_L[1];
+
+/** @brief Return the list of compositions that @p c starts
+ * @param c Starter code point
+ * @return Composition list or NULL
+ *
+ * For Hangul leading (Choseong) jamo we return the special value
+ * utf32__hangul_L.  These code points are not listed as the targets of
+ * canonical decompositions (make-unidata checks) so there is no confusion with
+ * real decompositions here.
+ */
+static const uint32_t *utf32__compositions(uint32_t c) {
+  const uint32_t *compositions = utf32__unidata(c)->composed;
+
+  if(compositions)
+    return compositions;
+  /* Special-casing for Hangul */
+  switch(utf32__grapheme_break(c)) {
+  default:
+    return 0;
+  case unicode_Grapheme_Break_L:
+    return utf32__hangul_L;
+  }
+}
+
+/** @brief Composition step
+ * @param s Start of string
+ * @param ns Length of string
+ * @return New length of string
+ *
+ * This is called from utf32__decompose_generic() to compose the result string
+ * in place.
+ */
+static size_t utf32__compose(uint32_t *s, size_t ns) {
+  const uint32_t *compositions;
+  uint32_t *start = s, *t = s, *tt, cc;
+
+  while(ns > 0) {
+    uint32_t starter = *s++;
+    int block_starters = 0;
+    --ns;
+    /* We don't attempt to compose the following things:
+     * - final characters whatever kind they are
+     * - non-starter characters
+     * - starters that don't take part in a canonical decomposition mapping
+     */
+    if(ns == 0
+       || utf32__combining_class(starter)
+       || !(compositions = utf32__compositions(starter))) {
+      *t++ = starter;
+      continue;
+    }
+    if(compositions != utf32__hangul_L) {
+      /* Where we'll put the eventual starter */
+      tt = t++;
+      do {
+        /* See if we can find composition of starter+*s */
+        const uint32_t cchar = *s, *cp = compositions;
+        while((cc = *cp++)) {
+          const uint32_t *decomp = utf32__decomposition_canon(cc);
+          /* We know decomp[0] == starter */
+          if(decomp[1] == cchar)
+            break;
+        }
+        if(cc) {
+          /* Found a composition: cc decomposes to starter,*s */
+          starter = cc;
+          compositions = utf32__compositions(starter);
+          ++s;
+          --ns;
+        } else {
+          /* No composition found. */
+          const int class = utf32__combining_class(*s);
+          if(class) {
+            /* Transfer the uncomposable combining character to the output */
+            *t++ = *s++;
+            --ns;
+            /* All the combining characters of the same class of the
+             * uncomposable character are blocked by it, but there may be
+             * others of higher class later.  We eat the uncomposable and
+             * blocked characters and go back round the loop for that higher
+             * class. */
+            while(ns > 0 && utf32__combining_class(*s) == class) {
+              *t++ = *s++;
+              --ns;
+            }
+            /* Block any subsequent starters */
+            block_starters = 1;
+          } else {
+            /* The uncombinable character is itself a starter, so we don't
+             * transfer it to the output but instead go back round the main
+             * loop. */
+            break;
+          }
+        }
+        /* Keep going while there are still characters and the starter takes
+         * part in some composition */
+      } while(ns > 0 && compositions
+              && (!block_starters || utf32__combining_class(*s)));
+      /* Store any remaining combining characters */
+      while(ns > 0 && utf32__combining_class(*s)) {
+        *t++ = *s++;
+        --ns;
+      }
+      /* Store the resulting starter */
+      *tt = starter;
+    } else {
+      /* Special-casing for Hangul
+       *
+       * If there are combining characters between the L and the V then they
+       * will block the V and so no composition happens.  Similarly combining
+       * characters between V and T will block the T and so we only get as far
+       * as LV.
+       */
+      if(utf32__grapheme_break(*s) == unicode_Grapheme_Break_V) {
+        const uint32_t V = *s++;
+        const uint32_t LIndex = starter - LBase;
+        const uint32_t VIndex = V - VBase;
+        uint32_t TIndex;
+        --ns;
+        if(ns > 0
+           && utf32__grapheme_break(*s) == unicode_Grapheme_Break_T) {
+          /* We have an L V T sequence */
+          const uint32_t T = *s++;
+          TIndex = T - TBase;
+          --ns;
+        } else
+          /* It's just L V */
+          TIndex = 0;
+        /* Compose to LVT or LV as appropriate */
+        starter = (LIndex * VCount + VIndex) * TCount + TIndex + SBase;
+      } /* else we only have L or LV and no V or T */
+      *t++ = starter;
+      /* There could be some combining characters that belong to the V or T.
+       * These will be treated as non-starter characters at the top of the loop
+       * and thuss transferred to the output. */
+    }
+  }
+  return t - start;
+}
+
+/** @brief Guts of the composition and decomposition functions
+ * @param WHICH @c canon or @c compat to choose decomposition
+ * @param COMPOSE @c 0 or @c 1 to compose
+ */
+#define utf32__decompose_generic(WHICH, COMPOSE) do {   \
   struct dynstr_ucs4 d;                                 \
   uint32_t c;                                           \
                                                         \
@@ -839,6 +984,8 @@ static void utf32__decompose_one_compat(struct dynstr_ucs4 *d, uint32_t c) {
   }                                                     \
   if(utf32__canonical_ordering(d.vec, d.nvec))          \
     goto error;                                         \
+  if(COMPOSE)                                           \
+    d.nvec = utf32__compose(d.vec, d.nvec);             \
   dynstr_ucs4_terminate(&d);                            \
   if(ndp)                                               \
     *ndp = d.nvec;                                      \
@@ -854,17 +1001,20 @@ error:                                                  \
  * @param ndp Where to store length of result
  * @return Pointer to result string, or NULL on error
  *
- * Computes the canonical decomposition of a string and stably sorts combining
- * characters into canonical order.  The result is in Normalization Form D and
- * (at the time of writing!) passes the NFD tests defined in Unicode 5.0's
- * NormalizationTest.txt.
+ * Computes NFD (Normalization Form D) of the string at @p s.  This implies
+ * performing all canonical decompositions and then normalizing the order of
+ * combining characters.
  *
  * Returns NULL if the string is not valid for either of the following reasons:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
+ *
+ * See also:
+ * - utf32_decompose_compat()
+ * - utf32_compose_canon()
  */
 uint32_t *utf32_decompose_canon(const uint32_t *s, size_t ns, size_t *ndp) {
-  utf32__decompose_generic(canon);
+  utf32__decompose_generic(canon, 0);
 }
 
 /** @brief Compatibility decompose @p [s,s+ns)
@@ -873,17 +1023,65 @@ uint32_t *utf32_decompose_canon(const uint32_t *s, size_t ns, size_t *ndp) {
  * @param ndp Where to store length of result
  * @return Pointer to result string, or NULL on error
  *
- * Computes the compatibility decomposition of a string and stably sorts
- * combining characters into canonical order.  The result is in Normalization
- * Form KD and (at the time of writing!) passes the NFKD tests defined in
- * Unicode 5.0's NormalizationTest.txt.
+ * Computes NFKD (Normalization Form KD) of the string at @p s.  This implies
+ * performing all canonical and compatibility decompositions and then
+ * normalizing the order of combining characters.
  *
  * Returns NULL if the string is not valid for either of the following reasons:
  * - it codes for a UTF-16 surrogate
  * - it codes for a value outside the unicode code space
+ *
+ * See also:
+ * - utf32_decompose_canon()
+ * - utf32_compose_compat()
  */
 uint32_t *utf32_decompose_compat(const uint32_t *s, size_t ns, size_t *ndp) {
-  utf32__decompose_generic(compat);
+  utf32__decompose_generic(compat, 0);
+}
+
+/** @brief Canonically compose @p [s,s+ns)
+ * @param s Pointer to string
+ * @param ns Length of string
+ * @param ndp Where to store length of result
+ * @return Pointer to result string, or NULL on error
+ *
+ * Computes NFC (Normalization Form C) of the string at @p s.  This implies
+ * performing all canonical decompositions, normalizing the order of combining
+ * characters and then composing all unblocked primary compositables.
+ *
+ * Returns NULL if the string is not valid for either of the following reasons:
+ * - it codes for a UTF-16 surrogate
+ * - it codes for a value outside the unicode code space
+ *
+ * See also:
+ * - utf32_compose_compat()
+ * - utf32_decompose_canon()
+ */
+uint32_t *utf32_compose_canon(const uint32_t *s, size_t ns, size_t *ndp) {
+  utf32__decompose_generic(canon, 1);
+}
+
+/** @brief Compatibility compose @p [s,s+ns)
+ * @param s Pointer to string
+ * @param ns Length of string
+ * @param ndp Where to store length of result
+ * @return Pointer to result string, or NULL on error
+ *
+ * Computes NFKC (Normalization Form KC) of the string at @p s.  This implies
+ * performing all canonical and compatibility decompositions, normalizing the
+ * order of combining characters and then composing all unblocked primary
+ * compositables.
+ *
+ * Returns NULL if the string is not valid for either of the following reasons:
+ * - it codes for a UTF-16 surrogate
+ * - it codes for a value outside the unicode code space
+ *
+ * See also:
+ * - utf32_compose_canon()
+ * - utf32_decompose_compat()
+ */
+uint32_t *utf32_compose_compat(const uint32_t *s, size_t ns, size_t *ndp) {
+  utf32__decompose_generic(compat, 1);
 }
 
 /** @brief Single-character case-fold and decompose operation */

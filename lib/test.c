@@ -88,12 +88,8 @@ static const char *format_utf32(const uint32_t *s) {
   
   dynstr_init(&d);
   while((c = *s++)) {
-    if(c >= 32 && c <= 127)
-      dynstr_append(&d, c);
-    else {
-      sprintf(buf, "\\x%04lX", (unsigned long)c);
-      dynstr_append_string(&d, buf);
-    }
+    sprintf(buf, " %04lX", (long)c);
+    dynstr_append_string(&d, buf);
   }
   dynstr_terminate(&d);
   return d.vec;
@@ -533,7 +529,7 @@ static void test_unicode(void) {
   int lineno = 0;
   char *l, *lp;
   uint32_t buffer[1024];
-  uint32_t *c[6], *NFD_c[6],  *NFKD_c[6]; /* 1-indexed */
+  uint32_t *c[6], *NFD_c[6], *NFKD_c[6], *NFC_c[6], *NFKC_c[6]; /* 1-indexed */
   int cn, bn;
 
   fprintf(stderr, "test_unicode\n");
@@ -566,6 +562,8 @@ static void test_unicode(void) {
     for(cn = 1; cn <= 5; ++cn) {
       NFD_c[cn] = utf32_decompose_canon(c[cn], utf32_len(c[cn]), 0);
       NFKD_c[cn] = utf32_decompose_compat(c[cn], utf32_len(c[cn]), 0);
+      NFC_c[cn] = utf32_compose_canon(c[cn], utf32_len(c[cn]), 0);
+      NFKC_c[cn] = utf32_compose_compat(c[cn], utf32_len(c[cn]), 0);
     }
 #define unt_check(T, A, B) do {					\
     ++tests;							\
@@ -573,9 +571,11 @@ static void test_unicode(void) {
       fprintf(stderr,                                           \
               "NormalizationTest.txt:%d: c%d != "#T"(c%d)\n",   \
               lineno, A, B);                                    \
-      fprintf(stderr, "      c%d: %s\n",                         \
+      fprintf(stderr, "      c%d:%s\n",                         \
               A, format_utf32(c[A]));				\
-      fprintf(stderr, "%4s(c%d): %s\n",				\
+      fprintf(stderr, "      c%d:%s\n",                         \
+              B, format_utf32(c[B]));				\
+      fprintf(stderr, "%4s(c%d):%s\n",				\
               #T, B, format_utf32(T##_c[B]));			\
       count_error();						\
     }								\
@@ -590,6 +590,16 @@ static void test_unicode(void) {
     unt_check(NFKD, 5, 3);
     unt_check(NFKD, 5, 4);
     unt_check(NFKD, 5, 5);
+    unt_check(NFC, 2, 1);
+    unt_check(NFC, 2, 2);
+    unt_check(NFC, 2, 3);
+    unt_check(NFC, 4, 4);
+    unt_check(NFC, 4, 5);
+    unt_check(NFKC, 4, 1);
+    unt_check(NFKC, 4, 2);
+    unt_check(NFKC, 4, 3);
+    unt_check(NFKC, 4, 4);
+    unt_check(NFKC, 4, 5);
     for(cn = 1; cn <= 5; ++cn) {
       xfree(NFD_c[cn]);
       xfree(NFKD_c[cn]);
