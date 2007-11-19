@@ -151,10 +151,14 @@ void speaker_setup(ev_source *ev) {
     signal(SIGPIPE, SIG_DFL);
 #if 0
     execlp("valgrind", "valgrind", SPEAKER, "--config", configfile,
-	   debugging ? "--debug" : "--no-debug", (char *)0);
+	   debugging ? "--debug" : "--no-debug",
+	   log_default == &log_syslog ? "--syslog" : "--no-syslog",
+	   (char *)0);
 #else
     execlp(SPEAKER, SPEAKER, "--config", configfile,
-	   debugging ? "--debug" : "--no-debug", (char *)0);
+	   debugging ? "--debug" : "--no-debug",
+	   log_default == &log_syslog ? "--syslog" : "--no-syslog",
+	   (char *)0);
 #endif
     fatal(errno, "error invoking %s", SPEAKER);
   }

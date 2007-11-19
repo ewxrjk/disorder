@@ -28,6 +28,7 @@
 #include <config.h>
 #include "types.h"
 
+#include <getopt.h>
 #include <locale.h>
 #include <errno.h>
 #include <unistd.h>
@@ -40,6 +41,42 @@
 #include "log.h"
 #include "configuration.h"
 #include "speaker-protocol.h"
+#include "defs.h"
+
+static const struct option options[] = {
+  { "help", no_argument, 0, 'h' },
+  { "version", no_argument, 0, 'V' },
+  { "config", required_argument, 0, 'c' },
+  { "debug", no_argument, 0, 'd' },
+  { "no-debug", no_argument, 0, 'D' },
+  { "syslog", no_argument, 0, 's' },
+  { "no-syslog", no_argument, 0, 'S' },
+  { 0, 0, 0, 0 }
+};
+
+/* display usage message and terminate */
+static void help(void) {
+  xprintf("Usage:\n"
+	  "  disorder-normalize [OPTIONS]\n"
+	  "Options:\n"
+	  "  --help, -h              Display usage message\n"
+	  "  --version, -V           Display version number\n"
+	  "  --config PATH, -c PATH  Set configuration file\n"
+	  "  --debug, -d             Turn on debugging\n"
+          "  --[no-]syslog           Force logging\n"
+          "\n"
+          "Audio format normalizer for DisOrder.  Not intended to be run\n"
+          "directly.\n");
+  xfclose(stdout);
+  exit(0);
+}
+
+/* display version number and terminate */
+static void version(void) {
+  xprintf("disorder-normalize version %s\n", disorder_version_string);
+  xfclose(stdout);
+  exit(0);
+}
 
 /** @brief Copy bytes from one file descriptor to another
  * @param infd File descriptor read from
@@ -111,17 +148,27 @@ static void soxargs(const char ***pp, char **qq,
 
 int main(int argc, char attribute((unused)) **argv) {
   struct stream_header header, latest_format;
-  int n, p[2], outfd = -1;
+  int n, p[2], outfd = -1, logsyslog = !isatty(2);
   pid_t pid = -1;
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, ""))
     fatal(errno, "error calling setlocale");
-  if(argc > 1)
-    fatal(0, "not intended to be invoked by users");
+  while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
+    switch(n) {
+    case 'h': help();
+    case 'V': version();
+    case 'c': configfile = optarg; break;
+    case 'd': debugging = 1; break;
+    case 'D': debugging = 0; break;
+    case 'S': logsyslog = 0; break;
+    case 's': logsyslog = 1; break;
+    default: fatal(0, "invalid option");
+    }
+  }
   if(config_read(1))
     fatal(0, "cannot read configuration");
-  if(!isatty(2)) {
+  if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }

@@ -182,6 +182,7 @@ static pid_t subprogram(ev_source *ev, const char *prog,
     setpriority(PRIO_PROCESS, 0, 0);
     execlp(prog, prog, "--config", configfile,
            debugging ? "--debug" : "--no-debug",
+           log_default == &log_syslog ? "--syslog" : "--no-syslog",
            (char *)0);
     fatal(errno, "error invoking %s", prog);
   }
