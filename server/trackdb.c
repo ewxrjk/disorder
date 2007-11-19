@@ -157,22 +157,12 @@ static int reap_db_deadlock(ev_source attribute((unused)) *ev,
 static pid_t subprogram(ev_source *ev, const char *prog,
                         int outputfd) {
   pid_t pid;
-  int lfd;
 
   /* If we're in the background then trap subprocess stdout/stderr */
-  if(!isatty(2))
-    lfd = logfd(ev, prog);
-  else
-    lfd = -1;
   if(!(pid = xfork())) {
     exitfn = _exit;
     ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
-    if(lfd != -1) {
-      xdup2(lfd, 1);
-      xdup2(lfd, 2);
-      xclose(lfd);
-    }
     if(outputfd != -1) {
       xdup2(outputfd, 1);
       xclose(outputfd);
@@ -182,10 +172,10 @@ static pid_t subprogram(ev_source *ev, const char *prog,
     setpriority(PRIO_PROCESS, 0, 0);
     execlp(prog, prog, "--config", configfile,
            debugging ? "--debug" : "--no-debug",
+           log_default == &log_syslog ? "--syslog" : "--no-syslog",
            (char *)0);
     fatal(errno, "error invoking %s", prog);
   }
-  if(lfd != -1) xclose(lfd);
   return pid;
 }
 

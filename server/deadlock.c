@@ -48,6 +48,8 @@ static const struct option options[] = {
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
   { "no-debug", no_argument, 0, 'D' },
+  { "syslog", no_argument, 0, 's' },
+  { "no-syslog", no_argument, 0, 'S' },
   { 0, 0, 0, 0 }
 };
 
@@ -60,6 +62,7 @@ static void help(void) {
 	  "  --version, -V           Display version number\n"
 	  "  --config PATH, -c PATH  Set configuration file\n"
 	  "  --debug, -d             Turn on debugging\n"
+          "  --[no-]syslog           Force logging\n"
           "\n"
           "Deadlock manager for DisOrder.  Not intended to be run\n"
           "directly.\n");
@@ -75,22 +78,23 @@ static void version(void) {
 }
 
 int main(int argc, char **argv) {
-  int n, err, aborted;
+  int n, err, aborted, logsyslog = !isatty(2);
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dD", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;
+    case 'S': logsyslog = 0; break;
+    case 's': logsyslog = 1; break;
     default: fatal(0, "invalid option");
     }
   }
-  /* if stderr is a TTY then log there, otherwise to syslog */
-  if(!isatty(2)) {
+  if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }

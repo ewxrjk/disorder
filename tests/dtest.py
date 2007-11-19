@@ -2,7 +2,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys
+import os,os.path,subprocess,sys,disorder
 
 def copyfile(a,b):
     """copyfile(A, B)
@@ -13,7 +13,7 @@ def maketrack(s):
     """maketrack(S)
 
 Make track with relative path S exist"""
-    trackpath = "%s/%s" % (testroot, s)
+    trackpath = "%s/tracks/%s" % (testroot, s)
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
@@ -64,6 +64,8 @@ Start the daemon for test called TEST."""
                                "--foreground",
                                "--config", "%s/config" % testroot],
                               stderr=errs)
+    disorder._configfile = "%s/config" % testroot
+    disorder._userconf = False
 
 def stop():
     """stop()
@@ -72,6 +74,7 @@ Stop the daemon if it has not stopped already"""
     global daemon
     rc = daemon.poll()
     if rc == None:
+        print " stopping daemon"
         os.kill(daemon.pid, 15)
         rc = daemon.wait()
     print " daemon has stopped"
@@ -85,13 +88,14 @@ def run(test, setup=None, report=True, name=None):
     setup()
     start(name)
     try:
-        test()
-    except AssertionError, e:
-        global failures
-        failures += 1
-        print e
-        
-    stop()
+        try:
+            test()
+        except AssertionError, e:
+            global failures
+            failures += 1
+            print e
+    finally:
+        stop()
     if report:
         if failures:
             print " FAILED"
@@ -132,6 +136,18 @@ stopword 1 2 3 4 5 6 7 8 9
 stopword 11 12 13 14 15 16 17 18 19 20
 stopword 21 22 23 24 25 26 27 28 29 30
 stopword the a an and to too in on of we i am as im for is
+username fred
+password fredpass
+allow fred fredpass
+plugins ../plugins
+player *.mp3 execraw disorder-decode
+player *.ogg execraw disorder-decode
+player *.wav execraw disorder-decode
+player *.flac execraw disorder-decode
+tracklength *.mp3 disorder-tracklength
+tracklength *.ogg disorder-tracklength
+tracklength *.wav disorder-tracklength
+tracklength *.flac disorder-tracklength
 """ % (testroot, testroot, testroot, testroot))
 copyfile("%s/sounds/scratch.ogg" % topsrcdir,
          "%s/scratch.ogg" % testroot)

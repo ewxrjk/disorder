@@ -66,8 +66,10 @@ void make_root_login(void) {
   gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
   pwhex = hex(pwbin, sizeof pwbin);
   /* Create the file */
-  if((fd = open(privconfignew, O_WRONLY|O_CREAT, 0600)) < 0)
-    fatal(errno, "error creating %s", privconfignew);
+  if((fd = open(privconfignew, O_WRONLY|O_CREAT, 0600)) < 0) {
+    error(errno, "error creating %s", privconfignew);
+    return;                             /* not fatal! */
+  }
   /* Fix permissions */
   if(pw) {
     if(fchown(fd, 0, pw->pw_gid) < 0)

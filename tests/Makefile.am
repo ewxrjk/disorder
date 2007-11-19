@@ -19,9 +19,9 @@
 #
 
 check:
-	PATH=../server:$$PATH \
+	PATH=`pwd`/../server:`pwd`/..clients:$$PATH \
 	PYTHONPATH=../python \
 		topsrcdir=${top_srcdir} \
 		${PYTHON} ${srcdir}/alltests
 
-EXTRA_DIST=alltests dtest.py nothing.py
+EXTRA_DIST=alltests dtest.py nothing.py version.py

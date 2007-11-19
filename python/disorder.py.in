@@ -53,6 +53,7 @@ import locale
 
 _configfile = "pkgconfdir/config"
 _dbhome = "pkgstatedir"
+_userconf = True
 
 # various regexps we'll use
 _ws = re.compile(r"^[ \t\n\r]+")
@@ -291,7 +292,7 @@ class client:
     self._readfile(_configfile)
     if os.path.exists(privconf):
       self._readfile(privconf)
-    if os.path.exists(passfile):
+    if os.path.exists(passfile) and _userconf:
       self._readfile(passfile)
     self.state = 'disconnected'
 

@@ -26,6 +26,8 @@
 #include <errno.h>
 #include <pcre.h>
 #include <getopt.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "defs.h"
 #include "mem.h"
@@ -40,6 +42,8 @@ static const struct option options[] = {
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
   { "no-debug", no_argument, 0, 'D' },
+  { "syslog", no_argument, 0, 's' },
+  { "no-syslog", no_argument, 0, 'S' },
   { 0, 0, 0, 0 }
 };
 
@@ -52,6 +56,7 @@ static void help(void) {
 	  "  --version, -V            Display version number\n"
 	  "  --config PATH, -c PATH   Set configuration file\n"
 	  "  --[no-]debug, -d         Turn on (off) debugging\n"
+          "  --[no-]syslog            Force logging\n"
 	  "\n"
 	  "Generate DisOrder database statistics.\n");
   xfclose(stdout);
@@ -66,21 +71,27 @@ static void version(void) {
 }
 
 int main(int argc, char **argv) {
-  int n;
+  int n, logsyslog = !isatty(2);
   char **stats;
 
   set_progname(argv);
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dD", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;
+    case 'S': logsyslog = 0; break;
+    case 's': logsyslog = 1; break;
     default: fatal(0, "invalid option");
     }
+  }
+  if(logsyslog) {
+    openlog(progname, LOG_PID, LOG_DAEMON);
+    log_default = &log_syslog;
   }
   if(config_read(0))
     fatal(0, "cannot read configuration");
