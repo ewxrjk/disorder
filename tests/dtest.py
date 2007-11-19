@@ -139,6 +139,15 @@ stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
 allow fred fredpass
+plugins ../plugins
+player *.mp3 execraw disorder-decode
+player *.ogg execraw disorder-decode
+player *.wav execraw disorder-decode
+player *.flac execraw disorder-decode
+tracklength *.mp3 disorder-tracklength
+tracklength *.ogg disorder-tracklength
+tracklength *.wav disorder-tracklength
+tracklength *.flac disorder-tracklength
 """ % (testroot, testroot, testroot, testroot))
 copyfile("%s/sounds/scratch.ogg" % topsrcdir,
          "%s/scratch.ogg" % testroot)
