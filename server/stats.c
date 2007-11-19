@@ -27,6 +27,7 @@
 #include <pcre.h>
 #include <getopt.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "defs.h"
 #include "mem.h"
