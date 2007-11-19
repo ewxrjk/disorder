@@ -161,7 +161,7 @@ static inline int gt(const struct timeval *a, const struct timeval *b) {
 
 /** @brief Greater-than-or-equal comparison for timevals
  *
- * Ought to be in @file lib/timeval.h
+ * Ought to be in @ref lib/timeval.h
  */
 static inline int ge(const struct timeval *a, const struct timeval *b) {
   return !gt(b, a);
@@ -455,7 +455,7 @@ void ev_report(ev_source *ev) {
 
 /** @brief Register a timeout
  * @param ev Event source
- * @param handle Where to store timeout handle, or @c NULL
+ * @param handlep Where to store timeout handle, or @c NULL
  * @param when Earliest time to call @p callback, or @c NULL
  * @param callback Function to call at or after @p when
  * @param u Passed to @p callback

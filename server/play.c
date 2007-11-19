@@ -285,15 +285,15 @@ static int find_player(const struct queue_entry *q) {
 }
 
 /* Return values from start() */
-#define START_OK 0			/* Succeeded. */
-#define START_HARDFAIL 1		/* Track is broken. */
-#define START_SOFTFAIL 2	   /* Track OK, system (temporarily?) broken */
+#define START_OK 0			/**< @brief Succeeded. */
+#define START_HARDFAIL 1		/**< @brief Track is broken. */
+#define START_SOFTFAIL 2	   /**< @brief Track OK, system (temporarily?) broken */
 
 /** @brief Play or prepare @p q
  * @param ev Event loop
  * @param q Track to play/prepare
  * @param prepare_only If true, only prepares track
- * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFTAIL
+ * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFAIL
  */
 static int start(ev_source *ev,
 		 struct queue_entry *q,

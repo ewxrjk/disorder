@@ -137,7 +137,7 @@ void fpopup_msg(GtkMessageType mt, const char *fmt, ...) {
 
 /** @brief Create a button with an icon in it
  * @param path (relative) path to image
- * @param tooltip Tooltip or NULL to not set one
+ * @param tip Tooltip or NULL to not set one
  * @return Button
  */
 GtkWidget *iconbutton(const char *path, const char *tip) {
