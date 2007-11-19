@@ -13,7 +13,7 @@ def maketrack(s):
     """maketrack(S)
 
 Make track with relative path S exist"""
-    trackpath = "%s/%s" % (testroot, s)
+    trackpath = "%s/tracks/%s" % (testroot, s)
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
