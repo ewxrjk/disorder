@@ -428,7 +428,9 @@ static int start(ev_source *ev,
 	    speaker_send(speaker_fd, &sm);
 	    D(("sent SM_PLAY for %s", sm.id));
 	  }
-	  execlp("disorder-normalize", "disorder-normalize", (char *)0);
+	  execlp("disorder-normalize", "disorder-normalize",
+		 log_default == &log_syslog ? "--syslog" : "--no-syslog",
+		 (char *)0);
 	  fatal(errno, "executing disorder-normalize");
 	  /* end of the innermost fork */
 	}
