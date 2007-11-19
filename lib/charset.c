@@ -31,9 +31,8 @@
 #include "log.h"
 #include "charset.h"
 #include "configuration.h"
-#include "utf8.h"
 #include "vector.h"
-#include "unidata.h"
+#include "unicode.h"
 
 /** @brief Low-level converstion routine
  * @param from Source encoding
@@ -99,69 +98,50 @@ char *any2any(const char *from,
   else return xstrdup(any);
 }
 
-/** @brief Return nonzero if @p c is a combining character */
-static int combining(int c) {
-  if(c < UNICODE_NCHARS) {
-    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-
-    return ud->general_category == unicode_General_Category_Mn || ud->ccc != 0;
-  }
-  /* Assume unknown characters are noncombining */
-  return 0;
-}
-
 /** @brief Truncate a string for display purposes
  * @param s Pointer to UTF-8 string
  * @param max Maximum number of columns
  * @return @p or truncated string (never NULL)
  *
- * We don't correctly support bidi or double-width characters yet, nor
- * locate default grapheme cluster boundaries for saner truncation.
+ * Returns a string that is no longer than @p max graphemes long and is either
+ * (canonically) equal to @p s or is a truncated form of it with an ellipsis
+ * appended.
+ *
+ * We don't take display width into account (tricky for HTML!) and we don't
+ * attempt to implement the Bidi algorithm.  If you have track names for which
+ * either of these matter in practice then get in touch.
  */
 const char *truncate_for_display(const char *s, long max) {
-  const char *t = s, *r, *cut = 0;
-  char *truncated;
-  uint32_t c;
-  long n = 0;
+  uint32_t *s32;
+  size_t l32, cut;
+  utf32_iterator it;
 
-  /* We need to discover two things: firstly whether the string is
-   * longer than @p max glyphs and secondly if it is not, where to cut
-   * the string.
-   *
-   * Combining characters follow their base character (unicode
-   * standard 5.0 s2.11), so after each base character we must 
-   */
-  while(*t) {
-    PARSE_UTF8(t, c, return s);
-    if(combining(c))
-      /* This must be an initial combining character.  We just skip it. */
-      continue;
-    /* So c must be a base character.  It may be followed by any
-     * number of combining characters.  We advance past them. */
-    do {
-      r = t;
-      PARSE_UTF8(t, c, return s);
-    } while(combining(c));
-    /* Last character wasn't a combining character so back up */
-    t = r;
-    ++n;
-    /* So now there are N glyphs before position T.  We might
-     * therefore have reached the cut position. */
-    if(n == max - 3)
-      cut = t;
+  /* Convert to UTF-32 for processing */
+  if(!(s32 = utf8_to_utf32(s, strlen(s), &l32)))
+    return 0;
+  it = utf32_iterator_new(s32, l32);
+  cut = l32;
+  while(max && utf32_iterator_where(it) < l32) {
+    utf32_iterator_advance(it, 1);
+    if(utf32_iterator_grapheme_boundary(it))
+      --max;
+    if(max == 1)
+      cut = utf32_iterator_where(it);
   }
-  /* If the string is short enough we return it unmodified */
-  if(n < max)
-    return s;
-  truncated = xmalloc_noptr(cut - s + 4);
-  memcpy(truncated, s, cut - s);
-  strcpy(truncated + (cut - s), "...");
-  return truncated;
+  if(max == 0) {                        /* we need to cut */
+    s32[cut] = 0x2026;                  /* HORIZONTAL ELLIPSIS */
+    l32 = cut + 1;
+    s = utf32_to_utf8(s32, l32, 0);
+  }
+  xfree(s32);
+  return s;
 }
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */
