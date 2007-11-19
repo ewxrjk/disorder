@@ -127,16 +127,12 @@ static int speaker_readable(ev_source *ev, int fd,
 }
 
 void speaker_setup(ev_source *ev) {
-  int sp[2], lfd;
+  int sp[2];
   pid_t pid;
   struct speaker_message sm;
 
   if(socketpair(PF_UNIX, SOCK_DGRAM, 0, sp) < 0)
     fatal(errno, "error calling socketpair");
-  if(!isatty(2))
-    lfd = logfd(ev, SPEAKER);
-  else
-    lfd = -1;
   if(!(pid = xfork())) {
     exitfn = _exit;
     ev_signal_atfork(ev);
@@ -144,10 +140,6 @@ void speaker_setup(ev_source *ev) {
     xdup2(sp[0], 1);
     xclose(sp[0]);
     xclose(sp[1]);
-    if(lfd != -1) {
-      xdup2(lfd, 2);
-      xclose(lfd);
-    }
     signal(SIGPIPE, SIG_DFL);
 #if 0
     execlp("valgrind", "valgrind", SPEAKER, "--config", configfile,
@@ -428,6 +420,8 @@ static int start(ev_source *ev,
 	    speaker_send(speaker_fd, &sm);
 	    D(("sent SM_PLAY for %s", sm.id));
 	  }
+	  /* TODO stderr shouldn't be redirected for disorder-normalize
+	   * (but it should be for play_track() */
 	  execlp("disorder-normalize", "disorder-normalize",
 		 log_default == &log_syslog ? "--syslog" : "--no-syslog",
 		 (char *)0);
