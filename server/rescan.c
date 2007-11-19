@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
-  if(!logsyslog) {
+  if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
