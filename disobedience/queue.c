@@ -508,7 +508,7 @@ static void update_queue(struct queuelike *ql, struct queue_entry *newq) {
 
 /** @brief Wrap up a widget for putting into the queue or title
  * @param label Label to contain
- * @param color Pointer to color
+ * @param style Pointer to style to use
  * @param wp Updated with maximum width (or NULL)
  * @return New widget
  */
