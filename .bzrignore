@@ -125,3 +125,4 @@ lib/GraphemeBreakTest.txt
 lib/WordBreakProperty.txt
 lib/SentenceBreakProperty.txt
 lib/WordBreakTest.txt
+lib/DerivedNormalizationProps.txt

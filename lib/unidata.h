@@ -81,6 +81,7 @@ enum unicode_flags {
 struct unidata {
   const uint32_t *decomp;
   const uint32_t *casefold;
+  const uint32_t *composed;
   unsigned char ccc;
   char general_category;
   uint8_t flags;

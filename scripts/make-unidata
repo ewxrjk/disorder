@@ -152,7 +152,7 @@ while(<>) {
 		$dm =~ s/^<.*>\s*//;
 		$d->{compat} = 1;
 	    }
-	    $d->{decomp} = $dm;
+	    $d->{decomp} = [map(hex($_), split(/\s+/, $dm))];
 	}
 	$data{$c} = $d;
     }
@@ -171,7 +171,6 @@ sub read_prop_with_ranges {
 	my ($range, $propval) = split(/\s*;\s*/, $_);
 	if($range =~ /(.*)\.\.(.*)/) {
 	    for my $c (hex($1) .. hex($2)) {
-		die "($range)\n" if($c == 0xAC00 and $propkey eq 'gbreak');
 		$data{$c}->{$propkey} = $propval;
 	    }
 	} else {
@@ -213,6 +212,27 @@ for my $c (keys %data) {
 	}
     }
     $sbreak{$data{$c}->{sbreak}} = 1;
+}
+
+# Various derived properties
+input("DerivedNormalizationProps.txt");
+while(<>) {
+    chomp;
+    s/\s*\#.*//;
+    next if $_ eq '';
+    my @f = split(/\s*;\s*/, $_);
+    if(@f == 2) {
+	push(@f, 1);
+    }
+    my ($range, $propkey, $propval) = @f;
+    if($range =~ /(.*)\.\.(.*)/) {
+	for my $c (hex($1) .. hex($2)) {
+	    $data{$c}->{$propkey} = $propval
+	}
+    } else {
+	my $c = hex($range);
+	$data{$c}->{$propkey} = $propval
+    }
 }
 
 # Round up the maximum value to a whole number of subtables
@@ -350,12 +370,26 @@ sub choosetype {
 }
 
 out("struct unidata {\n",
+    # decomposition (canonical or compatibility;
+    # unicode_compatibility_decomposition distinguishes) or NULL
     "  const uint32_t *decomp;\n",
+
+    # case-folded string or NULL
     "  const uint32_t *casefold;\n",
+
+    # composed characters that start with this code point.  This only
+    # includes primary composites, i.e. the decomposition mapping is
+    # canonical and this code point is not in the exclusion table.
+    "  const uint32_t *composed;\n",
+
 #    "  ".choosetype($minud, $maxud)." upper_offset;\n",
 #    "  ".choosetype($minld, $maxld)." lower_offset;\n",
+
+    # canonical combining class
     "  ".choosetype(0, $maxccc)." ccc;\n",
     "  char general_category;\n",
+
+    # see unicode_flags enum
     "  uint8_t flags;\n",
     "  char grapheme_break;\n",
     "  char word_break;\n",
@@ -401,6 +435,8 @@ out(map(sprintf("#define WB%s unicode_Word_Break_%s\n", $_, $_),
 	sort keys %wbreak));
 out(map(sprintf("#define SB%s unicode_Sentence_Break_%s\n", $_, $_),
 	sort keys %sbreak));
+out("#define NBC unicode_normalize_before_casefold\n");
+out("#define CD unicode_compatibility_decomposition\n");
 
 # Names for *_Break properties
 out("const char *const unicode_Grapheme_Break_names[] = {\n",
@@ -416,50 +452,74 @@ out("const char *const unicode_Sentence_Break_names[] = {\n",
 	 map("  \"$_\"", sort keys %sbreak)),
     "\n};\n");
 
+our $ddnum = 0;
+our $ddsaved = 0;
+our %ddnums = ();
+my $ddfirst = 1;
+out("static const uint32_t ");
+sub dedupe {
+    my $s = join(",", @_);
+    if(!exists $ddnums{$s}) {
+	if($ddfirst) {
+	    $ddfirst = 0;
+	} else {
+	    out(",\n");
+	}
+	out("dd$ddnum\[]={$s}");
+	$ddnums{$s} = $ddnum++;
+    } else {
+	++$ddsaved;
+    }
+    return "dd$ddnums{$s}";
+}
+
 # Generate the decomposition mapping tables.  We look out for duplicates
 # in order to save space and report this as decompsaved at the end.  In
 # Unicode 5.0.0 this saves 1795 entries, which is at least 14Kbytes.
-my $decompnum = 0;
-my %decompnums = ();
-my $decompsaved = 0;
-out("static const uint32_t ");
+print STDERR "> decomposition mappings\n";
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c} && exists $data{$c}->{decomp}) {
-	my $s = join(",",
-		     (map(hex($_), split(/\s+/, $data{$c}->{decomp})), 0));
-	if(!exists $decompnums{$s}) {
-	    out(",\n") if $decompnum != 0;
-	    out("cd$decompnum\[]={$s}");
-	    $decompnums{$s} = $decompnum++;
-	} else {
-	    ++$decompsaved;
-	}
-	$data{$c}->{decompsym} = "cd$decompnums{$s}";
+	$data{$c}->{decompsym} = dedupe(@{$data{$c}->{decomp}}, 0);
     }
 }
-out(";\n");
+
+print STDERR "> composition mappings\n";
+# First we must generate the mapping of each code point to possible
+# compositions
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c}
+       && exists $data{$c}->{decomp}
+       && !exists $data{$c}->{compat}
+       && !$data{$c}->{Full_Composition_Exclusion}) {
+	# $c has a non-excluded canonical decomposition, i.e. it is
+        # a primary composite.  Find the first code point of the decomposition
+	my $first = ${$data{$c}->{decomp}}[0];
+	if(!exists $data{$first}->{compose}) {
+	    $data{$first}->{compose} = [$first];
+	} else {
+	    push(@{$data{$first}->{compose}}, $first);
+	}
+    }
+}
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c} && exists $data{$c}->{compose}) {
+	$data{$c}->{compsym} = dedupe(@{$data{$c}->{compose}}, 0);
+    }
+}
 
 # ...and the case folding table.  Again we compress equal entries to save
 # space.  In Unicode 5.0.0 this saves 51 entries or at least 408 bytes.
 # This doesns't seem as worthwhile as the decomposition mapping saving above.
-my $cfnum = 0;
-my %cfnums = ();
-my $cfsaved = 0;
-out("static const uint32_t ");
+print STDERR "> case-fold mappings\n";
 for(my $c = 0; $c <= $max; ++$c) {
     if(exists $data{$c} && exists $data{$c}->{casefold}) {
-	my $s = join(",",
-		     (map(hex($_), split(/\s+/, $data{$c}->{casefold})), 0));
-	if(!exists $cfnums{$s}) {
-	    out(",\n") if $cfnum != 0;
-	    out("cf$cfnum\[]={$s}");
-	    $cfnums{$s} = $cfnum++;
-	} else {
-	    ++$cfsaved;
-	}
-	$data{$c}->{cfsym} = "cf$cfnums{$s}";
+	$data{$c}->{cfsym} = dedupe(map(hex($_), split(/\s+/,
+						       $data{$c}->{casefold})),
+				    0);
     }
 }
+
+# End of de-dupable arrays
 out(";\n");
 
 # Visit all the $modulus-character blocks in turn and generate the
@@ -467,7 +527,7 @@ out(";\n");
 # Unicode 5.0.0 with $modulus=128 and current table data this saves
 # 1372 subtables or at least three and a half megabytes on 32-bit
 # platforms.
-
+print STDERR "> subtables\n";
 my %subtable = ();		# base->subtable number
 my %subtableno = ();		# subtable number -> content
 my $subtablecounter = 0;	# counter for subtable numbers
@@ -480,18 +540,20 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 	my $d = $data{$c};
 	my $decompsym = ($data{$c}->{decompsym} or "0");
 	my $cfsym = ($data{$c}->{cfsym} or "0");
+	my $compsym = ($data{$c}->{compsym} or "0");
 	my @flags = ();
 	if($data{$c}->{ypogegrammeni}) {
-	    push(@flags, "unicode_normalize_before_casefold");
+	    push(@flags, "NBC");
 	}
 	if($data{$c}->{compat}) {
-	    push(@flags, "unicode_compatibility_decomposition");
+	    push(@flags, "CD");
 	}
 	my $flags = @flags ? join("|", @flags) : 0;
 	push(@t, "{".
 	     join(",",
 		  $decompsym,
 		  $cfsym,
+		  $compsym,
 #		  $d->{ud},
 #		  $d->{ld},
 		  $d->{ccc},
@@ -515,6 +577,7 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     $subtableno{$base} = $subtable{$t};
 }
 
+print STDERR "> main table\n";
 out("const struct unidata *const unidata[]={\n");
 for(my $base = 0; $base <= $max; $base += $modulus) {
     next if $base >= $break_start && $base < $break_end;
@@ -524,6 +587,7 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 }
 out("};\n");
 
+print STDERR "> UTF-8 table\n";
 out("const struct unicode_utf8_row unicode_utf8_valid[] = {\n");
 for(my $c = 0; $c <= 0x7F; ++$c) {
     out(" { 1, 0, 0 }, /* $c */\n");
@@ -562,7 +626,8 @@ out("};\n");
 
 close STDOUT or die "unidata.c: $!\n";
 
+print STDERR "Done.\n\n";
 printf STDERR "modulus=%d\n", $modulus;
 printf STDERR "max=%04X\n", $max;
 print STDERR "subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
-print STDERR "decompsaved=$decompsaved cfsaved=$cfsaved\n";
+print STDERR "ddsaved=$ddsaved\n";
