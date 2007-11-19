@@ -30,6 +30,13 @@
  * database code.
  *
  * As the code stands this guarantee is not well met!
+ *
+ * Subpages:
+ * - @ref utf32props
+ * - @ref utftransform
+ * - @ref utf32iterator
+ * - @ref utf32
+ * - @ref utf8
  */
 
 #include <config.h>
@@ -103,7 +110,7 @@ static inline int utf32__combining_class(uint32_t c) {
 }
 
 /** @brief Return the General_Category value for @p c
- * @param Code point
+ * @param c Code point
  * @return General_Category property value
  *
  * @p c can be any 32-bit value, a sensible value will be returned regardless.
@@ -1289,15 +1296,17 @@ error:                                                          \
  * @param ndp Where to store length of result
  * @return Pointer to result string, or NULL on error
  *
- * Computes the canonical decomposition of a string and stably sorts combining
- * characters into canonical order.  The result is in Normalization Form D and
- * (at the time of writing!) passes the NFD tests defined in Unicode 5.0's
- * NormalizationTest.txt.
+ * Computes NFD (Normalization Form D) of the string at @p s.  This implies
+ * performing all canonical decompositions and then normalizing the order of
+ * combining characters.
  *
  * Returns NULL if the string is not valid; see utf8_to_utf32() for reasons why
  * this might be.
  *
- * See also utf32_decompose_canon().
+ * See also:
+ * - utf32_decompose_canon().
+ * - utf8_decompose_compat()
+ * - utf8_compose_canon()
  */
 char *utf8_decompose_canon(const char *s, size_t ns, size_t *ndp) {
   utf8__transform(utf32_decompose_canon);
@@ -1309,18 +1318,65 @@ char *utf8_decompose_canon(const char *s, size_t ns, size_t *ndp) {
  * @param ndp Where to store length of result
  * @return Pointer to result string, or NULL on error
  *
- * Computes the compatibility decomposition of a string and stably sorts
- * combining characters into canonical order.  The result is in Normalization
- * Form KD and (at the time of writing!) passes the NFKD tests defined in
- * Unicode 5.0's NormalizationTest.txt.
+ * Computes NFKD (Normalization Form KD) of the string at @p s.  This implies
+ * performing all canonical and compatibility decompositions and then
+ * normalizing the order of combining characters.
  *
  * Returns NULL if the string is not valid; see utf8_to_utf32() for reasons why
  * this might be.
  *
- * See also utf32_decompose_compat().
+ * See also:
+ * - utf32_decompose_compat().
+ * - utf8_decompose_canon()
+ * - utf8_compose_compat()
  */
 char *utf8_decompose_compat(const char *s, size_t ns, size_t *ndp) {
   utf8__transform(utf32_decompose_compat);
+}
+
+/** @brief Canonically compose @p [s,s+ns)
+ * @param s Pointer to string
+ * @param ns Length of string
+ * @param ndp Where to store length of result
+ * @return Pointer to result string, or NULL on error
+ *
+ * Computes NFC (Normalization Form C) of the string at @p s.  This implies
+ * performing all canonical decompositions, normalizing the order of combining
+ * characters and then composing all unblocked primary compositables.
+ *
+ * Returns NULL if the string is not valid; see utf8_to_utf32() for reasons why
+ * this might be.
+ *
+ * See also:
+ * - utf32_compose_canon()
+ * - utf8_compose_compat()
+ * - utf8_decompose_canon()
+ */
+char *utf8_compose_canon(const char *s, size_t ns, size_t *ndp) {
+  utf8__transform(utf32_compose_canon);
+}
+
+/** @brief Compatibility compose @p [s,s+ns)
+ * @param s Pointer to string
+ * @param ns Length of string
+ * @param ndp Where to store length of result
+ * @return Pointer to result string, or NULL on error
+ *
+ * Computes NFKC (Normalization Form KC) of the string at @p s.  This implies
+ * performing all canonical and compatibility decompositions, normalizing the
+ * order of combining characters and then composing all unblocked primary
+ * compositables.
+ *
+ * Returns NULL if the string is not valid; see utf8_to_utf32() for reasons why
+ * this might be.
+ *
+ * See also:
+ * - utf32_compose_compat()
+ * - utf8_compose_canon()
+ * - utf8_decompose_compat()
+ */
+char *utf8_compose_compat(const char *s, size_t ns, size_t *ndp) {
+  utf8__transform(utf32_compose_compat);
 }
 
 /** @brief Case-fold @p [s,s+ns)
