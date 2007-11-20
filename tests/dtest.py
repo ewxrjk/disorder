@@ -73,28 +73,28 @@ def common_setup():
     os.mkdir(testroot)
     open("%s/config" % testroot, "w").write(
     """player *.ogg shell 'echo "$TRACK" >> %s/played.log'
-    home %s
-    collection fs UTF-8 %s/tracks
-    scratch %s/scratch.ogg
-    gap 0
-    stopword 01 02 03 04 05 06 07 08 09 10
-    stopword 1 2 3 4 5 6 7 8 9
-    stopword 11 12 13 14 15 16 17 18 19 20
-    stopword 21 22 23 24 25 26 27 28 29 30
-    stopword the a an and to too in on of we i am as im for is
-    username fred
-    password fredpass
-    allow fred fredpass
-    plugins ../plugins
-    player *.mp3 execraw disorder-decode
-    player *.ogg execraw disorder-decode
-    player *.wav execraw disorder-decode
-    player *.flac execraw disorder-decode
-    tracklength *.mp3 disorder-tracklength
-    tracklength *.ogg disorder-tracklength
-    tracklength *.wav disorder-tracklength
-    tracklength *.flac disorder-tracklength
-    """ % (testroot, testroot, testroot, testroot))
+home %s
+collection fs UTF-8 %s/tracks
+scratch %s/scratch.ogg
+gap 0
+stopword 01 02 03 04 05 06 07 08 09 10
+stopword 1 2 3 4 5 6 7 8 9
+stopword 11 12 13 14 15 16 17 18 19 20
+stopword 21 22 23 24 25 26 27 28 29 30
+stopword the a an and to too in on of we i am as im for is
+username fred
+password fredpass
+allow fred fredpass
+plugins ../plugins
+player *.mp3 execraw disorder-decode
+player *.ogg execraw disorder-decode
+player *.wav execraw disorder-decode
+player *.flac execraw disorder-decode
+tracklength *.mp3 disorder-tracklength
+tracklength *.ogg disorder-tracklength
+tracklength *.wav disorder-tracklength
+tracklength *.flac disorder-tracklength
+""" % (testroot, testroot, testroot, testroot))
     copyfile("%s/sounds/scratch.ogg" % topsrcdir,
              "%s/scratch.ogg" % testroot)
 
