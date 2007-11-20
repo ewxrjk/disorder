@@ -2,7 +2,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,disorder
+import os,os.path,subprocess,sys,disorder,unicodedata
 
 def copyfile(a,b):
     """copyfile(A, B)
@@ -19,8 +19,10 @@ Make track with relative path S exist"""
         os.makedirs(trackdir)
     copyfile("%s/sounds/slap.ogg" % topsrcdir, trackpath)
     # We record the tracks we created so they can be tested against
-    # server responses
-    bits = s.split('/')
+    # server responses.  We put them into NFC since that's what the server
+    # uses internally.
+    bits = unicodedata.normalize("NFC",
+                                 unicode(s, "UTF-8")).split('/')
     dp = tracks
     for d in bits [0:-1]:
         dd = "%s/%s" % (dp,  d)
