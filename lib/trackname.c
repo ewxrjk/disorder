@@ -31,7 +31,7 @@
 #include "regsub.h"
 #include "log.h"
 #include "filepart.h"
-#include "words.h"
+#include "unicode.h"
 
 const struct collection *find_track_collection(const char *track) {
   int n;
@@ -114,15 +114,20 @@ int compare_tracks(const char *sa, const char *sb,
 		   const char *ta, const char *tb) {
   int c;
 
-  if((c = strcmp(casefold(sa), casefold(sb)))) return c;
+  if((c = strcmp(utf8_casefold_canon(sa, strlen(sa), 0),
+		 utf8_casefold_canon(sb, strlen(sb), 0))))
+    return c;
   if((c = strcmp(sa, sb))) return c;
-  if((c = strcmp(casefold(da), casefold(db)))) return c;
+  if((c = strcmp(utf8_casefold_canon(da, strlen(da), 0),
+		 utf8_casefold_canon(db, strlen(db), 0))))
+    return c;
   if((c = strcmp(da, db))) return c;
   return compare_path(ta, tb);
 }
 
 int compare_path_raw(const unsigned char *ap, size_t an,
 		     const unsigned char *bp, size_t bn) {
+  /* Don't change this function!  The database sort order depends on it */
   while(an > 0 && bn > 0) {
     if(*ap == *bp) {
       ap++;

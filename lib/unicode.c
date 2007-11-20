@@ -372,21 +372,10 @@ struct utf32_iterator_data {
    * the value is (uint32_t)-1.
    */
   uint32_t last[2];
-};
 
-/** @brief Create a new iterator pointing at the start of a string
- * @param s Start of string
- * @param ns Length of string
- * @return New iterator
- */
-utf32_iterator utf32_iterator_new(const uint32_t *s, size_t ns) {
-  utf32_iterator it = xmalloc(sizeof *it);
-  it->s = s;
-  it->ns = ns;
-  it->n = 0;
-  it->last[0] = it->last[1] = -1;
-  return it;
-}
+  /** @brief Tailoring for Word_Break */
+  unicode_property_tailor *word_break;
+};
 
 /** @brief Initialize an internal private iterator
  * @param it Iterator
@@ -400,7 +389,52 @@ static void utf32__iterator_init(utf32_iterator it,
   it->ns = ns;
   it->n = 0;
   it->last[0] = it->last[1] = -1;
+  it->word_break = 0;
   utf32_iterator_set(it, n);
+}
+
+/** @brief Create a new iterator pointing at the start of a string
+ * @param s Start of string
+ * @param ns Length of string
+ * @return New iterator
+ */
+utf32_iterator utf32_iterator_new(const uint32_t *s, size_t ns) {
+  utf32_iterator it = xmalloc(sizeof *it);
+  utf32__iterator_init(it, s, ns, 0);
+  return it;
+}
+
+/** @brief Tailor this iterator's interpretation of the Word_Break property.
+ * @param it Iterator
+ * @param pt Property tailor function or NULL
+ *
+ * After calling this the iterator will call @p pt to determine the Word_Break
+ * property of each code point.  If it returns -1 the default value will be
+ * used otherwise the returned value will be used.
+ *
+ * @p pt can be NULL to revert to the default value of the property.
+ *
+ * It is safe to call this function at any time; the iterator's internal state
+ * will be reset to suit the new tailoring.
+ */
+void utf32_iterator_tailor_word_break(utf32_iterator it,
+                                      unicode_property_tailor *pt) {
+  it->word_break = pt;
+  utf32_iterator_set(it, it->n);
+}
+
+static inline enum unicode_Word_Break utf32__iterator_word_break(utf32_iterator it,
+                                                                 uint32_t c) {
+  if(!it->word_break)
+    return utf32__word_break(c);
+  else {
+    const int t = it->word_break(c);
+
+    if(t < 0)
+      return utf32__word_break(c);
+    else
+      return t;
+  }
 }
 
 /** @brief Destroy an iterator
@@ -444,14 +478,18 @@ int utf32_iterator_set(utf32_iterator it, size_t n) {
     return -1;
   /* Walk backwards skipping ignorable code points */
   m = n;
-  while(m > 0 && (utf32__boundary_ignorable(utf32__word_break(it->s[m-1]))))
+  while(m > 0
+        && (utf32__boundary_ignorable(utf32__iterator_word_break(it,
+                                                                 it->s[m-1]))))
     --m;
   /* Either m=0 or s[m-1] is not ignorable */
   if(m > 0) {
     --m;
     /* s[m] is our first non-ignorable code; look for a second in the same
        way **/
-    while(m > 0 && (utf32__boundary_ignorable(utf32__word_break(it->s[m-1]))))
+    while(m > 0
+          && (utf32__boundary_ignorable(utf32__iterator_word_break(it,
+                                                                   it->s[m-1]))))
       --m;
     /* Either m=0 or s[m-1] is not ignorable */
     if(m > 0)
@@ -478,7 +516,7 @@ int utf32_iterator_advance(utf32_iterator it, size_t count) {
   if(count <= it->ns - it->n) {
     while(count > 0) {
       const uint32_t c = it->s[it->n];
-      const enum unicode_Word_Break wb = utf32__word_break(c);
+      const enum unicode_Word_Break wb = utf32__iterator_word_break(it, c);
       if(it->last[1] == (uint32_t)-1
          || !utf32__boundary_ignorable(wb)) {
         it->last[0] = it->last[1];
@@ -588,29 +626,30 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
   /* WB4 */
   /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
   if(utf32__sentence_break(it->s[it->n-1]) != unicode_Sentence_Break_Sep
-     && utf32__boundary_ignorable(utf32__word_break(it->s[it->n])))
+     && utf32__boundary_ignorable(utf32__iterator_word_break(it, it->s[it->n])))
     return 0;
   /* Gather the property values we'll need for the rest of the test taking the
    * s6.2 changes into account */
   /* First we look at the code points after the proposed boundary */
   nn = it->n;                           /* <it->ns */
-  after = utf32__word_break(it->s[nn++]);
+  after = utf32__iterator_word_break(it, it->s[nn++]);
   if(!utf32__boundary_ignorable(after)) {
     /* X (Extend|Format)* -> X */
     while(nn < it->ns
-          && utf32__boundary_ignorable(utf32__word_break(it->s[nn])))
+          && utf32__boundary_ignorable(utf32__iterator_word_break(it,
+                                                                  it->s[nn])))
       ++nn;
   }
   /* It's possible now that nn=ns */
   if(nn < it->ns)
-    twoafter = utf32__word_break(it->s[nn]);
+    twoafter = utf32__iterator_word_break(it, it->s[nn]);
   else
     twoafter = unicode_Word_Break_Other;
 
   /* We've already recorded the non-ignorable code points before the proposed
    * boundary */
-  before = utf32__word_break(it->last[1]);
-  twobefore = utf32__word_break(it->last[0]);
+  before = utf32__iterator_word_break(it, it->last[1]);
+  twobefore = utf32__iterator_word_break(it, it->last[0]);
 
   /* WB5 */
   if(before == unicode_Word_Break_ALetter
@@ -626,7 +665,7 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
      && before == unicode_Word_Break_MidLetter
      && after == unicode_Word_Break_ALetter)
     return 0;
-  /* WB8 */  
+  /* WB8 */
   if(before == unicode_Word_Break_Numeric
      && after == unicode_Word_Break_Numeric)
     return 0;
@@ -1275,12 +1314,14 @@ int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
  * @param s Pointer to start of string
  * @param ns Length of string
  * @param nwp Where to store word count, or NULL
+ * @param wbreak Word_Break property tailor, or NULL
  * @return Pointer to array of pointers to words
  *
  * The returned array is terminated by a NULL pointer and individual
  * strings are 0-terminated.
  */
-uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp) {
+uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp,
+                            unicode_property_tailor *wbreak) {
   struct utf32_iterator_data it[1];
   size_t b1 = 0, b2 = 0 ,i;
   int isword;
@@ -1289,6 +1330,7 @@ uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp) {
 
   vector32_init(v32);
   utf32__iterator_init(it, s, ns, 0);
+  it->word_break = wbreak;
   /* Work our way through the string stopping at each word break. */
   do {
     if(utf32_iterator_word_boundary(it)) {
@@ -1300,7 +1342,7 @@ uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp) {
        * whether they are a word or not */
       isword = 0;
       for(i = b1; i < b2; ++i) {
-        switch(utf32__word_break(it->s[i])) {
+        switch(utf32__iterator_word_break(it, it->s[i])) {
         case unicode_Word_Break_ALetter:
         case unicode_Word_Break_Numeric:
         case unicode_Word_Break_Katakana:
@@ -1468,18 +1510,20 @@ char *utf8_casefold_compat(const char *s, size_t ns, size_t *ndp) {
  * @param s Pointer to start of string
  * @param ns Length of string
  * @param nwp Where to store word count, or NULL
+ * @param wbreak Word_Break property tailor, or NULL
  * @return Pointer to array of pointers to words
  *
  * The returned array is terminated by a NULL pointer and individual
  * strings are 0-terminated.
  */
-char **utf8_word_split(const char *s, size_t ns, size_t *nwp) {
+char **utf8_word_split(const char *s, size_t ns, size_t *nwp,
+                       unicode_property_tailor *wbreak) {
   uint32_t *to32 = 0, **v32 = 0;
   size_t nto32, nv, n;
   char **v8 = 0, **ret = 0;
-                                                                
+
   if(!(to32 = utf8_to_utf32(s, ns, &nto32))) goto error;
-  if(!(v32 = utf32_word_split(to32, nto32, &nv))) goto error;
+  if(!(v32 = utf32_word_split(to32, nto32, &nv, wbreak))) goto error;
   v8 = xcalloc(sizeof (char *), nv + 1);
   for(n = 0; n < nv; ++n)
     if(!(v8[n] = utf32_to_utf8(v32[n], utf32_len(v32[n]), 0)))
@@ -1487,7 +1531,7 @@ char **utf8_word_split(const char *s, size_t ns, size_t *nwp) {
   ret = v8;
   *nwp = nv;
   v8 = 0;                               /* don't free */
-error:                                                          
+error:
   if(v8) {
     for(n = 0; n < nv; ++n)
       xfree(v8[n]);

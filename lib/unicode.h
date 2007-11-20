@@ -36,6 +36,14 @@
  */
 typedef struct utf32_iterator_data *utf32_iterator;
 
+/** @brief Property tailor function
+ * @param c Code point
+ * @return Tailored property or -1 to use standard value
+ *
+ * See also utf32_iterator_tailor_word_break().
+ */
+typedef int unicode_property_tailor(uint32_t c);
+
 char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *nd);
 uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *nd);
 int utf8_valid(const char *s, size_t ns);
@@ -73,9 +81,13 @@ int utf32_iterator_advance(utf32_iterator it, size_t n);
 uint32_t utf32_iterator_code(utf32_iterator it);
 int utf32_iterator_grapheme_boundary(utf32_iterator it);
 int utf32_iterator_word_boundary(utf32_iterator it);
+void utf32_iterator_tailor_word_break(utf32_iterator it,
+                                      unicode_property_tailor *pt);
 
-uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp);
-char **utf8_word_split(const char *s, size_t ns, size_t *nwp);
+uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp,
+                            unicode_property_tailor *wbreak);
+char **utf8_word_split(const char *s, size_t ns, size_t *nwp,
+                            unicode_property_tailor *wbreak);
 
 /** @brief Convert 0-terminated UTF-32 to UTF-8
  * @param s 0-terminated UTF-32 string

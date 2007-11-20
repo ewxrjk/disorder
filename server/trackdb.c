@@ -44,7 +44,6 @@
 #include "configuration.h"
 #include "syscalls.h"
 #include "wstat.h"
-#include "words.h"
 #include "printf.h"
 #include "filepart.h"
 #include "trackname.h"
@@ -53,6 +52,8 @@
 #include "cache.h"
 #include "eventlog.h"
 #include "hash.h"
+#include "unicode.h"
+#include "unidata.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -573,24 +574,50 @@ static int is_display_pref(const char *name) {
   return !strncmp(name, prefix, (sizeof prefix) - 1);
 }
 
+/** @brief Word_Break property tailor that treats underscores as spaces */
+static int tailor_underscore_Word_Break_Other(uint32_t c) {
+  switch(c) {
+  default:
+    return -1;
+  case 0x005F: /* LOW LINE (SPACING UNDERSCORE) */
+    return unicode_Word_Break_Other;
+  }
+}
+
+/** @brief Normalize and split a string using a given tailoring */
+static void word_split(struct vector *v,
+                       const char *s,
+                       unicode_property_tailor *pt) {
+  size_t nw, nt32, i;
+  uint32_t *t32, **w32;
+
+  /* Convert to UTF-32 */
+  if(!(t32 = utf8_to_utf32(s, strlen(s), &nt32)))
+    return;
+  /* Erase case distinctions */
+  if(!(t32 = utf32_casefold_compat(t32, nt32, &nt32)))
+    return;
+  /* Split into words, treating _ as a space */
+  w32 = utf32_word_split(t32, nt32, &nw, pt);
+  /* Convert words back to UTF-8 and append to result */
+  for(i = 0; i < nw; ++i)
+    vector_append(v, utf32_to_utf8(w32[i], utf32_len(w32[i]), 0));
+}
+
 /* compute the words of a track name */
 static char **track_to_words(const char *track,
                              const struct kvp *p) {
   struct vector v;
-  char **w;
-  int nw;
   const char *rootless = track_rootless(track);
 
   if(!rootless)
     rootless = track;                   /* bodge */
   vector_init(&v);
-  if((w = words(casefold(strip_extension(rootless)), &nw)))
-    vector_append_many(&v, w, nw);
-
+  rootless = strip_extension(rootless);
+  word_split(&v, strip_extension(rootless), tailor_underscore_Word_Break_Other);
   for(; p; p = p->next)
     if(is_display_pref(p->name))
-      if((w = words(casefold(p->value), &nw)))
-        vector_append_many(&v, w, nw);
+      word_split(&v, p->value, 0);
   vector_terminate(&v);
   return dedupe(v.vec, v.nvec);
 }
@@ -1739,7 +1766,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   /* casefold all the words */
   w = xmalloc(nwordlist * sizeof (char *));
   for(n = 0; n < nwordlist; ++n) {
-    w[n] = casefold(wordlist[n]);
+    w[n] = utf8_casefold_compat(wordlist[n], strlen(wordlist[n]), 0);
     if(checktag(w[n])) ++ntags;         /* count up tags */
   }
   /* find the longest non-stopword */

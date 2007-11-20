@@ -46,7 +46,6 @@
 #include "queue.h"
 #include "plugin.h"
 #include "split.h"
-#include "words.h"
 #include "wstat.h"
 #include "kvp.h"
 #include "syscalls.h"

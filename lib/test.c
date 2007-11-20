@@ -38,7 +38,6 @@
 #include "charset.h"
 #include "mime.h"
 #include "hex.h"
-#include "words.h"
 #include "heap.h"
 #include "unicode.h"
 #include "inputline.h"
@@ -411,7 +410,7 @@ static void test_casefold(void) {
       ++tests;
     }
   }
-  check_string(casefold(""), "");
+  check_string(utf8_casefold_canon("", 0, 0), "");
 }
 
 struct {
@@ -450,7 +449,7 @@ static void test_words(void) {
   
   fprintf(stderr, "test_words\n");
   for(t = 0; t < NWTEST; ++t) {
-    char **got = utf8_word_split(wtest[t].in, strlen(wtest[t].in), &ngot);
+    char **got = utf8_word_split(wtest[t].in, strlen(wtest[t].in), &ngot, 0);
 
     for(nexpect = 0; wtest[t].expect[nexpect]; ++nexpect)
       ;
