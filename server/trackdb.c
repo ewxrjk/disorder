@@ -295,15 +295,16 @@ void trackdb_open(void) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, 0, 0666);
   if(trackdb_globaldb) {
     /* This is an existing database */
-    const char *oldversion;
+    const char *s;
+    long oldversion;
 
-    oldversion = trackdb_get_global("_dbversion");
-    if(!oldversion)
-      oldversion = "1.x";
-    if(strcmp(oldversion, DBVERSION)) {
+    s = trackdb_get_global("_dbversion");
+    oldversion = s ? atol(s) : 1;
+    if(oldversion != config->dbversion) {
       /* This database needs upgrading.  This isn't implemented yet so we just
        * fail. */
-      fatal(0, "database needs upgrading from %s to %s", oldversion, DBVERSION);
+      fatal(0, "database needs upgrading from %ld to %ld",
+            oldversion, config->dbversion);
     }
     newdb = 0;
     /* Close the database again,  we'll open it property below */
@@ -326,8 +327,12 @@ void trackdb_open(void) {
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
   /* Stash the database version */
-  if(newdb)
-    trackdb_set_global("_dbversion", DBVERSION, 0);
+  if(newdb) {
+    char buf[32];
+
+    snprintf(buf, sizeof buf, "%ld", config->dbversion);
+    trackdb_set_global("_dbversion", buf, 0);
+  }
   D(("opened databases"));
 }
 

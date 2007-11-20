@@ -80,6 +80,8 @@ VECTOR_TYPE(vector, char *, xrealloc);
 VECTOR_TYPE(dynstr, char, xrealloc_noptr);
 /** @brief A dynamic unicode string */
 VECTOR_TYPE(dynstr_ucs4, uint32_t, xrealloc_noptr);
+/** @brief A dynamic array of pointers to unicode string */
+VECTOR_TYPE(vector32, uint32_t *, xrealloc);
 
 /** @brief Append many strings to a @ref vector */
 void vector_append_many(struct vector *v, char **vec, int nvec);

@@ -36,104 +36,16 @@
 #include "unicode.h"
 
 const char *casefold(const char *ptr) {
-  return utf8_casefold_canon(ptr, strlen(ptr), 0);
+  return utf8_casefold_compat(ptr, strlen(ptr), 0);
 }
-
-static enum unicode_General_Category cat(uint32_t c) {
-  if(c < UNICODE_NCHARS) {
-    const struct unidata *const ud = &unidata[c / UNICODE_MODULUS][c % UNICODE_MODULUS];
-    return ud->general_category;
-  } else
-    return unicode_General_Category_Cn;
-}
-
-/* XXX this is a bit kludgy */
 
 char **words(const char *s, int *nvecp) {
-  struct vector v;
-  struct dynstr d;
-  const char *start;
-  uint32_t c;
-  int in_word = 0;
+  size_t nv;
+  char **v;
 
-  vector_init(&v);
-  while(*s) {
-    start = s;
-    PARSE_UTF8(s, c, return 0);
-    /* special cases first */
-    switch(c) {
-    case '/':
-    case '.':
-    case '+':
-    case '&':
-    case ':':
-    case '_':
-    case '-':
-      goto separator;
-    }
-    /* do the rest on category */
-    switch(cat(c)) {
-    case unicode_General_Category_Ll:
-    case unicode_General_Category_Lm:
-    case unicode_General_Category_Lo:
-    case unicode_General_Category_Lt:
-    case unicode_General_Category_Lu:
-    case unicode_General_Category_Nd:
-    case unicode_General_Category_Nl:
-    case unicode_General_Category_No:
-    case unicode_General_Category_Sc:
-    case unicode_General_Category_Sk:
-    case unicode_General_Category_Sm:
-    case unicode_General_Category_So:
-      /* letters, digits and symbols are considered to be part of
-       * words */
-      if(!in_word) {
-	dynstr_init(&d);
-	in_word = 1;
-      }
-      dynstr_append_bytes(&d, start, s - start);
-      break;
-
-    case unicode_General_Category_Cc:
-    case unicode_General_Category_Cf:
-    case unicode_General_Category_Co:
-    case unicode_General_Category_Cs:
-    case unicode_General_Category_Zl:
-    case unicode_General_Category_Zp:
-    case unicode_General_Category_Zs:
-    case unicode_General_Category_Pe:
-    case unicode_General_Category_Ps:
-    separator:
-      if(in_word) {
-	dynstr_terminate(&d);
-	vector_append(&v, d.vec);
-	in_word = 0;
-      }
-      break;
-
-    case unicode_General_Category_Mc:
-    case unicode_General_Category_Me:
-    case unicode_General_Category_Mn:
-    case unicode_General_Category_Pc:
-    case unicode_General_Category_Pd:
-    case unicode_General_Category_Pf:
-    case unicode_General_Category_Pi:
-    case unicode_General_Category_Po:
-    case unicode_General_Category_Cn:
-      /* control and punctuation is completely ignored */
-      break;
-
-    }
-  }
-  if(in_word) {
-    /* pick up the final word */
-    dynstr_terminate(&d);
-    vector_append(&v, d.vec);
-  }
-  vector_terminate(&v);
-  if(nvecp)
-    *nvecp = v.nvec;
-  return v.vec;
+  v = utf8_word_split(s, strlen(s), &nv);
+  *nvecp = nv;
+  return v;
 }
 
 /*

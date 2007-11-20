@@ -1271,6 +1271,59 @@ int utf32_is_word_boundary(const uint32_t *s, size_t ns, size_t n) {
   return utf32_iterator_word_boundary(it);
 }
 
+/** @brief Split [s,ns) into multiple words
+ * @param s Pointer to start of string
+ * @param ns Length of string
+ * @param nwp Where to store word count, or NULL
+ * @return Pointer to array of pointers to words
+ *
+ * The returned array is terminated by a NULL pointer and individual
+ * strings are 0-terminated.
+ */
+uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp) {
+  struct utf32_iterator_data it[1];
+  size_t b1 = 0, b2 = 0 ,i;
+  int isword;
+  struct vector32 v32[1];
+  uint32_t *w;
+
+  vector32_init(v32);
+  utf32__iterator_init(it, s, ns, 0);
+  /* Work our way through the string stopping at each word break. */
+  do {
+    if(utf32_iterator_word_boundary(it)) {
+      /* We've found a new boundary */
+      b1 = b2;
+      b2 = it->n;
+      /*fprintf(stderr, "[%zu, %zu) is a candidate word\n", b1, b2);*/
+      /* Inspect the characters between the boundary and form an opinion as to
+       * whether they are a word or not */
+      isword = 0;
+      for(i = b1; i < b2; ++i) {
+        switch(utf32__word_break(it->s[i])) {
+        case unicode_Word_Break_ALetter:
+        case unicode_Word_Break_Numeric:
+        case unicode_Word_Break_Katakana:
+          isword = 1;
+          break;
+        default:
+          break;
+        }
+      }
+      /* If it's a word add it to the list of results */
+      if(isword) {
+        w = xcalloc(b2 - b1 + 1, sizeof(uint32_t));
+        memcpy(w, it->s + b1, (b2 - b1) * sizeof (uint32_t));
+        vector32_append(v32, w);
+      }
+    }
+  } while(!utf32_iterator_advance(it, 1));
+  vector32_terminate(v32);
+  if(nwp)
+    *nwp = v32->nvec;
+  return v32->vec;
+}
+
 /*@}*/
 /** @defgroup utf8 Functions that operate on UTF-8 strings */
 /*@{*/
@@ -1410,6 +1463,45 @@ char *utf8_casefold_canon(const char *s, size_t ns, size_t *ndp) {
 char *utf8_casefold_compat(const char *s, size_t ns, size_t *ndp) {
   utf8__transform(utf32_casefold_compat);
 }
+
+/** @brief Split [s,ns) into multiple words
+ * @param s Pointer to start of string
+ * @param ns Length of string
+ * @param nwp Where to store word count, or NULL
+ * @return Pointer to array of pointers to words
+ *
+ * The returned array is terminated by a NULL pointer and individual
+ * strings are 0-terminated.
+ */
+char **utf8_word_split(const char *s, size_t ns, size_t *nwp) {
+  uint32_t *to32 = 0, **v32 = 0;
+  size_t nto32, nv, n;
+  char **v8 = 0, **ret = 0;
+                                                                
+  if(!(to32 = utf8_to_utf32(s, ns, &nto32))) goto error;
+  if(!(v32 = utf32_word_split(to32, nto32, &nv))) goto error;
+  v8 = xcalloc(sizeof (char *), nv + 1);
+  for(n = 0; n < nv; ++n)
+    if(!(v8[n] = utf32_to_utf8(v32[n], utf32_len(v32[n]), 0)))
+      goto error;
+  ret = v8;
+  *nwp = nv;
+  v8 = 0;                               /* don't free */
+error:                                                          
+  if(v8) {
+    for(n = 0; n < nv; ++n)
+      xfree(v8[n]);
+    xfree(v8);
+  }
+  if(v32) {
+    for(n = 0; n < nv; ++n)
+      xfree(v32[n]);
+    xfree(v32);
+  }
+  xfree(to32);
+  return ret;
+}
+
 
 /*@}*/
 

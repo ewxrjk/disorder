@@ -414,6 +414,69 @@ static void test_casefold(void) {
   check_string(casefold(""), "");
 }
 
+struct {
+  const char *in;
+  const char *expect[10];
+} wtest[] = {
+  /* Empty string */
+  { "", { 0 } },
+  /* Only whitespace and punctuation */
+  { "    ", { 0 } },
+  { " '   ", { 0 } },
+  { " !  ", { 0 } },
+  { " \"\"  ", { 0 } },
+  { " @  ", { 0 } },
+  /* Basics */
+  { "wibble", { "wibble", 0 } },
+  { " wibble", { "wibble", 0 } },
+  { " wibble ", { "wibble", 0 } },
+  { "wibble ", { "wibble", 0 } },
+  { "wibble spong", { "wibble", "spong", 0 } },
+  { " wibble  spong", { "wibble", "spong", 0 } },
+  { " wibble  spong   ", { "wibble", "spong", 0 } },
+  { "wibble   spong  ", { "wibble", "spong", 0 } },
+  { "wibble   spong splat foo zot  ", { "wibble", "spong", "splat", "foo", "zot", 0 } },
+  /* Apostrophes */
+  { "wibble 'spong", { "wibble", "spong", 0 } },
+  { " wibble's", { "wibble's", 0 } },
+  { " wibblespong'   ", { "wibblespong", 0 } },
+  { "wibble   sp''ong  ", { "wibble", "sp", "ong", 0 } },
+};
+#define NWTEST (sizeof wtest / sizeof *wtest)
+
+static void test_words(void) {
+  size_t t, nexpect, ngot, i;
+  int right;
+  
+  fprintf(stderr, "test_words\n");
+  for(t = 0; t < NWTEST; ++t) {
+    char **got = utf8_word_split(wtest[t].in, strlen(wtest[t].in), &ngot);
+
+    for(nexpect = 0; wtest[t].expect[nexpect]; ++nexpect)
+      ;
+    if(nexpect == ngot) {
+      for(i = 0; i < ngot; ++i)
+        if(strcmp(wtest[t].expect[i], got[i]))
+          break;
+      right = i == ngot;
+    } else
+      right = 0;
+    if(!right) {
+      fprintf(stderr, "word split %zu failed\n", t);
+      fprintf(stderr, "input: %s\n", wtest[t].in);
+      fprintf(stderr, "    | %-30s | %-30s\n",
+              "expected", "got");
+      for(i = 0; i < nexpect || i < ngot; ++i) {
+        const char *e = i < nexpect ? wtest[t].expect[i] : "<none>";
+        const char *g = i < ngot ? got[i] : "<none>";
+        fprintf(stderr, " %2zu | %-30s | %-30s\n", i, e, g);
+      }
+      count_error();
+    }
+    ++tests;
+  }
+}
+
 /** @brief Less-than comparison function for integer heap */
 static inline int int_lt(int a, int b) { return a < b; }
 
@@ -657,6 +720,7 @@ int main(void) {
   /* vector.c */
   /* words.c */
   test_casefold();
+  test_words();
   /* XXX words() */
   /* wstat.c */
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);

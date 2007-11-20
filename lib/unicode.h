@@ -74,6 +74,9 @@ uint32_t utf32_iterator_code(utf32_iterator it);
 int utf32_iterator_grapheme_boundary(utf32_iterator it);
 int utf32_iterator_word_boundary(utf32_iterator it);
 
+uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp);
+char **utf8_word_split(const char *s, size_t ns, size_t *nwp);
+
 /** @brief Convert 0-terminated UTF-32 to UTF-8
  * @param s 0-terminated UTF-32 string
  * @return 0-terminated UTF-8 string or 0 on error

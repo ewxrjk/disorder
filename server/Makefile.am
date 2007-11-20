@@ -118,7 +118,7 @@ cgi.o: ../lib/definitions.h
 # for Mac OS X >=10.4
 SEDFILES=uk.org.greenend.rjk.disorder.plist
 include ${top_srcdir}/scripts/sedfiles.make
-EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in
+EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in README.dbversions
 LAUNCHD=/Library/LaunchDaemons
 
 #install-data-hook:

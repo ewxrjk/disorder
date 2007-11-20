@@ -884,6 +884,7 @@ static const struct conf conf[] = {
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
   { C(connect),          &type_stringlist,       validate_addrport },
+  { C(dbversion),        &type_integer,          validate_positive },
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
@@ -1039,6 +1040,7 @@ static struct config *config_default(void) {
   c->short_display = 32;
   c->mixer = xstrdup("/dev/mixer");
   c->channel = xstrdup("pcm");
+  c->dbversion = 2;
   return c;
 }
 
