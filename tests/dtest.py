@@ -13,11 +13,25 @@ def maketrack(s):
     """maketrack(S)
 
 Make track with relative path S exist"""
-    trackpath = "%s/tracks/%s" % (testroot, s)
+    trackpath = "%s/%s" % (tracks, s)
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
     copyfile("%s/sounds/slap.ogg" % topsrcdir, trackpath)
+    # We record the tracks we created so they can be tested against
+    # server responses
+    bits = s.split('/')
+    dp = tracks
+    for d in bits [0:-1]:
+        dd = "%s/%s" % (dp,  d)
+        if dp not in dirs_by_dir:
+            dirs_by_dir[dp] = []
+        if dd not in dirs_by_dir[dp]:
+            dirs_by_dir[dp].append(dd)
+        dp = "%s/%s" % (dp, d)
+    if dp not in files_by_dir:
+        files_by_dir[dp] = []
+    files_by_dir[dp].append("%s/%s" % (dp, bits[-1]))
 
 def stdtracks():
     # We create some tracks with non-ASCII characters in the name and
@@ -32,6 +46,10 @@ def stdtracks():
     # is frustrated.  Provided we test on traditional filesytsems too this
     # shouldn't be a problem.
     # (See http://developer.apple.com/qa/qa2001/qa1173.html)
+
+    global dirs_by_dir, files_by_dir
+    dirs_by_dir={}
+    files_by_dir={}
     
     # C3 8C = 00CC LATIN CAPITAL LETTER I WITH GRAVE
     # (in NFC)
@@ -45,12 +63,10 @@ def stdtracks():
     # ...hopefuly giving C3 8D = 00CD LATIN CAPITAL LETTER I WITH ACUTE
     maketrack("Joe Bloggs/First Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
     maketrack("Joe Bloggs/Second Album/01:First track.ogg")
     maketrack("Joe Bloggs/Second Album/02:Second track.ogg")
     maketrack("Joe Bloggs/Second Album/03:Third track.ogg")
     maketrack("Joe Bloggs/Second Album/04:Fourth track.ogg")
-    maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
     maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
     maketrack("Joe Bloggs/Third Album/01:First track.ogg")
     maketrack("Joe Bloggs/Third Album/02:Second track.ogg")
@@ -172,4 +188,5 @@ tests = 0
 failures = 0
 daemon = None
 testroot = "%s/testroot" % os.getcwd()
+tracks = "%s/tracks" % testroot
 topsrcdir = os.path.abspath(os.getenv("topsrcdir"))
