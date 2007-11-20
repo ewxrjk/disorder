@@ -126,3 +126,4 @@ lib/WordBreakProperty.txt
 lib/SentenceBreakProperty.txt
 lib/WordBreakTest.txt
 lib/DerivedNormalizationProps.txt
+tests/*.log

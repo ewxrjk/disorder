@@ -50,6 +50,7 @@
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "trackname.h"
+#include "unicode.h"
 
 static DB_TXN *global_tid;
 
@@ -149,6 +150,11 @@ static void rescan_collection(const struct collection *c) {
     }
     if(!(track = any2utf8(c->encoding, path))) {
       error(0, "cannot convert track path to UTF-8: %s", path);
+      continue;
+    }
+    /* We use NFC track names */
+    if(!(track = utf8_compose_canon(track, strlen(track), 0))) {
+      error(0, "cannot convert track path to NFC: %s", path);
       continue;
     }
     D(("track %s", track));

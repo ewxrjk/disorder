@@ -558,6 +558,14 @@ If unset or \fByes\fR then play is enabled.  Otherwise it is disabled.  Use
 .B random-play
 If unset or \fByes\fR then random play is enabled.  Otherwise it is disabled.
 Use \fBdisable\fR rather than setting it directly.
+.PP
+Global preferences starting '_' are read-only (in the sense that you cannot
+modify them; the server may modify them as part of its normal operation).  They
+are:
+.TP
+.B _dbversion
+The database version string.  This is used by DisOrder to detect when it must
+modify the database after an upgrade.
 .SH "LIBAO DRIVER"
 .SS "Raw Protocol Players"
 Raw protocol players are expected to use the \fBdisorder\fR libao driver.

@@ -23,6 +23,9 @@
 
 struct ev_source;
 
+/* Database version string */
+#define DBVERSION "2.0"
+
 extern const struct cache_type cache_files_type;
 extern unsigned long cache_files_hits, cache_files_misses;
 /* Cache entry type and tracking for regexp-based lookups */

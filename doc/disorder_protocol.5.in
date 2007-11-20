@@ -26,10 +26,12 @@ in this man page.
 The protocol is liable to change without notice.  You are recommended to check
 the implementation before believing this document.
 .SH "GENERAL SYNTAX"
-Everything is encoded using UTF-8.
+Everything is encoded using UTF-8.  See
+.B "CHARACTER ENCODING"
+below for more detail on character encoding issues.
 .PP
-Commands and responses consist of a line followed (depending on the
-command or response) by a message.
+Commands and responses consist of a line perhaps followed (depending on the
+command or response) by a body.
 .PP
 The line syntax is the same as described in \fBdisorder_config\fR(5) except
 that comments are prohibited.
@@ -455,6 +457,63 @@ The volume changed.
 is as defined in
 .B "TRACK INFORMATION"
 above.
+.SH "CHARACTER ENCODING"
+All data sent by both server and client is encoded using UTF-8.  Moreover it
+must be valid UTF-8, i.e. non-minimal sequences are not permitted, nor are
+surrogates, nor are code points outside the Unicode code space.
+.PP
+There are no particular normalization requirements on either side of the
+protocol.  The server currently converts internally to NFC, the client must
+normalize the responses returned if it needs some normalized form for further
+processing.
+.PP
+The various characters which divide up lines may not be followed by combining
+characters.  For instance all of the following are prohibited:
+.TP
+.B o
+LINE FEED followed by a combining character.  For example the sequence
+LINE FEED, COMBINING GRAVE ACCENT is never permitted.
+.TP
+.B o
+APOSTROPHE or QUOTATION MARK followed by a combining character when used to
+delimit fields.  For instance a line starting APOSTROPHE, COMBINING CEDILLA
+is prohibited.
+.IP
+Note that such sequences are not prohibited when the quote character cannot be
+interpreted as a field delimiter.  For instance APOSTROPHE, REVERSE SOLIDUS,
+APOSTROPHE, COMBINING CEDILLA, APOSTROPHE would be permitted.
+.TP
+.B o
+REVERSE SOLIDUS (BACKSLASH) followed by a combining character in a quoted
+string when it is the first character of an escape sequence.  For instance a
+line starting APOSTROPHE, REVERSE SOLIDUS, COMBINING TILDE is prohibited.
+.IP
+As above such sequences are not prohibited when the character is not being used
+to start an escape sequence.  For instance APOSTROPHE, REVERSE SOLIDUS,
+REVERSE SOLIDS, COMBINING TILDER, APOSTROPHE is permitted.
+.TP
+.B o
+Any of the field-splitting whitespace characters followed by a combining
+character when not part of a quoted field.  For instance a line starting COLON,
+SPACE, COMBINING CANDRABINDU is prohibited.
+.IP
+As above non-delimiter uses are fine.
+.TP
+.B o
+The FULL STOP characters used to quote or delimit a body.
+.PP
+Furthermore none of these characters are permitted to appear in the context of
+a canonical decomposition (i.e. they must still be present when converted to
+NFC).  In practice however this is not an issue in Unicode 5.0.
+.PP
+These rules are consistent with the observation that the split() function is
+essentially a naive ASCII parser.  The implication is not that these sequences
+never actually appear in the protocol, merely that the server is not required
+to honor them in any useful way nor be consistent between versions: in current
+versions the result will be lines and fields that start with combining
+characters and are not necessarily split where you expect, but future versions
+may remove them, reject them or ignore some or all of the delimiters that have
+following combining characters, and no notice will be given of any change.
 .SH "SEE ALSO"
 \fBdisorder\fR(1),
 \fBtime\fR(2),

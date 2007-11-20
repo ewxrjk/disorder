@@ -113,6 +113,13 @@ static inline DBT *encode_data(DBT *data, const struct kvp *k) {
   return data;
 }
 
+int trackdb_set_global_tid(const char *name,
+                           const char *value,
+                           DB_TXN *tid);
+int trackdb_get_global_tid(const char *name,
+                           DB_TXN *tid,
+                           const char **rp);
+
 #endif /* TRACKDB_INT_H */
 
 /*

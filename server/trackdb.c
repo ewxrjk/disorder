@@ -63,9 +63,6 @@ static const char *getpart(const char *track,
                            const struct kvp *p,
                            int *used_db);
 static int trackdb_alltags_tid(DB_TXN *tid, char ***taglistp);
-static int trackdb_get_global_tid(const char *name,
-                                  DB_TXN *tid,
-                                  const char **rp);
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
                               DB_TXN *tid);
@@ -78,11 +75,59 @@ unsigned long cache_files_hits, cache_files_misses;
 
 static const char *home;                /* home had better not change */
 DB_ENV *trackdb_env;			/* db environment */
-DB *trackdb_tracksdb;			/* the db itself */
-DB *trackdb_prefsdb;			/* preferences */
-DB *trackdb_searchdb;			/* the search database */
+
+/** @brief The tracks database
+ * - Keys are UTF-8(NFC(unicode(path name)))
+ * - Values are encoded key-value pairs
+ * - Data is reconstructable data about tracks that currently exist
+ */
+DB *trackdb_tracksdb;
+
+/** @brief The preferences database
+ *
+ * - Keys are UTF-8(NFC(unicode(path name)))
+ * - Values are encoded key-value pairs
+ * - Data is user data about tracks (that might not exist any more)
+ * and cannot be reconstructed
+ */
+DB *trackdb_prefsdb;
+
+/** @brief The search database
+ *
+ * - Keys are UTF-8(NFKC(casefold(search term)))
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path matches the search terms
+ * - Only tracks fond in @ref tracks_tracksdb are represented here
+ * - This database can be reconstructed, it contains no user data
+ */
+DB *trackdb_searchdb;
+
+/** @brief The tags database
+ *
+ * - Keys are UTF-8(NFKC(casefold(tag)))
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path matches the tag
+ * - This is always in sync with the tags preference
+ * - This database can be reconstructed, it contains no user data
+ */
 DB *trackdb_tagsdb;			/* the tags database */
+
+/** @brief The global preferences database
+ * - Keys are UTF-8(NFC(preference))
+ * - Values are global preference values
+ * - Data is user data and cannot be reconstructed
+ */
 DB *trackdb_globaldb;                   /* global preferences */
+
+/** @brief The noticed database
+ * - Keys are 64-bit big-endian timestamps
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path was added at the given time
+ * - Data cannot be reconstructed (but isn't THAT important)
+ */
 DB *trackdb_noticeddb;                   /* when track noticed */
 static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
@@ -230,16 +275,45 @@ static DB *open_db(const char *path,
     if((err = db->set_bt_compare(db, compare)))
       fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
   if((err = db->open(db, 0, path, 0, dbtype,
-                     openflags | DB_AUTO_COMMIT, mode)))
-    fatal(0, "db->open %s: %s", path, db_strerror(err));
+                     openflags | DB_AUTO_COMMIT, mode))) {
+    if((openflags & DB_CREATE) || errno != ENOENT)
+      fatal(0, "db->open %s: %s", path, db_strerror(err));
+    db->close(db, 0);
+    db = 0;
+  }
   return db;
 }
 
 /* open track databases */
 void trackdb_open(void) {
+  int newdb, err;
+
   /* sanity checks */
   assert(opened == 0);
   ++opened;
+  /* check the database version first */
+  trackdb_globaldb = open_db("global.db", 0, DB_HASH, 0, 0666);
+  if(trackdb_globaldb) {
+    /* This is an existing database */
+    const char *oldversion;
+
+    oldversion = trackdb_get_global("_dbversion");
+    if(!oldversion)
+      oldversion = "1.x";
+    if(strcmp(oldversion, DBVERSION)) {
+      /* This database needs upgrading.  This isn't implemented yet so we just
+       * fail. */
+      fatal(0, "database needs upgrading from %s to %s", oldversion, DBVERSION);
+    }
+    newdb = 0;
+    /* Close the database again,  we'll open it property below */
+    if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
+      fatal(0, "error closing global.db: %s", db_strerror(err));
+    trackdb_globaldb = 0;
+  } else {
+    /* This is a brand new database */
+    newdb = 1;
+  }
   /* open the databases */
   trackdb_tracksdb = open_db("tracks.db",
                              DB_RECNUM, DB_BTREE, DB_CREATE, 0666);
@@ -251,6 +325,9 @@ void trackdb_open(void) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
+  /* Stash the database version */
+  if(newdb)
+    trackdb_set_global("_dbversion", DBVERSION, 0);
   D(("opened databases"));
 }
 
@@ -700,6 +777,9 @@ int trackdb_notice(const char *track,
 }
 
 /** @brief notice a possibly new track
+ * @param track NFC UTF-8 track name
+ * @param path Raw path name
+ * @param tid Transaction ID
  * @return @c DB_NOTFOUND if new, 0 if already known, @c DB_LOCK_DEADLOCK also
  */
 int trackdb_notice_tid(const char *track,
@@ -1850,27 +1930,13 @@ void trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
   DB_TXN *tid;
-  DBT k, d;
   int err;
   int state;
 
-  memset(&k, 0, sizeof k);
-  memset(&d, 0, sizeof d);
-  k.data = (void *)name;
-  k.size = strlen(name);
-  if(value) {
-    d.data = (void *)value;
-    d.size = strlen(value);
-  }
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(value)
-      err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
-    else
-      err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
-    if(!err || err == DB_NOTFOUND) break;
-    if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "error updating database: %s", db_strerror(err));
+    if(!(err = trackdb_set_global_tid(name, value, tid)))
+      break;
     trackdb_abort_transaction(tid);
   }
   trackdb_commit_transaction(tid);
@@ -1893,6 +1959,30 @@ void trackdb_set_global(const char *name,
     reqtracks = 0;
 }
 
+int trackdb_set_global_tid(const char *name,
+                           const char *value,
+                           DB_TXN *tid) {
+  DBT k, d;
+  int err;
+
+  memset(&k, 0, sizeof k);
+  memset(&d, 0, sizeof d);
+  k.data = (void *)name;
+  k.size = strlen(name);
+  if(value) {
+    d.data = (void *)value;
+    d.size = strlen(value);
+  }
+  if(value)
+    err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
+  else
+    err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
+  if(err == DB_LOCK_DEADLOCK) return err;
+  if(err)
+    fatal(0, "error updating database: %s", db_strerror(err));
+  return 0;
+}
+
 const char *trackdb_get_global(const char *name) {
   DB_TXN *tid;
   int err;
@@ -1908,9 +1998,9 @@ const char *trackdb_get_global(const char *name) {
   return r;
 }
 
-static int trackdb_get_global_tid(const char *name,
-                                  DB_TXN *tid,
-                                  const char **rp) {
+int trackdb_get_global_tid(const char *name,
+                           DB_TXN *tid,
+                           const char **rp) {
   DBT k, d;
   int err;
 
@@ -1928,7 +2018,7 @@ static int trackdb_get_global_tid(const char *name,
   case DB_LOCK_DEADLOCK:
     return err;
   default:
-    fatal(0, "error updating database: %s", db_strerror(err));
+    fatal(0, "error reading database: %s", db_strerror(err));
   }
 }
 
