@@ -22,12 +22,11 @@ import dtest,time,disorder
 
 def test():
     """Ask the server its version number"""
-    dtest.start()
+    dtest.start_daemon()
     time.sleep(2)                       # give the daemon a chance to start up
     c = disorder.client()
     v = c.version()
     print "Server version: %s" % v
-    dtest.stop()
 
 if __name__ == '__main__':
     dtest.run()

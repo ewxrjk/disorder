@@ -105,8 +105,8 @@ def stdtracks():
 def notracks():
     pass
 
-def start():
-    """start()
+def start_daemon():
+    """start_daemon()
 
 Start the daemon."""
     global daemon
@@ -119,8 +119,8 @@ Start the daemon."""
     disorder._configfile = "%s/config" % testroot
     disorder._userconf = False
 
-def stop():
-    """stop()
+def stop_daemon():
+    """stop_daemon()
 
 Stop the daemon if it has not stopped already"""
     global daemon
@@ -163,7 +163,7 @@ def run(module=None, report=True):
             failures += 1
             print e
     finally:
-        stop()
+        stop_daemon()
     if report:
         if failures:
             print " FAILED"
