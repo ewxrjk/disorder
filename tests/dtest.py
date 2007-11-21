@@ -102,8 +102,35 @@ def stdtracks():
     maketrack("Various/Greatest Hits/01:Jim Whatever - Spong.ogg")
     maketrack("Various/Greatest Hits/02:Joe Bloggs - Yadda.ogg")
 
-def notracks():
-    pass
+def common_setup():
+    remove_dir(testroot)
+    os.mkdir(testroot)
+    open("%s/config" % testroot, "w").write(
+    """player *.ogg shell 'echo "$TRACK" >> %s/played.log'
+home %s
+collection fs UTF-8 %s/tracks
+scratch %s/scratch.ogg
+gap 0
+stopword 01 02 03 04 05 06 07 08 09 10
+stopword 1 2 3 4 5 6 7 8 9
+stopword 11 12 13 14 15 16 17 18 19 20
+stopword 21 22 23 24 25 26 27 28 29 30
+stopword the a an and to too in on of we i am as im for is
+username fred
+password fredpass
+allow fred fredpass
+plugins %s/plugins
+player *.mp3 execraw disorder-decode
+player *.ogg execraw disorder-decode
+player *.wav execraw disorder-decode
+player *.flac execraw disorder-decode
+tracklength *.mp3 disorder-tracklength
+tracklength *.ogg disorder-tracklength
+tracklength *.wav disorder-tracklength
+tracklength *.flac disorder-tracklength
+""" % (testroot, testroot, testroot, testroot, top_builddir))
+    copyfile("%s/sounds/scratch.ogg" % top_srcdir,
+             "%s/scratch.ogg" % testroot)
 
 def start_daemon():
     """start_daemon()
@@ -141,6 +168,7 @@ def run(module=None, report=True):
     will be imported) or a module object."""
     global tests
     tests += 1
+    # Locate the test module
     if module is None:
         # We're running a test stand-alone
         import __main__
@@ -151,10 +179,14 @@ def run(module=None, report=True):
         if type(module) == str:
             module = __import__(module)
         name = module.__name__
+    # Open the error log
     global errs
     errs = open("%s.log" % name, "w")
-    setup = stdtracks
-    setup()
+    # Ensure that disorder.py uses the test installation
+    disorder._configfile = "%s/config" % testroot
+    disorder._userconf = False
+    # Create some standard tracks
+    stdtracks()
     try:
         try:
             module.test()
@@ -190,31 +222,4 @@ tests = 0
 failures = 0
 daemon = None
 testroot = "%s/tests/testroot" % top_builddir
-remove_dir(testroot)
-os.mkdir(testroot)
-open("%s/config" % testroot, "w").write(
-"""player *.ogg shell 'echo "$TRACK" >> %s/played.log'
-home %s
-collection fs ASCII %s/tracks
-scratch %s/scratch.ogg
-gap 0
-stopword 01 02 03 04 05 06 07 08 09 10
-stopword 1 2 3 4 5 6 7 8 9
-stopword 11 12 13 14 15 16 17 18 19 20
-stopword 21 22 23 24 25 26 27 28 29 30
-stopword the a an and to too in on of we i am as im for is
-username fred
-password fredpass
-allow fred fredpass
-plugins %s/plugins
-player *.mp3 execraw disorder-decode
-player *.ogg execraw disorder-decode
-player *.wav execraw disorder-decode
-player *.flac execraw disorder-decode
-tracklength *.mp3 disorder-tracklength
-tracklength *.ogg disorder-tracklength
-tracklength *.wav disorder-tracklength
-tracklength *.flac disorder-tracklength
-""" % (testroot, testroot, testroot, testroot, top_builddir))
-copyfile("%s/sounds/scratch.ogg" % top_srcdir,
-         "%s/scratch.ogg" % testroot)
+tracks = "%s/tracks" % testroot
