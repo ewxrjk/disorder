@@ -70,7 +70,7 @@ def maketrack(s):
     """maketrack(S)
 
 Make track with relative path S exist"""
-    trackpath = "%s/tracks/%s" % (testroot, s)
+    trackpath = "%s/%s" % (tracks, s)
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
@@ -82,18 +82,16 @@ def stdtracks():
     maketrack("Joe Bloggs/First Album/03:Third track.ogg")
     maketrack("Joe Bloggs/First Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
     maketrack("Joe Bloggs/Second Album/01:First track.ogg")
     maketrack("Joe Bloggs/Second Album/02:Second track.ogg")
     maketrack("Joe Bloggs/Second Album/03:Third track.ogg")
     maketrack("Joe Bloggs/Second Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/First Album/01:First track.ogg")
-    maketrack("Joe Bloggs/First Album/02:Second track.ogg")
-    maketrack("Joe Bloggs/First Album/03:Third track.ogg")
-    maketrack("Joe Bloggs/First Album/04:Fourth track.ogg")
-    maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
+    maketrack("Joe Bloggs/Third Album/01:First track.ogg")
+    maketrack("Joe Bloggs/Third Album/02:Second track.ogg")
+    maketrack("Joe Bloggs/Third Album/03:Third track.ogg")
+    maketrack("Joe Bloggs/Third Album/04:Fourth track.ogg")
+    maketrack("Joe Bloggs/Third Album/05:Fifth track.ogg")
     maketrack("Fred Smith/Boring/01:Dull.ogg")
     maketrack("Fred Smith/Boring/02:Tedious.ogg")
     maketrack("Fred Smith/Boring/03:Drum Solo.ogg")
@@ -136,7 +134,7 @@ def start_daemon():
     """start_daemon()
 
 Start the daemon."""
-    global daemon
+    global daemon, errs
     assert daemon == None
     print " starting daemon"
     daemon = subprocess.Popen(["disorderd",
