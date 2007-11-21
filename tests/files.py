@@ -2,7 +2,8 @@
 import dtest,time,disorder,sys
 
 def test():
-    """Ask the server its version number"""
+    """Check that the file listing comes out right"""
+    dtest.start_daemon()
     time.sleep(5)                       # give rescan a chance
     c = disorder.client()
     failures = 0

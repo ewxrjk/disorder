@@ -24,4 +24,4 @@ check:
 		topsrcdir=${top_srcdir} \
 		${PYTHON} ${srcdir}/alltests
 
-EXTRA_DIST=alltests dtest.py nothing.py version.py
+EXTRA_DIST=alltests dtest.py nothing.py version.py dbversion.py

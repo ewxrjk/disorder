@@ -116,29 +116,24 @@ tracklength *.flac disorder-tracklength
     copyfile("%s/sounds/scratch.ogg" % topsrcdir,
              "%s/scratch.ogg" % testroot)
 
-def start_daemon(test):
-    """start_daemon(TEST)
-Start the daemon for test called TEST."""
-    global daemon
-    assert daemon == None
-    if test == None:
-        errs = sys.stderr
-    else:
-        errs = open("%s.log" % test, "w")
+def start_daemon():
+    """start_daemon()
+Start the daemon."""
+    global daemon,errs
+    assert daemon is None
     server = None
     print " starting daemon"
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
                                "--config", "%s/config" % testroot],
                               stderr=errs)
-    disorder._configfile = "%s/config" % testroot
-    disorder._userconf = False
 
 def stop_daemon():
     """stop_daemon()
 
 Stop the daemon if it has not stopped already"""
     global daemon
+    assert daemon is not None
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
@@ -148,13 +143,15 @@ Stop the daemon if it has not stopped already"""
     daemon = None
 
 def run(test, setup=None, report=True, name=None): 
-    global tests
+    global tests,errs
     tests += 1
     if setup == None:
         setup = stdtracks
+    errs = open("%s.log" % test.__name__, "w") # HNGGGH.  nO.
+    disorder._configfile = "%s/config" % testroot
+    disorder._userconf = False
     common_setup()
     setup()
-    start_daemon(name)
     try:
         try:
             test()
@@ -163,7 +160,8 @@ def run(test, setup=None, report=True, name=None):
             failures += 1
             print e
     finally:
-        stop_daemon()
+        if daemon is not None:
+            stop_daemon()
     if report:
         if failures:
             print " FAILED"

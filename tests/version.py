@@ -3,6 +3,7 @@ import dtest,time,disorder
 
 def test():
     """Ask the server its version number"""
+    dtest.start_daemon()
     time.sleep(2)                       # give the daemon a chance to start up
     c = disorder.client()
     v = c.version()
