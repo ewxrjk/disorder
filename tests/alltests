@@ -40,6 +40,8 @@ import dtest
 # call dtest.run
 tests = []
 for f in os.listdir(testdir):
+    if f == 'dtest.py':                 # special case
+        continue
     r = re.search("^(.*)\\.py$", f)
     if r is not None:
         isTest = False
@@ -55,11 +57,7 @@ tests.sort()                            # let's have a consistent order
 
 for test in tests:
     print "Test '%s'" % test
-    m = __import__(test)
-    dtest.run(getattr(m, "test"),
-              setup=getattr(m, "setup", None),
-              report=False,
-              name=test)
+    dtest.run(test, report=False)
 
 print "%d tests" % dtest.tests
 if dtest.failures:

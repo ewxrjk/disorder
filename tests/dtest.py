@@ -139,10 +139,7 @@ def stdtracks():
     maketrack("misc/blahblahblah.ogg")
     maketrack("Various/Greatest Hits/01:Jim Whatever - Spong.ogg")
     maketrack("Various/Greatest Hits/02:Joe Bloggs - Yadda.ogg")
-
-def notracks():
-    pass
-
+ 
 def common_setup():
     remove_dir(testroot)
     os.mkdir(testroot)
@@ -160,7 +157,7 @@ stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
 allow fred fredpass
-plugins ../plugins
+plugins %s/plugins
 player *.mp3 execraw disorder-decode
 player *.ogg execraw disorder-decode
 player *.wav execraw disorder-decode
@@ -169,16 +166,16 @@ tracklength *.mp3 disorder-tracklength
 tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
-""" % (testroot, testroot, testroot, testroot))
+""" % (testroot, testroot, testroot, testroot, top_builddir))
     copyfile("%s/sounds/scratch.ogg" % top_srcdir,
              "%s/scratch.ogg" % testroot)
 
 def start_daemon():
     """start_daemon()
+
 Start the daemon."""
-    global daemon,errs
-    assert daemon is None
-    server = None
+    global daemon, errs
+    assert daemon == None
     print " starting daemon"
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
@@ -190,7 +187,8 @@ def stop_daemon():
 
 Stop the daemon if it has not stopped already"""
     global daemon
-    assert daemon is not None
+    if daemon == None:
+        return
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
@@ -199,26 +197,43 @@ Stop the daemon if it has not stopped already"""
     print " daemon has stopped"
     daemon = None
 
-def run(test, setup=None, report=True, name=None): 
-    global tests,errs
+def run(module=None, report=True):
+    """dtest.run(MODULE)
+
+    Run the test in MODULE.  This can be a string (in which case the module
+    will be imported) or a module object."""
+    global tests
     tests += 1
-    if setup == None:
-        setup = stdtracks
-    errs = open("%s.log" % test.__name__, "w")
+    # Locate the test module
+    if module is None:
+        # We're running a test stand-alone
+        import __main__
+        module = __main__
+        name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    else:
+        # We've been passed a module or a module name
+        if type(module) == str:
+            module = __import__(module)
+        name = module.__name__
+    # Open the error log
+    global errs
+    errs = open("%s.log" % name, "w")
+    # Ensure that disorder.py uses the test installation
     disorder._configfile = "%s/config" % testroot
     disorder._userconf = False
+    # Make config file etc
     common_setup()
-    setup()
+    # Create some standard tracks
+    stdtracks()
     try:
         try:
-            test()
+            module.test()
         except AssertionError, e:
             global failures
             failures += 1
             print e
     finally:
-        if daemon is not None:
-            stop_daemon()
+        stop_daemon()
     if report:
         if failures:
             print " FAILED"

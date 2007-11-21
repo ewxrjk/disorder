@@ -50,4 +50,4 @@ def test():
         sys.exit(1)
 
 if __name__ == '__main__':
-    dtest.run(test)
+    dtest.run()

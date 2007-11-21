@@ -26,4 +26,4 @@ def test():
     time.sleep(2)
 
 if __name__ == '__main__':
-    dtest.run(test)
+    dtest.run()

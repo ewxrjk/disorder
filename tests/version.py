@@ -29,4 +29,4 @@ def test():
     print "Server version: %s" % v
 
 if __name__ == '__main__':
-    dtest.run(test)
+    dtest.run()
