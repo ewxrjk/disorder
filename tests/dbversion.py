@@ -31,6 +31,7 @@ def test():
     time.sleep(2)
     dtest.stop_daemon()
     # Revert to default configuration
+    print "Checking daemon won't start with an old database"
     dtest.copyfile(configsave, config)
     dtest.start_daemon()
     time.sleep(2)
@@ -55,6 +56,10 @@ def test():
     if rc != 0:
         print "disorder-dbupgrade: FAILED: exit code %s" % rc
         sys.exit(1)
+    print "Testing daemon after upgrade..."
+    dtest.start_daemon()
+    time.sleep(2)
+    assert dtest.check_files() == 0
 
 if __name__ == '__main__':
     dtest.run()

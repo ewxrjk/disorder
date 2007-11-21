@@ -253,6 +253,33 @@ Recursively delete directory D"""
         else:
             os.remove(d)
 
+def check_files():
+    c = disorder.client()
+    failures = 0
+    for d in dirs_by_dir:
+        xdirs = dirs_by_dir[d]
+        dirs = c.directories(d)
+        xdirs.sort()
+        dirs.sort()
+        if dirs != xdirs:
+            print
+            print "directory: %s" % d
+            print "expected:  %s" % xdirs
+            print "got:       %s" % dirs
+            failures += 1
+    for d in files_by_dir:
+        xfiles = files_by_dir[d]
+        files = c.files(d)
+        xfiles.sort()
+        files.sort()
+        if files != xfiles:
+            print
+            print "directory: %s" % d
+            print "expected:  %s" % xfiles
+            print "got:       %s" % files
+            failures += 1
+    return failures
+
 # -----------------------------------------------------------------------------
 # Common setup
 
