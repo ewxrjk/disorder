@@ -1,7 +1,57 @@
 #! /usr/bin/env python
+#
+# This file is part of DisOrder.
+# Copyright (C) 2007 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+import sys,re,os.path,os
+
+# Parse the makefile in the current directory to identify the source directory
+top_srcdir = None
+for l in file("Makefile"):
+    r = re.search("^top_srcdir *= *(.*)$",  l)
+    if r:
+        top_srcdir = r.group(1)
+        break
+if not top_srcdir:
+    fatal("cannot identify source directory")
+
+# Make sure that the test directory is on the module search path (so we can
+# find dtest and the tests themselves)
+testdir = os.path.join(top_srcdir, "tests")
+sys.path.insert(0, testdir)
 import dtest
 
-tests = ["nothing", "version", "files", "dbversion"]
+# The tests are all the *.py files in the test source directory that
+# call dtest.run
+tests = []
+for f in os.listdir(testdir):
+    r = re.search("^(.*)\\.py$", f)
+    if r is not None:
+        isTest = False
+        base = r.group(1)
+        for l in file(os.path.join(testdir, f)):
+            r = re.search("dtest\\.run", l)
+            if r is not None:
+                isTest = True
+                break
+        if isTest:
+            tests.append(base)
+tests.sort()                            # let's have a consistent order
 
 for test in tests:
     print "Test '%s'" % test

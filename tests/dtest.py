@@ -1,8 +1,65 @@
 #-*-python-*-
+#
+# This file is part of DisOrder.
+# Copyright (C) 2007 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,disorder,unicodedata
+import os,os.path,subprocess,sys,re,unicodedata
+
+def fatal(s):
+    """Write an error message and exit"""
+    sys.stderr.write("ERROR: %s\n" % s)
+    sys.exit(1)
+
+# Identify the top build directory
+cwd = os.getcwd()
+if os.path.exists("config.h"):
+    top_builddir = cwd
+elif os.path.exists("alltests"):
+    top_builddir = os.path.dirname(cwd)
+else:
+    fatal("cannot identify build directory")
+
+# Make sure the Python build directory is on the module search path
+sys.path.insert(0, os.path.join(top_builddir, "python"))
+import disorder
+
+# Make sure the server build directory is on the executable search path
+ospath = os.environ["PATH"].split(os.pathsep)
+ospath.insert(0, os.path.join(top_builddir, "server"))
+os.environ["PATH"] = os.pathsep.join(ospath)
+
+# Parse the makefile in the current directory to identify the source directory
+top_srcdir = None
+for l in file("Makefile"):
+    r = re.match("top_srcdir *= *(.*)",  l)
+    if r:
+        top_srcdir = r.group(1)
+        break
+if not top_srcdir:
+    fatal("cannot identify source directory")
+
+# The tests source directory must be on the module search path already since
+# we found dtest.py
+
+# -----------------------------------------------------------------------------
 
 def copyfile(a,b):
     """copyfile(A, B)
@@ -17,7 +74,7 @@ Make track with relative path S exist"""
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
-    copyfile("%s/sounds/slap.ogg" % topsrcdir, trackpath)
+    copyfile("%s/sounds/slap.ogg" % top_srcdir, trackpath)
     # We record the tracks we created so they can be tested against
     # server responses.  We put them into NFC since that's what the server
     # uses internally.
@@ -113,7 +170,7 @@ tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
 """ % (testroot, testroot, testroot, testroot))
-    copyfile("%s/sounds/scratch.ogg" % topsrcdir,
+    copyfile("%s/sounds/scratch.ogg" % top_srcdir,
              "%s/scratch.ogg" % testroot)
 
 def start_daemon():
@@ -147,7 +204,7 @@ def run(test, setup=None, report=True, name=None):
     tests += 1
     if setup == None:
         setup = stdtracks
-    errs = open("%s.log" % test.__name__, "w") # HNGGGH.  nO.
+    errs = open("%s.log" % test.__name__, "w")
     disorder._configfile = "%s/config" % testroot
     disorder._userconf = False
     common_setup()
@@ -187,6 +244,5 @@ Recursively delete directory D"""
 tests = 0
 failures = 0
 daemon = None
-testroot = "%s/testroot" % os.getcwd()
+testroot = "%s/tests/testroot" % top_builddir
 tracks = "%s/tracks" % testroot
-topsrcdir = os.path.abspath(os.getenv("topsrcdir"))

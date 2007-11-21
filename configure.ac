@@ -125,17 +125,16 @@ subdirs="scripts lib clients doc examples debian"
 if test $want_server = yes; then
   subdirs="${subdirs} server plugins driver templates sounds images"
 fi
-if test $want_python = yes; then
-  AM_PATH_PYTHON
-  subdirs="${subdirs} python"
-fi
 if test $want_gtk = yes; then
   subdirs="${subdirs} disobedience"
   if test $want_server = no; then
     subdirs="${subdirs} images"
   fi
 fi
-subdirs="${subdirs} tests"
+if test $want_python = yes; then
+  AM_PATH_PYTHON([2.4])
+  subdirs="${subdirs} python tests"
+fi
 AC_SUBST([subdirs])
 
 # libtool config
@@ -497,4 +496,7 @@ AC_OUTPUT
 
 if test $GCC = yes && test "$gcc_werror" = ''; then
   AC_MSG_WARN([building without -Werror])
+fi
+if test $want_python = no; then
+  AC_MSG_WARN([cannot run the test suit without Python])
 fi

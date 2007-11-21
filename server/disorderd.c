@@ -264,8 +264,8 @@ int main(int argc, char **argv) {
   if(config->lock) {
     const char *lockfile;
     int lockfd;
-   struct flock lock;
-    
+    struct flock lock;
+
     lockfile = config_get_file("lock");
     if((lockfd = open(lockfile, O_RDWR|O_CREAT, 0600)) < 0)
       fatal(errno, "error opening %s", lockfile);

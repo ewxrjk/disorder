@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,9 +19,6 @@
 #
 
 check:
-	PATH=`pwd`/../server:`pwd`/..clients:$$PATH \
-	PYTHONPATH=../python \
-		topsrcdir=${top_srcdir} \
-		${PYTHON} ${srcdir}/alltests
+	${PYTHON} ${srcdir}/alltests
 
 EXTRA_DIST=alltests dtest.py nothing.py version.py dbversion.py
