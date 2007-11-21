@@ -185,6 +185,8 @@ def run(module=None, report=True):
     # Ensure that disorder.py uses the test installation
     disorder._configfile = "%s/config" % testroot
     disorder._userconf = False
+    # Make config file etc
+    common_setup()
     # Create some standard tracks
     stdtracks()
     try:
