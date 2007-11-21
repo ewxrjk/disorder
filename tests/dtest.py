@@ -21,7 +21,45 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,disorder
+import os,os.path,subprocess,sys,re
+
+def fatal(s):
+    """Write an error message and exit"""
+    sys.stderr.write("ERROR: %s\n" % s)
+    sys.exit(1)
+
+# Identify the top build directory
+cwd = os.getcwd()
+if os.path.exists("config.h"):
+    top_builddir = cwd
+elif os.path.exists("alltests"):
+    top_builddir = os.path.dirname(cwd)
+else:
+    fatal("cannot identify build directory")
+
+# Make sure the Python build directory is on the module search path
+sys.path.insert(0, os.path.join(top_builddir, "python"))
+import disorder
+
+# Make sure the server build directory is on the executable search path
+ospath = os.environ["PATH"].split(os.pathsep)
+ospath.insert(0, os.path.join(top_builddir, "server"))
+os.environ["PATH"] = os.pathsep.join(ospath)
+
+# Parse the makefile in the current directory to identify the source directory
+top_srcdir = None
+for l in file("Makefile"):
+    r = re.match("top_srcdir *= *(.*)",  l)
+    if r:
+        top_srcdir = r.group(1)
+        break
+if not top_srcdir:
+    fatal("cannot identify source directory")
+
+# The tests source directory must be on the module search path already since
+# we found dtest.py
+
+# -----------------------------------------------------------------------------
 
 def copyfile(a,b):
     """copyfile(A, B)
@@ -36,7 +74,7 @@ Make track with relative path S exist"""
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
-    copyfile("%s/sounds/slap.ogg" % topsrcdir, trackpath)
+    copyfile("%s/sounds/slap.ogg" % top_srcdir, trackpath)
 
 def stdtracks():
     maketrack("Joe Bloggs/First Album/01:First track.ogg")
@@ -140,8 +178,7 @@ Recursively delete directory D"""
 tests = 0
 failures = 0
 daemon = None
-testroot = "%s/testroot" % os.getcwd()
-topsrcdir = os.path.abspath(os.getenv("topsrcdir"))
+testroot = "%s/tests/testroot" % top_builddir
 remove_dir(testroot)
 os.mkdir(testroot)
 open("%s/config" % testroot, "w").write(
@@ -168,5 +205,5 @@ tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
 """ % (testroot, testroot, testroot, testroot))
-copyfile("%s/sounds/scratch.ogg" % topsrcdir,
+copyfile("%s/sounds/scratch.ogg" % top_srcdir,
          "%s/scratch.ogg" % testroot)

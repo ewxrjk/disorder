@@ -18,7 +18,22 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,sys
+import sys,re,os.path
+
+# Parse the makefile in the current directory to identify the source directory
+top_srcdir = None
+for l in file("Makefile"):
+    r = re.match("top_srcdir *= *(.*)",  l)
+    if r:
+        top_srcdir = r.group(1)
+        break
+if not top_srcdir:
+    fatal("cannot identify source directory")
+
+# Make sure that the test directory is on the module search path (so we can
+# find dtest and the tests themselves)
+sys.path.insert(0, os.path.join(top_srcdir, "tests"))
+import dtest
 
 tests = ["nothing", "version"]
 
