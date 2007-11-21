@@ -127,3 +127,6 @@ lib/SentenceBreakProperty.txt
 lib/WordBreakTest.txt
 lib/DerivedNormalizationProps.txt
 tests/*.log
+server/disorder-dbupgrade
+doc/disorder-dbupgrade.8.html
+doc/disorder-dbupgrade.8

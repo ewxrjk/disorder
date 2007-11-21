@@ -285,8 +285,10 @@ static DB *open_db(const char *path,
   return db;
 }
 
-/* open track databases */
-void trackdb_open(void) {
+/** @brief Open track databases
+ * @param dbupgrade Non-0 to allow non-current database versions
+ */
+void trackdb_open(int dbupgrade) {
   int newdb, err;
 
   /* sanity checks */
@@ -301,11 +303,20 @@ void trackdb_open(void) {
 
     s = trackdb_get_global("_dbversion");
     oldversion = s ? atol(s) : 1;
-    if(oldversion != config->dbversion) {
+    if(oldversion > config->dbversion) {
+      /* Database is from the future */
+      fatal(0, "this version of DisOrder is too old for database version %ld",
+            oldversion);
+    }
+    if(oldversion < config->dbversion && !dbupgrade) {
       /* This database needs upgrading.  This isn't implemented yet so we just
        * fail. */
       fatal(0, "database needs upgrading from %ld to %ld",
             oldversion, config->dbversion);
+    }
+    if(oldversion == config->dbversion && dbupgrade) {
+      /* This doesn't make any sense */
+      fatal(0, "database is already at current version");
     }
     newdb = 0;
     /* Close the database again,  we'll open it property below */
@@ -313,6 +324,10 @@ void trackdb_open(void) {
       fatal(0, "error closing global.db: %s", db_strerror(err));
     trackdb_globaldb = 0;
   } else {
+    if(dbupgrade) {
+      /* Cannot upgrade a new database */
+      fatal(0, "cannot upgrade a database that does not exist");
+    }
     /* This is a brand new database */
     newdb = 1;
   }
@@ -327,8 +342,8 @@ void trackdb_open(void) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
-  /* Stash the database version */
-  if(newdb) {
+  if(newdb && !dbupgrade) {
+    /* Stash the database version */
     char buf[32];
 
     snprintf(buf, sizeof buf, "%ld", config->dbversion);

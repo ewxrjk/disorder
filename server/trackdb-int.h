@@ -26,7 +26,9 @@ extern DB_ENV *trackdb_env;
 extern DB *trackdb_tracksdb;
 extern DB *trackdb_prefsdb;
 extern DB *trackdb_searchdb;
+extern DB *trackdb_tagsdb;
 extern DB *trackdb_noticeddb;
+extern DB *trackdb_globaldb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */

@@ -37,7 +37,7 @@ void trackdb_deinit(void);
 void trackdb_master(struct ev_source *ev);
 /* start deadlock manager */
 
-void trackdb_open(void);
+void trackdb_open(int dbupgrade);
 void trackdb_close(void);
 /* open/close track databases */
 

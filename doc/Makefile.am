@@ -21,7 +21,7 @@
 SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
 	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-playrtp.1 \
-	disorder-decode.8 disorder-stats.8
+	disorder-decode.8 disorder-stats.8 disorder-dbupgrade.8
 
 include ${top_srcdir}/scripts/sedfiles.make
 
@@ -29,7 +29,7 @@ man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
 	disorder_protocol.5 disorder-deadlock.8 \
 	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8 \
 	disorder-playrtp.1 disorder-normalize.8 disorder-decode.8 \
-	disorder-stats.8
+	disorder-stats.8 disorder-dbupgrade.8
 
 noinst_MANS=tkdisorder.1
 
@@ -48,6 +48,6 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   tkdisorder.1 disorder-deadlock.8.in disorder-rescan.8.in \
 	   disobedience.1.in disorderfm.1.in disorder-speaker.8 \
 	   disorder-playrtp.1.in disorder-decode.8.in disorder-normalize.8 \
-	   disorder-stats.8.in
+	   disorder-stats.8.in disorder-dbupgrade.8.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN)

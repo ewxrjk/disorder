@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder,sys,re
+import dtest,time,disorder,sys,re,subprocess
 
 def test():
     """Database version tests"""
@@ -47,6 +47,13 @@ def test():
             ok = True
     dtest.stop_daemon()
     if not ok:
+        sys.exit(1)
+    # Try running the upgrade tool
+    print "Attempting an upgrade..."
+    rc = subprocess.call(["disorder-dbupgrade",
+                          "--config", "%s/config" % dtest.testroot])
+    if rc != 0:
+        print "disorder-dbupgrade: FAILED: exit code %s" % rc
         sys.exit(1)
 
 if __name__ == '__main__':

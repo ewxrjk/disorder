@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
   xsigaction(SIGINT, &sa, 0);
   info("started");
   trackdb_init(0);
-  trackdb_open();
+  trackdb_open(0);
   if(optind == argc) {
     /* Rescan all collections */
     do_all(rescan_collection);

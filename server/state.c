@@ -152,7 +152,7 @@ int reconfigure(ev_source *ev, int reload) {
       info("%s: installed new configuration", configfile);
     }
   }
-  trackdb_open();
+  trackdb_open(0);
   if(need_another_rescan)
     trackdb_rescan(ev);
   if(!ret) {

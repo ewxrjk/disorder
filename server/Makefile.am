@@ -20,7 +20,7 @@
 
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
-	      disorder-stats
+	      disorder-stats disorder-dbupgrade
 noinst_PROGRAMS=disorder.cgi trackname
 noinst_DATA=uk.org.greenend.rjk.disorder.plist
 
@@ -87,6 +87,11 @@ disorder_dump_SOURCES=dump.c                           	\
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC) $(LIBGCRYPT)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
+
+disorder_dbupgrade_SOURCES=dbupgrade.c trackdb.c trackdb.h ../lib/memgc.c
+disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\

@@ -1,0 +1,47 @@
+.\"
+.\" Copyright (C) 2007 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder-dbupgrade 8
+.SH NAME
+disorder-dbupgrade \- DisOrder Database Upgrader
+.SH SYNOPSIS
+.B disorder-dbupgrade
+.RI [ OPTIONS ]
+.RI [ PATH ...]
+.SH DESCRIPTION
+.B disorder-dbupgrade
+is DisOrder's database upgrader.  It is invoked by DisOrder when
+necessary and does not need to be invoked manually.
+.SH OPTIONS
+.TP
+.B --config \fIPATH\fR, \fB-c \fIPATH
+Set the configuration file.
+.TP
+.B --debug\fR, \fB-d
+Enable debugging.
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
+.SH "SEE ALSO"
+\fBdisorderd\fR(8), \fBdisorder_config\fR(5)
+.\" Local Variables:
+.\" mode:nroff
+.\" End:

@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
   if(config_read(0))
     fatal(0, "cannot read configuration");
   trackdb_init(0);
-  trackdb_open();
+  trackdb_open(0);
   stats = trackdb_stats(0);
   while(*stats)
     xprintf("%s\n", *stats++);
