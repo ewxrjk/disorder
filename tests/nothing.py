@@ -22,7 +22,9 @@ import dtest,time
 
 def test():
     """Just start the server and then stop it a few seconds later"""
-    time.sleep(5)
+    dtest.start()
+    time.sleep(2)
+    dtest.stop()
 
 if __name__ == '__main__':
-    dtest.run(test)
+    dtest.run()

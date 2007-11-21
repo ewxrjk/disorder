@@ -105,17 +105,12 @@ def stdtracks():
 def notracks():
     pass
 
-def start(test):
-    """start(TEST)
+def start():
+    """start()
 
-Start the daemon for test called TEST."""
+Start the daemon."""
     global daemon
     assert daemon == None
-    if test == None:
-        errs = sys.stderr
-    else:
-        errs = open("%s/%s.log" % (testroot, test), "w")
-    server = None
     print " starting daemon"
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
@@ -129,6 +124,8 @@ def stop():
 
 Stop the daemon if it has not stopped already"""
     global daemon
+    if daemon == None:
+        return
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
@@ -137,16 +134,30 @@ Stop the daemon if it has not stopped already"""
     print " daemon has stopped"
     daemon = None
 
-def run(test, setup=None, report=True, name=None): 
+def run(module=None, report=True):
+    """dtest.run(MODULE)
+
+    Run the test in MODULE.  This can be a string (in which case the module
+    will be imported) or a module object."""
     global tests
     tests += 1
-    if setup == None:
-        setup = stdtracks
+    if module is None:
+        # We're running a test stand-alone
+        import __main__
+        module = __main__
+        name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    else:
+        # We've been passed a module or a module name
+        if type(module) == str:
+            module = __import__(module)
+        name = module.__name__
+    global errs
+    errs = open("%s.log" % name, "w")
+    setup = stdtracks
     setup()
-    start(name)
     try:
         try:
-            test()
+            module.test()
         except AssertionError, e:
             global failures
             failures += 1

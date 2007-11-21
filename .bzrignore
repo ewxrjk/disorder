@@ -117,3 +117,4 @@ server/disorder-stats
 *.deb
 *.dsc
 disobedience/disobedience.html
+tests/*.log
