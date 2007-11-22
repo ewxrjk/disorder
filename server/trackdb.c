@@ -34,6 +34,7 @@
 #include <sys/resource.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 
 #include "event.h"
 #include "mem.h"
@@ -1826,14 +1827,21 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
 }
 
 void trackdb_rescan(ev_source *ev) {
+  int w;
   if(rescan_pid != -1) {
     error(0, "rescan already underway");
     return;
   }
   rescan_pid = subprogram(ev, RESCAN, -1);
-  ev_child(ev, rescan_pid, 0, reap_rescan, 0);
-  D(("started rescanner"));
-  
+  if(ev) {
+    ev_child(ev, rescan_pid, 0, reap_rescan, 0);
+    D(("started rescanner"));
+  } else {
+    /* This is the first rescan, we block until it is complete */
+    while(waitpid(rescan_pid, &w, 0) < 0 && errno == EINTR)
+      ;
+    reap_rescan(0, rescan_pid, w, 0, 0);
+  }
 }
 
 int trackdb_rescan_cancel(void) {

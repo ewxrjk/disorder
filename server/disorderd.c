@@ -289,8 +289,11 @@ int main(int argc, char **argv) {
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
   /* start a rescan straight away */
-  if(initial_rescan)
-    trackdb_rescan(ev);
+  if(initial_rescan) {
+    trackdb_rescan(0/*ev*/);
+    /* No ev -> the rescan will block.  Since we called reconfigure() already
+     * any clients will also be forced to block. */
+  }
   rescan_after(86400);
   /* periodically tidy up the database */
   dbgc_after(60);
