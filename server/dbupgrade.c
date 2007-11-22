@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <syslog.h>
 #include <pcre.h>
+#include <unistd.h>
 
 #include "syscalls.h"
 #include "log.h"

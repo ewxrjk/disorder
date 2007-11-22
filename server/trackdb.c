@@ -36,6 +36,7 @@
 #include <sys/resource.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include <sys/wait.h>
 
 #include "event.h"
 #include "mem.h"
