@@ -66,6 +66,17 @@ def copyfile(a,b):
 Copy A to B."""
     open(b,"w").write(open(a).read())
 
+def to_unicode(s):
+    """Convert UTF-8 to unicode.  A no-op if already unicode."""
+    if type(s) == unicode:
+        return s
+    else:
+        return unicode(s, "UTF-8")
+
+def nfc(s):
+    """Convert UTF-8 string or unicode to NFC unicode."""
+    return  unicodedata.normalize("NFC", to_unicode(s))
+
 def maketrack(s):
     """maketrack(S)
 
@@ -78,8 +89,7 @@ Make track with relative path S exist"""
     # We record the tracks we created so they can be tested against
     # server responses.  We put them into NFC since that's what the server
     # uses internally.
-    bits = unicodedata.normalize("NFC",
-                                 unicode(s, "UTF-8")).split('/')
+    bits = nfc(s).split('/')
     dp = tracks
     for d in bits [0:-1]:
         dd = "%s/%s" % (dp,  d)
@@ -127,11 +137,11 @@ def stdtracks():
     maketrack("Joe Bloggs/Second Album/03:Third track.ogg")
     maketrack("Joe Bloggs/Second Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/Third Album/01:First track.ogg")
-    maketrack("Joe Bloggs/Third Album/02:Second track.ogg")
-    maketrack("Joe Bloggs/Third Album/03:Third track.ogg")
-    maketrack("Joe Bloggs/Third Album/04:Fourth track.ogg")
-    maketrack("Joe Bloggs/Third Album/05:Fifth track.ogg")
+    maketrack("Joe Bloggs/Third Album/01:First_track.ogg")
+    maketrack("Joe Bloggs/Third Album/02:Second_track.ogg")
+    maketrack("Joe Bloggs/Third Album/03:Third_track.ogg")
+    maketrack("Joe Bloggs/Third Album/04:Fourth_track.ogg")
+    maketrack("Joe Bloggs/Third Album/05:Fifth_track.ogg")
     maketrack("Fred Smith/Boring/01:Dull.ogg")
     maketrack("Fred Smith/Boring/02:Tedious.ogg")
     maketrack("Fred Smith/Boring/03:Drum Solo.ogg")
