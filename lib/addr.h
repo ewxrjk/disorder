@@ -28,6 +28,9 @@ struct addrinfo *get_address(const struct stringlist *a,
 int addrinfocmp(const struct addrinfo *a,
 		const struct addrinfo *b);
 
+int multicast(const struct sockaddr *sa);
+char *format_sockaddr(const struct sockaddr *sa);
+
 #endif /* ADDR_H */
 
 /*

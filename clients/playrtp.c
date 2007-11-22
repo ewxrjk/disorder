@@ -199,7 +199,6 @@ static const struct option options[] = {
   { "max", required_argument, 0, 'x' },
   { "buffer", required_argument, 0, 'b' },
   { "rcvbuf", required_argument, 0, 'R' },
-  { "multicast", required_argument, 0, 'M' },
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
   { "oss", no_argument, 0, 'o' },
 #endif
@@ -491,7 +490,6 @@ static void help(void) {
           "  --buffer, -b FRAMES     Buffer high water mark\n"
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
-          "  --multicast, -M GROUP   Join multicast group\n"
           "  --config, -C PATH       Set configuration file\n"
 #if HAVE_ALSA_ASOUNDLIB_H
           "  --alsa, -a              Use ALSA to play audio\n"
@@ -523,11 +521,17 @@ int main(int argc, char **argv) {
   char *sockname;
   int rcvbuf, target_rcvbuf = 131072;
   socklen_t len;
-  char *multicast_group = 0;
   struct ip_mreq mreq;
   struct ipv6_mreq mreq6;
   disorder_client *c;
   char *address, *port;
+  int is_multicast;
+  union any_sockaddr {
+    struct sockaddr sa;
+    struct sockaddr_in in;
+    struct sockaddr_in6 in6;
+  };
+  union any_sockaddr mgroup;
 
   static const struct addrinfo prefs = {
     AI_PASSIVE,
@@ -553,7 +557,6 @@ int main(int argc, char **argv) {
     case 'x': maxbuffer = 2 * atol(optarg); break;
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
-    case 'M': multicast_group = optarg; break;
 #if HAVE_ALSA_ASOUNDLIB_H
     case 'a': backend = playrtp_alsa; break;
 #endif
@@ -575,44 +578,70 @@ int main(int argc, char **argv) {
   argv += optind;
   switch(argc) {
   case 0:
-  case 1:
+    /* Get configuration from server */
     if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
     if(disorder_connect(c)) exit(EXIT_FAILURE);
     if(disorder_rtp_address(c, &address, &port)) exit(EXIT_FAILURE);
-    sl.n = 1;
-    sl.s = &port;
-    /* set multicast_group if address is a multicast address */
+    sl.n = 2;
+    sl.s = xcalloc(2, sizeof *sl.s);
+    sl.s[0] = address;
+    sl.s[1] = port;
     break;
+  case 1:
   case 2:
+    /* Use command-line ADDRESS+PORT or just PORT */
     sl.n = argc;
     sl.s = argv;
     break;
   default:
-    fatal(0, "usage: disorder-playrtp [OPTIONS] [ADDRESS [PORT]]");
+    fatal(0, "usage: disorder-playrtp [OPTIONS] [[ADDRESS] PORT]");
   }
-  /* Listen for inbound audio data */
+  /* Look up address and port */
   if(!(res = get_address(&sl, &prefs, &sockname)))
     exit(1);
-  info("listening on %s", sockname);
+  /* Create the socket */
   if((rtpfd = socket(res->ai_family,
                      res->ai_socktype,
                      res->ai_protocol)) < 0)
     fatal(errno, "error creating socket");
+  /* Stash the multicast group address */
+  if((is_multicast = multicast(res->ai_addr))) {
+    memcpy(&mgroup, res->ai_addr, res->ai_addrlen);
+    switch(res->ai_addr->sa_family) {
+    case AF_INET:
+      mgroup.in.sin_port = 0;
+      break;
+    case AF_INET6:
+      mgroup.in6.sin6_port = 0;
+      break;
+    }
+  }
+  /* Bind to 0/port */
+  switch(res->ai_addr->sa_family) {
+  case AF_INET:
+    memset(&((struct sockaddr_in *)res->ai_addr)->sin_addr, 0,
+           sizeof (struct in_addr));
+    break;
+  case AF_INET6:
+    memset(&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, 0,
+           sizeof (struct in6_addr));
+    break;
+  default:
+    fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+  }
   if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
     fatal(errno, "error binding socket to %s", sockname);
-  if(multicast_group) {
-    if((n = getaddrinfo(multicast_group, 0, &prefs, &res)))
-      fatal(0, "getaddrinfo %s: %s", multicast_group, gai_strerror(n));
-    switch(res->ai_family) {
+  if(is_multicast) {
+    switch(mgroup.sa.sa_family) {
     case PF_INET:
-      mreq.imr_multiaddr = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+      mreq.imr_multiaddr = mgroup.in.sin_addr;
       mreq.imr_interface.s_addr = 0;      /* use primary interface */
       if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                     &mreq, sizeof mreq) < 0)
         fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
       break;
     case PF_INET6:
-      mreq6.ipv6mr_multiaddr = ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr;
+      mreq6.ipv6mr_multiaddr = mgroup.in6.sin6_addr;
       memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
       if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                     &mreq6, sizeof mreq6) < 0)
@@ -621,7 +650,10 @@ int main(int argc, char **argv) {
     default:
       fatal(0, "unsupported address family %d", res->ai_family);
     }
-  }
+    info("listening on %s multicast group %s",
+         format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
+  } else
+    info("listening on %s", format_sockaddr(res->ai_addr));
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
     fatal(errno, "error calling getsockopt SO_RCVBUF");
