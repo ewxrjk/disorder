@@ -217,7 +217,8 @@ static pid_t subprogram(ev_source *ev, const char *prog,
   /* If we're in the background then trap subprocess stdout/stderr */
   if(!(pid = xfork())) {
     exitfn = _exit;
-    ev_signal_atfork(ev);
+    if(ev)
+      ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
     if(outputfd != -1) {
       xdup2(outputfd, 1);
@@ -305,6 +306,7 @@ static DB *open_db(const char *path,
  */
 void trackdb_open(int flags) {
   int newdb, err;
+  pid_t pid;
 
   /* sanity checks */
   assert(opened == 0);
@@ -337,8 +339,15 @@ void trackdb_open(int flags) {
               oldversion, config->dbversion);
       case TRACKDB_CAN_UPGRADE:
         /* This database needs upgrading */
-        fatal(0, "database needs upgrading from %ld to %ld, which is not yet supported",
-              oldversion, config->dbversion);
+        info("invoking disorder-dbupgrade to upgrade from %ld to %ld",
+             oldversion, config->dbversion);
+        pid = subprogram(0, "disorder-dbupgrade", -1);
+        while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
+          ;
+        if(err)
+          fatal(0, "disorder-dbupgrade %s", wstat(err));
+        info("disorder-dbupgrade succeeded");
+        break;
       case TRACKDB_OPEN_FOR_UPGRADE:
         break;
       default:

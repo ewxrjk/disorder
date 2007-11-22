@@ -31,34 +31,10 @@ def test():
     time.sleep(2)
     dtest.stop_daemon()
     # Revert to default configuration
-    print "Checking daemon won't start with an old database"
     dtest.copyfile(configsave, config)
+    print "Testing daemon manages to upgrade..."
     dtest.start_daemon()
-    time.sleep(2)
-    c = disorder.client()
-    try:
-        v = c.version()
-        print "unexpected success"
-        ok = False
-    except disorder.communicationError, e:
-        if re.search("connection refused", str(e)):
-            print "unexpected error: %s" % e
-            ok = False
-        else:
-            ok = True
-    dtest.stop_daemon()
-    if not ok:
-        sys.exit(1)
-    # Try running the upgrade tool
-    print "Attempting an upgrade..."
-    rc = subprocess.call(["disorder-dbupgrade",
-                          "--config", "%s/config" % dtest.testroot])
-    if rc != 0:
-        print "disorder-dbupgrade: FAILED: exit code %s" % rc
-        sys.exit(1)
-    print "Testing daemon after upgrade..."
-    dtest.start_daemon()
-    time.sleep(2)
+    time.sleep(4)
     assert dtest.check_files() == 0
 
 if __name__ == '__main__':
