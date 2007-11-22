@@ -23,7 +23,6 @@ import dtest,time,disorder,sys
 def test():
     """Check that the file listing comes out right"""
     dtest.start_daemon()
-    time.sleep(2)                       # give rescan a chance
     assert dtest.check_files() == 0
 
 if __name__ == '__main__':

@@ -56,7 +56,7 @@ for f in os.listdir(testdir):
 tests.sort()                            # let's have a consistent order
 
 for test in tests:
-    print "Test '%s'" % test
+    print "-------- Test '%s' --------" % test
     dtest.run(test, report=False)
 
 print "%d tests" % dtest.tests

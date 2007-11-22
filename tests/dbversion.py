@@ -28,13 +28,11 @@ def test():
     dtest.copyfile(config, configsave)
     open(config, "a").write("dbversion 1\n")
     dtest.start_daemon()
-    time.sleep(2)
     dtest.stop_daemon()
     # Revert to default configuration
     dtest.copyfile(configsave, config)
     print "Testing daemon manages to upgrade..."
     dtest.start_daemon()
-    time.sleep(4)
     assert dtest.check_files() == 0
 
 if __name__ == '__main__':

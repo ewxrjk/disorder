@@ -21,7 +21,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,unicodedata
+import os,os.path,subprocess,sys,re,time,unicodedata
 
 def fatal(s):
     """Write an error message and exit"""
@@ -177,10 +177,32 @@ Start the daemon."""
     global daemon, errs
     assert daemon == None
     print " starting daemon"
+    # remove the socket if it exists
+    socket = "%s/socket" % testroot
+    try:
+        os.remove(socket)
+    except:
+        pass
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
                                "--config", "%s/config" % testroot],
                               stderr=errs)
+    # Wait for the socket to be created
+    waited = 0
+    while not os.path.exists(socket):
+        rc = daemon.poll()
+        if rc is not None:
+            print "FATAL: daemon failed to start up"
+            sys.exit(1)
+        waited += 1
+        if waited == 1:
+            print "  waiting for socket..."
+        elif waited >= 60:
+            print "FATAL: took too long for socket to appear"
+            sys.exit(1)
+        time.sleep(1)
+    if waited > 0:
+        print "  took about %ds for socket to appear" % waited
 
 def stop_daemon():
     """stop_daemon()
@@ -193,8 +215,11 @@ Stop the daemon if it has not stopped already"""
     if rc == None:
         print " stopping daemon"
         os.kill(daemon.pid, 15)
+        print "  waiting for daemon"
         rc = daemon.wait()
-    print " daemon has stopped"
+        print "  daemon has stopped"
+    else:
+        print "  daemon already stopped"
     daemon = None
 
 def run(module=None, report=True):
