@@ -24,7 +24,7 @@ disorder-playrtp \- play DisOrder network broadcasts
 .RI [ OPTIONS ]
 .RB [ -- ]
 .RI [[ GROUP ]
-.II PORT ]
+.IR PORT ]
 .SH DESCRIPTION
 \fBdisorder-playrtp\fR plays a network broadcast sent from the specified
 address.
