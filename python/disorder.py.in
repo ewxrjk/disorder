@@ -105,15 +105,20 @@ class operationError(Error):
   Indicates that an operation failed (e.g. an attempt to play a
   nonexistent track).  The connection should still be usable.
   """
-  def __init__(self, res, details):
+  def __init__(self, res, details, cmd=None):
     self.res_ = int(res)
+    self.cmd_ = cmd
     self.details_ = details
   def __str__(self):
-    """Return the complete response string from the server.
+    """Return the complete response string from the server, with the command
+    if available.
 
     Excludes the final newline.
     """
-    return "%d %s" % (self.res_, self.details_)
+    if self.cmd_ is None:
+      return "%d %s" % (self.res_, self.details_)
+    else:
+      return "%d %s [%s]" % (self.res_, self.details_, self.cmd_)
   def response(self):
     """Return the response code from the server."""
     return self.res_
@@ -648,7 +653,7 @@ class client:
     all of the required words (in their path name, trackname
     preferences, etc.)
     """
-    self._simple("search", *words)
+    self._simple("search", _quote(words))
     return self._body()
 
   def stats(self):
@@ -780,6 +785,9 @@ class client:
       raise protocolError(self.who, "invalid response %s")
 
   def _send(self, *command):
+    # Quote and send a command
+    #
+    # Returns the encoded command.
     quoted = _quote(command)
     self._debug(client.debug_proto, "==> %s" % quoted)
     encoded = quoted.encode("UTF-8")
@@ -787,6 +795,7 @@ class client:
       self.w.write(encoded)
       self.w.write("\n")
       self.w.flush()
+      return encoded
     except IOError, e:
       # e.g. EPIPE
       self._disconnect()
@@ -806,11 +815,13 @@ class client:
     if self.state == 'disconnected':
       self.connect()
     if command:
-      self._send(*command)
+      cmd = self._send(*command)
+    else:
+      cmd = None
     res, details = self._response()
     if res / 100 == 2:
       return res, details
-    raise operationError(res, details)
+    raise operationError(res, details, cmd)
 
   def _body(self):
     # Fetch a dot-stuffed body
