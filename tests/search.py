@@ -53,7 +53,7 @@ def test():
                           "Joe Bloggs/First Album/05:Fifth track.ogg",
                           "Joe Bloggs/Second Album/01:First track.ogg",
                           "Joe Bloggs/Third Album/01:First_track.ogg"])
-    check_search_results(["second"],
+    check_search_results(["Second"],
                          ["Joe Bloggs/First Album/02:Second track.ogg",
                           "Joe Bloggs/Second Album/01:First track.ogg",
                           "Joe Bloggs/Second Album/02:Second track.ogg",
@@ -62,9 +62,17 @@ def test():
                           "Joe Bloggs/Second Album/05:Fifth track.ogg",
                           "Joe Bloggs/Third Album/02:Second_track.ogg"])
     # ASCII Conjunctions
-    check_search_results(["first", "second"],
+    check_search_results(["FIRST", "SECOND"],
                          ["Joe Bloggs/First Album/02:Second track.ogg",
                           "Joe Bloggs/Second Album/01:First track.ogg"])
+    # Non-ASCII Characters
+    # 00CC is LATIN CAPITAL LETTER I WITH GRAVE
+    # 00EC is LATIN SMALL LETTER I WITH GRAVE
+    check_search_results([u"F\u00CCRST"],
+                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    check_search_results([u"f\u00ECrst"],
+                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    
     if failures > 0:
         sys.exit(1)
 
