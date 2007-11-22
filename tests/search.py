@@ -72,6 +72,23 @@ def test():
                          ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
     check_search_results([u"f\u00ECrst"],
                          ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    # 00CD is LATIN CAPITAL LETTER I WITH ACUTE
+    # 00ED is LATIN SMALL LETTER I WITH ACUTE
+    check_search_results([u"TH\u00CDRD"],
+                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
+    check_search_results([u"th\u00EDrd"],
+                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
+    # ...and again in denormalized form
+    # 0300 is COMBINING GRAVE ACCENT
+    # 0301 is COMBINING ACUTE ACCENT
+    check_search_results([u"FI\u0300RST"],
+                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    check_search_results([u"fi\u0300rst"],
+                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    check_search_results([u"THI\u0301RD"],
+                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
+    check_search_results([u"thI\u0301rd"],
+                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
     
     if failures > 0:
         sys.exit(1)
