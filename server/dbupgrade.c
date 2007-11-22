@@ -292,8 +292,8 @@ int main(int argc, char **argv) {
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
   /* Open the database */
-  trackdb_init(0);
-  trackdb_open(1/*dbupgrade*/);
+  trackdb_init(TRACKDB_NO_RECOVER);
+  trackdb_open(TRACKDB_OPEN_FOR_UPGRADE);
   upgrade();
   return 0;
 }

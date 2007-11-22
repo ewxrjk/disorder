@@ -151,8 +151,10 @@ int reconfigure(ev_source *ev, int reload) {
       speaker_reload();
       info("%s: installed new configuration", configfile);
     }
-  }
-  trackdb_open(0);
+    trackdb_open(TRACKDB_NO_UPGRADE);
+  } else
+    /* We only allow for upgrade at startup */
+    trackdb_open(TRACKDB_CAN_UPGRADE);
   if(need_another_rescan)
     trackdb_rescan(ev);
   if(!ret) {

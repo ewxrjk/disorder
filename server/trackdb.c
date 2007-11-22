@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/trackdb.c
+ * @brief Track database */
 
 #include <config.h>
 #include "types.h"
@@ -144,9 +146,17 @@ static int compare(DB attribute((unused)) *db_,
   return compare_path_raw(a->data, a->size, b->data, b->size);
 }
 
-/* open environment */
-void trackdb_init(int recover) {
+/** @brief Open database environment
+ * @param flags Flags word
+ *
+ * Flags should be one of:
+ * - @ref TRACKDB_NO_RECOVER
+ * - @ref TRACKDB_NORMAL_RECOVER
+ * - @ref TRACKDB_FATAL_RECOVER
+ */
+void trackdb_init(int flags) {
   int err;
+  const int recover = flags & TRACKDB_RECOVER_MASK;
   static int recover_type[] = { 0, DB_RECOVER, DB_RECOVER_FATAL };
 
   /* sanity checks */
@@ -286,9 +296,14 @@ static DB *open_db(const char *path,
 }
 
 /** @brief Open track databases
- * @param dbupgrade Non-0 to allow non-current database versions
+ * @param Flags flags word
+ *
+ * @p flags should be one of:
+ * - @p TRACKDB_NO_UPGRADE, if no upgrade should be attempted
+ * - @p TRACKDB_CAN_UPGRADE, if an upgrade may be attempted
+ * - @p TRACKDB_OPEN_FOR_UPGRADE, if this is disorder-dbupgrade
  */
-void trackdb_open(int dbupgrade) {
+void trackdb_open(int flags) {
   int newdb, err;
 
   /* sanity checks */
@@ -302,29 +317,41 @@ void trackdb_open(int dbupgrade) {
     long oldversion;
 
     s = trackdb_get_global("_dbversion");
-    oldversion = s ? atol(s) : 1;
-    if(oldversion > config->dbversion) {
-      /* Database is from the future */
-      fatal(0, "this version of DisOrder is too old for database version %ld",
-            oldversion);
-    }
-    if(oldversion < config->dbversion && !dbupgrade) {
-      /* This database needs upgrading.  This isn't implemented yet so we just
-       * fail. */
-      fatal(0, "database needs upgrading from %ld to %ld",
-            oldversion, config->dbversion);
-    }
-    if(oldversion == config->dbversion && dbupgrade) {
-      /* This doesn't make any sense */
-      fatal(0, "database is already at current version");
-    }
-    newdb = 0;
     /* Close the database again,  we'll open it property below */
     if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
       fatal(0, "error closing global.db: %s", db_strerror(err));
     trackdb_globaldb = 0;
+    /* Convert version string to an integer */
+    oldversion = s ? atol(s) : 1;
+    if(oldversion > config->dbversion) {
+      /* Database is from the future; we never allow this. */
+      fatal(0, "this version of DisOrder is too old for database version %ld",
+            oldversion);
+    }
+    if(oldversion < config->dbversion) {
+      /* Database version is out of date */
+      switch(flags & TRACKDB_UPGRADE_MASK) {
+      case TRACKDB_NO_UPGRADE:
+        /* This database needs upgrading but this is not permitted */
+        fatal(0, "database needs upgrading from %ld to %ld",
+              oldversion, config->dbversion);
+      case TRACKDB_CAN_UPGRADE:
+        /* This database needs upgrading */
+        fatal(0, "database needs upgrading from %ld to %ld, which is not yet supported",
+              oldversion, config->dbversion);
+      case TRACKDB_OPEN_FOR_UPGRADE:
+        break;
+      default:
+        abort();
+      }
+    }
+    if(oldversion == config->dbversion && (flags & TRACKDB_OPEN_FOR_UPGRADE)) {
+      /* This doesn't make any sense */
+      fatal(0, "database is already at current version");
+    }
+    newdb = 0;
   } else {
-    if(dbupgrade) {
+    if(flags & TRACKDB_OPEN_FOR_UPGRADE) {
       /* Cannot upgrade a new database */
       fatal(0, "cannot upgrade a database that does not exist");
     }
@@ -342,10 +369,11 @@ void trackdb_open(int dbupgrade) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
-  if(newdb && !dbupgrade) {
+  if(newdb) {
     /* Stash the database version */
     char buf[32];
 
+    assert(!(flags & TRACKDB_OPEN_FOR_UPGRADE));
     snprintf(buf, sizeof buf, "%ld", config->dbversion);
     trackdb_set_global("_dbversion", buf, 0);
   }

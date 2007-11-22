@@ -361,8 +361,8 @@ int main(int argc, char **argv) {
   xsigaction(SIGTERM, &sa, 0);
   xsigaction(SIGINT, &sa, 0);
   info("started");
-  trackdb_init(0);
-  trackdb_open(0);
+  trackdb_init(TRACKDB_NO_RECOVER);
+  trackdb_open(TRACKDB_NO_UPGRADE);
   if(optind == argc) {
     /* Rescan all collections */
     do_all(rescan_collection);
