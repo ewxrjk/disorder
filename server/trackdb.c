@@ -162,7 +162,8 @@ static pid_t subprogram(ev_source *ev, const char *prog,
   /* If we're in the background then trap subprocess stdout/stderr */
   if(!(pid = xfork())) {
     exitfn = _exit;
-    ev_signal_atfork(ev);
+    if(ev)
+      ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
     if(outputfd != -1) {
       xdup2(outputfd, 1);
@@ -1817,9 +1818,9 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
                        void attribute((unused)) *u) {
   if(pid == rescan_pid) rescan_pid = -1;
   if(status)
-    error(0, "disorderd-rescan: %s", wstat(status));
+    error(0, RESCAN": %s", wstat(status));
   else
-    D(("disorderd-rescan terminate: %s", wstat(status)));
+    D((RESCAN" terminated: %s", wstat(status)));
   /* Our cache of file lookups is out of date now */
   cache_clean(&cache_files_type);
   eventlog("rescanned", (char *)0);
@@ -1828,6 +1829,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
 
 void trackdb_rescan(ev_source *ev) {
   int w;
+
   if(rescan_pid != -1) {
     error(0, "rescan already underway");
     return;
