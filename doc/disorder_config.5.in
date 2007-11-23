@@ -126,6 +126,10 @@ interface.)
 Plugins are opened the first time they are required and never after,
 so after changing a plugin you must restart the server before it is
 guaranteed to take effect.
+.IP
+If
+.B plugins
+is used without arguments the plugin path is cleared.
 .SS "Server Configuration"
 .TP
 .B alias \fIPATTERN\fR
@@ -326,6 +330,10 @@ For the server to be able to calculate track lengths, there should be a
 command corresponding to each
 .B player
 command.
+.IP
+If
+.B player
+is used without arguments, the list of players is cleared.
 .TP
 .B prefsync \fISECONDS\fR
 The interval at which the preferences log file will be synchronised.  Defaults
@@ -440,14 +448,23 @@ Scratches are played using the same logic as other tracks.
 .IP
 At least for the time being, path names of scratches must be encoded using
 UTF-8 (which means that ASCII will do).
+.IP
+If \fBscratch\fR is used without arguments then the list of scratches is
+cleared.
 .TP
 .B stopword \fIWORD\fR ...
 Specifies one or more stopwords that should not take part in searches
 over track names.
+.IP
+If \fBstopword\fR is used without arguments then the list of stopwords is
+cleared.
 .TP
 .B tracklength \fIPATTERN\fR \fIMODULE\fR
 Specifies the module used to calculate the length of files matching
 \fIPATTERN\fR.  \fIMODULE\fR specifies which plugin module to use.
+.IP
+If \fBtracklength\fR is used without arguments then the list of modules is
+cleared.
 .SS "Client Configuration"
 .TP
 .B connect \fIHOST SERVICE\fR
@@ -468,6 +485,8 @@ interface.  If a template appears in more than one template directory
 then the one in the earliest directory specified is chosen.
 .IP
 See below for further details.
+.IP
+If \fBtemplates\fR is used without arguments then the template path is cleared.
 .TP
 .B transform \fITYPE\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how names are sorted and displayed in track choice displays.
@@ -500,6 +519,10 @@ This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 .TP
 .B allow \fIUSERNAME\fR \fIPASSWORD\fR
 Specify a username/password pair.
+.IP
+If
+.B allow
+is used without arguments, the list of allowed users is cleared.
 .TP
 .B password \fIPASSWORD\fR
 Specify password.
@@ -507,6 +530,9 @@ Specify password.
 .B trust \fIUSERNAME\fR
 Allow \fIUSERNAME\fR to perform privileged operations such as shutting
 down or reconfiguring the daemon, or becoming another user.
+.IP
+If \fBtrust\fR is used without arguments then the list of trusted users is
+cleared.
 .TP
 .B user \fIUSER\fR
 Specifies the user to run as.  Only makes sense if invoked as root (or
@@ -739,7 +765,7 @@ Expands to the filename of the current file or directory, inside the template
 argument to \fBchoose\fR.
 .TP
 .B @files{\fITEMPLATE\fB}
-Expands \fITEMPLATE\fB once for each file indicated by the \fBdirectory\fR CGI
+Expands \fITEMPLATE\fR once for each file indicated by the \fBdirectory\fR CGI
 arg if it is present, or otherwise for the list of files counted by \fBfiles\fR
 with names \fB0_file\fR, \fB1_file\fR etc.
 .TP
@@ -984,7 +1010,7 @@ URL-quote \fISTRING\fR.
 Expands to \fBdisorder.cgi\fR's version string.
 .TP
 .B @volume:\fISPEAKER\fB@
-The volume on the left or right speaker.  \fISPEAKER\fR must be \fBleft\fB or
+The volume on the left or right speaker.  \fISPEAKER\fR must be \fBleft\fR or
 \fBright\fR.
 .TP
 .B @when@

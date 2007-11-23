@@ -226,6 +226,10 @@ static int set_stringlist_accum(const struct config_state *cs,
   struct stringlistlist *sll;
 
   sll = ADDRESS(cs->config, struct stringlistlist);
+  if(nvec == 0) {
+    sll->n = 0;
+    return 0;
+  }
   sll->n++;
   sll->s = xrealloc(sll->s, (sll->n * sizeof (struct stringlist)));
   s = &sll->s[sll->n - 1];
@@ -243,6 +247,10 @@ static int set_string_accum(const struct config_state *cs,
   struct stringlist *sl;
 
   sl = ADDRESS(cs->config, struct stringlist);
+  if(nvec == 0) {
+    sl->n = 0;
+    return 0;
+  }
   for(n = 0; n < nvec; ++n) {
     sl->n++;
     sl->s = xrealloc(sl->s, (sl->n * sizeof (char *)));
