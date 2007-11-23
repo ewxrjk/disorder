@@ -22,7 +22,7 @@
 set -e
 
 DAEMON=sbindir/disorderd
-CLIENT=bindir/disorder
+CLIENT="bindir/disorder --local"
 
 PATH="$PATH:sbindir"
 
