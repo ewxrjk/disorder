@@ -4,6 +4,7 @@ The general procedure is:
 
  * stop the old daemon, e.g. with
      /etc/init.d/disorder stop
+ * back up your database
  * build and install the new version as described in the README
  * update the configuration files (see below)
  * start the new daemon, e.g. with
@@ -14,7 +15,26 @@ upgrading between particular versions.  Minor versions are not
 explicitly mentioned; a version number like 1.1 implicitly includes
 all 1.1.x versions.
 
-* 1.5 -> 1.6
+* 1.5 -> 2.0
+
+** Database upgrade
+
+The first thing the server does when upgrading from 1.5 is run the
+disorder-dbupgrade program.  This is necessary to modify any non-ASCII track
+names to meet the latest version's stricter normalization practices.  The
+upgrade should succeed automatically; if not it should leave an error message
+in syslog.
+
+It is strongly recommended that you back up your database before performing the
+upgrade.  For example, as root, with the server STOPPED:
+  cd /var/disorder
+  mkdir BACKUP
+  cp -p * BACKUP
+
+To restore, again as root:
+  cd /var/disorder
+  rm *
+  cp -p BACKUP/* .
 
 ** 'transform' and 'namepart' directives
 
