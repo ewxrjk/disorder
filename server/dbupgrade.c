@@ -42,12 +42,24 @@
 
 static DB_TXN *global_tid;
 
+#define BADKEY_WARN 0
+#define BADKEY_FAIL 1
+#define BADKEY_DELETE 2
+
+/** @brief Bad key behavior */
+static int badkey = BADKEY_WARN;
+
+static long aliases_removed, keys_normalized, values_normalized, renoticed;
+static long keys_already_ok, values_already_ok;
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
   { "no-debug", no_argument, 0, 'D' },
+  { "delete-bad-keys", no_argument, 0, 'x' },
+  { "fail-bad-keys", no_argument, 0, 'X' },
   { "syslog", no_argument, 0, 's' },
   { "no-syslog", no_argument, 0, 'S' },
   { 0, 0, 0, 0 }
@@ -63,6 +75,8 @@ static void help(void) {
 	  "  --config PATH, -c PATH  Set configuration file\n"
 	  "  --debug, -d             Turn on debugging\n"
           "  --[no-]syslog           Force logging\n"
+          "  --delete-bad-keys, -x   Delete unconvertible keys\n"
+          "  --fail-bad-keys, -X     Fail if bad keys are found\n"
           "\n"
           "Database upgrader for DisOrder.  Not intended to be run\n"
           "directly.\n");
@@ -90,6 +104,12 @@ static int scan_core(const char *name, DB *db,
   int err, r = 0;
   DBT k[1], d[1];
 
+  values_normalized = 0;
+  keys_normalized = 0;
+  aliases_removed = 0;
+  renoticed = 0;
+  keys_already_ok = 0;
+  values_already_ok = 0;
   memset(k, 0, sizeof k);
   memset(d, 0, sizeof d);
   while((err = c->c_get(c, k, d, DB_NEXT)) == 0) {
@@ -104,6 +124,17 @@ static int scan_core(const char *name, DB *db,
   r = (err == DB_LOCK_DEADLOCK ? err : 0);
   if((err = c->c_close(c)))
     fatal(0, "%s: error closing cursor: %s", name, db_strerror(err));
+  info("%s: %ld entries scanned", name, count);
+  if(values_normalized || values_already_ok)
+    info("%s: %ld values converted, %ld already ok", name,
+         values_normalized, values_already_ok);
+  if(keys_normalized || keys_already_ok)
+    info("%s: %ld keys converted, %ld already OK", name,
+         keys_normalized, keys_already_ok);
+  if(aliases_removed)
+    info("%s: %ld aliases removed", name, aliases_removed);
+  if(renoticed)
+    info("%s: %ld tracks re-noticed", name, renoticed);
   return r;
 }
 
@@ -153,12 +184,33 @@ static int normalize_keys(const char *name, DB *db, DBC *c,
 
   /* Find the normalized form of the key */
   knfc = utf8_compose_canon(k->data, k->size, &nknfc);
-  if(!knfc)
-    fatal(0, "%s: cannot convert key to NFC: %.*s", name,
-          (int)k->size, (const char *)k->data);
-  /* If the key is already in NFC then do nothing */
-  if(nknfc == k->size && !memcmp(k->data, knfc, nknfc))
+  if(!knfc) {
+    switch(badkey) {
+    case BADKEY_WARN:
+      error(0, "%s: invalid key: %.*s", name,
+            (int)k->size, (const char *)k->data);
+      break;
+    case BADKEY_DELETE:
+      error(0, "%s: deleting invalid key: %.*s", name,
+            (int)k->size, (const char *)k->data);
+      if((err = c->c_del(c, 0))) {
+        if(err != DB_LOCK_DEADLOCK)
+          fatal(0, "%s: error removing denormalized key: %s",
+                name, db_strerror(err));
+        return err;
+      }
+      break;
+    case BADKEY_FAIL:
+      fatal(0, "%s: invalid key: %.*s", name,
+            (int)k->size, (const char *)k->data);
+    }
     return 0;
+  }
+  /* If the key is already in NFC then do nothing */
+  if(nknfc == k->size && !memcmp(k->data, knfc, nknfc)) {
+    ++keys_already_ok;
+    return 0;
+  }
   /* To rename the key we must delete the old one and insert a new one */
   if((err = c->c_del(c, 0))) {
     if(err != DB_LOCK_DEADLOCK)
@@ -173,6 +225,7 @@ static int normalize_keys(const char *name, DB *db, DBC *c,
       fatal(0, "%s: error storing normalized key: %s", name, db_strerror(err));
     return err;
   }
+  ++keys_normalized;
   return 0;
 }
 
@@ -189,8 +242,10 @@ static int normalize_values(const char *name, DB *db,
     fatal(0, "%s: cannot convert data to NFC: %.*s", name,
           (int)d->size, (const char *)d->data);
   /* If the key is already in NFC then do nothing */
-  if(ndnfc == d->size && !memcmp(d->data, dnfc, ndnfc))
+  if(ndnfc == d->size && !memcmp(d->data, dnfc, ndnfc)) {
+    ++values_already_ok;
     return 0;
+  }
   d->size = ndnfc;
   d->data = dnfc;
   if((err = db->put(db, global_tid, k, d, 0))) {
@@ -198,6 +253,7 @@ static int normalize_values(const char *name, DB *db,
       fatal(0, "%s: error storing normalized data: %s", name, db_strerror(err));
     return err;
   }
+  ++values_normalized;
   return 0;
 }
 
@@ -209,11 +265,17 @@ static int renotice(const char *name, DB attribute((unused)) *db,
   const char *const path = kvp_get(t, "_path");
   int err;
 
-  if(!path)
+  if(!path) {
+    /* If an alias sorts later than the actual filename then it'll appear
+     * in the scan. */
+    if(kvp_get(t, "_alias_for"))
+      return 0;
     fatal(0, "%s: no '_path' for %.*s", name,
           (int)k->size, (const char *)k->data);
+  }
   switch(err = trackdb_notice_tid(track, path, global_tid)) {
   case 0:
+    ++renoticed;
     return 0;
   case DB_LOCK_DEADLOCK:
     return err;
@@ -235,8 +297,11 @@ static int remove_aliases_normalize_keys(const char *name, DB *db, DBC *c,
         fatal(0, "%s: error removing alias: %s", name, db_strerror(err));
       return err;
     }
+    ++aliases_removed;
     return 0;
-  }
+  } else if(!kvp_get(t, "_path"))
+    error(0, "%s: %.*s has neither _alias_for nor _path", name,
+          (int)k->size, (const char *)k->data);
   return normalize_keys(name, db, c, k, d);
 }
 
@@ -274,7 +339,7 @@ int main(int argc, char **argv) {
   set_progname(argv);
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDSsxX", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -283,6 +348,8 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
+    case 'x': badkey = BADKEY_DELETE; break;
+    case 'X': badkey = BADKEY_FAIL; break;
     default: fatal(0, "invalid option");
     }
   }
