@@ -637,6 +637,22 @@ static int tailor_underscore_Word_Break_Other(uint32_t c) {
   }
 }
 
+/** @brief Remove all combining characters in-place
+ * @param s Pointer to start of string
+ * @param ns Length of string
+ * @return New, possiblby reduced, length
+ */
+static size_t remove_combining_chars(uint32_t *s, size_t ns) {
+  uint32_t *start = s, *t = s, *end = s + ns;
+
+  while(s < end) {
+    const uint32_t c = *s++;
+    if(!utf32_combining_class(c))
+      *t++ = c;
+  }
+  return t - start;
+}
+
 /** @brief Normalize and split a string using a given tailoring */
 static void word_split(struct vector *v,
                        const char *s,
@@ -650,6 +666,8 @@ static void word_split(struct vector *v,
   /* Erase case distinctions */
   if(!(t32 = utf32_casefold_compat(t32, nt32, &nt32)))
     return;
+  /* Drop combining characters */
+  nt32 = remove_combining_chars(t32, nt32);
   /* Split into words, treating _ as a space */
   w32 = utf32_word_split(t32, nt32, &nw, pt);
   /* Convert words back to UTF-8 and append to result */
@@ -1816,11 +1834,20 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   const char *dbname;
 
   *ntracks = 0;				/* for early returns */
-  /* casefold all the words */
+  /* normalize all the words */
   w = xmalloc(nwordlist * sizeof (char *));
   for(n = 0; n < nwordlist; ++n) {
+    uint32_t *w32;
+    size_t nw32;
+    
     w[n] = utf8_casefold_compat(wordlist[n], strlen(wordlist[n]), 0);
     if(checktag(w[n])) ++ntags;         /* count up tags */
+    /* Strip out combining characters (AFTER checking whether it's a tag) */
+    if(!(w32 = utf8_to_utf32(w[n], strlen(w[n]), &nw32)))
+      return 0;
+    nw32 = remove_combining_chars(w32, nw32);
+    if(!(w[n] = utf32_to_utf8(w32, nw32, 0)))
+      return 0;
   }
   /* find the longest non-stopword */
   for(n = 0; n < nwordlist; ++n)

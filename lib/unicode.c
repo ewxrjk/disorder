@@ -109,6 +109,16 @@ static inline int utf32__combining_class(uint32_t c) {
   return utf32__unidata(c)->ccc;
 }
 
+/** @brief Return the combining class of @p c
+ * @param c Code point
+ * @return Combining class of @p c
+ *
+ * @p c can be any 32-bit value, a sensible value will be returned regardless.
+ */
+int utf32_combining_class(uint32_t c) {
+  return utf32__combining_class(c);
+}
+
 /** @brief Return the General_Category value for @p c
  * @param c Code point
  * @return General_Category property value

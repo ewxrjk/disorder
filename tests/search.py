@@ -44,51 +44,50 @@ def test():
     time.sleep(2)                       # give rescan a chance
     global client
     client = disorder.client()
+    first = ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg",
+             "Joe Bloggs/First Album/02:Second track.ogg",
+             "Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg",
+             "Joe Bloggs/First Album/04:Fourth track.ogg",
+             "Joe Bloggs/First Album/05:Fifth track.ogg",
+             "Joe Bloggs/Second Album/01:First track.ogg",
+             "Joe Bloggs/Third Album/01:First_track.ogg"]
+    second = ["Joe Bloggs/First Album/02:Second track.ogg",
+              "Joe Bloggs/Second Album/01:First track.ogg",
+              "Joe Bloggs/Second Album/02:Second track.ogg",
+              "Joe Bloggs/Second Album/03:Third track.ogg",
+              "Joe Bloggs/Second Album/04:Fourth track.ogg",
+              "Joe Bloggs/Second Album/05:Fifth track.ogg",
+              "Joe Bloggs/Third Album/02:Second_track.ogg"]
+    third = ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg",
+             "Joe Bloggs/Second Album/03:Third track.ogg",
+             "Joe Bloggs/Third Album/01:First_track.ogg",
+             "Joe Bloggs/Third Album/02:Second_track.ogg",
+             "Joe Bloggs/Third Album/03:Third_track.ogg",
+             "Joe Bloggs/Third Album/04:Fourth_track.ogg",
+             "Joe Bloggs/Third Album/05:Fifth_track.ogg"]
+    first_and_second = filter(lambda s: s in second, first)
     # ASCII matches
-    check_search_results(["first"],
-                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg",
-                          "Joe Bloggs/First Album/02:Second track.ogg",
-                          "Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg",
-                          "Joe Bloggs/First Album/04:Fourth track.ogg",
-                          "Joe Bloggs/First Album/05:Fifth track.ogg",
-                          "Joe Bloggs/Second Album/01:First track.ogg",
-                          "Joe Bloggs/Third Album/01:First_track.ogg"])
-    check_search_results(["Second"],
-                         ["Joe Bloggs/First Album/02:Second track.ogg",
-                          "Joe Bloggs/Second Album/01:First track.ogg",
-                          "Joe Bloggs/Second Album/02:Second track.ogg",
-                          "Joe Bloggs/Second Album/03:Third track.ogg",
-                          "Joe Bloggs/Second Album/04:Fourth track.ogg",
-                          "Joe Bloggs/Second Album/05:Fifth track.ogg",
-                          "Joe Bloggs/Third Album/02:Second_track.ogg"])
+    check_search_results(["first"], first)
+    check_search_results(["Second"], second)
+    check_search_results(["THIRD"], third)
     # ASCII Conjunctions
-    check_search_results(["FIRST", "SECOND"],
-                         ["Joe Bloggs/First Album/02:Second track.ogg",
-                          "Joe Bloggs/Second Album/01:First track.ogg"])
+    check_search_results(["FIRST", "SECOND"], first_and_second)
     # Non-ASCII Characters
     # 00CC is LATIN CAPITAL LETTER I WITH GRAVE
     # 00EC is LATIN SMALL LETTER I WITH GRAVE
-    check_search_results([u"F\u00CCRST"],
-                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
-    check_search_results([u"f\u00ECrst"],
-                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
+    check_search_results([u"F\u00CCRST"], first)
+    check_search_results([u"f\u00ECrst"], first)
     # 00CD is LATIN CAPITAL LETTER I WITH ACUTE
     # 00ED is LATIN SMALL LETTER I WITH ACUTE
-    check_search_results([u"TH\u00CDRD"],
-                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
-    check_search_results([u"th\u00EDrd"],
-                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
+    check_search_results([u"TH\u00CDRD"], third)
+    check_search_results([u"th\u00EDrd"], third)
     # ...and again in denormalized form
     # 0300 is COMBINING GRAVE ACCENT
     # 0301 is COMBINING ACUTE ACCENT
-    check_search_results([u"FI\u0300RST"],
-                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
-    check_search_results([u"fi\u0300rst"],
-                         ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg"])
-    check_search_results([u"THI\u0301RD"],
-                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
-    check_search_results([u"thI\u0301rd"],
-                          ["Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg"])
+    check_search_results([u"FI\u0300RST"], first)
+    check_search_results([u"fi\u0300rst"], first)
+    check_search_results([u"THI\u0301RD"], third)
+    check_search_results([u"thI\u0301rd"], third)
     
     if failures > 0:
         sys.exit(1)
