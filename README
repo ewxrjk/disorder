@@ -15,9 +15,9 @@ DisOrder is a multi-user software jukebox.
 
 See CHANGES for details of recent changes to DisOrder.
 
-The server supports Linux and can be made to on a Mac.  The clients work on
-both Linux and the Mac.  It could probably be ported to some other UNIX
-variants in without too much effort.  Things you will need:
+The server supports Linux and can be made to on a Mac (see README.mac).  The
+clients work on both Linux and the Mac.  It could probably be ported to some
+other UNIX variants without too much effort.  Things you will need:
 
 Build dependencies:
   Name             Tested              Notes
@@ -91,16 +91,12 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    See README.client for setting up a standalone client (or read the
    disobedience man page).
 
-   The server is only built by default under Linux.  See README.mac concerning
-   its use under OS X.
-
 2. Install it.  Most of the installation is done via the install target:
 
      make installdirs install
 
-   The CGI interface has to be installed separately:
-
-     install -m 755 clients/disorder.cgi /usr/local/lib/cgi-bin/disorder
+   The CGI interface has to be installed separately; see under 'Web Interface'
+   below.
 
 3. Create a 'jukebox' user and group, with the jukebox group being the default
    group of the jukebox user.  The server will run as this user and group.
@@ -230,17 +226,14 @@ You need to configure a number of things to make this work:
      # htpasswd -b /home/jukebox/http.users othername otherpass
      Adding password for user othername
 
-4. The jukebox must be configured to trust the web user.  I added the following
-   line to my /etc/disorder/config:
-
-     trust www-data
-
-   This might not be the same on your system!  You have to specify the user
-   that the CGI script runs as, whatever that is.
+4. The jukebox must be configured to trust the web user.  The example
+   configuration assumes that this is www-data, but it might be something else
+   on your system.  Edit the 'trust' line if necessary.
 
 5. Install disorder.cgi in an appropriate location.  Remember to make it
-   executable.  With the above configuration I installed it as
-   ~jukebox/public_html/index.cgi.
+   executable.  For example:
+
+     install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
 
 6. Give www-data (or whatever user it is) a password and edit
    /etc/disorder/config.private accordingly.  This file should be mode 640 and
@@ -265,16 +258,11 @@ You need to configure a number of things to make this work:
    configured earlier, and be shown details of what is playing and what other
    tracks have been configured for future play.
 
-9. Some features take time to start working, for instance those involving
-   reporting the length of tracks.  This is because the server starts up as
-   quickly as possible even if the full track data has not yet been gathered;
-   the track data is then calculated in the background.
+9. If you run into problems, always look at the appropriate error log; the
+   message you see in your web browser will usually not be sufficient to
+   diagnose the problem all by itself.
 
-10. If you run into problems, always look at the appropriate error log; the
-    message you see in your web browser will usually not be sufficient to
-    diagnose the problem all by itself.
-
-11. If you have a huge number of top level directories, then you might find
+10. If you have a huge number of top level directories, then you might find
     that the 'Choose' page is unreasonably large.  If so add the following line
     to /etc/disorder/options.user:
       label sidebar.choosewhich choosealpha
