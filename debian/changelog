@@ -1,3 +1,9 @@
+disorder (1.5.99+dev9) unstable; urgency=low
+
+  * disorder.unicode branch has been merged
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Fri, 23 Nov 2007 17:09:51 +0000
+
 disorder (1.5.99+dev8) unstable; urgency=low
 
   * disorder-playrtp automatically picks up multicast
