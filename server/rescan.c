@@ -50,6 +50,7 @@
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "trackname.h"
+#include "unicode.h"
 
 static DB_TXN *global_tid;
 
@@ -150,6 +151,13 @@ static void rescan_collection(const struct collection *c) {
     if(!(track = any2utf8(c->encoding, path))) {
       error(0, "cannot convert track path to UTF-8: %s", path);
       continue;
+    }
+    if(config->dbversion > 1) {
+      /* We use NFC track names */
+      if(!(track = utf8_compose_canon(track, strlen(track), 0))) {
+        error(0, "cannot convert track path to NFC: %s", path);
+        continue;
+      }
     }
     D(("track %s", track));
     /* only tracks with a known player are admitted */
@@ -353,8 +361,8 @@ int main(int argc, char **argv) {
   xsigaction(SIGTERM, &sa, 0);
   xsigaction(SIGINT, &sa, 0);
   info("started");
-  trackdb_init(0);
-  trackdb_open();
+  trackdb_init(TRACKDB_NO_RECOVER);
+  trackdb_open(TRACKDB_NO_UPGRADE);
   if(optind == argc) {
     /* Rescan all collections */
     do_all(rescan_collection);

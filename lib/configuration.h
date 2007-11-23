@@ -246,6 +246,9 @@ struct config {
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */
+
+  /* undocumented, for testing only */
+  long dbversion;
 };
 
 extern struct config *config;

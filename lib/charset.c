@@ -31,9 +31,8 @@
 #include "log.h"
 #include "charset.h"
 #include "configuration.h"
-#include "utf8.h"
 #include "vector.h"
-#include "unidata.h"
+#include "unicode.h"
 
 /** @brief Low-level converstion routine
  * @param from Source encoding
@@ -70,74 +69,6 @@ static void *convert(const char *from, const char *to,
   return buf;
 }
 
-/** @brief Convert UTF-8 to UCS-4
- * @param mb Pointer to 0-terminated UTF-8 string
- * @return Pointer to 0-terminated UCS-4 string
- *
- * Not everybody's iconv supports UCS-4, and it's inconvenient to have to know
- * our endianness, and it's easy to convert it ourselves, so we do.  See also
- * @ref ucs42utf8().
- */ 
-uint32_t *utf82ucs4(const char *mb) {
-  struct dynstr_ucs4 d;
-  uint32_t c;
-
-  dynstr_ucs4_init(&d);
-  while(*mb) {
-    PARSE_UTF8(mb, c,
-	       error(0, "invalid UTF-8 sequence"); return 0;);
-    dynstr_ucs4_append(&d, c);
-  }
-  dynstr_ucs4_terminate(&d);
-  return d.vec;
-}
-
-/** @brief Convert one UCS-4 character to UTF-8
- * @param c Character to convert
- * @param d Dynamic string to append UTF-8 sequence to
- * @return 0 on success, -1 on error
- */
-int one_ucs42utf8(uint32_t c, struct dynstr *d) {
-  if(c < 0x80)
-    dynstr_append(d, c);
-  else if(c < 0x800) {
-    dynstr_append(d, 0xC0 | (c >> 6));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else if(c < 0x10000) {
-    dynstr_append(d, 0xE0 | (c >> 12));
-    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else if(c < 0x110000) {
-    dynstr_append(d, 0xF0 | (c >> 18));
-    dynstr_append(d, 0x80 | ((c >> 12) & 0x3F));
-    dynstr_append(d, 0x80 | ((c >> 6) & 0x3F));
-    dynstr_append(d, 0x80 | (c & 0x3F));
-  } else {
-    error(0, "invalid UCS-4 character %#"PRIx32, c);
-    return -1;
-  }
-  return 0;
-}
-
-/** @brief Convert UCS-4 to UTF-8
- * @param u Pointer to 0-terminated UCS-4 string
- * @return Pointer to 0-terminated UTF-8 string
- *
- * See @ref utf82ucs4().
- */
-char *ucs42utf8(const uint32_t *u) {
-  struct dynstr d;
-  uint32_t c;
-
-  dynstr_init(&d);
-  while((c = *u++)) {
-    if(one_ucs42utf8(c, &d))
-      return 0;
-  }
-  dynstr_terminate(&d);
-  return d.vec;
-}
-
 /** @brief Convert from the local multibyte encoding to UTF-8 */
 char *mb2utf8(const char *mb) {
   return convert(nl_langinfo(CODESET), "UTF-8", mb, strlen(mb) + 1);
@@ -167,80 +98,50 @@ char *any2any(const char *from,
   else return xstrdup(any);
 }
 
-/** @brief strlen workalike for UCS-4 strings
- *
- * We don't rely on the local @c wchar_t being UCS-4.
- */
-int ucs4cmp(const uint32_t *a, const uint32_t *b) {
-  while(*a && *b && *a == *b) ++a, ++b;
-  if(*a > *b) return 1;
-  else if(*a < *b) return -1;
-  else return 0;
-}
-
-/** @brief Return nonzero if @p c is a combining character */
-static int combining(int c) {
-  if(c < UNICODE_NCHARS) {
-    const struct unidata *const ud = &unidata[c / 256][c % 256];
-
-    return ud->gc == unicode_gc_Mn || ud->ccc != 0;
-  }
-  /* Assume unknown characters are noncombining */
-  return 0;
-}
-
 /** @brief Truncate a string for display purposes
  * @param s Pointer to UTF-8 string
  * @param max Maximum number of columns
  * @return @p or truncated string (never NULL)
  *
- * We don't correctly support bidi or double-width characters yet, nor
- * locate default grapheme cluster boundaries for saner truncation.
+ * Returns a string that is no longer than @p max graphemes long and is either
+ * (canonically) equal to @p s or is a truncated form of it with an ellipsis
+ * appended.
+ *
+ * We don't take display width into account (tricky for HTML!) and we don't
+ * attempt to implement the Bidi algorithm.  If you have track names for which
+ * either of these matter in practice then get in touch.
  */
 const char *truncate_for_display(const char *s, long max) {
-  const char *t = s, *r, *cut = 0;
-  char *truncated;
-  uint32_t c;
-  long n = 0;
+  uint32_t *s32;
+  size_t l32, cut;
+  utf32_iterator it;
 
-  /* We need to discover two things: firstly whether the string is
-   * longer than @p max glyphs and secondly if it is not, where to cut
-   * the string.
-   *
-   * Combining characters follow their base character (unicode
-   * standard 5.0 s2.11), so after each base character we must 
-   */
-  while(*t) {
-    PARSE_UTF8(t, c, return s);
-    if(combining(c))
-      /* This must be an initial combining character.  We just skip it. */
-      continue;
-    /* So c must be a base character.  It may be followed by any
-     * number of combining characters.  We advance past them. */
-    do {
-      r = t;
-      PARSE_UTF8(t, c, return s);
-    } while(combining(c));
-    /* Last character wasn't a combining character so back up */
-    t = r;
-    ++n;
-    /* So now there are N glyphs before position T.  We might
-     * therefore have reached the cut position. */
-    if(n == max - 3)
-      cut = t;
+  /* Convert to UTF-32 for processing */
+  if(!(s32 = utf8_to_utf32(s, strlen(s), &l32)))
+    return 0;
+  it = utf32_iterator_new(s32, l32);
+  cut = l32;
+  while(max && utf32_iterator_where(it) < l32) {
+    utf32_iterator_advance(it, 1);
+    if(utf32_iterator_grapheme_boundary(it))
+      --max;
+    if(max == 1)
+      cut = utf32_iterator_where(it);
   }
-  /* If the string is short enough we return it unmodified */
-  if(n < max)
-    return s;
-  truncated = xmalloc_noptr(cut - s + 4);
-  memcpy(truncated, s, cut - s);
-  strcpy(truncated + (cut - s), "...");
-  return truncated;
+  if(max == 0) {                        /* we need to cut */
+    s32[cut] = 0x2026;                  /* HORIZONTAL ELLIPSIS */
+    l32 = cut + 1;
+    s = utf32_to_utf8(s32, l32, 0);
+  }
+  xfree(s32);
+  return s;
 }
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

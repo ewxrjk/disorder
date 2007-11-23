@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
   trackdb_init(recover);
-  trackdb_open();
+  trackdb_open(TRACKDB_NO_UPGRADE);
   if(dump) {
     /* we write to a temporary file and rename into place */
     byte_xasprintf(&tmp, "%s.%lx.tmp", path, (unsigned long)getpid());

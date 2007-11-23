@@ -226,6 +226,10 @@ static int set_stringlist_accum(const struct config_state *cs,
   struct stringlistlist *sll;
 
   sll = ADDRESS(cs->config, struct stringlistlist);
+  if(nvec == 0) {
+    sll->n = 0;
+    return 0;
+  }
   sll->n++;
   sll->s = xrealloc(sll->s, (sll->n * sizeof (struct stringlist)));
   s = &sll->s[sll->n - 1];
@@ -243,6 +247,10 @@ static int set_string_accum(const struct config_state *cs,
   struct stringlist *sl;
 
   sl = ADDRESS(cs->config, struct stringlist);
+  if(nvec == 0) {
+    sl->n = 0;
+    return 0;
+  }
   for(n = 0; n < nvec; ++n) {
     sl->n++;
     sl->s = xrealloc(sl->s, (sl->n * sizeof (char *)));
@@ -884,6 +892,7 @@ static const struct conf conf[] = {
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
   { C(connect),          &type_stringlist,       validate_addrport },
+  { C(dbversion),        &type_integer,          validate_positive },
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
@@ -1039,6 +1048,7 @@ static struct config *config_default(void) {
   c->short_display = 32;
   c->mixer = xstrdup("/dev/mixer");
   c->channel = xstrdup("pcm");
+  c->dbversion = 2;
   return c;
 }
 

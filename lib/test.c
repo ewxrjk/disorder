@@ -28,6 +28,8 @@
 #include <errno.h>
 #include <ctype.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "utf8.h"
 #include "mem.h"
@@ -36,15 +38,24 @@
 #include "charset.h"
 #include "mime.h"
 #include "hex.h"
-#include "words.h"
 #include "heap.h"
+#include "unicode.h"
+#include "inputline.h"
+#include "wstat.h"
 
 static int tests, errors;
+static int fail_first;
+
+static void count_error() {
+  ++errors;
+  if(fail_first)
+    abort();
+}
 
 /** @brief Checks that @p expr is nonzero */
 #define insist(expr) do {				\
   if(!(expr)) {						\
-    ++errors;						\
+    count_error();						\
     fprintf(stderr, "%s:%d: error checking %s\n",	\
             __FILE__, __LINE__, #expr);			\
   }							\
@@ -69,6 +80,20 @@ static const char *format(const char *s) {
   return d.vec;
 }
 
+static const char *format_utf32(const uint32_t *s) {
+  struct dynstr d;
+  uint32_t c;
+  char buf[64];
+  
+  dynstr_init(&d);
+  while((c = *s++)) {
+    sprintf(buf, " %04lX", (long)c);
+    dynstr_append_string(&d, buf);
+  }
+  dynstr_terminate(&d);
+  return d.vec;
+}
+
 #define check_string(GOT, WANT) do {				\
   const char *g = GOT;						\
   const char *w = WANT;						\
@@ -76,11 +101,11 @@ static const char *format(const char *s) {
   if(w == 0) {							\
     fprintf(stderr, "%s:%d: %s returned 0\n",			\
             __FILE__, __LINE__, #GOT);				\
-    ++errors;							\
+    count_error();							\
   } else if(strcmp(w, g)) {					\
     fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s\n",	\
 	    __FILE__, __LINE__, #GOT, format(g), format(w));	\
-    ++errors;							\
+    count_error();							\
   }								\
   ++tests;							\
  } while(0)
@@ -109,15 +134,16 @@ static void test_utf8(void) {
   char *u8;					\
 						\
   insist(validutf8(CHARS));			\
-  ucs = utf82ucs4(CHARS);			\
+  ucs = utf8_to_utf32(CHARS, strlen(CHARS), 0); \
   insist(ucs != 0);				\
-  insist(!ucs4cmp(w, ucs));			\
-  u8 = ucs42utf8(ucs);				\
+  insist(!utf32_cmp(w, ucs));			\
+  u8 = utf32_to_utf8(ucs, utf32_len(ucs), 0);   \
   insist(u8 != 0);				\
   insist(!strcmp(u8, CHARS));			\
 } while(0)
 
   fprintf(stderr, "test_utf8\n");
+#define validutf8(S) utf8_valid((S), strlen(S))
 
   /* empty string */
 
@@ -332,16 +358,18 @@ static void test_hex(void) {
 }
 
 static void test_casefold(void) {
-  uint32_t c, l, u[2];
-  const char *s, *ls;
+  uint32_t c, l;
+  const char *input, *canon_folded, *compat_folded, *canon_expected, *compat_expected;
 
   fprintf(stderr, "test_casefold\n");
 
+  /* This isn't a very exhaustive test.  Unlike for normalization, there don't
+   * seem to be any public test vectors for these algorithms. */
+  
   for(c = 1; c < 256; ++c) {
-    u[0] = c;
-    u[1] = 0;
-    s = ucs42utf8(u);
-    ls = casefold(s);
+    input = utf32_to_utf8(&c, 1, 0);
+    canon_folded = utf8_casefold_canon(input, strlen(input), 0);
+    compat_folded = utf8_casefold_compat(input, strlen(input), 0);
     switch(c) {
     default:
       if((c >= 'A' && c <= 'Z')
@@ -350,31 +378,102 @@ static void test_casefold(void) {
       else
 	l = c;
       break;
-#if 0
-      /* unidata-based case folding doens't support special cases */
     case 0xB5:				/* MICRO SIGN */
-      l = 0x39C;			/* GREEK SMALL LETTER MU */
+      l = 0x3BC;			/* GREEK SMALL LETTER MU */
       break;
     case 0xDF:				/* LATIN SMALL LETTER SHARP S */
-      insist(!strcmp(ls, "ss"));
+      insist(!strcmp(canon_folded, "ss"));
+      insist(!strcmp(compat_folded, "ss"));
       l = 0;
       break;
-#endif
     }
     if(l) {
-      u[0] = l;
-      u[1] = 0;
-      s = ucs42utf8(u);
-      if(strcmp(s, ls)) {
-	fprintf(stderr, "%s:%d: casefolding %#lx got '%s', expected '%s'\n",
+      uint32_t *d;
+      /* Case-folded data is now normalized */
+      d = utf32_decompose_canon(&l, 1, 0);
+      canon_expected = utf32_to_utf8(d, utf32_len(d), 0);
+      if(strcmp(canon_folded, canon_expected)) {
+	fprintf(stderr, "%s:%d: canon-casefolding %#lx got '%s', expected '%s'\n",
 		__FILE__, __LINE__, (unsigned long)c,
-		format(ls), format(s));
-	++errors;
+		format(canon_folded), format(canon_expected));
+	count_error();
+      }
+      ++tests;
+      d = utf32_decompose_compat(&l, 1, 0);
+      compat_expected = utf32_to_utf8(d, utf32_len(d), 0);
+      if(strcmp(compat_folded, compat_expected)) {
+	fprintf(stderr, "%s:%d: compat-casefolding %#lx got '%s', expected '%s'\n",
+		__FILE__, __LINE__, (unsigned long)c,
+		format(compat_folded), format(compat_expected));
+	count_error();
       }
       ++tests;
     }
   }
-  check_string(casefold(""), "");
+  check_string(utf8_casefold_canon("", 0, 0), "");
+}
+
+struct {
+  const char *in;
+  const char *expect[10];
+} wtest[] = {
+  /* Empty string */
+  { "", { 0 } },
+  /* Only whitespace and punctuation */
+  { "    ", { 0 } },
+  { " '   ", { 0 } },
+  { " !  ", { 0 } },
+  { " \"\"  ", { 0 } },
+  { " @  ", { 0 } },
+  /* Basics */
+  { "wibble", { "wibble", 0 } },
+  { " wibble", { "wibble", 0 } },
+  { " wibble ", { "wibble", 0 } },
+  { "wibble ", { "wibble", 0 } },
+  { "wibble spong", { "wibble", "spong", 0 } },
+  { " wibble  spong", { "wibble", "spong", 0 } },
+  { " wibble  spong   ", { "wibble", "spong", 0 } },
+  { "wibble   spong  ", { "wibble", "spong", 0 } },
+  { "wibble   spong splat foo zot  ", { "wibble", "spong", "splat", "foo", "zot", 0 } },
+  /* Apostrophes */
+  { "wibble 'spong", { "wibble", "spong", 0 } },
+  { " wibble's", { "wibble's", 0 } },
+  { " wibblespong'   ", { "wibblespong", 0 } },
+  { "wibble   sp''ong  ", { "wibble", "sp", "ong", 0 } },
+};
+#define NWTEST (sizeof wtest / sizeof *wtest)
+
+static void test_words(void) {
+  size_t t, nexpect, ngot, i;
+  int right;
+  
+  fprintf(stderr, "test_words\n");
+  for(t = 0; t < NWTEST; ++t) {
+    char **got = utf8_word_split(wtest[t].in, strlen(wtest[t].in), &ngot, 0);
+
+    for(nexpect = 0; wtest[t].expect[nexpect]; ++nexpect)
+      ;
+    if(nexpect == ngot) {
+      for(i = 0; i < ngot; ++i)
+        if(strcmp(wtest[t].expect[i], got[i]))
+          break;
+      right = i == ngot;
+    } else
+      right = 0;
+    if(!right) {
+      fprintf(stderr, "word split %zu failed\n", t);
+      fprintf(stderr, "input: %s\n", wtest[t].in);
+      fprintf(stderr, "    | %-30s | %-30s\n",
+              "expected", "got");
+      for(i = 0; i < nexpect || i < ngot; ++i) {
+        const char *e = i < nexpect ? wtest[t].expect[i] : "<none>";
+        const char *g = i < ngot ? got[i] : "<none>";
+        fprintf(stderr, " %2zu | %-30s | %-30s\n", i, e, g);
+      }
+      count_error();
+    }
+    ++tests;
+  }
 }
 
 /** @brief Less-than comparison function for integer heap */
@@ -406,7 +505,176 @@ static void test_heap(void) {
   putchar('\n');
 }
 
+/** @brief Open a Unicode test file */
+static FILE *open_unicode_test(const char *path) {
+  const char *base;
+  FILE *fp;
+  char buffer[1024];
+  int w;
+
+  if((base = strrchr(path, '/')))
+    ++base;
+  else
+    base = path;
+  if(!(fp = fopen(base, "r"))) {
+    snprintf(buffer, sizeof buffer,
+             "wget http://www.unicode.org/Public/5.0.0/ucd/%s", path);
+    if((w = system(buffer)))
+      fatal(0, "%s: %s", buffer, wstat(w));
+    if(chmod(base, 0444) < 0)
+      fatal(errno, "chmod %s", base);
+    if(!(fp = fopen(base, "r")))
+      fatal(errno, "%s", base);
+  }
+  return fp;
+}
+
+/** @brief Run breaking tests for utf32_grapheme_boundary() etc */
+static void breaktest(const char *path,
+                      int (*breakfn)(const uint32_t *, size_t, size_t)) {
+  FILE *fp = open_unicode_test(path);
+  int lineno = 0;
+  char *l, *lp;
+  size_t bn, n;
+  char break_allowed[1024];
+  uint32_t buffer[1024];
+
+  while(!inputline(path, fp, &l, '\n')) {
+    ++lineno;
+    if(l[0] == '#') continue;
+    bn = 0;
+    lp = l;
+    while(*lp) {
+      if(*lp == ' ' || *lp == '\t') {
+        ++lp;
+        continue;
+      }
+      if(*lp == '#')
+        break;
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0xB7) {
+        /* 00F7 DIVISION SIGN */
+        break_allowed[bn] = 1;
+        lp += 2;
+        continue;
+      }
+      if((unsigned char)*lp == 0xC3 && (unsigned char)lp[1] == 0x97) {
+        /* 00D7 MULTIPLICATION SIGN */
+        break_allowed[bn] = 0;
+        lp += 2;
+        continue;
+      }
+      if(isxdigit((unsigned char)*lp)) {
+        buffer[bn++] = strtoul(lp, &lp, 16);
+        continue;
+      }
+      fatal(0, "%s:%d: evil line: %s", path, lineno, l);
+    }
+    for(n = 0; n <= bn; ++n) {
+      if(breakfn(buffer, bn, n) != break_allowed[n]) {
+        fprintf(stderr,
+                "%s:%d: offset %zu: mismatch\n"
+                "%s\n"
+                "\n",
+                path, lineno, n, l);
+        count_error();
+      }
+      ++tests;
+    }
+    xfree(l);
+  }
+  fclose(fp);
+}
+
+/** @brief Tests for @ref lib/unicode.h */
+static void test_unicode(void) {
+  FILE *fp;
+  int lineno = 0;
+  char *l, *lp;
+  uint32_t buffer[1024];
+  uint32_t *c[6], *NFD_c[6], *NFKD_c[6], *NFC_c[6], *NFKC_c[6]; /* 1-indexed */
+  int cn, bn;
+
+  fprintf(stderr, "test_unicode\n");
+  fp = open_unicode_test("NormalizationTest.txt");
+  while(!inputline("NormalizationTest.txt", fp, &l, '\n')) {
+    ++lineno;
+    if(*l == '#' || *l == '@')
+      continue;
+    bn = 0;
+    cn = 1;
+    lp = l;
+    c[cn++] = &buffer[bn];
+    while(*lp && *lp != '#') {
+      if(*lp == ' ') {
+	++lp;
+	continue;
+      }
+      if(*lp == ';') {
+	buffer[bn++] = 0;
+	if(cn == 6)
+	  break;
+	c[cn++] = &buffer[bn];
+	++lp;
+	continue;
+      }
+      buffer[bn++] = strtoul(lp, &lp, 16);
+    }
+    buffer[bn] = 0;
+    assert(cn == 6);
+    for(cn = 1; cn <= 5; ++cn) {
+      NFD_c[cn] = utf32_decompose_canon(c[cn], utf32_len(c[cn]), 0);
+      NFKD_c[cn] = utf32_decompose_compat(c[cn], utf32_len(c[cn]), 0);
+      NFC_c[cn] = utf32_compose_canon(c[cn], utf32_len(c[cn]), 0);
+      NFKC_c[cn] = utf32_compose_compat(c[cn], utf32_len(c[cn]), 0);
+    }
+#define unt_check(T, A, B) do {					\
+    ++tests;							\
+    if(utf32_cmp(c[A], T##_c[B])) {				\
+      fprintf(stderr,                                           \
+              "NormalizationTest.txt:%d: c%d != "#T"(c%d)\n",   \
+              lineno, A, B);                                    \
+      fprintf(stderr, "      c%d:%s\n",                         \
+              A, format_utf32(c[A]));				\
+      fprintf(stderr, "      c%d:%s\n",                         \
+              B, format_utf32(c[B]));				\
+      fprintf(stderr, "%4s(c%d):%s\n",				\
+              #T, B, format_utf32(T##_c[B]));			\
+      count_error();						\
+    }								\
+  } while(0)
+    unt_check(NFD, 3, 1);
+    unt_check(NFD, 3, 2);
+    unt_check(NFD, 3, 3);
+    unt_check(NFD, 5, 4);
+    unt_check(NFD, 5, 5);
+    unt_check(NFKD, 5, 1);
+    unt_check(NFKD, 5, 2);
+    unt_check(NFKD, 5, 3);
+    unt_check(NFKD, 5, 4);
+    unt_check(NFKD, 5, 5);
+    unt_check(NFC, 2, 1);
+    unt_check(NFC, 2, 2);
+    unt_check(NFC, 2, 3);
+    unt_check(NFC, 4, 4);
+    unt_check(NFC, 4, 5);
+    unt_check(NFKC, 4, 1);
+    unt_check(NFKC, 4, 2);
+    unt_check(NFKC, 4, 3);
+    unt_check(NFKC, 4, 4);
+    unt_check(NFKC, 4, 5);
+    for(cn = 1; cn <= 5; ++cn) {
+      xfree(NFD_c[cn]);
+      xfree(NFKD_c[cn]);
+    }
+    xfree(l);
+  }
+  fclose(fp);
+  breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_grapheme_boundary);
+  breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
+}
+
 int main(void) {
+  fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
   insist('\r' == 0x0D);
   insist(' ' == 0x20);
@@ -444,11 +712,14 @@ int main(void) {
   /* split.c */
   /* syscalls.c */
   /* table.c */
+  /* unicode.c */
+  test_unicode();
   /* utf8.c */
   test_utf8();
   /* vector.c */
   /* words.c */
   test_casefold();
+  test_words();
   /* XXX words() */
   /* wstat.c */
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
@@ -459,6 +730,7 @@ int main(void) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */
-

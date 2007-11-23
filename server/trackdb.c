@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/trackdb.c
+ * @brief Track database */
 
 #include <config.h>
 #include "types.h"
@@ -45,7 +47,6 @@
 #include "configuration.h"
 #include "syscalls.h"
 #include "wstat.h"
-#include "words.h"
 #include "printf.h"
 #include "filepart.h"
 #include "trackname.h"
@@ -54,6 +55,8 @@
 #include "cache.h"
 #include "eventlog.h"
 #include "hash.h"
+#include "unicode.h"
+#include "unidata.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -64,9 +67,6 @@ static const char *getpart(const char *track,
                            const struct kvp *p,
                            int *used_db);
 static int trackdb_alltags_tid(DB_TXN *tid, char ***taglistp);
-static int trackdb_get_global_tid(const char *name,
-                                  DB_TXN *tid,
-                                  const char **rp);
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
                               DB_TXN *tid);
@@ -79,11 +79,59 @@ unsigned long cache_files_hits, cache_files_misses;
 
 static const char *home;                /* home had better not change */
 DB_ENV *trackdb_env;			/* db environment */
-DB *trackdb_tracksdb;			/* the db itself */
-DB *trackdb_prefsdb;			/* preferences */
-DB *trackdb_searchdb;			/* the search database */
+
+/** @brief The tracks database
+ * - Keys are UTF-8(NFC(unicode(path name)))
+ * - Values are encoded key-value pairs
+ * - Data is reconstructable data about tracks that currently exist
+ */
+DB *trackdb_tracksdb;
+
+/** @brief The preferences database
+ *
+ * - Keys are UTF-8(NFC(unicode(path name)))
+ * - Values are encoded key-value pairs
+ * - Data is user data about tracks (that might not exist any more)
+ * and cannot be reconstructed
+ */
+DB *trackdb_prefsdb;
+
+/** @brief The search database
+ *
+ * - Keys are UTF-8(NFKC(casefold(search term)))
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path matches the search terms
+ * - Only tracks fond in @ref tracks_tracksdb are represented here
+ * - This database can be reconstructed, it contains no user data
+ */
+DB *trackdb_searchdb;
+
+/** @brief The tags database
+ *
+ * - Keys are UTF-8(NFKC(casefold(tag)))
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path matches the tag
+ * - This is always in sync with the tags preference
+ * - This database can be reconstructed, it contains no user data
+ */
 DB *trackdb_tagsdb;			/* the tags database */
+
+/** @brief The global preferences database
+ * - Keys are UTF-8(NFC(preference))
+ * - Values are global preference values
+ * - Data is user data and cannot be reconstructed
+ */
 DB *trackdb_globaldb;                   /* global preferences */
+
+/** @brief The noticed database
+ * - Keys are 64-bit big-endian timestamps
+ * - Values are UTF-8(NFC(unicode(path name)))
+ * - There can be more than one value per key
+ * - Presence of key,value means that path was added at the given time
+ * - Data cannot be reconstructed (but isn't THAT important)
+ */
 DB *trackdb_noticeddb;                   /* when track noticed */
 static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
@@ -99,9 +147,17 @@ static int compare(DB attribute((unused)) *db_,
   return compare_path_raw(a->data, a->size, b->data, b->size);
 }
 
-/* open environment */
-void trackdb_init(int recover) {
+/** @brief Open database environment
+ * @param flags Flags word
+ *
+ * Flags should be one of:
+ * - @ref TRACKDB_NO_RECOVER
+ * - @ref TRACKDB_NORMAL_RECOVER
+ * - @ref TRACKDB_FATAL_RECOVER
+ */
+void trackdb_init(int flags) {
   int err;
+  const int recover = flags & TRACKDB_RECOVER_MASK;
   static int recover_type[] = { 0, DB_RECOVER, DB_RECOVER_FATAL };
 
   /* sanity checks */
@@ -232,16 +288,86 @@ static DB *open_db(const char *path,
     if((err = db->set_bt_compare(db, compare)))
       fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
   if((err = db->open(db, 0, path, 0, dbtype,
-                     openflags | DB_AUTO_COMMIT, mode)))
-    fatal(0, "db->open %s: %s", path, db_strerror(err));
+                     openflags | DB_AUTO_COMMIT, mode))) {
+    if((openflags & DB_CREATE) || errno != ENOENT)
+      fatal(0, "db->open %s: %s", path, db_strerror(err));
+    db->close(db, 0);
+    db = 0;
+  }
   return db;
 }
 
-/* open track databases */
-void trackdb_open(void) {
+/** @brief Open track databases
+ * @param Flags flags word
+ *
+ * @p flags should be one of:
+ * - @p TRACKDB_NO_UPGRADE, if no upgrade should be attempted
+ * - @p TRACKDB_CAN_UPGRADE, if an upgrade may be attempted
+ * - @p TRACKDB_OPEN_FOR_UPGRADE, if this is disorder-dbupgrade
+ */
+void trackdb_open(int flags) {
+  int newdb, err;
+  pid_t pid;
+
   /* sanity checks */
   assert(opened == 0);
   ++opened;
+  /* check the database version first */
+  trackdb_globaldb = open_db("global.db", 0, DB_HASH, 0, 0666);
+  if(trackdb_globaldb) {
+    /* This is an existing database */
+    const char *s;
+    long oldversion;
+
+    s = trackdb_get_global("_dbversion");
+    /* Close the database again,  we'll open it property below */
+    if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
+      fatal(0, "error closing global.db: %s", db_strerror(err));
+    trackdb_globaldb = 0;
+    /* Convert version string to an integer */
+    oldversion = s ? atol(s) : 1;
+    if(oldversion > config->dbversion) {
+      /* Database is from the future; we never allow this. */
+      fatal(0, "this version of DisOrder is too old for database version %ld",
+            oldversion);
+    }
+    if(oldversion < config->dbversion) {
+      /* Database version is out of date */
+      switch(flags & TRACKDB_UPGRADE_MASK) {
+      case TRACKDB_NO_UPGRADE:
+        /* This database needs upgrading but this is not permitted */
+        fatal(0, "database needs upgrading from %ld to %ld",
+              oldversion, config->dbversion);
+      case TRACKDB_CAN_UPGRADE:
+        /* This database needs upgrading */
+        info("invoking disorder-dbupgrade to upgrade from %ld to %ld",
+             oldversion, config->dbversion);
+        pid = subprogram(0, "disorder-dbupgrade", -1);
+        while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
+          ;
+        if(err)
+          fatal(0, "disorder-dbupgrade %s", wstat(err));
+        info("disorder-dbupgrade succeeded");
+        break;
+      case TRACKDB_OPEN_FOR_UPGRADE:
+        break;
+      default:
+        abort();
+      }
+    }
+    if(oldversion == config->dbversion && (flags & TRACKDB_OPEN_FOR_UPGRADE)) {
+      /* This doesn't make any sense */
+      fatal(0, "database is already at current version");
+    }
+    newdb = 0;
+  } else {
+    if(flags & TRACKDB_OPEN_FOR_UPGRADE) {
+      /* Cannot upgrade a new database */
+      fatal(0, "cannot upgrade a database that does not exist");
+    }
+    /* This is a brand new database */
+    newdb = 1;
+  }
   /* open the databases */
   trackdb_tracksdb = open_db("tracks.db",
                              DB_RECNUM, DB_BTREE, DB_CREATE, 0666);
@@ -253,6 +379,14 @@ void trackdb_open(void) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
+  if(newdb) {
+    /* Stash the database version */
+    char buf[32];
+
+    assert(!(flags & TRACKDB_OPEN_FOR_UPGRADE));
+    snprintf(buf, sizeof buf, "%ld", config->dbversion);
+    trackdb_set_global("_dbversion", buf, 0);
+  }
   D(("opened databases"));
 }
 
@@ -493,24 +627,68 @@ static int is_display_pref(const char *name) {
   return !strncmp(name, prefix, (sizeof prefix) - 1);
 }
 
+/** @brief Word_Break property tailor that treats underscores as spaces */
+static int tailor_underscore_Word_Break_Other(uint32_t c) {
+  switch(c) {
+  default:
+    return -1;
+  case 0x005F: /* LOW LINE (SPACING UNDERSCORE) */
+    return unicode_Word_Break_Other;
+  }
+}
+
+/** @brief Remove all combining characters in-place
+ * @param s Pointer to start of string
+ * @param ns Length of string
+ * @return New, possiblby reduced, length
+ */
+static size_t remove_combining_chars(uint32_t *s, size_t ns) {
+  uint32_t *start = s, *t = s, *end = s + ns;
+
+  while(s < end) {
+    const uint32_t c = *s++;
+    if(!utf32_combining_class(c))
+      *t++ = c;
+  }
+  return t - start;
+}
+
+/** @brief Normalize and split a string using a given tailoring */
+static void word_split(struct vector *v,
+                       const char *s,
+                       unicode_property_tailor *pt) {
+  size_t nw, nt32, i;
+  uint32_t *t32, **w32;
+
+  /* Convert to UTF-32 */
+  if(!(t32 = utf8_to_utf32(s, strlen(s), &nt32)))
+    return;
+  /* Erase case distinctions */
+  if(!(t32 = utf32_casefold_compat(t32, nt32, &nt32)))
+    return;
+  /* Drop combining characters */
+  nt32 = remove_combining_chars(t32, nt32);
+  /* Split into words, treating _ as a space */
+  w32 = utf32_word_split(t32, nt32, &nw, pt);
+  /* Convert words back to UTF-8 and append to result */
+  for(i = 0; i < nw; ++i)
+    vector_append(v, utf32_to_utf8(w32[i], utf32_len(w32[i]), 0));
+}
+
 /* compute the words of a track name */
 static char **track_to_words(const char *track,
                              const struct kvp *p) {
   struct vector v;
-  char **w;
-  int nw;
   const char *rootless = track_rootless(track);
 
   if(!rootless)
     rootless = track;                   /* bodge */
   vector_init(&v);
-  if((w = words(casefold(strip_extension(rootless)), &nw)))
-    vector_append_many(&v, w, nw);
-
+  rootless = strip_extension(rootless);
+  word_split(&v, strip_extension(rootless), tailor_underscore_Word_Break_Other);
   for(; p; p = p->next)
     if(is_display_pref(p->name))
-      if((w = words(casefold(p->value), &nw)))
-        vector_append_many(&v, w, nw);
+      word_split(&v, p->value, 0);
   vector_terminate(&v);
   return dedupe(v.vec, v.nvec);
 }
@@ -702,6 +880,9 @@ int trackdb_notice(const char *track,
 }
 
 /** @brief notice a possibly new track
+ * @param track NFC UTF-8 track name
+ * @param path Raw path name
+ * @param tid Transaction ID
  * @return @c DB_NOTFOUND if new, 0 if already known, @c DB_LOCK_DEADLOCK also
  */
 int trackdb_notice_tid(const char *track,
@@ -1653,11 +1834,20 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   const char *dbname;
 
   *ntracks = 0;				/* for early returns */
-  /* casefold all the words */
+  /* normalize all the words */
   w = xmalloc(nwordlist * sizeof (char *));
   for(n = 0; n < nwordlist; ++n) {
-    w[n] = casefold(wordlist[n]);
+    uint32_t *w32;
+    size_t nw32;
+    
+    w[n] = utf8_casefold_compat(wordlist[n], strlen(wordlist[n]), 0);
     if(checktag(w[n])) ++ntags;         /* count up tags */
+    /* Strip out combining characters (AFTER checking whether it's a tag) */
+    if(!(w32 = utf8_to_utf32(w[n], strlen(w[n]), &nw32)))
+      return 0;
+    nw32 = remove_combining_chars(w32, nw32);
+    if(!(w[n] = utf32_to_utf8(w32, nw32, 0)))
+      return 0;
   }
   /* find the longest non-stopword */
   for(n = 0; n < nwordlist; ++n)
@@ -1860,27 +2050,13 @@ void trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
   DB_TXN *tid;
-  DBT k, d;
   int err;
   int state;
 
-  memset(&k, 0, sizeof k);
-  memset(&d, 0, sizeof d);
-  k.data = (void *)name;
-  k.size = strlen(name);
-  if(value) {
-    d.data = (void *)value;
-    d.size = strlen(value);
-  }
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(value)
-      err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
-    else
-      err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
-    if(!err || err == DB_NOTFOUND) break;
-    if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "error updating database: %s", db_strerror(err));
+    if(!(err = trackdb_set_global_tid(name, value, tid)))
+      break;
     trackdb_abort_transaction(tid);
   }
   trackdb_commit_transaction(tid);
@@ -1903,6 +2079,30 @@ void trackdb_set_global(const char *name,
     reqtracks = 0;
 }
 
+int trackdb_set_global_tid(const char *name,
+                           const char *value,
+                           DB_TXN *tid) {
+  DBT k, d;
+  int err;
+
+  memset(&k, 0, sizeof k);
+  memset(&d, 0, sizeof d);
+  k.data = (void *)name;
+  k.size = strlen(name);
+  if(value) {
+    d.data = (void *)value;
+    d.size = strlen(value);
+  }
+  if(value)
+    err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
+  else
+    err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
+  if(err == DB_LOCK_DEADLOCK) return err;
+  if(err)
+    fatal(0, "error updating database: %s", db_strerror(err));
+  return 0;
+}
+
 const char *trackdb_get_global(const char *name) {
   DB_TXN *tid;
   int err;
@@ -1918,9 +2118,9 @@ const char *trackdb_get_global(const char *name) {
   return r;
 }
 
-static int trackdb_get_global_tid(const char *name,
-                                  DB_TXN *tid,
-                                  const char **rp) {
+int trackdb_get_global_tid(const char *name,
+                           DB_TXN *tid,
+                           const char **rp) {
   DBT k, d;
   int err;
 
@@ -1938,7 +2138,7 @@ static int trackdb_get_global_tid(const char *name,
   case DB_LOCK_DEADLOCK:
     return err;
   default:
-    fatal(0, "error updating database: %s", db_strerror(err));
+    fatal(0, "error reading database: %s", db_strerror(err));
   }
 }
 

@@ -117,4 +117,16 @@ server/disorder-stats
 *.deb
 *.dsc
 disobedience/disobedience.html
+lib/NormalizationTest.txt
+lib/CaseFolding.txt
+lib/UnicodeData.txt
+lib/GraphemeBreakProperty.txt
+lib/GraphemeBreakTest.txt
+lib/WordBreakProperty.txt
+lib/SentenceBreakProperty.txt
+lib/WordBreakTest.txt
+lib/DerivedNormalizationProps.txt
 tests/*.log
+server/disorder-dbupgrade
+doc/disorder-dbupgrade.8.html
+doc/disorder-dbupgrade.8

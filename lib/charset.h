@@ -24,10 +24,6 @@ struct dynstr;
 
 /* Character encoding conversion routines */
 
-int one_ucs42utf8(uint32_t c, struct dynstr *d);
-
-uint32_t *utf82ucs4(const char *mb);
-char *ucs42utf8(const uint32_t *u);
 char *mb2utf8(const char *mb);
 char *utf82mb(const char *utf8);
 /* various conversions, between multibyte strings (mb) in
@@ -62,9 +58,6 @@ static inline char *nullcheck(char *s) {
   if(!s) exitfn(1);			/* assume an error already reported */
   return s;
 }
-
-int ucs4cmp(const uint32_t *a, const uint32_t *b);
-/* like strcmp */
 
 const char *truncate_for_display(const char *s, long max);
 

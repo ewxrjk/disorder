@@ -42,6 +42,9 @@ static void no_error_handler(const char attribute((unused)) *msg,
 			     void attribute((unused)) *u) {
 }
 
+/* TODO: handle combining characters attached to delimiters in some
+ * sane way (might include reporting an error) */
+
 char **split(const char *p,
 	     int *np,
 	     unsigned flags,
@@ -109,6 +112,8 @@ char **split(const char *p,
     *np = v.nvec;
   return v.vec;
 }
+
+/* TODO handle initial combining characters sanely */
 
 const char *quoteutf8(const char *s) {
   size_t len = 3 + strlen(s);

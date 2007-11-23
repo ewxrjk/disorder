@@ -1,0 +1,42 @@
+DisOrder Database Versions
+==========================
+
+If no _dbversion global preference is found then database version 1 is
+assumed.  Database versions 2 and above always have a _dbversion
+global preference.
+
+Old database versions can be PARTIALLY emulated for testing purposes
+by setting the undocument dbversion configuration item.  Setting it on
+a production system would be a terrible idea.
+
+Database Version 1
+------------------
+
+Path names are in UTF-8, but with no normalization applied: you get
+whatever the filesystem gives you.
+
+Search terms are split according to the old words() function.
+  - "/", ".", "+", "&", ":", "_" and "-" are considered to be separators
+  - anything in General_Category Cc, Cf, Co, Cs, Zl, Cp, Sz, Pe or Ps
+    is considered to be a separator
+  - anything else in General_Category Ll, Lm, Lo, Lt, Lu, Nd, Nl, No,
+    Sc, Sk, Sm or So is considered to be part of a word
+  - everything else is ignored
+
+Search terms are case-folded by applying the CaseFolding.txt mapping,
+without any attempt at normalization.
+
+Database Version 2
+------------------
+
+Path names are in UTF-8, normalized to NFC.
+
+Search terms are split according to the default Unicode word boundary
+detection algorithm.
+
+Search terms are case-folded using the Unicode case-folding algorithm,
+normalizing to NFKD.
+
+Things that haven't been done yet:
+  - undump support for new dbversion
+  - automatic upgrade from dbversion 1

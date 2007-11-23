@@ -21,7 +21,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,time
+import os,os.path,subprocess,sys,re,time,unicodedata
 
 def fatal(s):
     """Write an error message and exit"""
@@ -66,6 +66,17 @@ def copyfile(a,b):
 Copy A to B."""
     open(b,"w").write(open(a).read())
 
+def to_unicode(s):
+    """Convert UTF-8 to unicode.  A no-op if already unicode."""
+    if type(s) == unicode:
+        return s
+    else:
+        return unicode(s, "UTF-8")
+
+def nfc(s):
+    """Convert UTF-8 string or unicode to NFC unicode."""
+    return  unicodedata.normalize("NFC", to_unicode(s))
+
 def maketrack(s):
     """maketrack(S)
 
@@ -75,11 +86,50 @@ Make track with relative path S exist"""
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
     copyfile("%s/sounds/slap.ogg" % top_srcdir, trackpath)
+    # We record the tracks we created so they can be tested against
+    # server responses.  We put them into NFC since that's what the server
+    # uses internally.
+    bits = nfc(s).split('/')
+    dp = tracks
+    for d in bits [0:-1]:
+        dd = "%s/%s" % (dp,  d)
+        if dp not in dirs_by_dir:
+            dirs_by_dir[dp] = []
+        if dd not in dirs_by_dir[dp]:
+            dirs_by_dir[dp].append(dd)
+        dp = "%s/%s" % (dp, d)
+    if dp not in files_by_dir:
+        files_by_dir[dp] = []
+    files_by_dir[dp].append("%s/%s" % (dp, bits[-1]))
 
 def stdtracks():
-    maketrack("Joe Bloggs/First Album/01:First track.ogg")
+    # We create some tracks with non-ASCII characters in the name and
+    # we (currently) force UTF-8.
+    #
+    # On a traditional UNIX filesystem, that treats filenames as byte strings
+    # with special significant for '/', this should just work, though the
+    # names will look wrong to ls(1) in a non UTF-8 locale.
+    #
+    # On Apple HFS+ filenames normalized to a decomposed form that isn't quite
+    # NFD, so our attempts to have both normalized and denormalized filenames
+    # is frustrated.  Provided we test on traditional filesytsems too this
+    # shouldn't be a problem.
+    # (See http://developer.apple.com/qa/qa2001/qa1173.html)
+
+    global dirs_by_dir, files_by_dir
+    dirs_by_dir={}
+    files_by_dir={}
+    
+    # C3 8C = 00CC LATIN CAPITAL LETTER I WITH GRAVE
+    # (in NFC)
+    maketrack("Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg")
+
     maketrack("Joe Bloggs/First Album/02:Second track.ogg")
-    maketrack("Joe Bloggs/First Album/03:Third track.ogg")
+
+    # CC 81 = 0301 COMBINING ACUTE ACCENT
+    # (giving an NFD i-acute)
+    maketrack("Joe Bloggs/First Album/03:ThI\xCC\x81rd track.ogg")
+    # ...hopefuly giving C3 8D = 00CD LATIN CAPITAL LETTER I WITH ACUTE
     maketrack("Joe Bloggs/First Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/First Album/05:Fifth track.ogg")
     maketrack("Joe Bloggs/Second Album/01:First track.ogg")
@@ -87,11 +137,11 @@ def stdtracks():
     maketrack("Joe Bloggs/Second Album/03:Third track.ogg")
     maketrack("Joe Bloggs/Second Album/04:Fourth track.ogg")
     maketrack("Joe Bloggs/Second Album/05:Fifth track.ogg")
-    maketrack("Joe Bloggs/Third Album/01:First track.ogg")
-    maketrack("Joe Bloggs/Third Album/02:Second track.ogg")
-    maketrack("Joe Bloggs/Third Album/03:Third track.ogg")
-    maketrack("Joe Bloggs/Third Album/04:Fourth track.ogg")
-    maketrack("Joe Bloggs/Third Album/05:Fifth track.ogg")
+    maketrack("Joe Bloggs/Third Album/01:First_track.ogg")
+    maketrack("Joe Bloggs/Third Album/02:Second_track.ogg")
+    maketrack("Joe Bloggs/Third Album/03:Third_track.ogg")
+    maketrack("Joe Bloggs/Third Album/04:Fourth_track.ogg")
+    maketrack("Joe Bloggs/Third Album/05:Fifth_track.ogg")
     maketrack("Fred Smith/Boring/01:Dull.ogg")
     maketrack("Fred Smith/Boring/02:Tedious.ogg")
     maketrack("Fred Smith/Boring/03:Drum Solo.ogg")
@@ -99,7 +149,7 @@ def stdtracks():
     maketrack("misc/blahblahblah.ogg")
     maketrack("Various/Greatest Hits/01:Jim Whatever - Spong.ogg")
     maketrack("Various/Greatest Hits/02:Joe Bloggs - Yadda.ogg")
-
+ 
 def common_setup():
     remove_dir(testroot)
     os.mkdir(testroot)
@@ -117,7 +167,9 @@ stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
 allow fred fredpass
+plugins
 plugins %s/plugins
+plugins %s/plugins/.libs
 player *.mp3 execraw disorder-decode
 player *.ogg execraw disorder-decode
 player *.wav execraw disorder-decode
@@ -126,7 +178,7 @@ tracklength *.mp3 disorder-tracklength
 tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
-""" % (testroot, testroot, testroot, testroot, top_builddir))
+""" % (testroot, testroot, testroot, testroot, top_builddir, top_builddir))
     copyfile("%s/sounds/scratch.ogg" % top_srcdir,
              "%s/scratch.ogg" % testroot)
 
@@ -147,8 +199,6 @@ Start the daemon."""
                                "--foreground",
                                "--config", "%s/config" % testroot],
                               stderr=errs)
-    disorder._configfile = "%s/config" % testroot
-    disorder._userconf = False
     # Wait for the socket to be created
     waited = 0
     while not os.path.exists(socket):
@@ -239,6 +289,33 @@ Recursively delete directory D"""
             os.rmdir(d)
         else:
             os.remove(d)
+
+def check_files():
+    c = disorder.client()
+    failures = 0
+    for d in dirs_by_dir:
+        xdirs = dirs_by_dir[d]
+        dirs = c.directories(d)
+        xdirs.sort()
+        dirs.sort()
+        if dirs != xdirs:
+            print
+            print "directory: %s" % d
+            print "expected:  %s" % xdirs
+            print "got:       %s" % dirs
+            failures += 1
+    for d in files_by_dir:
+        xfiles = files_by_dir[d]
+        files = c.files(d)
+        xfiles.sort()
+        files.sort()
+        if files != xfiles:
+            print
+            print "directory: %s" % d
+            print "expected:  %s" % xfiles
+            print "got:       %s" % files
+            failures += 1
+    return failures
 
 # -----------------------------------------------------------------------------
 # Common setup

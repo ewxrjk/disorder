@@ -26,7 +26,9 @@ extern DB_ENV *trackdb_env;
 extern DB *trackdb_tracksdb;
 extern DB *trackdb_prefsdb;
 extern DB *trackdb_searchdb;
+extern DB *trackdb_tagsdb;
 extern DB *trackdb_noticeddb;
+extern DB *trackdb_globaldb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */
@@ -112,6 +114,13 @@ static inline DBT *encode_data(DBT *data, const struct kvp *k) {
   data->size = size;
   return data;
 }
+
+int trackdb_set_global_tid(const char *name,
+                           const char *value,
+                           DB_TXN *tid);
+int trackdb_get_global_tid(const char *name,
+                           DB_TXN *tid,
+                           const char **rp);
 
 #endif /* TRACKDB_INT_H */
 

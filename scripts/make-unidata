@@ -1,7 +1,49 @@
 #! /usr/bin/perl -w
 #
-# Generate a two-level table describing (some of) the fields of UnicodeData.txt
+# This file is part of DisOrder.
+# Copyright (C) 2007 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+#
+# Generate Unicode support tables
+#
+# This script will download data from unicode.org if the required files
+# aren't in the current directory.
+#
+# After modifying this script you should run:
+#  make -C lib rebuild-unicode check
+#
+# Things not supported yet:
+#  - SpecialCasing.txt data for case mapping
+#  - Title case offsets
+#  - Some kind of hinting for composition
+#  - ...
+#
+# NB the generated files DO NOT offer a stable ABI and so are not immediately
+# suitable for use in a general-purpose library.  Things that would need to
+# be done:
+#  - Hide unidata.h from applications; it will never be ABI- or even API-stable.
+#  - Stablized General_Category values
+#  - Extend the unicode.h API to general utility rather than just what
+#    DisOrder needs.
+#  - ...
+#
 use strict;
+use File::Basename;
 
 sub out {
     print @_ or die "$!\n";
@@ -14,104 +56,602 @@ sub key {
     return join("-", map($d->{$_}, sort keys %$d));
 }
 
+# Size of a subtable
+#
+# This can be varied to trade off the number of subtables against their size.
+# 16 gave the smallest results last time I checked (on a Mac with a 32-bit
+# build).
+our $modulus = 16;
+
+if(@ARGV) {
+    $modulus = shift;
+}
+
+# Where to break the table.  There is a huge empty section of the Unicode
+# code space and we deal with this by simply leaving it out of the table.
+# This complicates the lookup function a little but should not affect
+# performance in the cases we care about.
+our $break_start = 0x30000;
+our $break_end = 0xE0000;
+
+# Similarly we simply omit the very top of the table and sort it out in the
+# lookup function.
+our $break_top = 0xE0200;
+
 my %cats = ();			# known general categories
 my %data = ();			# mapping of codepoints to information
-my %comp = ();			# 
 my $max = 0;			# maximum codepoint
+my $maxccc = 0;			# maximum combining class
+my $maxud = 0;
+my $minud = 0;			# max/min upper case offset
+my $maxld = 0;
+my $minld = 0;			# max/min lower case offset
 
+# Make sure we have our desired input files.  We explicitly specify a
+# Unicode standard version to make sure that a given version of DisOrder
+# supports a given version of Unicode.
+sub input {
+    my $path = shift;
+    my $lpath = basename($path);
+    if(!-e $lpath) {
+	system("wget http://www.unicode.org/Public/5.0.0/ucd/$path");
+	chmod(0444, $lpath) or die "$lpath: $!\n";
+    }
+    open(STDIN, "<$lpath") or die "$lpath: $!\n";
+    print STDERR "Reading $lpath...\n";
+}
+
+
+# Read the main data file
+input("UnicodeData.txt");
+my ($start, $end);
+my $maxcompat = 0;
+my $maxcanon = 0;
+my $hangul_syllable_decomps = 0;
+my $hangul_choseong_decomps = 0;
 while(<>) {
     my @f = split(/;/, $_);
     my $c = hex($f[0]);		# codepoint
-    next if $c >= 0xE0000;	# ignore various high-numbered stuff
     my $name = $f[1];
-    my $gc = $f[2];		# general category
-    my $ccc = $f[3];		# canonical combining class
-    my $sum = hex($f[12]) || $c; # simple upper case mapping
-    my $slm = hex($f[13]) || $c; # simple lower case mapping
+    die "$f[0] $name is in the break\n" 
+	if $c >= $break_start && $c < $break_end;
+    my $gc = $f[2];		# General_Category
+    # Variuos GCs we don't expect to see in UnicodeData.txt
+    $cats{$gc} = 1;		# always record all GCs
+    if($name =~ /first>/i) {
+	$start = $c;
+	next;
+    } elsif($name =~ /last>/i) {
+	$end = $c;
+    } else {
+	$start = $end = $c;
+    }
+    die "unexpected Cn" if $gc eq 'Cn';
+    my $ccc = $f[3];		# Canonical_Combining_Class
+    my $dm = $f[5];		# Decomposition_Type + Decomposition_Mapping
+    my $sum = hex($f[12]) || $c; # Simple_Uppercase_Mapping
+    my $slm = hex($f[13]) || $c; # Simple_Lowercase_Mapping
     # recalculate the upper/lower case mappings as offsets
     my $ud = $sum - $c;
     my $ld = $slm - $c;
-    $data{$c} = {
-	"gc" => $gc,
-	"ccc" => $ccc,
-	"ud" => $ud,
-	"ld" => $ld
+    # update bounds on various values
+    $maxccc = $ccc if $ccc > $maxccc; # assumed never to be -ve
+    $minud = $ud if $ud < $minud;
+    $maxud = $ud if $ud > $maxud;
+    $minld = $ld if $ld < $minld;
+    $maxld = $ld if $ld > $maxld;
+    if($start != $end) {
+	printf STDERR "> range %04X-%04X is %s\n", $start, $end, $gc;
+    }
+    for($c = $start; $c <= $end; ++$c) {
+	my $d = {
+	    "gc" => $gc,
+	    "ccc" => $ccc,
+	    "ud" => $ud,
+	    "ld" => $ld,
 	};
+	if($dm ne '') {
+	    my $maxref;
+	    if($dm =~ /</) {
+		# This is a compatibility decomposition
+		$dm =~ s/^<.*>\s*//;
+		$d->{compat} = 1;
+		$maxref = \$maxcompat;
+	    } else {
+		$maxref = \$maxcanon;
+	    }
+	    $d->{decomp} = [map(hex($_), split(/\s+/, $dm))];
+	    my $len = scalar @{$d->{decomp}};
+	    $$maxref = $len if $len > $$maxref;
+	    if(!$d->{compat}) {
+		if(${$d->{decomp}}[0] >= 0xAC00 && ${$d->{decomp}}[0] <= 0xD7A3) {
+		    ++$hangul_syllable_decomps;
+		}
+		if(${$d->{decomp}}[0] >= 0x1100 && ${$d->{decomp}}[0] <= 0x115F) {
+		    ++$hangul_choseong_decomps;
+		}
+	    }
+	}
+	$data{$c} = $d;
+    }
     $cats{$gc} = 1;
-    $max = $c if $c > $max;
+    $max = $end if $end > $max;
 }
 
-$max += 255 - ($max % 256);	# round up
+sub read_prop_with_ranges {
+    my $path = shift;
+    my $propkey = shift;
+    input($path);
+    while(<>) {
+	chomp;
+	s/\s*\#.*//;
+	next if $_ eq '';
+	my ($range, $propval) = split(/\s*;\s*/, $_);
+	if($range =~ /(.*)\.\.(.*)/) {
+	    for my $c (hex($1) .. hex($2)) {
+		$data{$c}->{$propkey} = $propval;
+	    }
+	} else {
+	    my $c = hex($range);
+	    $data{$c}->{$propkey} = $propval;
+	}
+    }
+}
 
-# Make sure there are no gaps
+# Grapheme_Break etc
+read_prop_with_ranges("auxiliary/GraphemeBreakProperty.txt", "gbreak");
+read_prop_with_ranges("auxiliary/WordBreakProperty.txt", "wbreak");
+read_prop_with_ranges("auxiliary/SentenceBreakProperty.txt", "sbreak");
+
+# Compute the full list and fill in the Extend category properly
+my %gbreak = ();
+my %wbreak = ();
+my %sbreak = ();
+for my $c (keys %data) {
+    if(!exists $data{$c}->{gbreak}) {
+	$data{$c}->{gbreak} = 'Other';
+    }
+    $gbreak{$data{$c}->{gbreak}} = 1;
+
+    if(!exists $data{$c}->{wbreak}) {
+	if($data{$c}->{gbreak} eq 'Extend') {
+	    $data{$c}->{wbreak} = 'Extend';
+	} else {
+	    $data{$c}->{wbreak} = 'Other';
+	}
+    }
+    $wbreak{$data{$c}->{wbreak}} = 1;
+
+    if(!exists $data{$c}->{sbreak}) {
+	if($data{$c}->{gbreak} eq 'Extend') {
+	    $data{$c}->{sbreak} = 'Extend';
+	} else {
+	    $data{$c}->{sbreak} = 'Other';
+	}
+    }
+    $sbreak{$data{$c}->{sbreak}} = 1;
+}
+
+# Various derived properties
+input("DerivedNormalizationProps.txt");
+while(<>) {
+    chomp;
+    s/\s*\#.*//;
+    next if $_ eq '';
+    my @f = split(/\s*;\s*/, $_);
+    if(@f == 2) {
+	push(@f, 1);
+    }
+    my ($range, $propkey, $propval) = @f;
+    if($range =~ /(.*)\.\.(.*)/) {
+	for my $c (hex($1) .. hex($2)) {
+	    $data{$c}->{$propkey} = $propval
+	}
+    } else {
+	my $c = hex($range);
+	$data{$c}->{$propkey} = $propval
+    }
+}
+
+# Round up the maximum value to a whole number of subtables
+$max += ($modulus - 1) - ($max % $modulus);
+
+# Private use characters
+# We only fill in values below $max, utf32__unidata() 
+my $Co = {
+    "gc" => "Co",
+    "ccc" => 0,
+    "ud" => 0,
+    "ld" => 0
+};
+for(my $c = 0xE000; $c <= 0xF8FF && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+for(my $c = 0xF0000; $c <= 0xFFFFD && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+for(my $c = 0x100000; $c <= 0x10FFFD && $c <= $max; ++$c) {
+    $data{$c} = $Co;
+}
+
+# Anything left is not assigned
+my $Cn = {
+    "gc" => "Cn",		# not assigned
+    "ccc" => 0,
+    "ud" => 0,
+    "ld" => 0
+};
 for(my $c = 0; $c <= $max; ++$c) {
     if(!exists $data{$c}) {
-	$data{$c} = {
-	    "gc" => "Cn",	# not assigned
-	    "ccc" => 0,
-	    "ud" => 0,
-	    "ld" => 0
-	    };
+	$data{$c} = $Cn;
+    }
+    if(!exists $data{$c}->{wbreak}) {
+	$data{$c}->{wbreak} = 'Other';
+    }
+    if(!exists $data{$c}->{gbreak}) {
+	$data{$c}->{gbreak} = 'Other';
+    }
+    if(!exists $data{$c}->{sbreak}) {
+	$data{$c}->{sbreak} = 'Other';
     }
 }
 $cats{'Cn'} = 1;
 
+# Read the casefolding data too
+input("CaseFolding.txt");
+while(<>) {
+    chomp;
+    next if /^\#/ or $_ eq '';
+    my @f = split(/\s*;\s*/, $_);
+    # Full case folding means use status C and F.
+    # We discard status T, Turkish users may wish to change this.
+    if($f[1] eq 'C' or $f[1] eq 'F') {
+	my $c = hex($f[0]);
+	$data{$c}->{casefold} = $f[2];
+	# We are particularly interest in combining characters that
+	# case-fold to non-combining characters, or characters that
+	# case-fold to sequences with combining characters in non-initial
+	# positions, as these required decomposiiton before case-folding
+	my @d = map(hex($_), split(/\s+/, $data{$c}->{casefold}));
+	if($data{$c}->{ccc} != 0) {
+	    # This is a combining character
+	    if($data{$d[0]}->{ccc} == 0) {
+		# The first character of its case-folded form is NOT
+		# a combining character.  The field name is the example
+		# explicitly mentioned in the spec.
+		$data{$c}->{ypogegrammeni} = 1;
+	    }
+	} else {
+	    # This is a non-combining character; inspect the non-initial
+	    # code points of the case-folded sequence
+	    shift(@d);
+	    if(grep($data{$_}->{ccc} != 0, @d)) {
+		# Some non-initial code point in the case-folded for is NOT a
+		# a combining character.
+		$data{$c}->{ypogegrammeni} = 1;
+	    }
+	}
+    }
+}
+
+# Generate the header file
+print STDERR "Generating unidata.h...\n";
 open(STDOUT, ">unidata.h") or die "unidata.h: $!\n";
 
-out("#ifndef UNIDATA_H\n",
+out("/* Automatically generated file, see scripts/make-unidata */\n",
+    "#ifndef UNIDATA_H\n",
     "#define UNIDATA_H\n");
 
-out("enum unicode_gc_cat {\n",
+# TODO choose stable values for General_Category
+out("enum unicode_General_Category {\n",
     join(",\n",
-	 map("  unicode_gc_$_", sort keys %cats)), "\n};\n");
-    
+	 map("  unicode_General_Category_$_", sort keys %cats)), "\n};\n");
+
+out("enum unicode_Grapheme_Break {\n",
+    join(",\n",
+	 map("  unicode_Grapheme_Break_$_", sort keys %gbreak)),
+    "\n};\n");
+out("extern const char *const unicode_Grapheme_Break_names[];\n");
+
+out("enum unicode_Word_Break {\n",
+    join(",\n",
+	 map("  unicode_Word_Break_$_", sort keys %wbreak)),
+    "\n};\n");
+out("extern const char *const unicode_Word_Break_names[];\n");
+
+out("enum unicode_Sentence_Break {\n",
+    join(",\n",
+	 map("  unicode_Sentence_Break_$_", sort keys %sbreak)),
+    "\n};\n");
+out("extern const char *const unicode_Sentence_Break_names[];\n");
+
+out("enum unicode_flags {\n",
+    "  unicode_normalize_before_casefold = 1,\n",
+    "  unicode_compatibility_decomposition = 2\n",
+    "};\n",
+    "\n");
+
+# Choose the narrowest type that will fit the required values
+sub choosetype {
+    my ($min, $max) = @_;
+    if($min >= 0) {
+	return "char" if $max <= 127;
+	return "unsigned char" if $max <= 255;
+	return "int16_t" if $max < 32767;
+	return "uint16_t" if $max < 65535;
+	return "int32_t";
+    } else {
+	return "char" if $min >= -127 && $max <= 127;
+	return "int16_t" if $min >= -32767 && $max <= 32767;
+	return "int32_t";
+    }
+}
+
 out("struct unidata {\n",
-    "  enum unicode_gc_cat gc;\n",
-    "  int ccc;\n",
-    "  int upper_offset;\n",
-    "  int lower_offset;\n",
+    # decomposition (canonical or compatibility;
+    # unicode_compatibility_decomposition distinguishes) or NULL
+    "  const uint32_t *decomp;\n",
+
+    # case-folded string or NULL
+    "  const uint32_t *casefold;\n",
+
+    # composed characters that start with this code point.  This only
+    # includes primary composites, i.e. the decomposition mapping is
+    # canonical and this code point is not in the exclusion table.
+    "  const uint32_t *composed;\n",
+
+#    "  ".choosetype($minud, $maxud)." upper_offset;\n",
+#    "  ".choosetype($minld, $maxld)." lower_offset;\n",
+
+    # canonical combining class
+    "  ".choosetype(0, $maxccc)." ccc;\n",
+    "  char general_category;\n",
+
+    # see unicode_flags enum
+    "  uint8_t flags;\n",
+    "  char grapheme_break;\n",
+    "  char word_break;\n",
+    "  char sentence_break;\n",
     "};\n");
+# decomp and  casefold do have have non-BMP characters, so we
+# can't use a simple 16-bit table.  We could use UTF-8 or UTF-16
+# though, saving a bit of space (probably not that much...) at the
+# cost of marginally reduced performance and additional complexity
 
 out("extern const struct unidata *const unidata[];\n");
 
+out("extern const struct unicode_utf8_row {\n",
+    "  uint8_t count;\n",
+    "  uint8_t min2, max2;\n",
+    "} unicode_utf8_valid[];\n");
+
 out("#define UNICODE_NCHARS ", ($max + 1), "\n");
+out("#define UNICODE_MODULUS $modulus\n");
+out("#define UNICODE_BREAK_START $break_start\n");
+out("#define UNICODE_BREAK_END $break_end\n");
+out("#define UNICODE_BREAK_TOP $break_top\n");
 
 out("#endif\n");
 
 close STDOUT or die "unidata.h: $!\n";
 
+print STDERR "Generating unidata.c...\n";
 open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
 
-out("#include \"unidata.h\"\n");
+out("/* Automatically generated file, see scripts/make-unidata */\n",
+    "#include <config.h>\n",
+    "#include \"types.h\"\n",
+    "#include \"unidata.h\"\n");
 
-# Visit all the 256-character blocks in turn and generate the required
-# subtables
+# Short aliases to keep .c file small
+
+out(map(sprintf("#define %s unicode_General_Category_%s\n", $_, $_),
+	sort keys %cats));
+out(map(sprintf("#define GB%s unicode_Grapheme_Break_%s\n", $_, $_),
+	sort keys %gbreak));
+out(map(sprintf("#define WB%s unicode_Word_Break_%s\n", $_, $_),
+	sort keys %wbreak));
+out(map(sprintf("#define SB%s unicode_Sentence_Break_%s\n", $_, $_),
+	sort keys %sbreak));
+out("#define NBC unicode_normalize_before_casefold\n");
+out("#define CD unicode_compatibility_decomposition\n");
+
+# Names for *_Break properties
+out("const char *const unicode_Grapheme_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %gbreak)),
+    "\n};\n");
+out("const char *const unicode_Word_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %wbreak)),
+    "\n};\n");
+out("const char *const unicode_Sentence_Break_names[] = {\n",
+    join(",\n",
+	 map("  \"$_\"", sort keys %sbreak)),
+    "\n};\n");
+
+our $ddnum = 0;
+our $ddsaved = 0;
+our %ddnums = ();
+my $ddfirst = 1;
+out("static const uint32_t ");
+sub dedupe {
+    my $s = join(",", @_);
+    if(!exists $ddnums{$s}) {
+	if($ddfirst) {
+	    $ddfirst = 0;
+	} else {
+	    out(",\n");
+	}
+	out("dd$ddnum\[]={$s}");
+	$ddnums{$s} = $ddnum++;
+    } else {
+	++$ddsaved;
+    }
+    return "dd$ddnums{$s}";
+}
+
+# Generate the decomposition mapping tables.
+print STDERR "> decomposition mappings\n";
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c} && exists $data{$c}->{decomp}) {
+	$data{$c}->{decompsym} = dedupe(@{$data{$c}->{decomp}}, 0);
+    }
+}
+
+print STDERR "> composition mappings\n";
+# First we must generate the mapping of each code point to possible
+# compositions.
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c}
+       && exists $data{$c}->{decomp}
+       && !exists $data{$c}->{compat}
+       && !$data{$c}->{Full_Composition_Exclusion}) {
+	# $c has a non-excluded canonical decomposition, i.e. it is
+        # a primary composite.  Find the first code point of the decomposition
+	my $first = ${$data{$c}->{decomp}}[0];
+	if(!exists $data{$first}->{compose}) {
+	    $data{$first}->{compose} = [$c];
+	} else {
+	    push(@{$data{$first}->{compose}}, $c);
+	}
+    }
+}
+# Then we can generate the tables.
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c} && exists $data{$c}->{compose}) {
+	$data{$c}->{compsym} = dedupe(@{$data{$c}->{compose}}, 0);
+    }
+}
+
+# The case folding table.
+print STDERR "> case-fold mappings\n";
+for(my $c = 0; $c <= $max; ++$c) {
+    if(exists $data{$c} && exists $data{$c}->{casefold}) {
+	$data{$c}->{cfsym} = dedupe(map(hex($_), split(/\s+/,
+						       $data{$c}->{casefold})),
+				    0);
+    }
+}
+
+# End of de-dupable arrays
+out(";\n");
+
+# Visit all the $modulus-character blocks in turn and generate the
+# required subtables.  As above we spot duplicates to save space.  In
+# Unicode 5.0.0 with $modulus=128 and current table data this saves
+# 1372 subtables or at least three and a half megabytes on 32-bit
+# platforms.
+print STDERR "> subtables\n";
 my %subtable = ();		# base->subtable number
 my %subtableno = ();		# subtable number -> content
 my $subtablecounter = 0;	# counter for subtable numbers
-for(my $base = 0; $base <= $max; $base += 256) {
+my $subtablessaved = 0;		# number of tables saved
+for(my $base = 0; $base <= $max; $base += $modulus) {
+    next if $base >= $break_start && $base < $break_end;
+    next if $base >= $break_top;
     my @t;
-    for(my $c = $base; $c <= $base + 255; ++$c) {
+    for(my $c = $base; $c < $base + $modulus; ++$c) {
 	my $d = $data{$c};
-	push(@t,
-	     "  { unicode_gc_$d->{gc}, $d->{ccc}, $d->{ud}, $d->{ld} }");
+	my $decompsym = ($data{$c}->{decompsym} or "0");
+	my $cfsym = ($data{$c}->{cfsym} or "0");
+	my $compsym = ($data{$c}->{compsym} or "0");
+	my @flags = ();
+	if($data{$c}->{ypogegrammeni}) {
+	    push(@flags, "NBC");
+	}
+	if($data{$c}->{compat}) {
+	    push(@flags, "CD");
+	}
+	my $flags = @flags ? join("|", @flags) : 0;
+	push(@t, "{".
+	     join(",",
+		  $decompsym,
+		  $cfsym,
+		  $compsym,
+#		  $d->{ud},
+#		  $d->{ld},
+		  $d->{ccc},
+		  $d->{gc},
+		  $flags,
+		  "GB$d->{gbreak}",
+		  "WB$d->{wbreak}",
+		  "SB$d->{sbreak}",
+	     )."}");
     }
     my $t = join(",\n", @t);
     if(!exists $subtable{$t}) {
-	out("static const struct unidata subtable$subtablecounter\[] = {\n",
+	out(sprintf("/* %04X-%04X */\n", $base, $base + $modulus - 1));
+	out("static const struct unidata st$subtablecounter\[] = {\n",
 	    "$t\n",
 	    "};\n");
 	$subtable{$t} = $subtablecounter++;
+    } else {
+	++$subtablessaved;
     }
     $subtableno{$base} = $subtable{$t};
 }
 
-out("const struct unidata *const unidata[] = {\n");
-for(my $base = 0; $base <= $max; $base += 256) {
-    out("  subtable$subtableno{$base},\n");
+print STDERR "> main table\n";
+out("const struct unidata *const unidata[]={\n");
+for(my $base = 0; $base <= $max; $base += $modulus) {
+    next if $base >= $break_start && $base < $break_end;
+    next if $base >= $break_top;
+    #out("st$subtableno{$base} /* ".sprintf("%04x", $base)." */,\n");
+    out("st$subtableno{$base},\n");
+}
+out("};\n");
+
+print STDERR "> UTF-8 table\n";
+out("const struct unicode_utf8_row unicode_utf8_valid[] = {\n");
+for(my $c = 0; $c <= 0x7F; ++$c) {
+    out(" { 1, 0, 0 }, /* $c */\n");
+}
+for(my $c = 0x80; $c < 0xC2; ++$c) {
+    out(" { 0, 0, 0 }, /* $c */\n");
+}
+for(my $c = 0xC2; $c <= 0xDF; ++$c) {
+    out(" { 2, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xE0; $c <= 0xE0; ++$c) {
+    out(" { 3, 0xA0, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xE1; $c <= 0xEC; ++$c) {
+    out(" { 3, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xED; $c <= 0xED; ++$c) {
+    out(" { 3, 0x80, 0x9F }, /* $c */\n");
+}
+for(my $c = 0xEE; $c <= 0xEF; ++$c) {
+    out(" { 3, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF0; $c <= 0xF0; ++$c) {
+    out(" { 4, 0x90, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF1; $c <= 0xF3; ++$c) {
+    out(" { 4, 0x80, 0xBF }, /* $c */\n");
+}
+for(my $c = 0xF4; $c <= 0xF4; ++$c) {
+    out(" { 4, 0x80, 0x8F }, /* $c */\n");
+}
+for(my $c = 0xF5; $c <= 0xFF; ++$c) {
+    out(" { 0, 0, 0 }, /* $c */\n");
 }
 out("};\n");
 
 close STDOUT or die "unidata.c: $!\n";
 
-print STDERR "max=$max, subtables=$subtablecounter\n";
+print STDERR "Done.\n\n";
+printf STDERR "modulus=%d\n", $modulus;
+printf STDERR "max=%04X\n", $max;
+print STDERR "subtables=$subtablecounter, subtablessaved=$subtablessaved\n";
+print STDERR "ddsaved=$ddsaved\n";
+print STDERR "maxcompat=$maxcompat maxcanon=$maxcanon\n";
+print STDERR "$hangul_syllable_decomps canonical decompositions to Hangul syllables\n";
+print STDERR "$hangul_choseong_decomps canonical decompositions to Hangul Choseong\n";
+
+die "We assumed that canonical decompositions were never more than 2 long!\n"
+    if $maxcanon > 2;
+
+die "We assumed no canonical decompositions to Hangul syllables/Choseong!\n"
+    if $hangul_syllable_decomps || $hangul_choseong_decomps;

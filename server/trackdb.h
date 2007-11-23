@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/trackdb.h
+ * @brief Track database public interface */
 
 #ifndef TRACKDB_H
 #define TRACKDB_H
@@ -27,17 +29,38 @@ extern const struct cache_type cache_files_type;
 extern unsigned long cache_files_hits, cache_files_misses;
 /* Cache entry type and tracking for regexp-based lookups */
 
-void trackdb_init(int recover);
-#define TRACKDB_NO_RECOVER 0
-#define TRACKDB_NORMAL_RECOVER 1
-#define TRACKDB_FATAL_RECOVER 2
+/** @brief Do not attempt database recovery (trackdb_init()) */
+#define TRACKDB_NO_RECOVER 0x0000
+
+/** @brief Attempt normal recovery (trackdb_init()) */
+#define TRACKDB_NORMAL_RECOVER 0x0001
+
+/** @brief Attempt catastrophic trcovery (trackdb_init()) */
+#define TRACKDB_FATAL_RECOVER 0x0002
+
+/** @brief Mask of recovery bits (trackdb_init()) */
+#define TRACKDB_RECOVER_MASK 0x0003
+
+/** @brief Open for database upgrade (trackdb_open()) */
+#define TRACKDB_OPEN_FOR_UPGRADE 0x0004
+
+/** @brief Permit upgrade (trackdb_open()) */
+#define TRACKDB_CAN_UPGRADE 0x0008
+
+/** @brief Do not permit upgrade (trackdb_open()) */
+#define TRACKDB_NO_UPGRADE 0x0000
+
+/** @brief Mask of upgrade bits (trackdb_open()) */
+#define TRACKDB_UPGRADE_MASK 0x000C
+
+void trackdb_init(int flags);
 void trackdb_deinit(void);
 /* close/close environment */
 
 void trackdb_master(struct ev_source *ev);
 /* start deadlock manager */
 
-void trackdb_open(void);
+void trackdb_open(int flags);
 void trackdb_close(void);
 /* open/close track databases */
 

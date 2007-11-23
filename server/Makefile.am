@@ -20,7 +20,7 @@
 
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
-	      disorder-stats
+	      disorder-stats disorder-dbupgrade
 noinst_PROGRAMS=disorder.cgi trackname
 noinst_DATA=uk.org.greenend.rjk.disorder.plist
 
@@ -88,6 +88,11 @@ disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC) $(LIBGCRYPT)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
+disorder_dbupgrade_SOURCES=dbupgrade.c trackdb.c trackdb.h ../lib/memgc.c
+disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
+
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\
 	cgi.c cgi.h cgimain.c exports.c
@@ -118,7 +123,7 @@ cgi.o: ../lib/definitions.h
 # for Mac OS X >=10.4
 SEDFILES=uk.org.greenend.rjk.disorder.plist
 include ${top_srcdir}/scripts/sedfiles.make
-EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in
+EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in README.dbversions
 LAUNCHD=/Library/LaunchDaemons
 
 #install-data-hook:

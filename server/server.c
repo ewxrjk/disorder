@@ -63,6 +63,7 @@
 #include "eventlog.h"
 #include "defs.h"
 #include "cache.h"
+#include "unicode.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
@@ -906,6 +907,10 @@ static int c_tags(struct conn *c,
 static int c_set_global(struct conn *c,
 			char **vec,
 			int attribute((unused)) nvec) {
+  if(vec[0][0] == '_') {
+    sink_writes(ev_writer_sink(c->w), "550 cannot set internal global preferences\n");
+    return 1;
+  }
   trackdb_set_global(vec[0], vec[1], c->who);
   sink_printf(ev_writer_sink(c->w), "250 OK\n");
   return 1;
@@ -1025,6 +1030,11 @@ static int command(struct conn *c, char *line) {
   int nvec, n;
 
   D(("server command %s", line));
+  /* We force everything into NFC as early as possible */
+  if(!(line = utf8_compose_canon(line, strlen(line), 0))) {
+    sink_writes(ev_writer_sink(c->w), "500 cannot normalize command\n");
+    return 1;
+  }
   if(!(vec = split(line, &nvec, SPLIT_QUOTES, command_error, c))) {
     sink_writes(ev_writer_sink(c->w), "500 cannot parse command\n");
     return 1;

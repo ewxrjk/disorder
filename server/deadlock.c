@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
   info("started");
-  trackdb_init(0);
+  trackdb_init(TRACKDB_NO_RECOVER);
   while(getppid() != 1) {
     if((err = trackdb_env->lock_detect(trackdb_env,
 				       0,
