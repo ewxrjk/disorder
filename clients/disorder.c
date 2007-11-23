@@ -61,6 +61,7 @@ static const struct option options[] = {
   { "version", no_argument, 0, 'V' },
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
+  { "local", no_argument, 0, 'l' },
   { "help-commands", no_argument, 0, 'H' },
   { 0, 0, 0, 0 }
 };
@@ -74,6 +75,7 @@ static void help(void) {
 	  "  --help-commands, -H     List commands\n"
 	  "  --version, -V           Display version number\n"
 	  "  --config PATH, -c PATH  Set configuration file\n"
+	  "  --local, -l             Force connection to local server\n"
 	  "  --debug, -d             Turn on debugging\n");
   xfclose(stdout);
   exit(0);
@@ -531,7 +533,7 @@ static void help_commands(void) {
 }
 
 int main(int argc, char **argv) {
-  int n, i, j;
+  int n, i, j, local = 0;
   disorder_client *c = 0;
   int status = 0;
   struct vector args;
@@ -541,17 +543,20 @@ int main(int argc, char **argv) {
   pcre_malloc = xmalloc;
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dHL", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dHl", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
     case 'V': version();
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
+    case 'l': local = 1; break;
     default: fatal(0, "invalid option");
     }
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
+  if(local)
+    config->connect.n = 0;
   if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
   if(disorder_connect(c)) exit(EXIT_FAILURE);
   n = optind;
