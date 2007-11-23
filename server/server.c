@@ -805,19 +805,6 @@ static int c_log(struct conn *c,
   return 0;
 }
 
-static void post_move_cleanup(void) {
-  struct queue_entry *q;
-
-  /* If we have caused any random tracks to not be at the end then we make them
-   * no longer be random. */
-  for(q = qhead.next; q != &qhead; q = q->next)
-    if(q->state == playing_random && q->next != &qhead)
-      q->state = playing_unplayed;
-  /* That might mean we need to add a new random track. */
-  add_random_track();
-  queue_write();
-}
-
 static int c_move(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
@@ -836,7 +823,6 @@ static int c_move(struct conn *c,
     return 1;
   }
   n = queue_move(q, atoi(vec[1]), c->who);
-  post_move_cleanup();
   sink_printf(ev_writer_sink(c->w), "252 %d\n", n);
   /* If we've moved to the head of the queue then prepare the track. */
   if(q == qhead.next)
@@ -873,7 +859,6 @@ static int c_moveafter(struct conn *c,
       return 1;
     }
   queue_moveafter(q, nvec, qs, c->who);
-  post_move_cleanup();
   sink_printf(ev_writer_sink(c->w), "250 Moved tracks\n");
   /* If we've moved to the head of the queue then prepare the track. */
   if(q == qhead.next)
