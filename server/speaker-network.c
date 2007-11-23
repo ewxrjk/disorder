@@ -118,14 +118,7 @@ static void network_init(void) {
                    res->ai_socktype,
                    res->ai_protocol)) < 0)
     fatal(errno, "error creating broadcast socket");
-  if((res->ai_family == PF_INET
-      && IN_MULTICAST(
-           ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr)
-         ))
-     || (res->ai_family == PF_INET6
-         && IN6_IS_ADDR_MULTICAST(
-               &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr
-            ))) {
+  if(multicast(res->ai_addr)) {
     /* Multicasting */
     switch(res->ai_family) {
     case PF_INET: {

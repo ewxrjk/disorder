@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004 Richard Kettlewell
+ * Copyright (C) 2004, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,14 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
 
 #include "log.h"
 #include "printf.h"
 #include "configuration.h"
 #include "addr.h"
+#include "mem.h"
 
 /** @brief Convert a pair of strings to an address
  * @param a Pointer to string list
@@ -120,7 +123,75 @@ int addrinfocmp(const struct addrinfo *a,
     return memcmp(a->ai_addr, b->ai_addr, a->ai_addrlen); /* kludge */
   }
 }
-  
+
+static inline int multicast4(const struct sockaddr_in *sin) {
+  return IN_MULTICAST(ntohl(sin->sin_addr.s_addr));
+}
+
+static inline int multicast6(const struct sockaddr_in6 *sin6) {
+  return IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr);
+}
+
+/** @brief Return true if @p sa represents a multicast address */
+int multicast(const struct sockaddr *sa) {
+  switch(sa->sa_family) {
+  case AF_INET:
+    return multicast4((const struct sockaddr_in *)sa);
+  case AF_INET6:
+    return multicast6((const struct sockaddr_in6 *)sa);
+  default:
+    return 0;
+  }
+}
+
+static inline char *format_sockaddr4(const struct sockaddr_in *sin) {
+  char buffer[1024], *r;
+
+  if(sin->sin_port)
+    byte_xasprintf(&r, "%s port %u",
+		   inet_ntop(sin->sin_family, &sin->sin_addr,
+			     buffer, sizeof buffer),
+		   ntohs(sin->sin_port));
+  else
+    byte_xasprintf(&r, "%s",
+		   inet_ntop(sin->sin_family, &sin->sin_addr,
+			     buffer, sizeof buffer));
+  return r;
+}
+
+static inline char *format_sockaddr6(const struct sockaddr_in6 *sin6) {
+  char buffer[1024], *r;
+
+  if(sin6->sin6_port)
+    byte_xasprintf(&r, "%s port %u",
+		   inet_ntop(sin6->sin6_family, &sin6->sin6_addr,
+			     buffer, sizeof buffer),
+		   ntohs(sin6->sin6_port));
+  else
+    byte_xasprintf(&r, "%s",
+		   inet_ntop(sin6->sin6_family, &sin6->sin6_addr,
+			     buffer, sizeof buffer));
+  return r;
+}
+
+static inline char *format_sockaddrun(const struct sockaddr_un *sun) {
+  return xstrdup(sun->sun_path);
+}
+    
+/** @brief Construct a text description a sockaddr */
+char *format_sockaddr(const struct sockaddr *sa) {
+  switch(sa->sa_family) {
+  case AF_INET:
+    return format_sockaddr4((const struct sockaddr_in *)sa);
+  case AF_INET6:
+    return format_sockaddr6((const struct sockaddr_in6 *)sa);
+  case AF_UNIX:
+    return format_sockaddrun((const struct sockaddr_un *)sa);
+  default:
+    return 0;
+  }
+}
+
 /*
 Local Variables:
 c-basic-offset:2

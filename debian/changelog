@@ -1,3 +1,11 @@
+disorder (1.5.99+dev8) unstable; urgency=low
+
+  * disorder-playrtp automatically picks up multicast
+  * Disobedience no longer messes with random play settings on
+    start/recovery
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Thu, 22 Nov 2007 17:17:25 +0000
+
 disorder (1.5.99+dev7) unstable; urgency=low
 
   * New Disobedience now it's a bit quicker

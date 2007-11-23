@@ -64,7 +64,7 @@ check-help: all
 	./disorder-playrtp --help > /dev/null
 
 # check that the command completions are up to date
-check-completions:
+check-completions: disorder
 	./disorder --help-commands \
 		| awk '/^  [a-z]/ { print $$1 }' \
 		| sort > ,commands

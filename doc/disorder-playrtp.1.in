@@ -23,25 +23,26 @@ disorder-playrtp \- play DisOrder network broadcasts
 .B disorder-playrtp
 .RI [ OPTIONS ]
 .RB [ -- ]
-.I ADDRESS
-.I PORT
+.RI [[ GROUP ]
+.IR PORT ]
 .SH DESCRIPTION
 \fBdisorder-playrtp\fR plays a network broadcast sent from the specified
 address.
 .PP
-Normally the \fIADDRESS\fR would be 0.0.0.0.  The \fIPORT\fR will depend on the
-server configuration.  You may need to specify the \fB--multicast\fR option
-(see below) and if you have more than one soundcard perhaps the \fB--device\fR
-option.
+If neither a group nor port are specified then the local DisOrder
+configuration is consulted to find the server and the server is asked where the
+RTP stream is.
+.PP
+If just a port is specified then the RTP stream is assumed to be unicast or
+broadcast to that port.
+.PP
+If a group and a port are specified then the RTP stream is assumed to be
+multicast to that group and port.
 .SH OPTIONS
 .TP
 .B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
 Specifies the audio device to use.  The exact meaning of this is
 platform-dependent; on Linux it is the ALSA device name.
-.TP
-.B --multicast \fIGROUP\fR, \fB-M \fIGROUP\fR
-Specifies a multicast group to join.  This is necessary if the network
-broadcast is being multicasted rather than broadcast.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.
