@@ -1,8 +1,15 @@
-RTP Streaming
-=============
+* Introduction
 
-DisOrder is now capable to transmitting RTP streams over a suitable network.
-To enable this make sure that allplayers use the speaker process, i.e. execraw
+This file describes DisOrder's relationship to various things that get called
+'streams'.
+
+* RTP Streaming
+
+DisOrder is capable to transmitting RTP streams over a suitable network.
+
+** Server Setup
+
+To enable this make sure that all players use the speaker process, i.e. execraw
 rather than exec (or it won't work properly) and configure the network speaker
 backend:
 
@@ -10,25 +17,59 @@ backend:
     broadcast 172.17.207.255 9003
     broadcast_from 172.17.207.2 9002
 
-The destination address doesn't have to be a broadcast address.
-broadcast_from is optional but may be convenient for some cases.
+The destination address (broadcast) can be:
+   - a unicast address if you only want to talk to one client
+   - a broadcast address for a local network
+   - a multicast address
 
-To play, use the disorder-playrtp client.
+The source address (broadcast_from) is optional but may be convenient in som
+ecases.
+
+If the destination is a multicast address then you should set the TTL, for
+instance:
+
+   multicast_ttl 10
+
+** Playing The Stream
+
+To play, use the disorder-playrtp client.  If the destination address was a
+unicast or broadcast address then:
 
    disorder-playrtp 0.0.0.0 9003
 
+If the destination address was a multicast address then you must specify that,
+for instance:
+
+   disorder-playrtp 224.2.3.4 9003
+
+If the client machine has a DisOrder configuration file allowing disorder(1) to
+connect to the server then the parameters are unnecessary: disorder-playrtp
+will figure out the details automatically.
+
+** Disobedience
+
+Disobedience is capable of running disorder-playrtp in the background (provided
+it is installed); look for the speaker icon.  If it detects that the server is
+using network play then its volume control will apply to the local volume, not
+the server's volume.
+
+If you run into trouble look for *.log files in ~/.disorder.
+
+** Limitations
+
 Currently only 16-bit 44100Hz stereo is supported, which requires about
-1.4Mbit/s.  Possibly other lower-quality but lower-bandwidth encodings will be
-supported in future.
+1.4Mbit/s.  At the time of writing I've found this to work fine on 100Mbit/s
+ethernet and had reports of success with 10Mbit/s ethernet, but have not had
+any success with wireless.
+
+Possibly other lower-quality but lower-bandwidth encodings will be supported in
+future.
 
 If you have a too-recent version of sox you may need to set the sox_generation
-option.
-
-There is now (not well tested) multicast support.
+option.  See disorder_config(5).
 
 
-Icecast Streaming
-=================
+* Icecast Streaming
 
 This can be achieved using the speaker_command option and Icecast (see
 http://www.icecast.org/).  It will only work if you use the speaker process,
@@ -88,8 +129,7 @@ If you have a too-recent version of sox you may need to set the sox_generation
 option.
 
 
-DisOrder and Republishing Internet Streams
-==========================================
+* DisOrder and Republishing Internet Streams
 
 DisOrder doesn't have any built-in support for playing streams but you can make
 it do so.  I use the following in my configuration file:
@@ -117,6 +157,6 @@ normal play by scratching the stream.
 
 
 Local Variables:
-mode:text
+mode:outline
 fill-column:79
 End:

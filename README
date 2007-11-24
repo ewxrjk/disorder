@@ -117,15 +117,18 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
     * edit the 'scratch' commands to supply scratch sounds (or delete them if
       you don't want any).
     * edit the 'trust' command to reflect the user the web interface will
-      eventually run as.
-    * edit the 'url' command to give the URL of the web interface.
+      eventually run as (see below).
+    * edit the 'url' command to give the URL of the web interface (see below).
     * add or remove 'stopword' entries as necessary (these words won't take
       part in track name searches from the web interface).
 
    See disorder_config(5) for more details.
 
-   See README.raw for details on setting up "raw format" players, which allow
-   for pausing and gapless play.
+   See README.streams for how to set up network play.
+
+   If adding new 'player' commands, see README.raw for details on setting up
+   "raw format" players.  Non-raw players are still supported but not in all
+   configurations and they cannot support pausing and gapless play.
 
 5. Make sure the server is started at boot time.
 
