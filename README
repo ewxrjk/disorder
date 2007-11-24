@@ -108,17 +108,15 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    specifically for DisOrder.
 
 4. Create /etc/disorder/config.  Start from examples/config.sample and adapt it
-   to your own requirements.  In particular, you should:
-    * add 'player' commands for any file formats not supported natively
+   to your own requirements.  The things you MUST do are:
     * edit the 'collection' command to identify the location(s) of your own
       digital audio files.  These commands also specify the encoding of
       filenames, which you should be sure to get right as recovery from an
       error here can be painful (see BUGS).
+   Optionally you may also want to do the following:
+    * add 'player' commands for any file formats not supported natively
     * edit the 'scratch' commands to supply scratch sounds (or delete them if
       you don't want any).
-    * edit the 'trust' command to reflect the user the web interface will
-      eventually run as (see below).
-    * edit the 'url' command to give the URL of the web interface (see below).
     * add or remove 'stopword' entries as necessary (these words won't take
       part in track name searches from the web interface).
 
@@ -182,9 +180,8 @@ These instructions assumes you are using Apache 1.3.x.
 
 You need to configure a number of things to make this work:
 
-1. If you want to have a 'jukebox' virtual host, modify the DNS (or hosts file
-   if you are somehow reading this in the 1980s) accordingly and use a fragment
-   such as this one:
+1. If you want to have a 'jukebox' virtual host, modify the DNS accordingly and
+   use a fragment such as this one:
 
      <VirtualHost HOSTNAME>
      DocumentRoot /home/jukebox/public_html
@@ -238,7 +235,13 @@ You need to configure a number of things to make this work:
 
      install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
 
-6. Give www-data (or whatever user it is) a password and edit
+6. The config file must also allow the web interface to be any user, and it
+   must list the URL of the web interface explicitly:
+
+     trust www-data
+     url http://jukebox.DOMAIN/
+
+7. Give www-data (or whatever user it is) a password and edit
    /etc/disorder/config.private accordingly.  This file should be mode 640 and
    owned by root:jukebox.  The line should look something like this:
 
@@ -248,24 +251,24 @@ You need to configure a number of things to make this work:
 
      disorder reconfigure
 
-7. Teach www-data its password, by putting it in /etc/disorder/config.www-data.
+8. Teach www-data its password, by putting it in /etc/disorder/config.www-data.
    This file should be mode 640 and owned by root:www-data.
 
      password MYPASSWORD
 
    (You could also use ~www-data/.disorder/passwd for this but on some systems
    the web server user's home directory is inside the document root, which
-   would have rather unfortunate consequences.)
+   would have rather unfortunate consequences!)
 
-8. Try it out.  You should be asked for a username and password that you
+9. Try it out.  You should be asked for a username and password that you
    configured earlier, and be shown details of what is playing and what other
    tracks have been configured for future play.
 
-9. If you run into problems, always look at the appropriate error log; the
-   message you see in your web browser will usually not be sufficient to
-   diagnose the problem all by itself.
+10. If you run into problems, always look at the appropriate error log; the
+    message you see in your web browser will usually not be sufficient to
+    diagnose the problem all by itself.
 
-10. If you have a huge number of top level directories, then you might find
+11. If you have a huge number of top level directories, then you might find
     that the 'Choose' page is unreasonably large.  If so add the following line
     to /etc/disorder/options.user:
       label sidebar.choosewhich choosealpha
