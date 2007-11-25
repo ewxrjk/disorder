@@ -21,7 +21,7 @@
 import dtest,time,disorder
 
 def test():
-    """Ask the server its version number"""
+    """Check the queue is padded to the (default) configured length"""
     dtest.start_daemon()
     c = disorder.client()
     q = c.queue()
