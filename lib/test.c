@@ -307,6 +307,52 @@ static void test_mime(void) {
 	       "\x04\x10\x41" "\x04\x10");
 }
 
+static void test_cookies(void) {
+  struct cookiedata cd[1];
+
+  fprintf(stderr, "test_cookies\n");
+
+  /* These are the examples from RFC2109 */
+  insist(!parse_cookie("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", cd));
+  insist(!strcmp(cd->version, "1"));
+  insist(cd->ncookies = 1);
+  insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
+  check_string(cd->cookies[0].value, "WILE_E_COYOTE");
+  check_string(cd->cookies[0].path, "/acme");
+  insist(cd->cookies[0].domain == 0);
+  insist(!parse_cookie("$Version=\"1\";\n"
+                       "Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\";\n"
+                       "Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"",
+                       cd));
+  insist(cd->ncookies = 2);
+  insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
+  insist(find_cookie(cd, "Part_Number") == &cd->cookies[1]);
+  check_string(cd->cookies[0].value, "WILE_E_COYOTE");
+  check_string(cd->cookies[0].path, "/acme");
+  insist(cd->cookies[0].domain == 0);
+  check_string(cd->cookies[1].value, "Rocket_Launcher_0001");
+  check_string(cd->cookies[1].path, "/acme");
+  insist(cd->cookies[1].domain == 0);
+  insist(!parse_cookie("$Version=\"1\";\n"
+                       "Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\";\n"
+                       "Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\";\n"
+                       "Shipping=\"FedEx\"; $Path=\"/acme\"",
+                       cd));
+  insist(cd->ncookies = 3);
+  insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
+  insist(find_cookie(cd, "Part_Number") == &cd->cookies[1]);
+  insist(find_cookie(cd, "Shipping") == &cd->cookies[2]);
+  check_string(cd->cookies[0].value, "WILE_E_COYOTE");
+  check_string(cd->cookies[0].path, "/acme");
+  insist(cd->cookies[0].domain == 0);
+  check_string(cd->cookies[1].value, "Rocket_Launcher_0001");
+  check_string(cd->cookies[1].path, "/acme");
+  insist(cd->cookies[1].domain == 0);
+  check_string(cd->cookies[2].value, "FedEx");
+  check_string(cd->cookies[2].path, "/acme");
+  insist(cd->cookies[2].domain == 0);
+}
+
 static void test_hex(void) {
   unsigned n;
   static const unsigned char h[] = { 0x00, 0xFF, 0x80, 0x7F };
@@ -703,6 +749,7 @@ int main(void) {
   /* mem.c */
   /* mime.c */
   test_mime();
+  test_cookies();
   /* mixer.c */
   /* plugin.c */
   /* printf.c */
