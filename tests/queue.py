@@ -18,12 +18,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder,sys
+import dtest,time,disorder
 
 def test():
-    """Check that the file listing comes out right"""
+    """Ask the server its version number"""
     dtest.start_daemon()
-    assert dtest.check_files() == 0, "dtest.check_files"
+    c = disorder.client()
+    q = c.queue()
+    assert len(q) == 10, "queue is at proper length"
 
 if __name__ == '__main__':
     dtest.run()

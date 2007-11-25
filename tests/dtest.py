@@ -21,7 +21,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,time,unicodedata
+import os,os.path,subprocess,sys,re,time,unicodedata,random
 
 def fatal(s):
     """Write an error message and exit"""
@@ -153,9 +153,10 @@ def stdtracks():
 def common_setup():
     remove_dir(testroot)
     os.mkdir(testroot)
+    global port
+    port = random.randint(49152, 65535)
     open("%s/config" % testroot, "w").write(
-    """player *.ogg shell 'echo "$TRACK" >> %s/played.log'
-home %s
+    """home %s
 collection fs UTF-8 %s/tracks
 scratch %s/scratch.ogg
 gap 0
@@ -178,7 +179,11 @@ tracklength *.mp3 disorder-tracklength
 tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
-""" % (testroot, testroot, testroot, testroot, top_builddir, top_builddir))
+speaker_backend network
+broadcast 127.0.0.1 %d
+broadcast_from 127.0.0.1 %d
+""" % (testroot, testroot, testroot, top_builddir, top_builddir,
+       port, port + 1))
     copyfile("%s/sounds/scratch.ogg" % top_srcdir,
              "%s/scratch.ogg" % testroot)
 
@@ -187,7 +192,7 @@ def start_daemon():
 
 Start the daemon."""
     global daemon, errs
-    assert daemon == None
+    assert daemon == None, "no daemon running"
     print " starting daemon"
     # remove the socket if it exists
     socket = "%s/socket" % testroot
@@ -268,7 +273,7 @@ def run(module=None, report=True):
         except AssertionError, e:
             global failures
             failures += 1
-            print e
+            print "assertion failed: %s" % e.message
     finally:
         stop_daemon()
     if report:

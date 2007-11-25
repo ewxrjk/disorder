@@ -33,7 +33,7 @@ def test():
     dtest.copyfile(configsave, config)
     print "Testing daemon manages to upgrade..."
     dtest.start_daemon()
-    assert dtest.check_files() == 0
+    assert dtest.check_files() == 0, "dtest.check_files"
 
 if __name__ == '__main__':
     dtest.run()
