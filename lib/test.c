@@ -45,6 +45,7 @@
 #include "wstat.h"
 #include "signame.h"
 #include "cache.h"
+#include "filepart.h"
 
 static int tests, errors;
 static int fail_first;
@@ -717,6 +718,24 @@ static void test_cache(void) {
   insist(cache_get(&t2, "2") == 0); 
 }
 
+static void test_filepart(void) {
+  fprintf(stderr, "test_filepart\n");
+  check_string(d_dirname("/"), "/");
+  check_string(d_dirname("/spong"), "/");
+  check_string(d_dirname("/foo/bar"), "/foo");
+  check_string(d_dirname("./bar"), ".");
+  check_string(d_dirname("."), ".");
+  check_string(d_dirname(".."), ".");
+  check_string(d_dirname("../blat"), "..");
+  check_string(d_dirname("wibble"), ".");
+  check_string(extension("foo.c"), ".c");
+  check_string(extension(".c"), ".c");
+  check_string(extension("."), ".");
+  check_string(extension("foo"), "");
+  check_string(extension("./foo"), "");
+  check_string(extension("./foo.c"), ".c");
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -736,6 +755,8 @@ int main(void) {
   /* client.c */
   /* configuration.c */
   /* event.c */
+  /* filepart.c */
+  test_filepart();
   /* fprintf.c */
   /* heap.c */
   test_heap();
