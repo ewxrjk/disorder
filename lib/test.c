@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "utf8.h"
 #include "mem.h"
@@ -43,6 +44,7 @@
 #include "inputline.h"
 #include "wstat.h"
 #include "signame.h"
+#include "cache.h"
 
 static int tests, errors;
 static int fail_first;
@@ -684,6 +686,34 @@ static void test_signame(void) {
   insist(find_signal("SIGYOURMUM") == -1);
 }
 
+static void test_cache(void) {
+  const struct cache_type t1 = { 1 }, t2 = { 10 };
+  const char v11[] = "spong", v12[] = "wibble", v2[] = "blat";
+  fprintf(stderr, "test_cache\n");
+  cache_put(&t1, "1_1", v11);
+  cache_put(&t1, "1_2", v12);
+  cache_put(&t2, "2", v2);
+  insist(cache_count() == 3);
+  insist(cache_get(&t2, "2") == v2);
+  insist(cache_get(&t1, "1_1") == v11);
+  insist(cache_get(&t1, "1_2") == v12);
+  insist(cache_get(&t1, "2") == 0);
+  insist(cache_get(&t2, "1_1") == 0);
+  insist(cache_get(&t2, "1_2") == 0);
+  insist(cache_get(&t1, "2") == 0);
+  insist(cache_get(&t2, "1_1") == 0);
+  insist(cache_get(&t2, "1_2") == 0);
+  sleep(2);
+  cache_expire();
+  insist(cache_count() == 1);
+  insist(cache_get(&t1, "1_1") == 0);
+  insist(cache_get(&t1, "1_2") == 0);
+  insist(cache_get(&t2, "2") == v2);
+  cache_clean(0);
+  insist(cache_count() == 0);
+  insist(cache_get(&t2, "2") == 0); 
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -734,6 +764,8 @@ int main(void) {
   /* wstat.c */
   /* signame.c */
   test_signame();
+  /* cache.c */
+  test_cache();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }
