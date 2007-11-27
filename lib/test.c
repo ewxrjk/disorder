@@ -217,6 +217,7 @@ static void test_utf8(void) {
   U8("\xF4\x80\x80\x80", "0x100000");
   U8("\xF4\x8F\xBF\xBF", "0x10FFFF");
   insist(!validutf8("\xF4\x90\x80\x80"));
+  insist(!validutf8("\xF4\x80\xFF\x80"));
 
   /* miscellaneous non-UTF-8 rubbish */
   insist(!validutf8("\x80"));
@@ -674,6 +675,8 @@ static void test_unicode(void) {
   fclose(fp);
   breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_grapheme_boundary);
   breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
+  insist(utf32_combining_class(0x40000) == 0);
+  insist(utf32_combining_class(0xE0000) == 0);
 }
 
 static void test_signame(void) {
