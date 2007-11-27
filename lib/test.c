@@ -42,6 +42,7 @@
 #include "unicode.h"
 #include "inputline.h"
 #include "wstat.h"
+#include "signame.h"
 
 static int tests, errors;
 static int fail_first;
@@ -673,6 +674,16 @@ static void test_unicode(void) {
   breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
 }
 
+static void test_signame(void) {
+  fprintf(stderr, "test_signame\n");
+  insist(find_signal("SIGTERM") == SIGTERM);
+  insist(find_signal("SIGHUP") == SIGHUP);
+  insist(find_signal("SIGINT") == SIGINT);
+  insist(find_signal("SIGQUIT") == SIGQUIT);
+  insist(find_signal("SIGKILL") == SIGKILL);
+  insist(find_signal("SIGYOURMUM") == -1);
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -720,8 +731,9 @@ int main(void) {
   /* words.c */
   test_casefold();
   test_words();
-  /* XXX words() */
   /* wstat.c */
+  /* signame.c */
+  test_signame();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }

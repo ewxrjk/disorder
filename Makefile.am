@@ -22,11 +22,9 @@ EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
 README.upgrades README.client README.mac README.raw
 SUBDIRS=@subdirs@
 
-check-recursive: before-check
+check-report: before-check check make-coverage-reports
 before-check:
 	rm -f */*.gcda */*.gcov
-
-check-report: check make-coverage-reports
 make-coverage-reports:
 	@for subdir in lib plugins server clients disobedience; do \
 	  echo cd $$subdir;\
