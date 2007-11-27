@@ -41,9 +41,10 @@ else:
 sys.path.insert(0, os.path.join(top_builddir, "python"))
 import disorder
 
-# Make sure the server build directory is on the executable search path
+# Make sure the build directories are on the executable search path
 ospath = os.environ["PATH"].split(os.pathsep)
 ospath.insert(0, os.path.join(top_builddir, "server"))
+ospath.insert(0, os.path.join(top_builddir, "clients"))
 os.environ["PATH"] = os.pathsep.join(ospath)
 
 # Parse the makefile in the current directory to identify the source directory
@@ -321,6 +322,14 @@ def check_files():
             print "got:       %s" % files
             failures += 1
     return failures
+
+def command(args):
+    """Execute a command given as a list and return its stdout"""
+    p = subprocess.Popen(args, stdout=subprocess.PIPE)
+    lines = p.stdout.readlines()
+    rc = p.wait()
+    assert rc == 0, ("%s returned status %s" % (args, rc))
+    return lines
 
 # -----------------------------------------------------------------------------
 # Common setup

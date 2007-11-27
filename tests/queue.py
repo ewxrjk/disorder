@@ -18,14 +18,19 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder
+import dtest,time,disorder,re
 
 def test():
     """Check the queue is padded to the (default) configured length"""
     dtest.start_daemon()
     c = disorder.client()
+    print " getting queue via python module"
     q = c.queue()
     assert len(q) == 10, "queue is at proper length"
+    print " getting queue via disorder(1)"
+    q = dtest.command(["disorder", "--config", disorder._configfile, "queue"])
+    tracks = filter(lambda s: re.match("^track", s), q)
+    assert len(tracks) == 10, "queue is at proper length"
 
 if __name__ == '__main__':
     dtest.run()
