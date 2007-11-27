@@ -130,3 +130,11 @@ tests/*.log
 server/disorder-dbupgrade
 doc/disorder-dbupgrade.8.html
 doc/disorder-dbupgrade.8
+*.gcov
+*.gcno
+*.gcda
+*.c.html
+clients/index.html
+disobedience/index.html
+lib/index.html
+server/index.html

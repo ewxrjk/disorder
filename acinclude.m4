@@ -102,3 +102,15 @@ AC_DEFUN([RJK_REQUIRE_PCRE_UTF8],[
     AC_MSG_ERROR([please rebuild your pcre library with --enable-utf8])
   fi
 ])
+
+AC_DEFUN([RJK_GCOV],[
+  GCOV=${GCOV:-true}
+  AC_ARG_WITH([gcov],
+              [AS_HELP_STRING([--with-gcov],
+                              [Enable coverage testing])],
+              [if test $withval = yes; then
+                 CFLAGS="${CFLAGS} -O0 -fprofile-arcs -ftest-coverage"
+                 GCOV=`echo $CC | sed s'/gcc/gcov/;s/ .*$//'`;
+               fi])
+  AC_SUBST([GCOV],[$GCOV])
+])

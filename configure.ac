@@ -466,9 +466,9 @@ if test "x$GCC" = xyes; then
   if test $rjk_cv_shadow = yes; then
     CC="${CC} -Wshadow"
   fi
-                  
-
 fi
+
+RJK_GCOV
 
 AH_BOTTOM([#ifdef __GNUC__
 # define attribute(x) __attribute__(x)

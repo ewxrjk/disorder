@@ -22,6 +22,21 @@ EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
 README.upgrades README.client README.mac README.raw
 SUBDIRS=@subdirs@
 
+check-recursive: before-check
+before-check:
+	rm -f */*.gcda */*.gcov
+
+check-report: check make-coverage-reports
+make-coverage-reports:
+	@for subdir in lib plugins server clients disobedience; do \
+	  echo cd $$subdir;\
+	  cd $$subdir;\
+	  echo ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . ;\
+	  ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . ;\
+	  echo cd ..;\
+	  cd ..;\
+	done
+
 dist-hook:
 	bzr log > ${distdir}/ChangeLog.d/bzr-changelog
 
