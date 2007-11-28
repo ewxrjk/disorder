@@ -243,6 +243,9 @@ struct config {
   /** @brief TTL for multicast packets */
   long multicast_ttl;
 
+  /** @brief Whether to loop back multicast packets */
+  int multicast_loop;
+  
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */

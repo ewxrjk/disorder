@@ -125,6 +125,9 @@ static void network_init(void) {
       const int mttl = config->multicast_ttl;
       if(setsockopt(bfd, IPPROTO_IP, IP_MULTICAST_TTL, &mttl, sizeof mttl) < 0)
         fatal(errno, "error setting IP_MULTICAST_TTL on multicast socket");
+      if(setsockopt(bfd, IPPROTO_IP, IP_MULTICAST_LOOP,
+                    &config->multicast_loop, sizeof one) < 0)
+        fatal(errno, "error setting IP_MULTICAST_LOOP on multicast socket");
       break;
     }
     case PF_INET6: {
@@ -132,6 +135,9 @@ static void network_init(void) {
       if(setsockopt(bfd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
                     &mttl, sizeof mttl) < 0)
         fatal(errno, "error setting IPV6_MULTICAST_HOPS on multicast socket");
+      if(setsockopt(bfd, IPPROTO_IP, IPV6_MULTICAST_LOOP,
+                    &config->multicast_loop, sizeof (int)) < 0)
+        fatal(errno, "error setting IPV6_MULTICAST_LOOP on multicast socket");
       break;
     }
     default:

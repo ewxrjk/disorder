@@ -157,6 +157,8 @@ for more details.
 .B broadcast \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.  This implies
 \fBspeaker_backend network\fR.
+.IP
+See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
 .B broadcast_from \fIADDRESS\fR \fIPORT\fR
 Sets the (local) source address used by \fBbroadcast\fR.
@@ -224,8 +226,14 @@ Determines whether the server locks against concurrent operation.  Default is
 The path to the mixer device, if you want access to the volume control,
 e.g. \fB/dev/mixer\fR.
 .TP
+.B multicast_loop yes\fR|\fBno
+Determines whether multicast packets are loop backed to the sending host.  The
+default is \fByes\fR.  This only applies if
+\fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
+multicast address.
+.TP
 .B multicast_ttl \fIHOPS\fR
-Set the maximum number of hops to send multicast packets.  This only applies is
+Set the maximum number of hops to send multicast packets.  This only applies if
 \fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
 multicast address.
 .TP
