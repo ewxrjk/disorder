@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/wstat.c
+ * @brief Convert wait status to text
+ */
 
 #include <config.h>
 
@@ -30,6 +33,10 @@
 #include "wstat.h"
 #include "printf.h"
 
+/** @brief Convert exit status to text
+ * @param w Exit status (e.g. from waitpid())
+ * @return Allocated string containing description of status
+ */
 const char *wstat(int w) {
   int n;
   char *r;

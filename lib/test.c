@@ -49,6 +49,7 @@
 #include "filepart.h"
 #include "hash.h"
 #include "selection.h"
+#include "syscalls.h"
 
 static int tests, errors;
 static int fail_first;
@@ -108,13 +109,29 @@ static const char *format_utf32(const uint32_t *s) {
   if(w == 0) {							\
     fprintf(stderr, "%s:%d: %s returned 0\n",			\
             __FILE__, __LINE__, #GOT);				\
-    count_error();							\
+    count_error();                                              \
   } else if(strcmp(w, g)) {					\
     fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s\n",	\
 	    __FILE__, __LINE__, #GOT, format(g), format(w));	\
-    count_error();							\
+    count_error();                                              \
   }								\
   ++tests;							\
+ } while(0)
+
+#define check_string_prefix(GOT, WANT) do {                             \
+  const char *g = GOT;                                                  \
+  const char *w = WANT;                                                 \
+                                                                        \
+  if(w == 0) {                                                          \
+    fprintf(stderr, "%s:%d: %s returned 0\n",                           \
+            __FILE__, __LINE__, #GOT);                                  \
+    count_error();							\
+  } else if(strncmp(w, g, strlen(w))) {                                 \
+    fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s...\n",	\
+	    __FILE__, __LINE__, #GOT, format(g), format(w));            \
+    count_error();							\
+  }                                                                     \
+  ++tests;                                                              \
  } while(0)
 
 static uint32_t *ucs4parse(const char *s) {
@@ -777,6 +794,26 @@ static void test_selection(void) {
   insist(hash_count(h) == 0);
 }
 
+static void test_wstat(void) {
+  pid_t pid;
+  int w;
+  
+  fprintf(stderr, "test_wstat\n");
+  if(!(pid = xfork())) {
+    _exit(1);
+  }
+  while(waitpid(pid, &w, 0) < 0 && errno == EINTR)
+    ;
+  check_string(wstat(w), "exited with status 1");
+  if(!(pid = xfork())) {
+    kill(getpid(), SIGTERM);
+    _exit(-1);
+  }
+  while(waitpid(pid, &w, 0) < 0 && errno == EINTR)
+    ;
+  check_string_prefix(wstat(w), "terminated by signal 15");
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -827,6 +864,7 @@ int main(void) {
   test_casefold();
   test_words();
   /* wstat.c */
+  test_wstat();
   /* signame.c */
   test_signame();
   /* cache.c */
