@@ -47,6 +47,8 @@
 #include "signame.h"
 #include "cache.h"
 #include "filepart.h"
+#include "hash.h"
+#include "selection.h"
 
 static int tests, errors;
 static int fail_first;
@@ -737,6 +739,44 @@ static void test_filepart(void) {
   check_string(extension("./foo.c"), ".c");
 }
 
+static void test_selection(void) {
+  hash *h;
+  fprintf(stderr, "test_selection\n");
+  insist((h = selection_new()) != 0);
+  selection_set(h, "one", 1);
+  selection_set(h, "two", 1);
+  selection_set(h, "three", 0);
+  selection_set(h, "four", 1);
+  insist(selection_selected(h, "one") == 1);
+  insist(selection_selected(h, "two") == 1);
+  insist(selection_selected(h, "three") == 0);
+  insist(selection_selected(h, "four") == 1);
+  insist(selection_selected(h, "five") == 0);
+  insist(hash_count(h) == 3);
+  selection_flip(h, "one"); 
+  selection_flip(h, "three"); 
+  insist(selection_selected(h, "one") == 0);
+  insist(selection_selected(h, "three") == 1);
+  insist(hash_count(h) == 3);
+  selection_live(h, "one");
+  selection_live(h, "two");
+  selection_live(h, "three");
+  selection_cleanup(h);
+  insist(selection_selected(h, "one") == 0);
+  insist(selection_selected(h, "two") == 1);
+  insist(selection_selected(h, "three") == 1);
+  insist(selection_selected(h, "four") == 0);
+  insist(selection_selected(h, "five") == 0);
+  insist(hash_count(h) == 2);
+  selection_empty(h);
+  insist(selection_selected(h, "one") == 0);
+  insist(selection_selected(h, "two") == 0);
+  insist(selection_selected(h, "three") == 0);
+  insist(selection_selected(h, "four") == 0);
+  insist(selection_selected(h, "five") == 0);
+  insist(hash_count(h) == 0);
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -791,6 +831,8 @@ int main(void) {
   test_signame();
   /* cache.c */
   test_cache();
+  /* selection.c */
+  test_selection();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }
