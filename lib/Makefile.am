@@ -95,6 +95,12 @@ test_DEPENDENCIES=libdisorder.a
 check: test #test.i
 	./test
 
+check-report: before-check check make-coverage-reports
+before-check:
+	rm -f *.gcda *.gcov
+make-coverage-reports:
+	${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html .
+
 rebuild-unicode:
 	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata
 
