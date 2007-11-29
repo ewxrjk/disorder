@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/wstat.h
+ * @brief Convert wait status to text
+ */
 
 #ifndef WSTAT_H
 #define WSTAT_H

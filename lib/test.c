@@ -50,6 +50,7 @@
 #include "hash.h"
 #include "selection.h"
 #include "syscalls.h"
+#include "kvp.h"
 
 static int tests, errors;
 static int fail_first;
@@ -814,6 +815,31 @@ static void test_wstat(void) {
   check_string_prefix(wstat(w), "terminated by signal 15");
 }
 
+static void test_kvp(void) {
+  struct kvp *k;
+  
+  fprintf(stderr, "test_kvp\n");
+#define KVP_URLDECODE(S) kvp_urldecode((S), strlen(S))
+  insist(KVP_URLDECODE("=%zz") == 0);
+  insist(KVP_URLDECODE("=%0") == 0);
+  insist(KVP_URLDECODE("=%0z") == 0);
+  insist(KVP_URLDECODE("=%%") == 0);
+  insist(KVP_URLDECODE("==%") == 0);
+  insist(KVP_URLDECODE("wibble") == 0);
+  insist(KVP_URLDECODE("") == 0);
+  insist(KVP_URLDECODE("wibble&") == 0);
+  insist((k = KVP_URLDECODE("one=bl%61t+foo")) != 0);
+  check_string(kvp_get(k, "one"), "blat foo");
+  insist(kvp_get(k, "ONE") == 0);
+  insist(k->next == 0);
+  insist((k = KVP_URLDECODE("wibble=splat&bar=spong")) != 0);
+  check_string(kvp_get(k, "wibble"), "splat");
+  check_string(kvp_get(k, "bar"), "spong");
+  insist(kvp_get(k, "ONE") == 0);
+  insist(k->next->next == 0);
+  /* TODO test encoding too */
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -842,6 +868,7 @@ int main(void) {
   test_hex();
   /* inputline.c */
   /* kvp.c */
+  test_kvp();
   /* log.c */
   /* mem.c */
   /* mime.c */
