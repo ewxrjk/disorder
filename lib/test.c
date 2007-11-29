@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include "utf8.h"
 #include "mem.h"
@@ -103,34 +104,34 @@ static const char *format_utf32(const uint32_t *s) {
   return d.vec;
 }
 
-#define check_string(GOT, WANT) do {				\
-  const char *g = GOT;						\
-  const char *w = WANT;						\
-								\
-  if(w == 0) {							\
-    fprintf(stderr, "%s:%d: %s returned 0\n",			\
-            __FILE__, __LINE__, #GOT);				\
-    count_error();                                              \
-  } else if(strcmp(w, g)) {					\
-    fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s\n",	\
-	    __FILE__, __LINE__, #GOT, format(g), format(w));	\
-    count_error();                                              \
-  }								\
-  ++tests;							\
+#define check_string(GOT, WANT) do {                                    \
+  const char *got = GOT;                                                \
+  const char *want = WANT;                                              \
+                                                                        \
+  if(want == 0) {                                                       \
+    fprintf(stderr, "%s:%d: %s returned 0\n",                           \
+            __FILE__, __LINE__, #GOT);                                  \
+    count_error();                                                      \
+  } else if(strcmp(want, got)) {                                        \
+    fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s\n",         \
+	    __FILE__, __LINE__, #GOT, format(got), format(want));       \
+    count_error();                                                      \
+  }                                                                     \
+  ++tests;                                                              \
  } while(0)
 
 #define check_string_prefix(GOT, WANT) do {                             \
-  const char *g = GOT;                                                  \
-  const char *w = WANT;                                                 \
+  const char *got = GOT;                                                \
+  const char *want = WANT;                                              \
                                                                         \
-  if(w == 0) {                                                          \
+  if(want == 0) {                                                       \
     fprintf(stderr, "%s:%d: %s returned 0\n",                           \
             __FILE__, __LINE__, #GOT);                                  \
-    count_error();							\
-  } else if(strncmp(w, g, strlen(w))) {                                 \
-    fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s...\n",	\
-	    __FILE__, __LINE__, #GOT, format(g), format(w));            \
-    count_error();							\
+    count_error();                                                      \
+  } else if(strncmp(want, got, strlen(want))) {                         \
+    fprintf(stderr, "%s:%d: %s returned:\n%s\nexpected:\n%s...\n",      \
+	    __FILE__, __LINE__, #GOT, format(got), format(want));       \
+    count_error();                                                      \
   }                                                                     \
   ++tests;                                                              \
  } while(0)
