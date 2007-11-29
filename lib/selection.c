@@ -44,9 +44,11 @@ hash *selection_new(void) {
  * are not marked as live.
  */
 void selection_set(hash *h, const char *key, int selected) {
-  if(selected)
-    hash_add(h, key, xmalloc_noptr(sizeof (int)), HASH_INSERT_OR_REPLACE);
-  else
+  if(selected) {
+    int *const liveness = xmalloc_noptr(sizeof (int));
+    *liveness = 0;
+    hash_add(h, key, liveness, HASH_INSERT_OR_REPLACE);
+  } else
     hash_remove(h, key);
 }
 
@@ -96,7 +98,7 @@ static int selection_cleanup_callback(const char *key,
 /** @brief Delete all non-live keys from a selection
  * @param h Hash representing selection
  *
- * See selection_live().
+ * After cleanup, no keys are marked as live.
  */
 void selection_cleanup(hash *h) {
   hash_foreach(h, selection_cleanup_callback, h);
