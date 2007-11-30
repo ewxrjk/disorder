@@ -818,8 +818,10 @@ static void test_wstat(void) {
 
 static void test_kvp(void) {
   struct kvp *k;
+  size_t n;
   
   fprintf(stderr, "test_kvp\n");
+  /* decoding */
 #define KVP_URLDECODE(S) kvp_urldecode((S), strlen(S))
   insist(KVP_URLDECODE("=%zz") == 0);
   insist(KVP_URLDECODE("=%0") == 0);
@@ -838,7 +840,19 @@ static void test_kvp(void) {
   check_string(kvp_get(k, "bar"), "spong");
   insist(kvp_get(k, "ONE") == 0);
   insist(k->next->next == 0);
-  /* TODO test encoding too */
+  /* encoding */
+  insist(kvp_set(&k, "bar", "spong") == 0);
+  insist(kvp_set(&k, "bar", "foo") == 1);
+  insist(kvp_set(&k, "zog", "%") == 1);
+  insist(kvp_set(&k, "wibble", 0) == 1);
+  insist(kvp_set(&k, "wibble", 0) == 0);
+  check_string(kvp_urlencode(k, 0),
+               "bar=foo&zog=%25");
+  check_string(kvp_urlencode(k, &n),
+               "bar=foo&zog=%25");
+  insist(n == strlen("bar=foo&zog=%25"));
+  check_string(urlencodestring("abc% +\n"),
+               "abc%25%20%2b%0a");
 }
 
 int main(void) {
