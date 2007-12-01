@@ -55,6 +55,7 @@
 #include "kvp.h"
 #include "sink.h"
 #include "printf.h"
+#include "basen.h"
 
 static int tests, errors;
 static int fail_first;
@@ -1122,6 +1123,40 @@ static void test_printf(void) {
   insist(do_printf("%=") == 0);
 }
 
+static void test_basen(void) {
+  unsigned long v[64];
+  char buffer[1024];
+
+  fprintf(stderr, "test_basen\n");
+  v[0] = 999;
+  insist(basen(v, 1, buffer, sizeof buffer, 10) == 0);
+  check_string(buffer, "999");
+
+  v[0] = 1+2*7+3*7*7+4*7*7*7;
+  insist(basen(v, 1, buffer, sizeof buffer, 7) == 0);
+  check_string(buffer, "4321");
+
+  v[0] = 0x00010203;
+  v[1] = 0x04050607;
+  v[2] = 0x08090A0B;
+  v[3] = 0x0C0D0E0F;
+  insist(basen(v, 4, buffer, sizeof buffer, 256) == 0);
+  check_string(buffer, "123456789abcdef");
+
+  v[0] = 0x00010203;
+  v[1] = 0x04050607;
+  v[2] = 0x08090A0B;
+  v[3] = 0x0C0D0E0F;
+  insist(basen(v, 4, buffer, sizeof buffer, 16) == 0);
+  check_string(buffer, "102030405060708090a0b0c0d0e0f");
+
+  v[0] = 0x00010203;
+  v[1] = 0x04050607;
+  v[2] = 0x08090A0B;
+  v[3] = 0x0C0D0E0F;
+  insist(basen(v, 4, buffer, 10, 16) == -1);
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -1137,6 +1172,7 @@ int main(void) {
   /* asprintf.c */
   /* authhash.c */
   /* basen.c */
+  test_basen();
   /* charset.c */
   /* client.c */
   /* configuration.c */

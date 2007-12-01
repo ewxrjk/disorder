@@ -72,7 +72,7 @@ static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
 }
 
 /** @brief Convert v to a chosen base
- * @param v Pointer to bigendian bignum
+ * @param v Pointer to bigendian bignum (modified!)
  * @param nwords Length of bignum
  * @param buffer Output buffer
  * @param bufsize Size of output buffer
@@ -91,7 +91,8 @@ int basen(unsigned long *v,
   static const char chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   
   do {
-    if(i <= 1) return -1;	/* overflow */
+    if(i <= 1)
+      return -1;			/* overflow */
     buffer[--i] = chars[divide(v, nwords, base)];
   } while(!zero(v, nwords));
   memmove(buffer, buffer + i, bufsize - i);
