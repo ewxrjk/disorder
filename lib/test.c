@@ -56,6 +56,7 @@
 #include "sink.h"
 #include "printf.h"
 #include "basen.h"
+#include "split.h"
 
 static int tests, errors;
 static int fail_first;
@@ -1157,6 +1158,75 @@ static void test_basen(void) {
   insist(basen(v, 4, buffer, 10, 16) == -1);
 }
 
+static void test_split(void) {
+  char **v;
+  int nv;
+
+  fprintf(stderr, "test_split\n");
+  insist(split("\"misquoted", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
+  insist(split("\'misquoted", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
+  insist(split("\'misquoted\\", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
+  insist(split("\'misquoted\\\"", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
+  insist(split("\'mis\\escaped\'", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
+
+  insist((v = split("", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 0);
+  insist(*v == 0);
+
+  insist((v = split("wibble", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 1);
+  check_string(v[0], "wibble");
+  insist(v[1] == 0);
+
+  insist((v = split("   wibble \t\r\n wobble   ", &nv,
+                    SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 2);
+  check_string(v[0], "wibble");
+  check_string(v[1], "wobble");
+  insist(v[2] == 0);
+
+  insist((v = split("wibble wobble #splat", &nv,
+                    SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 2);
+  check_string(v[0], "wibble");
+  check_string(v[1], "wobble");
+  insist(v[2] == 0);
+
+  insist((v = split("\"wibble wobble\" #splat", &nv,
+                    SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 1);
+  check_string(v[0], "wibble wobble");
+  insist(v[1] == 0);
+
+  insist((v = split("\"wibble \\\"\\nwobble\"", &nv,
+                    SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 1);
+  check_string(v[0], "wibble \"\nwobble");
+  insist(v[1] == 0);
+
+  insist((v = split("\"wibble wobble\" #splat", &nv,
+                    SPLIT_QUOTES, 0, 0)));
+  check_integer(nv, 2);
+  check_string(v[0], "wibble wobble");
+  check_string(v[1], "#splat");
+  insist(v[2] == 0);
+
+  insist((v = split("\"wibble wobble\" #splat", &nv,
+                    SPLIT_COMMENTS, 0, 0)));
+  check_integer(nv, 2);
+  check_string(v[0], "\"wibble");
+  check_string(v[1], "wobble\"");
+  insist(v[2] == 0);
+
+  check_string(quoteutf8("wibble"), "wibble");
+  check_string(quoteutf8("  wibble  "), "\"  wibble  \"");
+  check_string(quoteutf8("wibble wobble"), "\"wibble wobble\"");
+  check_string(quoteutf8("wibble\"wobble"), "\"wibble\\\"wobble\"");
+  check_string(quoteutf8("wibble\nwobble"), "\"wibble\\nwobble\"");
+  check_string(quoteutf8("wibble\\wobble"), "\"wibble\\\\wobble\"");
+  check_string(quoteutf8("wibble'wobble"), "\"wibble'wobble\"");
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -1200,6 +1270,7 @@ int main(void) {
   test_sink();
   /* snprintf.c */
   /* split.c */
+  test_split();
   /* syscalls.c */
   /* table.c */
   /* unicode.c */

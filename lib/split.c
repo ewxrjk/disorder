@@ -56,7 +56,8 @@ char **split(const char *p,
   size_t l;
   int qc;
 
-  if(!error_handler) error_handler = no_error_handler;
+  if(!error_handler)
+    error_handler = no_error_handler;
   vector_init(&v);
   while(*p && !(*p == '#' && (flags & SPLIT_COMMENTS))) {
     if(space(*p)) {
