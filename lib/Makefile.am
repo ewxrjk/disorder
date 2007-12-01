@@ -88,8 +88,8 @@ definitions.h: Makefile
 defs.o: definitions.h
 defs.lo: definitions.h
 
-test_SOURCES=test.c
-test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV)
+test_SOURCES=test.c memgc.c
+test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 test_DEPENDENCIES=libdisorder.a
 
 check: test #test.i

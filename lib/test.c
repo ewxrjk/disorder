@@ -1227,7 +1227,33 @@ static void test_split(void) {
   check_string(quoteutf8("wibble'wobble"), "\"wibble'wobble\"");
 }
 
+static void test_hash(void) {
+  hash *h;
+  int i, *ip;
+  char **keys;
+
+  fprintf(stderr, "test_hash\n");
+  h = hash_new(sizeof(int));
+  for(i = 0; i < 10000; ++i)
+    insist(hash_add(h, do_printf("%d", i), &i, HASH_INSERT) == 0);
+  check_integer(hash_count(h), 10000);
+  for(i = 0; i < 10000; ++i) {
+    insist((ip = hash_find(h, do_printf("%d", i))) != 0);
+    check_integer(*ip, i);
+    insist(hash_add(h, do_printf("%d", i), &i, HASH_REPLACE) == 0);
+  }
+  check_integer(hash_count(h), 10000);
+  keys = hash_keys(h);
+  for(i = 0; i < 10000; ++i)
+    insist(keys[i] != 0);
+  insist(keys[10000] == 0);
+  for(i = 0; i < 10000; ++i)
+    insist(hash_remove(h, do_printf("%d", i)) == 0);
+  check_integer(hash_count(h), 0);
+}
+
 int main(void) {
+  mem_init();
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
   insist('\r' == 0x0D);
@@ -1289,6 +1315,7 @@ int main(void) {
   test_cache();
   /* selection.c */
   test_selection();
+  test_hash();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }
