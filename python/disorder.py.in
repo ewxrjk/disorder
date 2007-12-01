@@ -755,6 +755,34 @@ class client:
     ret, details = self._simple("part", track, context, part)
     return details
 
+  def setglobal(self, key, value):
+    """Set a global preference value.
+
+    Arguments:
+    key -- the preference name
+    value -- the new preference value
+    """
+    self._simple("set-global", key, value)
+
+  def unsetglobal(self, key):
+    """Unset a global preference value.
+
+    Arguments:
+    key -- the preference to remove
+    """
+    self._simple("set-global", key, value)
+
+  def getglobal(self, key):
+    """Get a global preference value.
+
+    Arguments:
+    key -- the preference to look up
+
+    The return value is the preference 
+    """
+    ret, details = self._simple("get-global", key)
+    return details
+
   ########################################################################
   # I/O infrastructure
 

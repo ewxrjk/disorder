@@ -106,6 +106,7 @@ static void do_dump(FILE *fp, const char *tag,
       fatal(errno, "error calling ftruncate");
     if(fprintf(fp, "V%c\n", (tracksdb || searchdb) ? '1' : '0') < 0)
       fatal(errno, "error writing to %s", tag);
+    /* dump the preferences */
     cursor = trackdb_opencursor(trackdb_prefsdb, tid);
     err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                         DB_FIRST);
@@ -122,6 +123,23 @@ static void do_dump(FILE *fp, const char *tag,
     if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
     cursor = 0;
 
+    /* dump the global preferences */
+    cursor = trackdb_opencursor(trackdb_globaldb, tid);
+    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                        DB_FIRST);
+    while(err == 0) {
+      if(fputc('G', fp) < 0
+         || urlencode(s, k.data, k.size)
+         || fputc('\n', fp) < 0
+         || urlencode(s, d.data, d.size)
+         || fputc('\n', fp) < 0)
+        fatal(errno, "error writing to %s", tag);
+      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                          DB_NEXT);
+    }
+    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
+    cursor = 0;
+    
     if(tracksdb) {
       cursor = trackdb_opencursor(trackdb_tracksdb, tid);
       err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
@@ -256,6 +274,8 @@ static int undump_dbt(FILE *fp, const char *tag, DBT *dbt) {
 static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   int err, c;
   DBT k, d;
+  const char *which_name;
+  DB *which_db;
 
   info("undumping");
   if(fseek(fp, 0, SEEK_SET) < 0)
@@ -273,17 +293,25 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
     case 'E':
       return 0;
     case 'P':
+    case 'G':
+      if(c == 'P') {
+	which_db = trackdb_prefsdb;
+	which_name = "prefs.db";
+      } else {
+	which_db = trackdb_globaldb;
+	which_name = "global.db";
+      }
       if(undump_dbt(fp, tag, prepare_data(&k))
          || undump_dbt(fp, tag, prepare_data(&d)))
         break;
-      switch(err = trackdb_prefsdb->put(trackdb_prefsdb, tid, &k, &d, 0)) {
+      switch(err = trackdb_prefsdb->put(which_db, tid, &k, &d, 0)) {
       case 0:
         break;
       case DB_LOCK_DEADLOCK:
-        error(0, "error updating prefs.db: %s", db_strerror(err));
+        error(0, "error updating %s: %s", which_name, db_strerror(err));
         return err;
       default:
-        fatal(0, "error updating prefs.db: %s", db_strerror(err));
+        fatal(0, "error updating %s: %s", which_name, db_strerror(err));
       }
       break;
     case 'T':
