@@ -57,7 +57,7 @@ void quit(ev_source *ev) {
   trackdb_close();
   trackdb_deinit();
   info("terminating");
-  _exit(0);
+  exit(0);
 }
 
 static void reset_socket(ev_source *ev) {

@@ -169,6 +169,7 @@ stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
 allow fred fredpass
+trust fred
 plugins
 plugins %s/plugins
 plugins %s/plugins/.libs
@@ -232,7 +233,7 @@ Stop the daemon if it has not stopped already"""
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
-        os.kill(daemon.pid, 15)
+        disorder.client().shutdown()
         print "  waiting for daemon"
         rc = daemon.wait()
         print "  daemon has stopped"
