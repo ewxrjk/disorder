@@ -99,7 +99,7 @@ check-report: before-check check make-coverage-reports
 before-check:
 	rm -f *.gcda *.gcov
 make-coverage-reports:
-	${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html .
+	${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
 
 rebuild-unicode:
 	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata

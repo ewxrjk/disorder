@@ -33,17 +33,20 @@ def sgmlquotechar(c):
 def sgmlquote(s):
   return string.join(map(sgmlquotechar, s),'')
 
+missing = {}
 percent = {}
 total_lines = 0
 covered_lines = 0
 args = sys.argv[1:]
 htmldir = None
-while len(args) > 0:
+while len(args) > 0 and re.match("^--", args[0]):
   if args[0] == "--html":
     htmldir = args[1]
     args = args[2:]
   else:
     fatal("unknown option '%s'" % args[0])
+for s in args:
+  missing[s] = True
 
 name = None
 for line in sys.stdin:
@@ -51,6 +54,8 @@ for line in sys.stdin:
   r = re.match("File ['`](?:.*/)?([^/]+.c)'", line)
   if r:
     name = r.group(1)
+    if name in missing:
+      del missing[name]
   r = re.match("Lines executed:([0-9\\.]+)% of ([0-9]+)", line)
   if r:
     if name:
@@ -84,6 +89,14 @@ if htmldir is not None and len(keys):
                 (sgmlquote(k), sgmlquote(k), percent[k]))
   index.write("</table>\n")
   index.write("<p>Total coverage: %d%%</p>\n" % (100 * (covered_lines / total_lines)))
+  missing_files = missing.keys()
+  missing_files.sort()
+  if len(missing_files) > 0:
+    index.write("<p>Missing files:</p>\n")
+    index.write("<ul>\n")
+    for mf in missing_files:
+      index.write("<li><a href=\"%s\">%s</a></li>\n" % (mf, mf))
+    index.write("</lu>\n")
   for k in keys:
     html = open(os.path.join(htmldir, "%s.html" % k), "w")
     html.write("<html><head><title>%s</title>\n" % sgmlquote(k))
