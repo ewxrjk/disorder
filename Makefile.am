@@ -29,8 +29,8 @@ make-coverage-reports:
 	@for subdir in lib plugins server clients disobedience; do \
 	  echo cd $$subdir;\
 	  cd $$subdir;\
-	  echo ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . ;\
-	  ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . ;\
+	  echo ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c ;\
+	  ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c ;\
 	  echo cd ..;\
 	  cd ..;\
 	done
