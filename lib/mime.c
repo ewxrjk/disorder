@@ -25,6 +25,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <stdio.h>
+
 #include "mem.h"
 #include "mime.h"
 #include "vector.h"
@@ -213,7 +215,7 @@ static int isboundary(const char *ptr, const char *boundary, size_t bl) {
 	  && (iscrlf(ptr + bl + 2)
 	      || (ptr[bl + 2] == '-'
 		  && ptr[bl + 3] == '-'
-		  && iscrlf(ptr + bl + 4))));
+		  && (iscrlf(ptr + bl + 4) || *(ptr + bl + 4) == 0))));
 }
 
 static int isfinal(const char *ptr, const char *boundary, size_t bl) {
@@ -222,7 +224,7 @@ static int isfinal(const char *ptr, const char *boundary, size_t bl) {
 	  && !strncmp(ptr + 2, boundary, bl)
 	  && ptr[bl + 2] == '-'
 	  && ptr[bl + 3] == '-'
-	  && iscrlf(ptr + bl + 4));
+	  && (iscrlf(ptr + bl + 4) || *(ptr + bl + 4) == 0));
 }
 
 int mime_multipart(const char *s,
@@ -233,12 +235,16 @@ int mime_multipart(const char *s,
   const char *start, *e;
   int ret;
 
-  if(!isboundary(s, boundary, bl)) return -1;
+  /* We must start with a boundary string */
+  if(!isboundary(s, boundary, bl))
+    return -1;
+  /* Keep going until we hit a final boundary */
   while(!isfinal(s, boundary, bl)) {
     s = strstr(s, "\r\n") + 2;
     start = s;
     while(!isboundary(s, boundary, bl)) {
-      if(!(e = strstr(s, "\r\n"))) return -1;
+      if(!(e = strstr(s, "\r\n")))
+	return -1;
       s = e + 2;
     }
     if((ret = callback(xstrndup(start,
