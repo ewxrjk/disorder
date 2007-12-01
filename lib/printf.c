@@ -284,11 +284,11 @@ static int output_integer(struct state *s, struct conversion *c) {
    * '-' beats '0'.
    */
   if(c->flags & f_left) {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
     if(sign && do_write(s, &sign, 1)) return -1;
     if(xform && do_write(s, c->specifier->xform, xform)) return -1;
     if(prec && do_pad(s, '0', prec) < 0) return -1;
     if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0) return -1;
   } else if(c->flags & f_zero) {
     if(sign && do_write(s, &sign, 1)) return -1;
     if(xform && do_write(s, c->specifier->xform, xform)) return -1;
@@ -296,11 +296,11 @@ static int output_integer(struct state *s, struct conversion *c) {
     if(prec && do_pad(s, '0', prec) < 0) return -1;
     if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
   } else {
+    if(pad && do_pad(s, ' ', pad) < 0) return -1;
     if(sign && do_write(s, &sign, 1)) return -1;
     if(xform && do_write(s, c->specifier->xform, xform)) return -1;
     if(prec && do_pad(s, '0', prec) < 0) return -1;
     if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
   }
   return 0;
 }
@@ -323,11 +323,11 @@ static int output_string(struct state *s, struct conversion *c) {
   } else
     pad = 0;
   if(c->flags & f_left) {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
     if(do_write(s, str, len) < 0) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0) return -1;
   } else {
-    if(do_write(s, str, len) < 0) return -1;
     if(pad && do_pad(s, ' ', pad) < 0) return -1;
+    if(do_write(s, str, len) < 0) return -1;
   }
   return 0;
   
@@ -344,11 +344,11 @@ static int output_char(struct state *s, struct conversion *c) {
   } else
     pad = 0;
   if(c->flags & f_left) {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
     if(do_write(s, &ch, 1) < 0) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0) return -1;
   } else {
-    if(do_write(s, &ch, 1) < 0) return -1;
     if(pad && do_pad(s, ' ', pad) < 0) return -1;
+    if(do_write(s, &ch, 1) < 0) return -1;
   }
   return 0;
 }
@@ -415,7 +415,7 @@ static int parse_conversion(struct conversion *c, const char *ptr) {
       ++ptr;
       c->precision = -1;
     } else
-      return -1;
+      c->precision = 0;
     c->flags |= f_precision;
   }
   /* length modifier */
