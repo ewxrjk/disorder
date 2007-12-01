@@ -17,17 +17,29 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/sink.h
+ * @brief Abstract output sink type
+ */
 
 #ifndef SINK_H
 #define SINK_H
 
-/* a sink is something you write to (the opposite would be a source) */
-
 struct dynstr;
 
+/** @brief Sink type
+ *
+ * A sink is something you write bytes to; the opposite would be a
+ * source.  We provide sink_stdio() and sink_dynstr() to create sinks
+ * to write to stdio streams and dynamic strings.
+ */
 struct sink {
+  /** @brief Write callback
+   * @param s Sink to write to
+   * @param buffer First byte to write
+   * @param nbytes Number of bytes to write
+   * @return non-negative on success, -1 on error
+   */
   int (*write)(struct sink *s, const void *buffer, int nbytes);
-  /* return >= 0 on success, -1 on error */
 };
 
 struct sink *sink_stdio(const char *name, FILE *fp);
@@ -43,14 +55,30 @@ int sink_printf(struct sink *s, const char *fmt, ...)
   attribute((format (printf, 2, 3)));
 /* equivalent of vfprintf/fprintf for sink @s@ */
 
+/** @brief Write bytes to a sink
+ * @param s Sink to write to
+ * @param buffer First byte to write
+ * @param nbytes Number of bytes to write
+ * @return non-negative on success, -1 on error
+ */
 static inline int sink_write(struct sink *s, const void *buffer, int nbytes) {
   return s->write(s, buffer, nbytes);
 }
 
+/** @brief Write string to a sink
+ * @param s Sink to write to
+ * @param str String to write
+ * @return non-negative on success, -1 on error
+ */
 static inline int sink_writes(struct sink *s, const char *str) {
   return s->write(s, str, strlen(str));
 }
 
+/** @brief Write one byte to a sink
+ * @param s Sink to write to
+ * @param c Byte to write (as a @c char)
+ * @return non-negative on success, -1 on error
+ */
 static inline int sink_writec(struct sink *s, char c) {
   return s->write(s, &c, 1);
 }

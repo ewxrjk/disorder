@@ -52,6 +52,7 @@
 #include "selection.h"
 #include "syscalls.h"
 #include "kvp.h"
+#include "sink.h"
 
 static int tests, errors;
 static int fail_first;
@@ -855,6 +856,34 @@ static void test_kvp(void) {
                "abc%25%20%2b%0a");
 }
 
+static void test_sink(void) {
+  struct sink *s;
+  struct dynstr d[1];
+  FILE *fp;
+  char *l;
+  
+  fprintf(stderr, "test_sink\n");
+
+  fp = tmpfile();
+  assert(fp != 0);
+  s = sink_stdio("tmpfile", fp);
+  insist(sink_printf(s, "test: %d\n", 999) == 10);
+  insist(sink_printf(s, "wibble: %s\n", "foobar") == 15);
+  rewind(fp);
+  insist(inputline("tmpfile", fp, &l, '\n') == 0);
+  check_string(l, "test: 999");
+  insist(inputline("tmpfile", fp, &l, '\n') == 0);
+  check_string(l, "wibble: foobar");
+  insist(inputline("tmpfile", fp, &l, '\n') == -1);
+  
+  dynstr_init(d);
+  s = sink_dynstr(d);
+  insist(sink_printf(s, "test: %d\n", 999) == 10);
+  insist(sink_printf(s, "wibble: %s\n", "foobar") == 15);
+  dynstr_terminate(d);
+  check_string(d->vec, "test: 999\nwibble: foobar\n");
+}
+
 int main(void) {
   fail_first = !!getenv("FAIL_FIRST");
   insist('\n' == 0x0A);
@@ -893,6 +922,7 @@ int main(void) {
   /* printf.c */
   /* queue.c */
   /* sink.c */
+  test_sink();
   /* snprintf.c */
   /* split.c */
   /* syscalls.c */

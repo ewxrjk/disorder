@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/sink.c
+ * @brief Abstract output sink type
+ */
 
 #include <config.h>
 #include "types.h"
@@ -32,10 +35,21 @@
 #include "log.h"
 #include "printf.h"
 
+/** @brief Formatted output to a sink
+ * @param s Sink to write to
+ * @param fmt Format string
+ * @param ap Argument list
+ * @return Number of bytes written on success, -1 on error
+ */
 int sink_vprintf(struct sink *s, const char *fmt, va_list ap) {
   return byte_vsinkprintf(s, fmt, ap);
 }
 
+/** @brief Formatted output to a sink
+ * @param s Sink to write to
+ * @param fmt Format string
+ * @return Number of bytes written on success, -1 on error
+ */
 int sink_printf(struct sink *s, const char *fmt, ...) {
   va_list ap;
   int n;
@@ -48,14 +62,22 @@ int sink_printf(struct sink *s, const char *fmt, ...) {
 
 /* stdio sink *****************************************************************/
 
+/** @brief Sink that writes to a stdio @c FILE */
 struct stdio_sink {
+  /** @brief Base member */
   struct sink s;
+
+  /** @brief Filename */
   const char *name;
+
+  /** @brief Stream to write to */
   FILE *fp;
 };
 
+/** @brief Reinterpret a @ref sink as a @ref stdio_sink */
 #define S(s) ((struct stdio_sink *)s)
 
+/** @brief Write callback for @ref stdio_sink */
 static int sink_stdio_write(struct sink *s, const void *buffer, int nbytes) {
   int n = fwrite(buffer, 1, nbytes, S(s)->fp);
   if(n < nbytes) {
@@ -67,6 +89,11 @@ static int sink_stdio_write(struct sink *s, const void *buffer, int nbytes) {
   return n;
 }
 
+/** @brief Create a sink that writes to a stdio stream
+ * @param name Filename for use in error messages
+ * @param fp Stream to write to
+ * @return Pointer to new sink
+ */
 struct sink *sink_stdio(const char *name, FILE *fp) {
   struct stdio_sink *s = xmalloc(sizeof *s);
 
@@ -78,16 +105,24 @@ struct sink *sink_stdio(const char *name, FILE *fp) {
 
 /* dynstr sink ****************************************************************/
 
+/** @brief Sink that writes to a dynamic string */
 struct dynstr_sink {
+  /** @brief Base member */
   struct sink s;
+  /** @brief Pointer to dynamic string to append to */
   struct dynstr *d;
 };
 
+/** @brief Write callback for @ref dynstr_sink */
 static int sink_dynstr_write(struct sink *s, const void *buffer, int nbytes) {
   dynstr_append_bytes(((struct dynstr_sink *)s)->d, buffer, nbytes);
   return nbytes;
 }
 
+/** @brief Create a sink that appends to a @ref dynstr
+ * @param output Dynamic string to append to
+ * @return Pointer to new sink
+ */
 struct sink *sink_dynstr(struct dynstr *output) {
   struct dynstr_sink *s = xmalloc(sizeof *s);
 
