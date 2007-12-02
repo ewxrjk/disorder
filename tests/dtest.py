@@ -21,7 +21,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,time,unicodedata,random
+import os,os.path,subprocess,sys,re,time,unicodedata,random,socket
 
 def fatal(s):
     """Write an error message and exit"""
@@ -150,12 +150,29 @@ def stdtracks():
     maketrack("misc/blahblahblah.ogg")
     maketrack("Various/Greatest Hits/01:Jim Whatever - Spong.ogg")
     maketrack("Various/Greatest Hits/02:Joe Bloggs - Yadda.ogg")
- 
+
+def bindable(p):
+    """bindable(P)
+
+    Return True iff UDP port P is bindable, else False"""
+    s = socket.socket(socket.AF_INET,
+                      socket.SOCK_DGRAM,
+                      socket.IPPROTO_UDP)
+    try:
+        s.bind(("127.0.0.1", p))
+        s.close()
+        return True
+    except:
+        return False
+
 def common_setup():
     remove_dir(testroot)
     os.mkdir(testroot)
     global port
     port = random.randint(49152, 65535)
+    while not bindable(port):
+        print "port %d is not bindable, trying another" % port
+        port = random.randint(49152, 65535)
     open("%s/config" % testroot, "w").write(
     """home %s
 collection fs UTF-8 %s/tracks
@@ -193,8 +210,13 @@ def start_daemon():
     """start_daemon()
 
 Start the daemon."""
-    global daemon, errs
+    global daemon, errs, port
     assert daemon == None, "no daemon running"
+    if not bindable(port):
+        print "waiting for speaker socket to become bindable again..."
+        time.sleep(1)
+        while not bindable(port):
+            time.sleep(1)
     print " starting daemon"
     # remove the socket if it exists
     socket = "%s/socket" % testroot
@@ -297,15 +319,25 @@ Recursively delete directory D"""
         else:
             os.remove(d)
 
+def lists_have_same_contents(l1, l2):
+    """lists_have_same_contents(L1, L2)
+
+    Return True if L1 and L2 have equal members, in any order; else False."""
+    s1 = []
+    s1.extend(l1)
+    s1.sort()
+    s2 = []
+    s2.extend(l2)
+    s2.sort()
+    return s1 == s2
+
 def check_files():
     c = disorder.client()
     failures = 0
     for d in dirs_by_dir:
         xdirs = dirs_by_dir[d]
         dirs = c.directories(d)
-        xdirs.sort()
-        dirs.sort()
-        if dirs != xdirs:
+        if not lists_have_same_contents(xdirs, dirs):
             print
             print "directory: %s" % d
             print "expected:  %s" % xdirs
@@ -314,9 +346,7 @@ def check_files():
     for d in files_by_dir:
         xfiles = files_by_dir[d]
         files = c.files(d)
-        xfiles.sort()
-        files.sort()
-        if files != xfiles:
+        if not lists_have_same_contents(xfiles, files):
             print
             print "directory: %s" % d
             print "expected:  %s" % xfiles

@@ -659,6 +659,14 @@ class client:
     self._simple("search", _quote(words))
     return self._body()
 
+  def tags(self):
+    """List all tags
+
+    The return value is a list of all tags which apply to at least one
+    track."""
+    self._simple("tags")
+    return self._body()
+
   def stats(self):
     """Get server statistics.
 

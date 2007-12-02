@@ -33,7 +33,15 @@ def test():
     c.setglobal("foo", "before");
     assert c.getglobal("foo") == "before", "checking global foo=before"
     print "adding a tag"
-    c.set(track, "tags", "wibble")
+    # Exercise the tags-changed code
+    c.set(track, "tags", "first tag, another tag")
+    assert dtest.lists_have_same_contents(c.tags(),
+                                          [u"another tag", u"first tag"]),\
+           "checking tag list(1)"
+    c.set(track, "tags", "wibble, another tag")
+    assert dtest.lists_have_same_contents(c.tags(),
+                                          [u"another tag", u"wibble"]),\
+           "checking tag list(2)"
     print "checking track appears in tag search"
     tracks = c.search(["tag:wibble"])
     assert len(tracks) == 1, "checking there is exactly one search result"
@@ -69,6 +77,9 @@ def test():
     tracks = c.search(["tag:wibble"])
     assert len(tracks) == 1, "checking there is exactly one search result"
     assert tracks[0] == track, "checking for right search result"
+    assert dtest.lists_have_same_contents(c.tags(),
+                                          [u"another tag", u"wibble"]),\
+           "checking tag list(3)"
 
 if __name__ == '__main__':
     dtest.run()
