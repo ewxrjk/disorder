@@ -34,16 +34,14 @@ def test():
     t = ts[0]
     assert t['submitter'] == u'fred', "check queue submitter"
     i = t['id']
-    print "waiting for track to play"
+    print "waiting for track"
     p = c.playing()
-    while p is None or p['id'] != i:
+    r = c.recent()
+    while not((p is not None and p['id'] == i)
+              or (len(filter(lambda t: t['track'] == track and 'submitter' in t, r)) > 0)):
         time.sleep(1)
         p = c.playing()
-    print "waiting for track to finish"
-    p = c.playing()
-    while p is not None and p['id'] == i:
-        time.sleep(1)
-        p = c.playing()
+        r = c.recent()
     print "checking track turned up in recent list"
     q = c.recent()
     ts = filter(lambda t: t['track'] == track and 'submitter' in t, q)
