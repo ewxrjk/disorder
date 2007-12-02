@@ -281,7 +281,9 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   if(fseek(fp, 0, SEEK_SET) < 0)
     fatal(errno, "error calling fseek on %s", tag);
   if((err = truncdb(tid, trackdb_prefsdb))) return err;
+  if((err = truncdb(tid, trackdb_globaldb))) return err;
   if((err = truncdb(tid, trackdb_searchdb))) return err;
+  if((err = truncdb(tid, trackdb_tagsdb))) return err;
   c = getc(fp);
   while(!ferror(fp) && !feof(fp)) {
     switch(c) {

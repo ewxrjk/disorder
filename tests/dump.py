@@ -41,6 +41,10 @@ def test():
     print "changing global pref"
     c.setglobal("foo", "after");
     assert c.getglobal("foo") == "after", "checking global foo=before"
+    print "adding fresh track pref"
+    c.set(track, "bar", "after")
+    print "adding fresh global pref"
+    c.setglobal("bar", "after")
     dtest.stop_daemon();
     print "restoring database"
     print dtest.command(["disorder-dump", "--config", disorder._configfile,
@@ -51,6 +55,10 @@ def test():
     assert c.get(track, "foo") == "before", "checking track foo=before after undump"
     print "checking global pref"
     assert c.getglobal("foo") == "before", "checking global foo=before after undump"
+    print "checking fresh track pref"
+    assert c.get(track, "bar") is None, "checking fresh track pref has gone"
+    print "checking fresh global pref"
+    assert c.getglobal("bar") is None, "checking fresh global pref has gone"
 
 if __name__ == '__main__':
     dtest.run()

@@ -83,9 +83,13 @@ If \fIREGEXP\fR is present only matching files are returned.
 .B get \fITRACK\fR \fIPREF\fR
 Gets a preference value.  On success the second field of the response line will
 have the value.
+.IP
+If the track or preference do not exist then the response code is 555.
 .TP
 .B get-global \fIKEY\fR
 Get a global preference.
+.IP
+If the preference does not exist then the response code is 555.
 .TP
 .B length \fITRACK\fR
 Gets the length of the track in seconds.  On success the second field of the
@@ -292,6 +296,10 @@ Text part is just commentary; a dot-stuffed body follows.
 .B 4
 Text part is just commentary; an indefinite dot-stuffed body follows.  (Used
 for \fBlog\fR.)
+.TP
+.B 5
+Used with "normal" errors, for instance a preference not being found.  The text
+part is commentary.
 .TP
 .B 9
 The text part is just commentary (but would normally be a response for this

@@ -585,7 +585,10 @@ class client:
     The return value is the preference 
     """
     ret, details = self._simple("get", track, key)
-    return details
+    if ret == 555:
+      return None
+    else:
+      return details
 
   def prefs(self, track):
     """Get all the preferences for a track.
@@ -781,7 +784,10 @@ class client:
     The return value is the preference 
     """
     ret, details = self._simple("get-global", key)
-    return details
+    if ret == 555:
+      return None
+    else:
+      return details
 
   ########################################################################
   # I/O infrastructure
@@ -837,7 +843,7 @@ class client:
     #
     # If an I/O error occurs, disconnect from the server.
     #
-    # On success returns response as a (code, details) tuple
+    # On success or 'normal' errors returns response as a (code, details) tuple
     #
     # On error raise operationError
     if self.state == 'disconnected':
@@ -847,7 +853,7 @@ class client:
     else:
       cmd = None
     res, details = self._response()
-    if res / 100 == 2:
+    if res / 100 == 2 or res == 555:
       return res, details
     raise operationError(res, details, cmd)
 

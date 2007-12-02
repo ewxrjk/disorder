@@ -580,7 +580,7 @@ static int c_get(struct conn *c,
   if(vec[1][0] != '_' && (v = trackdb_get(vec[0], vec[1])))
     sink_printf(ev_writer_sink(c->w), "252 %s\n", v);
   else
-    sink_writes(ev_writer_sink(c->w), "550 not found\n");
+    sink_writes(ev_writer_sink(c->w), "555 not found\n");
   return 1;
 }
 
@@ -924,7 +924,7 @@ static int c_get_global(struct conn *c,
   if(s)
     sink_printf(ev_writer_sink(c->w), "252 %s\n", s);
   else
-    sink_writes(ev_writer_sink(c->w), "550 not found\n");
+    sink_writes(ev_writer_sink(c->w), "555 not found\n");
   return 1;
 }
 
