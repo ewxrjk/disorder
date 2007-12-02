@@ -231,7 +231,7 @@ def _list2dict(l):
     while True:
       k = i.next()
       v = i.next()
-      d[k] = v
+      d[str(k)] = v
   except StopIteration:
     pass
   return d
@@ -294,7 +294,8 @@ class client:
       home = pw.pw_dir
     privconf = _configfile + "." + pw.pw_name
     passfile = home + os.sep + ".disorder" + os.sep + "passwd"
-    self._readfile(_configfile)
+    if os.path.exists(_configfile):
+      self._readfile(_configfile)
     if os.path.exists(privconf):
       self._readfile(privconf)
     if os.path.exists(passfile) and _userconf:

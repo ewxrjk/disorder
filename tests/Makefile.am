@@ -22,5 +22,4 @@ check:
 	${PYTHON} ${srcdir}/alltests
 
 EXTRA_DIST=alltests dtest.py nothing.py version.py dbversion.py search.py \
-	queue.py dump.py
-
+	queue.py dump.py play.py
