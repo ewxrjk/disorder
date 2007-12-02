@@ -41,11 +41,11 @@
 #include "disorder.h"
 
 /* the head of the queue is played next, so normally we add to the tail */
-struct queue_entry qhead = { &qhead, &qhead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+struct queue_entry qhead = { &qhead, &qhead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 /* the head of the recent list is the oldest thing, the tail the most recently
  * played */
-struct queue_entry phead = { &phead, &phead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+struct queue_entry phead = { &phead, &phead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 static long pcount;
 

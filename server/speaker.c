@@ -495,7 +495,7 @@ static void mainloop(void) {
           t = findtrack(id, 1/*create*/);
           write(fd, "", 1);             /* write an ack */
           if(t->fd != -1) {
-            error(0, "got a connection for a track that already has one");
+            error(0, "%s: already got a connection", id);
             xclose(fd);
           } else {
             nonblock(fd);

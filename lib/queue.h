@@ -54,6 +54,7 @@ struct queue_entry {
   const struct plugin *pl;		/* plugin that's playing this track */
   void *data;				/* player data */
   long sofar;				/* how much played so far */
+  int prepared;				/* true when connected to speaker */
   /* For DISORDER_PLAYER_PAUSES only: */
   time_t lastpaused, lastresumed;	/* when last paused/resumed, or 0 */
   long uptopause;			/* how much played up to last pause */

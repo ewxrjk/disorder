@@ -312,14 +312,16 @@ static int start(ev_source *ev,
 
   memset(&sm, 0, sizeof sm);
   D(("start %s %d", q->id, prepare_only));
-  if(find_player_pid(q->id) > 0) {
-    if(prepare_only) return START_OK;
-    /* We have already prepared this track so we just need to tell the speaker
-     * process to start actually playing the queued up audio data */
-    strcpy(sm.id, q->id);
-    sm.type = SM_PLAY;
-    speaker_send(speaker_fd, &sm);
-    D(("sent SM_PLAY for %s", sm.id));
+  if(q->prepared) {
+    /* The track is alraedy prepared */
+    if(!prepare_only) {
+      /* We want to run it, since it's prepared the answer is to tell the
+       * speaker to set it off */
+      strcpy(sm.id, q->id);
+      sm.type = SM_PLAY;
+      speaker_send(speaker_fd, &sm);
+      D(("sent SM_PLAY for %s", sm.id));
+    }
     return START_OK;
   }
   /* Find the player plugin. */
@@ -478,6 +480,7 @@ static int start(ev_source *ev,
     return START_SOFTFAIL;
   }
   store_player_pid(q->id, pid);
+  q->prepared = 1;
   if(lfd != -1)
     xclose(lfd);
   setpgid(pid, pid);
