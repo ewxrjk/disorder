@@ -32,6 +32,12 @@ def test():
     print "setting a global pref"
     c.setglobal("foo", "before");
     assert c.getglobal("foo") == "before", "checking global foo=before"
+    print "adding a tag"
+    c.set(track, "tags", "wibble")
+    print "checking track appears in tag search"
+    tracks = c.search(["tag:wibble"])
+    assert len(tracks) == 1, "checking there is exactly one search result"
+    assert tracks[0] == track, "checking for right search result"
     print "dumping database"
     print dtest.command(["disorder-dump", "--config", disorder._configfile,
                          "--dump", dump])
@@ -59,6 +65,10 @@ def test():
     assert c.get(track, "bar") is None, "checking fresh track pref has gone"
     print "checking fresh global pref"
     assert c.getglobal("bar") is None, "checking fresh global pref has gone"
+    print "checking tag search still works"
+    tracks = c.search(["tag:wibble"])
+    assert len(tracks) == 1, "checking there is exactly one search result"
+    assert tracks[0] == track, "checking for right search result"
 
 if __name__ == '__main__':
     dtest.run()
