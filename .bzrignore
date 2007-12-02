@@ -139,3 +139,4 @@ disobedience/index.html
 lib/index.html
 server/index.html
 .DS_Store
+tests/disorder-udplog

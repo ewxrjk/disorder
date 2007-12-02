@@ -30,7 +30,7 @@ def test():
     print "checking track turned up in queue"
     q = c.queue()
     ts = filter(lambda t: t['track'] == track and 'submitter' in t, q)
-    assert len(ts) == 1
+    assert len(ts) == 1, "checking track appears exactly once in queue"
     t = ts[0]
     assert t['submitter'] == u'fred', "check queue submitter"
     i = t['id']
@@ -43,13 +43,14 @@ def test():
         p = c.playing()
         r = c.recent()
     print "checking track turned up in recent list"
-    q = c.recent()
-    ts = filter(lambda t: t['track'] == track and 'submitter' in t, q)
-    assert len(ts) == 1
+    while (p is not None and p['id'] == i):
+        time.sleep(1)
+        p = c.playing()
+    r = c.recent()
+    ts = filter(lambda t: t['track'] == track and 'submitter' in t, r)
+    assert len(ts) == 1, "check track appears exactly once in recent"
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
-    
-        
 
 if __name__ == '__main__':
     dtest.run()

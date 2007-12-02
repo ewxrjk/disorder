@@ -45,6 +45,7 @@ import disorder
 ospath = os.environ["PATH"].split(os.pathsep)
 ospath.insert(0, os.path.join(top_builddir, "server"))
 ospath.insert(0, os.path.join(top_builddir, "clients"))
+ospath.insert(0, os.path.join(top_builddir, "tests"))
 os.environ["PATH"] = os.pathsep.join(ospath)
 
 # Parse the makefile in the current directory to identify the source directory
@@ -168,11 +169,18 @@ def bindable(p):
 def common_setup():
     remove_dir(testroot)
     os.mkdir(testroot)
+    # Choose a port
     global port
     port = random.randint(49152, 65535)
-    while not bindable(port):
-        print "port %d is not bindable, trying another" % port
+    while not bindable(port + 1):
+        print "port %d is not bindable, trying another" % (port + 1)
         port = random.randint(49152, 65535)
+    # Log anything sent to that port
+    packetlog = "%s/packetlog" % testroot
+    subprocess.Popen(["disorder-udplog",
+                      "--output", packetlog,
+                      "127.0.0.1", "%d" % port])
+    # disorder-udplog will quit when its parent process terminates
     open("%s/config" % testroot, "w").write(
     """home %s
 collection fs UTF-8 %s/tracks
@@ -212,10 +220,10 @@ def start_daemon():
 Start the daemon."""
     global daemon, errs, port
     assert daemon == None, "no daemon running"
-    if not bindable(port):
-        print "waiting for speaker socket to become bindable again..."
+    if not bindable(port + 1):
+        print "waiting for port %d to become bindable again..." % (port + 1)
         time.sleep(1)
-        while not bindable(port):
+        while not bindable(port + 1):
             time.sleep(1)
     print " starting daemon"
     # remove the socket if it exists
