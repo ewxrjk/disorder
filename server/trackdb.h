@@ -64,6 +64,8 @@ void trackdb_open(int flags);
 void trackdb_close(void);
 /* open/close track databases */
 
+extern int trackdb_existing_database;
+
 char **trackdb_stats(int *nstatsp);
 /* return a list of database stats */
 

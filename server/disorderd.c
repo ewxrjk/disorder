@@ -71,7 +71,6 @@ static const struct option options[] = {
   { "foreground", no_argument, 0, 'f' },
   { "log", required_argument, 0, 'l' },
   { "pidfile", required_argument, 0, 'P' },
-  { "no-initial-rescan", no_argument, 0, 'N' },
   { "wide-open", no_argument, 0, 'w' },
   { "syslog", no_argument, 0, 's' },
   { 0, 0, 0, 0 }
@@ -207,7 +206,6 @@ static void fix_path(void) {
 int main(int argc, char **argv) {
   int n, background = 1, logsyslog = 0;
   const char *pidfile = 0;
-  int initial_rescan = 1;
 
   set_progname(argv);
   mem_init();
@@ -223,7 +221,6 @@ int main(int argc, char **argv) {
     case 'd': debugging = 1; break;
     case 'f': background = 0; break;
     case 'P': pidfile = optarg; break;
-    case 'N': initial_rescan = 0; break;
     case 's': logsyslog = 1; break;
     case 'w': wideopen = 1; break;
     default: fatal(0, "invalid option");
@@ -288,8 +285,8 @@ int main(int argc, char **argv) {
   if(ev_signal(ev, SIGTERM, handle_sigterm, 0)) fatal(0, "ev_signal failed");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
-  /* start a rescan straight away */
-  if(initial_rescan) {
+  /* start a rescan straight away if this is a new installation */
+  if(!trackdb_existing_database) {
     trackdb_rescan(0/*ev*/);
     /* No ev -> the rescan will block.  Since we called reconfigure() already
      * any clients will also be forced to block. */

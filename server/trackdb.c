@@ -75,6 +75,9 @@ static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid);
 const struct cache_type cache_files_type = { 86400 };
 unsigned long cache_files_hits, cache_files_misses;
 
+/** @brief Set by trackdb_open() */
+int trackdb_existing_database;
+
 /* setup and teardown ********************************************************/
 
 static const char *home;                /* home had better not change */
@@ -306,7 +309,7 @@ static DB *open_db(const char *path,
  * - @p TRACKDB_OPEN_FOR_UPGRADE, if this is disorder-dbupgrade
  */
 void trackdb_open(int flags) {
-  int newdb, err;
+  int err;
   pid_t pid;
 
   /* sanity checks */
@@ -359,14 +362,14 @@ void trackdb_open(int flags) {
       /* This doesn't make any sense */
       fatal(0, "database is already at current version");
     }
-    newdb = 0;
+    trackdb_existing_database = 1;
   } else {
     if(flags & TRACKDB_OPEN_FOR_UPGRADE) {
       /* Cannot upgrade a new database */
       fatal(0, "cannot upgrade a database that does not exist");
     }
     /* This is a brand new database */
-    newdb = 1;
+    trackdb_existing_database = 0;
   }
   /* open the databases */
   trackdb_tracksdb = open_db("tracks.db",
@@ -379,7 +382,7 @@ void trackdb_open(int flags) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
-  if(newdb) {
+  if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
 
