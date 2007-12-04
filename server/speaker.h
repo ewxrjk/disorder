@@ -91,6 +91,14 @@ struct track {
   /** @brief Slot in @ref fds */
   int slot;
 
+  /** @brief Set when playable
+   *
+   * A track becomes playable whenever it fills its buffer or reaches EOF; it
+   * stops being playable when it entirely empties its buffer.  Tracks start
+   * out life not playable.
+   */
+  int playable;
+  
   /** @brief Input buffer
    *
    * 1Mbyte is enough for nearly 6s of 44100Hz 16-bit stereo

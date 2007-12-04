@@ -195,7 +195,7 @@ static void destroy(struct track *t) {
  * main loop whenever the track's file descriptor is readable, assuming the
  * buffer has not reached the maximum allowed occupancy.
  */
-static int fill(struct track *t) {
+static int speaker_fill(struct track *t) {
   size_t where, left;
   int n;
 
@@ -218,9 +218,12 @@ static int fill(struct track *t) {
     if(n == 0) {
       D(("fill %s: eof detected", t->id));
       t->eof = 1;
+      t->playable = 1;
       return -1;
     }
     t->used += n;
+    if(t->used == sizeof t->buffer)
+      t->playable = 1;
   }
   return 0;
 }
@@ -336,6 +339,9 @@ static void play(size_t frames) {
    * empty) wrap it back to the start. */
   if(!playing->used || playing->start == (sizeof playing->buffer))
     playing->start = 0;
+  /* If the buffer emptied out mark the track as unplayably */
+  if(!playing->used)
+    playing->playable = 0;
   frames -= written_frames;
   return;
 }
@@ -392,13 +398,12 @@ static const struct speaker_backend *backends[] = {
 /** @brief Return nonzero if we want to play some audio
  *
  * We want to play audio if there is a current track; and it is not paused; and
- * there are at least @ref FRAMES frames of audio to play, or we are in sight
- * of the end of the current track.
+ * it is playable according to the rules for @ref track::playable.
  */
 static int playable(void) {
   return playing
          && !paused
-         && (playing->used >= FRAMES || playing->eof);
+         && playing->playable;
 }
 
 /** @brief Main event loop */
@@ -571,7 +576,7 @@ static void mainloop(void) {
       if(t->fd != -1
          && t->slot != -1
          && (fds[t->slot].revents & (POLLIN | POLLHUP)))
-         fill(t);
+         speaker_fill(t);
     /* Maybe we finished playing a track somewhere in the above */
     maybe_finished();
     /* If we don't need the sound device for now then close it for the benefit
