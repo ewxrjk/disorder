@@ -38,10 +38,13 @@ for further information.
 .B --pidfile \fIPATH\fR, \fB-P \fIPATH
 Write a pidfile.
 .TP
-.B --foreground, \fB-f
+.B --foreground\fR, \fB-f
 Run in the foreground.  (By default,
 .B disorderd
 detaches from its terminal and runs in the background.)
+.TP
+.B --syslog\fR, \fB-s
+Log to syslog.  This is the default if DisOrder runs in the background.
 .TP
 .B --debug\fR, \fB-d
 Enable debugging.
@@ -124,8 +127,14 @@ Do not edit while the daemon is running.
 .I pkgstatedir/prefs.db
 Preferences database.
 .TP
+.I pkgstatedir/global.db
+Global preferences database.
+.TP
 .I pkgstatedir/search.db
-Search database.
+Search lookup database.
+.TP
+.I pkgstatedir/tags.db
+Tag lookup database.
 .TP
 .I pkgstatedir/tracks.db
 Tracks database.
@@ -135,8 +144,8 @@ Berkeley DB configuration file.  This may be used to override database
 settings without recompiling DisOrder.  See the Berkeley DB
 documention for further details.
 .TP
-.I pkgstatedir/log.*
-Database log files.
+.I pkgstatedir/log.* \fRand \fIpkgstatedir/__db.*
+Database internal files.
 .TP
 .I pkgstatedir/socket
 Communication socket for \fBdisorder\fR(1).
@@ -144,12 +153,6 @@ Communication socket for \fBdisorder\fR(1).
 .I pkgstatedir/lock
 Lockfile.  This prevents multiple instances of DisOrder running
 simultaneously.
-.TP
-.I sbindir/disorder-deadlock
-Deadlock manager.
-.TP
-.I sbindir/disorder-rescan
-Rescanner.
 .SH ENVIRONMENT
 .TP
 .B LC_ALL\fR, \fBLANG\fR, etc

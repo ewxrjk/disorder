@@ -31,6 +31,8 @@ recursively links or copies files from
 to
 .IR DESTINATION ,
 transforming filenames along the way.
+.PP
+This program is not well-tested!
 .SH OPTIONS
 .SS "Filename Format"
 .TP

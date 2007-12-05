@@ -72,7 +72,7 @@ override specific bits.
 The web interface connects to the DisOrder server like any other user, though
 it is given a special privilege to "become" any other user.  (Thus, any process
 with the same UID as the web interface is very powerful as far as DisOrder
-goes.)
+goes.  This model will be changed in a future version.)
 .PP
 Access control to the web interface is (currently) separate from DisOrder's own
 access control (HTTP authentication is required) but uses the same user
@@ -148,7 +148,7 @@ automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
 .TP
-.B authorization_algorthm \fIALGORITHM\fR
+.B authorization_algorithm \fIALGORITHM\fR
 Defines the algorithm used to authenticate clients.  The valid options
 are sha1 (the default), sha256, sha384 and sha512.  See
 .BR disorder_protocol (5)
@@ -170,7 +170,8 @@ are:
 .RS
 .TP 8
 .B pcm
-Output level for the audio device.  This is probably what you want.
+Output level for the audio device.  This is probably what you want and is the
+default.
 .TP
 .B speaker
 Output level for the PC speaker, if that is connected to the sound card.
@@ -183,7 +184,8 @@ Master output level.  The OSS documentation recommends against using this, as
 it affects all output devices.
 .RE
 .IP
-You can also specify channels by number, if you know the right value.
+You can also specify channels by number, if you know the right value.  NB that
+volume setting only works on OSS systems (including ALSA, via emulation).
 .TP
 .B collection \fIMODULE\fR \fIENCODING\fR \fIROOT\fR
 Define a collection of tracks.
@@ -220,11 +222,12 @@ Normally the server only listens on a UNIX domain socket.
 .TP
 .B lock yes\fR|\fBno
 Determines whether the server locks against concurrent operation.  Default is
-\fByes\fR.
+\fByes\fR.  There is no good reason to set this to \fBno\fR and the option will
+probably be removed in a future version.
 .TP
 .B mixer \fIPATH\fR
 The path to the mixer device, if you want access to the volume control,
-e.g. \fB/dev/mixer\fR.
+e.g. \fB/dev/mixer\fR (the default).
 .TP
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.  The
@@ -235,7 +238,7 @@ multicast address.
 .B multicast_ttl \fIHOPS\fR
 Set the maximum number of hops to send multicast packets.  This only applies if
 \fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
-multicast address.
+multicast address.  The default is 1.
 .TP
 .B namepart \fIPART\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how to extract trackname part \fIPART\fR from a 
@@ -261,7 +264,15 @@ that aren't in the original track name will lead to confusing results.
 .IP
 If you supply no \fBnamepart\fR directives at all then a default set will be
 supplied automatically.  But if you supply even one then you must supply all of
-them.  See the example config file for the defaults.
+them.  The defaults are equivalent to:
+.PP
+.nf
+namepart title  "/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$" $2 display
+namepart title  "/([^/]+)\\.[a-zA-Z0-9]+$"                  $1 sort
+namepart album  "/([^/]+)/[^/]+$"                          $1 *
+namepart artist "/([^/]+)/[^/]+/[^/]+$"                    $1 *
+namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
+.fi
 .TP
 .B nice_rescan \fIPRIORITY\fR
 Set the recan subprocess priority.  The default is 10.
@@ -349,7 +360,7 @@ to 3600, i.e. one hour.
 .TP
 .B queue_pad \fICOUNT\fR
 The target size of the queue.  If random play is enabled then randomly picked
-tracks will be added until the queue is at least this big.
+tracks will be added until the queue is at least this big.  The default is 10.
 .TP
 .B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
 Determine which operations are restricted to the submitter of a
@@ -416,8 +427,7 @@ Use Apple Core Audio.  This only available on OS X systems, on which it is the
 default.
 .TP
 .B oss
-Use the OSS (/dev/dsp) API.  Not available on all platforms.  Not well
-maintained at the moment.
+Use the OSS (/dev/dsp) API.  Not available on all platforms.
 .TP
 .B command
 Execute a command.  This is the default if
@@ -433,8 +443,9 @@ to receive and play the resulting stream on Linux and OS X.
 .TP
 .B sox_generation \fB0\fR|\fB1
 Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
-the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).  The default
-is 0.
+the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).  See the
+documentation for your installed copy of \fBsox\fR to determine which you need.
+The default is 0.
 .TP
 .B speaker_command \fICOMMAND
 Causes the speaker subprocess to pipe audio data into shell command
@@ -515,7 +526,15 @@ match then each is executed in order.
 .IP
 If you supply no \fBtransform\fR directives at all then a default set will be
 supplied automatically.  But if you supply even one then you must supply all of
-them.  See the example config file for the defaults.
+them.  The defaults are:
+.PP
+.nf
+transform track "^.*/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$" $2 display
+transform track "^.*/([^/]+)\\.[a-zA-Z0-9]+$"        $1 sort
+transform dir   "^.*/([^/]+)$"                      $1 *
+transform dir   "^(the) ([^/]*)"                    "$2 $1" sort i
+transform dir   "[[:punct:]]"                       "" sort g
+.fi
 .TP
 .B url \fIURL\fR
 Specifies the URL of the web interface.  This URL will be used in
@@ -739,7 +758,7 @@ If there are no arguments, or all the arguments are \fBtrue\fB, then expands to
 \fBtrue\fR, otherwise to \fBfalse\fR.
 .TP
 .B @arg:\fINAME\fB@
-Expands to the value of CGI script argument \fINAME\fR.
+Expands to the value of CGI argument \fINAME\fR.
 .TP
 .B @basename@
 The basename of the current directory component, in \fB@navigate@\fR.
