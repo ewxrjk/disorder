@@ -26,7 +26,7 @@ disorder-dbupgrade \- DisOrder Database Upgrader
 .SH DESCRIPTION
 .B disorder-dbupgrade
 is DisOrder's database upgrader.  It is invoked by DisOrder when
-necessary and does not need to be invoked manually.
+necessary and does not normally need to be invoked manually.
 .SH OPTIONS
 .TP
 .B --delete-bad-keys\fR, -x
@@ -45,6 +45,12 @@ Set the configuration file.
 .B --debug\fR, \fB-d
 Enable debugging.
 .TP
+.B --syslog
+Log to syslog.  This is the default if stderr is not a terminal.
+.TP
+.B --no-syslog
+Do not log to syslog.  This is the default if stderr is a terminal.
+.TP
 .B --help\fR, \fB-h
 Display a usage message.
 .TP
@@ -56,7 +62,7 @@ to NFC for some reason.  By default a warning message is issued and
 they are left in the database (if doing so will not compromise its
 integrity).  The
 .B -x
-option can be used to delete them if they are known to be harmles.
+option can be used to delete them if they are known to be harmless.
 .SH "SEE ALSO"
 \fBdisorderd\fR(8), \fBdisorder_config\fR(5)
 .\" Local Variables:

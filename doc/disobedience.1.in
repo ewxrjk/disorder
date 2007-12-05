@@ -301,29 +301,6 @@ The screen number to use.
 .\" .TP
 .\" .B --sync
 .\" Make all X requests synchronously.
-.SH "GTK+ RESOURCES"
-You can override these resources in order to customize the appearance of
-Disobedience.
-.\" TODO example that actually works.
-.SS "Widget Names"
-.TP
-.B disobedience.*.choose
-This is the panel containing the track choice tree.
-.TP
-.B disobedience.*.queue
-This is the panel displaying the queue.
-.TP
-.B disobedience.*.choose
-This is the panel listing recently played tracks.
-.TP
-.B disobedience.*.row-playing
-This is the row listing the currently playing track.
-.TP
-.B disobedience.*.row-odd
-This an odd-numbered row in the queue or recently played track list.
-.TP
-.B disobedience.*.row-even
-This an even-numbered row in the queue or recently played track list.
 .SH CONFIGURATION
 If you are using
 .B disobedience
@@ -339,6 +316,13 @@ The other clients read their configuration from the same location so after
 setting up with Disobedience, tools such as
 .BR disorder (1)
 should work as well.
+.SH BUGS
+Disobedience is newly introduced with DisOrder 2.0.  There are bound to be
+bugs.  Please send feedback.
+.PP
+There is no particular provision for multiple users of the same computer
+sharing a single \fBdisorder-playrtp\fR process.  This shouldn't be too much of
+a problem in practice but something could perhaps be done given demand.
 .SH FILES
 .TP
 .I ~/.disorder/HOSTNAME-rtp

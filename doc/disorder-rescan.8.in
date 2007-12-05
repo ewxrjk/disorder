@@ -35,6 +35,12 @@ Set the configuration file.
 .B --debug\fR, \fB-d
 Enable debugging.
 .TP
+.B --syslog
+Log to syslog.  This is the default if stderr is not a terminal.
+.TP
+.B --no-syslog
+Do not log to syslog.  This is the default if stderr is a terminal.
+.TP
 .B --help\fR, \fB-h
 Display a usage message.
 .TP

@@ -39,10 +39,28 @@ broadcast to that port.
 If a group and a port are specified then the RTP stream is assumed to be
 multicast to that group and port.
 .SH OPTIONS
+The default sound API is the first of the ones listed below that are available.
+Usually this implies ALSA under Linux and Core Audio under OS X.
+.TP
+.B --alsa\fR, \fB-a
+Use ALSA to play sound.
+.TP
+.B --oss\fR, \fB-o
+Use OSS to play sound.
+.TP
+.B --core-audio\fR, \fB-c
+Use Core Audio to play sound.
 .TP
 .B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
 Specifies the audio device to use.  The exact meaning of this is
 platform-dependent; on Linux it is the ALSA device name.
+.TP
+.B --config \fIPATH\fR, \fB-C \fIPATH
+Set the configuration file.  The default is
+.IR pkgconfdir/config .
+.TP
+.B --socket \fIPATH\fR, \fB-s \fIPATH
+Set the control socket.  Normally this would not be used manually.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.
@@ -68,7 +86,29 @@ is four times the \fB--buffer\fR value.
 .B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
 Specifies socket receive buffer size.  The default is 131072 (128Kbytes).  The
 buffer size will not be reduced below the operating system's default.
+.SH "REMOTE CONTROL"
+The
+.B --socket
+option is used by Disobedience to control a background
+.B disorder-playrtp
+daemon.  The socket will be created as a UNIX domain stream socket.  When a
+connection is received a single line is read from it.  The following commands
+are known:
+.TP
+.B stop
+Causes
+.B disorder-playrtp
+to terminate.
+.TP
+.B query
+Causes the string "running" to be sent back.
+.PP
+Other commands are ignored.  After the first command the connection is closed.
+Only one connection at a time will be serviced.
+.PP
+This protocol is not guaranteed to be stable.
 .SH "SEE ALSO"
+.BR disobedience (1),
 .BR disorder_config (5),
 .BR disorderd (8)
 .\" Local Variables:

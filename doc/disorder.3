@@ -77,6 +77,9 @@ you do not need to free the results.
 .IP
 Floating point conversions and wide character support are not
 currently implemented.
+.IP
+These functions will cope with UTF-8 even if the current locale uses
+some other encoding.
 .PP
 "Never fail" in the above means that the process is terminated on error.
 .SH LOGGING
@@ -167,8 +170,8 @@ Currently this means that they are not even defined outside the
 server.
 .PP
 All strings in this section are encoded using UTF-8.
-.SS tracklength.so
-This is a server plugin.
+.SS "Tracklength Plugins"
+These are server plugins defined by the \fBtracklength\fR directive.
 .PP
 .nf
 \fBlong disorder_tracklength(const char *track,
@@ -180,6 +183,9 @@ name (UTF-8) and \fBpath\fR is the path name if there was one, or a
 null pointer otherwise.  \fBpath\fR will be the same byte string return from
 the scanner plugin, and so presumably encoded according to the
 filesystem encoding.
+.IP
+To clarify this point, if the track must be opened to compute its
+length, you would normally use \fBpath\fR and not \fBtrack\fR.
 .IP
 If the return value is positive it should be the track length in
 seconds (round up if it is not an integral number of seconds long).

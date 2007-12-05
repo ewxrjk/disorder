@@ -31,6 +31,13 @@ therefore suitable for use as an
 player.
 .PP
 It is not intended to be used from the command line.
+.SH OPTIONS
+.TP
+.B --help\fR, \fB-h
+Display a usage message.
+.TP
+.B --version\fR, \fB-V
+Display version number.
 .SH LIMITATIONS
 OGG files with multiple bitstreams are not supported.
 .PP

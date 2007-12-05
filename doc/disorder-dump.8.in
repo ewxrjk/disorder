@@ -77,10 +77,6 @@ Taking a backup of the non-regeneratable parts of DisOrder's databases.
 .B .
 Indoctrinating one DisOrder server with the preference values of
 another.  
-.TP
-.B .
-Upgrading DisOrder across data format changes in the underlying
-database library.
 .PP
 The output file is versioned, so versions produced from a future
 version of DisOrder may be rejected by \fB--undump\fR.  It has an end

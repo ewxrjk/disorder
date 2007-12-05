@@ -24,14 +24,7 @@ disorder \- DisOrder jukebox client
 .RI [ OPTIONS ]
 .RB [ -- ]
 .RI [ COMMANDS ...]
-.br
-.B disorder
-.B --length
-.RI [ OPTIONS ]
-.RB [ -- ]
-.IR PATH ...
 .SH DESCRIPTION
-Without the \fB--length\fR option,
 .B disorder
 is used to query the \fBdisorderd\fR(8) daemon from the command line.
 It may be used to request tracks, scratch tracks, query the current
@@ -53,10 +46,6 @@ Enable debugging.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.
-.TP
-.B --length\fR, \fB-L
-Calculate the length in seconds of the files specified using the tracklength
-plugin.
 .TP
 .B --version\fR, \fB-V
 Display version number.
