@@ -2,9 +2,8 @@
 
 The general procedure is:
 
- * stop the old daemon, e.g. with
-     /etc/init.d/disorder stop
- * back up your database
+ * stop the old daemon:  /etc/init.d/disorder stop
+ * back up your database directory (example below)
  * build and install the new version as described in the README
  * update the configuration files (see below)
  * start the new daemon, e.g. with
@@ -15,15 +14,28 @@ upgrading between particular versions.  Minor versions are not
 explicitly mentioned; a version number like 1.1 implicitly includes
 all 1.1.x versions.
 
-* 1.5 -> 2.0
+* 1.4/1.5 -> 2.0
+
+** 'transform' and 'namepart' directives
+
+'transform' has moved from the web options to the main configuration file, so
+that they can be used by other interfaces.  The syntax and semantics are
+unchanged.
+
+More importantly however both 'transform' and 'namepart' are now optional, with
+sensible defaults being built in.  So if you were already using the default
+values you can just delete all instances of both.
+
+See disorder_config(5) for the default values.  Hopefuly they will be suitable
+for many configurations.  Please do send feedback.
+
+** 'enabled' and 'random_enabled' directives
+
+These have been removed.  Instead the state persists from one run of the server
+to the next.  If they appear in your configuration file they must be removed;
+the server will not start if they are present.
 
 ** Database upgrade
-
-The first thing the server does when upgrading from 1.5 is run the
-disorder-dbupgrade program.  This is necessary to modify any non-ASCII track
-names to meet the latest version's stricter normalization practices.  The
-upgrade should succeed automatically; if not it should leave an error message
-in syslog.
 
 It is strongly recommended that you back up your database before performing the
 upgrade.  For example, as root, with the server STOPPED:
@@ -36,20 +48,11 @@ To restore, again as root:
   rm *
   cp -p BACKUP/* .
 
-** 'transform' and 'namepart' directives
-
-'transform' has moved from the web options to the main configuration file, so
-that they can be used by other interfaces.  The syntax and semantics are
-unchanged.
-
-More importantly however both 'transform' and 'namepart' are now optional, with
-sensible defaults being built in.  So if you were already using the default
-values you can just delete all instances of both.
-
-** enabled' and 'random_enabled' directives
-
-These have been removed.  Instead the state persists from one run of the server
-to the next.
+The first thing the server does when upgrading from 1.5 is run the
+disorder-dbupgrade program.  This is necessary to modify any non-ASCII track
+names to meet the latest version's stricter normalization practices.  The
+upgrade should succeed automatically; if not it should leave an error message
+in syslog.
 
 * 1.3 -> 1.4
 

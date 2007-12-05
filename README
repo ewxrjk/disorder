@@ -15,9 +15,9 @@ DisOrder is a multi-user software jukebox.
 
 See CHANGES for details of recent changes to DisOrder.
 
-The server supports Linux and can be made to on a Mac (see README.mac).  The
-clients work on both Linux and the Mac.  It could probably be ported to some
-other UNIX variants without too much effort.  Things you will need:
+The server supports Linux and can be made to work on a Mac (see README.mac).
+The clients work on both Linux and the Mac.  It could probably be ported to
+some other UNIX variants without too much effort.  Things you will need:
 
 Build dependencies:
   Name             Tested              Notes
@@ -72,6 +72,9 @@ Installation
    with a machine-gun"
 
 NOTE: If you are upgrading from an earlier version, see README.upgrades.
+
+On a Debian system, if you install from .deb files then you should be able to
+skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
 
 1. Build the software.  Do something like this:
 
@@ -145,13 +148,15 @@ NOTE: If you are upgrading from an earlier version, see README.upgrades.
    start up correctly there should be an error message.  Correct the problem
    and try again.
 
-7. After a minute it should start to play something.  Try scratching it:
+7. After a minute it should start to play something.  Try scratching it (as
+   root):
 
      disorder scratch
 
    The track should stop playing, and (if you set any up) a scratch sound play.
 
-8. Add any other users you want.  These easiest way to do this is:
+8. Add any other users you want.  These easiest way to do this is (still as
+   root):
 
      disorder authorize USERNAME
 

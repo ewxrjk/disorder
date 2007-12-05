@@ -1,7 +1,7 @@
 * Introduction
 
-This file describes DisOrder's relationship to various things that get called
-'streams'.
+This file describes DisOrder's relationship to several different things that
+get called 'streams'.
 
 * RTP Streaming
 
@@ -18,24 +18,26 @@ backend:
     broadcast_from 172.17.207.2 9002
 
 The destination address (broadcast) can be:
-   - a unicast address if you only want to talk to one client
    - a broadcast address for a local network
    - a multicast address
 
-The source address (broadcast_from) is optional but may be convenient in som
-ecases.
+The source address (broadcast_from) is optional but may be convenient in some
+cases.
 
 If the destination is a multicast address then you should set the TTL, for
 instance:
 
    multicast_ttl 10
 
+(The destination can also be a unicast address but that's not a tested
+configuration.)
+
 ** Playing The Stream
 
 To play, use the disorder-playrtp client.  If the destination address was a
 unicast or broadcast address then:
 
-   disorder-playrtp 0.0.0.0 9003
+   disorder-playrtp 9003
 
 If the destination address was a multicast address then you must specify that,
 for instance:
@@ -53,7 +55,7 @@ it is installed); look for the speaker icon.  If it detects that the server is
 using network play then its volume control will apply to the local volume, not
 the server's volume.
 
-If you run into trouble look for *.log files in ~/.disorder.
+If you run into trouble look for *.log files in the ~/.disorder directory.
 
 ** Limitations
 
@@ -65,7 +67,7 @@ any success with wireless.
 Possibly other lower-quality but lower-bandwidth encodings will be supported in
 future.
 
-If you have a too-recent version of sox you may need to set the sox_generation
+If you have a very recent version of sox you may need to set the sox_generation
 option.  See disorder_config(5).
 
 
@@ -89,35 +91,34 @@ where ices.xml is:
       <loglevel>4</loglevel>
       <consolelog>0</consolelog>
       <stream>
-	  <metadata>
-	      <name>lyonesse</name>
-	      <genre>Various</genre>
-	      <description>lyonesse disorder output</description>
-	  </metadata>
-	  <input>
-	      <module>stdinpcm</module>
-	      <param name="rate">44100</param>
-	      <param name="channels">2</param>
-	      <param name="metadata">1</param>
-	      <param name="metadatafilename">/var/disorder/icedata</param>
-	  </input>
-	  <instance>
-	      <hostname>lyonesse.anjou.terraraq.org.uk</hostname>
-	      <port>8000</port>
-	      <password>SOURCE PASSWORD HERE</password>
-	      <mount>/disorder.ogg</mount>
-	      <reconnectdelay>2</reconnectdelay>
-	      <reconnectattempts>5</reconnectattempts>
-	      <maxqueuelength>80</maxqueuelength>
-	      <encode>
-		  <nominal-bitrate>64000</nominal-bitrate>
-		  <samplerate>44100</samplerate>
-		  <channels>2</channels>
-		  <flush-samples>8820</flush-samples>
-	      </encode>
-	  </instance>
-
-	  </stream>
+          <metadata>
+              <name>lyonesse</name>
+              <genre>Various</genre>
+              <description>lyonesse disorder output</description>
+          </metadata>
+          <input>
+              <module>stdinpcm</module>
+              <param name="rate">44100</param>
+              <param name="channels">2</param>
+              <param name="metadata">1</param>
+              <param name="metadatafilename">/var/disorder/icedata</param>
+          </input>
+          <instance>
+              <hostname>lyonesse.anjou.terraraq.org.uk</hostname>
+              <port>8000</port>
+              <password>SOURCE PASSWORD HERE</password>
+              <mount>/disorder.ogg</mount>
+              <reconnectdelay>2</reconnectdelay>
+              <reconnectattempts>5</reconnectattempts>
+              <maxqueuelength>80</maxqueuelength>
+              <encode>
+                  <nominal-bitrate>64000</nominal-bitrate>
+                  <samplerate>44100</samplerate>
+                  <channels>2</channels>
+                  <flush-samples>8820</flush-samples>
+              </encode>
+          </instance>
+      </stream>
   </ices>
 
 This doesn't seem to get on very well with pausing but you're unlikely to want
@@ -127,6 +128,9 @@ behind the 'current' time, watch this space for a fix (or contribute one!)
 
 If you have a too-recent version of sox you may need to set the sox_generation
 option.
+
+Mark Wooding contributed the original support for this but it's been modified
+enough that he probably shouldn't be blamed for any bugs in the current code.
 
 
 * DisOrder and Republishing Internet Streams
