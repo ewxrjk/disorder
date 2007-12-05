@@ -283,6 +283,17 @@ static void maybe_finished(void) {
     abandon();
 }
 
+/** @brief Return nonzero if we want to play some audio
+ *
+ * We want to play audio if there is a current track; and it is not paused; and
+ * it is playable according to the rules for @ref track::playable.
+ */
+static int playable(void) {
+  return playing
+         && !paused
+         && playing->playable;
+}
+
 /** @brief Play up to @p frames frames of audio
  *
  * It is always safe to call this function.
@@ -293,15 +304,15 @@ static void maybe_finished(void) {
  * - If there is not enough audio to play then it play what is available.
  *
  * If there are not enough frames to play then whatever is available is played
- * instead.  It is up to mainloop() to ensure that play() is not called when
- * unreasonably only an small amounts of data is available to play.
+ * instead.  It is up to mainloop() to ensure that speaker_play() is not called
+ * when unreasonably only an small amounts of data is available to play.
  */
-static void play(size_t frames) {
+static void speaker_play(size_t frames) {
   size_t avail_frames, avail_bytes, written_frames;
   ssize_t written_bytes;
 
-  /* Make sure there's a track to play and it is not pasued */
-  if(!playing || paused)
+  /* Make sure there's a track to play and it is not paused */
+  if(!playable())
     return;
   /* Make sure the output device is open */
   if(device_state != device_open) {
@@ -395,17 +406,6 @@ static const struct speaker_backend *backends[] = {
   0
 };
 
-/** @brief Return nonzero if we want to play some audio
- *
- * We want to play audio if there is a current track; and it is not paused; and
- * it is playable according to the rules for @ref track::playable.
- */
-static int playable(void) {
-  return playing
-         && !paused
-         && playing->playable;
-}
-
 /** @brief Main event loop */
 static void mainloop(void) {
   struct track *t;
@@ -465,15 +465,15 @@ static void mainloop(void) {
       /* We want to play some audio */
       if(device_state == device_open) {
         if(backend->ready())
-          play(3 * FRAMES);
+          speaker_play(3 * FRAMES);
       } else {
         /* We must be in _closed or _error, and it should be the latter, but we
          * cope with either.
          *
-         * We most likely timed out, so now is a good time to retry.  play()
-         * knows to re-activate the device if necessary.
+         * We most likely timed out, so now is a good time to retry.
+         * speaker_play() knows to re-activate the device if necessary.
          */
-        play(3 * FRAMES);
+        speaker_play(3 * FRAMES);
       }
     }
     /* Perhaps a connection has arrived */
@@ -527,9 +527,9 @@ static void mainloop(void) {
             error(0, "cannot play track because no connection arrived");
           playing = t;
           /* We attempt to play straight away rather than going round the loop.
-           * play() is clever enough to perform any activation that is
+           * speaker_play() is clever enough to perform any activation that is
            * required. */
-          play(3 * FRAMES);
+          speaker_play(3 * FRAMES);
           report();
 	  break;
 	case SM_PAUSE:
@@ -543,7 +543,7 @@ static void mainloop(void) {
             paused = 0;
             /* As for SM_PLAY we attempt to play straight away. */
             if(playing)
-              play(3 * FRAMES);
+              speaker_play(3 * FRAMES);
           }
           report();
 	  break;
