@@ -52,14 +52,14 @@ Display a usage message.
 .B --version\fR, \fB-V
 Display version number.
 .SH NOTES
-.SS "Environmental Dependencies"
-It is important that
-.B disorder-deadlock
-and
+.SS "Startup"
+The first time a new install of DisOrder is started it will run
 .B disorder-rescan
-are available on the PATH.  The example "init" script attempts to
-ensure this by appending sbindir to the path, but if you have
-installed programs in unusual locations then this might not work.
+to pick up new tracks.  On subsequent server restarts it will NOT do
+this automatically; if you want a rescan at every restart you must
+arrange that manually.
+.PP
+There is however an automatic rescan once every 24 hours.
 .SS "How To Configure Authentication"
 The administrator should create \fIpkgconfdir/config.private\fR, make sure it
 is not world-readable, and populate it with \fBallow\fR commands
@@ -78,10 +78,8 @@ is locale-aware.  If you do not set the locale correctly then it may
 not handle non-ASCII data properly.
 .PP
 Filenames and the configuration file are assumed to be encoded using the
-current locale.  The
-communication with the client happens in UTF-8 (since the client and the server
-don't know what locale each other might be using - in the future they might not
-even be on the same host.)
+current locale.  Internally (within the server, in the database and in
+communication between client and server) the UTF-8 encoding is used.
 .SS Backups
 DisOrder uses Berkeley DB but currently discards log files that are no longer
 in use.  This means that DB's catastrophic recovery cannot be used (normal
