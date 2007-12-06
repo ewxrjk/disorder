@@ -74,6 +74,7 @@ pkg-disorder: build
 	$(MKDIR) debian/disorder
 	$(MKDIR) debian/disorder/DEBIAN
 	$(MKDIR) debian/disorder/usr/share/doc/disorder
+	$(MKDIR) debian/disorder/etc/bash_completion.d
 	$(INSTALL_DATA) debian/copyright \
 		debian/disorder/usr/share/doc/disorder/copyright
 	$(INSTALL_DATA) debian/changelog \
@@ -88,9 +89,11 @@ pkg-disorder: build
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C doc
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C clients
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C lib
-	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C scripts
+	$(INSTALL_DATA) scripts/completion.bash \
+		debian/disorder/etc/bash_completion.d/disorder
 	rm -rf debian/disorder/usr/share/man/man8
 	rm -rf debian/disorder/usr/share/disorder/*.html
+	rmdir debian/disorder/usr/share/disorder
 	rm -f debian/disorder/usr/bin/disorder-playrtp
 	rm -f debian/disorder/usr/bin/disobedience
 	rm -f debian/disorder/usr/share/man/man1/disorder-playrtp.1
