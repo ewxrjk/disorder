@@ -1,6 +1,7 @@
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2007 Richard Kettlewell
+ * Portions copyright (C) 2007 Ross Younger
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
