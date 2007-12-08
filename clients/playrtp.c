@@ -69,6 +69,8 @@
 #include <sys/time.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 #include "log.h"
 #include "mem.h"
@@ -190,6 +192,10 @@ HEAP_DEFINE(pheap, struct packet *, lt_packet);
 /** @brief Control socket or NULL */
 const char *control_socket;
 
+int16_t *dump_buffer;
+size_t dump_index;
+size_t dump_size = 44100 * 2 * 20; /* 20s */
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -208,6 +214,7 @@ static const struct option options[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   { "core-audio", no_argument, 0, 'c' },
 #endif
+  { "dump", required_argument, 0, 'r' },
   { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
   { 0, 0, 0, 0 }
@@ -532,6 +539,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in6 in6;
   };
   union any_sockaddr mgroup;
+  const char *dumpfile = 0;
 
   static const struct addrinfo prefs = {
     AI_PASSIVE,
@@ -546,7 +554,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:r", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -568,6 +576,7 @@ int main(int argc, char **argv) {
 #endif
     case 'C': configfile = optarg; break;
     case 's': control_socket = optarg; break;
+    case 'r': dumpfile = optarg; break;
     default: fatal(0, "invalid option");
     }
   }
@@ -675,6 +684,27 @@ int main(int argc, char **argv) {
 
     if((err = pthread_create(&tid, 0, control_thread, 0)))
       fatal(err, "pthread_create control_thread");
+  }
+  if(dumpfile) {
+    int fd;
+    unsigned char buffer[65536];
+    size_t written;
+
+    if((fd = open(dumpfile, O_RDWR|O_TRUNC|O_CREAT, 0666)) < 0)
+      fatal(errno, "opening %s", dumpfile);
+    /* Fill with 0s to a suitable size */
+    memset(buffer, 0, sizeof buffer);
+    for(written = 0; written < dump_size * sizeof(int16_t);
+        written += sizeof buffer) {
+      if(write(fd, buffer, sizeof buffer) < 0)
+        fatal(errno, "clearing %s", dumpfile);
+    }
+    /* Map the buffer into memory for convenience */
+    dump_buffer = mmap(0, dump_size * sizeof(int16_t), PROT_READ|PROT_WRITE,
+                       MAP_SHARED, fd, 0);
+    if(dump_buffer == (void *)-1)
+      fatal(errno, "mapping %s", dumpfile);
+    info("dumping to %s", dumpfile);
   }
   play_rtp();
   return 0;

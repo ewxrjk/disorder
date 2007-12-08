@@ -20,6 +20,7 @@
 
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
 noinst_PROGRAMS=test-eclient filename-bytes
+noinst_SCRIPTS=dump2wav
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 

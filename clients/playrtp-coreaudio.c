@@ -67,6 +67,14 @@ static OSStatus adioproc
           samples_available = samplesOutLeft;
         next_timestamp += samples_available;
         samplesOutLeft -= samples_available;
+        if(dump_buffer) {
+          size_t n;
+
+          for(n = 0; n < samples_available; ++n) {
+            dump_buffer[dump_index++] = (int16_t)ntohs(ptr[n]);
+            dump_index %= dump_size;
+          }
+        }
         while(samples_available-- > 0)
           *samplesOut++ = (int16_t)ntohs(*ptr++) * (0.5 / 32767);
         /* We don't bother junking the packet - that'll be dealt with next time

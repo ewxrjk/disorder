@@ -144,6 +144,10 @@ extern pthread_mutex_t lock;
 extern pthread_cond_t cond;
 extern unsigned minbuffer;
 
+extern int16_t *dump_buffer;
+extern size_t dump_index;
+extern size_t dump_size;
+
 void playrtp_oss(void), playrtp_alsa(void), playrtp_coreaudio(void);
 
 #endif /* PLAYRTP_H */

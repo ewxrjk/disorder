@@ -1,0 +1,5 @@
+#! /bin/bash
+#
+# Usage: dump2wav DUMPFILE [sox format options] OUTPUT
+#
+exec sox -r 44100 -s -w -c 2 "$@"
