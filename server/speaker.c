@@ -352,7 +352,7 @@ static void speaker_play(size_t frames) {
   if(!playing->used || playing->start == (sizeof playing->buffer))
     playing->start = 0;
   /* If the buffer emptied out mark the track as unplayably */
-  if(!playing->used) {
+  if(!playing->used && !playing->eof) {
     error(0, "track buffer emptied");
     playing->playable = 0;
   }
