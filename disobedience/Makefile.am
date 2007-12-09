@@ -23,7 +23,7 @@ doc_DATA=disobedience.html
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
-PNGS:=$(wildcard ${top_srcdir}/images/*.png)
+PNGS:=$(shell export LC_COLLATE=C;echo ${top_srcdir}/images/*.png)
 
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 		  choose.c misc.c control.c properties.c menu.c \
