@@ -403,8 +403,11 @@ class client:
 
     Arguments:
     track -- the path of the track to play.
+
+    Returns the ID of the new queue entry.
     """
-    self._simple("play", track)
+    res, details = self._simple("play", track)
+    return unicode(details)             # because it's unicode in queue() output
 
   def remove(self, track):
     """Remove a track from the queue.
@@ -710,6 +713,21 @@ class client:
     """
     ret, details = self._simple("move", track, str(delta))
     return int(details)
+
+  def moveafter(self, target, tracks):
+    """Move a track in the queue
+
+    Arguments:
+    target -- target ID or None
+    tracks -- a list of IDs to move
+
+    If target is '' or is not in the queue then the tracks are moved to
+    the head of the queue.
+
+    Otherwise the tracks are moved to just after the target."""
+    if target is None:
+      target = ''
+    self._simple("moveafter", target, *tracks)
 
   def log(self, callback):
     """Read event log entries as they happen.

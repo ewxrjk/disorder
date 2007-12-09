@@ -145,7 +145,7 @@ or
 Pause the current track.
 .TP
 .B play \fITRACK\fR
-Add a track to the queue.
+Add a track to the queue.  The response contains the queue ID of the track.
 .TP
 .B playing
 Reports what track is playing.

@@ -27,14 +27,14 @@ def test():
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     print "adding track to queue"
     c.play(track)
-    print "checking track turned up in queue"
+    print " checking track turned up in queue"
     q = c.queue()
     ts = filter(lambda t: t['track'] == track and 'submitter' in t, q)
     assert len(ts) == 1, "checking track appears exactly once in queue"
     t = ts[0]
     assert t['submitter'] == u'fred', "check queue submitter"
     i = t['id']
-    print "waiting for track"
+    print " waiting for track"
     p = c.playing()
     r = c.recent()
     while not((p is not None and p['id'] == i)
@@ -42,7 +42,7 @@ def test():
         time.sleep(1)
         p = c.playing()
         r = c.recent()
-    print "checking track turned up in recent list"
+    print " checking track turned up in recent list"
     while (p is not None and p['id'] == i):
         time.sleep(1)
         p = c.playing()
@@ -51,6 +51,18 @@ def test():
     assert len(ts) == 1, "check track appears exactly once in recent"
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
+    print " scratching current track"
+    p = c.playing()
+    i = p['id']
+    c.scratch(i)
+    print " checking scratched track turned up in recent list"
+    while (p is not None and p['id'] == i):
+        time.sleep(1)
+        p = c.playing()
+    r = c.recent()
+    ts = filter(lambda t: t['id'] == i, r)
+    assert len(ts) == 1, "check scratched track appears exactly once in recent"
+    assert ts[0]['state'] == 'scratched', "checking track scratched"
 
 if __name__ == '__main__':
     dtest.run()

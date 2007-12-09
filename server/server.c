@@ -225,7 +225,7 @@ static int c_play(struct conn *c, char **vec,
    * anything. */
   if(q == qhead.next && playing)
     prepare(c->ev, q);
-  sink_writes(ev_writer_sink(c->w), "250 queued\n");
+  sink_printf(ev_writer_sink(c->w), "252 %s\n", q->id);
   /* If the queue was empty but we are for some reason paused then
    * unpause. */
   if(!playing) resume_playing(0);
