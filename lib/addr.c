@@ -17,7 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file lib/addr.c Socket address support */
+/** @file lib/addr.c
+ * @brief Socket address support */
 
 #include <config.h>
 #include "types.h"

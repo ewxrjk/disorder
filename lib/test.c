@@ -34,8 +34,10 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <stddef.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
 
-#include "utf8.h"
 #include "mem.h"
 #include "log.h"
 #include "vector.h"
@@ -57,6 +59,8 @@
 #include "printf.h"
 #include "basen.h"
 #include "split.h"
+#include "configuration.h"
+#include "addr.h"
 
 static int tests, errors;
 static int fail_first;
@@ -1279,6 +1283,55 @@ static void test_hash(void) {
   check_integer(hash_count(h), 0);
 }
 
+static void test_addr(void) {
+  struct stringlist a;
+  const char *s[2];
+  struct addrinfo *ai;
+  char *name;
+  const struct sockaddr_in *sin;
+
+  static const struct addrinfo pref = {
+    AI_PASSIVE,
+    PF_INET,
+    SOCK_STREAM,
+    0,
+    0,
+    0,
+    0,
+    0
+  };
+
+  a.n = 1;
+  a.s = (char **)s;
+  s[0] = "smtp";
+  ai = get_address(&a, &pref, &name);
+  insist(ai != 0);
+  check_integer(ai->ai_family, PF_INET);
+  check_integer(ai->ai_socktype, SOCK_STREAM);
+  check_integer(ai->ai_protocol, IPPROTO_TCP);
+  check_integer(ai->ai_addrlen, sizeof(struct sockaddr_in));
+  sin = (const struct sockaddr_in *)ai->ai_addr;
+  check_integer(sin->sin_family, AF_INET);
+  check_integer(sin->sin_addr.s_addr, 0);
+  check_integer(ntohs(sin->sin_port), 25);
+  check_string(name, "host * service smtp");
+
+  a.n = 2;
+  s[0] = "localhost";
+  s[1] = "nntp";
+  ai = get_address(&a, &pref, &name);
+  insist(ai != 0);
+  check_integer(ai->ai_family, PF_INET);
+  check_integer(ai->ai_socktype, SOCK_STREAM);
+  check_integer(ai->ai_protocol, IPPROTO_TCP);
+  check_integer(ai->ai_addrlen, sizeof(struct sockaddr_in));
+  sin = (const struct sockaddr_in *)ai->ai_addr;
+  check_integer(sin->sin_family, AF_INET);
+  check_integer(ntohl(sin->sin_addr.s_addr), 0x7F000001);
+  check_integer(ntohs(sin->sin_port), 119);
+  check_string(name, "host localhost service nntp");
+}
+
 int main(void) {
   mem_init();
   fail_first = !!getenv("FAIL_FIRST");
@@ -1292,6 +1345,7 @@ int main(void) {
   insist('a' == 0x61);
   insist('z' == 0x7A);
   /* addr.c */
+  test_addr();
   /* asprintf.c */
   /* authhash.c */
   /* basen.c */

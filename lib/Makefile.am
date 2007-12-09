@@ -65,7 +65,6 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	user.h user.c					\
 	unicode.h unicode.c				\
 	unidata.h unidata.c				\
-	utf8.h utf8.c					\
 	vacopy.h					\
 	vector.c vector.h				\
 	wav.h wav.c					\
