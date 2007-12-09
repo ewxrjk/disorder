@@ -1065,10 +1065,42 @@ static int get_stats(struct vector *v,
   return 0;
 }
 
+/** @brief One entry in the search league */
 struct search_entry {
   char *word;
   int n;
 };
+
+/** @brief Add a word to the search league
+ * @param se Pointer to search league
+ * @param count Maximum size for search league
+ * @param nse Current size of search league
+ * @param word New word, or NULL
+ * @param n How often @p word appears
+ * @return New size of search league
+ */
+static int register_search_entry(struct search_entry *se,
+                                 int count,
+                                 int nse,
+                                 char *word,
+                                 int n) {
+  int i;
+
+  if(word && (nse < count || n > se[nse - 1].n)) {
+    /* Find the starting point */
+    if(nse == count)
+      i = nse - 1;
+    else
+      i = nse++;
+    /* Find the insertion point */
+    while(i > 0 && n > se[i - 1].n)
+      --i;
+    memmove(&se[i + 1], &se[i], (nse - i - 1) * sizeof *se);
+    se[i].word = word;
+    se[i].n = n;
+  }
+  return nse;
+}
 
 /* find the top COUNT words in the search database */
 static int search_league(struct vector *v, int count, DB_TXN *tid) {
@@ -1082,25 +1114,14 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
 
   cursor = trackdb_opencursor(trackdb_searchdb, tid);
   se = xmalloc(count * sizeof *se);
+  /* Walk across the whole database counting up the number of times each
+   * word appears. */
   while(!(err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                               DB_NEXT))) {
     if(word && wl == k.size && !strncmp(word, k.data, wl))
-      ++n;
+      ++n;                              /* same word again */
     else {
-#define FINALIZE() do {						\
-  if(word && (nse < count || n > se[nse - 1].n)) {		\
-    if(nse == count)						\
-      i = nse - 1;						\
-    else							\
-      i = nse++;						\
-    while(i > 0 && n > se[i - 1].n)				\
-      --i;							\
-    memmove(&se[i + 1], &se[i], (nse - i) * sizeof *se);	\
-    se[i].word = word;						\
-    se[i].n = n;						\
-  }								\
-} while(0)
-      FINALIZE();
+      nse = register_search_entry(se, count, nse, word, n);
       word = xstrndup(k.data, wl = k.size);
       n = 1;
     }
@@ -1117,7 +1138,7 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
   }
   if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
   if(err) return err;
-  FINALIZE();
+  nse = register_search_entry(se, count, nse, word, n);
   byte_xasprintf(&str, "Top %d search words:", nse);
   vector_append(v, str);
   for(i = 0; i < nse; ++i) {
@@ -1170,7 +1191,7 @@ struct stats_details {
 
 static void stats_complete(struct stats_details *d) {
   char *s;
-  
+
   if(!(d->exited && d->closed))
     return;
   byte_xasprintf(&s, "\n"

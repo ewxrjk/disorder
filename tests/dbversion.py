@@ -31,9 +31,15 @@ def test():
     dtest.stop_daemon()
     # Revert to default configuration
     dtest.copyfile(configsave, config)
-    print "Testing daemon manages to upgrade..."
+    print " testing daemon manages to upgrade..."
     dtest.start_daemon()
     assert dtest.check_files() == 0, "dtest.check_files"
+    print " getting server version"
+    c = disorder.client()
+    v = c.version()
+    print "Server version: %s" % v
+    print " getting server stats"
+    s = c.stats()
 
 if __name__ == '__main__':
     dtest.run()
