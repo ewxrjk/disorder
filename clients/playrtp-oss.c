@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #include "mem.h"
 #include "log.h"
@@ -138,6 +139,15 @@ static int playrtp_oss_flush(void) {
       if(nbyteswritten < playrtp_oss_bufsize)
         error(0, "%s: short write (%d/%d)",
               device, nbyteswritten, playrtp_oss_bufsize);
+      if(dump_buffer) {
+        int count;
+        const int16_t *sp = (const int16_t *)playrtp_oss_buffer;
+        
+        for(count = 0; count < playrtp_oss_bufsize; count += sizeof(int16_t)) {
+          dump_buffer[dump_index++] = (int16_t)ntohs(*sp++);
+          dump_index %= dump_size;
+        }
+      }
       playrtp_oss_bufused = 0;
       return 0;
     }

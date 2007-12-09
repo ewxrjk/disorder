@@ -30,6 +30,7 @@
 #include <alsa/asoundlib.h>
 #include <assert.h>
 #include <pthread.h>
+#include <arpa/inet.h>
 
 #include "mem.h"
 #include "log.h"
@@ -141,6 +142,15 @@ static int playrtp_alsa_writei(const void *s, size_t n) {
   } else {
     /* Success */
     next_timestamp += frames_written * 2;
+    if(dump_buffer) {
+      snd_pcm_sframes_t count;
+      const int16_t *sp = s;
+      
+      for(count = 0; count < frames_written * 2; ++count) {
+        dump_buffer[dump_index++] = (int16_t)ntohs(*sp++);
+        dump_index %= dump_size;
+      }
+    }
     return 0;
   }
 }

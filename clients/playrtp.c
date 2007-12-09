@@ -192,9 +192,26 @@ HEAP_DEFINE(pheap, struct packet *, lt_packet);
 /** @brief Control socket or NULL */
 const char *control_socket;
 
+/** @brief Buffer for debugging dump
+ *
+ * The debug dump is enabled by the @c --dump option.  It records the last 20s
+ * of audio to the specified file (which will be about 3.5Mbytes).  The file is
+ * written as as ring buffer, so the start point will progress through it.
+ *
+ * Use clients/dump2wav to convert this to a WAV file, which can then be loaded
+ * into (e.g.) Audacity for further inspection.
+ *
+ * All three backends (ALSA, OSS, Core Audio) now support this option.
+ *
+ * The idea is to allow the user a few seconds to react to an audible artefact.
+ */
 int16_t *dump_buffer;
+
+/** @brief Current index within debugging dump */
 size_t dump_index;
-size_t dump_size = 44100 * 2 * 20; /* 20s */
+
+/** @brief Size of debugging dump in samples */
+size_t dump_size = 44100/*Hz*/ * 2/*channels*/ * 20/*seconds*/;
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
