@@ -883,12 +883,17 @@ static void test_cache(void) {
 static void test_filepart(void) {
   fprintf(stderr, "test_filepart\n");
   check_string(d_dirname("/"), "/");
+  check_string(d_dirname("////"), "/");
   check_string(d_dirname("/spong"), "/");
+  check_string(d_dirname("////spong"), "/");
   check_string(d_dirname("/foo/bar"), "/foo");
+  check_string(d_dirname("////foo/////bar"), "////foo");
   check_string(d_dirname("./bar"), ".");
+  check_string(d_dirname(".//bar"), ".");
   check_string(d_dirname("."), ".");
   check_string(d_dirname(".."), ".");
   check_string(d_dirname("../blat"), "..");
+  check_string(d_dirname("..//blat"), "..");
   check_string(d_dirname("wibble"), ".");
   check_string(extension("foo.c"), ".c");
   check_string(extension(".c"), ".c");
@@ -896,6 +901,11 @@ static void test_filepart(void) {
   check_string(extension("foo"), "");
   check_string(extension("./foo"), "");
   check_string(extension("./foo.c"), ".c");
+  check_string(strip_extension("foo.c"), "foo");
+  check_string(strip_extension("foo.mp3"), "foo");
+  check_string(strip_extension("foo.---"), "foo.---");
+  check_string(strip_extension("foo.---xyz"), "foo.---xyz");
+  check_string(strip_extension("foo.bar/wibble.spong"), "foo.bar/wibble");
 }
 
 static void test_selection(void) {
@@ -1045,6 +1055,8 @@ static void test_printf(void) {
   intmax_t m;
   ssize_t ssz;
   ptrdiff_t p;
+  char *cp;
+  char buffer[16];
   
   fprintf(stderr, "test_printf\n");
   check_string(do_printf("%d", 999), "999");
@@ -1122,6 +1134,21 @@ static void test_printf(void) {
   check_string(do_printf("wibble"), "wibble");
   insist(do_printf("%") == 0);
   insist(do_printf("%=") == 0);
+  i = byte_asprintf(&cp, "xyzzy %d", 999);
+  insist(i == 9);
+  check_string(cp, "xyzzy 999");
+  i = byte_snprintf(buffer, sizeof buffer, "xyzzy %d", 999);
+  insist(i == 9);
+  check_string(buffer, "xyzzy 999");
+  i = byte_snprintf(buffer, sizeof buffer, "%*d", 32, 99);
+  insist(i == 32);
+  check_string(buffer, "               ");
+  {
+    /* bizarre workaround for compiler checking of format strings */
+    char f[] = "xyzzy %";
+    i = byte_asprintf(&cp, f);
+    insist(i == -1);
+  }
 }
 
 static void test_basen(void) {
