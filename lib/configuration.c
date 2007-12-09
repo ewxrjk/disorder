@@ -60,6 +60,12 @@
  */
 char *configfile;
 
+/** @brief Read user configuration
+ *
+ * If clear, the user-specific configuration is not read.
+ */
+int config_per_user = 1;
+
 /** @brief Config file parser state */
 struct config_state {
   /** @brief Filename */
@@ -1181,19 +1187,21 @@ int config_read(int server) {
     return -1;
   xfree(privconf);
   /* if there's a per-user system config file for this user, read it */
-  if(!(pw = getpwuid(getuid())))
-    fatal(0, "cannot determine our username");
-  if((privconf = config_usersysconf(pw))
-     && access(privconf, F_OK) == 0
-     && config_include(c, privconf))
+  if(config_per_user) {
+    if(!(pw = getpwuid(getuid())))
+      fatal(0, "cannot determine our username");
+    if((privconf = config_usersysconf(pw))
+       && access(privconf, F_OK) == 0
+       && config_include(c, privconf))
       return -1;
-  xfree(privconf);
-  /* if we have a password file, read it */
-  if((privconf = config_userconf(getenv("HOME"), pw))
-     && access(privconf, F_OK) == 0
-     && config_include(c, privconf))
-    return -1;
-  xfree(privconf);
+    xfree(privconf);
+    /* if we have a password file, read it */
+    if((privconf = config_userconf(getenv("HOME"), pw))
+       && access(privconf, F_OK) == 0
+       && config_include(c, privconf))
+      return -1;
+    xfree(privconf);
+  }
   /* install default namepart and transform settings */
   config_postdefaults(c, server);
   /* everything is good so we shall use the new config */

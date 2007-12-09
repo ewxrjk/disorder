@@ -28,7 +28,9 @@ def test():
     q = c.queue()
     assert len(q) == 10, "queue is at proper length"
     print " getting queue via disorder(1)"
-    q = dtest.command(["disorder", "--config", disorder._configfile, "queue"])
+    q = dtest.command(["disorder",
+                       "--config", disorder._configfile, "--no-per-user-config",
+                       "queue"])
     tracks = filter(lambda s: re.match("^track", s), q)
     assert len(tracks) == 10, "queue is at proper length"
 

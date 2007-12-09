@@ -62,6 +62,7 @@ static const struct option options[] = {
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
   { "local", no_argument, 0, 'l' },
+  { "no-per-user-config", no_argument, 0, 'N' },
   { "help-commands", no_argument, 0, 'H' },
   { 0, 0, 0, 0 }
 };
@@ -543,7 +544,7 @@ int main(int argc, char **argv) {
   pcre_malloc = xmalloc;
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dHl", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dHlN", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -551,6 +552,7 @@ int main(int argc, char **argv) {
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'l': local = 1; break;
+    case 'N': config_per_user = 0; break;
     default: fatal(0, "invalid option");
     }
   }

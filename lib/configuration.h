@@ -277,6 +277,7 @@ char *config_private(void);
 /* get the private config file */
 
 extern char *configfile;
+extern int config_per_user;
 
 #endif /* CONFIGURATION_H */
 
