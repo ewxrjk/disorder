@@ -492,6 +492,9 @@ int main(int argc, char **argv) {
   /* See if RTP play supported */
   check_rtp_address();
   suppress_actions = 0;
+  /* If no password is set yet pop up a login box */
+  if(!config->password)
+    login_box();
   D(("enter main loop"));
   MTAG("misc");
   g_main_loop_run(mainloop);

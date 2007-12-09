@@ -236,10 +236,6 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
   vector_init(&c->vec);
   dynstr_init(&c->input);
   dynstr_init(&c->output);
-  if(!config->password) {
-    error(0, "no password set");
-    return 0;
-  }
   return c;
 }
 
@@ -340,6 +336,11 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
 
   if(c->state == state_disconnected) {
     D(("state_disconnected"));
+    /* If there is no password yet then we cannot connect */
+    if(!config->password) {
+      comms_error(c, "no password is configured");
+      return;
+    }
     with_sockaddr(c, start_connect);
     /* might now be state_disconnected (on error), state_connecting (slow
      * connect) or state_connected (fast connect).  If state_disconnected then
