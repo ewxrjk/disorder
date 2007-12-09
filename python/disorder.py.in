@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,11 @@ Example 2:
   for path in sys.argv[1:]:
     d.play(path)
 
+See disorder_protocol(5) for details of the communication protocol.
+
+NB that this code only supports servers configured to use SHA1-based
+authentication.  If the server demands another hash then it will not be
+possible to use this module.
 """
 
 import re
@@ -405,6 +410,9 @@ class client:
     track -- the path of the track to play.
 
     Returns the ID of the new queue entry.
+
+    Note that queue IDs are unicode strings (because all track information
+    values are unicode strings).
     """
     res, details = self._simple("play", track)
     return unicode(details)             # because it's unicode in queue() output
@@ -475,7 +483,10 @@ class client:
   def playing(self):
     """Return the currently playing track.
 
-    If a track is playing then it is returned as a dictionary.
+    If a track is playing then it is returned as a dictionary.  See
+    disorder_protocol(5) for the meanings of the keys.  All keys are
+    plain strings but the values will be unicode strings.
+    
     If no track is playing then None is returned."""
     res, details = self._simple("playing")
     if res % 10 != 9:
@@ -497,14 +508,20 @@ class client:
     """Return a list of recently played tracks.
 
     The return value is a list of dictionaries corresponding to
-    recently played tracks.  The oldest track comes first."""
+    recently played tracks.  The oldest track comes first.
+
+    See disorder_protocol(5) for the meanings of the keys.  All keys are
+    plain strings but the values will be unicode strings."""
     return self._somequeue("recent")
 
   def queue(self):
     """Return the current queue.
 
     The return value is a list of dictionaries corresponding to
-    recently played tracks.  The next track to be played comes first."""
+    recently played tracks.  The next track to be played comes first.
+
+    See disorder_protocol(5) for the meanings of the keys.  All keys are
+    plain strings but the values will be unicode strings."""
     return self._somequeue("queue")
 
   def _somedir(self, command, dir, re):
@@ -586,7 +603,7 @@ class client:
     track -- the track to query
     key -- the preference to remove
 
-    The return value is the preference 
+    The return value is the preference.
     """
     ret, details = self._simple("get", track, key)
     if ret == 555:
