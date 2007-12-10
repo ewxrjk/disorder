@@ -108,15 +108,44 @@ trackname_DEPENDENCIES=../lib/libdisorder.a
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
 
-check: check-help
+check: check-help check-decode
 
-# check everything has working --help
+# check everything has working --help and --version
 check-help: all
 	./disorderd --help > /dev/null
+	./disorderd --version > /dev/null
 	./disorder-dump --help > /dev/null
+	./disorder-dump --version > /dev/null
 	./disorder-deadlock --help > /dev/null
+	./disorder-deadlock --version > /dev/null
 	./trackname --help > /dev/null
+	./trackname --version > /dev/null
 	./disorder-speaker --help > /dev/null
+	./disorder-speaker --version > /dev/null
+	./disorder-decode --help > /dev/null
+	./disorder-decode --version > /dev/null
+	./disorder-normalize --help > /dev/null
+	./disorder-normalize --version > /dev/null
+	./disorder-stats --help > /dev/null
+	./disorder-stats --version > /dev/null
+	./disorder-dbupgrade --help > /dev/null
+	./disorder-dbupgrade --version > /dev/null
+	./disorder-rescan --help > /dev/null
+	./disorder-rescan --version > /dev/null
+
+# My sox doesn't know MP3 or FLAC unfortunately
+check-decode: disorder-decode disorder-normalize
+	echo "speaker_backend network" > config
+	echo "broadcast 127.255.255.255 discard" > config
+	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
+	  ./disorder-normalize --config config > decoded.raw
+	oggdec -b 16 -e 1 -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
+	cmp decoded.raw oggdec.raw
+	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
+	./disorder-decode scratch.wav | \
+	  ./disorder-normalize --config config > decoded.raw
+	cmp decoded.raw oggdec.raw
+	rm -f scratch.wav config decoded.raw oggdec.raw
 
 cgi.o: ../lib/definitions.h
 

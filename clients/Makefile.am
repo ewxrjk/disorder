@@ -54,7 +54,7 @@ install-exec-hook:
 
 check: check-help check-completions
 
-# check everything has working --help
+# check everything has working --help and --version
 check-help: all
 	./disorder --version > /dev/null
 	./disorder --help > /dev/null
