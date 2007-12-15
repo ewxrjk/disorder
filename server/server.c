@@ -346,7 +346,7 @@ static int c_version(struct conn *c,
 		     char attribute((unused)) **vec,
 		     int attribute((unused)) nvec) {
   /* VERSION had better only use the basic character set */
-  sink_printf(ev_writer_sink(c->w), "251 %s\n", disorder_version_string);
+  sink_printf(ev_writer_sink(c->w), "251 %s\n", disorder_short_version_string);
   return 1;			/* completed */
 }
 

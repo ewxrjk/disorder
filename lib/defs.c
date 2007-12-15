@@ -30,7 +30,7 @@
 #include "definitions.h"
 
 /** @brief Software version number */
-const char disorder_version_string[] = VERSION;
+const char disorder_short_version_string[] = VERSION;
 
 /** @brief Package library directory */
 const char pkglibdir[] = PKGLIBDIR;
@@ -58,6 +58,8 @@ const char finkbindir[] = FINKBINDIR;
 
 /** @brief Package documentation directory */
 const char docdir[] = DOCDIR;
+
+#include "version.h"
 
 /*
 Local Variables:

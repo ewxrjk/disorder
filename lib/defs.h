@@ -21,6 +21,7 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+extern const char disorder_short_version_string[];
 extern const char disorder_version_string[];
 extern const char pkglibdir[];
 extern const char pkgconfdir[];

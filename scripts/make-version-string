@@ -1,0 +1,31 @@
+#! /usr/bin/perl -w
+use strict;
+sub output {
+    print @_ or die "$0: stdout: $!\n";
+}
+my @csv = `../config.status --version`;
+my $version;
+my $options;
+my $cc;
+my $compiler;
+for(@csv) {
+    chomp;
+    if(/disorder config\.status (\S+)/) {
+	$version = $1;
+    }
+    if(/with options \"(.*)\"/) {
+	$options = $1;
+    }
+}
+if(exists $ENV{CC}) {
+    $cc = $ENV{CC};
+    $cc =~ s/\s+/ /g;
+    my @cv = `$cc --version`;
+    $compiler = $cv[0];
+}
+die "no version found\n" unless defined $version;
+output("DisOrder $version\n");
+output(" configure options: $options\n") if defined $options;
+output(" compiler: $cc\n") if defined $compiler;
+output(" version: $compiler\n") if defined $cc;
+close STDOUT or die "$0: stdout: $!\n";

@@ -94,7 +94,7 @@ static void help(void) {
 
 /* display version number and terminate */
 static void version(void) {
-  xprintf("disorderd version %s\n", disorder_version_string);
+  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }

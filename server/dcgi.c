@@ -446,7 +446,7 @@ static void exp_version(int attribute((unused)) nargs,
 			char attribute((unused)) **args,
 			cgi_sink *output,
 			void attribute((unused)) *u) {
-  cgi_output(output, "%s", disorder_version_string);
+  cgi_output(output, "%s", disorder_short_version_string);
 }
 
 static void exp_nonce(int attribute((unused)) nargs,
