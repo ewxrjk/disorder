@@ -71,6 +71,7 @@ static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
                               DB_TXN *tid);
 static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid);
+static char *normalize_tag(const char *s, size_t ns);
 
 const struct cache_type cache_files_type = { 86400 };
 unsigned long cache_files_hits, cache_files_misses;
@@ -678,6 +679,40 @@ static void word_split(struct vector *v,
     vector_append(v, utf32_to_utf8(w32[i], utf32_len(w32[i]), 0));
 }
 
+/** @brief Normalize a tag
+ * @param s Tag
+ * @param ns Length of tag
+ * @return Normalized string or NULL on error
+ *
+ * The return value will be:
+ * - case-folded
+ * - have no leading or trailing space
+ * - have no combining characters
+ * - all spacing between words will be a single U+0020 SPACE
+ */
+static char *normalize_tag(const char *s, size_t ns) {
+  uint32_t *s32, **w32;
+  size_t ns32, nw32, i;
+  struct dynstr d[1];
+
+  if(!(s32 = utf8_to_utf32(s, ns, &ns32)))
+    return 0;
+  if(!(s32 = utf32_casefold_compat(s32, ns32, &ns32))) /* ->NFKD */
+    return 0;
+  ns32 = remove_combining_chars(s32, ns32);
+  /* Split into words, no Word_Break tailoring */
+  w32 = utf32_word_split(s32, ns32, &nw32, 0);
+  /* Compose back into a string */
+  dynstr_init(d);
+  for(i = 0; i < nw32; ++i) {
+    if(i)
+      dynstr_append(d, ' ');
+    dynstr_append_string(d, utf32_to_utf8(w32[i], utf32_len(w32[i]), 0));
+  }
+  dynstr_terminate(d);
+  return d->vec;
+}
+
 /* compute the words of a track name */
 static char **track_to_words(const char *track,
                              const struct kvp *p) {
@@ -743,7 +778,8 @@ static char **parsetags(const char *s) {
       /* strip trailing spaces */
       while(s > t && s[-1] == ' ')
         --s;
-      vector_append(&v, xstrndup(t, s - t));
+      /* add tag to list */
+      vector_append(&v, normalize_tag(t, (size_t)(s - t)));
       /* skip intermediate and trailing separators */
       while(*s && (!tagchar(*s) || *s == ' '))
         ++s;
@@ -1865,13 +1901,18 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
     size_t nw32;
     
     w[n] = utf8_casefold_compat(wordlist[n], strlen(wordlist[n]), 0);
-    if(checktag(w[n])) ++ntags;         /* count up tags */
-    /* Strip out combining characters (AFTER checking whether it's a tag) */
-    if(!(w32 = utf8_to_utf32(w[n], strlen(w[n]), &nw32)))
-      return 0;
-    nw32 = remove_combining_chars(w32, nw32);
-    if(!(w[n] = utf32_to_utf8(w32, nw32, 0)))
-      return 0;
+    if(checktag(w[n])) {
+      ++ntags;         /* count up tags */
+      /* Normalize the tag */
+      w[n] = normalize_tag(w[n], strlen(w[n]));
+    } else {
+      /* Normalize the search term by removing combining characters */
+      if(!(w32 = utf8_to_utf32(w[n], strlen(w[n]), &nw32)))
+        return 0;
+      nw32 = remove_combining_chars(w32, nw32);
+      if(!(w[n] = utf32_to_utf8(w32, nw32, 0)))
+        return 0;
+    }
   }
   /* find the longest non-stopword */
   for(n = 0; n < nwordlist; ++n)

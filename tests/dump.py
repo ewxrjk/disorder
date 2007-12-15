@@ -34,11 +34,11 @@ def test():
     assert c.getglobal("foo") == "before", "checking global foo=before"
     print "adding a tag"
     # Exercise the tags-changed code
-    c.set(track, "tags", "first tag, another tag")
+    c.set(track, "tags", "  first   tag, Another Tag")
     assert dtest.lists_have_same_contents(c.tags(),
                                           [u"another tag", u"first tag"]),\
            "checking tag list(1)"
-    c.set(track, "tags", "wibble, another tag")
+    c.set(track, "tags", "wibble,   another tag   ")
     assert dtest.lists_have_same_contents(c.tags(),
                                           [u"another tag", u"wibble"]),\
            "checking tag list(2)"
