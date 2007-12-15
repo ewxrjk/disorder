@@ -155,7 +155,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
                      FALSE/*fill*/,
                      1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox),
-                     gtk_label_new("(c) 2004-2007 Richard Kettlewell"),
+                     gtk_label_new("\xC2\xA9 2004-2007 Richard Kettlewell"),
                      FALSE/*expand*/,
                      FALSE/*fill*/,
                      1/*padding*/);
