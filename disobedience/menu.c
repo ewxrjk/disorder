@@ -124,9 +124,12 @@ static void about_popup_got_version(void attribute((unused)) *v,
                                     const char *value) {
   GtkWidget *w;
   char *server_version_string;
+  char *short_version_string;
   GtkWidget *hbox, *vbox, *title;
 
   byte_xasprintf(&server_version_string, "Server version %s", value);
+  byte_xasprintf(&short_version_string, "Disobedience %s",
+                 disorder_short_version_string);
   w = gtk_dialog_new_with_buttons("About Disobedience",
                                   GTK_WINDOW(toplevel),
                                   (GTK_DIALOG_MODAL
@@ -142,7 +145,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
                      FALSE/*fill*/,
                      4/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox),
-                     gtk_label_new("Disobedience " VERSION),
+                     gtk_label_new(short_version_string),
                      FALSE/*expand*/,
                      FALSE/*fill*/,
                      1/*padding*/);
