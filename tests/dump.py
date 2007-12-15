@@ -44,8 +44,11 @@ def test():
            "checking tag list(2)"
     print "checking track appears in tag search"
     tracks = c.search(["tag:wibble"])
-    assert len(tracks) == 1, "checking there is exactly one search result"
-    assert tracks[0] == track, "checking for right search result"
+    assert len(tracks) == 1, "checking there is exactly one search result(1)"
+    assert tracks[0] == track, "checking for right search result(1)"
+    tracks = c.search(["tag:  another    tAg  "])
+    assert len(tracks) == 1, "checking there is exactly one search result(2)"
+    assert tracks[0] == track, "checking for right search result(2)"
     print "dumping database"
     print dtest.command(["disorder-dump", "--config", disorder._configfile,
                          "--dump", dump])
@@ -76,7 +79,7 @@ def test():
     print "checking tag search still works"
     tracks = c.search(["tag:wibble"])
     assert len(tracks) == 1, "checking there is exactly one search result"
-    assert tracks[0] == track, "checking for right search result"
+    assert tracks[0] == track, "checking for right search result(3)"
     assert dtest.lists_have_same_contents(c.tags(),
                                           [u"another tag", u"wibble"]),\
            "checking tag list(3)"

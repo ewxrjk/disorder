@@ -1883,6 +1883,7 @@ static const char *checktag(const char *s) {
 char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   const char **w, *best = 0, *tag;
   char **twords, **tags;
+  char *istag;
   int i, j, n, err, what;
   DBC *cursor = 0;
   DBT k, d;
@@ -1896,6 +1897,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   *ntracks = 0;				/* for early returns */
   /* normalize all the words */
   w = xmalloc(nwordlist * sizeof (char *));
+  istag = xmalloc_noptr(nwordlist);
   for(n = 0; n < nwordlist; ++n) {
     uint32_t *w32;
     size_t nw32;
@@ -1904,7 +1906,8 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
     if(checktag(w[n])) {
       ++ntags;         /* count up tags */
       /* Normalize the tag */
-      w[n] = normalize_tag(w[n], strlen(w[n]));
+      w[n] = normalize_tag(w[n] + 4, strlen(w[n] + 4));
+      istag[n] = 1;
     } else {
       /* Normalize the search term by removing combining characters */
       if(!(w32 = utf8_to_utf32(w[n], strlen(w[n]), &nw32)))
@@ -1912,11 +1915,12 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
       nw32 = remove_combining_chars(w32, nw32);
       if(!(w[n] = utf32_to_utf8(w32, nw32, 0)))
         return 0;
+      istag[n] = 0;
     }
   }
   /* find the longest non-stopword */
   for(n = 0; n < nwordlist; ++n)
-    if(!stopword(w[n]) && !checktag(w[n]))
+    if(!istag[n] && !stopword(w[n]))
       if(!best || strlen(w[n]) > strlen(best))
 	best = w[n];
   /* TODO: we should at least in principal be able to identify the word or tag
@@ -1925,7 +1929,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   if(ntags && !best) {
     /* Only tags are listed.  We limit to the first and narrow down with the
      * rest. */
-    best = checktag(w[0]);
+    best = istag[0] ? w[0] : 0;
     db = trackdb_tagsdb;
     dbname = "tags";
   } else if(best) {
@@ -1974,7 +1978,8 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
       twords = track_to_words(v.vec[n], p);
       tags = parsetags(kvp_get(p, "tags"));
       for(i = 0; i < nwordlist; ++i) {
-        if((tag = checktag(w[i]))) {
+        if(istag[i]) {
+          tag = w[i];
           /* Track must have this tag */
           for(j = 0; tags[j]; ++j)
             if(!strcmp(tag, tags[j])) break; /* tag found */
