@@ -55,6 +55,8 @@ Display a usage message.
 .B --version\fR, \fB-V
 Display version number.
 .SH NOTES
+For configuration file documentation, see
+.BR disorder_config (5).
 .SS "Startup"
 The first time a new install of DisOrder is started it will run
 .B disorder-rescan

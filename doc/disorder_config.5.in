@@ -77,6 +77,28 @@ goes.  This model will be changed in a future version.)
 Access control to the web interface is (currently) separate from DisOrder's own
 access control (HTTP authentication is required) but uses the same user
 namespace.
+.SS "Searching And Tags"
+Search strings contain a list of search terms separated by spaces.  A search
+term can either be a single word or a tag, prefixed with "tag:".
+.PP
+Search words are compared without regard to letter case or accents; thus, all
+of the following will be considered to be equal to one another:
+.PP
+.nf
+  LATIN CAPITAL LETTER E
+  LATIN SMALL LETTER E
+  LATIN CAPITAL LETTER E WITH GRAVE
+  LATIN SMALL LETTER E WITH GRAVE
+  LATIN CAPITAL LETTER E plus COMBINING GRAVE ACCENT
+  LATIN SMALL LETTER E plus COMBINING GRAVE ACCENT
+.fi
+.PP
+The same rules apply to tags but in addition leading and trailing whitespace is
+disregarded and all whitespace sequences are treated as equal when they appear
+as internal whitespace.
+.PP
+Where several tags are listed, for instance the tags preference for a track,
+the tags are separated by commas.  Therefore tags may not contain commas.
 .SH "CONFIGURATION FILE"
 .SS "General Syntax"
 Lines are split into fields separated by whitespace (space, tab, line
@@ -595,10 +617,6 @@ These are the values set with \fBset-global\fR.
 .B required-tags
 If this is set an nonempty then randomly played tracks will always have at
 least one of the listed tags.
-.IP
-Tags can contain any printing character except comma.  Leading and trailing
-spaces are not significant but internal spaces are.  Tags in a list are
-separated by commas.
 .TP
 .B prohibited-tags
 If this is set an nonempty then randomly played tracks will never have any of
