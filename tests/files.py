@@ -24,6 +24,24 @@ def test():
     """Check that the file listing comes out right"""
     dtest.start_daemon()
     assert dtest.check_files() == 0, "dtest.check_files"
+    print " checking regexp file listing"
+    c = disorder.client()
+    f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
+                "second")
+    assert len(f) == 1, "checking for one match"
+    assert f[0] == "%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
+    print " checking unicode regexp file listing"
+    f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
+                "first")
+    assert len(f) == 0, "checking for 0 matches"
+    # This is rather unsatisfactory but it is the current behavior.  We could
+    # for instance go to NFD for regexp matching but we'd have to do the same
+    # to the regexp, including replacing single characters with (possibly
+    # bracketed) decomposed forms.  Really the answer has to be a more
+    # Unicode-aware regexp library.
+    f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
+                "fi\\p{Mn}*rst")
+    assert len(f) == 0, "checking for 0 matches"
 
 if __name__ == '__main__':
     dtest.run()

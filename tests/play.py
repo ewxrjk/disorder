@@ -51,6 +51,8 @@ def test():
     assert len(ts) == 1, "check track appears exactly once in recent"
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
+    print " disabling play"
+    c.disable()
     print " scratching current track"
     p = c.playing()
     i = p['id']
@@ -63,6 +65,11 @@ def test():
     ts = filter(lambda t: t['id'] == i, r)
     assert len(ts) == 1, "check scratched track appears exactly once in recent"
     assert ts[0]['state'] == 'scratched', "checking track scratched"
+    print " waiting for scratch to complete"
+    while (p is not None and p['state'] == 'isscratch'):
+        time.sleep(1)
+        p = c.playing()
+    assert p is None, "checking nothing is playing"
 
 if __name__ == '__main__':
     dtest.run()
