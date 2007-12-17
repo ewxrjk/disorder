@@ -1,3 +1,9 @@
+disorder (2.0) unstable; urgency=low
+
+  * DisOrder 2.0
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Mon, 17 Dec 2007 18:17:55 +0000
+
 disorder (1.5.99+dev10) unstable; urgency=low
 
   * Disobedience now pops up a login box on startup if not yet configured.
