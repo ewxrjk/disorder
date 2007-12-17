@@ -21,4 +21,4 @@
 dist_pkgdata_DATA=completion.bash
 
 EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata \
-	format-gcov-report
+	format-gcov-report make-version-string

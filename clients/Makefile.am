@@ -83,3 +83,5 @@ check-completions: disorder
 	diff -u ,commands ,completions
 
 CLEANFILES=,commands ,completions
+
+EXTRA_DIST=dump2wav

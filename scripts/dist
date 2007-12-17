@@ -29,11 +29,12 @@ cp $d.tar.bz2 $HOME/work/web/disorder
 cp CHANGES $HOME/work/web/disorder/CHANGES.txt
 cp README $HOME/work/web/disorder/README.txt
 cp ChangeLog.d/*--* $HOME/work/web/disorder/ChangeLog.d
+bzr log > $HOME/work/web/disorder/ChangeLog.d/bzr-changelog.txt
 cd doc
 for f in *.[1-9].html; do
   echo $f
   rm -f $HOME/work/web/disorder/$f
   sed < $f > $HOME/work/web/disorder/$f 's/^@.*//'
 done
-cp doc/plumbing.svg $HOME/work/web/disorder
-cp doc/plumbing.png $HOME/work/web/disorder
+cp plumbing.svg $HOME/work/web/disorder
+cp plumbing.png $HOME/work/web/disorder
