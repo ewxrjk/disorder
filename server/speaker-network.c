@@ -219,24 +219,16 @@ static size_t network_play(size_t frames) {
      * the value we deduce from time comparison.
      *
      * Suppose we have 1s track started at t=0, and another track begins to
-     * play at t=2s.  Suppose RTP_AHEAD_MS=1000 and 44100Hz stereo.  In that
-     * case we'll send 1s of audio as fast as we can, giving rtp_time=88200.
-     * rtp_time stops at this point.
+     * play at t=2s.  Suppose 44100Hz stereo.  We send 1s of audio over the
+     * next (about) one second, giving rtp_time=88200.  rtp_time stops at this
+     * point.
      *
      * At t=2s we'll have calculated target_rtp_time=176400.  In this case we
      * set rtp_time=176400 and the player can correctly conclude that it
      * should leave 1s between the tracks.
      *
-     * Suppose instead that the second track arrives at t=0.5s, and that
-     * we've managed to transmit the whole of the first track already.  We'll
-     * have target_rtp_time=44100.
-     *
-     * The desired behaviour is to play the second track back to back with
-     * first.  In this case therefore we do not modify rtp_time.
-     *
-     * Is it ever right to reduce rtp_time?  No; for that would imply
-     * transmitting packets with overlapping timestamp ranges, which does not
-     * make sense.
+     * It's never right to reduce rtp_time, for that would imply packets with
+     * overlapping timestamp ranges, which does not make sense.
      */
     target_rtp_time &= ~(uint64_t)1;    /* stereo! */
     if(target_rtp_time > rtp_time) {
@@ -246,15 +238,8 @@ static size_t network_play(size_t frames) {
            target_rtp_time - rtp_time);
       rtp_time = target_rtp_time;
     } else if(target_rtp_time < rtp_time) {
-      const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                     * config->sample_format.rate
-                                     * config->sample_format.channels
-                                     / 1000);
-        
-      if(target_rtp_time + samples_ahead < rtp_time) {
-        info("reversing rtp_time by %"PRIu64" samples",
-             rtp_time - target_rtp_time);
-      }
+      info("would reverse rtp_time by %"PRIu64" samples",
+           rtp_time - target_rtp_time);
     }
   }
   header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
@@ -311,30 +296,27 @@ static void network_beforepoll(int *timeoutp) {
   uint64_t target_rtp_time;
   const int64_t samples_per_second = config->sample_format.rate
                                    * config->sample_format.channels;
-  const int64_t samples_ahead = ((uint64_t)RTP_AHEAD_MS
-                                 * samples_per_second
-                                 / 1000);
   int64_t lead, ahead_ms;
   
   /* If we're starting then initialize the base time */
   if(!rtp_time)
     xgettimeofday(&rtp_time_0, 0);
-  /* We send audio data whenever we get RTP_AHEAD seconds or more
-   * behind */
+  /* We send audio data whenever we would otherwise get behind */
   xgettimeofday(&now, 0);
   target_us = tvsub_us(now, rtp_time_0);
   assert(target_us <= UINT64_MAX / 88200);
   target_rtp_time = (target_us * config->sample_format.rate
                                * config->sample_format.channels)
                      / 1000000;
+  /* Lead is how far ahead we are */
   lead = rtp_time - target_rtp_time;
-  if(lead < samples_ahead)
-    /* We've not reached the desired lead, write as fast as we can */
+  if(lead <= 0)
+    /* We're behind or even, so we'll need to write as soon as we can */
     bfd_slot = addfd(bfd, POLLOUT);
   else {
-    /* We've reached the desired lead, we can afford to wait a bit even if the
-     * IP stack thinks it can accept more. */
-    ahead_ms = 1000 * (lead - samples_ahead) / samples_per_second;
+    /* We've ahead, we can afford to wait a bit even if the IP stack thinks it
+     * can accept more. */
+    ahead_ms = 1000 * lead / samples_per_second;
     if(ahead_ms < *timeoutp)
       *timeoutp = ahead_ms;
   }
