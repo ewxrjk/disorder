@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005 Richard Kettlewell
+ * Copyright (C) 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
+ */
+/** @file lib/mime.h
+ * @brief Support for MIME and allied protocols
  */
 
 #ifndef MIME_H
@@ -53,6 +56,40 @@ int mime_rfc2388_content_disposition(const char *s,
 char *mime_qp(const char *s);
 char *mime_base64(const char *s);
 /* convert quoted-printable or base64 data */
+
+/** @brief Parsed form of an HTTP Cookie: header field */
+struct cookiedata {
+  /** @brief @c $Version or NULL if not set */
+  char *version;
+
+  /** @brief List of cookies */
+  struct cookie *cookies;
+
+  /** @brief Number of cookies */
+  int ncookies;
+};
+
+/** @brief A parsed cookie */
+struct cookie {
+  /** @brief Cookie name */
+  char *name;
+
+  /** @brief Cookie value */
+  char *value;
+
+  /** @brief Cookie path */
+  char *path;
+
+  /** @brief Cookie domain */
+  char *domain;
+  
+};
+
+int parse_cookie(const char *s,
+		 struct cookiedata *cd);
+const struct cookie *find_cookie(const struct cookiedata *cd,
+				 const char *name);
+
 
 #endif /* MIME_H */
 
