@@ -78,6 +78,8 @@ int main(int argc, char **argv) {
     struct sockaddr_in6 sin6;
   } sa;
   socklen_t len;
+  fd_set fds;
+  struct timeval tv;
   static const struct addrinfo pref = {
     0,				/* ai_flags */
     AF_UNSPEC,			/* ai_family */
@@ -110,9 +112,17 @@ int main(int argc, char **argv) {
   if(!(ai = get_address(&a, &pref, &name)))
     exit(1);
   fd = xsocket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+  nonblock(fd);
   if(bind(fd, ai->ai_addr, ai->ai_addrlen) < 0)
     fatal(errno, "error binding to %s", name);
   while(getppid() != 1) {
+    /* Wait for something to happen.  We don't just block forever in recvfrom()
+     * as otherwise we'd never die if the parent terminated uncontrolledly. */
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    select(fd + 1, &fds, 0, 0, &tv);
     len = sizeof sa;
     n = recvfrom(fd, buffer, sizeof buffer, 0, &sa.sa, &len);
     if(n < 0) {
