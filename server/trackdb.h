@@ -53,6 +53,9 @@ extern unsigned long cache_files_hits, cache_files_misses;
 /** @brief Mask of upgrade bits (trackdb_open()) */
 #define TRACKDB_UPGRADE_MASK 0x000C
 
+/** @brief May create database environment (trackdb_init()) */
+#define TRACKDB_MAY_CREATE 0x0010
+
 void trackdb_init(int flags);
 void trackdb_deinit(void);
 /* close/close environment */

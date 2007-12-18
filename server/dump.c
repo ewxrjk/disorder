@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include <pcre.h>
 #include <unistd.h>
 #include <db.h>
+#include <fcntl.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -129,6 +130,23 @@ static void do_dump(FILE *fp, const char *tag,
                         DB_FIRST);
     while(err == 0) {
       if(fputc('G', fp) < 0
+         || urlencode(s, k.data, k.size)
+         || fputc('\n', fp) < 0
+         || urlencode(s, d.data, d.size)
+         || fputc('\n', fp) < 0)
+        fatal(errno, "error writing to %s", tag);
+      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                          DB_NEXT);
+    }
+    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
+    cursor = 0;
+    
+    /* dump the users */
+    cursor = trackdb_opencursor(trackdb_usersdb, tid);
+    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                        DB_FIRST);
+    while(err == 0) {
+      if(fputc('U', fp) < 0
          || urlencode(s, k.data, k.size)
          || fputc('\n', fp) < 0
          || urlencode(s, d.data, d.size)
@@ -284,6 +302,7 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   if((err = truncdb(tid, trackdb_globaldb))) return err;
   if((err = truncdb(tid, trackdb_searchdb))) return err;
   if((err = truncdb(tid, trackdb_tagsdb))) return err;
+  if((err = truncdb(tid, trackdb_usersdb))) return err;
   c = getc(fp);
   while(!ferror(fp) && !feof(fp)) {
     switch(c) {
@@ -296,12 +315,22 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
       return 0;
     case 'P':
     case 'G':
-      if(c == 'P') {
+    case 'U':
+      switch(c) {
+      case 'P':
 	which_db = trackdb_prefsdb;
 	which_name = "prefs.db";
-      } else {
+	break;
+      case 'G':
 	which_db = trackdb_globaldb;
 	which_name = "global.db";
+	break;
+      case 'U':
+	which_db = trackdb_usersdb;
+	which_name = "users.db";
+	break;
+      default:
+	abort();
       }
       if(undump_dbt(fp, tag, prepare_data(&k))
          || undump_dbt(fp, tag, prepare_data(&d)))
@@ -415,7 +444,7 @@ fail:
 
 int main(int argc, char **argv) {
   int n, dump = 0, undump = 0, recover = TRACKDB_NO_RECOVER, recompute = 0;
-  int tracksdb = 0, searchdb = 0, remove_pathless = 0;
+  int tracksdb = 0, searchdb = 0, remove_pathless = 0, fd;
   const char *path;
   char *tmp;
   FILE *fp;
@@ -454,12 +483,16 @@ int main(int argc, char **argv) {
     path = argv[optind];
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
-  trackdb_init(recover);
+  trackdb_init(recover|TRACKDB_MAY_CREATE);
   trackdb_open(TRACKDB_NO_UPGRADE);
   if(dump) {
-    /* we write to a temporary file and rename into place */
+    /* We write to a temporary file and rename into place.  We make
+     * sure the permissions are tight from the start. */
     byte_xasprintf(&tmp, "%s.%lx.tmp", path, (unsigned long)getpid());
-    if(!(fp = fopen(tmp, "w"))) fatal(errno, "error opening %s", tmp);
+    if((fd = open(tmp, O_CREAT|O_TRUNC|O_WRONLY, 0600)) < 0)
+      fatal(errno, "error opening %s", tmp);
+    if(!(fp = fdopen(fd, "w")))
+      fatal(errno, "fdopen on %s", tmp);
     do_dump(fp, tmp, tracksdb, searchdb);
     if(fclose(fp) < 0) fatal(errno, "error closing %s", tmp);
     if(rename(tmp, path) < 0)

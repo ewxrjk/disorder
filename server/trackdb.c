@@ -37,6 +37,8 @@
 #include <time.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include "event.h"
 #include "mem.h"
@@ -137,6 +139,14 @@ DB *trackdb_globaldb;                   /* global preferences */
  * - Data cannot be reconstructed (but isn't THAT important)
  */
 DB *trackdb_noticeddb;                   /* when track noticed */
+
+/** @brief The user database
+ * - Keys are usernames
+ * - Values are encoded key-value pairs
+ * - Data is user data and cannot be reconstructed
+ */
+DB *trackdb_usersdb;
+
 static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
 static int initialized, opened;         /* state */
@@ -158,6 +168,7 @@ static int compare(DB attribute((unused)) *db_,
  * - @ref TRACKDB_NO_RECOVER
  * - @ref TRACKDB_NORMAL_RECOVER
  * - @ref TRACKDB_FATAL_RECOVER
+ * - @ref TRACKDB_MAY_CREATE
  */
 void trackdb_init(int flags) {
   int err;
@@ -171,6 +182,36 @@ void trackdb_init(int flags) {
     if(strcmp(home, config->home))
       fatal(0, "cannot change db home without server restart");
     home = config->home;
+  }
+
+  if(flags & TRACKDB_MAY_CREATE) {
+    DIR *dp;
+    struct dirent *de;
+    struct stat st;
+    char *p;
+
+    /* create home directory if it does not exist */
+    mkdir(config->home, 0755);
+    /* Remove world/group permissions on any regular files already in the
+     * database directory.  Actually we don't care about all of them but it's
+     * easier to just do the lot.  This can be revisited if it's a serious
+     * practical inconvenience for anyone.
+     *
+     * The socket, not being a regular file, is excepted.
+     */
+    if(!(dp = opendir(config->home)))
+      fatal(errno, "error reading %s", config->home);
+    while((de = readdir(dp))) {
+      byte_xasprintf(&p, "%s/%s", config->home, de->d_name);
+      if(lstat(p, &st) == 0
+         && S_ISREG(st.st_mode)
+         && (st.st_mode & 077)) {
+        if(chmod(p, st.st_mode & (~(mode_t)077) & 07777) < 0)
+          fatal(errno, "cannot chmod %s", p);
+      }
+      xfree(p);
+    }
+    closedir(dp);
   }
 
   /* create environment */
@@ -190,7 +231,7 @@ void trackdb_init(int flags) {
                               |DB_INIT_TXN
                               |DB_CREATE
                               |recover_type[recover],
-                              0666)))
+                              0600)))
     fatal(0, "trackdb_env->open %s: %s", config->home, db_strerror(err));
   trackdb_env->set_errpfx(trackdb_env, "DB");
   trackdb_env->set_errfile(trackdb_env, stderr);
@@ -383,6 +424,8 @@ void trackdb_open(int flags) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
+  trackdb_usersdb = open_db("users.db",
+                            0, DB_HASH, DB_CREATE, 0600);
   if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
@@ -413,6 +456,8 @@ void trackdb_close(void) {
     fatal(0, "error closing global.db: %s", db_strerror(err));
   if((err = trackdb_noticeddb->close(trackdb_noticeddb, 0)))
     fatal(0, "error closing noticed.db: %s", db_strerror(err));
+  if((err = trackdb_usersdb->close(trackdb_usersdb, 0)))
+    fatal(0, "error closing users.db: %s", db_strerror(err));
   trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;
   trackdb_tagsdb = trackdb_globaldb = 0;
   D(("closed databases"));

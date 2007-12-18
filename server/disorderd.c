@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
       fatal(errno, "error locking %s", lockfile);
   }
   /* initialize database environment */
-  trackdb_init(TRACKDB_NORMAL_RECOVER);
+  trackdb_init(TRACKDB_NORMAL_RECOVER|TRACKDB_MAY_CREATE);
   trackdb_master(ev);
   /* install new config */
   reconfigure(ev, 0);

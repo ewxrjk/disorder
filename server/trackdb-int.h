@@ -29,6 +29,7 @@ extern DB *trackdb_searchdb;
 extern DB *trackdb_tagsdb;
 extern DB *trackdb_noticeddb;
 extern DB *trackdb_globaldb;
+extern DB *trackdb_usersdb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */
