@@ -54,7 +54,8 @@ int mime_rfc2388_content_disposition(const char *s,
 /* Parse an RFC2388-style content-disposition field */
 
 char *mime_qp(const char *s);
-char *mime_base64(const char *s);
+char *mime_base64(const char *s, size_t *nsp);
+char *mime_to_base64(const uint8_t *s, size_t ns);
 /* convert quoted-printable or base64 data */
 
 /** @brief Parsed form of an HTTP Cookie: header field */

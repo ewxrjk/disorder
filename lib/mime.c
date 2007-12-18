@@ -284,7 +284,7 @@ const char *mime_parse(const char *s,
   }
   if(*s) s += 2;
   if(cte) {
-    if(!strcmp(cte, "base64")) return mime_base64(s);
+    if(!strcmp(cte, "base64")) return mime_base64(s, 0);
     if(!strcmp(cte, "quoted-printable")) return mime_qp(s);
   }
   return s;
@@ -431,22 +431,23 @@ char *mime_qp(const char *s) {
   return d.vec;
 }
 
+static const char mime_base64_table[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
 /** @brief Convert MIME base64
  * @param s base64 data
  * @return Decoded data
  */
-char *mime_base64(const char *s) {
+char *mime_base64(const char *s, size_t *nsp) {
   struct dynstr d;
   const char *t;
   int b[4], n, c;
-  static const char table[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   dynstr_init(&d);
   n = 0;
   while((c = (unsigned char)*s++)) {
-    if((t = strchr(table, c))) {
-      b[n++] = t - table;
+    if((t = strchr(mime_base64_table, c))) {
+      b[n++] = t - mime_base64_table;
       if(n == 4) {
 	dynstr_append(&d, (b[0] << 2) + (b[1] >> 4));
 	dynstr_append(&d, (b[1] << 4) + (b[2] >> 2));
@@ -462,8 +463,53 @@ char *mime_base64(const char *s) {
       break;
     }
   }
+  if(nsp)
+    *nsp = d.nvec;
   dynstr_terminate(&d);
   return d.vec;
+}
+
+/** @brief Convert a binary string to base64
+ * @param s Bytes to convert
+ * @param ns Number of bytes to convert
+ * @return Encoded data
+ *
+ * This function does not attempt to split up lines.
+ */
+char *mime_to_base64(const uint8_t *s, size_t ns) {
+  struct dynstr d[1];
+
+  dynstr_init(d);
+  while(ns >= 3) {
+    /* Input bytes with output bits: AAAAAABB BBBBCCCC CCDDDDDD */
+    /* Output bytes with input bits: 000000 001111 111122 222222 */
+    dynstr_append(d, mime_base64_table[s[0] >> 2]);
+    dynstr_append(d, mime_base64_table[((s[0] & 3) << 4)
+				       + (s[1] >> 4)]);
+    dynstr_append(d, mime_base64_table[((s[1] & 15) << 2)
+				       + (s[2] >> 6)]);
+    dynstr_append(d, mime_base64_table[s[2] & 63]);
+    ns -= 3;
+    s += 3;
+  }
+  if(ns > 0) {
+    dynstr_append(d, mime_base64_table[s[0] >> 2]);
+    switch(ns) {
+    case 1:
+      dynstr_append(d, mime_base64_table[(s[0] & 3) << 4]);
+      dynstr_append(d, '=');
+      dynstr_append(d, '=');
+      break;
+    case 2:
+      dynstr_append(d, mime_base64_table[((s[0] & 3) << 4)
+					 + (s[1] >> 4)]);
+      dynstr_append(d, mime_base64_table[(s[1] & 15) << 2]);
+      dynstr_append(d, '=');
+      break;
+    }
+  }
+  dynstr_terminate(d);
+  return d->vec;
 }
 
 /** @brief Parse a RFC2109 Cookie: header

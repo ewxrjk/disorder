@@ -458,24 +458,47 @@ static void test_mime(void) {
 " to the aid of their country."),
 	       "Now's the time for all folk to come to the aid of their country.");
 
-  check_string(mime_base64(""),  "");
-  check_string(mime_base64("BBBB"), "\x04\x10\x41");
-  check_string(mime_base64("////"), "\xFF\xFF\xFF");
-  check_string(mime_base64("//BB"), "\xFF\xF0\x41");
-  check_string(mime_base64("BBBB//BB////"),
-	       "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
-  check_string(mime_base64("B B B B  / / B B / / / /"),
-	       "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
-  check_string(mime_base64("B\r\nBBB.// B-B//~//"),
-	       "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
-  check_string(mime_base64("BBBB="),
-	       "\x04\x10\x41");
-  check_string(mime_base64("BBBBx="),	/* not actually valid base64 */
-	       "\x04\x10\x41");
-  check_string(mime_base64("BBBB BB=="),
+#define check_base64(encoded, decoded) do {                     \
+    check_string(mime_base64(encoded, 0), decoded);             \
+    check_string(mime_to_base64((const uint8_t *)decoded,       \
+                                         (sizeof decoded) - 1), \
+                 encoded);                                      \
+  } while(0)
+    
+  
+  check_base64("",  "");
+  check_base64("BBBB", "\x04\x10\x41");
+  check_base64("////", "\xFF\xFF\xFF");
+  check_base64("//BB", "\xFF\xF0\x41");
+  check_base64("BBBB//BB////",
+             "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
+  check_base64("BBBBBA==",
 	       "\x04\x10\x41" "\x04");
-  check_string(mime_base64("BBBB BBB="),
+  check_base64("BBBBBBA=",
 	       "\x04\x10\x41" "\x04\x10");
+
+  /* Check that decoding handles various kinds of rubbish OK */
+  check_string(mime_base64("B B B B  / / B B / / / /", 0),
+             "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
+  check_string(mime_base64("B\r\nBBB.// B-B//~//", 0),
+	       "\x04\x10\x41" "\xFF\xF0\x41" "\xFF\xFF\xFF");
+  check_string(mime_base64("BBBB BB==", 0),
+	       "\x04\x10\x41" "\x04");
+  check_string(mime_base64("BBBB BB = =", 0),
+	       "\x04\x10\x41" "\x04");
+  check_string(mime_base64("BBBB BBB=", 0),
+	       "\x04\x10\x41" "\x04\x10");
+  check_string(mime_base64("BBBB BBB = ", 0),
+	       "\x04\x10\x41" "\x04\x10");
+  check_string(mime_base64("BBBB=", 0),
+	       "\x04\x10\x41");
+  check_string(mime_base64("BBBBBB==", 0),
+	       "\x04\x10\x41" "\x04");
+  check_string(mime_base64("BBBBBBB=", 0),
+	       "\x04\x10\x41" "\x04\x10");
+  /* Not actually valid base64 */
+  check_string(mime_base64("BBBBx=", 0),
+	       "\x04\x10\x41");
 }
 
 static void test_cookies(void) {
