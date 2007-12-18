@@ -38,6 +38,7 @@
 #include <sys/time.h>
 #include <pcre.h>
 #include <fcntl.h>
+#include <gcrypt.h>
 
 #include "daemonize.h"
 #include "event.h"
@@ -238,6 +239,8 @@ int main(int argc, char **argv) {
   info("process ID %lu", (unsigned long)getpid());
   fix_path();
   srand(time(0));			/* don't start the same every time */
+  /* gcrypt initialization */
+  gcry_control(GCRYCTL_INIT_SECMEM, 1);
   /* create event loop */
   ev = ev_new();
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");

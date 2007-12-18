@@ -144,6 +144,7 @@ check-decode: disorder-decode disorder-normalize
 	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
 	./disorder-decode scratch.wav | \
 	  ./disorder-normalize --config config > decoded.raw
+	ls -l *.raw
 	cmp decoded.raw oggdec.raw
 	rm -f scratch.wav config decoded.raw oggdec.raw
 

@@ -245,6 +245,12 @@ struct config {
 
   /** @brief Whether to loop back multicast packets */
   int multicast_loop;
+
+  /** @brief Login lifetime in seconds */
+  long cookie_login_lifetime;
+
+  /** @brief Signing key lifetime in seconds */
+  long cookie_key_lifetime;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

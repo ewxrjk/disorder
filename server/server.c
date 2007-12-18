@@ -64,6 +64,7 @@
 #include "defs.h"
 #include "cache.h"
 #include "unicode.h"
+#include "cookies.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
@@ -107,6 +108,8 @@ struct conn {
   struct eventlog_output *lo;
   /** @brief Parent listener */
   const struct listener *l;
+  /** @brief Login cookie or NULL */
+  char *cookie;
 };
 
 static int reader_callback(ev_source *ev,
@@ -370,39 +373,48 @@ static int c_become(struct conn *c,
   return 1;
 }
 
-static int c_user(struct conn *c,
-		  char **vec,
-		  int attribute((unused)) nvec) {
-  int n;
-  const char *res;
+static const char *connection_host(struct conn *c) {
   union {
     struct sockaddr sa;
     struct sockaddr_in in;
     struct sockaddr_in6 in6;
   } u;
   socklen_t l;
+  int n;
   char host[1024];
+
+  /* get connection data */
+  l = sizeof u;
+  if(getpeername(c->fd, &u.sa, &l) < 0) {
+    error(errno, "S%x error calling getpeername", c->tag);
+    return 0;
+  }
+  if(c->l->pf != PF_UNIX) {
+    if((n = getnameinfo(&u.sa, l,
+			host, sizeof host, 0, 0, NI_NUMERICHOST))) {
+      error(0, "S%x error calling getnameinfo: %s", c->tag, gai_strerror(n));
+      return 0;
+    }
+    return xstrdup(host);
+  } else
+    return "local";
+}
+
+static int c_user(struct conn *c,
+		  char **vec,
+		  int attribute((unused)) nvec) {
+  int n;
+  const char *res, *host;
 
   if(c->who) {
     sink_writes(ev_writer_sink(c->w), "530 already authenticated\n");
     return 1;
   }
   /* get connection data */
-  l = sizeof u;
-  if(getpeername(c->fd, &u.sa, &l) < 0) {
-    error(errno, "S%x error calling getpeername", c->tag);
+  if(!(host = connection_host(c))) {
     sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
     return 1;
   }
-  if(c->l->pf != PF_UNIX) {
-    if((n = getnameinfo(&u.sa, l,
-			host, sizeof host, 0, 0, NI_NUMERICHOST))) {
-      error(0, "S%x error calling getnameinfo: %s", c->tag, gai_strerror(n));
-      sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
-      return 1;
-    }
-  } else
-    strcpy(host, "local");
   /* find the user */
   for(n = 0; n < config->allow.n
 	&& strcmp(config->allow.s[n].s[0], vec[0]); ++n)
@@ -418,7 +430,7 @@ static int c_user(struct conn *c,
   if(wideopen || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
     /* currently we only bother logging remote connections */
-    if(c->l->pf != PF_UNIX)
+    if(strcmp(host, "local"))
       info("S%x %s connected from %s", c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "230 OK\n");
     return 1;
@@ -962,7 +974,61 @@ static int c_rtp_address(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 No RTP\n");
   return 1;
 }
- 
+
+static int c_cookie(struct conn *c,
+		    char **vec,
+		    int attribute((unused)) nvec) {
+  const char *host;
+  char *user;
+
+  /* Can't log in twice on the same connection */
+  if(c->who) {
+    sink_writes(ev_writer_sink(c->w), "530 already authenticated\n");
+    return 1;
+  }
+  /* Get some kind of peer identifcation */
+  if(!(host = connection_host(c))) {
+    sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
+    return 1;
+  }
+  /* Check the cookie */
+  user = verify_cookie(vec[0]);
+  if(!user) {
+    sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
+    return 1;
+  }
+  /* Log in */
+  c->who = user;
+  c->cookie = vec[0];
+  if(strcmp(host, "local"))
+    info("S%x %s connected with cookie from %s", c->tag, user, host);
+  sink_writes(ev_writer_sink(c->w), "230 OK\n");
+  return 1;
+}
+
+static int c_make_cookie(struct conn *c,
+			 char attribute((unused)) **vec,
+			 int attribute((unused)) nvec) {
+  const char *cookie = make_cookie(c->who);
+
+  if(cookie)
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", cookie);
+  else
+    sink_writes(ev_writer_sink(c->w), "550 Cannot create cookie\n");
+  return 1;
+}
+
+static int c_revoke(struct conn *c,
+		    char attribute((unused)) **vec,
+		    int attribute((unused)) nvec) {
+  if(c->cookie) {
+    revoke_cookie(c->cookie);
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  } else
+    sink_writes(ev_writer_sink(c->w), "550 Did not log in with cookie\n");
+  return 1;
+}
+
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -974,6 +1040,7 @@ static const struct command {
 } commands[] = {
   { "allfiles",       0, 2,       c_allfiles,       C_AUTH },
   { "become",         1, 1,       c_become,         C_AUTH|C_TRUSTED },
+  { "cookie",         1, 1,       c_cookie,         0 },
   { "dirs",           0, 2,       c_dirs,           C_AUTH },
   { "disable",        0, 1,       c_disable,        C_AUTH },
   { "enable",         0, 0,       c_enable,         C_AUTH },
@@ -984,6 +1051,7 @@ static const struct command {
   { "get-global",     1, 1,       c_get_global,     C_AUTH },
   { "length",         1, 1,       c_length,         C_AUTH },
   { "log",            0, 0,       c_log,            C_AUTH },
+  { "make-cookie",    0, 0,       c_make_cookie,    C_AUTH },
   { "move",           2, 2,       c_move,           C_AUTH },
   { "moveafter",      1, INT_MAX, c_moveafter,      C_AUTH },
   { "new",            0, 1,       c_new,            C_AUTH },
@@ -1003,6 +1071,7 @@ static const struct command {
   { "rescan",         0, 0,       c_rescan,         C_AUTH|C_TRUSTED },
   { "resolve",        1, 1,       c_resolve,        C_AUTH },
   { "resume",         0, 0,       c_resume,         C_AUTH },
+  { "revoke",         0, 0,       c_revoke,         C_AUTH },
   { "rtp-address",    0, 0,       c_rtp_address,    C_AUTH },
   { "scratch",        0, 1,       c_scratch,        C_AUTH },
   { "search",         1, 1,       c_search,         C_AUTH },

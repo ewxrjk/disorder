@@ -300,12 +300,7 @@ def run(module=None, report=True):
     # Create some standard tracks
     stdtracks()
     try:
-        try:
-            module.test()
-        except AssertionError, e:
-            global failures
-            failures += 1
-            print "assertion failed: %s" % e.message
+        module.test()
     finally:
         stop_daemon()
     if report:

@@ -30,6 +30,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	client.c client.h				\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
+	cookies.c cookies.h				\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
 	event.c event.h 				\

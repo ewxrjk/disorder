@@ -327,8 +327,10 @@ class client:
       sys.stderr.write("\n")
       sys.stderr.flush()
 
-  def connect(self):
-    """Connect to the DisOrder server and authenticate.
+  def connect(self, cookie=None):
+    """c.connect(cookie=None)
+
+    Connect to the DisOrder server and authenticate.
 
     Raises communicationError if connection fails and operationError if
     authentication fails (in which case disconnection is automatic).
@@ -339,6 +341,9 @@ class client:
 
     Other operations automatically connect if we're not already
     connected, so it is not strictly necessary to call this method.
+
+    If COOKIE is specified then that is used to log in instead of
+    the username/password.
     """
     if self.state == 'disconnected':
       try:
@@ -369,10 +374,13 @@ class client:
         self.w = s.makefile("wb")
         self.r = s.makefile("rb")
         (res, challenge) = self._simple()
-        h = sha.sha()
-        h.update(self.config['password'])
-        h.update(binascii.unhexlify(challenge))
-        self._simple("user", self.config['username'], h.hexdigest())
+        if cookie is None:
+          h = sha.sha()
+          h.update(self.config['password'])
+          h.update(binascii.unhexlify(challenge))
+          self._simple("user", self.config['username'], h.hexdigest())
+        else:
+          self._simple("cookie", cookie)
         self.state = 'connected'
       except socket.error, e:
         self._disconnect()
@@ -832,6 +840,15 @@ class client:
       return None
     else:
       return details
+
+  def make_cookie(self):
+    """Create a login cookie"""
+    ret, details = self._simple("make-cookie")
+    return details
+  
+  def revoke(self):
+    """Revoke a login cookie"""
+    self._simple("revoke")
 
   ########################################################################
   # I/O infrastructure

@@ -899,6 +899,8 @@ static const struct conf conf[] = {
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
   { C(connect),          &type_stringlist,       validate_addrport },
+  { C(cookie_login_lifetime),  &type_integer,    validate_positive },
+  { C(cookie_key_lifetime),  &type_integer,      validate_positive },
   { C(dbversion),        &type_integer,          validate_positive },
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
@@ -1058,6 +1060,8 @@ static struct config *config_default(void) {
   c->mixer = xstrdup("/dev/mixer");
   c->channel = xstrdup("pcm");
   c->dbversion = 2;
+  c->cookie_login_lifetime = 86400;
+  c->cookie_key_lifetime = 86400 * 7;
   return c;
 }
 

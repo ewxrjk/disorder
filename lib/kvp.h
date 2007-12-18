@@ -55,6 +55,8 @@ int urlencode(struct sink *sink, const char *s, size_t n);
 const char *urlencodestring(const char *s);
 /* return the url-encoded form of @s@ */
 
+const char *urldecodestring(const char *s, size_t ns);
+
 #endif /* KVP_H */
 
 /*

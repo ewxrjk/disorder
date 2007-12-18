@@ -124,11 +124,29 @@ int urlencode(struct sink *sink, const char *s, size_t n) {
   return 0;
 }
 
+/** @brief URL-encode @p s
+ * @param s String to encode
+ * @return Encoded string
+ */
 const char *urlencodestring(const char *s) {
   struct dynstr d;
 
   dynstr_init(&d);
   urlencode(sink_dynstr(&d), s, strlen(s));
+  dynstr_terminate(&d);
+  return d.vec;
+}
+
+/** @brief URL-decode @p s
+ * @param s String to decode
+ * @param ns Length of string
+ * @return Decoded string
+ */
+const char *urldecodestring(const char *s, size_t ns) {
+  struct dynstr d;
+
+  dynstr_init(&d);
+  urldecode(sink_dynstr(&d), s, ns);
   dynstr_terminate(&d);
   return d.vec;
 }
