@@ -23,6 +23,7 @@ import dtest,disorder
 def test():
     """Exercise cookie protocol"""
     dtest.start_daemon()
+    dtest.create_user()
     print " connecting"
     c = disorder.client()
     v = c.version()

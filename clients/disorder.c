@@ -64,6 +64,8 @@ static const struct option options[] = {
   { "local", no_argument, 0, 'l' },
   { "no-per-user-config", no_argument, 0, 'N' },
   { "help-commands", no_argument, 0, 'H' },
+  { "user", required_argument, 0, 'u' },
+  { "password", required_argument, 0, 'p' },
   { 0, 0, 0, 0 }
 };
 
@@ -334,9 +336,9 @@ static int isarg_filename(const char *s) {
   return s[0] == '/';
 }
 
-static void cf_authorize(disorder_client attribute((unused)) *c,
+static void cf_authorize(disorder_client *c,
 			 char **argv) {
-  if(!authorize(argv[0]))
+  if(!authorize(c, argv[0]))
     auto_reconfigure = 1;
 }
 
@@ -410,6 +412,12 @@ static void cf_rtp_address(disorder_client *c,
   xprintf("address: %s\nport: %s\n", address, port);
 }
 
+static void cf_adduser(disorder_client *c,
+		       char **argv) {
+  if(disorder_adduser(c, argv[0], argv[1]))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -417,6 +425,8 @@ static const struct command {
   int (*isarg)(const char *);
   const char *argstr, *desc;
 } commands[] = {
+  { "adduser",        2, 2, cf_adduser, 0, "USER PASSWORD",
+                      "Create a new user" },
   { "allfiles",       1, 2, cf_allfiles, isarg_regexp, "DIR [~REGEXP]",
                       "List all files and directories in DIR" },
   { "authorize",      1, 1, cf_authorize, 0, "USER",
@@ -538,13 +548,14 @@ int main(int argc, char **argv) {
   disorder_client *c = 0;
   int status = 0;
   struct vector args;
+  const char *user = 0, *password = 0;
 
   mem_init();
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dHlN", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dHlNu:p:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -553,10 +564,18 @@ int main(int argc, char **argv) {
     case 'd': debugging = 1; break;
     case 'l': local = 1; break;
     case 'N': config_per_user = 0; break;
+    case 'u': user = optarg; break;
+    case 'p': password = optarg; break;
     default: fatal(0, "invalid option");
     }
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
+  if(user) {
+    config->username = user;
+    config->password = 0;
+  }
+  if(password)
+    config->password = password;
   if(local)
     config->connect.n = 0;
   if(!(c = disorder_new(1))) exit(EXIT_FAILURE);

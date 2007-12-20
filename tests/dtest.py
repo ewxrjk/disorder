@@ -166,21 +166,8 @@ def bindable(p):
     except:
         return False
 
-def common_setup():
-    remove_dir(testroot)
-    os.mkdir(testroot)
-    # Choose a port
-    global port
-    port = random.randint(49152, 65535)
-    while not bindable(port + 1):
-        print "port %d is not bindable, trying another" % (port + 1)
-        port = random.randint(49152, 65535)
-    # Log anything sent to that port
-    packetlog = "%s/packetlog" % testroot
-    subprocess.Popen(["disorder-udplog",
-                      "--output", packetlog,
-                      "127.0.0.1", "%d" % port])
-    # disorder-udplog will quit when its parent process terminates
+def default_config():
+    """Write the default config"""
     open("%s/config" % testroot, "w").write(
     """home %s
 collection fs UTF-8 %s/tracks
@@ -193,8 +180,7 @@ stopword 21 22 23 24 25 26 27 28 29 30
 stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
-allow fred fredpass
-trust fred
+trust fred root
 plugins
 plugins %s/plugins
 plugins %s/plugins/.libs
@@ -211,8 +197,25 @@ broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
 """ % (testroot, testroot, testroot, top_builddir, top_builddir,
        port, port + 1))
+
+def common_setup():
+    remove_dir(testroot)
+    os.mkdir(testroot)
+    # Choose a port
+    global port
+    port = random.randint(49152, 65535)
+    while not bindable(port + 1):
+        print "port %d is not bindable, trying another" % (port + 1)
+        port = random.randint(49152, 65535)
+    # Log anything sent to that port
+    packetlog = "%s/packetlog" % testroot
+    subprocess.Popen(["disorder-udplog",
+                      "--output", packetlog,
+                      "127.0.0.1", "%d" % port])
+    # disorder-udplog will quit when its parent process terminates
     copyfile("%s/sounds/scratch.ogg" % top_srcdir,
              "%s/scratch.ogg" % testroot)
+    default_config()
 
 def start_daemon():
     """start_daemon()
@@ -252,6 +255,15 @@ Start the daemon."""
         time.sleep(1)
     if waited > 0:
         print "  took about %ds for socket to appear" % waited
+
+def create_user(username="fred", password="fredpass"):
+    """create_user(USERNAME, PASSWORD)
+
+    Create a user, abusing direct database access to do so."""
+    print " creating user %s" % username
+    command(["disorder",
+             "--config", disorder._configfile, "--no-per-user-config",
+             "--user", "root", "adduser", username, password])
 
 def stop_daemon():
     """stop_daemon()

@@ -403,8 +403,7 @@ static const char *connection_host(struct conn *c) {
 static int c_user(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
-  int n;
-  const char *res, *host;
+  const char *res, *host, *password;
 
   if(c->who) {
     sink_writes(ev_writer_sink(c->w), "530 already authenticated\n");
@@ -416,16 +415,15 @@ static int c_user(struct conn *c,
     return 1;
   }
   /* find the user */
-  for(n = 0; n < config->allow.n
-	&& strcmp(config->allow.s[n].s[0], vec[0]); ++n)
-    ;
-  /* if it's a real user check whether the response is right */
-  if(n >= config->allow.n) {
+  password = trackdb_get_password(vec[0]);
+  /* reject nonexistent users */
+  if(!password) {
     info("S%x unknown user '%s' from %s", c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
-  res = authhash(c->nonce, sizeof c->nonce, config->allow.s[n].s[1],
+  /* check whether the response is right */
+  res = authhash(c->nonce, sizeof c->nonce, password,
 		 config->authorization_algorithm);
   if(wideopen || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
@@ -1029,6 +1027,42 @@ static int c_revoke(struct conn *c,
   return 1;
 }
 
+static int c_adduser(struct conn *c,
+		     char **vec,
+		     int attribute((unused)) nvec) {
+  /* TODO local only */
+  if(trackdb_adduser(vec[0], vec[1], default_rights(), 0))
+    sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
+  else
+    sink_writes(ev_writer_sink(c->w), "250 User created\n");
+  return 1;
+}
+
+static int c_deluser(struct conn *c,
+		     char **vec,
+		     int attribute((unused)) nvec) {
+  /* TODO local only */
+  if(trackdb_deluser(vec[0]))
+    sink_writes(ev_writer_sink(c->w), "550 Cannot deleted user\n");
+  else
+    sink_writes(ev_writer_sink(c->w), "250 User deleted\n");
+  return 1;
+}
+
+static int c_edituser(struct conn *c,
+		      char attribute((unused)) **vec,
+		      int attribute((unused)) nvec) {
+  sink_writes(ev_writer_sink(c->w), "550 Not implemented\n"); /* TODO */
+  return 1;
+}
+
+static int c_userinfo(struct conn *c,
+		      char attribute((unused)) **vec,
+		      int attribute((unused)) nvec) {
+  sink_writes(ev_writer_sink(c->w), "550 Not implemented\n"); /* TODO */
+  return 1;
+}
+
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -1038,11 +1072,14 @@ static const struct command {
   int (*fn)(struct conn *, char **, int);
   unsigned flags;
 } commands[] = {
+  { "adduser",        2, 2,       c_adduser,        C_AUTH|C_TRUSTED },
   { "allfiles",       0, 2,       c_allfiles,       C_AUTH },
   { "become",         1, 1,       c_become,         C_AUTH|C_TRUSTED },
   { "cookie",         1, 1,       c_cookie,         0 },
+  { "deluser",        1, 1,       c_deluser,        C_AUTH|C_TRUSTED },
   { "dirs",           0, 2,       c_dirs,           C_AUTH },
   { "disable",        0, 1,       c_disable,        C_AUTH },
+  { "edituser",       3, 3,       c_edituser,       C_AUTH },
   { "enable",         0, 0,       c_enable,         C_AUTH },
   { "enabled",        0, 0,       c_enabled,        C_AUTH },
   { "exists",         1, 1,       c_exists,         C_AUTH },
@@ -1081,8 +1118,9 @@ static const struct command {
   { "stats",          0, 0,       c_stats,          C_AUTH },
   { "tags",           0, 0,       c_tags,           C_AUTH },
   { "unset",          2, 2,       c_set,            C_AUTH },
-  { "unset-global",   1, 1,       c_set_global,      C_AUTH },
+  { "unset-global",   1, 1,       c_set_global,     C_AUTH },
   { "user",           2, 2,       c_user,           0 },
+  { "userinfo",       2, 2,       c_userinfo,       C_AUTH },
   { "version",        0, 0,       c_version,        C_AUTH },
   { "volume",         0, 2,       c_volume,         C_AUTH }
 };

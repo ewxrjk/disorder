@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <pcre.h>
 
 #include "log.h"
 #include "mem.h"
@@ -49,6 +50,7 @@
 #include "addr.h"
 #include "authhash.h"
 #include "client-common.h"
+#include "trackdb.h"
 
 struct disorder_client {
   FILE *fpin, *fpout;
@@ -154,22 +156,24 @@ static int connect_sock(void *vc,
 			const char *ident) {
   const char *username, *password;
   disorder_client *c = vc;
-  int n;
   
   if(!(username = config->username)) {
     error(0, "no username configured");
     return -1;
   }
-  if(!(password = config->password)) {
-    for(n = 0; (n < config->allow.n
-		&& strcmp(config->allow.s[n].s[0], username)); ++n)
-      ;
-    if(n < config->allow.n)
-      password = config->allow.s[n].s[1];
-    else {
-      error(0, "no password configured");
-      return -1;
-    }
+  password = config->password;
+  if(!password) {
+    /* Maybe we can read the database */
+    /* TODO failure to open the database should not be fatal */
+    trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
+    trackdb_open(TRACKDB_READ_ONLY);
+    password = trackdb_get_password(username);
+    trackdb_close();
+  }
+  if(!password) {
+    /* Oh well */
+    error(0, "no password configured");
+    return -1;
   }
   return disorder_connect_sock(c, sa, len, username, password, ident);
 }
@@ -644,6 +648,15 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   *addressp = vec[0];
   *portp = vec[1];
   return 0;
+}
+
+int disorder_adduser(disorder_client *c,
+		     const char *user, const char *password) {
+  return disorder_simple(c, 0, "adduser", user, password, (char *)0);
+}
+
+int disorder_deluser(disorder_client *c, const char *user) {
+  return disorder_simple(c, 0, "deluser", user, (char *)0);
 }
 
 /*

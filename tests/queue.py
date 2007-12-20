@@ -23,6 +23,7 @@ import dtest,time,disorder,re
 def test():
     """Check the queue is padded to the (default) configured length"""
     dtest.start_daemon()
+    dtest.create_user()
     c = disorder.client()
     print " getting queue via python module"
     q = c.queue()

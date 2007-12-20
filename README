@@ -160,8 +160,8 @@ skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
 
      disorder authorize USERNAME
 
-   This will automatically choose a random password and add new line to
-   /etc/disorder/config.private and create /etc/disorder/config.USERNAME.
+   This will automatically choose a random password and create
+   /etc/disorder/config.USERNAME.
 
    Those users should now be able to access the server from the same host as it
    runs on, either via the disorder command or Disobedience.  To run

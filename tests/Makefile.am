@@ -30,4 +30,4 @@ check:
 	${PYTHON} ${srcdir}/alltests
 
 EXTRA_DIST=alltests dtest.py dbversion.py search.py \
-	queue.py dump.py play.py cookie.py
+	queue.py dump.py play.py cookie.py user-upgrade.py user.py

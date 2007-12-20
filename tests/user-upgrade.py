@@ -18,29 +18,24 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder,sys,re,subprocess
+import dtest,disorder
 
 def test():
-    """Database version tests"""
-    # Start up with dbversion 1
-    config = "%s/config" % dtest.testroot
-    configsave = "%s.save" % config
-    dtest.copyfile(config, configsave)
-    open(config, "a").write("dbversion 1\n")
+    """Test upgrade to new user database"""
+    print " testing upgrade from old versions"
+    open("%s/config" % dtest.testroot, "a").write(
+      """allow fred fredpass
+""")
     dtest.start_daemon()
-    dtest.create_user()
-    dtest.stop_daemon()
-    # Revert to default configuration
-    dtest.copyfile(configsave, config)
-    print " testing daemon manages to upgrade..."
-    dtest.start_daemon()
-    assert dtest.check_files() == 0, "dtest.check_files"
-    print " getting server version"
+    print " checking can log in after upgrade"
     c = disorder.client()
-    v = c.version()
-    print "Server version: %s" % v
-    print " getting server stats"
-    s = c.stats()
+    c.version()
+    dtest.stop_daemon()
+    dtest.default_config()
+    dtest.start_daemon()
+    print " checking can log in after removing 'allow'"
+    c = disorder.client()
+    c.version()
 
 if __name__ == '__main__':
     dtest.run()

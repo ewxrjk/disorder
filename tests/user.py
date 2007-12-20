@@ -18,29 +18,30 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder,sys,re,subprocess
+import dtest,disorder
 
 def test():
-    """Database version tests"""
-    # Start up with dbversion 1
-    config = "%s/config" % dtest.testroot
-    configsave = "%s.save" % config
-    dtest.copyfile(config, configsave)
-    open(config, "a").write("dbversion 1\n")
+    """Test user database"""
     dtest.start_daemon()
     dtest.create_user()
-    dtest.stop_daemon()
-    # Revert to default configuration
-    dtest.copyfile(configsave, config)
-    print " testing daemon manages to upgrade..."
-    dtest.start_daemon()
-    assert dtest.check_files() == 0, "dtest.check_files"
-    print " getting server version"
+    print " checking user creation"
     c = disorder.client()
-    v = c.version()
-    print "Server version: %s" % v
-    print " getting server stats"
-    s = c.stats()
+    c.adduser("bob", "bobpass")
+    print " checking new user can log in"
+    c = disorder.client(user="bob", password="bobpass")
+    c.version()
+    print " checking user deletion"
+    c = disorder.client()
+    c.deluser("bob")
+    print " checking new user can no longer log in"
+    c = disorder.client(user="bob", password="bobpass")
+    try:
+      c.version()
+      print "*** should not be able to log in after deletion ***"
+      assert False
+    except disorder.operationError:
+      pass                              # good
+    print " deleted user could no longer log in."
 
 if __name__ == '__main__':
     dtest.run()

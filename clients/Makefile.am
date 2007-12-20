@@ -27,7 +27,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=disorder.c authorize.c authorize.h \
 	../lib/memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBDB)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c \
@@ -38,7 +38,7 @@ disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c \
 			 playrtp-alsa.c playrtp-coreaudio.c playrtp-oss.c
 disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) $(LIBDB)
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c

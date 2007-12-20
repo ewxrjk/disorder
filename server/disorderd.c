@@ -56,7 +56,6 @@
 #include "mixer.h"
 #include "eventlog.h"
 #include "printf.h"
-#include "setup.h"
 
 static ev_source *ev;
 
@@ -249,8 +248,6 @@ int main(int argc, char **argv) {
     fatal(0, "cannot read configuration");
   /* make sure the home directory exists and has suitable permissions */
   make_home();
-  /* create the default login */
-  make_root_login();
   /* Start the speaker process (as root! - so it can choose its nice value) */
   speaker_setup(ev);
   /* set server nice value _after_ starting the speaker, so that they
@@ -279,8 +276,12 @@ int main(int argc, char **argv) {
   /* initialize database environment */
   trackdb_init(TRACKDB_NORMAL_RECOVER|TRACKDB_MAY_CREATE);
   trackdb_master(ev);
-  /* install new config */
+  /* install new config (calls trackdb_open()) */
   reconfigure(ev, 0);
+  /* pull in old users */
+  trackdb_old_users();
+  /* create a root login */
+  trackdb_create_root();
   /* re-read config if we receive a SIGHUP */
   if(ev_signal(ev, SIGHUP, handle_sighup, 0)) fatal(0, "ev_signal failed");
   /* exit on SIGINT/SIGTERM */

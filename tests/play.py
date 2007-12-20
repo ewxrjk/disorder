@@ -23,9 +23,10 @@ import dtest,time,disorder,re
 def test():
     """Play some tracks"""
     dtest.start_daemon()
+    dtest.create_user()
     c = disorder.client()
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
-    print "adding track to queue"
+    print " adding track to queue"
     c.play(track)
     print " checking track turned up in queue"
     q = c.queue()

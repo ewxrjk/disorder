@@ -41,6 +41,7 @@ def check_search_results(terms, expected):
 def test():
     """Check that the search produces the right results"""
     dtest.start_daemon()
+    dtest.create_user()
     time.sleep(2)                       # give rescan a chance
     global client
     client = disorder.client()

@@ -276,7 +276,7 @@ class client:
   debug_proto = 0x0001
   debug_body = 0x0002
 
-  def __init__(self):
+  def __init__(self, user=None, password=None):
     """Constructor for DisOrder client class.
 
     The constructor reads the configuration file, but does not connect
@@ -294,6 +294,8 @@ class client:
     self.config = { 'collections': [],
                     'username': pw.pw_name,
                     'home': _dbhome }
+    self.user = user
+    self.password = password
     home = os.getenv("HOME")
     if not home:
       home = pw.pw_dir
@@ -375,10 +377,18 @@ class client:
         self.r = s.makefile("rb")
         (res, challenge) = self._simple()
         if cookie is None:
+          if self.user is None:
+            user = self.config['username']
+          else:
+            user = self.user
+          if self.password is None:
+            password = self.config['password']
+          else:
+            password = self.password
           h = sha.sha()
-          h.update(self.config['password'])
+          h.update(password)
           h.update(binascii.unhexlify(challenge))
-          self._simple("user", self.config['username'], h.hexdigest())
+          self._simple("user", user, h.hexdigest())
         else:
           self._simple("cookie", cookie)
         self.state = 'connected'
@@ -849,6 +859,14 @@ class client:
   def revoke(self):
     """Revoke a login cookie"""
     self._simple("revoke")
+
+  def adduser(self, user, password):
+    """Create a user"""
+    self._simple("adduser", user, password)
+
+  def deluser(self, user):
+    """Delete a user"""
+    self._simple("deluser", user)
 
   ########################################################################
   # I/O infrastructure

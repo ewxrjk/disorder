@@ -29,13 +29,19 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+#include "client.h"
 #include "authorize.h"
 #include "log.h"
 #include "configuration.h"
 #include "printf.h"
 #include "hex.h"
 
-int authorize(const char *user) {
+/** @brief Create a DisOrder login for the calling user, called @p user
+ * @param client DisOrder client
+ * @param user Username to create
+ * @return 0 on success, non-0 on error
+ */
+int authorize(disorder_client *client, const char *user) {
   uint8_t pwbin[10];
   const struct passwd *pw, *jbpw;
   gid_t jbgid;
@@ -75,21 +81,10 @@ int authorize(const char *user) {
   if(rename(t, c) < 0)
     fatal(errno, "error renaming %s to %s", t, c);
 
-  /* append to config.private.  We might create it along the way (though this
-   * is unlikely) in which case it had better be 640 root:jukebox */
-  if(!(c = config_private()))
-    fatal(0, "cannot determine private config file");
-  if((fd = open(c, O_WRONLY|O_APPEND|O_CREAT, 0600)) < 0)
-    fatal(errno, "error opening %s", c);
-  if(fchown(fd, 0, jbgid) < 0)
-    fatal(errno, "error chowning %s", c);
-  if(fchmod(fd, 0640) < 0)
-    fatal(errno, "error chmoding %s", t);
-  if(!(fp = fdopen(fd, "a")))
-    fatal(errno, "error calling fdopen");
-  if(fprintf(fp, "allow %s %s\n", user, pwhex) < 0
-     || fclose(fp) < 0)
-    fatal(errno, "error appending to %s", c);
+  /* create the user on the server */
+  if(disorder_adduser(client, user, pwhex))
+    return -1;
+
   return 0;
 }
 

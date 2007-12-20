@@ -23,6 +23,7 @@ import dtest,time,disorder,sys
 def test():
     """Check that the file listing comes out right"""
     dtest.start_daemon()
+    dtest.create_user()
     assert dtest.check_files() == 0, "dtest.check_files"
     print " checking regexp file listing"
     c = disorder.client()

@@ -18,7 +18,10 @@
  * USA
  */
 /** @file server/trackdb.c
- * @brief Track database */
+ * @brief Track database
+ *
+ * This file is getting in desparate need of splitting up...
+ */
 
 #include <config.h>
 #include "types.h"
@@ -39,6 +42,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <gcrypt.h>
 
 #include "event.h"
 #include "mem.h"
@@ -59,6 +63,7 @@
 #include "hash.h"
 #include "unicode.h"
 #include "unidata.h"
+#include "mime.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -190,8 +195,6 @@ void trackdb_init(int flags) {
     struct stat st;
     char *p;
 
-    /* create home directory if it does not exist */
-    mkdir(config->home, 0755);
     /* Remove world/group permissions on any regular files already in the
      * database directory.  Actually we don't care about all of them but it's
      * easier to just do the lot.  This can be revisited if it's a serious
@@ -206,7 +209,7 @@ void trackdb_init(int flags) {
       if(lstat(p, &st) == 0
          && S_ISREG(st.st_mode)
          && (st.st_mode & 077)) {
-        if(chmod(p, st.st_mode & (~(mode_t)077) & 07777) < 0)
+        if(chmod(p, st.st_mode & 07700) < 0)
           fatal(errno, "cannot chmod %s", p);
       }
       xfree(p);
@@ -270,8 +273,11 @@ static pid_t subprogram(ev_source *ev, const char *prog,
       xdup2(outputfd, 1);
       xclose(outputfd);
     }
-    /* If we were negatively niced, undo it.  We don't bother checking for
-     * error, it's not that important. */
+    /* ensure we don't leak privilege anywhere */
+    if(setuid(geteuid()) < 0)
+      fatal(errno, "error calling setuid");
+    /* If we were negatively niced, undo it.  We don't bother checking for 
+    * error, it's not that important. */
     setpriority(PRIO_PROCESS, 0, 0);
     execlp(prog, prog, "--config", configfile,
            debugging ? "--debug" : "--no-debug",
@@ -345,20 +351,23 @@ static DB *open_db(const char *path,
 /** @brief Open track databases
  * @param Flags flags word
  *
- * @p flags should be one of:
+ * @p flags should have one of:
  * - @p TRACKDB_NO_UPGRADE, if no upgrade should be attempted
  * - @p TRACKDB_CAN_UPGRADE, if an upgrade may be attempted
  * - @p TRACKDB_OPEN_FOR_UPGRADE, if this is disorder-dbupgrade
+ * Also it may have:
+ * - @p TRACKDB_READ_ONLY, read only access
  */
 void trackdb_open(int flags) {
   int err;
   pid_t pid;
+  uint32_t dbflags = flags & TRACKDB_READ_ONLY ? DB_RDONLY : DB_CREATE;
 
   /* sanity checks */
   assert(opened == 0);
   ++opened;
   /* check the database version first */
-  trackdb_globaldb = open_db("global.db", 0, DB_HASH, 0, 0666);
+  trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_RDONLY, 0666);
   if(trackdb_globaldb) {
     /* This is an existing database */
     const char *s;
@@ -415,17 +424,17 @@ void trackdb_open(int flags) {
   }
   /* open the databases */
   trackdb_tracksdb = open_db("tracks.db",
-                             DB_RECNUM, DB_BTREE, DB_CREATE, 0666);
+                             DB_RECNUM, DB_BTREE, dbflags, 0666);
   trackdb_searchdb = open_db("search.db",
-                             DB_DUP|DB_DUPSORT, DB_HASH, DB_CREATE, 0666);
+                             DB_DUP|DB_DUPSORT, DB_HASH, dbflags, 0666);
   trackdb_tagsdb = open_db("tags.db",
-                           DB_DUP|DB_DUPSORT, DB_HASH, DB_CREATE, 0666);
-  trackdb_prefsdb = open_db("prefs.db", 0, DB_HASH, DB_CREATE, 0666);
-  trackdb_globaldb = open_db("global.db", 0, DB_HASH, DB_CREATE, 0666);
+                           DB_DUP|DB_DUPSORT, DB_HASH, dbflags, 0666);
+  trackdb_prefsdb = open_db("prefs.db", 0, DB_HASH, dbflags, 0666);
+  trackdb_globaldb = open_db("global.db", 0, DB_HASH, dbflags, 0666);
   trackdb_noticeddb = open_db("noticed.db",
-                             DB_DUPSORT, DB_BTREE, DB_CREATE, 0666);
+                             DB_DUPSORT, DB_BTREE, dbflags, 0666);
   trackdb_usersdb = open_db("users.db",
-                            0, DB_HASH, DB_CREATE, 0600);
+                            0, DB_HASH, dbflags, 0600);
   if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
@@ -440,7 +449,7 @@ void trackdb_open(int flags) {
 /* close track databases */
 void trackdb_close(void) {
   int err;
-  
+
   /* sanity checks */
   assert(opened == 1);
   --opened;
@@ -513,7 +522,12 @@ int trackdb_putdata(DB *db,
   }
 }
 
-/* delete a database entry */
+/** @brief Delete a database entry
+ * @param db Database
+ * @param track Key to delete
+ * @param tid Transaction ID
+ * @return 0, DB_NOTFOUND or DB_LOCK_DEADLOCK
+ */
 int trackdb_delkey(DB *db,
                    const char *track,
                    DB_TXN *tid) {
@@ -918,7 +932,7 @@ static int gettrackdata(const char *track,
   int err;
   const char *actual = track;
   struct kvp *t = 0, *p = 0;
-  
+
   if((err = trackdb_getdata(trackdb_tracksdb, track, &t, tid))) goto done;
   if((actual = kvp_get(t, "_alias_for"))) {
     if(flags & GTD_NOALIAS) {
@@ -950,7 +964,7 @@ int trackdb_notice(const char *track,
                    const char *path) {
   int err;
   DB_TXN *tid;
-  
+
   for(;;) {
     tid = trackdb_begin_transaction();
     err = trackdb_notice_tid(track, path, tid);
@@ -1043,11 +1057,12 @@ int trackdb_obsolete(const char *track, DB_TXN *tid) {
     return err;
   else if(err == DB_NOTFOUND) return 0;
   /* compute the alias, if any, and delete it */
-  if(compute_alias(&alias, track, p, tid)) return err;
+  if((err = compute_alias(&alias, track, p, tid))) return err;
   if(alias) {
     /* if the alias points to some other track then compute_alias won't
      * return it */
-    if(trackdb_delkey(trackdb_tracksdb, alias, tid))
+    if((err = trackdb_delkey(trackdb_tracksdb, alias, tid))
+       && err != DB_NOTFOUND)
       return err;
   }
   /* update search.db */
@@ -1236,7 +1251,7 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
 char **trackdb_stats(int *nstatsp) {
   DB_TXN *tid;
   struct vector v;
-  
+
   vector_init(&v);
   for(;;) {
     tid = trackdb_begin_transaction();
@@ -1356,7 +1371,7 @@ int trackdb_set(const char *track,
   if(value) {
     /* TODO: if value matches default then set value=0 */
   }
-  
+
   for(;;) {
     tid = trackdb_begin_transaction();
     if((err = gettrackdata(track, &t, &p, 0,
@@ -1384,7 +1399,8 @@ int trackdb_set(const char *track,
            || (oldalias && newalias && !strcmp(oldalias, newalias)))) {
         /* adjust alias records to fit change */
         if(oldalias
-           && trackdb_delkey(trackdb_tracksdb, oldalias, tid)) goto fail;
+           && trackdb_delkey(trackdb_tracksdb, oldalias, tid) == DB_LOCK_DEADLOCK)
+          goto fail;
         if(newalias) {
           a = 0;
           kvp_set(&a, "_alias_for", track);
@@ -1465,7 +1481,7 @@ fail:
 const char *trackdb_resolve(const char *track) {
   DB_TXN *tid;
   const char *actual;
-  
+
   for(;;) {
     tid = trackdb_begin_transaction();
     if(gettrackdata(track, 0, 0, &actual, 0, tid) == DB_LOCK_DEADLOCK)
@@ -1827,7 +1843,7 @@ static int do_list(struct vector *v, const char *dir,
   size_t l, last_dir_len = 0;
   char *last_dir = 0, *track, *alias;
   struct kvp *p;
-  
+
   dl = strlen(dir);
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
   make_key(&k, dir);
@@ -1913,7 +1929,7 @@ fail:
   if(np)
     *np = v.nvec;
   return v.vec;
-}  
+}
 
 /* If S is tag:something, return something.  Else return 0. */
 static const char *checktag(const char *s) {
@@ -1946,7 +1962,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
   for(n = 0; n < nwordlist; ++n) {
     uint32_t *w32;
     size_t nw32;
-    
+
     w[n] = utf8_casefold_compat(wordlist[n], strlen(wordlist[n]), 0);
     if(checktag(w[n])) {
       ++ntags;         /* count up tags */
@@ -2393,6 +2409,287 @@ void trackdb_gc(void) {
    * preserve the important data by using disorder-dump to snapshot their
    * prefs, and later to restore it.  This is likely to have much small
    * long-term storage requirements than record the db logfiles. */
+}
+
+/* user database *************************************************************/
+
+/** @brief Return true if @p user is trusted */
+static int trusted(const char *user) {
+  int n;
+
+  for(n = 0; (n < config->trust.n
+	      && strcmp(config->trust.s[n], user)); ++n)
+    ;
+  return n < config->trust.n;
+}
+
+static const struct {
+  rights_type bit;
+  const char *name;
+} rights_names[] = {
+  { RIGHT_READ, "read" },
+  { RIGHT_PLAY, "play" },
+  { RIGHT_MOVE_ANY, "move any" },
+  { RIGHT_MOVE_MINE, "move mine" },
+  { RIGHT_MOVE_RANDOM, "move random" },
+  { RIGHT_REMOVE_ANY, "remove any" },
+  { RIGHT_REMOVE_MINE, "remove mine" },
+  { RIGHT_REMOVE_RANDOM, "remove random" },
+  { RIGHT_SCRATCH_ANY, "scratch any" },
+  { RIGHT_SCRATCH_MINE, "scratch mine" },
+  { RIGHT_SCRATCH_RANDOM, "scratch random" },
+  { RIGHT_VOLUME, "volume" },
+  { RIGHT_ADMIN, "admin" },
+  { RIGHT_RESCAN, "rescan" },
+  { RIGHT_REGISTER, "register" },
+  { RIGHT_USERINFO, "userinfo" },
+  { RIGHT_PREFS, "prefs" },
+  { RIGHT_GLOBAL_PREFS, "global prefs" }
+};
+#define NRIGHTS (sizeof rights_names / sizeof *rights_names)
+
+/** @brief Convert a rights word to a string */
+static char *rights_string(rights_type r) {
+  struct dynstr d[1];
+  size_t n;
+
+  dynstr_init(d);
+  for(n = 0; n < NRIGHTS; ++n) {
+    if(r & rights_names[n].bit) {
+      if(d->nvec)
+        dynstr_append(d, ',');
+      dynstr_append_string(d, rights_names[n].name);
+    }
+  }
+  dynstr_terminate(d);
+  return d->vec;
+}
+
+/** @brief Compute default rights for a new user */
+rights_type default_rights(void) {
+  /* TODO get rights from config.  This is probably in the wrong place but it
+   * will do for now... */
+  rights_type r = RIGHTS__MASK & ~(RIGHT_ADMIN|RIGHT_REGISTER
+                                   |RIGHT_MOVE__MASK
+                                   |RIGHT_SCRATCH__MASK
+                                   |RIGHT_REMOVE__MASK);
+  if(config->restrictions & RESTRICT_SCRATCH)
+    r |= RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM;
+  else
+    r |= RIGHT_SCRATCH_ANY;
+  if(!(config->restrictions & RESTRICT_MOVE))
+    r |= RIGHT_MOVE_ANY;
+  if(config->restrictions & RESTRICT_REMOVE)
+    r |= RIGHT_REMOVE_MINE;
+  else
+    r |= RIGHT_REMOVE_ANY;
+  return r;
+}
+
+/** @brief Add a user */
+static int create_user(const char *user,
+                       const char *password,
+                       const char *rights,
+                       const char *email,
+                       DB_TXN *tid,
+                       uint32_t flags) {
+  struct kvp *k = 0;
+  char s[64];
+
+  /* data for this user */
+  if(password)
+    kvp_set(&k, "password", password);
+  kvp_set(&k, "rights", rights);
+  if(email)
+    kvp_set(&k, "email", email);
+  snprintf(s, sizeof s, "%jd", (intmax_t)time(0));
+  kvp_set(&k, "created", s);
+  return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
+}
+
+/** @brief Add one pre-existing user */
+static int one_old_user(const char *user, const char *password,
+                        DB_TXN *tid) {
+  const char *rights;
+
+  /* www-data doesn't get added */
+  if(!strcmp(user, "www-data")) {
+    info("not adding www-data to user database");
+    return 0;
+  }
+  /* pick rights */
+  if(!strcmp(user, "root"))
+    rights = "all";
+  else if(trusted(user))
+    rights = rights_string(default_rights()|RIGHT_ADMIN);
+  else
+    rights = rights_string(default_rights());
+  return create_user(user, password, rights, 0/*email*/, tid, DB_NOOVERWRITE);
+}
+
+static int trackdb_old_users_tid(DB_TXN *tid) {
+  int n;
+
+  for(n = 0; n < config->allow.n; ++n) {
+    switch(one_old_user(config->allow.s[n].s[0], config->allow.s[n].s[1],
+                        tid)) {
+    case 0:
+      info("created user %s from 'allow' directive", config->allow.s[n].s[0]);
+      break;
+    case DB_KEYEXIST:
+      error(0, "user %s already exists, delete 'allow' directive",
+            config->allow.s[n].s[0]);
+          /* This won't ever become fatal - eventually 'allow' will be
+           * disabled. */
+      break;
+    case DB_LOCK_DEADLOCK:
+      return DB_LOCK_DEADLOCK;
+    }
+  }
+  return 0;
+}
+
+/** @brief Read old 'allow' directives and copy them to the users database */
+void trackdb_old_users(void) {
+  int e;
+
+  if(config->allow.n)
+    WITH_TRANSACTION(trackdb_old_users_tid(tid));
+}
+
+/** @brief Create a root user in the user database if there is none */
+void trackdb_create_root(void) {
+  int e;
+  uint8_t pwbin[12];
+  char *pw;
+
+  /* Choose a new root password */
+  gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
+  pw = mime_to_base64(pwbin, sizeof pwbin);
+  /* Create the root user if it does not exist */
+  WITH_TRANSACTION(create_user("root", pw, "all", 0/*email*/, tid,
+                               DB_NOOVERWRITE));
+  if(e == 0)
+    info("created root user");
+}
+
+/** @brief Find a user's password from the database
+ * @param user Username
+ * @return Password or NULL
+ *
+ * Only works if running as a user that can read the database!
+ *
+ * If the user exists but has no password, "" is returned.
+ */
+const char *trackdb_get_password(const char *user) {
+  int e;
+  struct kvp *k;
+  const char *password;
+
+  WITH_TRANSACTION(trackdb_getdata(trackdb_usersdb, user, &k, tid));
+  if(e)
+    return 0;
+  password = kvp_get(k, "password");
+  return password ? password : "";
+}
+
+/** @brief Add a new user
+ * @param user Username
+ * @param password Password or NULL
+ * @param rights Initial rights
+ * @param email Email address
+ * @return 0 on success, non-0 on error
+ */
+int trackdb_adduser(const char *user,
+                    const char *password,
+                    rights_type rights,
+                    const char *email) {
+  int e;
+  const char *r = rights_string(rights);
+
+  WITH_TRANSACTION(create_user(user, password, r, email,
+                               tid, DB_NOOVERWRITE));
+  if(e) {
+    error(0, "cannot created user '%s' because they already exist", user);
+    return -1;
+  } else {
+    if(email)
+      info("created user '%s' with rights '%s' and email address '%s'",
+           user, r, email);
+    else
+      info("created user '%s' with rights '%s'", user, r);
+    return 0;
+  }
+}
+
+/** @brief Delete a user
+ * @param user User to delete
+ * @param 0 on success, non-0 if the user didn't exist anyway
+ */
+int trackdb_deluser(const char *user) {
+  int e;
+
+  WITH_TRANSACTION(trackdb_delkey(trackdb_usersdb, user, tid));
+  if(e) {
+    error(0, "cannot delete user '%s' because they do not exist", user);
+    return -1;
+  }
+  info("deleted user '%s'", user);
+  return 0;
+}
+
+/** @brief Get user information
+ * @param user User to query
+ * @return Linked list of user information or NULL if user does not exist
+ *
+ * Every user has at least a @c rights entry so NULL can be used to mean no
+ * such user safely.
+ */
+struct kvp *trackdb_getuserinfo(const char *user) {
+  int e;
+  struct kvp *k;
+
+  WITH_TRANSACTION(trackdb_getdata(trackdb_usersdb, user, &k, tid));
+  if(e)
+    return 0;
+  else
+    return k;
+}
+
+/** @brief Edit user information
+ * @param user User to edit
+ * @param key Key to change
+ * @param value Value to set, or NULL to remove
+ * @param tid Transaction ID
+ * @return 0, DB_LOCK_DEADLOCK or DB_NOTFOUND
+ */
+static int trackdb_edituserinfo_tid(const char *user, const char *key,
+                                    const char *value, DB_TXN *tid) {
+  struct kvp *k;
+  int e;
+
+  if((e = trackdb_getdata(trackdb_usersdb, user, &k, tid)))
+    return e;
+  if(!kvp_set(&k, key, value))
+    return 0;                           /* no change */
+  return trackdb_putdata(trackdb_usersdb, user, k, tid, 0);
+}
+
+/** @brief Edit user information
+ * @param user User to edit
+ * @param key Key to change
+ * @param value Value to set, or NULL to remove
+ * @return 0 on success, non-0 on error
+ */
+int trackdb_edituserinfo(const char *user,
+                         const char *key, const char *value) {
+  int e;
+
+  WITH_TRANSACTION(trackdb_edituserinfo_tid(user, key, value, tid));
+  if(e)
+    return -1;
+  else
+    return 0;
 }
 
 /*

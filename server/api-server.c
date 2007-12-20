@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include "types.h"
 
 #include <stdio.h>
 #include <stdlib.h>

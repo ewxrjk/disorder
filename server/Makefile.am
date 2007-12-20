@@ -32,17 +32,15 @@ disorderd_SOURCES=disorderd.c				\
 	play.c play.h 					\
 	server.c server.h     				\
 	server-queue.c server-queue.h			\
-	setup.c setup.h					\
 	state.c state.h					\
-	trackdb.c trackdb.h trackdb-int.h exports.c 	\
+	exports.c 					\
 	../lib/memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_deadlock_SOURCES=deadlock.c                    \
-	trackdb.c trackdb.h
+disorder_deadlock_SOURCES=deadlock.c
 disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
@@ -69,26 +67,25 @@ disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c                        \
 	api.c api-server.c				\
-	trackdb.c trackdb.h exports.c			\
+	exports.c			                \
 	../lib/memgc.c
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_stats_SOURCES=stats.c trackdb.c trackdb.h
+disorder_stats_SOURCES=stats.c
 disorder_stats_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_stats_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_dump_SOURCES=dump.c                           	\
-        trackdb.c trackdb.h				\
 	../lib/memgc.c
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC) $(LIBGCRYPT)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
-disorder_dbupgrade_SOURCES=dbupgrade.c trackdb.c trackdb.h ../lib/memgc.c
+disorder_dbupgrade_SOURCES=dbupgrade.c ../lib/memgc.c
 disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
@@ -97,7 +94,7 @@ disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\
 	cgi.c cgi.h cgimain.c exports.c
 disorder_cgi_LDADD=../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL)
+	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
 disorder_cgi_LDFLAGS=-export-dynamic
 disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
 

@@ -53,6 +53,24 @@ void trackdb_abort_transaction(DB_TXN *tid);
 void trackdb_commit_transaction(DB_TXN *tid);
 /* begin, abort or commit a transaction */
 
+/** @brief Evaluate @p expr in a transaction, looping on deadlock
+ *
+ * @c tid will be the transaction handle.  @p e will be the error code.
+ */
+#define WITH_TRANSACTION(expr) do {             \
+  DB_TXN *tid;                                  \
+                                                \
+  tid = trackdb_begin_transaction();            \
+  while((e = (expr)) == DB_LOCK_DEADLOCK) {     \
+    trackdb_abort_transaction(tid);             \
+    tid = trackdb_begin_transaction();          \
+  }                                             \
+  if(e)                                         \
+    trackdb_abort_transaction(tid);             \
+  else                                          \
+    trackdb_commit_transaction(tid);            \
+} while(0)
+
 int trackdb_getdata(DB *db,
                     const char *track,
                     struct kvp **kp,

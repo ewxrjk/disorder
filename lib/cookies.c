@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <time.h>
 #include <gcrypt.h>
+#include <pcre.h>
 
 #include "cookies.h"
 #include "hash.h"
@@ -39,6 +40,7 @@
 #include "mime.h"
 #include "configuration.h"
 #include "kvp.h"
+#include "trackdb.h"
 
 /** @brief Hash function used in signing HMAC */
 #define ALGO GCRY_MD_SHA1
@@ -112,10 +114,9 @@ static char *sign(const uint8_t *key,
  * @return Cookie or NULL
  */
 char *make_cookie(const char *user) {
-  char *password;
+  const char *password;
   time_t now;
   char *b, *bp, *c, *g;
-  int n;
 
   /* semicolons aren't allowed in usernames */
   if(strchr(user, ';')) {
@@ -123,14 +124,11 @@ char *make_cookie(const char *user) {
     return 0;
   }
   /* look up the password */
-  for(n = 0; n < config->allow.n
-	&& strcmp(config->allow.s[n].s[0], user); ++n)
-    ;
-  if(n >= config->allow.n) {
+  password = trackdb_get_password(user);
+  if(!password) {
     error(0, "make_cookie for nonexistent user");
     return 0;
   }
-  password = config->allow.s[n].s[1];
   /* make sure we have a valid signing key */
   time(&now);
   if(now >= signing_key_validity_limit)
@@ -155,8 +153,8 @@ char *verify_cookie(const char *cookie) {
   char *c1, *c2;
   intmax_t t;
   time_t now;
-  char *user, *bp, *password, *sig;
-  int n;
+  char *user, *bp, *sig;
+  const char *password;
 
   /* check the revocation list */
   if(revoked && hash_find(revoked, cookie)) {
@@ -189,14 +187,11 @@ char *verify_cookie(const char *cookie) {
     return 0;
   }
   /* look up the password */
-  for(n = 0; n < config->allow.n
-	&& strcmp(config->allow.s[n].s[0], user); ++n)
-    ;
-  if(n >= config->allow.n) {
+  password = trackdb_get_password(user);
+  if(!password) {
     error(0, "verify_cookie for nonexistent user");
     return 0;
   }
-  password = config->allow.s[n].s[1];
   /* construct the expected subject.  We re-encode the timestamp and the
    * password. */
   byte_xasprintf(&bp, "%jx;%s;%s", t, urlencodestring(user), password);
