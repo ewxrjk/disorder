@@ -29,72 +29,6 @@ extern const struct cache_type cache_files_type;
 extern unsigned long cache_files_hits, cache_files_misses;
 /* Cache entry type and tracking for regexp-based lookups */
 
-/** @brief User can perform read-only operations */
-#define RIGHT_READ            0x00000001
-
-/** @brief User can add tracks to the queue */
-#define RIGHT_PLAY            0x00000002
-
-/** @brief User can move any track */
-#define RIGHT_MOVE_ANY        0x00000004
-
-/** @brief User can move their own tracks */
-#define RIGHT_MOVE_MINE       0x00000008
-
-/** @brief User can move randomly chosen tracks */
-#define RIGHT_MOVE_RANDOM     0x00000010
-
-#define RIGHT_MOVE__MASK      0x0000001c
-
-/** @brief User can remove any track */
-#define RIGHT_REMOVE_ANY      0x00000020
-
-/** @brief User can remove their own tracks */
-#define RIGHT_REMOVE_MINE     0x00000040
-
-/** @brief User can remove randomly chosen tracks */
-#define RIGHT_REMOVE_RANDOM   0x00000080
-
-#define RIGHT_REMOVE__MASK    0x000000e0
-
-/** @brief User can scratch any track */
-#define RIGHT_SCRATCH_ANY     0x00000100
-
-/** @brief User can scratch their own tracks */
-#define RIGHT_SCRATCH_MINE    0x00000200
-
-/** @brief User can scratch randomly chosen tracks */
-#define RIGHT_SCRATCH_RANDOM  0x00000400
-
-#define RIGHT_SCRATCH__MASK   0x00000700
-
-/** @brief User can change the volume */
-#define RIGHT_VOLUME          0x00000800
-
-/** @brief User can perform admin operations */
-#define RIGHT_ADMIN           0x00001000
-
-/** @brief User can initiate a rescan */
-#define RIGHT_RESCAN          0x00002000
-
-/** @brief User can register new users */
-#define RIGHT_REGISTER        0x00004000
-
-/** @brief User can edit their own userinfo */
-#define RIGHT_USERINFO        0x00008000
-
-/** @brief User can modify track preferences */
-#define RIGHT_PREFS           0x00010000
-
-/** @brief User can modify global preferences */
-#define RIGHT_GLOBAL_PREFS    0x00020000
-
-/** @brief Current rights mask */
-#define RIGHTS__MASK          0x0003ffff
-
-/** @brief Unsigned type big enough for rights */
-typedef uint32_t rights_type;
-
 /** @brief Do not attempt database recovery (trackdb_init()) */
 #define TRACKDB_NO_RECOVER 0x0000
 
@@ -233,8 +167,6 @@ int trackdb_deluser(const char *user);
 struct kvp *trackdb_getuserinfo(const char *user);
 int trackdb_edituserinfo(const char *user,
                          const char *key, const char *value);
-
-rights_type default_rights(void);
 
 #endif /* TRACKDB_H */
 

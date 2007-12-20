@@ -34,6 +34,7 @@
 #include "log.h"
 #include "syscalls.h"
 #include "configuration.h"
+#include "rights.h"
 #include "trackdb.h"
 
 static const struct option options[] = {

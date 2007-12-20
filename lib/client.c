@@ -50,6 +50,7 @@
 #include "addr.h"
 #include "authhash.h"
 #include "client-common.h"
+#include "rights.h"
 #include "trackdb.h"
 
 struct disorder_client {
@@ -657,6 +658,15 @@ int disorder_adduser(disorder_client *c,
 
 int disorder_deluser(disorder_client *c, const char *user) {
   return disorder_simple(c, 0, "deluser", user, (char *)0);
+}
+
+int disorder_userinfo(disorder_client *c, const char *user, const char *key) {
+  return disorder_simple(c, 0, "userinfo", user, key, (char *)0);
+}
+
+int disorder_edituser(disorder_client *c, const char *user,
+		      const char *key, const char *value) {
+  return disorder_simple(c, 0, "edituser", user, key, value, (char *)0);
 }
 
 /*

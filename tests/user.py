@@ -30,6 +30,10 @@ def test():
     print " checking new user can log in"
     c = disorder.client(user="bob", password="bobpass")
     c.version()
+    print " checking bob can set their email address"
+    c.edituser("bob", "email", "foo@bar")
+    email = c.userinfo("bob", "email")
+    assert email == "foo@bar", "checking bob's email address"
     print " checking user deletion"
     c = disorder.client()
     c.deluser("bob")

@@ -33,6 +33,7 @@
 #include "mem.h"
 #include "disorder.h"
 #include "event.h"
+#include "rights.h"
 #include "trackdb.h"
 
 int disorder_track_exists(const char *track)  {

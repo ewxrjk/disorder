@@ -44,6 +44,7 @@
 #include "configuration.h"
 #include "queue.h"
 #include "server-queue.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "play.h"
 #include "plugin.h"

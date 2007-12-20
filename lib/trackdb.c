@@ -49,6 +49,7 @@
 #include "kvp.h"
 #include "log.h"
 #include "vector.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "configuration.h"
 #include "syscalls.h"
@@ -2423,69 +2424,6 @@ static int trusted(const char *user) {
   return n < config->trust.n;
 }
 
-static const struct {
-  rights_type bit;
-  const char *name;
-} rights_names[] = {
-  { RIGHT_READ, "read" },
-  { RIGHT_PLAY, "play" },
-  { RIGHT_MOVE_ANY, "move any" },
-  { RIGHT_MOVE_MINE, "move mine" },
-  { RIGHT_MOVE_RANDOM, "move random" },
-  { RIGHT_REMOVE_ANY, "remove any" },
-  { RIGHT_REMOVE_MINE, "remove mine" },
-  { RIGHT_REMOVE_RANDOM, "remove random" },
-  { RIGHT_SCRATCH_ANY, "scratch any" },
-  { RIGHT_SCRATCH_MINE, "scratch mine" },
-  { RIGHT_SCRATCH_RANDOM, "scratch random" },
-  { RIGHT_VOLUME, "volume" },
-  { RIGHT_ADMIN, "admin" },
-  { RIGHT_RESCAN, "rescan" },
-  { RIGHT_REGISTER, "register" },
-  { RIGHT_USERINFO, "userinfo" },
-  { RIGHT_PREFS, "prefs" },
-  { RIGHT_GLOBAL_PREFS, "global prefs" }
-};
-#define NRIGHTS (sizeof rights_names / sizeof *rights_names)
-
-/** @brief Convert a rights word to a string */
-static char *rights_string(rights_type r) {
-  struct dynstr d[1];
-  size_t n;
-
-  dynstr_init(d);
-  for(n = 0; n < NRIGHTS; ++n) {
-    if(r & rights_names[n].bit) {
-      if(d->nvec)
-        dynstr_append(d, ',');
-      dynstr_append_string(d, rights_names[n].name);
-    }
-  }
-  dynstr_terminate(d);
-  return d->vec;
-}
-
-/** @brief Compute default rights for a new user */
-rights_type default_rights(void) {
-  /* TODO get rights from config.  This is probably in the wrong place but it
-   * will do for now... */
-  rights_type r = RIGHTS__MASK & ~(RIGHT_ADMIN|RIGHT_REGISTER
-                                   |RIGHT_MOVE__MASK
-                                   |RIGHT_SCRATCH__MASK
-                                   |RIGHT_REMOVE__MASK);
-  if(config->restrictions & RESTRICT_SCRATCH)
-    r |= RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM;
-  else
-    r |= RIGHT_SCRATCH_ANY;
-  if(!(config->restrictions & RESTRICT_MOVE))
-    r |= RIGHT_MOVE_ANY;
-  if(config->restrictions & RESTRICT_REMOVE)
-    r |= RIGHT_REMOVE_MINE;
-  else
-    r |= RIGHT_REMOVE_ANY;
-  return r;
-}
-
 /** @brief Add a user */
 static int create_user(const char *user,
                        const char *password,
@@ -2580,6 +2518,9 @@ void trackdb_create_root(void) {
  * Only works if running as a user that can read the database!
  *
  * If the user exists but has no password, "" is returned.
+ *
+ * If the user was created with 'register' and has not yet been confirmed then
+ * NULL is still returned.
  */
 const char *trackdb_get_password(const char *user) {
   int e;
@@ -2588,6 +2529,8 @@ const char *trackdb_get_password(const char *user) {
 
   WITH_TRANSACTION(trackdb_getdata(trackdb_usersdb, user, &k, tid));
   if(e)
+    return 0;
+  if(kvp_get(k, "confirmation"))
     return 0;
   password = kvp_get(k, "password");
   return password ? password : "";
@@ -2685,10 +2628,33 @@ int trackdb_edituserinfo(const char *user,
                          const char *key, const char *value) {
   int e;
 
-  WITH_TRANSACTION(trackdb_edituserinfo_tid(user, key, value, tid));
-  if(e)
+  if(!strcmp(key, "rights")) {
+    if(!value) {
+      error(0, "cannot remove 'rights' key from user '%s'", user);
+      return -1;
+    }
+    if(parse_rights(value, 0)) {
+      error(0, "invalid rights string");
+      return -1;
+    }
+  } else if(!strcmp(key, "email")) {
+    if(!strchr(value, '@')) {
+      error(0, "invalid email address '%s' for user '%s'", user, value);
+      return -1;
+    }
+  } else if(!strcmp(key, "created")) {
+    error(0, "cannot change creation date for user '%s'", user);
     return -1;
-  else
+  } else if(strcmp(key, "password")
+            && !strcmp(key, "confirmation")) {
+    error(0, "unknown user info key '%s' for user '%s'", key, user);
+    return -1;
+  }
+  WITH_TRANSACTION(trackdb_edituserinfo_tid(user, key, value, tid));
+  if(e) {
+    error(0, "unknown user '%s'", user);
+    return -1;
+  } else
     return 0;
 }
 

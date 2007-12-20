@@ -39,6 +39,7 @@
 #include "defs.h"
 #include "mem.h"
 #include "kvp.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "trackdb-int.h"
 

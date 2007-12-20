@@ -47,6 +47,7 @@
 #include "wstat.h"
 #include "kvp.h"
 #include "printf.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "trackname.h"

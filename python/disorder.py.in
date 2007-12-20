@@ -868,6 +868,17 @@ class client:
     """Delete a user"""
     self._simple("deluser", user)
 
+  def userinfo(self, user, key):
+    """Get user information"""
+    res, details = self._simple("userinfo", user, key)
+    if res == 555:
+      return None
+    return _split(details)[0]
+
+  def edituser(self, user, key, value):
+    """Set user information"""
+    self._simple("edituser", user, key, value)
+
   ########################################################################
   # I/O infrastructure
 

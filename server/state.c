@@ -36,6 +36,7 @@
 
 #include "event.h"
 #include "play.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "state.h"
 #include "configuration.h"

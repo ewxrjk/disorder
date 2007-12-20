@@ -42,6 +42,7 @@
 #include "kvp.h"
 #include "vector.h"
 #include "inputline.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "charset.h"

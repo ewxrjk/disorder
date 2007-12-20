@@ -40,6 +40,7 @@
 #include "mime.h"
 #include "configuration.h"
 #include "kvp.h"
+#include "rights.h"
 #include "trackdb.h"
 
 /** @brief Hash function used in signing HMAC */

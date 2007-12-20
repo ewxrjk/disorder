@@ -52,6 +52,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\
 	regsub.c regsub.h				\
+	rights.c rights.h				\
 	rtp.h						\
 	selection.c selection.h				\
 	signame.c signame.h				\

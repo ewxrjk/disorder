@@ -34,6 +34,7 @@
 #include "log.h"
 #include "defs.h"
 #include "kvp.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "mem.h"

@@ -51,6 +51,7 @@
 #include "split.h"
 #include "configuration.h"
 #include "hex.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "table.h"
 #include "kvp.h"
@@ -1050,16 +1051,42 @@ static int c_deluser(struct conn *c,
 }
 
 static int c_edituser(struct conn *c,
-		      char attribute((unused)) **vec,
+		      char **vec,
 		      int attribute((unused)) nvec) {
-  sink_writes(ev_writer_sink(c->w), "550 Not implemented\n"); /* TODO */
+  /* TODO local only */
+  if(trusted(c)
+     || (!strcmp(c->who, vec[0])
+	 && (!strcmp(vec[1], "email")
+	     || !strcmp(vec[1], "password")))) {
+    if(trackdb_edituserinfo(vec[0], vec[1], vec[2]))
+      sink_writes(ev_writer_sink(c->w), "550 Failed to change setting\n");
+    else
+      sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  } else
+    sink_writes(ev_writer_sink(c->w), "550 Restricted to administrators\n");
   return 1;
 }
 
 static int c_userinfo(struct conn *c,
 		      char attribute((unused)) **vec,
 		      int attribute((unused)) nvec) {
-  sink_writes(ev_writer_sink(c->w), "550 Not implemented\n"); /* TODO */
+  struct kvp *k;
+  const char *value;
+  
+  /* TODO local only */
+  if(trusted(c)
+     || (!strcmp(c->who, vec[0])
+	 && (!strcmp(vec[1], "email")
+	     || !strcmp(vec[1], "rights")))) {
+    if((k = trackdb_getuserinfo(vec[0])))
+      if((value = kvp_get(k, vec[1])))
+	sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(value));
+      else
+	sink_writes(ev_writer_sink(c->w), "555 Not set\n");
+    else
+      sink_writes(ev_writer_sink(c->w), "550 No such user\n");
+  } else
+    sink_writes(ev_writer_sink(c->w), "550 Restricted to administrators\n");
   return 1;
 }
 

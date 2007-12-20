@@ -44,6 +44,7 @@
 #include "event.h"
 #include "log.h"
 #include "configuration.h"
+#include "rights.h"
 #include "trackdb.h"
 #include "queue.h"
 #include "mem.h"
