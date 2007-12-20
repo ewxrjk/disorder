@@ -74,7 +74,6 @@ static const char *getpart(const char *track,
                            const char *part,
                            const struct kvp *p,
                            int *used_db);
-static int trackdb_alltags_tid(DB_TXN *tid, char ***taglistp);
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
                               DB_TXN *tid);
@@ -1521,42 +1520,39 @@ fail:
 
 /* return the list of tags */
 char **trackdb_alltags(void) {
-  DB_TXN *tid;
-  int err;
-  char **taglist;
+  int e;
+  struct vector v[1];
 
-  for(;;) {
-    tid = trackdb_begin_transaction();
-    err = trackdb_alltags_tid(tid, &taglist);
-    if(!err) break;
-    trackdb_abort_transaction(tid);
-  }
-  trackdb_commit_transaction(tid);
-  return taglist;
+  WITH_TRANSACTION(trackdb_listkeys(trackdb_tagsdb, v, tid));
+  return v->vec;
 }
 
-static int trackdb_alltags_tid(DB_TXN *tid, char ***taglistp) {
-  struct vector v;
-  DBC *c;
+/** @brief List all the keys in @p db
+ * @param db Database
+ * @param v Vector to store keys in
+ * @param tid Transaction ID
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
+int trackdb_listkeys(DB *db, struct vector *v, DB_TXN *tid) {
+  int e;
   DBT k, d;
-  int err;
+  DBC *const c = trackdb_opencursor(db, tid);
 
-  vector_init(&v);
-  c = trackdb_opencursor(trackdb_tagsdb, tid);
+  v->nvec = 0;
   memset(&k, 0, sizeof k);
-  while(!(err = c->c_get(c, &k, prepare_data(&d), DB_NEXT_NODUP)))
-    vector_append(&v, xstrndup(k.data, k.size));
-  switch(err) {
+  while(!(e = c->c_get(c, &k, prepare_data(&d), DB_NEXT_NODUP)))
+    vector_append(v, xstrndup(k.data, k.size));
+  switch(e) {
   case DB_NOTFOUND:
     break;
   case DB_LOCK_DEADLOCK:
-      return err;
+    return e;
   default:
-    fatal(0, "c->c_get: %s", db_strerror(err));
+    fatal(0, "c->c_get: %s", db_strerror(e));
   }
-  if((err = trackdb_closecursor(c))) return err;
-  vector_terminate(&v);
-  *taglistp = v.vec;
+  if((e = trackdb_closecursor(c)))
+    return e;
+  vector_terminate(v);
   return 0;
 }
 
@@ -2656,6 +2652,18 @@ int trackdb_edituserinfo(const char *user,
     return -1;
   } else
     return 0;
+}
+
+/** @brief List all users
+ * @return NULL-terminated list of users
+ */
+char **trackdb_listusers(void) {
+  int e;
+  struct vector v[1];
+
+  vector_init(v);
+  WITH_TRANSACTION(trackdb_listkeys(trackdb_usersdb, v, tid));
+  return v->vec;
 }
 
 /*

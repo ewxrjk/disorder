@@ -912,7 +912,6 @@ static int c_tags(struct conn *c,
   }
   sink_writes(ev_writer_sink(c->w), ".\n");
   return 1;				/* completed */
-
 }
 
 static int c_set_global(struct conn *c,
@@ -1090,6 +1089,22 @@ static int c_userinfo(struct conn *c,
   return 1;
 }
 
+static int c_users(struct conn *c,
+		   char attribute((unused)) **vec,
+		   int attribute((unused)) nvec) {
+  /* TODO de-dupe with c_tags */
+  char **users = trackdb_listusers();
+
+  sink_writes(ev_writer_sink(c->w), "253 User list follows\n");
+  while(*users) {
+    sink_printf(ev_writer_sink(c->w), "%s%s\n",
+		**users == '.' ? "." : "", *users);
+    ++users;
+  }
+  sink_writes(ev_writer_sink(c->w), ".\n");
+  return 1;				/* completed */
+}
+
 #define C_AUTH		0001		/* must be authenticated */
 #define C_TRUSTED	0002		/* must be trusted user */
 
@@ -1148,6 +1163,7 @@ static const struct command {
   { "unset-global",   1, 1,       c_set_global,     C_AUTH },
   { "user",           2, 2,       c_user,           0 },
   { "userinfo",       2, 2,       c_userinfo,       C_AUTH },
+  { "users",          0, 0,       c_users,          C_AUTH },
   { "version",        0, 0,       c_version,        C_AUTH },
   { "volume",         0, 2,       c_volume,         C_AUTH }
 };

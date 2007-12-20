@@ -605,6 +605,11 @@ int disorder_tags(disorder_client *c,
   return disorder_simple_list(c, vecp, nvecp, "tags", (char *)0);
 }
 
+int disorder_users(disorder_client *c,
+		   char ***vecp, int *nvecp) {
+  return disorder_simple_list(c, vecp, nvecp, "users", (char *)0);
+}
+
 /** @brief Get recentl added tracks
  * @param c Client
  * @param vecp Where to store pointer to list

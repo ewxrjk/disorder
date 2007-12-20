@@ -369,6 +369,15 @@ static void cf_tags(disorder_client *c,
       xprintf("%s\n", nullcheck(utf82mb(*vec++)));
 }
 
+static void cf_users(disorder_client *c,
+		     char attribute((unused)) **argv) {
+  char **vec;
+
+  if(disorder_users(c, &vec, 0)) exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
 static void cf_get_global(disorder_client *c, char **argv) {
   char *value;
 
@@ -512,6 +521,8 @@ static const struct command {
                       "Unset a preference" },
   { "unset-global",   1, 1, cf_unset_global, 0, "NAME",
                       "Unset a global preference" },
+  { "users",          0, 0, cf_users, 0, "",
+                      "List all users" },
   { "version",        0, 0, cf_version, 0, "",
                       "Display the server version" },
 };

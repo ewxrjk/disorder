@@ -194,6 +194,8 @@ int disorder_deluser(disorder_client *c, const char *user);
 int disorder_userinfo(disorder_client *c, const char *user, const char *key);
 int disorder_edituser(disorder_client *c, const char *user,
 		      const char *key, const char *value);
+int disorder_users(disorder_client *c,
+		   char ***vecp, int *nvecp);
 
 #endif /* CLIENT_H */
 

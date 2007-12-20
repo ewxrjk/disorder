@@ -167,6 +167,7 @@ int trackdb_deluser(const char *user);
 struct kvp *trackdb_getuserinfo(const char *user);
 int trackdb_edituserinfo(const char *user,
                          const char *key, const char *value);
+char **trackdb_listusers(void);
 
 #endif /* TRACKDB_H */
 

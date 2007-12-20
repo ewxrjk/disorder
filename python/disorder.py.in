@@ -879,6 +879,13 @@ class client:
     """Set user information"""
     self._simple("edituser", user, key, value)
 
+  def users(self):
+    """List all users
+
+    The return value is a list of all users."""
+    self._simple("users")
+    return self._body()
+
   ########################################################################
   # I/O infrastructure
 

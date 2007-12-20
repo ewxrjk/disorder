@@ -27,6 +27,9 @@ def test():
     print " checking user creation"
     c = disorder.client()
     c.adduser("bob", "bobpass")
+    users = c.users()
+    assert dtest.lists_have_same_contents(users,
+                                          ["fred", "bob", "root"])
     print " checking new user can log in"
     c = disorder.client(user="bob", password="bobpass")
     c.version()
@@ -46,6 +49,10 @@ def test():
     except disorder.operationError:
       pass                              # good
     print " deleted user could no longer log in."
+    c = disorder.client()
+    users = c.users()
+    assert dtest.lists_have_same_contents(users,
+                                          ["fred", "root"])
 
 if __name__ == '__main__':
     dtest.run()

@@ -21,6 +21,8 @@
 #ifndef TRACKDB_INT_H
 #define TRACKDB_INT_H
 
+struct vector;                          /* forward declaration */
+
 extern DB_ENV *trackdb_env;
 
 extern DB *trackdb_tracksdb;
@@ -108,8 +110,9 @@ int trackdb_scan(const char *root,
  * 0).  Return 0 or DB_LOCK_DEADLOCK.  CALLBACK should return 0 on success or
  * EINTR to cancel the scan. */
 
-/* fill KEY in with S, returns KEY */
+int trackdb_listkeys(DB *db, struct vector *v, DB_TXN *tid);
 
+/* fill KEY in with S, returns KEY */
 static inline DBT *make_key(DBT *key, const char *s) {
   memset(key, 0, sizeof *key);
   key->data = (void *)s;
