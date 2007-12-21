@@ -197,6 +197,10 @@ int disorder_edituser(disorder_client *c, const char *user,
 		      const char *key, const char *value);
 int disorder_users(disorder_client *c,
 		   char ***vecp, int *nvecp);
+int disorder_register(disorder_client *c, const char *user,
+		      const char *password, const char *email,
+		      char **confirmp);
+int disorder_confirm(disorder_client *c, const char *confirm);
 
 #endif /* CLIENT_H */
 

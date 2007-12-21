@@ -697,6 +697,18 @@ int disorder_edituser(disorder_client *c, const char *user,
   return disorder_simple(c, 0, "edituser", user, key, value, (char *)0);
 }
 
+int disorder_register(disorder_client *c, const char *user,
+		      const char *password, const char *email,
+		      char **confirmp) {
+  return dequote(disorder_simple(c, confirmp, "register",
+				 user, password, email, (char *)0),
+		 confirmp);
+}
+
+int disorder_confirm(disorder_client *c, const char *confirm) {
+  return disorder_simple(c, 0, "confirm", confirm, (char *)0);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

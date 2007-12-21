@@ -162,12 +162,14 @@ const char *trackdb_get_password(const char *user);
 int trackdb_adduser(const char *user,
                     const char *password,
                     rights_type rights,
-                    const char *email);
+                    const char *email,
+                    const char *confirmation);
 int trackdb_deluser(const char *user);
 struct kvp *trackdb_getuserinfo(const char *user);
 int trackdb_edituserinfo(const char *user,
                          const char *key, const char *value);
 char **trackdb_listusers(void);
+int trackdb_confirm(const char *user, const char *confirmation);
 
 #endif /* TRACKDB_H */
 

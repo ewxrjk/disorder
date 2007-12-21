@@ -881,6 +881,15 @@ class client:
     self._simple("users")
     return self._body()
 
+  def register(self, username, password, email):
+    """Register a user"""
+    res, details = self._simple("register", username, password, email)
+    return _split(details)[0]
+
+  def confirm(self, confirmation):
+    """Confirm a user registration"""
+    res, details = self._simple("confirm", confirmation)
+
   ########################################################################
   # I/O infrastructure
 

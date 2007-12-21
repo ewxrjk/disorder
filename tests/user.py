@@ -55,6 +55,22 @@ def test():
     users = c.users()
     assert dtest.lists_have_same_contents(users,
                                           ["fred", "root"])
+    print " testing user registration"
+    cs = c.register("joe", "joepass", "joe@nowhere.invalid")
+    print " confirmation string is %s" % cs
+    print " checking unconfirmed user cannot log in"
+    jc = disorder.client(user="joe", password="joepass")
+    try:
+      jc.version()
+      print "*** should not be able to log in before confirmation ***"
+      assert False
+    except disorder.operationError:
+      pass                              # good
+    print " confirming user"
+    c.confirm(cs)
+    print " checking confirmed user can log in"
+    jc = disorder.client(user="joe", password="joepass")
+    jc.version()
 
 if __name__ == '__main__':
     dtest.run()

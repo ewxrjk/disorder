@@ -58,6 +58,10 @@ Creates a new user with the given username and password.  Requires the
 Lists all the files and directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files and directories are returned.
 .TP
+.B confirm \fICONFIRMATION
+Confirm user registration.  \fICONFIRMATION\fR is as returned from
+\fBregister\fR below.  This command can be used without logging in.
+.TP
 .B cookie \fICOOKIE
 Log a user back in using a cookie created with \fBmake-cookie\fR.
 .TP
@@ -209,6 +213,11 @@ information syntax.
 .B reconfigure
 Request that DisOrder reconfigure itself.   Requires the \fBadmin\fR right.
 command.
+.TP
+.B register \fIUSER PASSWORD EMAIL
+Register a new user.  Requires the \fBregister\fR right.  The result contains a
+confirmation string; the user will be be able to log in until this has been
+presented back to the server via the \fBconfirm\fR command.
 .TP
 .B remove \fIID\fR
 Remove the track identified by \fIID\fR.  Requires one of the \fBremove

@@ -2421,22 +2421,52 @@ static int trusted(const char *user) {
   return n < config->trust.n;
 }
 
+/** @brief Return non-zero for a valid username
+ *
+ * Currently we only allow the letters and digits in ASCII.  We could be more
+ * liberal than this but it is a nice simple test.  It is critical that
+ * semicolons are never allowed.
+ */
+static int valid_username(const char *user) {
+  if(!*user)
+    return 0;
+  while(*user) {
+    const uint8_t c = *user++;
+    /* For now we are very strict */
+    if((c >= 'a' && c <= 'z')
+       || (c >= 'A' && c <= 'Z')
+       || (c >= '0' && c <= '9'))
+      /* ok */;
+    else
+      return 0;
+  }
+  return 1;
+}
+
 /** @brief Add a user */
 static int create_user(const char *user,
                        const char *password,
                        const char *rights,
                        const char *email,
+                       const char *confirmation,
                        DB_TXN *tid,
                        uint32_t flags) {
   struct kvp *k = 0;
   char s[64];
 
+  /* sanity check user */
+  if(!valid_username(user)) {
+    error(0, "invalid username '%s'", user);
+    return -1;
+  }
   /* data for this user */
   if(password)
     kvp_set(&k, "password", password);
   kvp_set(&k, "rights", rights);
   if(email)
     kvp_set(&k, "email", email);
+  if(confirmation)
+    kvp_set(&k, "confirmation", confirmation);
   snprintf(s, sizeof s, "%jd", (intmax_t)time(0));
   kvp_set(&k, "created", s);
   return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
@@ -2459,7 +2489,8 @@ static int one_old_user(const char *user, const char *password,
     rights = rights_string(config->default_rights|RIGHT_ADMIN|RIGHT_RESCAN);
   else
     rights = rights_string(config->default_rights);
-  return create_user(user, password, rights, 0/*email*/, tid, DB_NOOVERWRITE);
+  return create_user(user, password, rights, 0/*email*/, 0/*confirmation*/,
+                     tid, DB_NOOVERWRITE);
 }
 
 static int trackdb_old_users_tid(DB_TXN *tid) {
@@ -2502,8 +2533,9 @@ void trackdb_create_root(void) {
   gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
   pw = mime_to_base64(pwbin, sizeof pwbin);
   /* Create the root user if it does not exist */
-  WITH_TRANSACTION(create_user("root", pw, "all", 0/*email*/, tid,
-                               DB_NOOVERWRITE));
+  WITH_TRANSACTION(create_user("root", pw, "all",
+                               0/*email*/, 0/*confirmation*/,
+                               tid, DB_NOOVERWRITE));
   if(e == 0)
     info("created root user");
 }
@@ -2538,11 +2570,12 @@ const char *trackdb_get_password(const char *user) {
 int trackdb_adduser(const char *user,
                     const char *password,
                     rights_type rights,
-                    const char *email) {
+                    const char *email,
+                    const char *confirmation) {
   int e;
   const char *r = rights_string(rights);
 
-  WITH_TRANSACTION(create_user(user, password, r, email,
+  WITH_TRANSACTION(create_user(user, password, r, email, confirmation,
                                tid, DB_NOOVERWRITE));
   if(e) {
     error(0, "cannot created user '%s' because they already exist", user);
@@ -2660,6 +2693,49 @@ char **trackdb_listusers(void) {
   vector_init(v);
   WITH_TRANSACTION(trackdb_listkeys(trackdb_usersdb, v, tid));
   return v->vec;
+}
+
+static int trackdb_confirm_tid(const char *user, const char *confirmation,
+                               DB_TXN *tid) {
+  const char *stored_confirmation;
+  struct kvp *k;
+  int e;
+  
+  if((e = trackdb_getdata(trackdb_usersdb, user, &k, tid)))
+    return e;
+  if(!(stored_confirmation = kvp_get(k, "confirmation"))) {
+    error(0, "already confirmed user '%s'", user);
+    /* DB claims -30,800 to -30,999 so -1 should be a safe bet */
+    return -1;
+  }
+  if(strcmp(confirmation, stored_confirmation)) {
+    error(0, "wrong confirmation string for user '%s'", user);
+    return -1;
+  }
+  /* 'sall good */
+  kvp_set(&k, "confirmation", 0);
+  return trackdb_putdata(trackdb_usersdb, user, k, tid, 0);
+}
+
+/** @brief Confirm a user registration
+ * @param user Username
+ * @param confirmation Confirmation string
+ * @return 0 on success, non-0 on error
+ */
+int trackdb_confirm(const char *user, const char *confirmation) {
+  int e;
+
+  WITH_TRANSACTION(trackdb_confirm_tid(user, confirmation, tid));
+  switch(e) {
+  case 0:
+    info("registration confirmed for user '%s'", user);
+    return 0;
+  case DB_NOTFOUND:
+    error(0, "confirmation for nonexistent user '%s'", user);
+    return -1;
+  default:                              /* already reported */
+    return -1;
+  }
 }
 
 /*

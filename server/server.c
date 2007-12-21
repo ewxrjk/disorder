@@ -66,6 +66,7 @@
 #include "cache.h"
 #include "unicode.h"
 #include "cookies.h"
+#include "mime.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
@@ -1077,7 +1078,8 @@ static int c_revoke(struct conn *c,
 static int c_adduser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  if(trackdb_adduser(vec[0], vec[1], config->default_rights, 0))
+  if(trackdb_adduser(vec[0], vec[1], config->default_rights,
+		     0/*email*/, 0/*confirmation*/))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
     sink_writes(ev_writer_sink(c->w), "250 User created\n");
@@ -1088,7 +1090,7 @@ static int c_deluser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
   if(trackdb_deluser(vec[0]))
-    sink_writes(ev_writer_sink(c->w), "550 Cannot deleted user\n");
+    sink_writes(ev_writer_sink(c->w), "550 Cannot delete user\n");
   else
     sink_writes(ev_writer_sink(c->w), "250 User deleted\n");
   return 1;
@@ -1152,6 +1154,45 @@ static int c_users(struct conn *c,
   return 1;				/* completed */
 }
 
+static int c_register(struct conn *c,
+		      char **vec,
+		      int attribute((unused)) nvec) {
+  char *buf, *cs;
+  size_t bufsize;
+  int offset;
+
+  /* The confirmation string is base64(username;nonce) */
+  bufsize = strlen(vec[0]) + NONCE_SIZE + 2;
+  buf = xmalloc_noptr(bufsize);
+  offset = byte_snprintf(buf, bufsize, "%s;", vec[0]);
+  gcry_randomize(buf + offset, NONCE_SIZE, GCRY_STRONG_RANDOM);
+  cs = mime_to_base64((uint8_t *)buf, offset + NONCE_SIZE);
+  if(trackdb_adduser(vec[0], vec[1], config->default_rights, vec[2], cs))
+    sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
+  else
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(cs));
+  return 1;
+}
+
+static int c_confirm(struct conn *c,
+		     char **vec,
+		     int attribute((unused)) nvec) {
+  size_t nuser;
+  char *user, *sep;
+
+  if(!(user = mime_base64(vec[0], &nuser))
+     || !(sep = memchr(user, ';', nuser))) {
+    sink_writes(ev_writer_sink(c->w), "550 Malformed confirmation string\n");
+    return 1;
+  }
+  *sep = 0;
+  if(trackdb_confirm(user, vec[0]))
+    sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
+  else
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  return 1;
+}
+ 
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1174,6 +1215,7 @@ static const struct command {
 } commands[] = {
   { "adduser",        2, 2,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
   { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
+  { "confirm",        1, 1,       c_confirm,        0 },
   { "cookie",         1, 1,       c_cookie,         0 },
   { "deluser",        1, 1,       c_deluser,        RIGHT_ADMIN|RIGHT__LOCAL },
   { "dirs",           0, 2,       c_dirs,           RIGHT_READ },
@@ -1203,6 +1245,7 @@ static const struct command {
   { "random-enabled", 0, 0,       c_random_enabled, RIGHT_READ },
   { "recent",         0, 0,       c_recent,         RIGHT_READ },
   { "reconfigure",    0, 0,       c_reconfigure,    RIGHT_ADMIN },
+  { "register",       3, 3,       c_register,       RIGHT_REGISTER|RIGHT__LOCAL },
   { "remove",         1, 1,       c_remove,         RIGHT_REMOVE__MASK },
   { "rescan",         0, 0,       c_rescan,         RIGHT_RESCAN },
   { "resolve",        1, 1,       c_resolve,        RIGHT_READ },
