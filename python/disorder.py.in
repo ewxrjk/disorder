@@ -413,16 +413,6 @@ class client:
   ########################################################################
   # Operations
 
-  def become(self, who):
-    """Become another user.
-
-    Arguments:
-    who -- the user to become.
-
-    Only trusted users can perform this operation.
-    """
-    self._simple("become", who)
-
   def play(self, track):
     """Play a track.
 
