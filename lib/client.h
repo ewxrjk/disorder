@@ -191,7 +191,8 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
 int disorder_adduser(disorder_client *c,
 		     const char *user, const char *password);
 int disorder_deluser(disorder_client *c, const char *user);
-int disorder_userinfo(disorder_client *c, const char *user, const char *key);
+int disorder_userinfo(disorder_client *c, const char *user, const char *key,
+		      char **valuep);
 int disorder_edituser(disorder_client *c, const char *user,
 		      const char *key, const char *value);
 int disorder_users(disorder_client *c,

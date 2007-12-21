@@ -427,13 +427,25 @@ static void cf_adduser(disorder_client *c,
     exit(EXIT_FAILURE);
 }
 
+static void cf_deluser(disorder_client *c,
+		       char **argv) {
+  if(disorder_deluser(c, argv[0]))
+    exit(EXIT_FAILURE);
+}
+
 static void cf_edituser(disorder_client *c,
 			char **argv) {
   if(disorder_edituser(c, argv[0], argv[1], argv[2]))
     exit(EXIT_FAILURE);
 }
 
-/* TODO: userinfo */
+static void cf_userinfo(disorder_client *c, char **argv) {
+  char *s;
+
+  if(disorder_userinfo(c, argv[0], argv[1], &s))
+    exit(EXIT_FAILURE);
+  xprintf("%s\n", nullcheck(utf82mb(s)));
+}
 
 static const struct command {
   const char *name;
@@ -450,13 +462,15 @@ static const struct command {
                       "Authorize USER to connect to the server" },
   { "become",         1, 1, cf_become, 0, "USER",
                       "Become user USER" },
+  { "deluser",        1, 1, cf_deluser, 0, "USER",
+                      "Delete a user" },
   { "dirs",           1, 2, cf_dirs, isarg_regexp, "DIR [~REGEXP]",
                       "List directories in DIR" },
   { "disable",        0, 0, cf_disable, 0, "",
                       "Disable play" },
   { "disable-random", 0, 0, cf_random_disable, 0, "",
                       "Disable random play" },
-  { "edituser",       3, 3, cf_edituser, 0, "USER KEY VALUE",
+  { "edituser",       3, 3, cf_edituser, 0, "USER PROPERTY VALUE",
                       "Set a property of a user" },
   { "enable",         0, 0, cf_enable, 0, "",
                       "Enable play" },
@@ -531,6 +545,8 @@ static const struct command {
                       "Unset a preference" },
   { "unset-global",   1, 1, cf_unset_global, 0, "NAME",
                       "Unset a global preference" },
+  { "userinfo",       2, 2, cf_userinfo, 0, "USER PROPERTY",
+                      "Get a property of as user" },
   { "users",          0, 0, cf_users, 0, "",
                       "List all users" },
   { "version",        0, 0, cf_version, 0, "",
