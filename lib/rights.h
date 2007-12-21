@@ -100,7 +100,6 @@
 /** @brief Unsigned type big enough for rights */
 typedef uint32_t rights_type;
 
-rights_type default_rights(void);
 char *rights_string(rights_type r);
 int parse_rights(const char *s, rights_type *rp);
 

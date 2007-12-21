@@ -25,6 +25,7 @@
 #define CONFIGURATION_H
 
 #include "speaker-protocol.h"
+#include "rights.h"
 
 struct real_pcre;
 
@@ -251,6 +252,9 @@ struct config {
 
   /** @brief Signing key lifetime in seconds */
   long cookie_key_lifetime;
+
+  /** @brief Default rights for a new user */
+  rights_type default_rights;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

@@ -180,7 +180,6 @@ stopword 21 22 23 24 25 26 27 28 29 30
 stopword the a an and to too in on of we i am as im for is
 username fred
 password fredpass
-trust fred root
 plugins
 plugins %s/plugins
 plugins %s/plugins/.libs

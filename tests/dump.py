@@ -55,7 +55,6 @@ def test():
                          "--dump", dump])
     print " changing track pref"
     c.set(track, "foo", "after dump");
-    print c.get(track, "foo")
     assert c.get(track, "foo") == "after dump", "checking track foo=after dump"
     print " changing global pref"
     c.setglobal("foo", "after dump");

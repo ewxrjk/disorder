@@ -39,6 +39,7 @@
 #include <pcre.h>
 #include <signal.h>
 
+#include "rights.h"
 #include "configuration.h"
 #include "mem.h"
 #include "log.h"
@@ -489,6 +490,25 @@ static int set_backend(const struct config_state *cs,
   return 0;
 }
 
+static int set_rights(const struct config_state *cs,
+		      const struct conf *whoami,
+		      int nvec, char **vec) {
+  rights_type r;
+
+  if(nvec != 1) {
+    error(0, "%s:%d: '%s' requires one argument",
+	  cs->path, cs->line, whoami->name);
+    return -1;
+  }
+  if(parse_rights(vec[0], &r)) {
+    error(0, "%s:%d: invalid rights string '%s'",
+	  cs->path, cs->line, vec[0]);
+    return -1;
+  }
+  *ADDRESS(cs->config, rights_type) = r;
+  return 0;
+}
+
 /* free functions */
 
 static void free_none(struct config attribute((unused)) *c,
@@ -587,6 +607,7 @@ static const struct conftype
   type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
+  type_rights = { set_rights, free_none },
   type_backend = { set_backend, free_none };
 
 /* specific validation routine */
@@ -902,6 +923,7 @@ static const struct conf conf[] = {
   { C(cookie_login_lifetime),  &type_integer,    validate_positive },
   { C(cookie_key_lifetime),  &type_integer,      validate_positive },
   { C(dbversion),        &type_integer,          validate_positive },
+  { C(default_rights),   &type_rights,           validate_any },
   { C(device),           &type_string,           validate_any },
   { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
@@ -1167,7 +1189,26 @@ static void config_postdefaults(struct config *c,
     c->sample_format.bits = 16;
     c->sample_format.endian = ENDIAN_NATIVE;
     break; 
- }
+  }
+  if(!c->default_rights) {
+    rights_type r = RIGHTS__MASK & ~(RIGHT_ADMIN|RIGHT_REGISTER
+				     |RIGHT_MOVE__MASK
+				     |RIGHT_SCRATCH__MASK
+				     |RIGHT_REMOVE__MASK);
+    /* The idea is to approximate the meaning of the old 'restrict' directive
+     * in the default rights if they are not overridden. */
+    if(c->restrictions & RESTRICT_SCRATCH)
+      r |= RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM;
+    else
+      r |= RIGHT_SCRATCH_ANY;
+    if(!(c->restrictions & RESTRICT_MOVE))
+      r |= RIGHT_MOVE_ANY;
+    if(c->restrictions & RESTRICT_REMOVE)
+      r |= RIGHT_REMOVE_MINE;
+    else
+      r |= RIGHT_REMOVE_ANY;
+    c->default_rights = r;
+  }
 }
 
 /** @brief (Re-)read the config file
@@ -1210,6 +1251,13 @@ int config_read(int server) {
   config_postdefaults(c, server);
   /* everything is good so we shall use the new config */
   config_free(config);
+  /* warn about obsolete directives */
+  if(c->restrictions)
+    error(0, "'restrict' will be removed in a future version");
+  if(c->allow.n)
+    error(0, "'allow' will be removed in a future version");
+  if(c->trust.n)
+    error(0, "'trust' will be removed in a future version");
   config = c;
   return 0;
 }

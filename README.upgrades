@@ -21,9 +21,16 @@ all 1.1.x versions.
 Users are now stored in the database rather than in 'allow' directives in a
 private configuration file.  'allow' is still understood in this version, but
 is only used to populate the database on startup.  After the first (successful)
-run of the server the remaining 'allow' directives can be deleted.
+run of the server the remaining 'allow' directives should be deleted.
 
-'allow' will stop working entirely in a future version.
+'restrict' and 'trust' are replaced by a system of per-user rights.  The
+default user rights are based on the 'restrict' setting, and the rights of
+users created frow 'allow' directives preserve the meaning of 'trust', but
+after the first run you should remove these directives and (optionally) add a
+'default_rights' directive.
+
+'allow', 'restrict' and 'trust' will stop working entirely in a future version
+but for now they will generate harmless error messages.
 
 * 1.4/1.5 -> 2.0
 

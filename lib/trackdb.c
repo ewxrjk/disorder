@@ -2455,9 +2455,9 @@ static int one_old_user(const char *user, const char *password,
   if(!strcmp(user, "root"))
     rights = "all";
   else if(trusted(user))
-    rights = rights_string(default_rights()|RIGHT_ADMIN);
+    rights = rights_string(config->default_rights|RIGHT_ADMIN|RIGHT_RESCAN);
   else
-    rights = rights_string(default_rights());
+    rights = rights_string(config->default_rights);
   return create_user(user, password, rights, 0/*email*/, tid, DB_NOOVERWRITE);
 }
 

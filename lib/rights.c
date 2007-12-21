@@ -75,28 +75,6 @@ char *rights_string(rights_type r) {
   return d->vec;
 }
 
-/** @brief Compute default rights for a new user
- * @return Default rights value
- */
-rights_type default_rights(void) {
-  /* TODO get rights from config */
-  rights_type r = RIGHTS__MASK & ~(RIGHT_ADMIN|RIGHT_REGISTER
-                                   |RIGHT_MOVE__MASK
-                                   |RIGHT_SCRATCH__MASK
-                                   |RIGHT_REMOVE__MASK);
-  if(config->restrictions & RESTRICT_SCRATCH)
-    r |= RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM;
-  else
-    r |= RIGHT_SCRATCH_ANY;
-  if(!(config->restrictions & RESTRICT_MOVE))
-    r |= RIGHT_MOVE_ANY;
-  if(config->restrictions & RESTRICT_REMOVE)
-    r |= RIGHT_REMOVE_MINE;
-  else
-    r |= RIGHT_REMOVE_ANY;
-  return r;
-}
-
 /** @brief Parse a rights list
  * @param s Rights list in string form
  * @param rp Where to store rights, or NULL to just validate

@@ -1077,7 +1077,7 @@ static int c_revoke(struct conn *c,
 static int c_adduser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  if(trackdb_adduser(vec[0], vec[1], default_rights(), 0))
+  if(trackdb_adduser(vec[0], vec[1], config->default_rights, 0))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
     sink_writes(ev_writer_sink(c->w), "250 User created\n");

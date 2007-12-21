@@ -300,6 +300,15 @@ Examples might be \fBiso-8859-1\fR or \fButf-8\fR.
 \fIROOT\fR is the root in the filesystem of the filenames and is
 passed to the plugin module.
 .TP
+.B default_rights \fIRIGHTS\fR
+Defines the set of rights given to new users.  The argument is a
+comma-separated list of rights.  For the possible values see
+.B "Users And Access Control"
+above.
+.IP
+The default is to allow everything except \fBadmin\fR and \fBregister\fR
+(modified in legacy configurations by the obsolete \fBrestrict\fR directive).
+.TP
 .B device \fINAME\fR
 ALSA device to play raw-format audio.  Default is \fBdefault\fR, i.e. to use
 the whatever the ALSA configured default is.

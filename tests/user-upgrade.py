@@ -25,6 +25,7 @@ def test():
     print " testing upgrade from old versions"
     open("%s/config" % dtest.testroot, "a").write(
       """allow fred fredpass
+trust fred
 """)
     dtest.start_daemon()
     print " checking can log in after upgrade"
