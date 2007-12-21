@@ -25,13 +25,13 @@ complete -r disobedience 2>/dev/null || true
 
 complete -o default \
          -A file \
-         -W "allfiles authorize become dirs disable disable-random
+         -W "allfiles authorize dirs disable disable-random
              enable enable-random files get get-volume length log move
              play playing prefs quack queue random-disable
              random-enable recent reconfigure remove rescan scratch
              search set set-volume shutdown stats unset version resolve
              part pause resume scratch-id get-global set-global unset-global
-             tags new rtp-address adduser users edituser deluser
+             tags new rtp-address adduser users edituser deluser userinfo
              -h --help -H --help-commands --version -V --config -c
              --length --debug -d" \
 	 disorder

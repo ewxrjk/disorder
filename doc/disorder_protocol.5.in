@@ -344,9 +344,8 @@ When a connection is made the server sends a \fB231\fR response before any
 command is received.  This contains an algorithm name and a challenge encoded
 in hex.
 .PP
-Currently the algorithm name is omitted if it is \fBsha1\fR (but this will
-probably change in a future version).  The other options are \fBsha256\fR,
-\fBsha384\fR and \fBsha512\fR.  \fBSHA1\fR etc work as synonyms.
+The possible algorithms are (currently) \fBsha1\fR, \fBsha256\fR, \fBsha384\fR
+and \fBsha512\fR.  \fBSHA1\fR etc work as synonyms.
 .PP
 The \fBuser\fR response consists of the selected hash of the user's password
 concatenated with the challenge, encoded in hex.

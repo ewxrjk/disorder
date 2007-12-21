@@ -1352,15 +1352,9 @@ static int listen_callback(ev_source *ev,
   c->l = l;
   c->rights = 0;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
-  if(!strcmp(config->authorization_algorithm, "sha1")
-     || !strcmp(config->authorization_algorithm, "SHA1")) {
-    sink_printf(ev_writer_sink(c->w), "231 %s\n",
-		hex(c->nonce, sizeof c->nonce));
-  } else {
-    sink_printf(ev_writer_sink(c->w), "231 %s %s\n",
-		config->authorization_algorithm,
-		hex(c->nonce, sizeof c->nonce));
-  }
+  sink_printf(ev_writer_sink(c->w), "231 %s %s\n",
+	      config->authorization_algorithm,
+	      hex(c->nonce, sizeof c->nonce));
   return 0;
 }
 

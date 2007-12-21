@@ -375,7 +375,8 @@ class client:
           s.connect(self.who)
         self.w = s.makefile("wb")
         self.r = s.makefile("rb")
-        (res, challenge) = self._simple()
+        (res, challenge_and_algo) = self._simple()
+        (algo, challenge) = _split(challenge_and_algo)
         if cookie is None:
           if self.user is None:
             user = self.config['username']
@@ -385,6 +386,7 @@ class client:
             password = self.config['password']
           else:
             password = self.password
+          # TODO support algorithms other than SHA-1
           h = sha.sha()
           h.update(password)
           h.update(binascii.unhexlify(challenge))
