@@ -819,13 +819,19 @@ static void stash_command(disorder_eclient *c,
 
 /* Command support ***********************************************************/
 
-/* for commands with a simple string response */ 
+/* for commands with a quoted string response */ 
 static void string_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
   D(("string_response_callback"));
   if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_string_response *)op->completed)(op->v, c->line + 4);
+    if(op->completed) {
+      char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
+
+      if(rr && *rr)
+        ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
+      else
+        protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    }
   } else
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }

@@ -217,7 +217,7 @@ int disorder_connect_sock(disorder_client *c,
   size_t nl;
   const char *res;
   char *r, **rvec;
-  const char *algo = "SHA1";
+  const char *protocol, *algorithm, *challenge;
 
   if(!password) {
     error(0, "no password found");
@@ -251,15 +251,20 @@ int disorder_connect_sock(disorder_client *c,
     return -1;
   if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
     return -1;
-  if(nrvec > 1) {
-    algo = *rvec++;
-    --nrvec;
+  if(nrvec != 3) {
+    error(0, "cannot parse server greeting %s", r);
+    return -1;
   }
-  if(!nrvec)
+  protocol = *rvec++;
+  if(strcmp(protocol, "2")) {
+    error(0, "unknown protocol version: %s", protocol);
     return -1;
-  if(!(nonce = unhex(*rvec, &nl)))
+  }
+  algorithm = *rvec++;
+  challenge = *rvec++;
+  if(!(nonce = unhex(challenge, &nl)))
     return -1;
-  if(!(res = authhash(nonce, nl, password, algo))) goto error;
+  if(!(res = authhash(nonce, nl, password, algorithm))) goto error;
   if(disorder_simple(c, 0, "user", username, res, (char *)0))
     return -1;
   c->user = xstrdup(username);
@@ -337,8 +342,20 @@ int disorder_rescan(disorder_client *c) {
   return disorder_simple(c, 0, "rescan", (char *)0);
 }
 
+static int dequote(int rc, char **rp) {
+  char **rr;
+  if(!rc){
+    if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
+      *rp = *rr;
+      return 0;
+    }
+    error(0, "invalid reply: %s", *rp);
+  }
+  return -1;
+}
+
 int disorder_version(disorder_client *c, char **rp) {
-  return disorder_simple(c, rp, "version", (char *)0);
+  return dequote(disorder_simple(c, rp, "version", (char *)0), rp);
 }
 
 static void client_error(const char *msg,
@@ -462,7 +479,8 @@ int disorder_unset(disorder_client *c, const char *track,
 
 int disorder_get(disorder_client *c,
 		 const char *track, const char *key, char **valuep) {
-  return disorder_simple(c, valuep, "get", track, key, (char *)0);
+  return dequote(disorder_simple(c, valuep, "get", track, key, (char *)0),
+		 valuep);
 }
 
 static void pref_error_handler(const char *msg,
@@ -585,11 +603,13 @@ int disorder_log(disorder_client *c, struct sink *s) {
 
 int disorder_part(disorder_client *c, char **partp,
 		  const char *track, const char *context, const char *part) {
-  return disorder_simple(c, partp, "part", track, context, part, (char *)0);
+  return dequote(disorder_simple(c, partp, "part",
+				 track, context, part, (char *)0), partp);
 }
 
 int disorder_resolve(disorder_client *c, char **trackp, const char *track) {
-  return disorder_simple(c, trackp, "resolve", track, (char *)0);
+  return dequote(disorder_simple(c, trackp, "resolve", track, (char *)0),
+		 trackp);
 }
 
 int disorder_pause(disorder_client *c) {
@@ -636,7 +656,8 @@ int disorder_unset_global(disorder_client *c, const char *key) {
 }
 
 int disorder_get_global(disorder_client *c, const char *key, char **valuep) {
-  return disorder_simple(c, valuep, "get-global", key, (char *)0);
+  return dequote(disorder_simple(c, valuep, "get-global", key, (char *)0),
+		 valuep);
 }
 
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
@@ -667,7 +688,8 @@ int disorder_deluser(disorder_client *c, const char *user) {
 
 int disorder_userinfo(disorder_client *c, const char *user, const char *key,
 		      char **valuep) {
-  return disorder_simple(c, valuep, "userinfo", user, key, (char *)0);
+  return dequote(disorder_simple(c, valuep, "userinfo", user, key, (char *)0),
+		 valuep);
 }
 
 int disorder_edituser(disorder_client *c, const char *user,

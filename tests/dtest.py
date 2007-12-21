@@ -307,7 +307,12 @@ def run(module=None, report=True):
         name = module.__name__
     # Open the error log
     global errs
-    errs = open("%s.log" % name, "w")
+    logfile = "%s.log" % name
+    try:
+        os.remove(logfile)
+    except:
+        pass
+    errs = open(logfile, "a")
     # Ensure that disorder.py uses the test installation
     disorder._configfile = "%s/config" % testroot
     disorder._userconf = False

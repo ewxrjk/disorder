@@ -54,15 +54,16 @@ def test():
     print dtest.command(["disorder-dump", "--config", disorder._configfile,
                          "--dump", dump])
     print " changing track pref"
-    c.set(track, "foo", "after");
-    assert c.get(track, "foo") == "after", "checking track foo=before"
+    c.set(track, "foo", "after dump");
+    print c.get(track, "foo")
+    assert c.get(track, "foo") == "after dump", "checking track foo=after dump"
     print " changing global pref"
-    c.setglobal("foo", "after");
-    assert c.getglobal("foo") == "after", "checking global foo=before"
+    c.setglobal("foo", "after dump");
+    assert c.getglobal("foo") == "after dump", "checking global foo=after dump"
     print " adding fresh track pref"
-    c.set(track, "bar", "after")
+    c.set(track, "bar", "after dump")
     print " adding fresh global pref"
-    c.setglobal("bar", "after")
+    c.setglobal("bar", "after dump")
     dtest.stop_daemon();
     print "restoring database"
     print dtest.command(["disorder-dump", "--config", disorder._configfile,

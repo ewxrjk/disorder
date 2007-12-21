@@ -339,10 +339,15 @@ part is commentary.
 .B 9
 The text part is just commentary (but would normally be a response for this
 command) e.g. \fBplaying\fR.
+.PP
+Result strings (not bodies) intended for machine parsing (i.e. xx1 and xx2
+responses) are quoted.
 .SH AUTHENTICATION
 When a connection is made the server sends a \fB231\fR response before any
-command is received.  This contains an algorithm name and a challenge encoded
-in hex.
+command is received.  This contains a protocol generation, an algorithm name
+and a challenge encoded in hex, all separated by whitespace.
+.PP
+The current protocol generation is \fB2\fR.
 .PP
 The possible algorithms are (currently) \fBsha1\fR, \fBsha256\fR, \fBsha384\fR
 and \fBsha512\fR.  \fBSHA1\fR etc work as synonyms.

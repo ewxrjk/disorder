@@ -375,8 +375,11 @@ class client:
           s.connect(self.who)
         self.w = s.makefile("wb")
         self.r = s.makefile("rb")
-        (res, challenge_and_algo) = self._simple()
-        (algo, challenge) = _split(challenge_and_algo)
+        (res, details) = self._simple()
+        (protocol, algo, challenge) = _split(details)
+        if protocol != '2':
+          raise communicationError(self.who,
+                                   "unknown protocol version %s" % protocol)
         if cookie is None:
           if self.user is None:
             user = self.config['username']
@@ -488,7 +491,7 @@ class client:
 
   def version(self):
     """Return the server's version number."""
-    return self._simple("version")[1]
+    return _split(self._simple("version")[1])[0]
 
   def playing(self):
     """Return the currently playing track.
@@ -619,7 +622,7 @@ class client:
     if ret == 555:
       return None
     else:
-      return details
+      return _split(details)[0]
 
   def prefs(self, track):
     """Get all the preferences for a track.
@@ -810,7 +813,7 @@ class client:
     The return value is the preference 
     """
     ret, details = self._simple("part", track, context, part)
-    return details
+    return _split(details)[0]
 
   def setglobal(self, key, value):
     """Set a global preference value.
@@ -841,7 +844,7 @@ class client:
     if ret == 555:
       return None
     else:
-      return details
+      return _split(details)[0]
 
   def make_cookie(self):
     """Create a login cookie"""

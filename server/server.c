@@ -607,7 +607,7 @@ static int c_get(struct conn *c,
   const char *v;
 
   if(vec[1][0] != '_' && (v = trackdb_get(vec[0], vec[1])))
-    sink_printf(ev_writer_sink(c->w), "252 %s\n", v);
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(v));
   else
     sink_writes(ev_writer_sink(c->w), "555 not found\n");
   return 1;
@@ -623,7 +623,7 @@ static int c_length(struct conn *c,
     return 1;
   }
   if((v = trackdb_get(track, "_length")))
-    sink_printf(ev_writer_sink(c->w), "252 %s\n", v);
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(v));
   else
     sink_writes(ev_writer_sink(c->w), "550 not found\n");
   return 1;
@@ -925,7 +925,7 @@ static int c_part(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
   sink_printf(ev_writer_sink(c->w), "252 %s\n",
-	      trackdb_getpart(vec[0], vec[1], vec[2]));
+	      quoteutf8(trackdb_getpart(vec[0], vec[1], vec[2])));
   return 1;
 }
 
@@ -938,7 +938,7 @@ static int c_resolve(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
     return 1;
   }
-  sink_printf(ev_writer_sink(c->w), "252 %s\n", track);
+  sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(track));
   return 1;
 }
 
@@ -975,7 +975,7 @@ static int c_get_global(struct conn *c,
   const char *s = trackdb_get_global(vec[0]);
 
   if(s)
-    sink_printf(ev_writer_sink(c->w), "252 %s\n", s);
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(s));
   else
     sink_writes(ev_writer_sink(c->w), "555 not found\n");
   return 1;
@@ -1352,7 +1352,8 @@ static int listen_callback(ev_source *ev,
   c->l = l;
   c->rights = 0;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
-  sink_printf(ev_writer_sink(c->w), "231 %s %s\n",
+  sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
+	      2,
 	      config->authorization_algorithm,
 	      hex(c->nonce, sizeof c->nonce));
   return 0;
