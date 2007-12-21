@@ -210,6 +210,9 @@ Unset the preference \fIKEY\fR for \fITRACK\fR.
 .B unset-global \fIKEY\fR
 Unset the global preference \fIKEY\fR.
 .TP
+.B userinfo \fIUSER PROPERTY
+Get some property of a user.
+.TP
 .B users
 List known users.
 .TP
