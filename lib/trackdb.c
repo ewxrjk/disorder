@@ -1523,6 +1523,7 @@ char **trackdb_alltags(void) {
   int e;
   struct vector v[1];
 
+  vector_init(v);
   WITH_TRANSACTION(trackdb_listkeys(trackdb_tagsdb, v, tid));
   return v->vec;
 }
