@@ -30,6 +30,8 @@ def test():
     users = c.users()
     assert dtest.lists_have_same_contents(users,
                                           ["fred", "bob", "root"])
+    rights = c.userinfo("bob", "rights")
+    print " new user rights are: %s" % rights
     print " checking new user can log in"
     c = disorder.client(user="bob", password="bobpass")
     c.version()

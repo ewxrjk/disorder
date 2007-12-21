@@ -427,6 +427,14 @@ static void cf_adduser(disorder_client *c,
     exit(EXIT_FAILURE);
 }
 
+static void cf_edituser(disorder_client *c,
+			char **argv) {
+  if(disorder_edituser(c, argv[0], argv[1], argv[2]))
+    exit(EXIT_FAILURE);
+}
+
+/* TODO: userinfo */
+
 static const struct command {
   const char *name;
   int min, max;
@@ -448,6 +456,8 @@ static const struct command {
                       "Disable play" },
   { "disable-random", 0, 0, cf_random_disable, 0, "",
                       "Disable random play" },
+  { "edituser",       3, 3, cf_edituser, 0, "USER KEY VALUE",
+                      "Set a property of a user" },
   { "enable",         0, 0, cf_enable, 0, "",
                       "Enable play" },
   { "enable-random",  0, 0, cf_random_enable, 0, "",

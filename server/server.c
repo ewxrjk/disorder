@@ -111,6 +111,8 @@ struct conn {
   const struct listener *l;
   /** @brief Login cookie or NULL */
   char *cookie;
+  /** @brief Connection rights */
+  rights_type rights;
 };
 
 static int reader_callback(ev_source *ev,
@@ -167,16 +169,6 @@ static int reader_error(ev_source attribute((unused)) *ev,
   c->r = 0;
   ev_report(ev);
   return 0;
-}
-
-/** @brief Return true if we are talking to a trusted user */
-static int trusted(struct conn *c) {
-  int n;
-  
-  for(n = 0; (n < config->trust.n
-	      && strcmp(config->trust.s[n], c->who)); ++n)
-    ;
-  return n < config->trust.n;
 }
 
 static int c_disable(struct conn *c, char **vec, int nvec) {
@@ -240,22 +232,28 @@ static int c_play(struct conn *c, char **vec,
 static int c_remove(struct conn *c, char **vec,
 		    int attribute((unused)) nvec) {
   struct queue_entry *q;
+  rights_type r;
 
   if(!(q = queue_find(vec[0]))) {
     sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
     return 1;
   }
-  if(config->restrictions & RESTRICT_REMOVE) {
-    /* can only remove tracks that you submitted */
-    if(!q->submitter || strcmp(q->submitter, c->who)) {
-      sink_writes(ev_writer_sink(c->w), "550 you didn't submit that track!\n");
-      return 1;
-    }
+  if(q->submitter)
+    if(!strcmp(q->submitter, c->who))
+      r = RIGHT_REMOVE_MINE;
+    else
+      r = RIGHT_REMOVE_ANY;
+  else
+    r = RIGHT_REMOVE_RANDOM;
+  if(!(c->rights & r)) {
+    sink_writes(ev_writer_sink(c->w),
+		"550 Not authorized to remove that track\n");
+    return 1;
   }
   queue_remove(q, c->who);
   /* De-prepare the track. */
   abandon(c->ev, q);
-  /* If we removed the random track then add another one. */
+  /* If we removed a random track then add another one. */
   if(q->state == playing_random)
     add_random_track();
   /* Prepare whatever the next head track is. */
@@ -269,16 +267,26 @@ static int c_remove(struct conn *c, char **vec,
 static int c_scratch(struct conn *c,
 		     char **vec,
 		     int nvec) {
+  rights_type r;
+  
   if(!playing) {
     sink_writes(ev_writer_sink(c->w), "250 nothing is playing\n");
     return 1;			/* completed */
   }
-  if(config->restrictions & RESTRICT_SCRATCH) {
-    /* can only scratch tracks you submitted and randomly selected ones */
-    if(playing->submitter && strcmp(playing->submitter, c->who)) {
-      sink_writes(ev_writer_sink(c->w), "550 you didn't submit that track!\n");
-      return 1;
-    }
+  /* TODO there is a bug here: if we specify an ID but it's not the currently
+   * playing track then you will get 550 if you weren't authorized to scratch
+   * the currently playing track. */
+  if(playing->submitter)
+    if(!strcmp(playing->submitter, c->who))
+      r = RIGHT_SCRATCH_MINE;
+    else
+      r = RIGHT_SCRATCH_ANY;
+  else
+    r = RIGHT_SCRATCH_RANDOM;
+  if(!(c->rights & r)) {
+    sink_writes(ev_writer_sink(c->w),
+		"550 Not authorized to scratch that track\n");
+    return 1;
   }
   scratch(c->who, nvec == 1 ? vec[0] : 0);
   /* If you scratch an unpaused track then it is automatically unpaused */
@@ -366,14 +374,6 @@ static int c_playing(struct conn *c,
   return 1;				/* completed */
 }
 
-static int c_become(struct conn *c,
-		  char **vec,
-		  int attribute((unused)) nvec) {
-  c->who = vec[0];
-  sink_writes(ev_writer_sink(c->w), "230 OK\n");
-  return 1;
-}
-
 static const char *connection_host(struct conn *c) {
   union {
     struct sockaddr sa;
@@ -404,7 +404,9 @@ static const char *connection_host(struct conn *c) {
 static int c_user(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
+  struct kvp *k;
   const char *res, *host, *password;
+  rights_type rights;
 
   if(c->who) {
     sink_writes(ev_writer_sink(c->w), "530 already authenticated\n");
@@ -416,10 +418,23 @@ static int c_user(struct conn *c,
     return 1;
   }
   /* find the user */
-  password = trackdb_get_password(vec[0]);
+  k = trackdb_getuserinfo(vec[0]);
   /* reject nonexistent users */
-  if(!password) {
-    info("S%x unknown user '%s' from %s", c->tag, vec[0], host);
+  if(!k) {
+    error(0, "S%x unknown user '%s' from %s", c->tag, vec[0], host);
+    sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
+    return 1;
+  }
+  /* reject unconfirmed users */
+  if(kvp_get(k, "confirmation")) {
+    error(0, "S%x unconfirmed user '%s' from %s", c->tag, vec[0], host);
+    sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
+    return 1;
+  }
+  password = kvp_get(k, "password");
+  if(!password) password = "";
+  if(parse_rights(kvp_get(k, "rights"), &rights)) {
+    error(0, "error parsing rights for %s", vec[0]);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
@@ -428,9 +443,12 @@ static int c_user(struct conn *c,
 		 config->authorization_algorithm);
   if(wideopen || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
+    c->rights = rights;
     /* currently we only bother logging remote connections */
-    if(strcmp(host, "local"))
+    if(strcmp(host, "local")) {
       info("S%x %s connected from %s", c->tag, vec[0], host);
+      c->rights |= RIGHT__LOCAL;
+    }
     sink_writes(ev_writer_sink(c->w), "230 OK\n");
     return 1;
   }
@@ -715,6 +733,7 @@ static int c_volume(struct conn *c,
 		    int nvec) {
   int l, r, set;
   char lb[32], rb[32];
+  rights_type rights;
 
   switch(nvec) {
   case 0:
@@ -731,6 +750,11 @@ static int c_volume(struct conn *c,
     break;
   default:
     abort();
+  }
+  rights = set ? RIGHT_VOLUME : RIGHT_READ;
+  if(!(c->rights & rights)) {
+    sink_writes(ev_writer_sink(c->w), "530 Prohibited\n");
+    return 1;
   }
   if(mixer_control(&l, &r, set))
     sink_writes(ev_writer_sink(c->w), "550 error accessing mixer\n");
@@ -817,21 +841,42 @@ static int c_log(struct conn *c,
   return 0;
 }
 
+/** @brief Test whether a move is allowed
+ * @param c Connection
+ * @param qs List of IDs on queue
+ * @param nqs Number of IDs
+ * @return 0 if move is prohibited, non-0 if it is allowed
+ */
+static int has_move_rights(struct conn *c, struct queue_entry **qs, int nqs) {
+  rights_type r = 0;
+
+  for(; nqs > 0; ++qs, --nqs) {
+    struct queue_entry *const q = *qs;
+
+    if(q->submitter)
+      if(!strcmp(q->submitter, c->who))
+	r |= RIGHT_MOVE_MINE;
+      else
+      r |= RIGHT_MOVE_ANY;
+    else
+      r |= RIGHT_MOVE_RANDOM;
+  }
+  return (c->rights & r) == r;
+}
+
 static int c_move(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
   struct queue_entry *q;
   int n;
 
-  if(config->restrictions & RESTRICT_MOVE) {
-    if(!trusted(c)) {
-      sink_writes(ev_writer_sink(c->w),
-		  "550 only trusted users can move tracks\n");
-      return 1;
-    }
-  }
   if(!(q = queue_find(vec[0]))) {
     sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
+    return 1;
+  }
+  if(!has_move_rights(c, &q, 1)) {
+    sink_writes(ev_writer_sink(c->w),
+		"550 Not authorized to move that track\n");
     return 1;
   }
   n = queue_move(q, atoi(vec[1]), c->who);
@@ -848,13 +893,6 @@ static int c_moveafter(struct conn *c,
   struct queue_entry *q, **qs;
   int n;
 
-  if(config->restrictions & RESTRICT_MOVE) {
-    if(!trusted(c)) {
-      sink_writes(ev_writer_sink(c->w),
-		  "550 only trusted users can move tracks\n");
-      return 1;
-    }
-  }
   if(vec[0][0]) {
     if(!(q = queue_find(vec[0]))) {
       sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
@@ -870,6 +908,11 @@ static int c_moveafter(struct conn *c,
       sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
       return 1;
     }
+  if(!has_move_rights(c, qs, nvec)) {
+    sink_writes(ev_writer_sink(c->w),
+		"550 Not authorized to move those tracks\n");
+    return 1;
+  }
   queue_moveafter(q, nvec, qs, c->who);
   sink_printf(ev_writer_sink(c->w), "250 Moved tracks\n");
   /* If we've moved to the head of the queue then prepare the track. */
@@ -978,6 +1021,7 @@ static int c_cookie(struct conn *c,
 		    int attribute((unused)) nvec) {
   const char *host;
   char *user;
+  rights_type rights;
 
   /* Can't log in twice on the same connection */
   if(c->who) {
@@ -990,16 +1034,19 @@ static int c_cookie(struct conn *c,
     return 1;
   }
   /* Check the cookie */
-  user = verify_cookie(vec[0]);
+  user = verify_cookie(vec[0], &rights);
   if(!user) {
     sink_writes(ev_writer_sink(c->w), "530 authentication failure\n");
     return 1;
   }
   /* Log in */
-  c->who = user;
+  c->who = vec[0];
   c->cookie = vec[0];
-  if(strcmp(host, "local"))
+  c->rights = rights;
+  if(strcmp(host, "local")) {
     info("S%x %s connected with cookie from %s", c->tag, user, host);
+    c->rights |= RIGHT__LOCAL;
+  }
   sink_writes(ev_writer_sink(c->w), "230 OK\n");
   return 1;
 }
@@ -1010,7 +1057,7 @@ static int c_make_cookie(struct conn *c,
   const char *cookie = make_cookie(c->who);
 
   if(cookie)
-    sink_printf(ev_writer_sink(c->w), "252 %s\n", cookie);
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(cookie));
   else
     sink_writes(ev_writer_sink(c->w), "550 Cannot create cookie\n");
   return 1;
@@ -1030,7 +1077,6 @@ static int c_revoke(struct conn *c,
 static int c_adduser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  /* TODO local only */
   if(trackdb_adduser(vec[0], vec[1], default_rights(), 0))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
@@ -1041,7 +1087,6 @@ static int c_adduser(struct conn *c,
 static int c_deluser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  /* TODO local only */
   if(trackdb_deluser(vec[0]))
     sink_writes(ev_writer_sink(c->w), "550 Cannot deleted user\n");
   else
@@ -1052,8 +1097,9 @@ static int c_deluser(struct conn *c,
 static int c_edituser(struct conn *c,
 		      char **vec,
 		      int attribute((unused)) nvec) {
-  /* TODO local only */
-  if(trusted(c)
+  /* RIGHT_ADMIN can do anything; otherwise you can only set your own email
+   * address and password. */
+  if((c->rights & RIGHT_ADMIN)
      || (!strcmp(c->who, vec[0])
 	 && (!strcmp(vec[1], "email")
 	     || !strcmp(vec[1], "password")))) {
@@ -1071,9 +1117,10 @@ static int c_userinfo(struct conn *c,
 		      int attribute((unused)) nvec) {
   struct kvp *k;
   const char *value;
-  
-  /* TODO local only */
-  if(trusted(c)
+
+  /* RIGHT_ADMIN allows anything; otherwise you can only get your own email
+   * address and righst list. */
+  if((c->rights & RIGHT_ADMIN)
      || (!strcmp(c->who, vec[0])
 	 && (!strcmp(vec[1], "email")
 	     || !strcmp(vec[1], "rights")))) {
@@ -1105,67 +1152,77 @@ static int c_users(struct conn *c,
   return 1;				/* completed */
 }
 
-#define C_AUTH		0001		/* must be authenticated */
-#define C_TRUSTED	0002		/* must be trusted user */
-
 static const struct command {
+  /** @brief Command name */
   const char *name;
-  int minargs, maxargs;
+
+  /** @brief Minimum number of arguments */
+  int minargs;
+
+  /** @brief Maximum number of arguments */
+  int maxargs;
+
+  /** @brief Function to process command */
   int (*fn)(struct conn *, char **, int);
-  unsigned flags;
+
+  /** @brief Rights required to execute command
+   *
+   * 0 means that the command can be issued without logging in.  If multiple
+   * bits are listed here any of those rights will do.
+   */
+  rights_type rights;
 } commands[] = {
-  { "adduser",        2, 2,       c_adduser,        C_AUTH|C_TRUSTED },
-  { "allfiles",       0, 2,       c_allfiles,       C_AUTH },
-  { "become",         1, 1,       c_become,         C_AUTH|C_TRUSTED },
+  { "adduser",        2, 2,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
   { "cookie",         1, 1,       c_cookie,         0 },
-  { "deluser",        1, 1,       c_deluser,        C_AUTH|C_TRUSTED },
-  { "dirs",           0, 2,       c_dirs,           C_AUTH },
-  { "disable",        0, 1,       c_disable,        C_AUTH },
-  { "edituser",       3, 3,       c_edituser,       C_AUTH },
-  { "enable",         0, 0,       c_enable,         C_AUTH },
-  { "enabled",        0, 0,       c_enabled,        C_AUTH },
-  { "exists",         1, 1,       c_exists,         C_AUTH },
-  { "files",          0, 2,       c_files,          C_AUTH },
-  { "get",            2, 2,       c_get,            C_AUTH },
-  { "get-global",     1, 1,       c_get_global,     C_AUTH },
-  { "length",         1, 1,       c_length,         C_AUTH },
-  { "log",            0, 0,       c_log,            C_AUTH },
-  { "make-cookie",    0, 0,       c_make_cookie,    C_AUTH },
-  { "move",           2, 2,       c_move,           C_AUTH },
-  { "moveafter",      1, INT_MAX, c_moveafter,      C_AUTH },
-  { "new",            0, 1,       c_new,            C_AUTH },
-  { "nop",            0, 0,       c_nop,            C_AUTH },
-  { "part",           3, 3,       c_part,           C_AUTH },
-  { "pause",          0, 0,       c_pause,          C_AUTH },
-  { "play",           1, 1,       c_play,           C_AUTH },
-  { "playing",        0, 0,       c_playing,        C_AUTH },
-  { "prefs",          1, 1,       c_prefs,          C_AUTH },
-  { "queue",          0, 0,       c_queue,          C_AUTH },
-  { "random-disable", 0, 0,       c_random_disable, C_AUTH },
-  { "random-enable",  0, 0,       c_random_enable,  C_AUTH },
-  { "random-enabled", 0, 0,       c_random_enabled, C_AUTH },
-  { "recent",         0, 0,       c_recent,         C_AUTH },
-  { "reconfigure",    0, 0,       c_reconfigure,    C_AUTH|C_TRUSTED },
-  { "remove",         1, 1,       c_remove,         C_AUTH },
-  { "rescan",         0, 0,       c_rescan,         C_AUTH|C_TRUSTED },
-  { "resolve",        1, 1,       c_resolve,        C_AUTH },
-  { "resume",         0, 0,       c_resume,         C_AUTH },
-  { "revoke",         0, 0,       c_revoke,         C_AUTH },
-  { "rtp-address",    0, 0,       c_rtp_address,    C_AUTH },
-  { "scratch",        0, 1,       c_scratch,        C_AUTH },
-  { "search",         1, 1,       c_search,         C_AUTH },
-  { "set",            3, 3,       c_set,            C_AUTH, },
-  { "set-global",     2, 2,       c_set_global,     C_AUTH },
-  { "shutdown",       0, 0,       c_shutdown,       C_AUTH|C_TRUSTED },
-  { "stats",          0, 0,       c_stats,          C_AUTH },
-  { "tags",           0, 0,       c_tags,           C_AUTH },
-  { "unset",          2, 2,       c_set,            C_AUTH },
-  { "unset-global",   1, 1,       c_set_global,     C_AUTH },
+  { "deluser",        1, 1,       c_deluser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "dirs",           0, 2,       c_dirs,           RIGHT_READ },
+  { "disable",        0, 1,       c_disable,        RIGHT_GLOBAL_PREFS },
+  { "edituser",       3, 3,       c_edituser,       RIGHT_ADMIN|RIGHT_USERINFO },
+  { "enable",         0, 0,       c_enable,         RIGHT_GLOBAL_PREFS },
+  { "enabled",        0, 0,       c_enabled,        RIGHT_READ },
+  { "exists",         1, 1,       c_exists,         RIGHT_READ },
+  { "files",          0, 2,       c_files,          RIGHT_READ },
+  { "get",            2, 2,       c_get,            RIGHT_READ },
+  { "get-global",     1, 1,       c_get_global,     RIGHT_READ },
+  { "length",         1, 1,       c_length,         RIGHT_READ },
+  { "log",            0, 0,       c_log,            RIGHT_READ },
+  { "make-cookie",    0, 0,       c_make_cookie,    RIGHT_READ },
+  { "move",           2, 2,       c_move,           RIGHT_MOVE__MASK },
+  { "moveafter",      1, INT_MAX, c_moveafter,      RIGHT_MOVE__MASK },
+  { "new",            0, 1,       c_new,            RIGHT_READ },
+  { "nop",            0, 0,       c_nop,            0 },
+  { "part",           3, 3,       c_part,           RIGHT_READ },
+  { "pause",          0, 0,       c_pause,          RIGHT_PAUSE },
+  { "play",           1, 1,       c_play,           RIGHT_PLAY },
+  { "playing",        0, 0,       c_playing,        RIGHT_READ },
+  { "prefs",          1, 1,       c_prefs,          RIGHT_READ },
+  { "queue",          0, 0,       c_queue,          RIGHT_READ },
+  { "random-disable", 0, 0,       c_random_disable, RIGHT_GLOBAL_PREFS },
+  { "random-enable",  0, 0,       c_random_enable,  RIGHT_GLOBAL_PREFS },
+  { "random-enabled", 0, 0,       c_random_enabled, RIGHT_READ },
+  { "recent",         0, 0,       c_recent,         RIGHT_READ },
+  { "reconfigure",    0, 0,       c_reconfigure,    RIGHT_ADMIN },
+  { "remove",         1, 1,       c_remove,         RIGHT_REMOVE__MASK },
+  { "rescan",         0, 0,       c_rescan,         RIGHT_RESCAN },
+  { "resolve",        1, 1,       c_resolve,        RIGHT_READ },
+  { "resume",         0, 0,       c_resume,         RIGHT_PAUSE },
+  { "revoke",         0, 0,       c_revoke,         RIGHT_READ },
+  { "rtp-address",    0, 0,       c_rtp_address,    0 },
+  { "scratch",        0, 1,       c_scratch,        RIGHT_SCRATCH__MASK },
+  { "search",         1, 1,       c_search,         RIGHT_READ },
+  { "set",            3, 3,       c_set,            RIGHT_PREFS, },
+  { "set-global",     2, 2,       c_set_global,     RIGHT_GLOBAL_PREFS },
+  { "shutdown",       0, 0,       c_shutdown,       RIGHT_ADMIN },
+  { "stats",          0, 0,       c_stats,          RIGHT_READ },
+  { "tags",           0, 0,       c_tags,           RIGHT_READ },
+  { "unset",          2, 2,       c_set,            RIGHT_PREFS },
+  { "unset-global",   1, 1,       c_set_global,     RIGHT_GLOBAL_PREFS },
   { "user",           2, 2,       c_user,           0 },
-  { "userinfo",       2, 2,       c_userinfo,       C_AUTH },
-  { "users",          0, 0,       c_users,          C_AUTH },
-  { "version",        0, 0,       c_version,        C_AUTH },
-  { "volume",         0, 2,       c_volume,         C_AUTH }
+  { "userinfo",       2, 2,       c_userinfo,       RIGHT_READ },
+  { "users",          0, 0,       c_users,          RIGHT_READ },
+  { "version",        0, 0,       c_version,        RIGHT_READ },
+  { "volume",         0, 2,       c_volume,         RIGHT_READ|RIGHT_VOLUME }
 };
 
 static void command_error(const char *msg, void *u) {
@@ -1196,12 +1253,9 @@ static int command(struct conn *c, char *line) {
   if((n = TABLE_FIND(commands, struct command, name, vec[0])) < 0)
     sink_writes(ev_writer_sink(c->w), "500 unknown command\n");
   else {
-    if((commands[n].flags & C_AUTH) && !c->who) {
-      sink_writes(ev_writer_sink(c->w), "530 not authenticated\n");
-      return 1;
-    }
-    if((commands[n].flags & C_TRUSTED) && !trusted(c)) {
-      sink_writes(ev_writer_sink(c->w), "530 insufficient privilege\n");
+    if(commands[n].rights
+       && !(c->rights & commands[n].rights)) {
+      sink_writes(ev_writer_sink(c->w), "530 Prohibited\n");
       return 1;
     }
     ++vec;
@@ -1296,6 +1350,7 @@ static int listen_callback(ev_source *ev,
   c->fd = fd;
   c->reader = reader_callback;
   c->l = l;
+  c->rights = 0;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   if(!strcmp(config->authorization_algorithm, "sha1")
      || !strcmp(config->authorization_algorithm, "SHA1")) {

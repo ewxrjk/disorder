@@ -25,7 +25,7 @@
 #define COOKIES_H
 
 char *make_cookie(const char *user);
-char *verify_cookie(const char *cookie);
+char *verify_cookie(const char *cookie, rights_type *rights);
 void revoke_cookie(const char *cookie);
 
 #endif /* COOKIES_H */

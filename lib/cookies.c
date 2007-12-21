@@ -32,6 +32,7 @@
 #include <gcrypt.h>
 #include <pcre.h>
 
+#include "rights.h"
 #include "cookies.h"
 #include "hash.h"
 #include "mem.h"
@@ -148,14 +149,16 @@ char *make_cookie(const char *user) {
 
 /** @brief Verify a cookie
  * @param cookie Cookie to verify
+ * @param rights Where to store rights value
  * @return Verified user or NULL
  */
-char *verify_cookie(const char *cookie) {
+char *verify_cookie(const char *cookie, rights_type *rights) {
   char *c1, *c2;
   intmax_t t;
   time_t now;
   char *user, *bp, *sig;
   const char *password;
+  struct kvp *k;
 
   /* check the revocation list */
   if(revoked && hash_find(revoked, cookie)) {
@@ -188,11 +191,15 @@ char *verify_cookie(const char *cookie) {
     return 0;
   }
   /* look up the password */
-  password = trackdb_get_password(user);
-  if(!password) {
+  k = trackdb_getuserinfo(user);
+  if(!k) {
     error(0, "verify_cookie for nonexistent user");
     return 0;
   }
+  password = kvp_get(k, "password");
+  if(!password) password = "";
+  if(parse_rights(kvp_get(k, "rights"), rights))
+    return 0;
   /* construct the expected subject.  We re-encode the timestamp and the
    * password. */
   byte_xasprintf(&bp, "%jx;%s;%s", t, urlencodestring(user), password);

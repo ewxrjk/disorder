@@ -84,8 +84,18 @@
 /** @brief User can modify global preferences */
 #define RIGHT_GLOBAL_PREFS    0x00020000
 
+/** @brief User can pause/resume */
+#define RIGHT_PAUSE           0x00040000
+
 /** @brief Current rights mask */
-#define RIGHTS__MASK          0x0003ffff
+#define RIGHTS__MASK          0x0007ffff
+
+/** @brief Connection is local
+ *
+ * This isn't a rights bit, it's used in @file server.c to limit
+ * certain commands to local connections.
+ */
+#define RIGHT__LOCAL          0x80000000
 
 /** @brief Unsigned type big enough for rights */
 typedef uint32_t rights_type;

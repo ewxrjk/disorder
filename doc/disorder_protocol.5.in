@@ -45,17 +45,25 @@ always have a 3-digit response code as the first field.  See below for more
 details about this field.
 .PP
 All commands require the connection to have been already authenticated unless
-stated otherwise.
+stated otherwise.  If not stated otherwise, the \fBread\fR right is sufficient
+to execute the command.
 .PP
 Neither commands nor responses have a body unless stated otherwise.
+.TP
+.B adduser \fIUSERNAME PASSWORD
+Creates a new user with the given username and password.  Requires the
+\fBadmin\fR right, and only works on local connections.
 .TP
 .B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
 Lists all the files and directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files and directories are returned.
 .TP
-.B become \fIUSER\fR
-Instructs the server to treat the connection as if \fIUSER\fR had
-authenticated it.  Only trusted users may issue this command.
+.B cookie \fICOOKIE
+Log a user back in using a cookie created with \fBmake-cookie\fR.
+.TP
+.B deluser \fIUSERNAME
+Deletes the named user.  Requires the \fBadmin\fR right, and only works on
+local connections.
 .TP
 .B dirs \fIDIRECTORY\fR [\fIREGEXP\fR]
 Lists all the directories in \fIDIRECTORY\fR in a response body.
@@ -63,10 +71,16 @@ If \fIREGEXP\fR is present only matching directories are returned.
 .TP
 .B disable \fR[\fBnow\fR]
 Disables further playing.  If the optional \fBnow\fR argument is present then
-the current track is stopped.
+the current track is stopped.  Requires the \fBglobal prefs\fR right.
+.TP
+.B edituser \fIUSERNAME PROPERTY VALUE
+Sets a user property.  With the \fBadmin\fR right any username and property may
+be specified.  Otherwise the \fBuserinfo\fR right is required and only the
+\fBemail\fR and \fBpassword\fR properties may be set.
 .TP
 .B enable
-Re-enables further playing, and is the opposite of \fBdisable\fR.
+Re-enables further playing, and is the opposite of \fBdisable\fR.  Requires the
+\fBglobal prefs\fR right.
 .TP
 .B enabled
 Reports whether playing is enabled.  The second field of the response line will
@@ -102,11 +116,18 @@ not accumulate in a buffer somewhere).
 .IP
 See \fBEVENT LOG\fR below for more details.
 .TP
+.B make-cookie
+Returns an opaque string that can be used by the \fBcookie\fR command to log
+this user back in on another connection (until the cookie expires).
+.TP
 .B move \fITRACK\fR \fIDELTA\fR
 Move a track in the queue.  The track may be identified by ID (preferred) or
 name (which might cause confusion if it's there twice).  \fIDELTA\fR should be
 an negative or positive integer and indicates how many steps towards the head
 of the queue the track should be moved.
+.IP
+Requires one of the \fBmove mine\fR, \fBmove random\fR or \fBmove any\fR rights
+depending on how the track came to be added to the queue.
 .TP
 .B moveafter \fITARGET\fR \fIID\fR ...
 Move all the tracks in the \fIID\fR list after ID \fITARGET\fR.  If
@@ -114,6 +135,9 @@ Move all the tracks in the \fIID\fR list after ID \fITARGET\fR.  If
 the queue.  If \fITARGET\fR is listed in the ID list then the tracks are moved
 to just after the first non-listed track before it, or to the head if there is
 no such track.
+.IP
+Requires one of the \fBmove mine\fR, \fBmove random\fR or \fBmove any\fR rights
+depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
 Sends the most recently added \fIMAX\fR tracks in a response body.  If the
@@ -122,7 +146,7 @@ argument is ommitted, all recently added tracks are listed.
 .B nop
 Do nothing.  Used by
 .BR disobedience (1)
-as a keepalive measure.
+as a keepalive measure.  This command does not require authentication.
 .TP
 .B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
 Get a track name part.  Returns an empty string if a name part cannot be
@@ -142,10 +166,11 @@ or
 .BR title .
 .TP
 .B pause
-Pause the current track.
+Pause the current track.  Requires the \fBpause\R right.
 .TP
 .B play \fITRACK\fR
 Add a track to the queue.  The response contains the queue ID of the track.
+Requires the \fBplay\fR right.
 .TP
 .B playing
 Reports what track is playing.
@@ -166,10 +191,11 @@ at the head of the queue (i.e. next to be be played) first.  See below for the
 track information syntax.
 .TP
 .B random-disable
-Disable random play (but don't stop the current track).
+Disable random play (but don't stop the current track).  Requires the \fBglobal
+prefs\fR right.
 .TP
 .B random-enable
-Enable random play.
+Enable random play.  Requires the \fBglobal prefs\fR right.
 .TP
 .B random-enabled
 Reports whether random play is enabled.  The second field of the response line
@@ -181,31 +207,37 @@ line, the track most recently played last.  See below for the track
 information syntax.
 .TP
 .B reconfigure
-Request that DisOrder reconfigure itself.  Only trusted users may issue this
+Request that DisOrder reconfigure itself.   Requires the \fBadmin\fR right.
 command.
 .TP
 .B remove \fIID\fR
-Remove the track identified by \fIID\fR.  If \fBrestrict remove\fR is enabled
-in the server's configuration then only the user that submitted the track may
-remove it.
+Remove the track identified by \fIID\fR.  Requires one of the \fBremove
+mine\fR, \fBremove random\fR or \fBremove any\fR rights depending on how the
+track came to be added to the queue.
 .TP
 .B rescan
-Rescan all roots for new or obsolete tracks.
+Rescan all roots for new or obsolete tracks.   Requires the \fBrescan\fR right.
 .TP
 .B resolve \fITRACK\fR
 Resolve a track name, i.e. if this is an alias then return the real track name.
 .TP
 .B resume
-Resume the current track after a \fBpause\fR command.
+Resume the current track after a \fBpause\fR command.  Requires the \fBpause\fR
+right.
+.TP
+.B revoke \fBcookie\fR
+Revokes a cookie previously created with \fBmake-cookie\fR.  It will not be
+possible to use this cookie in the future.
 .TP
 .B rtp-address
 Reports the RTP broadcast (or multicast) address, in the form \fIADDRESS
-PORT\fR.
+PORT\fR.  This command does not require authentication.
 .TP
 .B scratch \fR[\fIID\fR]
 Remove the track identified by \fIID\fR, or the currently playing track if no
-\fIID\fR is specified.  If \fBrestrict scratch\fR is enabled in the server's
-configuration then only the user that submitted the track may scratch it.
+\fIID\fR is specified.  Requires one of the \fBscratch mine\fR, \fBscratch
+random\fR or \fBscratch any\fR rights depending on how the track came to be
+added to the queue.
 .TP
 .B search \fITERMS\fR
 Search for tracks matching the search terms.  The results are put in a response
@@ -224,10 +256,10 @@ Spaces in terms don't currently make sense, but may one day be interpreted to
 allow searching for phrases.
 .TP
 .B \fBset\fR \fITRACK\fR \fIPREF\fR \fIVALUE\fR
-Set a preference.
+Set a preference.  Requires the \fBprefs\fR right.
 .TP
 .B set-global \fIKEY\fR \fIVALUE\fR
-Set a global preference.
+Set a global preference.  Requires the \fBglobal prefs\fR right.
 .TP
 .B stats
 Send server statistics in plain text in a response body.
@@ -236,15 +268,18 @@ Send server statistics in plain text in a response body.
 Send the list of currently known tags in a response body.
 .TP
 .B \fBunset\fR \fITRACK\fR \fIPREF\fR
-Unset a preference.
+Unset a preference.  Requires the \fBprefs\fR right.
 .TP
 .B \fBunset-global\fR \fIKEY\fR
-Unset a global preference.
+Unset a global preference.  Requires the \fBglobal prefs\fR right.
 .TP
 .B user \fIUSER\fR \fIRESPONSE\fR
 Authenticate as \fIUSER\fR.  See
 .B AUTHENTICATION
 below.
+.TP
+.B users
+Sends the list of currently known users in a response body.
 .TP
 .B version
 Send back a response with the server version as the second field.
@@ -256,7 +291,7 @@ With zero parameters just gets the volume and reports the left and right sides
 as the 2nd and 3rd fields of the response.
 .IP
 With one parameter sets both sides to the same value.  With two parameters sets
-each side independently.
+each side independently.  Setting the volume requires the \fBvolume\fR right.
 .SH RESPONSES
 Responses are three-digit codes.  The first digit distinguishes errors from
 succesful responses:

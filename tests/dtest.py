@@ -259,11 +259,15 @@ Start the daemon."""
 def create_user(username="fred", password="fredpass"):
     """create_user(USERNAME, PASSWORD)
 
-    Create a user, abusing direct database access to do so."""
+    Create a user, abusing direct database access to do so.  Gives the
+    user rights 'all', allowing them to do anything."""
     print " creating user %s" % username
     command(["disorder",
              "--config", disorder._configfile, "--no-per-user-config",
              "--user", "root", "adduser", username, password])
+    command(["disorder",
+             "--config", disorder._configfile, "--no-per-user-config",
+             "--user", "root", "edituser", username, "rights", "all"])
 
 def stop_daemon():
     """stop_daemon()

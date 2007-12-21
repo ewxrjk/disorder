@@ -854,7 +854,7 @@ class client:
   def make_cookie(self):
     """Create a login cookie"""
     ret, details = self._simple("make-cookie")
-    return details
+    return _split(details)[0]
   
   def revoke(self):
     """Revoke a login cookie"""

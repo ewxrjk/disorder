@@ -52,10 +52,70 @@ DisOrder distinguishes between multiple users.  This is for access control and
 reporting, not to provide different views of the world: i.e. preferences and so
 on are global.
 .PP
-It's possible to restrict a small number of operations to a specific subset of
-users.  However, it is assumed that every user is supposed to be able to do
-most operations - since the users are all sharing the same audio environment
-they are expected to cooperate with each other.
+Each user has an associated set of rights which contorl which commands they may
+execute.  Normally you would give all users most rights, and expect them to
+cooperate (they are after all presumed to be in a shared sound environment).
+.PP
+The full set of rights are:
+.TP
+.B read
+User can perform read-only operations
+.TP
+.B play
+User can add tracks to the queue
+.TP
+.B "move any"
+User can move any track
+.TP
+.B "move mine"
+User can move their own tracks
+.TP
+.B "move random"
+User can move randomly chosen tracks
+.TP
+.B "remove any"
+User can remove any track
+.TP
+.B "remove mine"
+User can remove their own tracks
+.TP
+.B "remove random"
+User can remove randomly chosen tracks
+.TP
+.B "scratch any"
+User can scratch any track
+.TP
+.B "scratch mine"
+User can scratch their own tracks
+.TP
+.B "scratch random"
+User can scratch randomly chosen tracks
+.TP
+.B volume
+User can change the volume
+.TP
+.B admin
+User can perform admin operations
+.TP
+.B rescan
+User can initiate a rescan
+.TP
+.B register
+User can register new users.  Normally only the
+.B guest
+user would have this right.
+.TP
+.B userinfo
+User can edit their own userinfo
+.TP
+.B prefs
+User can modify track preferences
+.TP
+.B "global prefs"
+User can modify global preferences
+.TP
+.B pause
+User can pause/resume 
 .PP
 Access control is entirely used-based.  If you configure DisOrder to listen for
 TCP/IP connections then it will accept a connection from anywhere provided the
@@ -133,6 +193,24 @@ it re-read it.  If there is anything wrong with it the daemon will
 record a log message and ignore the new config file.  (You should fix
 it before next terminating and restarting the daemon, as it cannot
 start up without a valid config file.)
+.SS "Configuration Files"
+Configuration files are read in the following order:
+.TP
+.I pkgconfdir/config
+.TP
+.I pkgconfdir/config.private
+Should be readable only by the jukebox group.  Not really useful any more and
+may be abolished in future.
+.TP
+.I pkgconfdir/config.\fRUSER
+Per-user system-controlled client configuration.  Optional but if it
+exists must be readable only by the relevant user.  Would normally
+contain a \fBpassword\fR directive.
+.TP
+.I ~\fRUSER\fI/.disorder/passwd
+Per-user client configuration.  Optional but if it exists must be
+readable only by the relevant user.  Would normally contain a
+\fBpassword\fR directive.
 .SS "Global Configuration"
 .TP
 .B home \fIDIRECTORY\fR
@@ -383,20 +461,6 @@ to 3600, i.e. one hour.
 The target size of the queue.  If random play is enabled then randomly picked
 tracks will be added until the queue is at least this big.  The default is 10.
 .TP
-.B restrict \fR[\fBscratch\fR] [\fBremove\fR] [\fBmove\fR]
-Determine which operations are restricted to the submitter of a
-track.  By default, no operations are restricted, i.e. anyone can
-scratch or remove anything.
-.IP
-If \fBrestrict scratch\fR or \fBrestrict remove\fR are set then only the user
-that submitted a track can scratch or remove it, respectively.
-.IP
-If \fBrestrict move\fR is set then only trusted users can move tracks around in
-the queue.
-.IP
-If \fBrestrict\fR is used more than once then only the final use has any
-effect.
-.TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).  The
 components of the format specification are as follows:
@@ -505,6 +569,10 @@ Specifies the module used to calculate the length of files matching
 .IP
 If \fBtracklength\fR is used without arguments then the list of modules is
 cleared.
+.TP
+.B user \fIUSER\fR
+Specifies the user to run as.  Only makes sense if invoked as root (or
+the target user).
 .SS "Client Configuration"
 .TP
 .B connect \fIHOST SERVICE\fR
@@ -564,45 +632,15 @@ generated web pages.
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
 .SS "Authentication Configuration"
+These options would normally be used in \fI~\fRUSER\fI/.disorder/passwd\fR or
+\fIpkgconfdir/config.\fRUSER.
 .TP
 .B password \fIPASSWORD\fR
 Specify password.
 .TP
-.B trust \fIUSERNAME\fR
-Allow \fIUSERNAME\fR to perform privileged operations such as shutting
-down or reconfiguring the daemon, or becoming another user.
-.IP
-If \fBtrust\fR is used without arguments then the list of trusted users is
-cleared.
-.TP
-.B user \fIUSER\fR
-Specifies the user to run as.  Only makes sense if invoked as root (or
-the target user).
-.TP
 .B username \fIUSERNAME\fR
 Specify username.  The default is taken from the environment variable
 \fBLOGNAME\fR.
-.PP
-Configuration files are read in the following order:
-.TP
-.I pkgconfdir/config
-.TP
-.I pkgconfdir/config.private
-Should be readable only by the jukebox group, and contain \fBallow\fR
-commands for authorised users.
-.IP
-If this file does not exist at startup then the server will create it with a
-randomly chosen password for the root user.
-.TP
-.I pkgconfdir/config.\fRUSER
-Per-user system-controlled client configuration.  Optional but if it
-exists must be readable only by the relevant user.  Would normally
-contain a \fBpassword\fR directive.
-.TP
-.I ~\fRUSER\fI/.disorder/passwd
-Per-user client configuration.  Optional but if it exists must be
-readable only by the relevant user.  Would normally contain a
-\fBpassword\fR directive.
 .SH "GLOBAL PREFERENCES"
 These are the values set with \fBset-global\fR.
 .TP

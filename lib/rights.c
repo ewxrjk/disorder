@@ -53,7 +53,8 @@ static const struct {
   { RIGHT_REGISTER, "register" },
   { RIGHT_USERINFO, "userinfo" },
   { RIGHT_PREFS, "prefs" },
-  { RIGHT_GLOBAL_PREFS, "global prefs" }
+  { RIGHT_GLOBAL_PREFS, "global prefs" },
+  { RIGHT_PAUSE, "pause" }
 };
 #define NRIGHTS (sizeof rights_names / sizeof *rights_names)
 

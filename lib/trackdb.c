@@ -2514,9 +2514,6 @@ void trackdb_create_root(void) {
  * Only works if running as a user that can read the database!
  *
  * If the user exists but has no password, "" is returned.
- *
- * If the user was created with 'register' and has not yet been confirmed then
- * NULL is still returned.
  */
 const char *trackdb_get_password(const char *user) {
   int e;
@@ -2525,8 +2522,6 @@ const char *trackdb_get_password(const char *user) {
 
   WITH_TRANSACTION(trackdb_getdata(trackdb_usersdb, user, &k, tid));
   if(e)
-    return 0;
-  if(kvp_get(k, "confirmation"))
     return 0;
   password = kvp_get(k, "password");
   return password ? password : "";
