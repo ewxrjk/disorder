@@ -38,7 +38,7 @@
 
 /** @brief Create a DisOrder login for the calling user, called @p user
  * @param client DisOrder client
- * @param user Username to create
+ * @param user Username to create (UTF-8)
  * @return 0 on success, non-0 on error
  */
 int authorize(disorder_client *client, const char *user) {

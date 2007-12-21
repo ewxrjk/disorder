@@ -302,11 +302,6 @@ static void cf_set_volume(disorder_client *c,
   if(disorder_set_volume(c, atoi(argv[0]), atoi(argv[1]))) exit(EXIT_FAILURE);
 }
 
-static void cf_become(disorder_client *c,
-		      char **argv) {
-  if(disorder_become(c, argv[0])) exit(EXIT_FAILURE);
-}
-
 static void cf_log(disorder_client *c,
 		   char attribute((unused)) **argv) {
   if(disorder_log(c, sink_stdio("stdout", stdout))) exit(EXIT_FAILURE);
@@ -460,8 +455,6 @@ static const struct command {
                       "List all files and directories in DIR" },
   { "authorize",      1, 1, cf_authorize, 0, "USER",
                       "Authorize USER to connect to the server" },
-  { "become",         1, 1, cf_become, 0, "USER",
-                      "Become user USER" },
   { "deluser",        1, 1, cf_deluser, 0, "USER",
                       "Delete a user" },
   { "dirs",           1, 2, cf_dirs, isarg_regexp, "DIR [~REGEXP]",

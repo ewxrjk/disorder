@@ -57,6 +57,13 @@ List all known commands.
 .B adduser \fIUSER PASSWORD\fR
 Create a new user with default rights.
 .TP
+.B authorize \fIUSER\fR
+Chooses a password for \fIUSER\fR and adds it to \fIconfig.private\fR.  Also
+creates an appropriate \fIconfig.USER\fR, be owned by the user.
+.IP
+If at least one \fBauthorize\fR command succeeds then the server is
+automatically told to re-read its configuration.
+.TP
 .B deluser \fIUSER\fR
 Delete a user.
 .TP
@@ -141,8 +148,16 @@ Enable random play.
 List recently played tracks.  The first entry is the oldest track, the last
 entry is the most recently played one.
 .TP
+.B reconfigure
+Make the daemon reload its configuration file.
+.TP
 .B remove \fITRACK\fR
 Remove a track from the queue.
+.TP
+.B rescan
+Rescan the filesystem for new tracks.  There is an automatic daily rescan but
+if you've just added some tracks and want them to show up immediately, use this
+command.
 .TP
 .B resolve \fITRACK\fR
 Resolve aliases for \fITRACK\fR and print out the real track name.
@@ -180,6 +195,9 @@ Set a global preference.
 .B set-volume \fBLEFT\fR \fBRIGHT\fR
 Sets the volume.
 .TP
+.B shutdown
+Shut down the daemon.
+.TP
 .B stats
 List server statistics.
 .TP
@@ -204,22 +222,6 @@ and
 .BR remove ,
 tracks may be specified by name or by ID.  If you use the name and a track
 appears twice in the queue it is undefined which is affected.
-.SS "Privileged Commands"
-These commands are only available to privileged users.
-.TP
-.B become \fIUSER\fR
-Become another user.
-.TP
-.B reconfigure
-Make the daemon reload its configuration file.
-.TP
-.B rescan
-Rescan the filesystem for new tracks.  There is an automatic daily rescan but
-if you've just added some tracks and want them to show up immediately, use this
-command.
-.TP
-.B shutdown
-Shut down the daemon.
 .SH PREFERENCES
 Currently the following preferences are supported.  Some are expected
 to be set by users, others updated automatically by plugins.
@@ -264,23 +266,18 @@ is not present.
 .B unscratched
 The number of times the track has been played to completion without
 being scratched.
-.SH "Superuser Commands"
-These commands will (generally) only work for root, who must be a privileged
-user.
-.TP
-.B authorize \fIUSER\fR
-Chooses a password for \fIUSER\fR and adds it to \fIconfig.private\fR.  Also
-creates an appropriate \fIconfig.USER\fR, be owned by the user.
-.IP
-If at least one \fBauthorize\fR command succeeds then the server is
-automatically told to re-read its configuration.
 .SH NOTES
 .B disorder
 is locale-aware.  If you do not set the locale correctly then it may
 not handle non-ASCII data properly.
 .PP
-The client determines which user to attempt to authenticate as by
-examining the current UID.
+The client determines which user to attempt to authenticate as by examining the
+current UID.  This can be overridden in a per-user configuration file, see
+\fBdisorder_config\fR(5).
+.PP
+See \fBdisorder_protocol\fR(5) for the rights required to run each command.
+(For instance, \fBshutdown\fR requires the \fBadmin\fR right, which most users
+would not normally have.)
 .PP
 This program is not intended to run in a setuid environment.
 .PP
