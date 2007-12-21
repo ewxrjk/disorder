@@ -536,7 +536,7 @@ static void authbanner_opcallback(disorder_eclient *c,
   const char *res;
   char **rvec;
   int nrvec;
-  const char *algo = "SHA1";
+  const char *protocol, *algorithm, *challenge;
   
   D(("authbanner_opcallback"));
   if(c->rc / 100 != 2
@@ -547,15 +547,22 @@ static void authbanner_opcallback(disorder_eclient *c,
     disorder_eclient_close(c);
     return;
   }
-  if(nrvec > 1) {
-    algo = *rvec++;
-    --nrvec;
+  if(nrvec != 3) {
+    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    disorder_eclient_close(c);
   }
-  nonce = unhex(rvec[0], &nonce_len);
-  res = authhash(nonce, nonce_len, config->password, algo);
+  protocol = *rvec++;
+  algorithm = *rvec++;
+  challenge = *rvec++;
+  if(strcmp(protocol, "2")) {
+    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    disorder_eclient_close(c);
+  }
+  nonce = unhex(challenge, &nonce_len);
+  res = authhash(nonce, nonce_len, config->password, algorithm);
   if(!res) {
     protocol_error(c, op, c->rc, "%s: unknown authentication algorithm '%s'",
-                   c->ident, algo);
+                   c->ident, algorithm);
     disorder_eclient_close(c);
     return;
   }
