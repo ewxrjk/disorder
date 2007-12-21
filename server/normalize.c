@@ -249,6 +249,13 @@ int main(int argc, char attribute((unused)) **argv) {
   }
   if(outfd != -1)
     xclose(outfd);
+  if(pid != -1) {
+    /* There's still a converter running */
+    if(waitpid(pid, &n, 0) < 0)
+      fatal(errno, "error calling waitpid");
+    if(n)
+      fatal(0, "sox failed: %#x", n);
+  }
   return 0;
 }
 
