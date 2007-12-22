@@ -51,13 +51,13 @@ to execute the command.
 Neither commands nor responses have a body unless stated otherwise.
 .TP
 .B adduser \fIUSERNAME PASSWORD \fR[\fIRIGHTS\fR]
-Creates a new user with the given username and password.  The new user's rights
+Create a new user with the given username and password.  The new user's rights
 list can be specified; if it is not then the \fBdefault_rights\fR setting
 applies instead.  Requires the \fBadmin\fR right, and only works on local
 connections.
 .TP
 .B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
-Lists all the files and directories in \fIDIRECTORY\fR in a response body.
+List all the files and directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files and directories are returned.
 .TP
 .B confirm \fICONFIRMATION
@@ -68,40 +68,40 @@ Confirm user registration.  \fICONFIRMATION\fR is as returned from
 Log a user back in using a cookie created with \fBmake-cookie\fR.
 .TP
 .B deluser \fIUSERNAME
-Deletes the named user.  Requires the \fBadmin\fR right, and only works on
+Delete the named user.  Requires the \fBadmin\fR right, and only works on
 local connections.
 .TP
 .B dirs \fIDIRECTORY\fR [\fIREGEXP\fR]
-Lists all the directories in \fIDIRECTORY\fR in a response body.
+List all the directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching directories are returned.
 .TP
 .B disable \fR[\fBnow\fR]
-Disables further playing.  If the optional \fBnow\fR argument is present then
+Disable further playing.  If the optional \fBnow\fR argument is present then
 the current track is stopped.  Requires the \fBglobal prefs\fR right.
 .TP
 .B edituser \fIUSERNAME PROPERTY VALUE
-Sets a user property.  With the \fBadmin\fR right any username and property may
+Set a user property.  With the \fBadmin\fR right any username and property may
 be specified.  Otherwise the \fBuserinfo\fR right is required and only the
 \fBemail\fR and \fBpassword\fR properties may be set.
 .TP
 .B enable
-Re-enables further playing, and is the opposite of \fBdisable\fR.  Requires the
+Re-enable further playing, and is the opposite of \fBdisable\fR.  Requires the
 \fBglobal prefs\fR right.
 .TP
 .B enabled
-Reports whether playing is enabled.  The second field of the response line will
+Report whether playing is enabled.  The second field of the response line will
 be \fByes\fR or \fBno\fR.
 .TP
 .B exists \fITRACK\fR
-Reports whether the named track exists.  The second field of the response line
+Report whether the named track exists.  The second field of the response line
 will be \fByes\fR or \fBno\fR.
 .TP
 .B files \fIDIRECTORY\fR [\fIREGEXP\fR]
-Lists all the files in \fIDIRECTORY\fR in a response body.
+List all the files in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files are returned.
 .TP
 .B get \fITRACK\fR \fIPREF\fR
-Gets a preference value.  On success the second field of the response line will
+Getsa preference value.  On success the second field of the response line will
 have the value.
 .IP
 If the track or preference do not exist then the response code is 555.
@@ -112,11 +112,11 @@ Get a global preference.
 If the preference does not exist then the response code is 555.
 .TP
 .B length \fITRACK\fR
-Gets the length of the track in seconds.  On success the second field of the
+Get the length of the track in seconds.  On success the second field of the
 response line will have the value.
 .TP
 .B log
-Sends event log messages in a response body.  The command will never terminate.
+Send event log messages in a response body.  The command will never terminate.
 Any further data sent to the server will be discarded (explicitly; i.e. it will
 not accumulate in a buffer somewhere).
 .IP
@@ -146,7 +146,7 @@ Requires one of the \fBmove mine\fR, \fBmove random\fR or \fBmove any\fR rights
 depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
-Sends the most recently added \fIMAX\fR tracks in a response body.  If the
+Send the most recently added \fIMAX\fR tracks in a response body.  If the
 argument is ommitted, all recently added tracks are listed.
 .TP
 .B nop
@@ -179,7 +179,7 @@ Add a track to the queue.  The response contains the queue ID of the track.
 Requires the \fBplay\fR right.
 .TP
 .B playing
-Reports what track is playing.
+Report what track is playing.
 .IP
 If the response is \fB252\fR then the rest of the response line consists of
 track information (see below).
@@ -187,12 +187,12 @@ track information (see below).
 If the response is \fB259\fR then nothing is playing.
 .TP
 .B prefs \fBTRACK\fR
-Sends back the preferences for \fITRACK\fR in a response body.
+Send back the preferences for \fITRACK\fR in a response body.
 Each line of the response has the usual line syntax, the first field being the
 name of the pref and the second the value.
 .TP
 .B queue
-Sends back the current queue in a response body, one track to a line, the track
+Send back the current queue in a response body, one track to a line, the track
 at the head of the queue (i.e. next to be be played) first.  See below for the
 track information syntax.
 .TP
@@ -204,11 +204,11 @@ prefs\fR right.
 Enable random play.  Requires the \fBglobal prefs\fR right.
 .TP
 .B random-enabled
-Reports whether random play is enabled.  The second field of the response line
+Report whether random play is enabled.  The second field of the response line
 will be \fByes\fR or \fBno\fR.
 .TP
 .B recent
-Sends back the current recently-played list in a response body, one track to a
+Send back the current recently-played list in a response body, one track to a
 line, the track most recently played last.  See below for the track
 information syntax.
 .TP
@@ -237,11 +237,11 @@ Resume the current track after a \fBpause\fR command.  Requires the \fBpause\fR
 right.
 .TP
 .B revoke \fBcookie\fR
-Revokes a cookie previously created with \fBmake-cookie\fR.  It will not be
+Revoke a cookie previously created with \fBmake-cookie\fR.  It will not be
 possible to use this cookie in the future.
 .TP
 .B rtp-address
-Reports the RTP broadcast (or multicast) address, in the form \fIADDRESS
+Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
 PORT\fR.  This command does not require authentication.
 .TP
 .B scratch \fR[\fIID\fR]
@@ -290,7 +290,7 @@ Authenticate as \fIUSER\fR.  See
 below.
 .TP
 .B users
-Sends the list of currently known users in a response body.
+Send the list of currently known users in a response body.
 .TP
 .B version
 Send back a response with the server version as the second field.

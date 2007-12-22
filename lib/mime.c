@@ -72,7 +72,7 @@ static int tspecial(int c) {
   }
 }
 
-/** @brief Mathc RFC2616 seprator characters */
+/** @brief Match RFC2616 seprator characters */
 static int http_separator(int c) {
   switch(c) {
   case '(':
