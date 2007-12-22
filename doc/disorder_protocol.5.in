@@ -65,7 +65,8 @@ Confirm user registration.  \fICONFIRMATION\fR is as returned from
 \fBregister\fR below.  This command can be used without logging in.
 .TP
 .B cookie \fICOOKIE
-Log a user back in using a cookie created with \fBmake-cookie\fR.
+Log a user back in using a cookie created with \fBmake-cookie\fR.  The response
+contains the username.
 .TP
 .B deluser \fIUSERNAME
 Delete the named user.  Requires the \fBadmin\fR right, and only works on

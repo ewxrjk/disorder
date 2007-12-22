@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,23 +33,19 @@
 #include "configuration.h"
 #include "client-common.h"
 #include "addr.h"
+#include "mem.h"
 
-/** @brief Invoke a function with the connect address
- * @param c Passed to callback
- * @param function Function to call
- *
- * Calls @p function with the result of looking up the connect address.
+/** @brief Figure out what address to connect to
+ * @param sap Where to store pointer to sockaddr
+ * @param namep Where to store socket name
+ * @return Socket length, or (socklen_t)-1
  */
-int with_sockaddr(void *c,
-		  int (*function)(void *c,
-				  const struct sockaddr *sa,
-				  socklen_t len,
-				  const char *ident)) {
-  const char *path;
+socklen_t find_server(struct sockaddr **sap, char **namep) {
+  struct sockaddr *sa;
   struct sockaddr_un su;
-  struct addrinfo *res;
+  struct addrinfo *res = 0;
   char *name;
-  int n;
+  socklen_t len;
    
   static const struct addrinfo pref = {
     0,
@@ -65,20 +61,27 @@ int with_sockaddr(void *c,
   if(config->connect.n) {
     res = get_address(&config->connect, &pref, &name);
     if(!res) return -1;
-    n = function(c, res->ai_addr, res->ai_addrlen, name);
-    freeaddrinfo(res);
-    return n;
+    sa = res->ai_addr;
+    len = res->ai_addrlen;
   } else {
-    path = config_get_file("socket");
-    if(strlen(path) >= sizeof su.sun_path) {
+    name = config_get_file("socket");
+    if(strlen(name) >= sizeof su.sun_path) {
       error(errno, "socket path is too long");
       return -1;
     }
     memset(&su, 0, sizeof su);
     su.sun_family = AF_UNIX;
-    strcpy(su.sun_path, path);
-    return function(c, (struct sockaddr *)&su, sizeof su, path);
+    strcpy(su.sun_path, name);
+    sa = (struct sockaddr *)&su;
+    len = sizeof su;
   }
+  *sap = xmalloc_noptr(len);
+  memcpy(*sap, sa, len);
+  if(namep)
+    *namep = name;
+  if(res)
+    freeaddrinfo(res);
+  return len;
 }
 
 /*

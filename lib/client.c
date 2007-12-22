@@ -66,19 +66,13 @@ struct disorder_client {
   int verbose;
 };
 
-static int disorder_connect_sock(disorder_client *c,
-				 const struct sockaddr *sa,
-				 socklen_t len,
-				 const char *username,
-				 const char *password,
-				 const char *ident);
-
 /** @brief Create a new client
  * @param verbose If nonzero, write extra junk to stderr
  * @return Pointer to new client
  *
- * You must call disorder_connect() to connect it.  Use
- * disorder_close() to dispose of the client when finished with it.
+ * You must call disorder_connect() or disorder_connect_cookie() to
+ * connect it.  Use disorder_close() to dispose of the client when
+ * finished with it.
  */
 disorder_client *disorder_new(int verbose) {
   disorder_client *c = xmalloc(sizeof (struct disorder_client));
@@ -208,13 +202,125 @@ static int disorder_simple(disorder_client *c,
   return ret;
 }
 
-static int connect_sock(void *vc,
-			const struct sockaddr *sa,
-			socklen_t len,
-			const char *ident) {
+/** @brief Dequote a result string
+ * @param rc 0 on success, non-0 on error
+ * @param rp Where result string is stored (UTF-8)
+ * @return @p rc
+ *
+ * This is used as a wrapper around disorder_simple() to dequote
+ * results in place.
+ */
+static int dequote(int rc, char **rp) {
+  char **rr;
+  if(!rc) {
+    if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
+      *rp = *rr;
+      return 0;
+    }
+    error(0, "invalid reply: %s", *rp);
+  }
+  return -1;
+}
+
+/** @brief Generic connection routine
+ * @param c Client
+ * @param username Username to log in with or NULL
+ * @param password Password to log in with or NULL
+ * @param cookie Cookie to log in with or NULL
+ * @return 0 on success, non-0 on error
+ *
+ * @p cookie is tried first if not NULL.  If it is NULL then @p
+ * username must not be.  If @p username is not NULL then nor may @p
+ * password be.
+ */
+static int disorder_connect_generic(disorder_client *c,
+				    const char *username,
+				    const char *password,
+				    const char *cookie) {
+  int fd = -1, fd2 = -1, nrvec;
+  unsigned char *nonce;
+  size_t nl;
+  const char *res;
+  char *r, **rvec;
+  const char *protocol, *algorithm, *challenge;
+  struct sockaddr *sa;
+  socklen_t salen;
+
+  if((salen = find_server(&sa, &c->ident)) == (socklen_t)-1)
+    return -1;
+  c->fpin = c->fpout = 0;
+  if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
+    error(errno, "error calling socket");
+    return -1;
+  }
+  if(connect(fd, sa, salen) < 0) {
+    error(errno, "error calling connect");
+    goto error;
+  }
+  if((fd2 = dup(fd)) < 0) {
+    error(errno, "error calling dup");
+    goto error;
+  }
+  if(!(c->fpin = fdopen(fd, "rb"))) {
+    error(errno, "error calling fdopen");
+    goto error;
+  }
+  fd = -1;
+  if(!(c->fpout = fdopen(fd2, "wb"))) {
+    error(errno, "error calling fdopen");
+    goto error;
+  }
+  fd2 = -1;
+  if(disorder_simple(c, &r, 0, (const char *)0))
+    return -1;
+  if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
+    return -1;
+  if(nrvec != 3) {
+    error(0, "cannot parse server greeting %s", r);
+    return -1;
+  }
+  protocol = *rvec++;
+  if(strcmp(protocol, "2")) {
+    error(0, "unknown protocol version: %s", protocol);
+    return -1;
+  }
+  algorithm = *rvec++;
+  challenge = *rvec++;
+  if(!(nonce = unhex(challenge, &nl)))
+    return -1;
+  if(cookie) {
+    if(!dequote(disorder_simple(c, &c->user, "cookie", cookie, (char *)0),
+		&c->user))
+      return 0;				/* success */
+    if(!username) {
+      error(0, "cookie did not work and no username available");
+      return -1;
+    }
+  }
+  if(!(res = authhash(nonce, nl, password, algorithm))) goto error;
+  if(disorder_simple(c, 0, "user", username, res, (char *)0))
+    return -1;
+  c->user = xstrdup(username);
+  return 0;
+error:
+  if(c->fpin) fclose(c->fpin);
+  if(c->fpout) fclose(c->fpout);
+  if(fd2 != -1) close(fd2);
+  if(fd != -1) close(fd);
+  return -1;
+}
+
+/** @brief Connect a client
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ *
+ * The connection will use the username and password found in @ref
+ * config, or directly from the database if no password is found and
+ * the database is readable (usually only for root).
+ */
+int disorder_connect(disorder_client *c) {
   const char *username, *password;
-  disorder_client *c = vc;
-  
+
   if(!(username = config->username)) {
     error(0, "no username configured");
     return -1;
@@ -233,89 +339,27 @@ static int connect_sock(void *vc,
     error(0, "no password configured");
     return -1;
   }
-  return disorder_connect_sock(c, sa, len, username, password, ident);
+  return disorder_connect_generic(c,
+				  username,
+				  password,
+				  0);
 }
 
 /** @brief Connect a client
  * @param c Client
+ * @param cookie Cookie to log in with, or NULL
  * @return 0 on success, non-0 on error
  *
- * The connection will use the username and password found in @ref
- * config.
+ * If @p cookie is NULL or does not work then we attempt to log in as
+ * guest instead (so when the cookie expires only an extra round trip
+ * is needed rathre than a complete new login).
  */
-int disorder_connect(disorder_client *c) {
-  return with_sockaddr(c, connect_sock);
-}
-
-static int disorder_connect_sock(disorder_client *c,
-				 const struct sockaddr *sa,
-				 socklen_t len,
-				 const char *username,
-				 const char *password,
-				 const char *ident) {
-  int fd = -1, fd2 = -1, nrvec;
-  unsigned char *nonce;
-  size_t nl;
-  const char *res;
-  char *r, **rvec;
-  const char *protocol, *algorithm, *challenge;
-
-  if(!password) {
-    error(0, "no password found");
-    return -1;
-  }
-  c->fpin = c->fpout = 0;
-  if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
-    error(errno, "error calling socket");
-    return -1;
-  }
-  if(connect(fd, sa, len) < 0) {
-    error(errno, "error calling connect");
-    goto error;
-  }
-  if((fd2 = dup(fd)) < 0) {
-    error(errno, "error calling dup");
-    goto error;
-  }
-  if(!(c->fpin = fdopen(fd, "rb"))) {
-    error(errno, "error calling fdopen");
-    goto error;
-  }
-  fd = -1;
-  if(!(c->fpout = fdopen(fd2, "wb"))) {
-    error(errno, "error calling fdopen");
-    goto error;
-  }
-  fd2 = -1;
-  c->ident = xstrdup(ident);
-  if(disorder_simple(c, &r, 0, (const char *)0))
-    return -1;
-  if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
-    return -1;
-  if(nrvec != 3) {
-    error(0, "cannot parse server greeting %s", r);
-    return -1;
-  }
-  protocol = *rvec++;
-  if(strcmp(protocol, "2")) {
-    error(0, "unknown protocol version: %s", protocol);
-    return -1;
-  }
-  algorithm = *rvec++;
-  challenge = *rvec++;
-  if(!(nonce = unhex(challenge, &nl)))
-    return -1;
-  if(!(res = authhash(nonce, nl, password, algorithm))) goto error;
-  if(disorder_simple(c, 0, "user", username, res, (char *)0))
-    return -1;
-  c->user = xstrdup(username);
-  return 0;
-error:
-  if(c->fpin) fclose(c->fpin);
-  if(c->fpout) fclose(c->fpout);
-  if(fd2 != -1) close(fd2);
-  if(fd != -1) close(fd);
-  return -1;
+int disorder_connect_cookie(disorder_client *c,
+			    const char *cookie) {
+  return disorder_connect_generic(c,
+				  "guest",
+				  "",
+				  cookie);
 }
 
 /** @brief Close a client
@@ -342,6 +386,8 @@ int disorder_close(disorder_client *c) {
     }
     c->fpout = 0;
   }
+  c->ident = 0;
+  c->user = 0;
   return 0;
 }
 
@@ -429,26 +475,6 @@ int disorder_reconfigure(disorder_client *c) {
  */
 int disorder_rescan(disorder_client *c) {
   return disorder_simple(c, 0, "rescan", (char *)0);
-}
-
-/** @brief Dequote a result string
- * @param rc 0 on success, non-0 on error
- * @param rp Where result string is stored (UTF-8)
- * @return @p rc
- *
- * This is used as a wrapper around disorder_simple() to dequote
- * results in place.
- */
-static int dequote(int rc, char **rp) {
-  char **rr;
-  if(!rc) {
-    if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
-      *rp = *rr;
-      return 0;
-    }
-    error(0, "invalid reply: %s", *rp);
-  }
-  return -1;
 }
 
 /** @brief Get server version number
@@ -593,7 +619,7 @@ static int disorder_simple_list(disorder_client *c,
 
 /** @brief List directories below @p dir
  * @param c Client
- * @param dir Directory to list (UTF-8)
+ * @param dir Directory to list, or NULL for root (UTF-8)
  * @param re Regexp that results must match, or NULL (UTF-8)
  * @param vecp Where to store list (UTF-8)
  * @param nvecp Where to store number of items, or NULL
@@ -606,7 +632,7 @@ int disorder_directories(disorder_client *c, const char *dir, const char *re,
 
 /** @brief List files below @p dir
  * @param c Client
- * @param dir Directory to list (UTF-8)
+ * @param dir Directory to list, or NULL for root (UTF-8)
  * @param re Regexp that results must match, or NULL (UTF-8)
  * @param vecp Where to store list (UTF-8)
  * @param nvecp Where to store number of items, or NULL
@@ -619,7 +645,7 @@ int disorder_files(disorder_client *c, const char *dir, const char *re,
 
 /** @brief List files and directories below @p dir
  * @param c Client
- * @param dir Directory to list (UTF-8)
+ * @param dir Directory to list, or NULL for root (UTF-8)
  * @param re Regexp that results must match, or NULL (UTF-8)
  * @param vecp Where to store list (UTF-8)
  * @param nvecp Where to store number of items, or NULL

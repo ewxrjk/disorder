@@ -1048,7 +1048,8 @@ static int c_cookie(struct conn *c,
     info("S%x %s connected with cookie from %s", c->tag, user, host);
     c->rights |= RIGHT__LOCAL;
   }
-  sink_writes(ev_writer_sink(c->w), "230 OK\n");
+  /* Response contains username so client knows who they are acting as */
+  sink_printf(ev_writer_sink(c->w), "232 %s\n", quoteutf8(user));
   return 1;
 }
 

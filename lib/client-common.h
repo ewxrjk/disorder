@@ -21,11 +21,7 @@
 #ifndef CLIENT_COMMON_H
 #define CLIENT_COMMON_H
 
-int with_sockaddr(void *c,
-                  int (*function)(void *c,
-                                  const struct sockaddr *sa,
-                                  socklen_t len,
-                                  const char *ident));
+socklen_t find_server(struct sockaddr **sap, char **namep);
 
 #endif /* CLIENT_COMMON_H */
 

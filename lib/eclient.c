@@ -114,7 +114,7 @@ struct operation {
 
 /** @brief Client structure */
 struct disorder_eclient {
-  const char *ident;
+  char *ident;
   int fd;                               /**< @brief connection to server */
   enum client_state state;              /**< @brief current state */
   int authenticated;                    /**< @brief true when authenicated */
@@ -150,15 +150,8 @@ struct disorder_eclient {
 
 /* Forward declarations ******************************************************/
 
-static int start_connect(void *cc,
-			 const struct sockaddr *sa,
-			 socklen_t len,
-			 const char *ident);
+static int start_connect(disorder_eclient *c);
 static void process_line(disorder_eclient *c, char *line);
-static int start_connect(void *cc,
-			 const struct sockaddr *sa,
-			 socklen_t len,
-			 const char *ident);
 static void maybe_connected(disorder_eclient *c);
 static void authbanner_opcallback(disorder_eclient *c,
                                   struct operation *op);
@@ -341,7 +334,7 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
       comms_error(c, "no password is configured");
       return;
     }
-    with_sockaddr(c, start_connect);
+    start_connect(c);
     /* might now be state_disconnected (on error), state_connecting (slow
      * connect) or state_connected (fast connect).  If state_disconnected then
      * we just rely on a periodic callback from the event loop sometime. */
@@ -467,14 +460,13 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
 }
 
 /** @brief Called to start connecting */
-static int start_connect(void *cc,
-			 const struct sockaddr *sa,
-			 socklen_t len,
-			 const char *ident) {
-  disorder_eclient *c = cc;
+static int start_connect(disorder_eclient *c) {
+  struct sockaddr *sa;
+  socklen_t len;
 
   D(("start_connect"));
-  c->ident = xstrdup(ident);
+  if((len = find_server(&sa, &c->ident)) == (socklen_t)-1)
+    return comms_error(c, "cannot look up server"); /* TODO better error */
   if(c->fd != -1) {
     xclose(c->fd);
     c->fd = -1;
@@ -494,7 +486,7 @@ static int start_connect(void *cc,
       return 0;
     default:
       /* Signal the error to the caller. */
-      return comms_error(c, "connecting to %s: %s", ident, strerror(errno));
+      return comms_error(c, "connecting to %s: %s", c->ident, strerror(errno));
     }
   } else
     c->state = state_connected;

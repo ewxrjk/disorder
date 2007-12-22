@@ -36,6 +36,7 @@ struct sink;
 
 disorder_client *disorder_new(int verbose);
 int disorder_connect(disorder_client *c);
+int disorder_connect_cookie(disorder_client *c, const char *cookie);
 int disorder_close(disorder_client *c);
 int disorder_become(disorder_client *c, const char *user);
 int disorder_version(disorder_client *c, char **versionp);
