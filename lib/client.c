@@ -710,6 +710,11 @@ int disorder_confirm(disorder_client *c, const char *confirm) {
   return disorder_simple(c, 0, "confirm", confirm, (char *)0);
 }
 
+int disorder_make_cookie(disorder_client *c, char **cookiep) {
+  return dequote(disorder_simple(c, cookiep, "make-cookie", (char *)0),
+		 cookiep);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

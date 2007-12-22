@@ -202,6 +202,7 @@ int disorder_register(disorder_client *c, const char *user,
 		      const char *password, const char *email,
 		      char **confirmp);
 int disorder_confirm(disorder_client *c, const char *confirm);
+int disorder_make_cookie(disorder_client *c, char **cookiep);
 
 #endif /* CLIENT_H */
 
