@@ -172,7 +172,7 @@ or
 .BR title .
 .TP
 .B pause
-Pause the current track.  Requires the \fBpause\R right.
+Pause the current track.  Requires the \fBpause\fR right.
 .TP
 .B play \fITRACK\fR
 Add a track to the queue.  The response contains the queue ID of the track.

@@ -66,7 +66,7 @@
 #include "cache.h"
 #include "unicode.h"
 #include "cookies.h"
-#include "mime.h"
+#include "base64.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16

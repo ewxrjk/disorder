@@ -61,6 +61,7 @@
 #include "split.h"
 #include "configuration.h"
 #include "addr.h"
+#include "base64.h"
 
 static int tests, errors;
 static int fail_first;

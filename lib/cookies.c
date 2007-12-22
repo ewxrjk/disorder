@@ -38,7 +38,7 @@
 #include "mem.h"
 #include "log.h"
 #include "printf.h"
-#include "mime.h"
+#include "base64.h"
 #include "configuration.h"
 #include "kvp.h"
 #include "rights.h"

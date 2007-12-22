@@ -26,6 +26,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
+	base64.c base64.h				\
 	cache.c cache.h					\
 	client.c client.h				\
 	client-common.c client-common.h			\

@@ -64,7 +64,7 @@
 #include "hash.h"
 #include "unicode.h"
 #include "unidata.h"
-#include "mime.h"
+#include "base64.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -2493,7 +2493,7 @@ static int one_old_user(const char *user, const char *password,
     rights_type r;
 
     parse_rights(config->default_rights, &r, 1);
-    r &= (RIGHT_SCRATCH__MASK|RIGHT_MOVE__MASK|RIGHT_REMOVE__MASK);
+    r &= ~(rights_type)(RIGHT_SCRATCH__MASK|RIGHT_MOVE__MASK|RIGHT_REMOVE__MASK);
     r |= (RIGHT_ADMIN|RIGHT_RESCAN
           |RIGHT_SCRATCH_ANY|RIGHT_MOVE_ANY|RIGHT_REMOVE_ANY);
     rights = rights_string(r);
