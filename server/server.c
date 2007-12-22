@@ -248,7 +248,7 @@ static int c_remove(struct conn *c, char **vec,
     r = RIGHT_REMOVE_RANDOM;
   if(!(c->rights & r)) {
     sink_writes(ev_writer_sink(c->w),
-		"550 Not authorized to remove that track\n");
+		"510 Not authorized to remove that track\n");
     return 1;
   }
   queue_remove(q, c->who);
@@ -286,7 +286,7 @@ static int c_scratch(struct conn *c,
     r = RIGHT_SCRATCH_RANDOM;
   if(!(c->rights & r)) {
     sink_writes(ev_writer_sink(c->w),
-		"550 Not authorized to scratch that track\n");
+		"510 Not authorized to scratch that track\n");
     return 1;
   }
   scratch(c->who, nvec == 1 ? vec[0] : 0);
@@ -754,7 +754,7 @@ static int c_volume(struct conn *c,
   }
   rights = set ? RIGHT_VOLUME : RIGHT_READ;
   if(!(c->rights & rights)) {
-    sink_writes(ev_writer_sink(c->w), "530 Prohibited\n");
+    sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
   if(mixer_control(&l, &r, set))
@@ -877,7 +877,7 @@ static int c_move(struct conn *c,
   }
   if(!has_move_rights(c, &q, 1)) {
     sink_writes(ev_writer_sink(c->w),
-		"550 Not authorized to move that track\n");
+		"510 Not authorized to move that track\n");
     return 1;
   }
   n = queue_move(q, atoi(vec[1]), c->who);
@@ -911,7 +911,7 @@ static int c_moveafter(struct conn *c,
     }
   if(!has_move_rights(c, qs, nvec)) {
     sink_writes(ev_writer_sink(c->w),
-		"550 Not authorized to move those tracks\n");
+		"510 Not authorized to move those tracks\n");
     return 1;
   }
   queue_moveafter(q, nvec, qs, c->who);
@@ -1121,7 +1121,7 @@ static int c_edituser(struct conn *c,
     else
       sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else
-    sink_writes(ev_writer_sink(c->w), "550 Restricted to administrators\n");
+    sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   return 1;
 }
 
@@ -1145,7 +1145,7 @@ static int c_userinfo(struct conn *c,
     else
       sink_writes(ev_writer_sink(c->w), "550 No such user\n");
   } else
-    sink_writes(ev_writer_sink(c->w), "550 Restricted to administrators\n");
+    sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   return 1;
 }
 
@@ -1309,7 +1309,7 @@ static int command(struct conn *c, char *line) {
   else {
     if(commands[n].rights
        && !(c->rights & commands[n].rights)) {
-      sink_writes(ev_writer_sink(c->w), "530 Prohibited\n");
+      sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
       return 1;
     }
     ++vec;

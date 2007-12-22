@@ -320,6 +320,9 @@ The second digit breaks down the origin of the response:
 Generic responses not specific to the handling of the command.  Mostly this is
 parse errors.
 .TP
+.B 1
+51x errors indicate that the user had insufficient rights for the command.
+.TP
 .B 3
 Authentication responses.
 .TP
