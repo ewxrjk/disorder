@@ -55,6 +55,8 @@
 #include "trackname.h"
 #include "charset.h"
 
+char *login_cookie;
+
 static void expand(cgi_sink *output,
 		   const char *template,
 		   dcgi_state *ds);
@@ -105,6 +107,30 @@ static void redirect(struct sink *output) {
   cgi_header(output, "Location",
 	     (back = cgi_get("back")) ? back : front_url());
   cgi_body(output);
+}
+
+static void header_cookie(cgi_sink *output) {
+  struct dynstr d[1];
+  char *s;
+
+  if(login_cookie) {
+    dynstr_init(d);
+    for(s = login_cookie; *s; ++s) {
+      if(*s == '"')
+	dynstr_append(d, '\\');
+      dynstr_append(d, *s);
+    }
+    dynstr_terminate(d);
+    byte_xasprintf(&s, "disorder=\"%s\"", d->vec); /* TODO domain, path, expiry */
+    cgi_header(output->sink, "Set-Cookie", s);
+  }
+}
+
+static void expand_template(dcgi_state *ds, cgi_sink *output,
+			    const char *action) {
+  cgi_header(output->sink, "Content-Type", "text/html");
+  cgi_body(output->sink);
+  expand(output, action, ds);
 }
 
 static void lookups(dcgi_state *ds, unsigned want) {
@@ -400,12 +426,88 @@ static void act_resume(cgi_sink *output,
   redirect(output->sink);
 }
 
+static void act_login(cgi_sink *output,
+		      dcgi_state *ds) {
+  const char *username, *password, *back;
+  disorder_client *c;
+
+  username = cgi_get("username");
+  password = cgi_get("password");
+  if(!username || !password
+     || !strcmp(username, "guest")/*bodge to avoid guest cookies*/) {
+    /* We're just visiting the login page */
+    expand_template(ds, output, "login");
+    return;
+  }
+  c = disorder_new(1);
+  if(disorder_connect_user(c, username, password)) {
+    cgi_set_option("error", "loginfailed");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(disorder_make_cookie(c, &login_cookie)) {
+    cgi_set_option("error", "cookiefailed");
+    expand_template(ds, output, "login");
+    return;
+  }
+  /* We have a new cookie */
+  header_cookie(output);
+  if((back = cgi_get("back")) && back)
+    /* Redirect back to somewhere or other */
+    redirect(output->sink);
+  else
+    /* Stick to the login page */
+    expand_template(ds, output, "login");
+}
+
+static void act_register(cgi_sink *output,
+			 dcgi_state *ds) {
+  const char *username, *password, *email;
+  char *confirm;
+
+  username = cgi_get("username");
+  password = cgi_get("password");
+  email = cgi_get("email");
+
+  if(!username || !*username) {
+    cgi_set_option("error", "nousername");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(!password || !*password) {
+    cgi_set_option("error", "nopassword");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(!email || !*email) {
+    cgi_set_option("error", "noemail");
+    expand_template(ds, output, "login");
+    return;
+  }
+  /* We could well do better address validation but for now we'll just do the
+   * minimum */
+  if(!strchr(email, '@')) {
+    cgi_set_option("error", "bademail");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(disorder_register(ds->g->client, username, password, email, &confirm)) {
+    cgi_set_option("error", "cannotregister");
+    expand_template(ds, output, "login");
+    return;
+  }
+  /* We'll go back to the login page with a suitable message */
+  cgi_set_option("registered", "registeredok");
+  expand_template(ds, output, "login");
+}
+
 static const struct action {
   const char *name;
   void (*handler)(cgi_sink *output, dcgi_state *ds);
 } actions[] = {
   { "disable", act_disable },
   { "enable", act_enable },
+  { "login", act_login },
   { "move", act_move },
   { "pause", act_pause },
   { "play", act_play },
@@ -413,6 +515,7 @@ static const struct action {
   { "prefs", act_prefs },
   { "random-disable", act_random_disable },
   { "random-enable", act_random_enable },
+  { "register", act_register },
   { "remove", act_remove },
   { "resume", act_resume },
   { "scratch", act_scratch },
@@ -1401,6 +1504,15 @@ static void exp_nfiles(int attribute((unused)) nargs,
     cgi_output(output, "1");
 }
 
+static void exp_user(int attribute((unused)) nargs,
+		     char attribute((unused)) **args,
+		     cgi_sink *output,
+		     void *u) {
+  dcgi_state *const ds = u;
+
+  cgi_output(output, "%s", disorder_user(ds->g->client));
+}
+
 static const struct cgi_expansion expansions[] = {
   { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
   { "action", 0, 0, 0, exp_action },
@@ -1460,6 +1572,7 @@ static const struct cgi_expansion expansions[] = {
   { "transform", 2, 3, 0, exp_transform },
   { "url", 0, 0, 0, exp_url },
   { "urlquote", 1, 1, 0, exp_urlquote },
+  { "user", 0, 0, 0, exp_user },
   { "version", 0, 0, 0, exp_version },
   { "volume", 1, 1, 0, exp_volume },
   { "when", 0, 0, 0, exp_when },
@@ -1489,13 +1602,14 @@ static void perform_action(cgi_sink *output, dcgi_state *ds,
 			   const char *action) {
   int n;
 
+  /* If we have a login cookie it'd better appear in all responses */
+  header_cookie(output);
+  /* We don't ever want anything to be cached */
+  cgi_header(output->sink, "Cache-Control", "no-cache");
   if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)
     actions[n].handler(output, ds);
-  else {
-    cgi_header(output->sink, "Content-Type", "text/html");
-    cgi_body(output->sink);
-    expand(output, action, ds);
-  }
+  else
+    expand_template(ds, output, action);
 }
 
 void disorder_cgi(cgi_sink *output, dcgi_state *ds) {

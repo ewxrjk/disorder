@@ -132,6 +132,23 @@ label	prefs.tags		"Tags"
 # <TITLE> for help page
 label	help.title		"DisOrder help"
 
+# <TITLE> for login page
+label	login.title		"DisOrder Login"
+
+# Text for login fields
+label	login.username		"Username"
+label	login.password		"Password"
+label	login.email		"Email address"
+
+# Text for login page buttons
+label	login.login		"Login"
+label	login.register		"Register"
+label	login.edituser		"Change Details"
+label	login.lougout		"Logout"
+
+# <TITLE> for account page
+label	account.title		"DisOrder User Details"
+
 # <TITLE> for error page.  Note that in this page the 'error' label is set
 # to a string indicating the type of error.
 label	error.title		"DisOrder error"
@@ -154,6 +171,7 @@ label	sidebar.recent		Recent
 label	sidebar.new		New
 label	sidebar.about		About
 label	sidebar.volume		Volume
+label	sidebar.login		Login
 label	sidebar.help		Help
 label	sidebar.manage		Manage
 
@@ -165,6 +183,7 @@ label	sidebar.recentverbose	"recently played tracks"
 label	sidebar.newverbose	"newly added tracks"
 label	sidebar.aboutverbose	"about DisOrder"
 label	sidebar.volumeverbose	"volume control"
+label	sidebar.loginverbose	"log in to DisOrder"
 label	sidebar.helpverbose	"basic user guide"
 label	sidebar.manageverbose	"queue management and volume control"
 

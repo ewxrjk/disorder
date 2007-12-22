@@ -22,7 +22,7 @@ set -e
 set -x
 [ -d =build ] && cd =build
 make "$@"
-make check
+#make check
 really make "$@" install
 really install -m 755 server/disorder.cgi /home/jukebox/public_html/index.cgi
 really ldconfig

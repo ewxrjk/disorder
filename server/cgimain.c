@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,12 +39,15 @@
 #include "configuration.h"
 #include "disorder.h"
 #include "api-client.h"
-  
+#include "mime.h"
+
 int main(int argc, char **argv) {
-  const char *user, *conf;
+  const char *cookie_env, *conf;
   dcgi_global g;
   dcgi_state s;
   cgi_sink output;
+  int n;
+  struct cookiedata cd;
 
   if(argc > 0) progname = argv[0];
   cgi_parse();
@@ -57,13 +60,21 @@ int main(int argc, char **argv) {
   g.client = disorder_get_client();
   output.quote = 1;
   output.sink = sink_stdio("stdout", stdout); 
-  if(!(user = getenv("REMOTE_USER"))) fatal(0, "REMOTE_USER is not set");
-  if(disorder_connect(g.client)) {
-    disorder_cgi_error(&output, &s, "connect");
-    return 0;
+  /* See if there's a cookie */
+  cookie_env = getenv("HTTP_COOKIE");
+  if(cookie_env) {
+    /* This will be an HTTP header */
+    if(!parse_cookie(cookie_env, &cd)) {
+      for(n = 0; n < cd.ncookies
+	    && strcmp(cd.cookies[n].name, "disorder"); ++n)
+	;
+      if(n < cd.ncookies)
+	login_cookie = cd.cookies[n].value;
+    }
   }
-  if(disorder_become(g.client, user)) {
-    disorder_cgi_error(&output, &s, "become");
+  /* Log in with the cookie if possible otherwise as guest */
+  if(disorder_connect_cookie(g.client, login_cookie)) {
+    disorder_cgi_error(&output, &s, "connect");
     return 0;
   }
   disorder_cgi(&output, &s);

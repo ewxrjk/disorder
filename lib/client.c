@@ -70,9 +70,9 @@ struct disorder_client {
  * @param verbose If nonzero, write extra junk to stderr
  * @return Pointer to new client
  *
- * You must call disorder_connect() or disorder_connect_cookie() to
- * connect it.  Use disorder_close() to dispose of the client when
- * finished with it.
+ * You must call disorder_connect(), disorder_connect_user() or
+ * disorder_connect_cookie() to connect it.  Use disorder_close() to
+ * dispose of the client when finished with it.
  */
 disorder_client *disorder_new(int verbose) {
   disorder_client *c = xmalloc(sizeof (struct disorder_client));
@@ -310,6 +310,21 @@ error:
   return -1;
 }
 
+/** @brief Connect a client with a specified username and password
+ * @param c Client
+ * @param username Username to log in with
+ * @param password Password to log in with
+ * @return 0 on success, non-0 on error
+ */
+int disorder_connect_user(disorder_client *c,
+			  const char *username,
+			  const char *password) {
+  return disorder_connect_generic(c,
+				  username,
+				  password,
+				  0);
+}
+
 /** @brief Connect a client
  * @param c Client
  * @return 0 on success, non-0 on error
@@ -388,12 +403,6 @@ int disorder_close(disorder_client *c) {
   }
   c->ident = 0;
   c->user = 0;
-  return 0;
-}
-
-int disorder_become(disorder_client *c, const char *user) {
-  if(disorder_simple(c, 0, "become", user, (char *)0)) return -1;
-  c->user = xstrdup(user);
   return 0;
 }
 

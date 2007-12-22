@@ -58,6 +58,8 @@ void disorder_cgi(cgi_sink *output, dcgi_state *ds);
 void disorder_cgi_error(cgi_sink *output, dcgi_state *ds,
 			const char *msg);
 
+extern char *login_cookie;
+
 #endif /* DCGI_H */
 
 /*

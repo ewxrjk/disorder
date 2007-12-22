@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2007 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@include:stdhead@
+  <title>@label:login.title@</title>
+ </head>
+ <body>
+@include{@label{menu}@}@
+   <h1 class=title>@label:login.title@</h1>
+
+   @if{@ne{@label:error@}{error}@}{
+   @#{error reporting from some earlier operation}@
+   <!-- TODO make error string visually intrusive, also error.html -->
+   <p>@label{error.@label:error@}@</p>
+   }@
+
+   @if{@ne{@label:registered@}{registered}@}{
+   @#{registration succeeded}@
+   <p>@label:login.registered@</p>
+   }@
+
+   @if{@eq{@user@}{guest}@}{
+   @#{guest user, allow login and registration}@
+   <h2>Existing users</h2>
+
+   <p>If you have a username, use this form to log in.</p>
+
+   <form class=login action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <table class=login>
+       <tr>
+         <td>@label:login.username@</td>
+         <td>
+           <input class=username name=username type=text value="@arg:username@" size=32>
+         </td>
+       </tr>
+       <tr>
+         <td>@label:login.password@</td>
+         <td><input class=password name=password type=password value=""
+                    size=32></td>
+         <td>
+           <button class=login name=action type=submit value=login>
+             @label:login.login@
+           </button>
+         </td>
+       </tr>
+     </table>
+     <input name=nonce type=hidden value="@nonce@">
+     <input name=back type=hidden value="@arg:back@">
+   </form>
+
+   <!-- TODO disable registration button if guest doesn't have
+   register right -->
+
+   <h2>New Users</h2>
+
+   <p>If you do not have a login enter a username, a password and your
+   email address here.  You will be sent an email containing a URL,
+   which you must visit to activate your login before you can use
+   it.<p>
+
+   <form class=register action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <table class=register>
+       <tr>
+         <td>@label:login.username@</td>
+         <td>
+           <input class=username name=username type=text value="" size=32>
+         </td>
+       </tr>
+       <tr>
+         <td>@label:login.email@</td>
+         <td>
+           <input class=email name=email type=text value="" size=32>
+         </td>
+       </tr>
+       <tr>
+         <td>@label:login.password@</td>
+         <td><input class=password name=password type=password value=""
+                    size=32></td>
+         <td>
+           <button class=register name=action type=submit value=register>
+             @label:login.login@
+           </button>
+         </td>
+       </tr>
+     </table>
+     <input name=nonce type=hidden value="@nonce@">
+   </form>
+   }{
+   @#{not the guest user, allow change of details and logout}@
+
+   <h2>Logged in as @user@</h2>
+
+   <p>TODO none of this stuff works yet</p>
+
+   <p>Use this form to change your email address and/or password.</p>
+
+   <form class=register action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <table class=edituser>
+       <tr>
+         <td>@label:login.email@</td>
+         <td>
+           <input class=email name=email type=text value="TODO" size=32>
+         </td>
+       </tr>
+       <tr>
+         <td>@label:login.password@</td>
+         <td><input class=password name=password type=password value=""
+                    size=32></td>
+         <td>
+           <button class=edituser name=action type=submit value=edituser>
+             @label:login.edituser@
+           </button>
+         </td>
+       </tr>
+     </table>
+     <input name=nonce type=hidden value="@nonce@">
+   </form>
+
+   <p>Use this button to log out @user@.</p>
+
+   <form class=register action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <div class=logout>
+       <button class=logout name=action type=submit value=logout>
+         @label:login.logout@
+       </button>
+     </div>
+     <input name=nonce type=hidden value="@nonce@">
+   </form>
+
+   }@
+
+@include{@label{menu}@end}@
+ </body>
+</html>
+@@
+<!--
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+End:
+-->

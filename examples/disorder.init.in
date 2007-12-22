@@ -27,7 +27,7 @@ CLIENT="bindir/disorder --local"
 PATH="$PATH:sbindir"
 
 start() {
-  if ${CLIENT} >/dev/null 2>&1; then
+  if ${CLIENT} version >/dev/null 2>&1; then
     : already running
   else
     printf "Starting DisOrder server: disorderd"
@@ -37,7 +37,7 @@ start() {
 }
 
 stop() {
-  if ${CLIENT} >/dev/null 2>&1; then
+  if ${CLIENT} version >/dev/null 2>&1; then
     printf "Stopping DisOrder server: disorderd"
     ${CLIENT} shutdown
     echo .

@@ -1090,6 +1090,9 @@ Expands to the canonical URL as defined in \fIpkgconfdir/config\fR.
 .B @urlquote{\fISTRING\fB}@
 URL-quote \fISTRING\fR.
 .TP
+.B @user@
+The current username.  This will be "guest" if nobody is logged in.
+.TP
 .B @version@
 Expands to \fBdisorder.cgi\fR's version string.
 .TP
