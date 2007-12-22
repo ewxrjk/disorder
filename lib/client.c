@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/client.c
+ * @brief Simple C client
+ *
+ * See @file lib/eclient.c for an asynchronous-capable client
+ * implementation.
+ */
 
 #include <config.h>
 #include "types.h"
@@ -60,6 +66,20 @@ struct disorder_client {
   int verbose;
 };
 
+static int disorder_connect_sock(disorder_client *c,
+				 const struct sockaddr *sa,
+				 socklen_t len,
+				 const char *username,
+				 const char *password,
+				 const char *ident);
+
+/** @brief Create a new client
+ * @param verbose If nonzero, write extra junk to stderr
+ * @return Pointer to new client
+ *
+ * You must call disorder_connect() to connect it.  Use
+ * disorder_close() to dispose of the client when finished with it.
+ */
 disorder_client *disorder_new(int verbose) {
   disorder_client *c = xmalloc(sizeof (struct disorder_client));
 
@@ -67,9 +87,11 @@ disorder_client *disorder_new(int verbose) {
   return c;
 }
 
-/* read a response line.
- * If @rp@ is not a null pointer, returns the whole response through it.
- * Return value is the response code, or -1 on error. */
+/** @brief Read a response line
+ * @param c Client
+ * @param rp Where to store response, or NULL (UTF-8)
+ * @return Response code 0-999 or -1 on error
+ */
 static int response(disorder_client *c, char **rp) {
   char *r;
 
@@ -89,11 +111,17 @@ static int response(disorder_client *c, char **rp) {
   }
 }
 
-/* Read a response.
- * If @rp@ is not a null pointer then the response text (excluding
- * the status code) is returned through it, UNLESS the response code
- * is xx9.
- * Return value is 0 for 2xx responses and -1 otherwise.
+/** @brief Read and partially parse a response
+ * @param c Client
+ * @param rp Where to store response text (or NULL) (UTF-8)
+ * @return 0 on success, non-0 on error
+ *
+ * 5xx responses count as errors.
+ *
+ * @p rp will NOT be filled in for xx9 responses (where it is just
+ * commentary for a command where it would normally be meaningful).
+ *
+ * NB that the response will NOT be converted to the local encoding.
  */
 static int check_response(disorder_client *c, char **rp) {
   int rc;
@@ -112,6 +140,21 @@ static int check_response(disorder_client *c, char **rp) {
   }
 }
 
+/** @brief Issue a command and parse a simple response
+ * @param c Client
+ * @param rp Where to store result, or NULL
+ * @param cmd Command
+ * @param ap Arguments (UTF-8), terminated by (char *)0
+ * @return 0 on success, non-0 on error
+ *
+ * 5xx responses count as errors.
+ *
+ * @p rp will NOT be filled in for xx9 responses (where it is just
+ * commentary for a command where it would normally be meaningful).
+ *
+ * NB that the response will NOT be converted to the local encoding
+ * nor will quotes be stripped.  See dequote().
+ */
 static int disorder_simple_v(disorder_client *c,
 			     char **rp,
 			     const char *cmd, va_list ap) {
@@ -136,8 +179,22 @@ static int disorder_simple_v(disorder_client *c,
   return check_response(c, rp);
 }
 
-/* Execute a simple command with any number of arguments.
- * @rp@ and return value as for check_response().
+/** @brief Issue a command and parse a simple response
+ * @param c Client
+ * @param rp Where to store result, or NULL (UTF-8)
+ * @param cmd Command
+ * @return 0 on success, non-0 on error
+ *
+ * The remaining arguments are command arguments, terminated by (char
+ * *)0.  They should be in UTF-8.
+ *
+ * 5xx responses count as errors.
+ *
+ * @p rp will NOT be filled in for xx9 responses (where it is just
+ * commentary for a command where it would normally be meaningful).
+ *
+ * NB that the response will NOT be converted to the local encoding
+ * nor will quotes be stripped.  See dequote().
  */
 static int disorder_simple(disorder_client *c,
 			   char **rp,
@@ -179,39 +236,23 @@ static int connect_sock(void *vc,
   return disorder_connect_sock(c, sa, len, username, password, ident);
 }
 
+/** @brief Connect a client
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ *
+ * The connection will use the username and password found in @ref
+ * config.
+ */
 int disorder_connect(disorder_client *c) {
   return with_sockaddr(c, connect_sock);
 }
 
-static int check_running(void attribute((unused)) *c,
-			 const struct sockaddr *sa,
-			 socklen_t len,
-			 const char attribute((unused)) *ident) {
-  int fd, ret;
-
-  if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0)
-    fatal(errno, "error calling socket");
-  if(connect(fd, sa, len) < 0) {
-    if(errno == ECONNREFUSED || errno == ENOENT)
-      ret = 0;
-    else
-      fatal(errno, "error calling connect");
-  } else
-    ret = 1;
-  xclose(fd);
-  return ret;
-}
-
-int disorder_running(disorder_client *c) {
-  return with_sockaddr(c, check_running);
-}
-
-int disorder_connect_sock(disorder_client *c,
-			  const struct sockaddr *sa,
-			  socklen_t len,
-			  const char *username,
-			  const char *password,
-			  const char *ident) {
+static int disorder_connect_sock(disorder_client *c,
+				 const struct sockaddr *sa,
+				 socklen_t len,
+				 const char *username,
+				 const char *password,
+				 const char *ident) {
   int fd = -1, fd2 = -1, nrvec;
   unsigned char *nonce;
   size_t nl;
@@ -277,6 +318,13 @@ error:
   return -1;
 }
 
+/** @brief Close a client
+ * @param c Client
+ * @return 0 on succcess, non-0 on errior
+ *
+ * The client is still closed even on error.  It might well be
+ * appropriate to ignore the return value.
+ */
 int disorder_close(disorder_client *c) {
   int ret = 0;
 
@@ -303,14 +351,30 @@ int disorder_become(disorder_client *c, const char *user) {
   return 0;
 }
 
+/** @brief Play a track
+ * @param c Client
+ * @param track Track to play (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_play(disorder_client *c, const char *track) {
   return disorder_simple(c, 0, "play", track, (char *)0);
 }
 
+/** @brief Remove a track
+ * @param c Client
+ * @param track Track to remove (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_remove(disorder_client *c, const char *track) {
   return disorder_simple(c, 0, "remove", track, (char *)0);
 }
 
+/** @brief Move a track
+ * @param c Client
+ * @param track Track to move (UTF-8)
+ * @param delta Distance to move by
+ * @return 0 on success, non-0 on error
+ */
 int disorder_move(disorder_client *c, const char *track, int delta) {
   char d[16];
 
@@ -318,33 +382,66 @@ int disorder_move(disorder_client *c, const char *track, int delta) {
   return disorder_simple(c, 0, "move", track, d, (char *)0);
 }
 
+/** @brief Enable play
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_enable(disorder_client *c) {
   return disorder_simple(c, 0, "enable", (char *)0);
 }
 
+/** @brief Disable play
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_disable(disorder_client *c) {
   return disorder_simple(c, 0, "disable", (char *)0);
 }
 
+/** @brief Scratch the currently playing track
+ * @param id Playing track ID or NULL (UTF-8)
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_scratch(disorder_client *c, const char *id) {
   return disorder_simple(c, 0, "scratch", id, (char *)0);
 }
 
+/** @brief Shut down the server
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_shutdown(disorder_client *c) {
   return disorder_simple(c, 0, "shutdown", (char *)0);
 }
 
+/** @brief Make the server re-read its configuration
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_reconfigure(disorder_client *c) {
   return disorder_simple(c, 0, "reconfigure", (char *)0);
 }
 
+/** @brief Rescan tracks
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_rescan(disorder_client *c) {
   return disorder_simple(c, 0, "rescan", (char *)0);
 }
 
+/** @brief Dequote a result string
+ * @param rc 0 on success, non-0 on error
+ * @param rp Where result string is stored (UTF-8)
+ * @return @p rc
+ *
+ * This is used as a wrapper around disorder_simple() to dequote
+ * results in place.
+ */
 static int dequote(int rc, char **rp) {
   char **rr;
-  if(!rc){
+  if(!rc) {
     if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
       *rp = *rr;
       return 0;
@@ -354,6 +451,11 @@ static int dequote(int rc, char **rp) {
   return -1;
 }
 
+/** @brief Get server version number
+ * @param c Client
+ * @param rp Where to store version string (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_version(disorder_client *c, char **rp) {
   return dequote(disorder_simple(c, rp, "version", (char *)0), rp);
 }
@@ -363,6 +465,13 @@ static void client_error(const char *msg,
   error(0, "error parsing reply: %s", msg);
 }
 
+/** @brief Get currently playing track
+ * @param c Client
+ * @param qp Where to store track information
+ * @return 0 on success, non-0 on error
+ *
+ * @p qp gets NULL if no track is playing.
+ */
 int disorder_playing(disorder_client *c, struct queue_entry **qp) {
   char *r;
   struct queue_entry *q;
@@ -405,14 +514,36 @@ static int disorder_somequeue(disorder_client *c,
   return -1;
 }
 
+/** @brief Get recently played tracks
+ * @param c Client
+ * @param qp Where to store track information
+ * @return 0 on success, non-0 on error
+ *
+ * The last entry in the list is the most recently played track.
+ */
 int disorder_recent(disorder_client *c, struct queue_entry **qp) {
   return disorder_somequeue(c, "recent", qp);
 }
 
+/** @brief Get queue
+ * @param c Client
+ * @param qp Where to store track information
+ * @return 0 on success, non-0 on error
+ *
+ * The first entry in the list will be played next.
+ */
 int disorder_queue(disorder_client *c, struct queue_entry **qp) {
   return disorder_somequeue(c, "queue", qp);
 }
 
+/** @brief Read a dot-stuffed list
+ * @param c Client
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ *
+ * The list will have a final NULL not counted in @p nvecp.
+ */
 static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
   char *l;
   struct vector v;
@@ -435,6 +566,18 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
   return -1;
 }
 
+/** @brief Issue a comamnd and get a list response
+ * @param c Client
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @param cmd Command
+ * @return 0 on success, non-0 on error
+ *
+ * The remaining arguments are command arguments, terminated by (char
+ * *)0.  They should be in UTF-8.
+ *
+ * 5xx responses count as errors.
+ */
 static int disorder_simple_list(disorder_client *c,
 				char ***vecp, int *nvecp,
 				const char *cmd, ...) {
@@ -448,35 +591,83 @@ static int disorder_simple_list(disorder_client *c,
   return readlist(c, vecp, nvecp);
 }
 
+/** @brief List directories below @p dir
+ * @param c Client
+ * @param dir Directory to list (UTF-8)
+ * @param re Regexp that results must match, or NULL (UTF-8)
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_directories(disorder_client *c, const char *dir, const char *re,
 			 char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "dirs", dir, re, (char *)0);
 }
 
+/** @brief List files below @p dir
+ * @param c Client
+ * @param dir Directory to list (UTF-8)
+ * @param re Regexp that results must match, or NULL (UTF-8)
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_files(disorder_client *c, const char *dir, const char *re,
 		   char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "files", dir, re, (char *)0);
 }
 
+/** @brief List files and directories below @p dir
+ * @param c Client
+ * @param dir Directory to list (UTF-8)
+ * @param re Regexp that results must match, or NULL (UTF-8)
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_allfiles(disorder_client *c, const char *dir, const char *re,
 		      char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "allfiles", dir, re, (char *)0);
 }
 
+/** @brief Return the user we logged in with
+ * @param c Client
+ * @return User name (owned by @p c, don't modify)
+ */
 char *disorder_user(disorder_client *c) {
   return c->user;
 }
 
+/** @brief Set a track preference
+ * @param c Client
+ * @param track Track name (UTF-8)
+ * @param key Preference name (UTF-8)
+ * @param value Preference value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_set(disorder_client *c, const char *track,
 		 const char *key, const char *value) {
   return disorder_simple(c, 0, "set", track, key, value, (char *)0);
 }
 
+/** @brief Unset a track preference
+ * @param c Client
+ * @param track Track name (UTF-8)
+ * @param key Preference name (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_unset(disorder_client *c, const char *track,
 		   const char *key) {
   return disorder_simple(c, 0, "unset", track, key, (char *)0);
 }
 
+/** @brief Get a track preference
+ * @param c Client
+ * @param track Track name (UTF-8)
+ * @param key Preference name (UTF-8)
+ * @param valuep Where to store preference value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_get(disorder_client *c,
 		 const char *track, const char *key, char **valuep) {
   return dequote(disorder_simple(c, valuep, "get", track, key, (char *)0),
@@ -488,6 +679,12 @@ static void pref_error_handler(const char *msg,
   error(0, "error handling 'prefs' reply: %s", msg);
 }
 
+/** @param Get all preferences for a trcak
+ * @param c Client
+ * @param track Track name
+ * @param kp Where to store linked list of preferences
+ * @return 0 on success, non-0 on error
+ */
 int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
   char **vec, **pvec;
   int nvec, npvec, n;
@@ -511,6 +708,12 @@ int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
   return 0;
 }
 
+/** @brief Parse a boolean response
+ * @param cmd Command for use in error messsage
+ * @param value Result from server
+ * @param flagp Where to store result
+ * @return 0 on success, non-0 on error
+ */
 static int boolean(const char *cmd, const char *value,
 		   int *flagp) {
   if(!strcmp(value, "yes")) *flagp = 1;
@@ -522,6 +725,12 @@ static int boolean(const char *cmd, const char *value,
   return 0;
 }
 
+/** @brief Test whether a track exists
+ * @param c Client
+ * @param track Track name (UTF-8)
+ * @param existsp Where to store result (non-0 iff does exist)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_exists(disorder_client *c, const char *track, int *existsp) {
   char *v;
 
@@ -529,6 +738,11 @@ int disorder_exists(disorder_client *c, const char *track, int *existsp) {
   return boolean("exists", v, existsp);
 }
 
+/** @brief Test whether playing is enabled
+ * @param c Client
+ * @param enabledp Where to store result (non-0 iff enabled)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_enabled(disorder_client *c, int *enabledp) {
   char *v;
 
@@ -536,6 +750,14 @@ int disorder_enabled(disorder_client *c, int *enabledp) {
   return boolean("enabled", v, enabledp);
 }
 
+/** @brief Get the length of a track
+ * @param c Client
+ * @param track Track name (UTF-8)
+ * @param valuep Where to store length in seconds
+ * @return 0 on success, non-0 on error
+ *
+ * If the length is unknown 0 is returned.
+ */
 int disorder_length(disorder_client *c, const char *track,
 		    long *valuep) {
   char *value;
@@ -545,19 +767,39 @@ int disorder_length(disorder_client *c, const char *track,
   return 0;
 }
 
+/** @brief Search for tracks
+ * @param c Client
+ * @param terms Search terms (UTF-8)
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_search(disorder_client *c, const char *terms,
 		    char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "search", terms, (char *)0);
 }
 
+/** @brief Enable random play
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_random_enable(disorder_client *c) {
   return disorder_simple(c, 0, "random-enable", (char *)0);
 }
 
+/** @brief Disable random play
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_random_disable(disorder_client *c) {
   return disorder_simple(c, 0, "random-disable", (char *)0);
 }
 
+/** @brief Test whether random play is enabled
+ * @param c Client
+ * @param existsp Where to store result (non-0 iff enabled)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_random_enabled(disorder_client *c, int *enabledp) {
   char *v;
 
@@ -565,11 +807,23 @@ int disorder_random_enabled(disorder_client *c, int *enabledp) {
   return boolean("random-enabled", v, enabledp);
 }
 
+/** @brief Get server stats
+ * @param c Client
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_stats(disorder_client *c,
 		   char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "stats", (char *)0);
 }
 
+/** @brief Set volume
+ * @param c Client
+ * @param left New left channel value
+ * @param right New right channel value
+ * @return 0 on success, non-0 on error
+ */
 int disorder_set_volume(disorder_client *c, int left, int right) {
   char *ls, *rs;
 
@@ -580,6 +834,12 @@ int disorder_set_volume(disorder_client *c, int left, int right) {
   return 0;
 }
 
+/** @brief Get volume
+ * @param c Client
+ * @param left Where to store left channel value
+ * @param right Where to store right channel value
+ * @return 0 on success, non-0 on error
+ */
 int disorder_get_volume(disorder_client *c, int *left, int *right) {
   char *r;
 
@@ -591,6 +851,11 @@ int disorder_get_volume(disorder_client *c, int *left, int *right) {
   return 0;
 }
 
+/** @brief Log to a sink
+ * @param c Client
+ * @param s Sink to write log lines to
+ * @return 0 on success, non-0 on error
+ */
 int disorder_log(disorder_client *c, struct sink *s) {
   char *l;
     
@@ -601,38 +866,72 @@ int disorder_log(disorder_client *c, struct sink *s) {
   return 0;
 }
 
+/** @brief Look up a track name part
+ * @param c Client
+ * @param partp Where to store result (UTF-8)
+ * @param track Track name (UTF-8)
+ * @param context Context (usually "sort" or "display") (UTF-8)
+ * @param part Track part (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_part(disorder_client *c, char **partp,
 		  const char *track, const char *context, const char *part) {
   return dequote(disorder_simple(c, partp, "part",
 				 track, context, part, (char *)0), partp);
 }
 
+/** @brief Resolve aliases
+ * @param c Client
+ * @param trackkp Where to store canonical name (UTF-8)
+ * @param track Track name (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_resolve(disorder_client *c, char **trackp, const char *track) {
   return dequote(disorder_simple(c, trackp, "resolve", track, (char *)0),
 		 trackp);
 }
 
+/** @brief Pause the current track
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_pause(disorder_client *c) {
   return disorder_simple(c, 0, "pause", (char *)0);
 }
 
+/** @brief Resume the current track
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
 int disorder_resume(disorder_client *c) {
   return disorder_simple(c, 0, "resume", (char *)0);
 }
 
+/** @brief List all known tags
+ * @param c Client
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_tags(disorder_client *c,
 		   char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "tags", (char *)0);
 }
 
+/** @brief List all known users
+ * @param c Client
+ * @param vecp Where to store list (UTF-8)
+ * @param nvecp Where to store number of items, or NULL
+ * @return 0 on success, non-0 on error
+ */
 int disorder_users(disorder_client *c,
 		   char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "users", (char *)0);
 }
 
-/** @brief Get recentl added tracks
+/** @brief Get recently added tracks
  * @param c Client
- * @param vecp Where to store pointer to list
+ * @param vecp Where to store pointer to list (UTF-8)
  * @param nvecp Where to store count
  * @param max Maximum tracks to fetch, or 0 for all available
  * @return 0 on success, non-0 on error
@@ -646,20 +945,43 @@ int disorder_new_tracks(disorder_client *c,
   return disorder_simple_list(c, vecp, nvecp, "new", limit, (char *)0);
 }
 
+/** @brief Set a global preference
+ * @param c Client
+ * @param key Preference name (UTF-8)
+ * @param value Preference value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_set_global(disorder_client *c,
 			const char *key, const char *value) {
   return disorder_simple(c, 0, "set-global", key, value, (char *)0);
 }
 
+/** @brief Unset a global preference
+ * @param c Client
+ * @param key Preference name (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_unset_global(disorder_client *c, const char *key) {
   return disorder_simple(c, 0, "unset-global", key, (char *)0);
 }
 
+/** @brief Get a global preference
+ * @param c Client
+ * @param key Preference name (UTF-8)
+ * @param valuep Where to store preference value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_get_global(disorder_client *c, const char *key, char **valuep) {
   return dequote(disorder_simple(c, valuep, "get-global", key, (char *)0),
 		 valuep);
 }
 
+/** @brief Get server's RTP address information
+ * @param c Client
+ * @param addressp Where to store address (UTF-8)
+ * @param portp Where to store port (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   char *r;
   int rc, n;
@@ -677,27 +999,62 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   return 0;
 }
 
+/** @brief Create a user
+ * @param c Client
+ * @param user Username
+ * @param password Password
+ * @param rights Initial rights or NULL to use default
+ * @return 0 on success, non-0 on error
+ */
 int disorder_adduser(disorder_client *c,
 		     const char *user, const char *password,
 		     const char *rights) {
   return disorder_simple(c, 0, "adduser", user, password, rights, (char *)0);
 }
 
+/** @brief Delete a user
+ * @param c Client
+ * @param user Username
+ * @return 0 on success, non-0 on error
+ */
 int disorder_deluser(disorder_client *c, const char *user) {
   return disorder_simple(c, 0, "deluser", user, (char *)0);
 }
 
+/** @brief Get user information
+ * @param c Client
+ * @param user Username
+ * @param key Property name (UTF-8)
+ * @param valuep Where to store value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_userinfo(disorder_client *c, const char *user, const char *key,
 		      char **valuep) {
   return dequote(disorder_simple(c, valuep, "userinfo", user, key, (char *)0),
 		 valuep);
 }
 
+/** @brief Set user information
+ * @param c Client
+ * @param user Username
+ * @param key Property name (UTF-8)
+ * @param value New property value (UTF-8)
+ * @return 0 on success, non-0 on error
+ */
 int disorder_edituser(disorder_client *c, const char *user,
 		      const char *key, const char *value) {
   return disorder_simple(c, 0, "edituser", user, key, value, (char *)0);
 }
 
+/** @brief Register a user
+ * @param c Client
+ * @param user Username
+ * @param password Password
+ * @param email Email address (UTF-8)
+ * @param rights Initial rights or NULL to use default
+ * @param confirmp Where to store confirmation string
+ * @return 0 on success, non-0 on error
+ */
 int disorder_register(disorder_client *c, const char *user,
 		      const char *password, const char *email,
 		      char **confirmp) {
@@ -706,10 +1063,20 @@ int disorder_register(disorder_client *c, const char *user,
 		 confirmp);
 }
 
+/** @brief Confirm a user
+ * @param c Client
+ * @param confirm Confirmation string
+ * @return 0 on success, non-0 on error
+ */
 int disorder_confirm(disorder_client *c, const char *confirm) {
   return disorder_simple(c, 0, "confirm", confirm, (char *)0);
 }
 
+/** @brief Make a cookie for this login
+ * @param c Client
+ * @param cookiep Where to store cookie string
+ * @return 0 on success, non-0 on error
+ */
 int disorder_make_cookie(disorder_client *c, char **cookiep) {
   return dequote(disorder_simple(c, cookiep, "make-cookie", (char *)0),
 		 cookiep);
