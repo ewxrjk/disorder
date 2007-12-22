@@ -38,6 +38,9 @@ static const char mime_base64_table[] =
 /** @brief Convert MIME base64
  * @param s base64 data
  * @return Decoded data
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2045#section-6.8">RFC
+ * 2045 s6.8</a>.
  */
 char *mime_base64(const char *s, size_t *nsp) {
   struct dynstr d;
@@ -76,6 +79,9 @@ char *mime_base64(const char *s, size_t *nsp) {
  * @return Encoded data
  *
  * This function does not attempt to split up lines.
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2045#section-6.8">RFC
+ * 2045 s6.8</a>.
  */
 char *mime_to_base64(const uint8_t *s, size_t ns) {
   struct dynstr d[1];

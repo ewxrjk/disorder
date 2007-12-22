@@ -209,6 +209,8 @@ static const char *parsetoken(const char *s, char **valuep,
  * @param parameternamep Where to store parameter name
  * @param parameternvaluep Wher to store parameter value
  * @return 0 on success, non-0 on error
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2045#section-5">RFC 2045 s5</a>.
  */
 int mime_content_type(const char *s,
 		      char **typep,
@@ -254,7 +256,12 @@ int mime_content_type(const char *s,
  * @param s Start of message
  * @param callback Called for each header field
  * @param u Passed to callback
- * @return Pointer to decoded body (might be in original string)
+ * @return Pointer to decoded body (might be in original string), or NULL on error
+ *
+ * This does an RFC 822-style parse and honors Content-Transfer-Encoding as
+ * described in <a href="http://tools.ietf.org/html/rfc2045#section-6">RFC 2045
+ * s6</a>.  @p callback is called for each header field encountered, in order,
+ * with ASCII characters in the header name forced to lower case.
  */
 const char *mime_parse(const char *s,
 		       int (*callback)(const char *name, const char *value,
@@ -291,6 +298,7 @@ const char *mime_parse(const char *s,
   return s;
 }
 
+/** @brief Match the boundary string */
 static int isboundary(const char *ptr, const char *boundary, size_t bl) {
   return (ptr[0] == '-'
 	  && ptr[1] == '-'
@@ -301,6 +309,7 @@ static int isboundary(const char *ptr, const char *boundary, size_t bl) {
 		  && (iscrlf(ptr + bl + 4) || *(ptr + bl + 4) == 0))));
 }
 
+/** @brief Match the final boundary string */
 static int isfinal(const char *ptr, const char *boundary, size_t bl) {
   return (ptr[0] == '-'
 	  && ptr[1] == '-'
@@ -312,10 +321,14 @@ static int isfinal(const char *ptr, const char *boundary, size_t bl) {
 
 /** @brief Parse a multipart MIME body
  * @param s Start of message
- * @param callback CAllback for each part
+ * @param callback Callback for each part
  * @param boundary Boundary string
  * @param u Passed to callback
  * @return 0 on success, non-0 on error
+ * 
+ * See <a href="http://tools.ietf.org/html/rfc2046#section-5.1">RFC 2046
+ * s5.1</a>.  @p callback is called for each part (not yet decoded in any way)
+ * in succession; you should probably call mime_parse() for each part.
  */
 int mime_multipart(const char *s,
 		   int (*callback)(const char *s, void *u),
@@ -351,6 +364,9 @@ int mime_multipart(const char *s,
  * @param parameternamep Where to store parameter name
  * @param parameternvaluep Wher to store parameter value
  * @return 0 on success, non-0 on error
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2388#section-3">RFC 2388 s3</a>
+ * and <a href="http://tools.ietf.org/html/rfc2183">RFC 2183</a>.
  */
 int mime_rfc2388_content_disposition(const char *s,
 				     char **dispositionp,
@@ -389,6 +405,9 @@ int mime_rfc2388_content_disposition(const char *s,
 /** @brief Convert MIME quoted-printable
  * @param s Quoted-printable data
  * @return Decoded data
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2045#section-6.7">RFC 2045
+ * s6.7</a>.
  */
 char *mime_qp(const char *s) {
   struct dynstr d;
