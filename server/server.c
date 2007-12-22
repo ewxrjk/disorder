@@ -1041,7 +1041,7 @@ static int c_cookie(struct conn *c,
     return 1;
   }
   /* Log in */
-  c->who = vec[0];
+  c->who = user;
   c->cookie = vec[0];
   c->rights = rights;
   if(strcmp(host, "local")) {
