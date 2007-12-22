@@ -254,7 +254,7 @@ struct config {
   long cookie_key_lifetime;
 
   /** @brief Default rights for a new user */
-  rights_type default_rights;
+  char *default_rights;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

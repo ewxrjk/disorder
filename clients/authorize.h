@@ -20,7 +20,7 @@
 #ifndef AUTHORIZE_H
 #define AUTHORIZE_H
 
-int authorize(disorder_client *client, const char *user);
+int authorize(disorder_client *client, const char *user, const char *rights);
 
 #endif /* AUTHORIZE_H */
 

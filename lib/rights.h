@@ -101,7 +101,7 @@
 typedef uint32_t rights_type;
 
 char *rights_string(rights_type r);
-int parse_rights(const char *s, rights_type *rp);
+int parse_rights(const char *s, rights_type *rp, int report);
 
 #endif /* RIGHTS_H */
 

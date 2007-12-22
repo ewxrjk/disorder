@@ -493,19 +493,17 @@ static int set_backend(const struct config_state *cs,
 static int set_rights(const struct config_state *cs,
 		      const struct conf *whoami,
 		      int nvec, char **vec) {
-  rights_type r;
-
   if(nvec != 1) {
     error(0, "%s:%d: '%s' requires one argument",
 	  cs->path, cs->line, whoami->name);
     return -1;
   }
-  if(parse_rights(vec[0], &r)) {
+  if(parse_rights(vec[0], 0, 1)) {
     error(0, "%s:%d: invalid rights string '%s'",
 	  cs->path, cs->line, vec[0]);
     return -1;
   }
-  *ADDRESS(cs->config, rights_type) = r;
+  *ADDRESS(cs->config, char *) = vec[0];
   return 0;
 }
 
@@ -1207,7 +1205,7 @@ static void config_postdefaults(struct config *c,
       r |= RIGHT_REMOVE_MINE;
     else
       r |= RIGHT_REMOVE_ANY;
-    c->default_rights = r;
+    c->default_rights = rights_string(r);
   }
 }
 

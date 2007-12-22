@@ -678,8 +678,9 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
 }
 
 int disorder_adduser(disorder_client *c,
-		     const char *user, const char *password) {
-  return disorder_simple(c, 0, "adduser", user, password, (char *)0);
+		     const char *user, const char *password,
+		     const char *rights) {
+  return disorder_simple(c, 0, "adduser", user, password, rights, (char *)0);
 }
 
 int disorder_deluser(disorder_client *c, const char *user) {

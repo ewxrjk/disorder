@@ -2459,6 +2459,10 @@ static int create_user(const char *user,
     error(0, "invalid username '%s'", user);
     return -1;
   }
+  if(parse_rights(rights, 0, 1)) {
+    error(0, "invalid rights string");
+    return -1;
+  }
   /* data for this user */
   if(password)
     kvp_set(&k, "password", password);
@@ -2485,10 +2489,16 @@ static int one_old_user(const char *user, const char *password,
   /* pick rights */
   if(!strcmp(user, "root"))
     rights = "all";
-  else if(trusted(user))
-    rights = rights_string(config->default_rights|RIGHT_ADMIN|RIGHT_RESCAN);
-  else
-    rights = rights_string(config->default_rights);
+  else if(trusted(user)) {
+    rights_type r;
+
+    parse_rights(config->default_rights, &r, 1);
+    r &= (RIGHT_SCRATCH__MASK|RIGHT_MOVE__MASK|RIGHT_REMOVE__MASK);
+    r |= (RIGHT_ADMIN|RIGHT_RESCAN
+          |RIGHT_SCRATCH_ANY|RIGHT_MOVE_ANY|RIGHT_REMOVE_ANY);
+    rights = rights_string(r);
+  } else
+    rights = config->default_rights;
   return create_user(user, password, rights, 0/*email*/, 0/*confirmation*/,
                      tid, DB_NOOVERWRITE);
 }
@@ -2569,13 +2579,12 @@ const char *trackdb_get_password(const char *user) {
  */
 int trackdb_adduser(const char *user,
                     const char *password,
-                    rights_type rights,
+                    const char *rights,
                     const char *email,
                     const char *confirmation) {
   int e;
-  const char *r = rights_string(rights);
 
-  WITH_TRANSACTION(create_user(user, password, r, email, confirmation,
+  WITH_TRANSACTION(create_user(user, password, rights, email, confirmation,
                                tid, DB_NOOVERWRITE));
   if(e) {
     error(0, "cannot created user '%s' because they already exist", user);
@@ -2583,9 +2592,9 @@ int trackdb_adduser(const char *user,
   } else {
     if(email)
       info("created user '%s' with rights '%s' and email address '%s'",
-           user, r, email);
+           user, rights, email);
     else
-      info("created user '%s' with rights '%s'", user, r);
+      info("created user '%s' with rights '%s'", user, rights);
     return 0;
   }
 }
@@ -2658,7 +2667,7 @@ int trackdb_edituserinfo(const char *user,
       error(0, "cannot remove 'rights' key from user '%s'", user);
       return -1;
     }
-    if(parse_rights(value, 0)) {
+    if(parse_rights(value, 0, 1)) {
       error(0, "invalid rights string");
       return -1;
     }

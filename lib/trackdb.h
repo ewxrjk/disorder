@@ -161,7 +161,7 @@ void trackdb_create_root(void);
 const char *trackdb_get_password(const char *user);
 int trackdb_adduser(const char *user,
                     const char *password,
-                    rights_type rights,
+                    const char *rights,
                     const char *email,
                     const char *confirmation);
 int trackdb_deluser(const char *user);

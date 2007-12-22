@@ -78,16 +78,18 @@ char *rights_string(rights_type r) {
 /** @brief Parse a rights list
  * @param s Rights list in string form
  * @param rp Where to store rights, or NULL to just validate
+ * @param report Nonzero to log errors
  * @return 0 on success, non-0 if @p s is not valid
  */
-int parse_rights(const char *s, rights_type *rp) {
+int parse_rights(const char *s, rights_type *rp, int report) {
   rights_type r = 0;
   const char *t;
   size_t n, l;
 
   if(!*s) {
     /* You can't have no rights */
-    error(0, "empty rights string");
+    if(report)
+      error(0, "empty rights string");
     return -1;
   }
   while(*s) {
@@ -103,7 +105,8 @@ int parse_rights(const char *s, rights_type *rp) {
 	   && !strncmp(rights_names[n].name, s, l))
 	  break;
       if(n >= NRIGHTS) {
-	error(0, "unknown user right '%.*s'", (int)l, s);
+	if(report)
+          error(0, "unknown user right '%.*s'", (int)l, s);
 	return -1;
       }
       r |= rights_names[n].bit;

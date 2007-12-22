@@ -55,8 +55,15 @@ def test():
     users = c.users()
     assert dtest.lists_have_same_contents(users,
                                           ["fred", "root"])
+    print " creating the guest user"
+    dtest.command(["disorder",
+                   "--config", disorder._configfile, "--no-per-user-config",
+                   "--user", "root", "setup-guest"])
+    print " logging in as guest user"
+    gc = disorder.client(user="guest", password="")
+    gc.version()
     print " testing user registration"
-    cs = c.register("joe", "joepass", "joe@nowhere.invalid")
+    cs = gc.register("joe", "joepass", "joe@nowhere.invalid")
     print " confirmation string is %s" % cs
     print " checking unconfirmed user cannot log in"
     jc = disorder.client(user="joe", password="joepass")
@@ -67,7 +74,8 @@ def test():
     except disorder.operationError:
       pass                              # good
     print " confirming user"
-    c.confirm(cs)
+    gc = disorder.client(user="guest", password="")
+    gc.confirm(cs)
     print " checking confirmed user can log in"
     jc = disorder.client(user="joe", password="joepass")
     jc.version()

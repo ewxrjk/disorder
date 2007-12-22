@@ -189,7 +189,8 @@ int disorder_new_tracks(disorder_client *c,
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
 
 int disorder_adduser(disorder_client *c,
-		     const char *user, const char *password);
+		     const char *user, const char *password,
+		     const char *rights);
 int disorder_deluser(disorder_client *c, const char *user);
 int disorder_userinfo(disorder_client *c, const char *user, const char *key,
 		      char **valuep);

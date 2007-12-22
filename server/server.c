@@ -434,7 +434,7 @@ static int c_user(struct conn *c,
   }
   password = kvp_get(k, "password");
   if(!password) password = "";
-  if(parse_rights(kvp_get(k, "rights"), &rights)) {
+  if(parse_rights(kvp_get(k, "rights"), &rights, 1)) {
     error(0, "error parsing rights for %s", vec[0]);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
@@ -1077,8 +1077,18 @@ static int c_revoke(struct conn *c,
 
 static int c_adduser(struct conn *c,
 		     char **vec,
-		     int attribute((unused)) nvec) {
-  if(trackdb_adduser(vec[0], vec[1], config->default_rights,
+		     int nvec) {
+  const char *rights;
+
+  if(nvec > 2) {
+    rights = vec[2];
+    if(parse_rights(vec[2], 0, 1)) {
+      sink_writes(ev_writer_sink(c->w), "550 Invalid rights list\n");
+      return -1;
+    }
+  } else
+    rights = config->default_rights;
+  if(trackdb_adduser(vec[0], vec[1], rights,
 		     0/*email*/, 0/*confirmation*/))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
@@ -1213,7 +1223,7 @@ static const struct command {
    */
   rights_type rights;
 } commands[] = {
-  { "adduser",        2, 2,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "adduser",        2, 3,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
   { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
   { "confirm",        1, 1,       c_confirm,        0 },
   { "cookie",         1, 1,       c_cookie,         0 },

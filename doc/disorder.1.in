@@ -54,15 +54,17 @@ Display version number.
 List all known commands.
 .SH COMMANDS
 .TP
-.B adduser \fIUSER PASSWORD\fR
-Create a new user with default rights.
+.B adduser \fIUSER PASSWORD\fR [\fIRIGHTS\fR]
+Create a new user.  If \fIRIGHTS\fR is not specified then the
+\fBdefault_rights\fR setting from the server's configuration file applies.
 .TP
-.B authorize \fIUSER\fR
-Chooses a password for \fIUSER\fR and adds it to \fIconfig.private\fR.  Also
-creates an appropriate \fIconfig.USER\fR, be owned by the user.
+.B authorize \fIUSER\fR [\fIRIGHTS\fR]
+Create \fIUSER\fR with a random password.  \fIUSER\fR must be a UNIX login
+user (not just any old string).  If \fIRIGHTS\fR is not specified then the
+\fBdefault_rights\fR setting from the server's configuration file applies.
 .IP
-If at least one \fBauthorize\fR command succeeds then the server is
-automatically told to re-read its configuration.
+An appropriate \fIconfig.USER\fR is created, owned by the user, so they should
+be able to log in immediately.
 .TP
 .B deluser \fIUSER\fR
 Delete a user.
@@ -74,7 +76,7 @@ An optional regexp may be specified, marked with an initial \fB~\fR.  Only
 directories with a basename matching the regexp will be returned.
 .TP
 .B disable
-Disables playing after the current track finishes.
+Disable playing after the current track finishes.
 .TP
 .B edituser \fIUSER PROPERTY VALUE
 Set some property of a user.
@@ -95,13 +97,13 @@ Display the preference \fIKEY\fR for \fITRACK\fR.
 Get a global preference.
 .TP
 .B get-volume
-Displays the current volume settings.
+Display the current volume settings.
 .TP
 .B length \fITRACK\fR
-Reports the length of \fITRACK\fR in seconds.
+Display the length of \fITRACK\fR in seconds.
 .TP
 .B log
-Writes event log messages to standard output, until the server is terminated.
+Write event log messages to standard output, until the server is terminated.
 See \fBdisorder_protocol\fR (5) for details of the output syntax.
 .TP
 .B move \fITRACK\fR \fIDELTA\fR
@@ -193,7 +195,15 @@ Set the preference \fIKEY\fR for \fITRACK\fR to \fIVALUE\fR.
 Set a global preference.
 .TP
 .B set-volume \fBLEFT\fR \fBRIGHT\fR
-Sets the volume.
+Set the volume.
+.TP
+.B setup-guest \fR[\fB--no-online-registration\fR]
+Create the "guest" user for use by the web interface.  This user will have no
+password and will only have the "read" and "register" rights, the latter
+allowing new users to automatically register themselves via the web interface.
+.IP
+With the option \fB--no-online-registration\fR, the "register" right is
+suppressed and users must be manually created by an administrator.
 .TP
 .B shutdown
 Shut down the daemon.

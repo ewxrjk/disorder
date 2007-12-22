@@ -50,9 +50,11 @@ to execute the command.
 .PP
 Neither commands nor responses have a body unless stated otherwise.
 .TP
-.B adduser \fIUSERNAME PASSWORD
-Creates a new user with the given username and password.  Requires the
-\fBadmin\fR right, and only works on local connections.
+.B adduser \fIUSERNAME PASSWORD \fR[\fIRIGHTS\fR]
+Creates a new user with the given username and password.  The new user's rights
+list can be specified; if it is not then the \fBdefault_rights\fR setting
+applies instead.  Requires the \fBadmin\fR right, and only works on local
+connections.
 .TP
 .B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
 Lists all the files and directories in \fIDIRECTORY\fR in a response body.

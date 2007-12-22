@@ -39,9 +39,10 @@
 /** @brief Create a DisOrder login for the calling user, called @p user
  * @param client DisOrder client
  * @param user Username to create (UTF-8)
+ * @param rights Initial rights or NULL for default
  * @return 0 on success, non-0 on error
  */
-int authorize(disorder_client *client, const char *user) {
+int authorize(disorder_client *client, const char *user, const char *rights) {
   uint8_t pwbin[10];
   const struct passwd *pw, *jbpw;
   gid_t jbgid;
@@ -82,7 +83,7 @@ int authorize(disorder_client *client, const char *user) {
     fatal(errno, "error renaming %s to %s", t, c);
 
   /* create the user on the server */
-  if(disorder_adduser(client, user, pwhex))
+  if(disorder_adduser(client, user, pwhex, rights))
     return -1;
 
   return 0;

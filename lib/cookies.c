@@ -198,7 +198,7 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
   }
   password = kvp_get(k, "password");
   if(!password) password = "";
-  if(parse_rights(kvp_get(k, "rights"), rights))
+  if(parse_rights(kvp_get(k, "rights"), rights, 1))
     return 0;
   /* construct the expected subject.  We re-encode the timestamp and the
    * password. */
