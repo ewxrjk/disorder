@@ -71,6 +71,16 @@ def test():
         time.sleep(1)
         p = c.playing()
     assert p is None, "checking nothing is playing"
+    c.random_disable()
+    assert c.random_enabled() == False
+    assert c.enabled() == False
+    c.enable()
+    assert c.enabled() == True
+    time.sleep(1)
+    p = c.playing()
+    assert p is None, "checking nothing playing when random disabled but playing enabled"
+    c.random_enable()
+    assert c.random_enabled() == True
 
 if __name__ == '__main__':
     dtest.run()

@@ -31,7 +31,16 @@ def test():
                 "second")
     assert len(f) == 1, "checking for one match"
     assert f[0] == "%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
+    print " and again to exercise cache"
+    f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
+                "second")
+    assert len(f) == 1, "checking for one match"
+    assert f[0] == "%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     print " checking unicode regexp file listing"
+    f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
+                "first")
+    assert len(f) == 0, "checking for 0 matches"
+    print " and again to exercise cache"
     f = c.files("%s/Joe Bloggs/First Album" % dtest.tracks,
                 "first")
     assert len(f) == 0, "checking for 0 matches"
