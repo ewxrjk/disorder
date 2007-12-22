@@ -4,7 +4,8 @@ The general procedure is:
 
  * stop the old daemon:  /etc/init.d/disorder stop
  * back up your database directory (example below)
- * build and install the new version as described in the README
+ * build and install the new version as described in the README.  Remember to
+   install the new version of the web interface too.
  * update the configuration files (see below)
  * start the new daemon, e.g. with
      /etc/init.d/disorder start
@@ -31,6 +32,13 @@ after the first run you should remove these directives and (optionally) add a
 
 'allow', 'restrict' and 'trust' will stop working entirely in a future version
 but for now they will generate harmless error messages.
+
+** Web Interface
+
+The web interface no longer uses HTTP basic authentication and the web server
+configuration imposing access control on it should be removed.  Users now log
+in using their main DisOrder password and the one in the htpassed file is now
+obsolete.
 
 * 1.4/1.5 -> 2.0
 

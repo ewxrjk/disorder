@@ -6,6 +6,11 @@ See ChangeLog.d/* for detailed revision history.
 
 Users are now stored in the database rather than a configuration file.
 
+** Web Interface
+
+The web interface now uses cookies to remember user identity, and allows
+online registration of new users.
+
 * Changes up to version 2.0
 
 ** General

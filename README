@@ -207,73 +207,33 @@ You need to configure a number of things to make this work:
 
    Separate logging is not required but I find it convenient.  Up to you.
 
-2. disorder.cgi assumes it is subject to access control (and in particular uses
-   the username to report who did what).  Here's how I configured Apache, given
-   the above VirtualHost settings:
+2. The web interface depends on a 'guest' user existing.  You can create this
+   with the following command:
 
-     <Directory /home/jukebox>
-     Require valid-user
-     AuthType basic
-     AuthName jukebox
-     AuthUserFile /home/jukebox/http.users
-     </Directory>
+     disorder setup-guest
 
-   Adjust this according to wherever you're going to install disorder.cgi and
-   its expected URL.
+   If you don't want to allow online registration instead use:
 
-   Don't forget to reload apache after modifying its configuration.  If you got
-   it wrong, fix it and restart Apache.
+     disorder -- setup-guest --no-online-registration
 
-3. Create the password file configured above.  Something like this:
-
-     # htpasswd -b -c /home/jukebox/http.users myusername mypassword
-     Adding password for user myusername
-     # htpasswd -b /home/jukebox/http.users othername otherpass
-     Adding password for user othername
-
-4. The jukebox must be configured to trust the web user.  The example
-   configuration assumes that this is www-data, but it might be something else
-   on your system.  Edit the 'trust' line if necessary.
-
-5. Install disorder.cgi in an appropriate location.  Remember to make it
+3. Install disorder.cgi in an appropriate location.  Remember to make it
    executable.  For example:
 
      install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
 
-6. The config file must also allow the web interface to be any user, and it
-   must list the URL of the web interface explicitly:
+4. The config file must list the URL of the web interface explicitly:
 
-     trust www-data
      url http://jukebox.DOMAIN/
 
-7. Give www-data (or whatever user it is) a password and edit
-   /etc/disorder/config.private accordingly.  This file should be mode 640 and
-   owned by root:jukebox.  The line should look something like this:
+5. Try it out.  You should be able to perform read-only operations straight
+   away, and after visiting the 'Login' page to authenticate, perform other
+   operations like adding a track to the queue.
 
-     allow www-data MYPASSWORD
-
-   After editing the config file, you must make the daemon re-read it:
-
-     disorder reconfigure
-
-8. Teach www-data its password, by putting it in /etc/disorder/config.www-data.
-   This file should be mode 640 and owned by root:www-data.
-
-     password MYPASSWORD
-
-   (You could also use ~www-data/.disorder/passwd for this but on some systems
-   the web server user's home directory is inside the document root, which
-   would have rather unfortunate consequences!)
-
-9. Try it out.  You should be asked for a username and password that you
-   configured earlier, and be shown details of what is playing and what other
-   tracks have been configured for future play.
-
-10. If you run into problems, always look at the appropriate error log; the
+6. If you run into problems, always look at the appropriate error log; the
     message you see in your web browser will usually not be sufficient to
     diagnose the problem all by itself.
 
-11. If you have a huge number of top level directories, then you might find
+7. If you have a huge number of top level directories, then you might find
     that the 'Choose' page is unreasonably large.  If so add the following line
     to /etc/disorder/options.user:
       label sidebar.choosewhich choosealpha
