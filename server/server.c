@@ -241,12 +241,13 @@ static int c_remove(struct conn *c, char **vec,
   }
   if(q->submitter)
     if(!strcmp(q->submitter, c->who))
-      r = RIGHT_REMOVE_MINE;
+      r = RIGHT_REMOVE_MINE|RIGHT_REMOVE_ANY;
     else
       r = RIGHT_REMOVE_ANY;
   else
-    r = RIGHT_REMOVE_RANDOM;
+    r = RIGHT_REMOVE_RANDOM|RIGHT_REMOVE_ANY;
   if(!(c->rights & r)) {
+    error(0, "%s attempted remove but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to remove that track\n");
     return 1;
@@ -269,7 +270,7 @@ static int c_scratch(struct conn *c,
 		     char **vec,
 		     int nvec) {
   rights_type r;
-  
+
   if(!playing) {
     sink_writes(ev_writer_sink(c->w), "250 nothing is playing\n");
     return 1;			/* completed */
@@ -279,12 +280,13 @@ static int c_scratch(struct conn *c,
    * the currently playing track. */
   if(playing->submitter)
     if(!strcmp(playing->submitter, c->who))
-      r = RIGHT_SCRATCH_MINE;
+      r = RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_ANY;
     else
       r = RIGHT_SCRATCH_ANY;
   else
-    r = RIGHT_SCRATCH_RANDOM;
+    r = RIGHT_SCRATCH_RANDOM|RIGHT_SCRATCH_ANY;
   if(!(c->rights & r)) {
+    error(0, "%s attempted scratch but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to scratch that track\n");
     return 1;
@@ -754,6 +756,7 @@ static int c_volume(struct conn *c,
   }
   rights = set ? RIGHT_VOLUME : RIGHT_READ;
   if(!(c->rights & rights)) {
+    error(0, "%s attempted to set volume but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
@@ -856,13 +859,13 @@ static int has_move_rights(struct conn *c, struct queue_entry **qs, int nqs) {
 
     if(q->submitter)
       if(!strcmp(q->submitter, c->who))
-	r |= RIGHT_MOVE_MINE;
+	r |= RIGHT_MOVE_MINE|RIGHT_MOVE_ANY;
       else
       r |= RIGHT_MOVE_ANY;
     else
-      r |= RIGHT_MOVE_RANDOM;
+      r |= RIGHT_MOVE_RANDOM|RIGHT_MOVE_ANY;
   }
-  return (c->rights & r) == r;
+  return !!(c->rights & r);
 }
 
 static int c_move(struct conn *c,
@@ -876,6 +879,7 @@ static int c_move(struct conn *c,
     return 1;
   }
   if(!has_move_rights(c, &q, 1)) {
+    error(0, "%s attempted move but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move that track\n");
     return 1;
@@ -910,6 +914,7 @@ static int c_moveafter(struct conn *c,
       return 1;
     }
   if(!has_move_rights(c, qs, nvec)) {
+    error(0, "%s attempted moveafter but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move those tracks\n");
     return 1;
@@ -1120,8 +1125,10 @@ static int c_edituser(struct conn *c,
       sink_writes(ev_writer_sink(c->w), "550 Failed to change setting\n");
     else
       sink_writes(ev_writer_sink(c->w), "250 OK\n");
-  } else
+  } else {
+    error(0, "%s attempted edituser but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
+  }
   return 1;
 }
 
@@ -1144,8 +1151,10 @@ static int c_userinfo(struct conn *c,
 	sink_writes(ev_writer_sink(c->w), "555 Not set\n");
     else
       sink_writes(ev_writer_sink(c->w), "550 No such user\n");
-  } else
+  } else {
+    error(0, "%s attempted userinfo but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
+  }
   return 1;
 }
 
@@ -1309,6 +1318,8 @@ static int command(struct conn *c, char *line) {
   else {
     if(commands[n].rights
        && !(c->rights & commands[n].rights)) {
+      error(0, "%s attempted %s but lacks required rights", c->who ? c->who : "NULL",
+	    commands[n].name);
       sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
       return 1;
     }
