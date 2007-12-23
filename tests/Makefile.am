@@ -29,5 +29,8 @@ disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 check:
 	${PYTHON} ${srcdir}/alltests
 
+clean-local:
+	rm -rf testroot *.log *.pyc
+
 EXTRA_DIST=alltests dtest.py dbversion.py search.py \
 	queue.py dump.py play.py cookie.py user-upgrade.py user.py
