@@ -33,7 +33,6 @@
 #include "client.h"
 #include "sink.h"
 #include "cgi.h"
-#include "dcgi.h"
 #include "mem.h"
 #include "log.h"
 #include "configuration.h"
@@ -41,6 +40,7 @@
 #include "api-client.h"
 #include "mime.h"
 #include "printf.h"
+#include "dcgi.h"
 
 /** @brief Infer the base URL for the web interface if it's not set
  *
@@ -111,14 +111,7 @@ int main(int argc, char **argv) {
 	login_cookie = cd.cookies[n].value;
     }
   }
-  /* Log in with the cookie if possible otherwise as guest */
-  if(disorder_connect_cookie(g.client, login_cookie)) {
-    disorder_cgi_error(&output, &s, "connect");
-    return 0;
-  }
-  /* If there was a cookie but it went bad, we forget it */
-  if(login_cookie && !strcmp(disorder_user(g.client), "guest"))
-    login_cookie = 0;
+  disorder_cgi_login(&s, &output);
   /* TODO RFC 3875 s8.2 recommendations e.g. concerning PATH_INFO */
   disorder_cgi(&output, &s);
   if(fclose(stdout) < 0) fatal(errno, "error closing stdout");

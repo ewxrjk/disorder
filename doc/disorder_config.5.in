@@ -911,6 +911,10 @@ file for full documentation of the labels used by the standard templates.
 .B @length@
 Expands to the length of the current track.
 .TP
+.B @movable@
+Expands to \fBtrue\fR if the current track is movable, otherwise to
+\fBfalse\fR.
+.TP
 .B @navigate{\fIDIRECTORY\fB}{\fITEMPLATE\fB}
 Expands \fITEMPLATE\fR for each component of \fIDIRECTORY\fR in turn.
 Use \fB@dirname\fR and \fB@basename@\fR to get the components of the path to
@@ -992,8 +996,24 @@ Expands to \fBtrue\fR if random play is currently enabled, otherwise to
 Expands \fITEMPLATE\fR repeatedly using the each recently played track in turn
 as the current track.  The most recently played track comes first.
 .TP
+.B @removable@
+Expands to \fBtrue\fR if the current track is removable, otherwise to
+\fBfalse\fR.
+.TP
 .B @resolve{\fITRACK\fB}@
 Resolve aliases for \fITRACK\fR and expands to the result.
+.TP
+.B @right{\fIRIGHT\fB}@
+Exapnds to \fBtrue\fR if the user has right \fIRIGHT\fR, otherwise to
+\fBfalse\fR.
+.TP
+.B @right{\fIRIGHT\fB}{\fITRUEPART\fB}{\fIFALSEPART\fB}@
+Expands to \fITRUEPART\fR if the user right \fIRIGHT\fR, otherwise to
+\fIFALSEPART\fR (which may be omitted).
+.TP
+.B @scratchable@
+Expands to \fBtrue\fR if the currently playing track is scratchable, otherwise
+to \fBfalse\fR.
 .TP
 .B @search{\fIPART\fB}\fR[\fB{\fICONTEXT\fB}\fR]\fB{\fITEMPLATE\fB}@
 Expands \fITEMPLATE\fR once for each group of search results that have

@@ -24,6 +24,8 @@
 #ifndef RIGHTS_H
 #define RIGHTS_H
 
+struct queue_entry;
+
 /** @brief User can perform read-only operations */
 #define RIGHT_READ            0x00000001
 
@@ -102,6 +104,12 @@ typedef uint32_t rights_type;
 
 char *rights_string(rights_type r);
 int parse_rights(const char *s, rights_type *rp, int report);
+int right_scratchable(rights_type rights, const char *who,
+		      const struct queue_entry *q);
+int right_movable(rights_type rights, const char *who,
+		  const struct queue_entry *q);
+int right_removable(rights_type rights, const char *who,
+		    const struct queue_entry *q);
 
 #endif /* RIGHTS_H */
 

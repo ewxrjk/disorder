@@ -31,12 +31,14 @@ typedef struct dcgi_global {
 #define DC_DIRS 0x0010
 #define DC_FILES 0x0020
 #define DC_NEW 0x0040
+#define DC_RIGHTS 0x0080
   struct queue_entry *queue, *playing, *recent;
   int volume_left, volume_right;
   char **files, **dirs;
   int nfiles, ndirs;
   char **new;
   int nnew;
+  rights_type rights;
 } dcgi_global;
 
 typedef struct dcgi_state {
@@ -57,6 +59,7 @@ typedef struct dcgi_state {
 void disorder_cgi(cgi_sink *output, dcgi_state *ds);
 void disorder_cgi_error(cgi_sink *output, dcgi_state *ds,
 			const char *msg);
+void disorder_cgi_login(dcgi_state *ds, cgi_sink *output);
 
 extern char *login_cookie;
 

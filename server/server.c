@@ -233,20 +233,12 @@ static int c_play(struct conn *c, char **vec,
 static int c_remove(struct conn *c, char **vec,
 		    int attribute((unused)) nvec) {
   struct queue_entry *q;
-  rights_type r;
 
   if(!(q = queue_find(vec[0]))) {
     sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
     return 1;
   }
-  if(q->submitter)
-    if(!strcmp(q->submitter, c->who))
-      r = RIGHT_REMOVE_MINE|RIGHT_REMOVE_ANY;
-    else
-      r = RIGHT_REMOVE_ANY;
-  else
-    r = RIGHT_REMOVE_RANDOM|RIGHT_REMOVE_ANY;
-  if(!(c->rights & r)) {
+  if(!right_removable(c->rights, c->who, q)) {
     error(0, "%s attempted remove but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to remove that track\n");
@@ -269,8 +261,6 @@ static int c_remove(struct conn *c, char **vec,
 static int c_scratch(struct conn *c,
 		     char **vec,
 		     int nvec) {
-  rights_type r;
-
   if(!playing) {
     sink_writes(ev_writer_sink(c->w), "250 nothing is playing\n");
     return 1;			/* completed */
@@ -278,14 +268,7 @@ static int c_scratch(struct conn *c,
   /* TODO there is a bug here: if we specify an ID but it's not the currently
    * playing track then you will get 550 if you weren't authorized to scratch
    * the currently playing track. */
-  if(playing->submitter)
-    if(!strcmp(playing->submitter, c->who))
-      r = RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_ANY;
-    else
-      r = RIGHT_SCRATCH_ANY;
-  else
-    r = RIGHT_SCRATCH_RANDOM|RIGHT_SCRATCH_ANY;
-  if(!(c->rights & r)) {
+  if(!right_scratchable(c->rights, c->who, playing)) {
     error(0, "%s attempted scratch but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to scratch that track\n");
@@ -852,20 +835,13 @@ static int c_log(struct conn *c,
  * @return 0 if move is prohibited, non-0 if it is allowed
  */
 static int has_move_rights(struct conn *c, struct queue_entry **qs, int nqs) {
-  rights_type r = 0;
-
   for(; nqs > 0; ++qs, --nqs) {
     struct queue_entry *const q = *qs;
 
-    if(q->submitter)
-      if(!strcmp(q->submitter, c->who))
-	r |= RIGHT_MOVE_MINE|RIGHT_MOVE_ANY;
-      else
-      r |= RIGHT_MOVE_ANY;
-    else
-      r |= RIGHT_MOVE_RANDOM|RIGHT_MOVE_ANY;
+    if(!right_movable(c->rights, c->who, q))
+      return 0;
   }
-  return !!(c->rights & r);
+  return 1;
 }
 
 static int c_move(struct conn *c,

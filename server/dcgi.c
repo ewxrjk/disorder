@@ -39,7 +39,6 @@
 #include "vector.h"
 #include "sink.h"
 #include "cgi.h"
-#include "dcgi.h"
 #include "log.h"
 #include "configuration.h"
 #include "table.h"
@@ -54,6 +53,7 @@
 #include "defs.h"
 #include "trackname.h"
 #include "charset.h"
+#include "dcgi.h"
 
 char *login_cookie;
 
@@ -141,6 +141,7 @@ static void lookups(dcgi_state *ds, unsigned want) {
   unsigned need;
   struct queue_entry *r, *rnext;
   const char *dir, *re;
+  char *rights;
 
   if(ds->g->client && (need = want ^ (ds->g->flags & want)) != 0) {
     if(need & DC_QUEUE)
@@ -174,6 +175,12 @@ static void lookups(dcgi_state *ds, unsigned want) {
 	if(disorder_files(ds->g->client, dir, re,
 			  &ds->g->files, &ds->g->nfiles))
 	  ds->g->nfiles = 0;
+    }
+    if(need & DC_RIGHTS) {
+      ds->g->rights = RIGHT_READ;	/* fail-safe */
+      if(!disorder_userinfo(ds->g->client, disorder_user(ds->g->client),
+			    "rights", &rights))
+	parse_rights(rights, &ds->g->rights, 1);
     }
     ds->g->flags |= need;
   }
@@ -473,11 +480,7 @@ static void act_logout(cgi_sink *output,
   disorder_revoke(ds->g->client);
   login_cookie = 0;
   /* Reconnect as guest */
-  ds->g->client = disorder_new(0);
-  if(disorder_connect_cookie(ds->g->client, 0)) {
-    disorder_cgi_error(output, ds, "connect");
-    exit(0);
-  }
+  disorder_cgi_login(ds, output);
   /* Back to the login page */
   expand_template(ds, output, "login");
 }
@@ -1236,17 +1239,12 @@ static void exp_scratchable(int attribute((unused)) nargs,
 			    cgi_sink *output,
 			    void attribute((unused)) *u) {
   dcgi_state *ds = u;
-  int result;
 
-  if(config->restrictions & RESTRICT_SCRATCH) {
-    lookups(ds, DC_PLAYING);
-    result = (ds->g->playing
-	      && (!ds->g->playing->submitter
-		  || !strcmp(ds->g->playing->submitter,
-			     disorder_user(ds->g->client))));
-  } else
-    result = 1;
-  sink_printf(output->sink, "%s", bool2str(result));
+  lookups(ds, DC_PLAYING|DC_RIGHTS);
+  sink_printf(output->sink, "%s",
+	      bool2str(right_scratchable(ds->g->rights,
+					 disorder_user(ds->g->client),
+					 ds->g->playing)));
 }
 
 static void exp_removable(int attribute((unused)) nargs,
@@ -1254,16 +1252,25 @@ static void exp_removable(int attribute((unused)) nargs,
 			  cgi_sink *output,
 			  void attribute((unused)) *u) {
   dcgi_state *ds = u;
-  int result;
 
-  if(config->restrictions & RESTRICT_REMOVE)
-    result = (ds->track
-	      && ds->track->submitter
-	      && !strcmp(ds->track->submitter,
-			 disorder_user(ds->g->client)));
-  else
-    result = 1;
-  sink_printf(output->sink, "%s", bool2str(result));
+  lookups(ds, DC_RIGHTS);
+  sink_printf(output->sink, "%s",
+	      bool2str(right_removable(ds->g->rights,
+				       disorder_user(ds->g->client),
+				       ds->track)));
+}
+
+static void exp_movable(int attribute((unused)) nargs,
+			char attribute((unused)) **args,
+			cgi_sink *output,
+			void attribute((unused)) *u) {
+  dcgi_state *ds = u;
+
+  lookups(ds, DC_RIGHTS);
+  sink_printf(output->sink, "%s",
+	      bool2str(right_movable(ds->g->rights,
+				     disorder_user(ds->g->client),
+				     ds->track)));
 }
 
 static void exp_navigate(int attribute((unused)) nargs,
@@ -1536,6 +1543,25 @@ static void exp_user(int attribute((unused)) nargs,
   cgi_output(output, "%s", disorder_user(ds->g->client));
 }
 
+static void exp_right(int attribute((unused)) nargs,
+		      char **args,
+		      cgi_sink *output,
+		      void *u) {
+  dcgi_state *const ds = u;
+  const char *right = expandarg(args[0], ds);
+  rights_type r;
+
+  lookups(ds, DC_RIGHTS);
+  if(parse_rights(right, &r, 1/*report*/))
+    r = 0;
+  if(args[1] == 0)
+    cgi_output(output, "%s", bool2str(!!(r & ds->g->rights)));
+  else if(r & ds->g->rights)
+    expandstring(output, args[1], ds);
+  else if(args[2])
+    expandstring(output, args[2], ds);
+}
+
 static const struct cgi_expansion expansions[] = {
   { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
   { "action", 0, 0, 0, exp_action },
@@ -1563,6 +1589,7 @@ static const struct cgi_expansion expansions[] = {
   { "isrecent", 0, 0, 0, exp_isrecent },
   { "label", 1, 1, 0, exp_label },
   { "length", 0, 0, 0, exp_length },
+  { "movable", 0, 0, 0, exp_movable },
   { "navigate", 2, 2, EXP_MAGIC, exp_navigate },
   { "ne", 2, 2, 0, exp_ne },
   { "new", 1, 1, EXP_MAGIC, exp_new },
@@ -1583,6 +1610,7 @@ static const struct cgi_expansion expansions[] = {
   { "recent", 1, 1, EXP_MAGIC, exp_recent },
   { "removable", 0, 0, 0, exp_removable },
   { "resolve", 1, 1, 0, exp_resolve },
+  { "right", 1, 3, EXP_MAGIC, exp_right },
   { "scratchable", 0, 0, 0, exp_scratchable },
   { "search", 2, 3, EXP_MAGIC, exp_search },
   { "server-version", 0, 0, 0, exp_server_version },
@@ -1644,6 +1672,22 @@ void disorder_cgi_error(cgi_sink *output, dcgi_state *ds,
 			const char *msg) {
   cgi_set_option("error", msg);
   perform_action(output, ds, "error");
+}
+
+/** @brief Log in as the current user or guest if none */
+void disorder_cgi_login(dcgi_state *ds, cgi_sink *output) {
+  /* Create a new connection */
+  ds->g->client = disorder_new(0);
+  /* Forget everything we knew */
+  ds->g->flags = 0;
+  /* Reconnect */
+  if(disorder_connect_cookie(ds->g->client, login_cookie)) {
+    disorder_cgi_error(output, ds, "connect");
+    exit(0);
+  }
+  /* If there was a cookie but it went bad, we forget it */
+  if(login_cookie && !strcmp(disorder_user(ds->g->client), "guest"))
+    login_cookie = 0;
 }
 
 /*
