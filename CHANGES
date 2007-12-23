@@ -9,7 +9,9 @@ Users are now stored in the database rather than a configuration file.
 ** Web Interface
 
 The web interface now uses cookies to remember user identity, and allows
-online registration of new users.
+online registration of new users.  Also it is no longer necessary to
+manually specify the URL of the web interface (but you can override it
+if you don't like the value it figures out).
 
 * Changes up to version 2.0
 

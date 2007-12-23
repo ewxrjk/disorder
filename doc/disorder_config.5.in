@@ -636,7 +636,8 @@ transform dir   "[[:punct:]]"                       "" sort g
 .TP
 .B url \fIURL\fR
 Specifies the URL of the web interface.  This URL will be used in
-generated web pages.
+generated web pages.  The default is inferred at runtime, so this option no
+longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.

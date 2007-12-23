@@ -205,7 +205,7 @@ struct config {
   struct stringlist templates;
 
   /** @brief Canonical URL of web interface */
-  const char *url;
+  char *url;
 
   /** @brief Short display limit */
   long short_display;
