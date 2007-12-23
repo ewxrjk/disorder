@@ -382,6 +382,14 @@ a.activemenu:active,a.inactivemenu:active {
   color: red
 }
 
+span.invalidmenu {
+  text-decoration: none;
+  color: grey;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 14pt
+}
+
 /* prefs **********************************************************************/
 
 p.prefs_new,p.prefs_head {

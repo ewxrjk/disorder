@@ -8,15 +8,21 @@
   <a class=@if{@eq{@action@}{new}@}{activemenu}{inactivemenu}@
  href="@url@?action=new&amp;nonce=@nonce@"
  title="@label:sidebar.newverbose@">@label:sidebar.new@</a>
+@right{play}{
   <a class=@if{@or{@eq{@action@}{choose}@}
                   {@eq{@action@}{choosealpha}@}@}
               {activemenu}
               {inactivemenu}@
  href="@url@?action=@label:sidebar.choosewhich@&amp;nonce=@nonce@"
- title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</a>
+ title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</a>}{
+  <span class=invalidmenu
+   title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</span>}@
+@right{play}{
   <a class=@if{@eq{@action@}{search}@}{activemenu}{inactivemenu}@
  href="@url@?action=search&amp;nonce=@nonce@"
- title="@label:sidebar.searchverbose@">@label:sidebar.search@</a>
+ title="@label:sidebar.searchverbose@">@label:sidebar.search@</a>}{
+  <span class=invalidmenu
+   title="@label:sidebar.searchverbose@">@label:sidebar.search@</span>}@
 <!-- disabled by default since now available from 'manage'
   <a class=@if{@eq{@action@}{volume}@}{activemenu}{inactivemenu}@
  href="@url@?action=volume&amp;nonce=@nonce@"

@@ -37,7 +37,8 @@ USA
      <th class=album>@label:heading.album@</th>
      <th class=title>@label:heading.title@</th>
      <th class=length>@label:heading.length@</th>
-      <th class=button>&nbsp;</th>
+@right{prefs}{
+     <th class=button>&nbsp;</th>}@
     </tr>
     @recent{
     <tr class=@parity@>
@@ -54,12 +55,13 @@ USA
      <td class=title><span
        title="@part{title}@">@part{short}{title}@</span></td>
      <td class=length>@length@</td>
+@right{prefs}{
      <td class=imgbutton><a class=imgbutton
       href="@url@?action=prefs&#38;nonce=@nonce@&#38;0_file=@urlquote{@file@}@"><img
        class=button src="@label:images.edit@"
        title="@label:choose.prefsverbose@"
        alt="@label:choose.prefs@"></a></td>
-    </tr>
+    </tr>}@
     }@
   </table>
 }@
