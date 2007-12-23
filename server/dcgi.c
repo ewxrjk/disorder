@@ -101,15 +101,7 @@ static const char *front_url(void) {
   return config->url;
 }
 
-static void redirect(struct sink *output) {
-  const char *back;
-
-  back = cgi_get("back");
-  cgi_header(output, "Location", back && *back ? back : front_url());
-  cgi_body(output);
-}
-
-static void header_cookie(cgi_sink *output) {
+static void header_cookie(struct sink *output) {
   struct dynstr d[1];
   char *s;
 
@@ -122,13 +114,25 @@ static void header_cookie(cgi_sink *output) {
     }
     dynstr_terminate(d);
     byte_xasprintf(&s, "disorder=\"%s\"", d->vec); /* TODO domain, path, expiry */
-    cgi_header(output->sink, "Set-Cookie", s);
-  }
+    cgi_header(output, "Set-Cookie", s);
+  } else
+    /* Force browser to discard cookie */
+    cgi_header(output, "Set-Cookie", "disorder=none;Max-Age=0");
+}
+
+static void redirect(struct sink *output) {
+  const char *back;
+
+  back = cgi_get("back");
+  cgi_header(output, "Location", back && *back ? back : front_url());
+  header_cookie(output);
+  cgi_body(output);
 }
 
 static void expand_template(dcgi_state *ds, cgi_sink *output,
 			    const char *action) {
   cgi_header(output->sink, "Content-Type", "text/html");
+  header_cookie(output->sink);
   cgi_body(output->sink);
   expand(output, action, ds);
 }
@@ -271,6 +275,7 @@ static void act_playing(cgi_sink *output, dcgi_state *ds) {
   byte_snprintf(r, sizeof r, "%ld;url=%s", refresh > 0 ? refresh : 1,
 		front_url());
   cgi_header(output->sink, "Refresh", r);
+  header_cookie(output->sink);
   cgi_body(output->sink);
   expand(output, "playing", ds);
 }
@@ -337,9 +342,11 @@ static void act_volume(cgi_sink *output, dcgi_state *ds) {
      * URL) */
     cgi_header(output->sink, "Location",
 	       (back = cgi_get("back")) ? back : volume_url());
+    header_cookie(output->sink);
     cgi_body(output->sink);
   } else {
     cgi_header(output->sink, "Content-Type", "text/html");
+    header_cookie(output->sink);
     cgi_body(output->sink);
     expand(output, "volume", ds);
   }
@@ -408,6 +415,7 @@ static void act_prefs(cgi_sink *output, dcgi_state *ds) {
   for(numfile = 0; numfile < nfiles; ++numfile)
     process_prefs(ds, numfile);
   cgi_header(output->sink, "Content-Type", "text/html");
+  header_cookie(output->sink);
   cgi_body(output->sink);
   expand(output, "prefs", ds);
 }
@@ -451,7 +459,7 @@ static void act_login(cgi_sink *output,
     return;
   }
   /* We have a new cookie */
-  header_cookie(output);
+  header_cookie(output->sink);
   if((back = cgi_get("back")) && back)
     /* Redirect back to somewhere or other */
     redirect(output->sink);
@@ -464,6 +472,12 @@ static void act_logout(cgi_sink *output,
 		       dcgi_state *ds) {
   disorder_revoke(ds->g->client);
   login_cookie = 0;
+  /* Reconnect as guest */
+  ds->g->client = disorder_new(0);
+  if(disorder_connect_cookie(ds->g->client, 0)) {
+    disorder_cgi_error(output, ds, "connect");
+    exit(0);
+  }
   /* Back to the login page */
   expand_template(ds, output, "login");
 }
@@ -1611,8 +1625,6 @@ static void perform_action(cgi_sink *output, dcgi_state *ds,
 			   const char *action) {
   int n;
 
-  /* If we have a login cookie it'd better appear in all responses */
-  header_cookie(output);
   /* We don't ever want anything to be cached */
   cgi_header(output->sink, "Cache-Control", "no-cache");
   if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)

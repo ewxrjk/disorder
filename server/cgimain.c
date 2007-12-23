@@ -116,6 +116,9 @@ int main(int argc, char **argv) {
     disorder_cgi_error(&output, &s, "connect");
     return 0;
   }
+  /* If there was a cookie but it went bad, we forget it */
+  if(login_cookie && !strcmp(disorder_user(g.client), "guest"))
+    login_cookie = 0;
   /* TODO RFC 3875 s8.2 recommendations e.g. concerning PATH_INFO */
   disorder_cgi(&output, &s);
   if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
