@@ -64,6 +64,7 @@ struct disorder_client {
   char *ident;
   char *user;
   int verbose;
+  char *last;				/* last error string */
 };
 
 /** @brief Create a new client
@@ -97,12 +98,21 @@ static int response(disorder_client *c, char **rp) {
   if(r[0] >= '0' && r[0] <= '9'
      && r[1] >= '0' && r[1] <= '9'
      && r[2] >= '0' && r[2] <= '9'
-     && r[3] == ' ')
+     && r[3] == ' ') {
+    c->last = r + 4;
     return (r[0] * 10 + r[1]) * 10 + r[2] - 111 * '0';
-  else {
+  } else {
     error(0, "invalid reply format from %s", c->ident);
     return -1;
   }
+}
+
+/** @brief Return last response string
+ * @param c Client
+ * @return Last response string (UTF-8, English) or NULL
+ */
+const char *disorder_last(disorder_client *c) {
+  return c->last;
 }
 
 /** @brief Read and partially parse a response

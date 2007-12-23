@@ -113,6 +113,7 @@ int disorder_register(disorder_client *c, const char *user,
 		      char **confirmp);
 int disorder_confirm(disorder_client *c, const char *confirm);
 int disorder_make_cookie(disorder_client *c, char **cookiep);
+const char *disorder_last(disorder_client *c);
 
 #endif /* CLIENT_H */
 
