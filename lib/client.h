@@ -20,7 +20,7 @@
 /** @file lib/client.h
  * @brief Simple C client
  *
- * See @file lib/eclient.h for an asynchronous-capable client
+ * See @ref lib/eclient.h for an asynchronous-capable client
  * implementation.
  */
 

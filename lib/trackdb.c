@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file server/trackdb.c
+/** @file lib/trackdb.c
  * @brief Track database
  *
  * This file is getting in desparate need of splitting up...
@@ -113,7 +113,7 @@ DB *trackdb_prefsdb;
  * - Values are UTF-8(NFC(unicode(path name)))
  * - There can be more than one value per key
  * - Presence of key,value means that path matches the search terms
- * - Only tracks fond in @ref tracks_tracksdb are represented here
+ * - Only tracks fond in @ref trackdb_tracksdb are represented here
  * - This database can be reconstructed, it contains no user data
  */
 DB *trackdb_searchdb;
@@ -349,7 +349,7 @@ static DB *open_db(const char *path,
 }
 
 /** @brief Open track databases
- * @param Flags flags word
+ * @param flags Flags flags word
  *
  * @p flags should have one of:
  * - @p TRACKDB_NO_UPGRADE, if no upgrade should be attempted
@@ -2574,7 +2574,8 @@ const char *trackdb_get_password(const char *user) {
  * @param user Username
  * @param password Password or NULL
  * @param rights Initial rights
- * @param email Email address
+ * @param email Email address or NULL
+ * @param confirmation Confirmation string or NULL
  * @return 0 on success, non-0 on error
  */
 int trackdb_adduser(const char *user,
@@ -2601,7 +2602,7 @@ int trackdb_adduser(const char *user,
 
 /** @brief Delete a user
  * @param user User to delete
- * @param 0 on success, non-0 if the user didn't exist anyway
+ * @return 0 on success, non-0 if the user didn't exist anyway
  */
 int trackdb_deluser(const char *user) {
   int e;

@@ -107,7 +107,9 @@ static int iscrlf(const char *ptr) {
 }
 
 /** @brief Skip whitespace
+ * @param s Pointer into string
  * @param rfc822_comments If true, skip RFC822 nested comments
+ * @return Pointer into string after whitespace
  */
 static const char *skipwhite(const char *s, int rfc822_comments) {
   int c, depth;
@@ -207,7 +209,7 @@ static const char *parsetoken(const char *s, char **valuep,
  * @param s Start of field
  * @param typep Where to store type
  * @param parameternamep Where to store parameter name
- * @param parameternvaluep Wher to store parameter value
+ * @param parametervaluep Wher to store parameter value
  * @return 0 on success, non-0 on error
  *
  * See <a href="http://tools.ietf.org/html/rfc2045#section-5">RFC 2045 s5</a>.
@@ -360,9 +362,9 @@ int mime_multipart(const char *s,
 
 /** @brief Parse an RFC2388-style content-disposition field
  * @param s Start of field
- * @param typep Where to store type
+ * @param dispositionp Where to store disposition
  * @param parameternamep Where to store parameter name
- * @param parameternvaluep Wher to store parameter value
+ * @param parametervaluep Wher to store parameter value
  * @return 0 on success, non-0 on error
  *
  * See <a href="http://tools.ietf.org/html/rfc2388#section-3">RFC 2388 s3</a>

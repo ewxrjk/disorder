@@ -20,7 +20,7 @@
 /** @file lib/client.c
  * @brief Simple C client
  *
- * See @file lib/eclient.c for an asynchronous-capable client
+ * See @ref lib/eclient.c for an asynchronous-capable client
  * implementation.
  */
 
@@ -735,7 +735,7 @@ static void pref_error_handler(const char *msg,
   error(0, "error handling 'prefs' reply: %s", msg);
 }
 
-/** @param Get all preferences for a trcak
+/** @brief Get all preferences for a trcak
  * @param c Client
  * @param track Track name
  * @param kp Where to store linked list of preferences
@@ -859,7 +859,7 @@ int disorder_random_disable(disorder_client *c) {
 
 /** @brief Test whether random play is enabled
  * @param c Client
- * @param existsp Where to store result (non-0 iff enabled)
+ * @param enabledp Where to store result (non-0 iff enabled)
  * @return 0 on success, non-0 on error
  */
 int disorder_random_enabled(disorder_client *c, int *enabledp) {
@@ -949,7 +949,7 @@ int disorder_part(disorder_client *c, char **partp,
 
 /** @brief Resolve aliases
  * @param c Client
- * @param trackkp Where to store canonical name (UTF-8)
+ * @param trackp Where to store canonical name (UTF-8)
  * @param track Track name (UTF-8)
  * @return 0 on success, non-0 on error
  */
@@ -1118,7 +1118,6 @@ int disorder_edituser(disorder_client *c, const char *user,
  * @param user Username
  * @param password Password
  * @param email Email address (UTF-8)
- * @param rights Initial rights or NULL to use default
  * @param confirmp Where to store confirmation string
  * @return 0 on success, non-0 on error
  */

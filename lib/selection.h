@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file lib/selection.c
+/** @file lib/selection.h
  * @brief Select management for Disobedience
  */
 

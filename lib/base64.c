@@ -37,6 +37,7 @@ static const char mime_base64_table[] =
 
 /** @brief Convert MIME base64
  * @param s base64 data
+ * @param nsp Where to store length of converted data
  * @return Decoded data
  *
  * See <a href="http://tools.ietf.org/html/rfc2045#section-6.8">RFC

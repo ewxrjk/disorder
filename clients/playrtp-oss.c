@@ -189,7 +189,7 @@ static void playrtp_oss_disable(int hard) {
 
 /** @brief Write samples to OSS output device
  * @param data Pointer to sample data
- * @param nsamples Number of samples
+ * @param samples Number of samples
  * @return 0 on success, non-0 on error
  */
 static int playrtp_oss_write(const char *data, size_t samples) {
