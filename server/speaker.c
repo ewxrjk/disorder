@@ -69,6 +69,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -644,7 +645,7 @@ int main(int argc, char **argv) {
   /* create the socket directory */
   byte_xasprintf(&dir, "%s/speaker", config->home);
   unlink(dir);                          /* might be a leftover socket */
-  if(mkdir(dir, 0700) < 0)
+  if(mkdir(dir, 0700) < 0 && errno != EEXIST)
     fatal(errno, "error creating %s", dir);
   /* set up the listen socket */
   listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
