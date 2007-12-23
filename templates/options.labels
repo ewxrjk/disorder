@@ -187,10 +187,6 @@ label	sidebar.loginverbose	"log in to DisOrder"
 label	sidebar.helpverbose	"basic user guide"
 label	sidebar.manageverbose	"queue management and volume control"
 
-# This should be 'topbar' or 'sidebar'.  If 'topbar' then the menu appears
-# across the top of the screen, otherwise down the side.
-label	menu			topbar
-
 # This should be 'choose' or 'choosealpha'.  If 'choose' then all artists
 # appear on the same page, otherwise they are broken up by initial letter
 # (which can be more convenient if you have huge numbers).

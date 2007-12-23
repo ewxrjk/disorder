@@ -748,9 +748,10 @@ Additionally, other standard files are included by these:
 Included at the end of the main content \fB<DIV>\fR element.
 .TP
 .B topbar.html
-Included at the start of the \fB<BODY>\fR element.  (This supplants
-\fBsidebar.html\fR, though the latter is still available; override label
-\fBmenu\fR to choose between them.)
+Included at the start of the \fB<BODY>\fR element.
+.TP
+.B topbarend.html
+Included at the end of the \fB<BODY>\fR element.
 .TP
 .B stdhead.html
 Included in the \fB<HEAD>\fR element.
