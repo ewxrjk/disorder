@@ -1148,6 +1148,14 @@ int disorder_make_cookie(disorder_client *c, char **cookiep) {
 		 cookiep);
 }
 
+/** @brief Revoke the cookie used by this session
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
+int disorder_revoke(disorder_client *c) {
+  return disorder_simple(c, 0, "revoke", (char *)0);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

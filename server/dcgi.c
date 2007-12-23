@@ -104,8 +104,8 @@ static const char *front_url(void) {
 static void redirect(struct sink *output) {
   const char *back;
 
-  cgi_header(output, "Location",
-	     (back = cgi_get("back")) ? back : front_url());
+  back = cgi_get("back");
+  cgi_header(output, "Location", back && *back ? back : front_url());
   cgi_body(output);
 }
 
@@ -460,6 +460,14 @@ static void act_login(cgi_sink *output,
     expand_template(ds, output, "login");
 }
 
+static void act_logout(cgi_sink *output,
+		       dcgi_state *ds) {
+  disorder_revoke(ds->g->client);
+  login_cookie = 0;
+  /* Back to the login page */
+  expand_template(ds, output, "login");
+}
+
 static void act_register(cgi_sink *output,
 			 dcgi_state *ds) {
   const char *username, *password, *email;
@@ -508,6 +516,7 @@ static const struct action {
   { "disable", act_disable },
   { "enable", act_enable },
   { "login", act_login },
+  { "logout", act_logout },
   { "move", act_move },
   { "pause", act_pause },
   { "play", act_play },
