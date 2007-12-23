@@ -49,7 +49,7 @@ echo "  <title>$title</title>"
 echo " </head>"
 echo " <body>"
 if $stdhead; then
-  echo "@include{@label{menu}@}@"
+  echo "@include{topbar}@"
 fi
 printf "   <pre class=manpage>"
 # this is kind of painful using only BREs
@@ -67,7 +67,7 @@ nroff -man "$1" | sed \
                        s!</\([bi]\)><\1>!!g'
 echo "</pre>"
 if $stdhead; then
-  echo "@include{@label{menu}@end}@"
+  echo "@include{topbarend}@"
 fi
 echo " </body>"
 echo "</html>"
