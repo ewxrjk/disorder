@@ -27,6 +27,17 @@ USA
 @include{topbar}@
    <h1 class=title>@label{help.title}@</h1>
 
+   <h2 class=sidebarlink>Introduction</h2>
+
+   <div class=helpsection>
+
+     <p>All screens in the DisOrder web interface have a set of
+     hyperlinks at the top.  You can use these to visit the various
+     screens described below.  Note that if you are not logged in some
+     of these will be greyed out.</p>
+
+   </div>
+  
    <h2 class=sidebarlink><a name=playing>Playing</a></h2>
 
    <div class=helpsection>
@@ -190,10 +201,9 @@ USA
    <div class=helpsection>
 
     <p>This screen, reached from <a href="#choose">Choose</a> or <a
-    href="#recent">Recent</a>, is used to edit a track's preferences.
-     Preferences can be edited in two ways.</p>
+    href="#recent">Recent</a>, is used to edit a track's preferences.</p>
     
-    <p>At the top appear "cooked" preferences.  These can be used to
+    <p>The form can be used to
     edit artist, album and title fields for the track as displayed, or
     to set the tags for a track, or to enable or disable random play
     for the track.</p>
@@ -204,62 +214,6 @@ USA
 
     <p>Random play for any given track is enabled by default, but you
     can use this screen to disable it for undesirable tracks.</p>
-
-    <p>Below this are "raw" preferences, which allow individual
-    database fields to be modified.</p>
-
-    <p>To change an existing preference, edit its value and press its
-    <span class=button>@label{prefs.set}@</span> button.</p>
-
-    <p>To delete an existing preference, press its
-    <span class=button>@label{prefs.delete}@</span> button.</p>
-
-    <p>To add a new preference, enter its name and value in the box at the
-    bottom and press the <span class=button>@label{prefs.new}@</span> button.
-    If the preference exists already it will be overwritten.</p>
-
-
-    <p>Preferences can have any name or value but certain names have special
-    significance:</p>
-
-    <table class=helpprefs>
-     <tbody>
-      <tr>
-       <td class=helpprefs><span class=helppref>pick_at_random</span></td>
-       <td class=helpprefs>If this preference is present and set to "0" then
-       the track will not be picked for random play.  Otherwise it may be.</td>
-      </tr>
-      <tr>
-       <td class=helpprefs><span class=helppref>trackname_<span class=helpprefbit>context</span>_<span class=helpprefbit>part</span></span></td>
-       <td class=helpprefs>These preferences can be used to override the
-       filename parsing rules to find a track name part.  <span
-       class=helppref>trackname_<span class=helpprefbit>part</span></span> will
-       be used if the full version is not present.</td>
-     </tbody>
-    </table>
-
-    <p><span class=helpprefbit>context</span> can be anything but standard
-    values are:</p>
-
-    <table class=helpcontexts>
-     <tbody>
-      <tr>
-       <td class=helpcontexts><span class=helpcontext>display</span></td>
-       <td class=helpcontexts>Displayed in a web page</td>
-      </tr>
-      <tr>
-       <td class=helpcontexts><span class=helpcontext>sort</span></td>
-       <td class=helpcontexts>Used when sorting track names</td>
-      </tr>
-     </tbody>
-    </table>
-
-    <p><span class=helpprefbit>part</span> can be anything too but standard
-    values are "artist", "album" and "title", with the obvious meanings.</p>
-
-    <p>See also <a href="@url@?action=disorder.1">disorder(1)</a> and <a
-    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
-    details.</p>
 
    </div>
 
@@ -281,21 +235,27 @@ USA
 
    </div>
 
-  @if{@eq{@label:menu@}{sidebar}@}
-     {
+  <h2 class=sidebarlink><a name=Login>Login</a></h2>
 
-   <h2 class=sidebarlink>Volume</h2>
+  <div class=helpsection>
 
-   <div class=helpsection>
+   <p>This screen has two different versions.</p>
 
-    <p>This screen allows you to set the playback volume, if this is enabled in
-    the server configuration.  See the "channel" and "mixer" options in <a
-    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
-    details about this.</p>
+   <p><b>1</b>. When no user is logged in, it has a login form and a
+   registration form.  If you do not have a username and password,
+   fill in and submit the registration form.  You will be emailed an
+   email with a confirmation URL that you must visit.  Only after
+   visiting this URL will your login become active.</p>
 
-   </div>
+   <p>Once you have a username and password, you can use the login
+   form to authenticate yourself to the web interface.  Note that this
+   is your primary DisOrder password, which (in old installations) may
+   differ from your original web password.</p>
 
-     }{<!-- volume currently only linked in sidebar menu -->}@ 
+   <p><b>2</b>. When you are logged in, this screen instead has a form
+   to change your email address or password, and a logout button.</p>
+
+  </div>
 
   <h2 class=sidebarlink>Troubleshooting</h2>
 
