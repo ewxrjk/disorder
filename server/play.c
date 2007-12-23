@@ -399,7 +399,7 @@ static int start(ev_source *ev,
 	  memset(&addr, 0, sizeof addr);
 	  addr.sun_family = AF_UNIX;
 	  snprintf(addr.sun_path, sizeof addr.sun_path,
-		   "%s/speaker", config->home);
+		   "%s/speaker/socket", config->home);
 	  sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
 	  if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
 	    fatal(errno, "connecting to %s", addr.sun_path);

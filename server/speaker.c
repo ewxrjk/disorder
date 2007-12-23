@@ -78,6 +78,7 @@
 #include "speaker-protocol.h"
 #include "user.h"
 #include "speaker.h"
+#include "printf.h"
 
 /** @brief Linked list of all prepared tracks */
 struct track *tracks;
@@ -598,6 +599,7 @@ int main(int argc, char **argv) {
   static const int one = 1;
   struct speaker_message sm;
   const char *d;
+  char *dir;
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
@@ -639,11 +641,16 @@ int main(int argc, char **argv) {
   backend = backends[n];
   /* backend-specific initialization */
   backend->init();
+  /* create the socket directory */
+  byte_xasprintf(&dir, "%s/speaker", config->home);
+  unlink(dir);                          /* might be a leftover socket */
+  if(mkdir(dir, 0700) < 0)
+    fatal(errno, "error creating %s", dir);
   /* set up the listen socket */
   listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
   memset(&addr, 0, sizeof addr);
   addr.sun_family = AF_UNIX;
-  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker",
+  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker/socket",
            config->home);
   if(unlink(addr.sun_path) < 0 && errno != ENOENT)
     error(errno, "removing %s", addr.sun_path);
