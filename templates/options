@@ -4,8 +4,5 @@ include options.labels
 # default columns
 include options.columns
 
-# trackname transformations - supply your own or keep the default
-include options.transform
-
 # user overrides - you supply this
 include options.user
