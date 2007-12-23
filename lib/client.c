@@ -130,7 +130,7 @@ static int check_response(disorder_client *c, char **rp) {
   } else {
     if(c->verbose)
       error(0, "from %s: %s", c->ident, utf82mb(r));
-    return -1;
+    return rc;
   }
 }
 
@@ -212,6 +212,7 @@ static int disorder_simple(disorder_client *c,
  */
 static int dequote(int rc, char **rp) {
   char **rr;
+
   if(!rc) {
     if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
       *rp = *rr;
@@ -219,7 +220,7 @@ static int dequote(int rc, char **rp) {
     }
     error(0, "invalid reply: %s", *rp);
   }
-  return -1;
+  return rc;
 }
 
 /** @brief Generic connection routine
@@ -237,7 +238,7 @@ static int disorder_connect_generic(disorder_client *c,
 				    const char *username,
 				    const char *password,
 				    const char *cookie) {
-  int fd = -1, fd2 = -1, nrvec;
+  int fd = -1, fd2 = -1, nrvec, rc;
   unsigned char *nonce;
   size_t nl;
   const char *res;
@@ -271,43 +272,51 @@ static int disorder_connect_generic(disorder_client *c,
     goto error;
   }
   fd2 = -1;
-  if(disorder_simple(c, &r, 0, (const char *)0))
-    return -1;
+  if((rc = disorder_simple(c, &r, 0, (const char *)0)))
+    goto error_rc;
   if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
-    return -1;
+    goto error;
   if(nrvec != 3) {
     error(0, "cannot parse server greeting %s", r);
-    return -1;
+    goto error;
   }
   protocol = *rvec++;
   if(strcmp(protocol, "2")) {
     error(0, "unknown protocol version: %s", protocol);
-    return -1;
+    goto error;
   }
   algorithm = *rvec++;
   challenge = *rvec++;
   if(!(nonce = unhex(challenge, &nl)))
-    return -1;
+    goto error;
   if(cookie) {
     if(!dequote(disorder_simple(c, &c->user, "cookie", cookie, (char *)0),
 		&c->user))
       return 0;				/* success */
     if(!username) {
       error(0, "cookie did not work and no username available");
-      return -1;
+      goto error;
     }
   }
   if(!(res = authhash(nonce, nl, password, algorithm))) goto error;
-  if(disorder_simple(c, 0, "user", username, res, (char *)0))
-    return -1;
+  if((rc = disorder_simple(c, 0, "user", username, res, (char *)0)))
+    goto error_rc;
   c->user = xstrdup(username);
   return 0;
 error:
-  if(c->fpin) fclose(c->fpin);
-  if(c->fpout) fclose(c->fpout);
+  rc = -1;
+error_rc:
+  if(c->fpin) {
+    fclose(c->fpin);
+    c->fpin = 0;
+  }
+  if(c->fpout) {
+    fclose(c->fpout);
+    c->fpout = 0;
+  }
   if(fd2 != -1) close(fd2);
   if(fd != -1) close(fd);
-  return -1;
+  return rc;
 }
 
 /** @brief Connect a client with a specified username and password
@@ -510,9 +519,10 @@ static void client_error(const char *msg,
 int disorder_playing(disorder_client *c, struct queue_entry **qp) {
   char *r;
   struct queue_entry *q;
+  int rc;
 
-  if(disorder_simple(c, &r, "playing", (char *)0))
-    return -1;
+  if((rc = disorder_simple(c, &r, "playing", (char *)0)))
+    return rc;
   if(r) {
     q = xmalloc(sizeof *q);
     if(queue_unmarshall(q, r, client_error, 0))
@@ -527,9 +537,10 @@ static int disorder_somequeue(disorder_client *c,
 			      const char *cmd, struct queue_entry **qp) {
   struct queue_entry *qh, **qt = &qh, *q;
   char *l;
+  int rc;
 
-  if(disorder_simple(c, 0, cmd, (char *)0))
-    return -1;
+  if((rc = disorder_simple(c, 0, cmd, (char *)0)))
+    return rc;
   while(inputline(c->ident, c->fpin, &l, '\n') >= 0) {
     if(!strcmp(l, ".")) {
       *qt = 0;
@@ -722,11 +733,11 @@ static void pref_error_handler(const char *msg,
  */
 int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
   char **vec, **pvec;
-  int nvec, npvec, n;
+  int nvec, npvec, n, rc;
   struct kvp *k;
 
-  if(disorder_simple_list(c, &vec, &nvec, "prefs", track, (char *)0))
-    return -1;
+  if((rc = disorder_simple_list(c, &vec, &nvec, "prefs", track, (char *)0)))
+    return rc;
   for(n = 0; n < nvec; ++n) {
     if(!(pvec = split(vec[n], &npvec, SPLIT_QUOTES, pref_error_handler, 0)))
       return -1;
@@ -768,8 +779,10 @@ static int boolean(const char *cmd, const char *value,
  */
 int disorder_exists(disorder_client *c, const char *track, int *existsp) {
   char *v;
+  int rc;
 
-  if(disorder_simple(c, &v, "exists", track, (char *)0)) return -1;
+  if((rc = disorder_simple(c, &v, "exists", track, (char *)0)))
+    return rc;
   return boolean("exists", v, existsp);
 }
 
@@ -780,8 +793,10 @@ int disorder_exists(disorder_client *c, const char *track, int *existsp) {
  */
 int disorder_enabled(disorder_client *c, int *enabledp) {
   char *v;
+  int rc;
 
-  if(disorder_simple(c, &v, "enabled", (char *)0)) return -1;
+  if((rc = disorder_simple(c, &v, "enabled", (char *)0)))
+    return rc;
   return boolean("enabled", v, enabledp);
 }
 
@@ -796,8 +811,10 @@ int disorder_enabled(disorder_client *c, int *enabledp) {
 int disorder_length(disorder_client *c, const char *track,
 		    long *valuep) {
   char *value;
+  int rc;
 
-  if(disorder_simple(c, &value, "length", track, (char *)0)) return -1;
+  if((rc = disorder_simple(c, &value, "length", track, (char *)0)))
+    return rc;
   *valuep = atol(value);
   return 0;
 }
@@ -837,8 +854,10 @@ int disorder_random_disable(disorder_client *c) {
  */
 int disorder_random_enabled(disorder_client *c, int *enabledp) {
   char *v;
+  int rc;
 
-  if(disorder_simple(c, &v, "random-enabled", (char *)0)) return -1;
+  if((rc = disorder_simple(c, &v, "random-enabled", (char *)0)))
+    return rc;
   return boolean("random-enabled", v, enabledp);
 }
 
@@ -865,8 +884,7 @@ int disorder_set_volume(disorder_client *c, int left, int right) {
   if(byte_asprintf(&ls, "%d", left) < 0
      || byte_asprintf(&rs, "%d", right) < 0)
     return -1;
-  if(disorder_simple(c, 0, "volume", ls, rs, (char *)0)) return -1;
-  return 0;
+  return disorder_simple(c, 0, "volume", ls, rs, (char *)0);
 }
 
 /** @brief Get volume
@@ -877,8 +895,10 @@ int disorder_set_volume(disorder_client *c, int left, int right) {
  */
 int disorder_get_volume(disorder_client *c, int *left, int *right) {
   char *r;
+  int rc;
 
-  if(disorder_simple(c, &r, "volume", (char *)0)) return -1;
+  if((rc = disorder_simple(c, &r, "volume", (char *)0)))
+    return rc;
   if(sscanf(r, "%d %d", left, right) != 2) {
     error(0, "error parsing response to 'volume': '%s'", r);
     return -1;
@@ -893,8 +913,10 @@ int disorder_get_volume(disorder_client *c, int *left, int *right) {
  */
 int disorder_log(disorder_client *c, struct sink *s) {
   char *l;
+  int rc;
     
-  if(disorder_simple(c, 0, "log", (char *)0)) return -1;
+  if((rc = disorder_simple(c, 0, "log", (char *)0)))
+    return rc;
   while(inputline(c->ident, c->fpin, &l, '\n') >= 0 && strcmp(l, "."))
     if(sink_printf(s, "%s\n", l) < 0) return -1;
   if(ferror(c->fpin) || feof(c->fpin)) return -1;
