@@ -29,6 +29,7 @@ def test():
     v = c.version()
     print " getting cookie"
     k = c.make_cookie()
+    print " cookie value is %s" % k
     print " connecting with cookie"
     c = disorder.client()
     c.connect(k)

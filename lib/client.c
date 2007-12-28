@@ -165,6 +165,10 @@ static int disorder_simple_v(disorder_client *c,
   const char *arg;
   struct dynstr d;
 
+  if(!c->fpout) {
+    error(0, "not connected to server");
+    return -1;
+  }
   if(cmd) {
     dynstr_init(&d);
     dynstr_append_string(&d, cmd);
