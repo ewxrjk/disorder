@@ -54,10 +54,12 @@ USA
     </p>
     @choose{files}{
     <p class=file>
-     <a class=imgprefs href="@url@?action=prefs&#38;0_file=@urlquote{@resolve{@file@}@}@&#38;nonce=@nonce@">
-      <img class=button src="@label:images.edit@"
-      title="@label:choose.prefsverbose@" alt="@label:choose.prefs@">
-     </a>
+    @right{prefs}{<a class=imgprefs
+     href="@url@?action=prefs&#38;0_file=@urlquote{@resolve{@file@}@}@&#38;nonce=@nonce@"
+     ><img class=button
+      src="@label:images.edit@"
+      title="@label:choose.prefsverbose@"
+      alt="@label:choose.prefs@"></a>}@
      <a class=file
      href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@"
      title="@label:choose.play@">@transform{@file@}{track}{display}@</a>
@@ -67,10 +69,12 @@ USA
     }@
    </div>
    <p class=allfiles>
-    <a class=imgprefs href="@url@?action=prefs&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@">
-      <img class=button src="@label:images.edit@"
-      title="@label:choose.allprefsverbose@" alt="@label:choose.allprefs@">
-    </a>
+    @right{prefs}{<a class=imgprefs
+    href="@url@?action=prefs&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@"
+    ><img class=button 
+     src="@label:images.edit@"
+     title="@label:choose.allprefsverbose@"
+     alt="@label:choose.allprefs@"></a>}@
     <a class=allfiles href="@url@?action=play&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@">
      @label:choose.playall@
     </a>
