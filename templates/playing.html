@@ -91,23 +91,23 @@ USA
      enctype="multipart/form-data" accept-charset=utf-8>
     <span class=volume>
      @label:playing.volume@
-     <a class=imgbutton
+     @right{volume}{<a class=imgbutton
       href="@url@?action=volume&#38;delta=-@label:volume.resolution@&#38;back=@urlquote{@thisurl@?mgmt=true}@">
       <img class=button src="@label:images.down@"
        alt="@label:volume.reduce@" title="@label:volume.reduceverbose@">
-     </a>
+     </a>}{<img class=button src="@label:images.nodown@">}@
      @label:volume.left@ <input size=3 name=left type=text value="@volume:left@">
      @label:volume.right@ <input size=3 name=right type=text value="@volume:right@">
      <input name=nonce type=hidden value="@nonce@">
      <input name=back type=hidden value="@thisurl@?mgmt=true">
-     <button class=search name=action type=submit value=volume>
+     @right{volume}{<button class=search name=action type=submit value=volume>
       @label:volume.set@
-     </button>
-     <a class=imgbutton
+     </button>}@
+     @right{volume}{<a class=imgbutton
       href="@url@?action=volume&#38;delta=@label:volume.resolution@&#38;back=@urlquote{@thisurl@?mgmt=true}@">
       <img class=button src="@label:images.up@"
        alt="@label:volume.increase@" title="@label:volume.increaseverbose@">
-     </a>
+     </a>}{<img class=button src="@label:images.noup@">}@
     </form>
     </span>
    }@
