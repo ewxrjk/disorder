@@ -200,24 +200,12 @@ label	heading.album		Album
 label	heading.title		Title
 label	heading.length		Length
 
-# Images.  These are (possibly relative) URLs.  In the factory configuration
-# DisOrder assumes that you have arranged for 'static' relative to the base
-# URL (i.e. the URL of the CGI) to point somewhere useful, but it's not
-# the only way.  The .deb for instance uses /disorder instead.
-label	images.enabled		static/tick.png
-label	images.disabled		static/cross.png
-label	images.scratch		static/cross.png
-label	images.noscratch	static/nocross.png
-label	images.up		static/up.png
-label	images.noup		static/noup.png
-label	images.down		static/down.png
-label	images.nodown		static/nodown.png
-label	images.edit		static/edit.png
-label	images.upall		static/upup.png
-label	images.noupall		static/noupup.png
-label	images.downall		static/downdown.png
-label	images.nodownall	static/nodowndown.png
+# (Possibly relative) URL to images.  This be a URL for the directory
+# containing the icons used by the web interface (which might be
+# /usr/local/share/disorder/static/).
+label	url.static		static/
 
-# Stylesheet.  As above, a (possibly relative) URL.
+# Stylesheet.  As above, a (possibly relative) URL, but this time pointing
+# to the stylesheet to use in all DisOrder web pages.
 label	links.css		static/disorder.css
 

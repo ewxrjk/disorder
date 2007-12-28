@@ -585,9 +585,19 @@ const char *cgi_label(const char *key) {
 
   read_options();
   if(!(label = kvp_get(labels, key))) {
-    if((label = strchr(key, '.')))
+    /* No label found */
+    if(!strncmp(key, "images.", 7)) {
+      static const char *url_static;
+      /* images.X defaults to <url.static>X.png */
+
+      if(!url_static)
+	url_static = cgi_label("url.static");
+      byte_xasprintf((char **)&label, "%s%s.png", url_static, key + 7);
+    } else if((label = strchr(key, '.')))
+      /* X.Y defaults to Y */
       ++label;
     else
+      /* otherwise default to label name */
       label = key;
   }
   return label;

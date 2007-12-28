@@ -185,8 +185,17 @@ These instructions assumes you are using Apache 1.3.x.
 
 You need to configure a number of things to make this work:
 
-1. If you want to have a 'jukebox' virtual host, modify the DNS accordingly and
-   use a fragment such as this one:
+1. The web interface depends on a 'guest' user existing.  You can create this
+   with the following command:
+
+     disorder setup-guest
+
+   If you don't want to allow online registration instead use:
+
+     disorder -- setup-guest --no-online-registration
+
+2a. If you want to have a 'jukebox' virtual host, modify the DNS accordingly
+    and use a fragment such as this one:
 
      <VirtualHost HOSTNAME>
      DocumentRoot /home/jukebox/public_html
@@ -198,50 +207,57 @@ You need to configure a number of things to make this work:
      Alias /static/ /usr/local/share/disorder/static/
      </VirtualHost>
 
-   /static/ should point to the 'static' directory installed by DisOrder.  If
-   you don't want to use the name 'static' then you can change the url.static
-   label in the web interface configuration to your preferred URL; see
-   disorder_config(5) for details.
-
    Don't forget to reload Apache after modifying its configuration.
 
-   Separate logging is not required but I find it convenient.  Up to you.
+   You must tell the web interface how to find its icons and stylesheet:
 
-2. The web interface depends on a 'guest' user existing.  You can create this
-   with the following command:
+     echo label url.static /static/ >> /etc/disorder/options.user
+     echo label links.css /static/disorder.css >> /etc/disorder/options.user
 
-     disorder setup-guest
+2b. If you don't want a virtual host then you must still make sure that
+    DisOrder can find its icons and stylesheet.  For example in your web server
+    configuration:
 
-   If you don't want to allow online registration instead use:
+     Alias /disorder/ /usr/local/share/disorder/static/
 
-     disorder -- setup-guest --no-online-registration
+   Alternatively you could use a symlink from the right location in your
+   document root, provided your web server is configured to follow them.
+
+   Also you must tell the web interface how to find them:
+
+     echo label url.static /disorder/ >> /etc/disorder/options.user
+     echo label links.css /disorder/disorder.css >> /etc/disorder/options.user
 
 3. Install disorder.cgi in an appropriate location.  Remember to make it
-   executable.  For example:
+   executable.  For example assuming a virtual host as above (2a):
 
      install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
+
+   or not (2b):
+
+     install -m 755 clients/disorder.cgi /usr/lib/cgi-bin/disorder
 
 4. Try it out.  You should be able to perform read-only operations straight
    away, and after visiting the 'Login' page to authenticate, perform other
    operations like adding a track to the queue.
 
 5. If you run into problems, always look at the appropriate error log; the
-    message you see in your web browser will usually not be sufficient to
-    diagnose the problem all by itself.
+   message you see in your web browser will usually not be sufficient to
+   diagnose the problem all by itself.
 
 6. If you have a huge number of top level directories, then you might find
-    that the 'Choose' page is unreasonably large.  If so add the following line
-    to /etc/disorder/options.user:
-      label sidebar.choosewhich choosealpha
+   that the 'Choose' page is unreasonably large.  If so add the following line
+   to /etc/disorder/options.user:
+     label sidebar.choosewhich choosealpha
 
-    This will make 'Choose' be a link for each letter of the 26-letter Roman
-    alphabet; follow the link and you just get the directories which start with
-    that letter.  The "*" link at the end gives you directories which don't
-    start with a letter.
+   This will make 'Choose' be a link for each letter of the 26-letter Roman
+   alphabet; follow the link and you just get the directories which start with
+   that letter.  The "*" link at the end gives you directories which don't
+   start with a letter.
 
-    You can copy choosealpha.html to /etc/disorder and edit it to change the
-    set of initial choices to anything that can be expressed with regexps.  The
-    regexps must be URL-encoded UTF-8 PCRE regexps.
+   You can copy choosealpha.html to /etc/disorder and edit it to change the
+   set of initial choices to anything that can be expressed with regexps.  The
+   regexps must be URL-encoded UTF-8 PCRE regexps.
 
 
 Copyright
