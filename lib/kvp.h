@@ -52,10 +52,10 @@ int urlencode(struct sink *sink, const char *s, size_t n);
 /* url-encode the @n@ bytes at @s@, writing to @sink@.  Return 0 on
  * success, -1 on error.  */
 
-const char *urlencodestring(const char *s);
+char *urlencodestring(const char *s);
 /* return the url-encoded form of @s@ */
 
-const char *urldecodestring(const char *s, size_t ns);
+char *urldecodestring(const char *s, size_t ns);
 
 #endif /* KVP_H */
 

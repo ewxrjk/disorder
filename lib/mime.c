@@ -457,6 +457,8 @@ char *mime_qp(const char *s) {
  * @param s Header field value
  * @param cd Where to store result
  * @return 0 on success, non-0 on error
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2109">RFC 2109</a>.
  */
 int parse_cookie(const char *s,
 		 struct cookiedata *cd) {
@@ -527,6 +529,41 @@ const struct cookie *find_cookie(const struct cookiedata *cd,
     if(!strcmp(cd->cookies[n].name, name))
       return &cd->cookies[n];
   return 0;
+}
+
+/** @brief RFC822 quoting
+ * @param s String to quote
+ * @param force If non-0, always quote
+ * @return Possibly quoted string
+ */
+char *quote822(const char *s, int force) {
+  const char *t;
+  struct dynstr d[1];
+  int c;
+
+  if(!force) {
+    /* See if we need to quote */
+    for(t = s; (c = (unsigned char)*t); ++t) {
+      if(tspecial(c) || http_separator(c) || whitespace(c))
+	break;
+    }
+    if(*t)
+      force = 1;
+  }
+
+  if(!force)
+    return xstrdup(s);
+
+  dynstr_init(d);
+  dynstr_append(d, '"');
+  for(t = s; (c = (unsigned char)*t); ++t) {
+    if(c == '"' || c == '\\')
+      dynstr_append(d, '\\');
+    dynstr_append(d, c);
+  }
+  dynstr_append(d, '"');
+  dynstr_terminate(d);
+  return d->vec;
 }
 
 /*

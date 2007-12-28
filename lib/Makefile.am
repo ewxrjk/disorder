@@ -66,6 +66,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	timeval.h					\
 	trackdb.h trackdb.c trackdb-int.h		\
 	trackname.c trackname.h				\
+	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
 	unidata.h unidata.c				\

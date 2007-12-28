@@ -54,6 +54,8 @@
 #include "trackname.h"
 #include "charset.h"
 #include "dcgi.h"
+#include "url.h"
+#include "mime.h"
 
 char *login_cookie;
 
@@ -103,21 +105,28 @@ static const char *front_url(void) {
 
 static void header_cookie(struct sink *output) {
   struct dynstr d[1];
-  char *s;
+  struct url u;
 
+  memset(&u, 0, sizeof u);
+  dynstr_init(d);
+  parse_url(config->url, &u);
   if(login_cookie) {
-    dynstr_init(d);
-    for(s = login_cookie; *s; ++s) {
-      if(*s == '"')
-	dynstr_append(d, '\\');
-      dynstr_append(d, *s);
-    }
-    dynstr_terminate(d);
-    byte_xasprintf(&s, "disorder=\"%s\"", d->vec); /* TODO domain, path, expiry */
-    cgi_header(output, "Set-Cookie", s);
-  } else
+    dynstr_append_string(d, "disorder=");
+    dynstr_append_string(d, quote822(login_cookie, 0));
+  } else {
     /* Force browser to discard cookie */
-    cgi_header(output, "Set-Cookie", "disorder=none;Max-Age=0");
+    dynstr_append_string(d, "disorder=none;Max-Age=0");
+  }
+  if(u.path) {
+    /* The default domain matches the request host, so we need not override
+     * that.  But the default path only goes up to the rightmost /, which would
+     * cause the browser to expose the cookie to other CGI programs on the same
+     * web server. */
+    dynstr_append_string(d, ";Path=");
+    dynstr_append_string(d, quote822(u.path, 0));
+  }
+  dynstr_terminate(d);
+  cgi_header(output, "Set-Cookie", d->vec);
 }
 
 static void redirect(struct sink *output) {

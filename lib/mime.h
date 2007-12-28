@@ -55,7 +55,10 @@ int mime_rfc2388_content_disposition(const char *s,
 
 char *mime_qp(const char *s);
 
-/** @brief Parsed form of an HTTP Cookie: header field */
+/** @brief Parsed form of an HTTP Cookie: header field
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2109">RFC 2109</a>.
+ */
 struct cookiedata {
   /** @brief @c $Version or NULL if not set */
   char *version;
@@ -67,7 +70,11 @@ struct cookiedata {
   int ncookies;
 };
 
-/** @brief A parsed cookie */
+/** @brief A parsed cookie
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2109">RFC 2109</a> and @ref
+ * cookiedata.
+ */
 struct cookie {
   /** @brief Cookie name */
   char *name;
@@ -87,7 +94,7 @@ int parse_cookie(const char *s,
 		 struct cookiedata *cd);
 const struct cookie *find_cookie(const struct cookiedata *cd,
 				 const char *name);
-
+char *quote822(const char *s, int force);
 
 #endif /* MIME_H */
 

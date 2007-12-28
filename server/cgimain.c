@@ -41,43 +41,7 @@
 #include "mime.h"
 #include "printf.h"
 #include "dcgi.h"
-
-/** @brief Infer the base URL for the web interface if it's not set
- *
- * See <a href="http://tools.ietf.org/html/rfc3875">RFC 3875</a>.
- */
-static void infer_url(void) {
-  if(!config->url) {
-    const char *scheme = "http", *server, *script, *e;
-    int port;
-
-    /* Figure out the server.  'MUST' be set and we don't cope if it
-     * is not. */
-    if(!(server = getenv("SERVER_NAME")))
-      fatal(0, "SERVER_NAME is not set");
-    server = xstrdup(server);
-
-    /* Figure out the port.  'MUST' be set but we cope if it is not. */
-    if((e = getenv("SERVER_PORT")))
-      port = atoi(e);
-    else
-      port = 80;
-
-    /* Figure out path to ourselves */
-    if(!(script = getenv("SCRIPT_NAME")))
-      fatal(0, "SCRIPT_NAME is not set");
-    if(script[0] != '/')
-      fatal(0, "SCRIPT_NAME does not start with a '/'");
-    script = xstrdup(script);
-
-    if(port == 80)
-      byte_xasprintf(&config->url, "%s://%s%s",
-		     scheme, server, script);
-    else
-      byte_xasprintf(&config->url, "%s://%s:%d%s",
-		     scheme, server, port, script);
-  }
-}
+#include "url.h"
 
 int main(int argc, char **argv) {
   const char *cookie_env, *conf;
@@ -92,7 +56,8 @@ int main(int argc, char **argv) {
   if((conf = getenv("DISORDER_CONFIG"))) configfile = xstrdup(conf);
   if(getenv("DISORDER_DEBUG")) debugging = 1;
   if(config_read(0)) exit(EXIT_FAILURE);
-  infer_url();
+  if(!config->url)
+    config->url = infer_url();
   memset(&g, 0, sizeof g);
   memset(&s, 0, sizeof s);
   s.g = &g;

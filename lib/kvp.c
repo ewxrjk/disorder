@@ -128,7 +128,7 @@ int urlencode(struct sink *sink, const char *s, size_t n) {
  * @param s String to encode
  * @return Encoded string
  */
-const char *urlencodestring(const char *s) {
+char *urlencodestring(const char *s) {
   struct dynstr d;
 
   dynstr_init(&d);
@@ -140,13 +140,14 @@ const char *urlencodestring(const char *s) {
 /** @brief URL-decode @p s
  * @param s String to decode
  * @param ns Length of string
- * @return Decoded string
+ * @return Decoded string or NULL
  */
-const char *urldecodestring(const char *s, size_t ns) {
+char *urldecodestring(const char *s, size_t ns) {
   struct dynstr d;
 
   dynstr_init(&d);
-  urldecode(sink_dynstr(&d), s, ns);
+  if(urldecode(sink_dynstr(&d), s, ns))
+    return NULL;
   dynstr_terminate(&d);
   return d.vec;
 }

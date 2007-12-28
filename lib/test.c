@@ -62,6 +62,7 @@
 #include "configuration.h"
 #include "addr.h"
 #include "base64.h"
+#include "url.h"
 
 static int tests, errors;
 static int fail_first;
@@ -1371,6 +1372,8 @@ static void test_addr(void) {
     0
   };
 
+  printf("test_addr\n");
+
   a.n = 1;
   a.s = (char **)s;
   s[0] = "smtp";
@@ -1400,6 +1403,26 @@ static void test_addr(void) {
   check_integer(ntohl(sin->sin_addr.s_addr), 0x7F000001);
   check_integer(ntohs(sin->sin_port), 119);
   check_string(name, "host localhost service nntp");
+}
+
+static void test_url(void) {
+  struct url p;
+  
+  printf("test_url\n");
+
+  insist(parse_url("http://www.example.com/example/path", &p) == 0);
+  check_string(p.scheme, "http");
+  check_string(p.host, "www.example.com");
+  insist(p.port == -1);
+  check_string(p.path, "/example/path");
+  insist(p.query == 0);
+
+  insist(parse_url("https://www.example.com:82/example%2fpath?+query+", &p) == 0);
+  check_string(p.scheme, "https");
+  check_string(p.host, "www.example.com");
+  insist(p.port == 82);
+  check_string(p.path, "/example/path");
+  check_string(p.query, "+query+");
 }
 
 int main(void) {
@@ -1468,6 +1491,7 @@ int main(void) {
   /* selection.c */
   test_selection();
   test_hash();
+  test_url();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }
