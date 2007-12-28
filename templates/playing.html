@@ -138,12 +138,18 @@ USA
      <tr class=playing>
       <td class=when>@when@</td>
       <td class=who>@if{@eq{@who@}{}@}{@if{@eq{@state@}{random}@}{@label:playing.randomtrack@}{&nbsp;}@}{@who@}@</td>
-      <td class=artist><a class=directory
+      <td class=artist>@right{play}{<a class=directory
        href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
-       title="@label:playing.artistverbose@">@part{short}{artist}@</a></td>
-      <td class=album><a class=directory
+       title="@label:playing.artistverbose@"
+       >@part{short}{artist}@</a>}{<span class=directory
+       title="@part{artist}@"
+       >@part{short}{artist}@</span>}@</td>
+      <td class=album>@right{play}{<a class=directory
        href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
-       title="@label:playing.albumverbose@">@part{short}{album}@</a></td>
+       title="@label:playing.albumverbose@"
+       >@part{short}{album}@</a>}{<span class=directory
+       title="@part{album}@"
+       >@part{short}{album}@</span>}@</td>
       <td class=title><span
        title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>
@@ -171,14 +177,18 @@ USA
      <tr class=@parity@>
       <td class=when>@when@</td>
       <td class=who>@if{@eq{@who@}{}@}{@if{@eq{@state@}{random}@}{@label:queue.randomtrack@}{&nbsp;}@}{@who@}@</td>
-      <td class=artist><a 
+      <td class=artist>@right{play}{<a class=directory
        title="@part{artist}@"
-       class=directory
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@">@part{short}{artist}@</a></td>
-      <td class=album><a
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
+       >@part{short}{artist}@</a>}{<span class=directory
+       title="@part{artist}@"
+       >@part{short}{artist}@</span>}@</td>
+      <td class=album>@right{play}{<a class=directory
        title="@part{album}@"
-       class=directory 
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@">@part{short}{album}@</a></td>
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
+       >@part{short}{album}@</a>}{<span class=directory
+       title="@part{album}@"
+       >@part{short}{album}@}@</td>
       <td class=title><span
        title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>

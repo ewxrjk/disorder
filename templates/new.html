@@ -40,18 +40,24 @@ USA
     </tr>
     @new{
     <tr class=@parity@>
-     <td class=artist><a
+     <td class=artist>@right{play}{<a class=directory
        title="@part{artist}@"
-       class=directory
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@">@part{short}{artist}@</a></td>
-     <td class=album><a
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
+       >@part{short}{artist}@</a>}{<span class=directory
+       title="@part{artist}@"
+       >@part{short}{artist}@</span>}@</td>
+     <td class=album>@right{play}{<a class=directory
        title="@part{album}@"
-       class=directory
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@">@part{short}{album}@</a></td>
-     <td class=title><a
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
+       >@part{short}{album}@</a>}{<span class=directory
+       title="@part{album}@"
+       >@part{short}{album}@</span>}@</td>
+     <td class=title>@right{play}{<a class=file
        title="@part{title}@"
-       class=file
-       href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@">@part{short}{title}@</a></td>
+       href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;nonce=@nonce@"
+       >@part{short}{title}@</a>}{<span class=file
+       title="@part{title}@"
+       >@part{short}{title}@</span>}@</td>
      <td class=length>@length@</td>
 @right{prefs}{
      <td class=imgbutton><a class=imgbutton

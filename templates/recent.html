@@ -44,14 +44,18 @@ USA
     <tr class=@parity@>
      <td class=when>@when@</td>
      <td class=who>@who@</td>
-     <td class=artist><a 
+     <td class=artist>@right{play}{<a class=directory
        title="@part{artist}@"
-       class=directory
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@">@part{short}{artist}@</a></td>
-     <td class=album><a
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
+       >@part{short}{artist}@</a>}{<span class=directory
+       title="@part{artist}@"
+       >@part{short}{artist}@</span>}@</td>
+     <td class=album>@right{play}{<a class=directory
        title="@part{album}@"
-       class=directory
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@">@part{short}{album}@</a></td>
+       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
+       >@part{short}{album}@</a>}{<span class=directory
+       title="@part{album}@"
+       >@part{short}{album}@</span>}@</td>
      <td class=title><span
        title="@part{title}@">@part{short}{title}@</span></td>
      <td class=length>@length@</td>
