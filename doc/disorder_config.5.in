@@ -571,6 +571,9 @@ over track names.
 .IP
 If \fBstopword\fR is used without arguments then the list of stopwords is
 cleared.
+.IP
+There is a default set of stopwords built in, but this option can be used to
+augment or replace that list.
 .TP
 .B tracklength \fIPATTERN\fR \fIMODULE\fR
 Specifies the module used to calculate the length of files matching

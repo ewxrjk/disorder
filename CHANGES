@@ -6,6 +6,9 @@ See ChangeLog.d/* for detailed revision history.
 
 Users are now stored in the database rather than a configuration file.
 
+The server now has a built-in list of stopwords, so only additions need
+be mentioned in the configuration file.
+
 ** Web Interface
 
 The web interface now uses cookies to remember user identity, and allows

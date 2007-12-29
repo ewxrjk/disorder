@@ -89,6 +89,8 @@ def test():
     check_search_results([u"fi\u0300rst"], first)
     check_search_results([u"THI\u0301RD"], third)
     check_search_results([u"thI\u0301rd"], third)
+    # stopwords shouldn't show up
+    check_search_results(["01"], [])
     
     if failures > 0:
         sys.exit(1)

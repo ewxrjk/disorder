@@ -1044,12 +1044,77 @@ static int config_include(struct config *c, const char *path) {
   return ret;
 }
 
+static const char *const default_stopwords[] = {
+  "stopword",
+
+  "01",
+  "02",
+  "03",
+  "04",
+  "05",
+  "06",
+  "07",
+  "08",
+  "09",
+  "1",
+  "10",
+  "11",
+  "12",
+  "13",
+  "14",
+  "15",
+  "16",
+  "17",
+  "18",
+  "19",
+  "2",
+  "20",
+  "21",
+  "22",
+  "23",
+  "24",
+  "25",
+  "26",
+  "27",
+  "28",
+  "29",
+  "3",
+  "30",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "a",
+  "am",
+  "an",
+  "and",
+  "as",
+  "for",
+  "i",
+  "im",
+  "in",
+  "is",
+  "of",
+  "on",
+  "the",
+  "to",
+  "too",
+  "we",
+};
+#define NDEFAULT_STOPWORDS (sizeof default_stopwords / sizeof *default_stopwords)
+
 /** @brief Make a new default configuration */
 static struct config *config_default(void) {
   struct config *c = xmalloc(sizeof *c);
   const char *logname;
   struct passwd *pw;
+  struct config_state cs;
 
+  cs.path = "<internal>";
+  cs.line = 0;
+  cs.config = c;
   /* Strings had better be xstrdup'd as they will get freed at some point. */
   c->gap = 2;
   c->history = 60;
@@ -1082,6 +1147,8 @@ static struct config *config_default(void) {
   c->dbversion = 2;
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
+  if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
+    exit(1);
   return c;
 }
 
