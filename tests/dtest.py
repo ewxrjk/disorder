@@ -194,6 +194,7 @@ tracklength *.flac disorder-tracklength
 speaker_backend network
 broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
+mail_sender no.such.user.sorry@greenend.org.uk
 """ % (testroot, testroot, testroot, top_builddir, top_builddir,
        port, port + 1))
 

@@ -467,6 +467,8 @@ static void cf_setup_guest(char **argv) {
     default: fatal(0, "invalid option");
     }
   }
+  if(online_registration && !config->mail_sender)
+    fatal(0, "you MUST set mail_sender if you want online registration");
   if(disorder_adduser(getclient(), "guest", "",
 		      online_registration ? "read,register" : "read"))
     exit(EXIT_FAILURE);

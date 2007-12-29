@@ -204,6 +204,9 @@ allowing new users to automatically register themselves via the web interface.
 .IP
 With the option \fB--no-online-registration\fR, the "register" right is
 suppressed and users must be manually created by an administrator.
+.IP
+If online registration is desired then \fBmail_sender\fR must be set in the
+configuration file.  See \fBdisorder_config\fR(5).
 .TP
 .B shutdown
 Shut down the daemon.
