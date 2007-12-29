@@ -618,7 +618,7 @@ int main(int argc, char **argv) {
   pcre_malloc = xmalloc;
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dHlNu:p:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
