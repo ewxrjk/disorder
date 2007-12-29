@@ -203,9 +203,9 @@ label	heading.length		Length
 # (Possibly relative) URL to images.  This be a URL for the directory
 # containing the icons used by the web interface (which might be
 # /usr/local/share/disorder/static/).
-label	url.static		static/
+label	url.static		/disorder/
 
 # Stylesheet.  As above, a (possibly relative) URL, but this time pointing
 # to the stylesheet to use in all DisOrder web pages.
-label	links.css		static/disorder.css
+label	links.css		/disorder/disorder.css
 

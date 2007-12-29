@@ -1,0 +1,21 @@
+If you want to give DisOrder's web interface its own virtual domain
+then for Apache 1.3 you'll want something like this:
+
+    <VirtualHost HOSTNAME>
+    DocumentRoot /home/jukebox/public_html
+    ServerName jukebox.DOMAIN
+    ServerAlias jukebox
+    ServerAdmin webmaster@DOMAIN
+    ErrorLog /var/log/apache/jukebox/error.log
+    TransferLog /var/log/apache/jukebox/access.log
+    Alias /disorder/ /usr/local/share/disorder/static/
+    </VirtualHost>
+
+You would then install the CGI as follows:
+
+    install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
+
+Local Variables:
+mode:text
+fill-column:79
+End:

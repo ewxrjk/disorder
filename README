@@ -181,7 +181,8 @@ Web Interface
 
    "Thought I was a gonner baby, but I'm bullet proof"
 
-These instructions assumes you are using Apache 1.3.x.
+As above, if you install from a .deb, much of the work will be done
+automatically.
 
 You need to configure a number of things to make this work:
 
@@ -205,48 +206,21 @@ You need to configure a number of things to make this work:
 
    If you don't want to allow online registration instead use:
 
-     disorder -- setup-guest --no-online-registration
+     disorder setup-guest --no-online-registration
 
-3a. If you want to have a 'jukebox' virtual host, modify the DNS accordingly
-    and use a fragment such as this one:
-
-     <VirtualHost HOSTNAME>
-     DocumentRoot /home/jukebox/public_html
-     ServerName jukebox.DOMAIN
-     ServerAlias jukebox
-     ServerAdmin webmaster@DOMAIN
-     ErrorLog /var/log/apache/jukebox/error.log
-     TransferLog /var/log/apache/jukebox/access.log
-     Alias /static/ /usr/local/share/disorder/static/
-     </VirtualHost>
-
-   Don't forget to reload Apache after modifying its configuration.
-
-   You must tell the web interface how to find its icons and stylesheet:
-
-     echo label url.static /static/ >> /etc/disorder/options.user
-     echo label links.css /static/disorder.css >> /etc/disorder/options.user
-
-3b. If you don't want a virtual host then you must still make sure that
-    DisOrder can find its icons and stylesheet.  For example in your web server
-    configuration:
+3. Make sure that DisOrder can find its icons and stylesheet.  For example in
+   your web server configuration:
 
      Alias /disorder/ /usr/local/share/disorder/static/
 
    Alternatively you could use a symlink from the right location in your
    document root, provided your web server is configured to follow them.
 
-   Also you must tell the web interface how to find them:
-
-     echo label url.static /disorder/ >> /etc/disorder/options.user
-     echo label links.css /disorder/disorder.css >> /etc/disorder/options.user
+     cd /var/www
+     ln -s /usr/local/share/disorder/static disorder
 
 4. Install disorder.cgi in an appropriate location.  Remember to make it
-   executable.  For example assuming a virtual host as above (3a):
-
-     install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
-
-   or not (3b):
+   executable.  Example:
 
      install -m 755 clients/disorder.cgi /usr/lib/cgi-bin/disorder
 
@@ -272,6 +246,7 @@ You need to configure a number of things to make this work:
    set of initial choices to anything that can be expressed with regexps.  The
    regexps must be URL-encoded UTF-8 PCRE regexps.
 
+If you want to give DisOrder its own virtual host, see README.vhost.
 
 Copyright
 =========

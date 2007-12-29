@@ -19,7 +19,7 @@
 #
 
 EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
-README.upgrades README.client README.mac README.raw
+README.upgrades README.client README.mac README.raw README.vhost
 SUBDIRS=@subdirs@
 
 check-report: before-check check make-coverage-reports
