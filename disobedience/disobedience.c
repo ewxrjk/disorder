@@ -439,6 +439,7 @@ void register_reset(reset_callback *callback) {
 
 int main(int argc, char **argv) {
   int n;
+  gboolean gtkok;
 
   mem_init();
   /* garbage-collect PCRE's memory */
@@ -449,7 +450,7 @@ int main(int argc, char **argv) {
   g_mem_set_vtable((GMemVTable *)&glib_memvtable);
 #endif
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  gtk_init(&argc, &argv);
+  gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -460,6 +461,8 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
+  if(!gtkok)
+    fatal(0, "failed to initialize GTK+");
   signal(SIGPIPE, SIG_IGN);
   init_styles();
   load_settings();
