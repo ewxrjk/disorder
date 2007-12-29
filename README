@@ -188,7 +188,7 @@ You need to configure a number of things to make this work:
 
 1. If you want online registration to work then you set mail_sender in
    /etc/disorder/config to the email address that communications from the web
-   interface will appear to be sent.  If this is not a valid, deliberable email
+   interface will appear to be sent.  If this is not a valid, deliverable email
    address then the results are not likely to reliable.
 
      mail_sender webmaster@example.com
