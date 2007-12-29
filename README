@@ -185,7 +185,20 @@ These instructions assumes you are using Apache 1.3.x.
 
 You need to configure a number of things to make this work:
 
-1. The web interface depends on a 'guest' user existing.  You can create this
+1. If you want online registration to work then you set mail_sender in
+   /etc/disorder/config to the email address that communications from the web
+   interface will appear to be sent.  If this is not a valid, deliberable email
+   address then the results are not likely to reliable.
+
+     mail_sender webmaster@example.com
+
+   By default the web interface sends mail by connecting to the SMTP port of
+   127.0.0.1.  You can override this with the smtp_server directive, for
+   exampler:
+
+     smtp_server mail.example.com
+
+2. The web interface depends on a 'guest' user existing.  You can create this
    with the following command:
 
      disorder setup-guest
@@ -194,7 +207,7 @@ You need to configure a number of things to make this work:
 
      disorder -- setup-guest --no-online-registration
 
-2a. If you want to have a 'jukebox' virtual host, modify the DNS accordingly
+3a. If you want to have a 'jukebox' virtual host, modify the DNS accordingly
     and use a fragment such as this one:
 
      <VirtualHost HOSTNAME>
@@ -214,7 +227,7 @@ You need to configure a number of things to make this work:
      echo label url.static /static/ >> /etc/disorder/options.user
      echo label links.css /static/disorder.css >> /etc/disorder/options.user
 
-2b. If you don't want a virtual host then you must still make sure that
+3b. If you don't want a virtual host then you must still make sure that
     DisOrder can find its icons and stylesheet.  For example in your web server
     configuration:
 
@@ -228,24 +241,24 @@ You need to configure a number of things to make this work:
      echo label url.static /disorder/ >> /etc/disorder/options.user
      echo label links.css /disorder/disorder.css >> /etc/disorder/options.user
 
-3. Install disorder.cgi in an appropriate location.  Remember to make it
-   executable.  For example assuming a virtual host as above (2a):
+4. Install disorder.cgi in an appropriate location.  Remember to make it
+   executable.  For example assuming a virtual host as above (3a):
 
      install -m 755 clients/disorder.cgi ~jukebox/public_html/index.cgi
 
-   or not (2b):
+   or not (3b):
 
      install -m 755 clients/disorder.cgi /usr/lib/cgi-bin/disorder
 
-4. Try it out.  You should be able to perform read-only operations straight
+5. Try it out.  You should be able to perform read-only operations straight
    away, and after visiting the 'Login' page to authenticate, perform other
    operations like adding a track to the queue.
 
-5. If you run into problems, always look at the appropriate error log; the
+6. If you run into problems, always look at the appropriate error log; the
    message you see in your web browser will usually not be sufficient to
    diagnose the problem all by itself.
 
-6. If you have a huge number of top level directories, then you might find
+7. If you have a huge number of top level directories, then you might find
    that the 'Choose' page is unreasonably large.  If so add the following line
    to /etc/disorder/options.user:
      label sidebar.choosewhich choosealpha

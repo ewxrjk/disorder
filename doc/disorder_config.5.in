@@ -592,12 +592,20 @@ Connect to the address specified by \fIHOST\fR and port specified by
 \fISERVICE\fR.
 .SS "Web Interface Configuration"
 .TP
+.B mail_sender \fIADDRESS\fR
+The email address that appears in the From: field of any mail messages sent by
+the web interface.  This must be set if you have online registration enabled.
+.TP
 .B refresh \fISECONDS\fR
 Specifies the maximum refresh period in seconds.  Default 15.
 .TP
 .B short_display \fICHARACTERS\fR
 Defines the maximum number of characters to include in a \fBshort\fR name
 part.  Default 30.
+.TP
+.B smtp_server \fIHOSTNAME\fR
+The hostname (or address) of the SMTP server to use for sending mail.  The
+default is 127.0.0.1.
 .TP
 .B templates \fIPATH\fR ...
 Specifies the directory containing templates used by the web
