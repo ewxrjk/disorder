@@ -38,11 +38,15 @@
  * @param tag Used in error messages
  * @param fp Stream to read from
  * @param lp Where to store newly allocated string
- * @param newline Newline character
+ * @param newline Newline character or @ref CRLF
  * @return 0 on success, -1 on error or eof.
  *
  * The newline is not included in the string.  If the last line of a
  * stream does not have a newline then that line is still returned.
+ *
+ * If @p newline is @ref CRLF then the line is terminated by CR LF,
+ * not by a single newline character.  The CRLF is still not included
+ * in the string in this case.
  *
  * @p *lp is only set if the return value was 0.
  */
@@ -52,8 +56,14 @@ int inputline(const char *tag, FILE *fp, char **lp, int newline) {
 
   dynstr_init(&d);
   while((ch = getc(fp)),
-	(!ferror(fp) && !feof(fp) && ch != newline))
+	(!ferror(fp) && !feof(fp) && ch != newline)) {
     dynstr_append(&d, ch);
+    if(newline == CRLF && d.nvec >= 2
+       && d.vec[d.nvec - 2] == 0x0D && d.vec[d.nvec - 1] == 0x0A) {
+      d.nvec -= 2;
+      break;
+    }
+  }
   if(ferror(fp)) {
     error(errno, "error reading %s", tag);
     return -1;

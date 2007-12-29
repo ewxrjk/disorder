@@ -454,6 +454,16 @@ static void test_mime(void) {
   check_string(mime_qp("x =\r\ny"), "x y");
   check_string(mime_qp("x = \r\ny"), "x y");
 
+  check_string(mime_to_qp(""), "");
+  check_string(mime_to_qp("foobar\n"), "foobar\n");
+  check_string(mime_to_qp("foobar \n"), "foobar=20\n");
+  check_string(mime_to_qp("foobar\t\n"), "foobar=09\n"); 
+  check_string(mime_to_qp("foobar \t \n"), "foobar=20=09=20\n");
+  check_string(mime_to_qp(" foo=bar"), " foo=3Dbar\n");
+  check_string(mime_to_qp("copyright \xC2\xA9"), "copyright =C2=A9\n");
+  check_string(mime_to_qp("foo\nbar\nbaz\n"), "foo\nbar\nbaz\n");
+  check_string(mime_to_qp("wibble wobble wibble wobble wibble wobble wibble wobble wibble wobble wibble"), "wibble wobble wibble wobble wibble wobble wibble wobble wibble wobble wibb=\nle\n");
+ 
   /* from RFC2045 */
   check_string(mime_qp("Now's the time =\r\n"
 "for all folk to come=\r\n"

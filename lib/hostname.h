@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder.
- * Copyright (C) 2004 Richard Kettlewell
+ * This file is part of DisOrder
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,18 @@
  * USA
  */
 
-#ifndef INPUTLINE_H
-#define INPUTLINE_H
+#ifndef HOSTNAME_H
+#define HOSTNAME_H
 
-int inputline(const char *tag, FILE *fp, char **lp, int newline);
-/* read characters from @fp@ until @newline@ is encountered.  Store
- * them (excluding @newline@) via @lp@.  Return 0 on success, -1 on
- * error/eof. */
+const char *local_hostname(void);
 
-/** @brief Magic @p newline value to make inputline() insist on CRLF */
-#define CRLF 0x100
-
-#endif /* INPUTLINE_H */
+#endif /* HOSTNAME_H */
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

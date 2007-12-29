@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder.
- * Copyright (C) 2004 Richard Kettlewell
+ * This file is part of DisOrder
+ * Copyright (C) 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,42 @@
  * USA
  */
 
-#ifndef INPUTLINE_H
-#define INPUTLINE_H
+#include <config.h>
+#include "types.h"
 
-int inputline(const char *tag, FILE *fp, char **lp, int newline);
-/* read characters from @fp@ until @newline@ is encountered.  Store
- * them (excluding @newline@) via @lp@.  Return 0 on success, -1 on
- * error/eof. */
+#include <sys/utsname.h>
+#include <errno.h>
+#include <netdb.h>
 
-/** @brief Magic @p newline value to make inputline() insist on CRLF */
-#define CRLF 0x100
+#include "mem.h"
+#include "hostname.h"
+#include "log.h"
 
-#endif /* INPUTLINE_H */
+static const char *hostname;
+
+/** @brief Return the local hostname
+ * @return Hostname
+ */
+const char *local_hostname(void) {
+  if(!hostname) {
+    struct utsname u;
+    struct hostent *he;
+
+    if(uname(&u) < 0)
+      fatal(errno, "error calling uname");
+    if(!(he = gethostbyname(u.nodename)))
+      fatal(0, "cannot resolve '%s'", u.nodename);
+    hostname = xstrdup(he->h_name);
+  }
+  return hostname;
+}
+
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

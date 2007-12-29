@@ -255,6 +255,12 @@ struct config {
 
   /** @brief Default rights for a new user */
   char *default_rights;
+
+  /** @brief SMTP server for sending mail */
+  char *smtp_server;
+
+  /** @brief Origin address for outbound mail */
+  char *mail_sender;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

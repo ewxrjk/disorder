@@ -40,6 +40,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	hash.c hash.h					\
 	heap.h						\
 	hex.c hex.h					\
+	hostname.c hostname.h				\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
@@ -56,6 +57,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	rights.c queue-rights.c rights.h		\
 	rtp.h						\
 	selection.c selection.h				\
+	sendmail.c sendmail.h				\
 	signame.c signame.h				\
 	sink.c sink.h					\
 	speaker-protocol.c speaker-protocol.h		\

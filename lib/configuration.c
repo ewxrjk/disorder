@@ -928,6 +928,7 @@ static const struct conf conf[] = {
   { C(home),             &type_string,           validate_isabspath },
   { C(listen),           &type_stringlist,       validate_port },
   { C(lock),             &type_boolean,          validate_any },
+  { C(mail_sender),      &type_string,           validate_any },
   { C(mixer),            &type_string,           validate_ischr },
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
@@ -948,6 +949,7 @@ static const struct conf conf[] = {
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(short_display),    &type_integer,          validate_positive },
   { C(signal),           &type_signal,           validate_any },
+  { C(smtp_server),      &type_string,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
   { C(speaker_backend),  &type_backend,          validate_any },
   { C(speaker_command),  &type_string,           validate_any },
@@ -1147,6 +1149,7 @@ static struct config *config_default(void) {
   c->dbversion = 2;
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
+  c->smtp_server = xstrdup("127.0.0.1");
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
   return c;

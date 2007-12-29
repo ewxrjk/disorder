@@ -95,6 +95,10 @@ int parse_cookie(const char *s,
 const struct cookie *find_cookie(const struct cookiedata *cd,
 				 const char *name);
 char *quote822(const char *s, int force);
+char *mime_to_qp(const char *text);
+const char *mime_encode_text(const char *text,
+			     const char **charsetp,
+			     const char **encodingp);
 
 #endif /* MIME_H */
 

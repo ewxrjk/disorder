@@ -566,6 +566,97 @@ char *quote822(const char *s, int force) {
   return d->vec;
 }
 
+/** @brief Return true if @p ptr points at trailing space */
+static int is_trailing_space(const char *ptr) {
+  if(*ptr == ' ' || *ptr == '\t') {
+    while(*ptr == ' ' || *ptr == '\t')
+      ++ptr;
+    return *ptr == '\n' || *ptr == 0;
+  } else
+    return 0;
+}
+
+/** @brief Encoding text as quoted-printable
+ * @param text String to encode
+ * @return Encoded string
+ *
+ * See <a href="http://tools.ietf.org/html/rfc2045#section-6.7">RFC2045
+ * s6.7</a>.
+ */
+char *mime_to_qp(const char *text) {
+  struct dynstr d[1];
+  int linelength = 0;			/* length of current line */
+  char buffer[10];
+
+  dynstr_init(d);
+  /* The rules are:
+   * 1. Anything except newline can be replaced with =%02X
+   * 2. Newline, 33-60 and 62-126 stand for themselves (i.e. not '=')
+   * 3. Non-trailing space/tab stand for themselves.
+   * 4. Output lines are limited to 76 chars, with =<newline> being used
+   *    as a soft line break
+   * 5. Newlines aren't counted towards the 76 char limit.
+   */
+  while(*text) {
+    const int c = (unsigned char)*text;
+    if(c == '\n') {
+      /* Newline stands as itself */
+      dynstr_append(d, '\n');
+      linelength = 0;
+    } else if((c >= 33 && c <= 126 && c != '=')
+	      || ((c == ' ' || c == '\t')
+		  && !is_trailing_space(text))) {
+      /* Things that can stand for themselves  */
+      dynstr_append(d, c);
+      ++linelength;
+    } else {
+      /* Anything else that needs encoding */
+      snprintf(buffer, sizeof buffer, "=%02X", c);
+      dynstr_append_string(d, buffer);
+      linelength += 3;
+    }
+    ++text;
+    if(linelength > 73 && *text && *text != '\n') {
+      /* Next character might overflow 76 character limit if encoded, so we
+       * insert a soft break */
+      dynstr_append_string(d, "=\n");
+      linelength = 0;
+    }
+  }
+  /* Ensure there is a final newline */
+  if(linelength)
+    dynstr_append(d, '\n');
+  /* That's all */
+  dynstr_terminate(d);
+  return d->vec;
+}
+
+/** @brief Encode text
+ * @param text Underlying UTF-8 text
+ * @param charsetp Where to store charset string
+ * @param encodingp Where to store encoding string
+ * @return Encoded text (might be @ref text)
+ */
+const char *mime_encode_text(const char *text,
+			     const char **charsetp,
+			     const char **encodingp) {
+  const char *ptr;
+
+  /* See if there are in fact any non-ASCII characters */
+  for(ptr = text; *ptr; ++ptr)
+    if((unsigned char)*ptr >= 128)
+      break;
+  if(!*ptr) {
+    /* Plain old ASCII, no encoding required */
+    *charsetp = "us-ascii";
+    *encodingp = "7bit";
+    return text;
+  }
+  *charsetp = "utf-8";
+  *encodingp = "quoted-printable";
+  return mime_to_qp(text);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

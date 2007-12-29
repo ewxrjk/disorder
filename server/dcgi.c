@@ -56,6 +56,7 @@
 #include "dcgi.h"
 #include "url.h"
 #include "mime.h"
+#include "sendmail.h"
 
 char *login_cookie;
 
@@ -497,7 +498,8 @@ static void act_logout(cgi_sink *output,
 static void act_register(cgi_sink *output,
 			 dcgi_state *ds) {
   const char *username, *password, *email;
-  char *confirm;
+  char *confirm, *content_type;
+  const char *text, *encoding, *charset;
 
   username = cgi_get("username");
   password = cgi_get("password");
@@ -530,6 +532,18 @@ static void act_register(cgi_sink *output,
     expand_template(ds, output, "login");
     return;
   }
+  /* Send the user a mail */
+  /* TODO templatize this */
+  byte_xasprintf((char **)&text,
+		 "Welcome to DisOrder.  To active your login, please visit this URL:\n"
+		 "\n"
+		 "  %s?confirm=%s\n", config->url, confirm);
+  if(!(text = mime_encode_text(text, &charset, &encoding)))
+    fatal(0, "cannot encode email");
+  byte_xasprintf(&content_type, "text/plain;charset=%s",
+		 quote822(charset, 0));
+  sendmail("", config->mail_sender, email, "Welcome to DisOrder",
+	   encoding, content_type, text); /* TODO error checking  */
   /* We'll go back to the login page with a suitable message */
   cgi_set_option("registered", "registeredok");
   expand_template(ds, output, "login");
