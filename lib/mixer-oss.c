@@ -17,8 +17,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/mixer-oss.c
+ * @brief OSS mixer support
+ *
+ * Mono output devices aren't explicitly supported (but may work
+ * nonetheless).
+ */
 
 #include <config.h>
+
+#if HAVE_SYS_SOUNDCARD_H
+
 #include "types.h"
 
 #include <stdio.h>
@@ -29,14 +38,12 @@
 #include <errno.h>
 #include <stddef.h>
 #include <sys/ioctl.h>
+#include <sys/soundcard.h>
 
 #include "configuration.h"
 #include "mixer.h"
 #include "log.h"
 #include "syscalls.h"
-
-#if HAVE_SYS_SOUNDCARD_H
-#include <sys/soundcard.h>
 
 /* documentation does not match implementation! */
 #ifndef SOUND_MIXER_READ
@@ -46,8 +53,10 @@
 # define SOUND_MIXER_WRITE(x) MIXER_WRITE(x)
 #endif
 
+/** @brief Channel names */
 static const char *channels[] = SOUND_DEVICE_NAMES;
 
+/** @brief Convert channel name to number */
 static int mixer_channel(const char *c) {
   unsigned n;
   
@@ -61,27 +70,7 @@ static int mixer_channel(const char *c) {
   }
 }
 
-static int oss_validate_channel(const char *c) {
-  if(mixer_channel(c) != -1)
-    return 1;
-  else
-    return 0;
-}
-
-static int oss_validate_device(const char *d) {
-  struct stat sb;
-
-  if(stat(d, &sb) < 0) {
-    error(errno, "%s", d);
-    return 0;
-  }
-  if(!S_ISCHR(sb.st_mode)) {
-    error(0, "%s: not a character device", d);
-    return 0;
-  }
-  return 1;
-}
-
+/** @brief Open the OSS mixer device and return its fd */
 static int oss_do_open(void) {
   int fd;
   
@@ -90,6 +79,7 @@ static int oss_do_open(void) {
   return fd;
 }
 
+/** @brief Get the OSS mixer setting */
 static int oss_do_get(int *left, int *right, int fd, int ch) {
   int r;
   
@@ -103,6 +93,7 @@ static int oss_do_get(int *left, int *right, int fd, int ch) {
   return 0;
 }
 
+/** @brief Get OSS volume */
 static int oss_get(int *left, int *right) {
   int ch, fd;
 
@@ -121,6 +112,7 @@ static int oss_get(int *left, int *right) {
     return -1;
 }
 
+/** @brief Set OSS volume */
 static int oss_set(int *left, int *right) {
   int ch, fd, r;
 
@@ -146,10 +138,9 @@ static int oss_set(int *left, int *right) {
     return -1;
 }
 
+/** @brief OSS mixer vtable */
 const struct mixer mixer_oss = {
   BACKEND_OSS,
-  oss_validate_device,
-  oss_validate_channel,
   oss_get,
   oss_set,
   "/dev/mixer",

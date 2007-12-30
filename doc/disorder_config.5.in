@@ -313,7 +313,8 @@ it affects all output devices.
 .IP
 You can also specify channels by number, if you know the right value.
 .IP
-For \fBapi alsa\fR, volume setting is not currently supported.
+For \fBapi alsa\fR, this is the name of the mixer control to use.  The default
+is \fBPCM\fR.  Use \fBamixer scontrols\fR or similar to get a full list.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP
@@ -361,7 +362,8 @@ For \fBapi alsa\fR this is the device name to use.
 .IP
 For \fBapi coreaudio\fR this is currently ignored.
 .IP
-The default is \fBdefault\fR.
+The default is \fBdefault\fR, which is intended to map to whatever the system's
+default is.
 .TP
 .B gap \fISECONDS\fR
 Specifies the number of seconds to leave between tracks.  The default
@@ -390,7 +392,8 @@ The mixer device name, if it needs to be specified separately from
 For \fBapi oss\fR this should be the path to the mixer device and the default
 is \fI/dev/mixer\fR.
 .IP
-For \fBapi alsa\fR, volume setting is not currently supported.
+For \fBapi alsa\fR, this is the index of the mixer control to use.  The default
+is 0.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP

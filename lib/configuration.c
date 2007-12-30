@@ -1289,10 +1289,6 @@ static void config_postdefaults(struct config *c,
       r |= RIGHT_REMOVE_ANY;
     c->default_rights = rights_string(r);
   }
-  if(!c->mixer)
-    c->mixer = xstrdup(mixer_default_device(c->api));
-  if(!c->channel)
-    c->channel = xstrdup(mixer_default_channel(c->api));
 }
 
 /** @brief (Re-)read the config file
@@ -1335,15 +1331,6 @@ int config_read(int server) {
   config_postdefaults(c, server);
   /* everything is good so we shall use the new config */
   config_free(config);
-  /* final error checking */
-  if(c->mixer && !mixer_valid_device(c->api, c->mixer)) {
-    error(0, "invalid mixer device: %s", c->mixer);
-    return -1;
-  }
-  if(c->channel && !mixer_valid_channel(c->api, c->channel)) {
-    error(0, "invalid mixer channel: %s", c->channel);
-    return -1;
-  }
   /* warn about obsolete directives */
   if(c->restrictions)
     error(0, "'restrict' will be removed in a future version");

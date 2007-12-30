@@ -36,7 +36,8 @@ disorderd_SOURCES=disorderd.c				\
 	exports.c 					\
 	../lib/memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV)
+	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
+	$(LIBASOUND) $(COREAUDIO)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 

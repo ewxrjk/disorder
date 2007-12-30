@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/mixer.h
+ * @brief Mixer support
+ */
 
 #ifndef MIXER_H
 #define MIXER_H
@@ -26,12 +29,6 @@ struct mixer {
   /** @brief API used by this mixer */
   int api;
 
-  /** @brief Return non-0 iff @p d is a valid device name */
-  int (*validate_device)(const char *d);
-  
-  /** @brief Return non-0 iff @p c is a valid channel name */
-  int (*validate_channel)(const char *c);
-  
   /** @brief Get the volume
    * @param left Where to store left-channel volume
    * @param right Where to store right-channel volume
@@ -55,13 +52,12 @@ struct mixer {
   const char *channel;
 };
 
-int mixer_valid_device(int api, const char *d);
-int mixer_valid_channel(int api, const char *c);
 int mixer_control(int *left, int *right, int set);
 const char *mixer_default_device(int api);
 const char *mixer_default_channel(int api);
 
 extern const struct mixer mixer_oss;
+extern const struct mixer mixer_alsa;
 
 #endif /* MIXER_H */
 
