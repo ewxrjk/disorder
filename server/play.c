@@ -427,6 +427,7 @@ static int start(ev_source *ev,
 	   * (but it should be for play_track() */
 	  execlp("disorder-normalize", "disorder-normalize",
 		 log_default == &log_syslog ? "--syslog" : "--no-syslog",
+		 "--config", configfile,
 		 (char *)0);
 	  fatal(errno, "executing disorder-normalize");
 	  /* end of the innermost fork */
