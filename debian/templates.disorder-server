@@ -7,7 +7,7 @@ Description: Audio directories
 
 Template: disorder/encoding
 Type: string
-Default: ISO-8859-1
+Default: UTF-8
 Description: Filesystem encoding
  Enter your filesystem's character encoding.  Check rather than
  guessing if you are not sure.
