@@ -34,6 +34,9 @@ scratch pkgdatadir/scratch.ogg
 
 # Trust the web user and root.  Trusted users can stop the server or
 # pretend to be other users.
+#
+# This line can be removed after upgrade to 2.1 or later, or if the initial
+# install is of 2.1 or later.
 trust www-data root
 
 # Run as user jukebox.  This must exist in /etc/passwd!
