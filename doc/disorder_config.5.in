@@ -326,7 +326,7 @@ the whatever the ALSA configured default is.
 .TP
 .B gap \fISECONDS\fR
 Specifies the number of seconds to leave between tracks.  The default
-is 2.
+is 0.
 .TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including

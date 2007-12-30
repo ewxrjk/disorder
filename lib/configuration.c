@@ -1145,7 +1145,7 @@ static struct config *config_default(void) {
   cs.line = 0;
   cs.config = c;
   /* Strings had better be xstrdup'd as they will get freed at some point. */
-  c->gap = 2;
+  c->gap = 0;
   c->history = 60;
   c->home = xstrdup(pkgstatedir);
   if(!(pw = getpwuid(getuid())))

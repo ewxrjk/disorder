@@ -25,9 +25,6 @@ tracklength *.flac disorder-tracklength
 # is ISO-8859-1.
 collection fs ISO-8859-1 /export/mp3
 
-# Don't leave a gap between tracks.
-gap 0
-
 # Scratch tracks.  You can add your own tracks here.
 scratch pkgdatadir/slap.ogg
 scratch pkgdatadir/scratch.ogg
