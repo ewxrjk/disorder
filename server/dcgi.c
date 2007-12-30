@@ -537,7 +537,7 @@ static void act_register(cgi_sink *output,
   byte_xasprintf((char **)&text,
 		 "Welcome to DisOrder.  To active your login, please visit this URL:\n"
 		 "\n"
-		 "  %s?confirm=%s\n", config->url, urlencodestring(confirm));
+		 "%s?c=%s\n", config->url, urlencodestring(confirm));
   if(!(text = mime_encode_text(text, &charset, &encoding)))
     fatal(0, "cannot encode email");
   byte_xasprintf(&content_type, "text/plain;charset=%s",
@@ -553,7 +553,7 @@ static void act_confirm(cgi_sink *output,
 			dcgi_state *ds) {
   const char *confirmation;
 
-  if(!(confirmation = cgi_get("confirm"))) {
+  if(!(confirmation = cgi_get("c"))) {
     cgi_set_option("error", "noconfirm");
     expand_template(ds, output, "login");
   }
@@ -1707,7 +1707,7 @@ void disorder_cgi(cgi_sink *output, dcgi_state *ds) {
   if(!action) {
     /* We allow URLs which are just confirm=... in order to keep confirmation
      * URLs, which are user-facing, as short as possible. */
-    if(cgi_get("confirm"))
+    if(cgi_get("c"))
       action = "confirm";
     else
       action = "playing";

@@ -72,6 +72,10 @@
 # define NONCE_SIZE 16
 #endif
 
+#ifndef CONFIRM_SIZE
+# define CONFIRM_SIZE 10
+#endif
+
 int volume_left, volume_right;		/* last known volume */
 
 /** @brief Accept all well-formed login attempts
@@ -1158,11 +1162,11 @@ static int c_register(struct conn *c,
   int offset;
 
   /* The confirmation string is base64(username;nonce) */
-  bufsize = strlen(vec[0]) + NONCE_SIZE + 2;
+  bufsize = strlen(vec[0]) + CONFIRM_SIZE + 2;
   buf = xmalloc_noptr(bufsize);
   offset = byte_snprintf(buf, bufsize, "%s;", vec[0]);
-  gcry_randomize(buf + offset, NONCE_SIZE, GCRY_STRONG_RANDOM);
-  cs = mime_to_base64((uint8_t *)buf, offset + NONCE_SIZE);
+  gcry_randomize(buf + offset, CONFIRM_SIZE, GCRY_STRONG_RANDOM);
+  cs = mime_to_base64((uint8_t *)buf, offset + CONFIRM_SIZE);
   if(trackdb_adduser(vec[0], vec[1], config->default_rights, vec[2], cs))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
