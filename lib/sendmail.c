@@ -28,6 +28,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <gcrypt.h>
+#include <time.h>
 
 #include "syscalls.h"
 #include "log.h"
@@ -117,7 +118,13 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
   const char *ptr;
   uint8_t idbuf[20];
   char *id;
+  struct tm ut;
+  time_t now;
+  char date[128];
 
+  time(&now);
+  gmtime_r(&now, &ut);
+  strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S +0000", &ut);
   gcry_create_nonce(idbuf, sizeof idbuf);
   id = mime_to_base64(idbuf, sizeof idbuf);
   if((rc = getresponse(tag, in)) / 100 != 2)
@@ -145,6 +152,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
      || fprintf(out, "MIME-Version: 1.0\r\n") < 0
      || fprintf(out, "Content-Type: %s\r\n", content_type) < 0
      || fprintf(out, "Content-Transfer-Encoding: %s\r\n", encoding) < 0
+     || fprintf(out, "Date: %s\r\n", date) < 0
      || fprintf(out, "\r\n") < 0) {
   write_error:
     error(errno, "%s: write error", tag);
