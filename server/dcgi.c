@@ -537,7 +537,7 @@ static void act_register(cgi_sink *output,
   byte_xasprintf((char **)&text,
 		 "Welcome to DisOrder.  To active your login, please visit this URL:\n"
 		 "\n"
-		 "  %s?confirm=%s\n", config->url, confirm);
+		 "  %s?confirm=%s\n", config->url, urlencodestring(confirm));
   if(!(text = mime_encode_text(text, &charset, &encoding)))
     fatal(0, "cannot encode email");
   byte_xasprintf(&content_type, "text/plain;charset=%s",
@@ -549,10 +549,27 @@ static void act_register(cgi_sink *output,
   expand_template(ds, output, "login");
 }
 
+static void act_confirm(cgi_sink *output,
+			dcgi_state *ds) {
+  const char *confirmation;
+
+  if(!(confirmation = cgi_get("confirm"))) {
+    cgi_set_option("error", "noconfirm");
+    expand_template(ds, output, "login");
+  }
+  if(disorder_confirm(ds->g->client, confirmation)) {
+    cgi_set_option("error", "badconfirm");
+    expand_template(ds, output, "login");
+  }
+  cgi_set_option("confirmed", "confirmedok");
+  expand_template(ds, output, "login");
+}
+
 static const struct action {
   const char *name;
   void (*handler)(cgi_sink *output, dcgi_state *ds);
 } actions[] = {
+  { "confirm", act_confirm },
   { "disable", act_disable },
   { "enable", act_enable },
   { "login", act_login },
@@ -1687,7 +1704,14 @@ static void perform_action(cgi_sink *output, dcgi_state *ds,
 void disorder_cgi(cgi_sink *output, dcgi_state *ds) {
   const char *action = cgi_get("action");
 
-  if(!action) action = "playing";
+  if(!action) {
+    /* We allow URLs which are just confirm=... in order to keep confirmation
+     * URLs, which are user-facing, as short as possible. */
+    if(cgi_get("confirm"))
+      action = "confirm";
+    else
+      action = "playing";
+  }
   perform_action(output, ds, action);
 }
 
