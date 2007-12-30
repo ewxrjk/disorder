@@ -13,7 +13,7 @@ To enable this make sure that all players use the speaker process, i.e. execraw
 rather than exec (or it won't work properly) and configure the network speaker
 backend:
 
-    speaker_backend network
+    api network
     broadcast 172.17.207.255 9003
     broadcast_from 172.17.207.2 9002
 

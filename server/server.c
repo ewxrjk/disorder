@@ -989,7 +989,7 @@ static int c_new(struct conn *c,
 static int c_rtp_address(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
-  if(config->speaker_backend == BACKEND_NETWORK) {
+  if(config->api == BACKEND_NETWORK) {
     sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
 		quoteutf8(config->broadcast.s[0]),
 		quoteutf8(config->broadcast.s[1]));

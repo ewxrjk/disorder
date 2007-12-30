@@ -635,10 +635,10 @@ int main(int argc, char **argv) {
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
   /* identify the backend used to play */
   for(n = 0; backends[n]; ++n)
-    if(backends[n]->backend == config->speaker_backend)
+    if(backends[n]->backend == config->api)
       break;
   if(!backends[n])
-    fatal(0, "unsupported backend %d", config->speaker_backend);
+    fatal(0, "unsupported api %d", config->api);
   backend = backends[n];
   /* backend-specific initialization */
   backend->init();

@@ -247,6 +247,34 @@ automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
 .TP
+.B api \fINAME\fR
+Selects the backend used to play sound and to set the volume.  The following
+options are available:
+.RS
+.TP
+.B alsa
+Use the ALSA API.  This is only available on Linux systems, on which it is the
+default.
+.TP
+.B coreaudio
+Use Apple Core Audio.  This only available on OS X systems, on which it is the
+default.
+.TP
+.B oss
+Use the OSS (/dev/dsp) API.  Not available on all platforms.
+.TP
+.B command
+Execute a command.  This is the default if
+.B speaker_command
+is specified, or if no native is available.
+.TP
+.B network
+Transmit audio over the network.  This is the default if
+\fBbroadcast\fR is specified.  You can use
+.BR disorder-playrtp (1)
+to receive and play the resulting stream on Linux and OS X.
+.RE
+.TP
 .B authorization_algorithm \fIALGORITHM\fR
 Defines the algorithm used to authenticate clients.  The valid options
 are sha1 (the default), sha256, sha384 and sha512.  See
@@ -255,7 +283,7 @@ for more details.
 .TP
 .B broadcast \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.  This implies
-\fBspeaker_backend network\fR.
+\fBapi network\fR.
 .IP
 See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
@@ -263,9 +291,9 @@ See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 Sets the (local) source address used by \fBbroadcast\fR.
 .TP
 .B channel \fICHANNEL\fR
-The mixer channel that the volume control should use.  Valid names depend on
-your operating system and hardware, but some standard ones that might be useful
-are:
+The mixer channel that the volume control should use.
+.IP
+For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
@@ -283,8 +311,11 @@ Master output level.  The OSS documentation recommends against using this, as
 it affects all output devices.
 .RE
 .IP
-You can also specify channels by number, if you know the right value.  NB that
-volume setting only works on OSS systems (including ALSA, via emulation).
+You can also specify channels by number, if you know the right value.
+.IP
+For \fBapi alsa\fR, volume setting is not currently supported.
+.IP
+For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP
 .B collection \fIMODULE\fR \fIENCODING\fR \fIROOT\fR
 .TP
@@ -321,8 +352,16 @@ The default is to allow everything except \fBadmin\fR and \fBregister\fR
 (modified in legacy configurations by the obsolete \fBrestrict\fR directive).
 .TP
 .B device \fINAME\fR
-ALSA device to play raw-format audio.  Default is \fBdefault\fR, i.e. to use
-the whatever the ALSA configured default is.
+Sound output device.
+.IP
+For \fBapi oss\fR this is the path to the device to use.  If it is set to
+\fBdefault\fR then \fI/dev/dsp\fR and \fI/dev/audio\fR will be tried.
+.IP
+For \fBapi alsa\fR this is the device name to use.
+.IP
+For \fBapi coreaudio\fR this is currently ignored.
+.IP
+The default is \fBdefault\fR.
 .TP
 .B gap \fISECONDS\fR
 Specifies the number of seconds to leave between tracks.  The default
@@ -344,19 +383,26 @@ Determines whether the server locks against concurrent operation.  Default is
 \fByes\fR.  There is no good reason to set this to \fBno\fR and the option will
 probably be removed in a future version.
 .TP
-.B mixer \fIPATH\fR
-The path to the mixer device, if you want access to the volume control,
-e.g. \fB/dev/mixer\fR (the default).
+.B mixer \fIDEVICE\fR
+The mixer device name, if it needs to be specified separately from
+\fBdevice\fR.
+.IP
+For \fBapi oss\fR this should be the path to the mixer device and the default
+is \fI/dev/mixer\fR.
+.IP
+For \fBapi alsa\fR, volume setting is not currently supported.
+.IP
+For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.  The
 default is \fByes\fR.  This only applies if
-\fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
+\fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
 multicast address.
 .TP
 .B multicast_ttl \fIHOPS\fR
 Set the maximum number of hops to send multicast packets.  This only applies if
-\fBspeaker_backend\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
+\fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
 multicast address.  The default is 1.
 .TP
 .B namepart \fIPART\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
@@ -518,39 +564,14 @@ scratched.  The default is \fBSIGKILL\fR.
 Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
 .TP
-.B speaker_backend \fINAME\fR
-Selects the backend use by the speaker process.  The following options are
-available:
-.RS
-.TP
-.B alsa
-Use the ALSA API.  This is only available on Linux systems, on which it is the
-default.
-.TP
-.B coreaudio
-Use Apple Core Audio.  This only available on OS X systems, on which it is the
-default.
-.TP
-.B oss
-Use the OSS (/dev/dsp) API.  Not available on all platforms.
-.TP
-.B command
-Execute a command.  This is the default if
-.B speaker_command
-is specified, or if no native is available.
-.TP
-.B network
-Transmit audio over the network.  This is the default if
-\fBbroadcast\fR is specified.  You can use
-.BR disorder-playrtp (1)
-to receive and play the resulting stream on Linux and OS X.
-.RE
-.TP
 .B sox_generation \fB0\fR|\fB1
 Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
 the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).  See the
 documentation for your installed copy of \fBsox\fR to determine which you need.
 The default is 0.
+.TP
+.B speaker_backend \fINAME
+This is an alias for \fBapi\fR; see above.
 .TP
 .B speaker_command \fICOMMAND
 Causes the speaker subprocess to pipe audio data into shell command

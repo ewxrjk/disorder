@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004 Richard Kettlewell
+ * Copyright (C) 2004, 2007 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +21,47 @@
 #ifndef MIXER_H
 #define MIXER_H
 
-int mixer_channel(const char *c);
-/* convert @c@ to a channel number, or return -1 if it does not match */
+/** @brief Definition of a mixer */
+struct mixer {
+  /** @brief API used by this mixer */
+  int api;
 
+  /** @brief Return non-0 iff @p d is a valid device name */
+  int (*validate_device)(const char *d);
+  
+  /** @brief Return non-0 iff @p c is a valid channel name */
+  int (*validate_channel)(const char *c);
+  
+  /** @brief Get the volume
+   * @param left Where to store left-channel volume
+   * @param right Where to store right-channel volume
+   * @return 0 on success, non-0 on error
+   */
+  int (*get)(int *left, int *right);
+
+  /** @brief Set the volume
+   * @param left Pointer to target left-channel volume
+   * @param right Pointer to target right-channel volume
+   * @return 0 on success, non-0 on error
+   *
+   * @p left and @p right are updated with the actual volume set.
+   */
+  int (*set)(int *left, int *right);
+
+  /** @brief Default device */
+  const char *device;
+
+  /** @brief Default channel */
+  const char *channel;
+};
+
+int mixer_valid_device(int api, const char *d);
+int mixer_valid_channel(int api, const char *c);
 int mixer_control(int *left, int *right, int set);
-/* get/set the current level.  If @set@ is true then the level is set
- * according to the pointers.  In either case the eventual level is
- * returned via the pointers.
- *
- * Returns 0 on success and -1 on error.
- */
+const char *mixer_default_device(int api);
+const char *mixer_default_channel(int api);
+
+extern const struct mixer mixer_oss;
 
 #endif /* MIXER_H */
 

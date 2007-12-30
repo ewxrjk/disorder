@@ -177,12 +177,12 @@ struct config {
   /** @brief Sox syntax generation */
   long sox_generation;
 
-  /** @brief Speaker backend
+  /** @brief API used to play sound
    *
    * Choices are @ref BACKEND_ALSA, @ref BACKEND_COMMAND or @ref
    * BACKEND_NETWORK.
    */
-  int speaker_backend;
+  int api;
 #define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
 #define BACKEND_COMMAND 1		/**< Execute a command */
 #define BACKEND_NETWORK 2		/**< Transmit RTP  */

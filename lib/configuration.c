@@ -679,12 +679,6 @@ static int validate_isreg(const struct config_state *cs,
   return 0;
 }
 
-static int validate_ischr(const struct config_state *cs,
-			  int nvec, char **vec) {
-  VALIDATE_FILE(S_ISCHR, "character device");
-  return 0;
-}
-
 static int validate_player(const struct config_state *cs,
 			   int nvec,
 			   char attribute((unused)) **vec) {
@@ -779,16 +773,6 @@ static int validate_sample_format(const struct config_state *cs,
 				  int attribute((unused)) nvec,
 				  char **vec) {
   return parse_sample_format(cs, 0, nvec, vec);
-}
-
-static int validate_channel(const struct config_state *cs,
-			    int attribute((unused)) nvec,
-			    char **vec) {
-  if(mixer_channel(vec[0]) == -1) {
-    error(0, "%s:%d: invalid channel '%s'", cs->path, cs->line, vec[0]);
-    return -1;
-  }
-  return 0;
 }
 
 static int validate_any(const struct config_state attribute((unused)) *cs,
@@ -937,10 +921,11 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
+  { C(api),              &type_backend,          validate_any },
   { C(authorization_algorithm), &type_string,    validate_algo },
   { C(broadcast),        &type_stringlist,       validate_addrport },
   { C(broadcast_from),   &type_stringlist,       validate_addrport },
-  { C(channel),          &type_string,           validate_channel },
+  { C(channel),          &type_string,           validate_any },
   { C(checkpoint_kbyte), &type_integer,          validate_non_negative },
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
@@ -956,7 +941,7 @@ static const struct conf conf[] = {
   { C(listen),           &type_stringlist,       validate_port },
   { C(lock),             &type_boolean,          validate_any },
   { C(mail_sender),      &type_string,           validate_any },
-  { C(mixer),            &type_string,           validate_ischr },
+  { C(mixer),            &type_string,           validate_any },
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
@@ -978,7 +963,7 @@ static const struct conf conf[] = {
   { C(signal),           &type_signal,           validate_any },
   { C(smtp_server),      &type_string,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
-  { C(speaker_backend),  &type_backend,          validate_any },
+  { C2(speaker_backend, api),  &type_backend,          validate_any },
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
@@ -1165,14 +1150,14 @@ static struct config *config_default(void) {
   c->sample_format.channels = 2;
   c->sample_format.endian = ENDIAN_NATIVE;
   c->queue_pad = 10;
-  c->speaker_backend = -1;
+  c->api = -1;
   c->multicast_ttl = 1;
   c->multicast_loop = 1;
   c->authorization_algorithm = xstrdup("sha1");
   c->noticed_history = 31;
   c->short_display = 32;
-  c->mixer = xstrdup("/dev/mixer");
-  c->channel = xstrdup("pcm");
+  c->mixer = 0;
+  c->channel = 0;
   c->dbversion = 2;
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
@@ -1247,31 +1232,31 @@ static void config_postdefaults(struct config *c,
     for(n = 0; n < NTRANSFORM; ++n)
       set_transform(&cs, whoami, 5, (char **)transform[n]);
   }
-  if(c->speaker_backend == -1) {
+  if(c->api == -1) {
     if(c->speaker_command)
-      c->speaker_backend = BACKEND_COMMAND;
+      c->api = BACKEND_COMMAND;
     else if(c->broadcast.n)
-      c->speaker_backend = BACKEND_NETWORK;
+      c->api = BACKEND_NETWORK;
     else {
 #if HAVE_ALSA_ASOUNDLIB_H
-      c->speaker_backend = BACKEND_ALSA;
+      c->api = BACKEND_ALSA;
 #elif HAVE_SYS_SOUNDCARD_H
-      c->speaker_backend = BACKEND_OSS;
+      c->api = BACKEND_OSS;
 #elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-      c->speaker_backend = BACKEND_COREAUDIO;
+      c->api = BACKEND_COREAUDIO;
 #else
-      c->speaker_backend = BACKEND_COMMAND;
+      c->api = BACKEND_COMMAND;
 #endif
     }
   }
   if(server) {
-    if(c->speaker_backend == BACKEND_COMMAND && !c->speaker_command)
-      fatal(0, "speaker_backend is command but speaker_command is not set");
-    if(c->speaker_backend == BACKEND_NETWORK && !c->broadcast.n)
-      fatal(0, "speaker_backend is network but broadcast is not set");
+    if(c->api == BACKEND_COMMAND && !c->speaker_command)
+      fatal(0, "'api command' but speaker_command is not set");
+    if(c->api == BACKEND_NETWORK && !c->broadcast.n)
+      fatal(0, "'api network' but broadcast is not set");
   }
   /* Override sample format */
-  switch(c->speaker_backend) {
+  switch(c->api) {
   case BACKEND_NETWORK:
     c->sample_format.rate = 44100;
     c->sample_format.channels = 2;
@@ -1304,6 +1289,10 @@ static void config_postdefaults(struct config *c,
       r |= RIGHT_REMOVE_ANY;
     c->default_rights = rights_string(r);
   }
+  if(!c->mixer)
+    c->mixer = xstrdup(mixer_default_device(c->api));
+  if(!c->channel)
+    c->channel = xstrdup(mixer_default_channel(c->api));
 }
 
 /** @brief (Re-)read the config file
@@ -1346,6 +1335,15 @@ int config_read(int server) {
   config_postdefaults(c, server);
   /* everything is good so we shall use the new config */
   config_free(config);
+  /* final error checking */
+  if(c->mixer && !mixer_valid_device(c->api, c->mixer)) {
+    error(0, "invalid mixer device: %s", c->mixer);
+    return -1;
+  }
+  if(c->channel && !mixer_valid_channel(c->api, c->channel)) {
+    error(0, "invalid mixer channel: %s", c->channel);
+    return -1;
+  }
   /* warn about obsolete directives */
   if(c->restrictions)
     error(0, "'restrict' will be removed in a future version");
