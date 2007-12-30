@@ -131,28 +131,55 @@ static int set_collections(const struct config_state *cs,
 			   const struct conf *whoami,
 			   int nvec, char **vec) {
   struct collectionlist *cl;
+  const char *root, *encoding, *module;
   
-  if(nvec != 3) {
-    error(0, "%s:%d: '%s' requires three arguments",
+  switch(nvec) {
+  case 1:
+    module = 0;
+    encoding = 0;
+    root = vec[0];
+    break;
+  case 2:
+    module = vec[0];
+    encoding = 0;
+    root = vec[1];
+    break;
+  case 3:
+    module = vec[0];
+    encoding = vec[1];
+    root = vec[2];
+    break;
+  case 0:
+    error(0, "%s:%d: '%s' requires at least one argument",
+	  cs->path, cs->line, whoami->name);
+    return -1;
+  default:
+    error(0, "%s:%d: '%s' requires at most three arguments",
 	  cs->path, cs->line, whoami->name);
     return -1;
   }
-  if(vec[2][0] != '/') {
+  /* Sanity check root */
+  if(root[0] != '/') {
     error(0, "%s:%d: collection root must start with '/'",
 	  cs->path, cs->line);
     return -1;
   }
-  if(vec[2][1] && vec[2][strlen(vec[2])-1] == '/') {
+  if(root[1] && root[strlen(root)-1] == '/') {
     error(0, "%s:%d: collection root must not end with '/'",
 	  cs->path, cs->line);
     return -1;
   }
+  /* Defaults */
+  if(!module)
+    module = "fs";
+  if(!encoding)
+    encoding = nl_langinfo(CODESET);
   cl = ADDRESS(cs->config, struct collectionlist);
   ++cl->n;
   cl->s = xrealloc(cl->s, cl->n * sizeof (struct collection));
-  cl->s[cl->n - 1].module = xstrdup(vec[0]);
-  cl->s[cl->n - 1].encoding = xstrdup(vec[1]);
-  cl->s[cl->n - 1].root = xstrdup(vec[2]);
+  cl->s[cl->n - 1].module = xstrdup(module);
+  cl->s[cl->n - 1].encoding = xstrdup(encoding);
+  cl->s[cl->n - 1].root = xstrdup(root);
   return 0;
 }
 

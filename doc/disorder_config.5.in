@@ -287,18 +287,29 @@ You can also specify channels by number, if you know the right value.  NB that
 volume setting only works on OSS systems (including ALSA, via emulation).
 .TP
 .B collection \fIMODULE\fR \fIENCODING\fR \fIROOT\fR
+.TP
+.B collection \fIMODULE\fR \fIROOT\fR
+.TP
+.B collection \fIROOT\fR
 Define a collection of tracks.
 .IP
 \fIMODULE\fR defines which plugin module should be used for this
-collection.  Use the supplied \fBfs\fR module for tracks that exists
-as ordinary files in the filesystem.
+collection.  Use the supplied \fBfs\fR module for tracks that exist
+as ordinary files in the filesystem.  If no \fIMODULE\fR is specified
+then \fBfs\fR is assumed.
 .IP
-\fIENCODING\fR defines the encoding of filenames in this collection.
-For \fBfs\fR this would be the encoding you use for filenames.
-Examples might be \fBiso-8859-1\fR or \fButf-8\fR.
+\fIENCODING\fR defines the encoding of filenames in this collection.  For
+\fBfs\fR this would be the encoding you use for filenames.  Examples might be
+\fBiso-8859-1\fR or \fButf-8\fR.  If no encoding is specified then the current
+locale's character encoding is used.
+.IP
+NB that this default depends on the locale the server runs in, which is not
+necessarily the same as that of ordinary users, depending how the system is
+configured.  It's best to explicitly specify it to be certain.
 .IP
 \fIROOT\fR is the root in the filesystem of the filenames and is
-passed to the plugin module.
+passed to the plugin module.  It must be an absolute path and should not
+end with a "/".
 .TP
 .B default_rights \fIRIGHTS\fR
 Defines the set of rights given to new users.  The argument is a
