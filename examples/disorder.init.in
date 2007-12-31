@@ -26,7 +26,13 @@ CLIENT="bindir/disorder --local"
 
 PATH="$PATH:sbindir"
 
-start() {
+start_debian() {
+  printf "Starting DisOrder server: disorderd"
+  start-stop-daemon -S -q -x ${DAEMON}
+  echo .
+}
+
+start_generic() {
   if ${CLIENT} version >/dev/null 2>&1; then
     : already running
   else
@@ -36,13 +42,35 @@ start() {
   fi
 }
 
-stop() {
-  if ${CLIENT} version >/dev/null 2>&1; then
-    printf "Stopping DisOrder server: disorderd"
-    ${CLIENT} shutdown
-    echo .
+start() {
+  if test -e /sbin/start-stop-daemon; then
+    start_debian
   else
-    : not running
+    start_generic
+  fi
+}
+
+stop_debian() {
+  printf "Stopping DisOrder server: disorderd"
+  start-stop-daemon -K -o -q -x ${DAEMON}
+  echo .
+}
+
+stop_generic() {
+ if ${CLIENT} version >/dev/null 2>&1; then
+   printf "Stopping DisOrder server: disorderd"
+   ${CLIENT} shutdown
+   echo .
+ else
+   : not running
+ fi
+}
+
+stop() {
+  if test -e /sbin/start-stop-daemon; then
+    stop_debian
+  else
+    stop_generic
   fi
 }
 
