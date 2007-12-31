@@ -29,18 +29,10 @@ collection fs ISO-8859-1 /export/mp3
 scratch pkgdatadir/slap.ogg
 scratch pkgdatadir/scratch.ogg
 
-# Trust the web user and root.  Trusted users can stop the server or
-# pretend to be other users.
-#
-# This line can be removed after upgrade to 2.1 or later, or if the initial
-# install is of 2.1 or later.
-trust www-data root
+# This line just ensures that the pre-existing root user gets admin
+# rights and can be removed after upgrade to 2.1 or later, or if the
+# initial install is of 2.1 or later.
+trust root
 
 # Run as user jukebox.  This must exist in /etc/passwd!
 user jukebox
-
-# Volume control settings.
-# The device name to use
-mixer /dev/mixer
-# The channel to control
-channel pcm
