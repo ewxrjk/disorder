@@ -21,7 +21,7 @@ some other UNIX variants without too much effort.  Things you will need:
 
 Build dependencies:
   Name             Tested              Notes
-  libdb            4.3.29              4.2 and earlier won't work
+  libdb            4.3.29              not 4.2.x; 4.4+ might work.
   libgc            6.8
   libvorbisfile    1.1.2
   libpcre          6.7                 need UTF-8 support
@@ -129,7 +129,9 @@ skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
 
    If adding new 'player' commands, see README.raw for details on setting up
    "raw format" players.  Non-raw players are still supported but not in all
-   configurations and they cannot support pausing and gapless play.
+   configurations and they cannot support pausing and gapless play.  If you
+   want additional formats to be supported natively please point the author at
+   a GPL-compatible library that can decode them.
 
 5. Make sure the server is started at boot time.
 
@@ -186,10 +188,10 @@ automatically.
 
 You need to configure a number of things to make this work:
 
-1. If you want online registration to work then you set mail_sender in
+1. If you want online registration to work then set mail_sender in
    /etc/disorder/config to the email address that communications from the web
    interface will appear to be sent.  If this is not a valid, deliverable email
-   address then the results are not likely to reliable.
+   address then the results are not likely to be reliable.
 
      mail_sender webmaster@example.com
 
