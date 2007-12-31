@@ -471,7 +471,8 @@ form.logout {
 }
 
 p.loginstatus {
-  color: green
+  color: green;
+  font-size: 150%
 }
 
 /* errors ********************************************************************/
