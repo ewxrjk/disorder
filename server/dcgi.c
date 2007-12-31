@@ -464,7 +464,8 @@ static void act_login(cgi_sink *output,
     expand_template(ds, output, "login");
     return;
   }
-  c = disorder_new(1);
+  /* We'll need a new connection as we are going to stop being guest */
+  c = disorder_new(0);
   if(disorder_connect_user(c, username, password)) {
     cgi_set_option("error", "loginfailed");
     expand_template(ds, output, "login");
@@ -475,6 +476,9 @@ static void act_login(cgi_sink *output,
     expand_template(ds, output, "login");
     return;
   }
+  /* Use the new connection henceforth */
+  ds->g->client = c;
+  ds->g->flags = 0;
   /* We have a new cookie */
   header_cookie(output->sink);
   cgi_set_option("status", "loginok");
