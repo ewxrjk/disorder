@@ -20,12 +20,6 @@ Description: Scratch files
  by spaces.  Leave this blank if you don't want any scratch sounds.
  All filenames should be absolute path names.
 
-Template: disorder/server-name
-Type: string
-Default: localhost
-Description: Web server hostname
- Enter the hostname that the web interface will appear under.
-
 Template: disorder/port
 Type: string
 Default: none

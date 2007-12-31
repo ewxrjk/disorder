@@ -150,8 +150,8 @@ skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
    start up correctly there should be an error message.  Correct the problem
    and try again.
 
-7. After a minute it should start to play something.  Try scratching it (as
-   root):
+7. After a short while it should start to play something.  Try scratching it
+   (as root):
 
      disorder scratch
 

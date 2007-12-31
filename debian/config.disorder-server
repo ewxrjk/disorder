@@ -26,7 +26,6 @@ db_input high disorder/roots || true
 db_input high disorder/encoding || true
 db_input high disorder/port || true
 db_input medium disorder/scratches || true
-db_input medium disorder/server-name || true
 db_go || true
 
 db_get disorder/roots || true
@@ -35,8 +34,6 @@ db_get disorder/scratches || true
 scratches="$RET"
 db_get disorder/encoding || true
 encoding="$RET"
-db_get disorder/server-name || true
-server_name="$RET"
 db_get disorder/port || true
 port="$RET"
 
@@ -56,9 +53,6 @@ echo "# Scratches" >> /etc/disorder/conf.debconf.new
 for s in $scratches; do
   echo "scratch $s" >> /etc/disorder/conf.debconf.new
 done
-echo >> /etc/disorder/conf.debconf.new
-echo "# Canonical URL of web interface" >> /etc/disorder/conf.debconf.new
-echo "url http://$server_name/cgi-bin/disorder/disorder" >> /etc/disorder/conf.debconf.new
 if test "$port" != none && test "$port" != ""; then
   echo >> /etc/disorder/conf.debconf.new
   echo "# Listen for remote clients" >> /etc/disorder/conf.debconf.new

@@ -43,43 +43,6 @@ configure )
   else
     add_jukebox_user
   fi
-  if test ! -f /etc/disorder/config.private; then
-    rootpw=`pwgen 16 1`
-    webpw=`pwgen 16 1`
-    if test -z "$rootpw" || test -z "$webpw"; then
-      # We used to ignore the exit status of pwgen due to a bug in an old
-      # version of Debian.  That bug seems to be gone, but this check is
-      # harmless and could catch future bugs.
-      echo "$0: pwgen failed" 1>&2
-      exit 1
-    fi
-    # We set the umask so that private files aren't transiently world-readable
-    u=`umask`
-    umask 077
-
-    echo allow root "$rootpw" > /etc/disorder/config.private.new
-    echo allow www-data "$webpw" >> /etc/disorder/config.private.new
-    chgrp jukebox /etc/disorder/config.private.new
-    chmod 640 /etc/disorder/config.private.new
-    mv /etc/disorder/config.private.new /etc/disorder/config.private
-
-    if test ! -f /etc/disorder/config.www-data; then
-      echo password "$webpw" > /etc/disorder/config.www-data.new
-      chgrp www-data /etc/disorder/config.www-data.new
-      chmod 640 /etc/disorder/config.www-data.new
-      mv /etc/disorder/config.www-data.new /etc/disorder/config.www-data
-    fi
-    umask $u
-  fi
-
-  if test ! -f /etc/disorder/http.users; then
-    u=`umask`
-    umask 077
-    touch /etc/disorder/http.users
-    chgrp www-data /etc/disorder/http.users
-    chmod 640 /etc/disorder/http.users
-    umask $u
-  fi
   chown jukebox:jukebox /var/lib/disorder
   configure_init_d
   restart_server
