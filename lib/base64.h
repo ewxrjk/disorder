@@ -25,7 +25,9 @@
 #define BASE64_H
 
 char *mime_base64(const char *s, size_t *nsp);
+char *generic_base64(const char *s, size_t *nsp, const char *table);
 char *mime_to_base64(const uint8_t *s, size_t ns);
+char *generic_to_base64(const uint8_t *s, size_t ns, const char *table);
 
 #endif /* BASE64_H */
 
