@@ -157,7 +157,7 @@ int reconfigure(ev_source *ev, int reload) {
     /* We only allow for upgrade at startup */
     trackdb_open(TRACKDB_CAN_UPGRADE);
   if(need_another_rescan)
-    trackdb_rescan(ev);
+    trackdb_rescan(ev, 1/*check*/);
   if(!ret) {
     queue_read();
     recent_read();

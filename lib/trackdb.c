@@ -259,10 +259,23 @@ static int reap_db_deadlock(ev_source attribute((unused)) *ev,
   return 0;
 }
 
-static pid_t subprogram(ev_source *ev, const char *prog,
-                        int outputfd) {
+static pid_t subprogram(ev_source *ev, int outputfd, const char *prog,
+                        ...) {
   pid_t pid;
+  va_list ap;
+  const char *args[1024], **argp, *a;
 
+  argp = args;
+  *argp++ = prog;
+  *argp++ = "--config";
+  *argp++ = configfile;
+  *argp++ = debugging ? "--debug" : "--no-debug";
+  *argp++ = log_default == &log_syslog ? "--syslog" : "--no-syslog";
+  va_start(ap, prog);
+  while((a = va_arg(ap, const char *)))
+    *argp++ = a;
+  va_end(ap);
+  *argp = 0;
   /* If we're in the background then trap subprocess stdout/stderr */
   if(!(pid = xfork())) {
     exitfn = _exit;
@@ -279,10 +292,7 @@ static pid_t subprogram(ev_source *ev, const char *prog,
     /* If we were negatively niced, undo it.  We don't bother checking for 
     * error, it's not that important. */
     setpriority(PRIO_PROCESS, 0, 0);
-    execlp(prog, prog, "--config", configfile,
-           debugging ? "--debug" : "--no-debug",
-           log_default == &log_syslog ? "--syslog" : "--no-syslog",
-           (char *)0);
+    execvp(prog, (char **)args);
     fatal(errno, "error invoking %s", prog);
   }
   return pid;
@@ -291,7 +301,7 @@ static pid_t subprogram(ev_source *ev, const char *prog,
 /* start deadlock manager */
 void trackdb_master(ev_source *ev) {
   assert(db_deadlock_pid == -1);
-  db_deadlock_pid = subprogram(ev, DEADLOCK, -1);
+  db_deadlock_pid = subprogram(ev, -1, DEADLOCK, (char *)0);
   ev_child(ev, db_deadlock_pid, 0, reap_db_deadlock, 0);
   D(("started deadlock manager"));
 }
@@ -396,7 +406,7 @@ void trackdb_open(int flags) {
         /* This database needs upgrading */
         info("invoking disorder-dbupgrade to upgrade from %ld to %ld",
              oldversion, config->dbversion);
-        pid = subprogram(0, "disorder-dbupgrade", -1);
+        pid = subprogram(0, -1, "disorder-dbupgrade", (char *)0);
         while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
           ;
         if(err)
@@ -1353,7 +1363,7 @@ void trackdb_stats_subprocess(ev_source *ev,
   d->done = done;
   d->u = u;
   xpipe(p);
-  pid = subprogram(ev, "disorder-stats", p[1]);
+  pid = subprogram(ev, p[1], "disorder-stats", (char *)0);
   xclose(p[1]);
   ev_child(ev, pid, 0, stats_finished, d);
   ev_reader_new(ev, p[0], stats_read, stats_error, d, "disorder-stats reader");
@@ -2146,14 +2156,20 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
   return 0;
 }
 
-void trackdb_rescan(ev_source *ev) {
+/** @brief Initiate a rescan
+ * @param ev Event loop or 0 to block
+ * @param check 1 to recheck lengths, 0 to suppress check
+ */
+void trackdb_rescan(ev_source *ev, int check) {
   int w;
 
   if(rescan_pid != -1) {
     error(0, "rescan already underway");
     return;
   }
-  rescan_pid = subprogram(ev, RESCAN, -1);
+  rescan_pid = subprogram(ev, -1, RESCAN,
+                          check ? "--check" : "--no-check",
+                          (char *)0);
   if(ev) {
     ev_child(ev, rescan_pid, 0, reap_rescan, 0);
     D(("started rescanner"));

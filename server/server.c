@@ -356,7 +356,7 @@ static int c_rescan(struct conn *c,
 		    char attribute((unused)) **vec,
 		    int attribute((unused)) nvec) {
   info("S%x rescan by %s", c->tag, c->who);
-  trackdb_rescan(c->ev);
+  trackdb_rescan(c->ev, 1/*check*/);
   sink_writes(ev_writer_sink(c->w), "250 initiated rescan\n");
   return 1;				/* completed */
 }

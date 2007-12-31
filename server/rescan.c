@@ -63,6 +63,8 @@ static const struct option options[] = {
   { "no-debug", no_argument, 0, 'D' },
   { "syslog", no_argument, 0, 's' },
   { "no-syslog", no_argument, 0, 'S' },
+  { "check", no_argument, 0, 'K' },
+  { "no-check", no_argument, 0, 'C' },
   { 0, 0, 0, 0 }
 };
 
@@ -75,7 +77,8 @@ static void help(void) {
 	  "  --version, -V           Display version number\n"
 	  "  --config PATH, -c PATH  Set configuration file\n"
 	  "  --debug, -d             Turn on debugging\n"
-          "  --[no-]syslog           Force logging\n"
+          "  --[no-]syslog           Enable/disable logging to syslog\n"
+          "  --[no-]check            Enable/disable track length check\n"
           "\n"
           "Rescanner for DisOrder.  Not intended to be run\n"
           "directly.\n");
@@ -199,52 +202,74 @@ done:
 struct recheck_state {
   const struct collection *c;
   long nobsolete, nnocollection, nlength;
+  struct recheck_track *tracks;
+};
+
+struct recheck_track {
+  struct recheck_track *next;
+  const char *track;
 };
 
 /* called for each non-alias track */
-static int recheck_callback(const char *track,
-                            struct kvp *data,
-                            void *u,
-                            DB_TXN *tid) {
+static int recheck_list_callback(const char *track,
+                                 struct kvp attribute((unused)) *data,
+                                 void *u,
+                                 DB_TXN attribute((unused)) *tid) {
   struct recheck_state *cs = u;
+  struct recheck_track *t = xmalloc(sizeof *t);
+
+  t->next = cs->tracks;
+  t->track = track;
+  cs->tracks = t;
+  return 0;
+}
+
+static int recheck_track_tid(struct recheck_state *cs,
+                             const struct recheck_track *t,
+                             DB_TXN *tid) {
   const struct collection *c = cs->c;
-  const char *path = kvp_get(data, "_path");
+  const char *path;
   char buffer[20];
   int err, n;
   long length;
+  struct kvp *data;
 
-  if(aborted()) return EINTR;
-  D(("rechecking %s", track));
+  if((err = trackdb_getdata(trackdb_tracksdb, t->track, &data, tid)))
+    return err;
+  path = kvp_get(data, "_path");
+  D(("rechecking %s", t->track));
   /* if we're not checking a specific collection, find the right collection */
   if(!c) {
-    if(!(c = find_track_collection(track))) {
-      D(("obsoleting %s", track));
-      if((err = trackdb_obsolete(track, tid))) return err;
+    if(!(c = find_track_collection(t->track))) {
+      D(("obsoleting %s", t->track));
+      if((err = trackdb_obsolete(t->track, tid)))
+        return err;
       ++cs->nnocollection;
       return 0;
     }
   }
   /* see if the track has evaporated */
   if(check(c->module, c->root, path) == 0) {
-    D(("obsoleting %s", track));
-    if((err = trackdb_obsolete(track, tid))) return err;
+    D(("obsoleting %s", t->track));
+    if((err = trackdb_obsolete(t->track, tid)))
+      return err;
     ++cs->nobsolete;
     return 0;
   }
   /* make sure we know the length */
   if(!kvp_get(data, "_length")) {
-    D(("recalculating length of %s", track));
+    D(("recalculating length of %s", t->track));
     for(n = 0; n < config->tracklength.n; ++n)
-      if(fnmatch(config->tracklength.s[n].s[0], track, 0) == 0)
+      if(fnmatch(config->tracklength.s[n].s[0], t->track, 0) == 0)
         break;
     if(n >= config->tracklength.n)
-      error(0, "no tracklength plugin found for %s", track);
+      error(0, "no tracklength plugin found for %s", t->track);
     else {
-      length = tracklength(config->tracklength.s[n].s[1], track, path);
+      length = tracklength(config->tracklength.s[n].s[1], t->track, path);
       if(length > 0) {
         byte_snprintf(buffer, sizeof buffer, "%ld", length);
         kvp_set(&data, "_length", buffer);
-        if((err = trackdb_putdata(trackdb_tracksdb, track, data, tid, 0)))
+        if((err = trackdb_putdata(trackdb_tracksdb, t->track, data, tid, 0)))
           return err;
         ++cs->nlength;
       }
@@ -253,20 +278,38 @@ static int recheck_callback(const char *track,
   return 0;
 }
 
+static int recheck_track(struct recheck_state *cs,
+                         const struct recheck_track *t) {
+  int e;
+
+  WITH_TRANSACTION(recheck_track_tid(cs, t, tid));
+  return e;
+}
+
 /* recheck a collection */
 static void recheck_collection(const struct collection *c) {
   struct recheck_state cs;
+  const struct recheck_track *t;
+  long nrc;
 
   if(c)
     info("rechecking %s", c->root);
   else
     info("rechecking all tracks");
+  /* Doing the checking inside a transaction locks up the server for much too
+   * long (because it spends lots of time thinking about each track).  So we
+   * pull the full track list into memory and work from that.
+   *
+   * 100,000 tracks at, say, 80 bytes per track name, gives 8MB, which is quite
+   * reasonable.
+   */
   for(;;) {
     checkabort();
+    info("getting track list");
     global_tid = trackdb_begin_transaction();
     memset(&cs, 0, sizeof cs);
     cs.c = c;
-    if(trackdb_scan(c ? c->root : 0, recheck_callback, &cs, global_tid))
+    if(trackdb_scan(c ? c->root : 0, recheck_list_callback, &cs, global_tid))
       goto fail;
     break;
   fail:
@@ -285,6 +328,19 @@ static void recheck_collection(const struct collection *c) {
   }
   trackdb_commit_transaction(global_tid);
   global_tid = 0;
+  nrc = 0;
+  for(t = cs.tracks; t; t = t->next) {
+    if(aborted())
+      return;
+    recheck_track(&cs, t);
+    ++nrc;
+    if(nrc % 100 == 0) {
+      if(c)
+        info("rechecking %s, %ld tracks so far", c->root, nrc);
+      else
+        info("rechecking all tracks, %ld tracks so far", nrc);
+    }
+  }
   if(c)
     info("rechecked %s, %ld obsoleted, %ld lengths calculated",
          c->root, cs.nobsolete, cs.nlength);
@@ -334,11 +390,12 @@ static void expire_noticed(void) {
 int main(int argc, char **argv) {
   int n, logsyslog = !isatty(2);
   struct sigaction sa;
+  int do_check = 1;
   
   set_progname(argv);
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDSsKC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
@@ -347,6 +404,8 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
+    case 'K': do_check = 1; break;
+    case 'C': do_check = 0; break;
     default: fatal(0, "invalid option");
     }
   }
@@ -368,7 +427,8 @@ int main(int argc, char **argv) {
     /* Rescan all collections */
     do_all(rescan_collection);
     /* Check that every track still exists */
-    recheck_collection(0);
+    if(do_check)
+      recheck_collection(0);
     /* Expire noticed.db */
     expire_noticed();
   }
@@ -377,8 +437,9 @@ int main(int argc, char **argv) {
     for(n = optind; n < argc; ++n)
       do_directory(argv[n], rescan_collection);
     /* Check specified collections for tracks that have gone */
-    for(n = optind; n < argc; ++n)
-      do_directory(argv[n], recheck_collection);
+    if(do_check)
+      for(n = optind; n < argc; ++n)
+        do_directory(argv[n], recheck_collection);
   }
   trackdb_close();
   trackdb_deinit();
