@@ -1161,6 +1161,9 @@ URL-quote \fISTRING\fR.
 .B @user@
 The current username.  This will be "guest" if nobody is logged in.
 .TP
+.B @userinfo{\fIPROPERTY\fB}@
+Look up a property of the logged-in user.
+.TP
 .B @version@
 Expands to \fBdisorder.cgi\fR's version string.
 .TP

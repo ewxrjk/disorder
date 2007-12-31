@@ -138,7 +138,19 @@ label	login.title		"DisOrder Login"
 # Text for login fields
 label	login.username		"Username"
 label	login.password		"Password"
+label	login.password1		"Password"
+label	login.password2		"Password"
+label	login.newpassword	"New Password"
 label	login.email		"Email address"
+
+label	login.registerusernameextra	"May only contain unaccented Roman letters and digit; case matters"
+label	login.registeremailextra	"Must be valid"
+label	login.registerpassword1extra	"Letter case matters"
+label	login.registerpassword2extra	"Type same password again to check"
+
+label	login.edituseremailextra	""
+label	login.edituserpassword1extra	"Leave blank to keep existing password"
+label	login.edituserpassword2extra	"Type same password again to check"
 
 # Text for login page buttons
 label	login.login		"Login"
@@ -149,8 +161,9 @@ label	login.logout		"Logout"
 # Text for login page responses
 label	login.loginok		"You are now logged in."
 label	login.logoutok		"You are now logged out."
-label	login.registered	"Registered your new login.  Please check your email."
-label	login.confirmed		"Confirmed your new login.  You are now logged in."
+label	login.registered	"Your new login has been registered.  Please check your email."
+label	login.confirmed		"Your new login has been confirmed.  You are now logged in."
+label	login.edited		"Your details have been changed."
 
 # <TITLE> for account page
 label	account.title		"DisOrder User Details"
@@ -162,8 +175,18 @@ label	error.title		"DisOrder error"
 # Text used when cannot connect to server
 label	error.connect		"Cannot connect to server."
 
-# Text used when cannot become right user
+# Error messages for login.html
 label	error.loginfailed	"Incorrect username and/or password."
+label	error.cookiefailed	"Cannot create login cookie."
+label	error.nousername	"No username specified."
+label	error.nopassword	"No password specified."
+label	error.passwordmismatch	"Passwords do not match."
+label	error.noemail		"No email address specified."
+label	error.bademail		"Invalid email address."
+label	error.cannotregister	"Unable to register user."
+label	error.noconfirm		"Missing confirmation string."
+label	error.badconfirm	"Invalid confirmation string."
+label	error.badedit		"Cannot edit user details."
 
 # Text appended to all error pages
 label	error.generic		""

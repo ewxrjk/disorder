@@ -503,12 +503,13 @@ static void act_logout(cgi_sink *output,
 
 static void act_register(cgi_sink *output,
 			 dcgi_state *ds) {
-  const char *username, *password, *email;
+  const char *username, *password, *password2, *email;
   char *confirm, *content_type;
   const char *text, *encoding, *charset;
 
   username = cgi_get("username");
-  password = cgi_get("password");
+  password = cgi_get("password1");
+  password2 = cgi_get("password2");
   email = cgi_get("email");
 
   if(!username || !*username) {
@@ -518,6 +519,11 @@ static void act_register(cgi_sink *output,
   }
   if(!password || !*password) {
     cgi_set_option("error", "nopassword");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(!password2 || !*password2 || strcmp(password, password2)) {
+    cgi_set_option("error", "passwordmismatch");
     expand_template(ds, output, "login");
     return;
   }
@@ -582,12 +588,70 @@ static void act_confirm(cgi_sink *output,
   expand_template(ds, output, "login");
 }
 
+static void act_edituser(cgi_sink *output,
+			 dcgi_state *ds) {
+  const char *email = cgi_get("email"), *password = cgi_get("changepassword1");
+  const char *password2 = cgi_get("changepassword2");
+  int newpassword = 0;
+  disorder_client *c;
+
+  if((password && *password) || (password && *password2)) {
+    if(!password || !password2 || strcmp(password, password2)) {
+      cgi_set_option("error", "passwordmismatch");
+      expand_template(ds, output, "login");
+      return;
+    }
+  } else
+    password = password2 = 0;
+  
+  if(email) {
+    if(disorder_edituser(ds->g->client, disorder_user(ds->g->client),
+			 "email", email)) {
+      cgi_set_option("error", "badedit");
+      expand_template(ds, output, "login");
+      return;
+    }
+  }
+  if(password) {
+    if(disorder_edituser(ds->g->client, disorder_user(ds->g->client),
+			 "password", password)) {
+      cgi_set_option("error", "badedit");
+      expand_template(ds, output, "login");
+      return;
+    }
+    newpassword = 1;
+  }
+  if(newpassword) {
+    login_cookie = 0;			/* it'll be invalid now */
+    /* This is a bit duplicative of act_login() */
+    c = disorder_new(0);
+    if(disorder_connect_user(c, disorder_user(ds->g->client), password)) {
+      cgi_set_option("error", "loginfailed");
+      expand_template(ds, output, "login");
+      return;
+    }
+    if(disorder_make_cookie(c, &login_cookie)) {
+      cgi_set_option("error", "cookiefailed");
+      expand_template(ds, output, "login");
+      return;
+    }
+    /* Use the new connection henceforth */
+    ds->g->client = c;
+    ds->g->flags = 0;
+    /* We have a new cookie */
+    header_cookie(output->sink);
+  }
+  cgi_set_option("status", "edited");
+  expand_template(ds, output, "login");  
+}
+
 static const struct action {
   const char *name;
   void (*handler)(cgi_sink *output, dcgi_state *ds);
 } actions[] = {
   { "confirm", act_confirm },
   { "disable", act_disable },
+  { "edituser", act_edituser },
   { "enable", act_enable },
   { "login", act_login },
   { "logout", act_logout },
@@ -1619,6 +1683,19 @@ static void exp_right(int attribute((unused)) nargs,
     expandstring(output, args[2], ds);
 }
 
+static void exp_userinfo(int attribute((unused)) nargs,
+			 char **args,
+			 cgi_sink *output,
+			 void *u) {
+  dcgi_state *const ds = u;
+  const char *value;
+
+  if(disorder_userinfo(ds->g->client, disorder_user(ds->g->client), args[0],
+		       (char **)&value))
+    value = "";
+  cgi_output(output, "%s", value);
+}
+
 static const struct cgi_expansion expansions[] = {
   { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
   { "action", 0, 0, 0, exp_action },
@@ -1681,6 +1758,7 @@ static const struct cgi_expansion expansions[] = {
   { "url", 0, 0, 0, exp_url },
   { "urlquote", 1, 1, 0, exp_urlquote },
   { "user", 0, 0, 0, exp_user },
+  { "userinfo", 1, 1, 0, exp_userinfo },
   { "version", 0, 0, 0, exp_version },
   { "volume", 1, 1, 0, exp_volume },
   { "when", 0, 0, 0, exp_when },

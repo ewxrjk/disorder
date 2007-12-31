@@ -49,13 +49,18 @@ USA
        <tr>
          <td>@label:login.username@</td>
          <td>
-           <input class=username name=username type=text value="@arg:username@" size=32>
+           <input class=username name=username type=text size=32
+	          value="@arg:username@">
          </td>
        </tr>
        <tr>
          <td>@label:login.password@</td>
-         <td><input class=password name=password type=password value=""
-                    size=32></td>
+         <td>
+           <input class=password name=password type=password value=""
+                  size=32>
+         </td>
+       </tr>
+       <tr>
          <td>
            <button class=login name=action type=submit value=login>
              @label:login.login@
@@ -81,19 +86,36 @@ USA
        <tr>
          <td>@label:login.username@</td>
          <td>
-           <input class=username name=username type=text value="" size=32>
+           <input class=username name=username type=text size=32
+	          value="">
          </td>
+         <td class=extra>@label:login.registerusernameextra@</td>
        </tr>
        <tr>
          <td>@label:login.email@</td>
          <td>
-           <input class=email name=email type=text value="" size=32>
+           <input class=email name=email type=text size=32
+                  value="">
          </td>
+         <td class=extra>@label:login.registeremailextra@</td>
        </tr>
        <tr>
-         <td>@label:login.password@</td>
-         <td><input class=password name=password type=password value=""
-                    size=32></td>
+         <td>@label:login.password1@</td>
+         <td>
+           <input class=password name=password1 type=password size=32
+	          value="">
+         </td>
+         <td class=extra>@label:login.registerpassword1extra@</td>
+       </tr>
+       <tr>
+         <td>@label:login.password2@</td>
+         <td>
+           <input class=password name=password2 type=password size=32
+	          value="">
+         </td>
+         <td class=extra>@label:login.registerpassword2extra@</td>
+       </tr>
+       <tr>
          <td>
            <button class=register name=action type=submit value=register>
              @label:login.register@
@@ -108,7 +130,15 @@ USA
 
    <h2>Logged in as @user@</h2>
 
-   <p>TODO none of this stuff works yet</p>
+   <form class=logout action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <div class=logout>
+       <button class=logout name=action type=submit value=logout>
+         @label:login.logout@
+       </button>
+     </div>
+     <input name=nonce type=hidden value="@nonce@">
+   </form>
 
    <p>Use this form to change your email address and/or password.</p>
 
@@ -118,13 +148,28 @@ USA
        <tr>
          <td>@label:login.email@</td>
          <td>
-           <input class=email name=email type=text value="TODO" size=32>
+           <input class=email name=email type=text size=32
+	          value="@userinfo:email@">
          </td>
+         <td class=extra>@label:login.edituseremailextra@</td>
        </tr>
        <tr>
-         <td>@label:login.password@</td>
-         <td><input class=password name=password type=password value=""
-                    size=32></td>
+         <td>@label:login.newpassword@</td>
+         <td>
+           <input class=password name=changepassword1 type=password size=32
+	          value="">
+         </td>
+         <td class=extra>@label:login.edituserpassword1extra@</td>
+       </tr>
+       <tr>
+         <td>@label:login.newpassword@</td>
+         <td>
+           <input class=password name=changepassword2 type=password size=32
+	          value="">
+         </td>
+         <td class=extra>@label:login.edituserpassword2extra@</td>
+       </tr>
+       <tr>
          <td>
            <button class=edituser name=action type=submit value=edituser>
              @label:login.edituser@
@@ -132,18 +177,6 @@ USA
          </td>
        </tr>
      </table>
-     <input name=nonce type=hidden value="@nonce@">
-   </form>
-
-   <p>Use this button to log out @user@.</p>
-
-   <form class=logout action="@url@" method=POST
-         enctype="multipart/form-data" accept-charset=utf-8>
-     <div class=logout>
-       <button class=logout name=action type=submit value=logout>
-         @label:login.logout@
-       </button>
-     </div>
      <input name=nonce type=hidden value="@nonce@">
    </form>
 
