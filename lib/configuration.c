@@ -54,6 +54,7 @@
 #include "regsub.h"
 #include "signame.h"
 #include "authhash.h"
+#include "vector.h"
 
 /** @brief Path to config file 
  *
@@ -999,6 +1000,22 @@ static int config_set(const struct config_state *cs,
 	  || which->type->set(cs, which, nvec - 1, vec + 1));
 }
 
+static int config_set_args(const struct config_state *cs,
+			   const char *which, ...) {
+  va_list ap;
+  struct vector v[1];
+  char *s;
+
+  vector_init(v);
+  vector_append(v, (char *)which);
+  va_start(ap, which);
+  while((s = va_arg(ap, char *)))
+    vector_append(v, s);
+  va_end(ap);
+  vector_terminate(v);
+  return config_set(cs, v->nvec, v->vec);
+}
+
 /** @brief Error callback used by config_include() */
 static void config_error(const char *msg, void *u) {
   const struct config_state *cs = u;
@@ -1119,12 +1136,21 @@ static const char *const default_stopwords[] = {
 };
 #define NDEFAULT_STOPWORDS (sizeof default_stopwords / sizeof *default_stopwords)
 
+static const char *const default_players[] = {
+  "*.ogg",
+  "*.flac",
+  "*.mp3",
+  "*.wav",
+};
+#define NDEFAULT_PLAYERS (sizeof default_players / sizeof *default_players)
+
 /** @brief Make a new default configuration */
 static struct config *config_default(void) {
   struct config *c = xmalloc(sizeof *c);
   const char *logname;
   struct passwd *pw;
   struct config_state cs;
+  size_t n;
 
   cs.path = "<internal>";
   cs.line = 0;
@@ -1162,8 +1188,18 @@ static struct config *config_default(void) {
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
   c->smtp_server = xstrdup("127.0.0.1");
+  /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
+  /* Default player configuration */
+  for(n = 0; n < NDEFAULT_PLAYERS; ++n) {
+    if(config_set_args(&cs, "player",
+		       default_players[n], "execraw", "disorder-decode", (char *)0))
+      exit(1);
+    if(config_set_args(&cs, "tracklength",
+		       default_players[n], "disorder-tracklength", (char *)0))
+      exit(1);
+  }
   return c;
 }
 

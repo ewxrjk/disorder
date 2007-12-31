@@ -117,11 +117,12 @@ skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
       filenames, which you should be sure to get right as recovery from an
       error here can be painful (see BUGS).
    Optionally you may also want to do the following:
-    * add 'player' commands for any file formats not supported natively
+    * add 'player' and 'tracklength' commands for any file formats not
+      supported natively
     * edit the 'scratch' commands to supply scratch sounds (or delete them if
       you don't want any).
-    * add or remove 'stopword' entries as necessary (these words won't take
-      part in track name searches from the web interface).
+    * add extra 'stopword' entries as necessary (these words won't take part in
+      track name searches from the web interface).
 
    See disorder_config(5) for more details.
 
