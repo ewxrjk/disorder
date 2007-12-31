@@ -645,6 +645,7 @@ static void act_edituser(cgi_sink *output,
   expand_template(ds, output, "login");  
 }
 
+
 static const struct action {
   const char *name;
   void (*handler)(cgi_sink *output, dcgi_state *ds);
