@@ -2705,11 +2705,20 @@ char **trackdb_listusers(void) {
   return v->vec;
 }
 
+/** @brief Confirm a user registration
+ * @param user Username
+ * @param confirmation Confirmation string
+ * @param rightsp Where to put user rights
+ * @param tid Transaction ID
+ * @return 0 on success, non-0 on error
+ */
 static int trackdb_confirm_tid(const char *user, const char *confirmation,
+                               rights_type *rightsp,
                                DB_TXN *tid) {
   const char *stored_confirmation;
   struct kvp *k;
   int e;
+  const char *rights;
   
   if((e = trackdb_getdata(trackdb_usersdb, user, &k, tid)))
     return e;
@@ -2718,6 +2727,12 @@ static int trackdb_confirm_tid(const char *user, const char *confirmation,
     /* DB claims -30,800 to -30,999 so -1 should be a safe bet */
     return -1;
   }
+  if(!(rights = kvp_get(k, "rights"))) {
+    error(0, "no rights for unconfirmed user '%s'", user);
+    return -1;
+  }
+  if(parse_rights(rights, rightsp, 1))
+    return -1;
   if(strcmp(confirmation, stored_confirmation)) {
     error(0, "wrong confirmation string for user '%s'", user);
     return -1;
@@ -2730,12 +2745,14 @@ static int trackdb_confirm_tid(const char *user, const char *confirmation,
 /** @brief Confirm a user registration
  * @param user Username
  * @param confirmation Confirmation string
+ * @param rightsp Where to put user rights
  * @return 0 on success, non-0 on error
  */
-int trackdb_confirm(const char *user, const char *confirmation) {
+int trackdb_confirm(const char *user, const char *confirmation,
+                    rights_type *rightsp) {
   int e;
 
-  WITH_TRANSACTION(trackdb_confirm_tid(user, confirmation, tid));
+  WITH_TRANSACTION(trackdb_confirm_tid(user, confirmation, rightsp, tid));
   switch(e) {
   case 0:
     info("registration confirmed for user '%s'", user);

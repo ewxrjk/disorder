@@ -563,10 +563,21 @@ static void act_confirm(cgi_sink *output,
     cgi_set_option("error", "noconfirm");
     expand_template(ds, output, "login");
   }
+  /* Confirm our registration */
   if(disorder_confirm(ds->g->client, confirmation)) {
     cgi_set_option("error", "badconfirm");
     expand_template(ds, output, "login");
   }
+  /* Get a cookie */
+  if(disorder_make_cookie(ds->g->client, &login_cookie)) {
+    cgi_set_option("error", "cookiefailed");
+    expand_template(ds, output, "login");
+    return;
+  }
+  /* Discard any cached data JIC */
+  ds->g->flags = 0;
+  /* We have a new cookie */
+  header_cookie(output->sink);
   cgi_set_option("status", "confirmed");
   expand_template(ds, output, "login");
 }

@@ -147,10 +147,10 @@ label	login.edituser		"Change Details"
 label	login.logout		"Logout"
 
 # Text for login page responses
-label	login.loginok		"Logged in OK"
-label	login.logoutok		"Logged out OK"
-label	login.registered	"Registered your new login"
-label	login.confirmed		"Confirmed your new login"
+label	login.loginok		"You are now logged in."
+label	login.logoutok		"You are now logged out."
+label	login.registered	"Registered your new login.  Please check your email."
+label	login.confirmed		"Confirmed your new login.  You are now logged in."
 
 # <TITLE> for account page
 label	account.title		"DisOrder User Details"

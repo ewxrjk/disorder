@@ -1139,7 +1139,13 @@ int disorder_register(disorder_client *c, const char *user,
  * @return 0 on success, non-0 on error
  */
 int disorder_confirm(disorder_client *c, const char *confirm) {
-  return disorder_simple(c, 0, "confirm", confirm, (char *)0);
+  char *u;
+  int rc;
+  
+  if(!(rc = dequote(disorder_simple(c, &u, "confirm", confirm, (char *)0),
+		    &u)))
+    c->user = u;
+  return rc;
 }
 
 /** @brief Make a cookie for this login

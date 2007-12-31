@@ -435,10 +435,10 @@ static int c_user(struct conn *c,
     c->who = vec[0];
     c->rights = rights;
     /* currently we only bother logging remote connections */
-    if(strcmp(host, "local")) {
+    if(strcmp(host, "local"))
       info("S%x %s connected from %s", c->tag, vec[0], host);
+    else
       c->rights |= RIGHT__LOCAL;
-    }
     sink_writes(ev_writer_sink(c->w), "230 OK\n");
     return 1;
   }
@@ -1029,10 +1029,10 @@ static int c_cookie(struct conn *c,
   c->who = user;
   c->cookie = vec[0];
   c->rights = rights;
-  if(strcmp(host, "local")) {
+  if(strcmp(host, "local"))
     info("S%x %s connected with cookie from %s", c->tag, user, host);
+  else
     c->rights |= RIGHT__LOCAL;
-  }
   /* Response contains username so client knows who they are acting as */
   sink_printf(ev_writer_sink(c->w), "232 %s\n", quoteutf8(user));
   return 1;
@@ -1179,17 +1179,33 @@ static int c_confirm(struct conn *c,
 		     int attribute((unused)) nvec) {
   size_t nuser;
   char *user, *sep;
+  rights_type rights;
+  const char *host;
 
+  /* Get some kind of peer identifcation */
+  if(!(host = connection_host(c))) {
+    sink_writes(ev_writer_sink(c->w), "530 Authentication failure\n");
+    return 1;
+  }
   if(!(user = mime_base64(vec[0], &nuser))
      || !(sep = memchr(user, ';', nuser))) {
     sink_writes(ev_writer_sink(c->w), "550 Malformed confirmation string\n");
     return 1;
   }
   *sep = 0;
-  if(trackdb_confirm(user, vec[0]))
+  if(trackdb_confirm(user, vec[0], &rights))
     sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
-  else
-    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  else {
+    c->who = user;
+    c->cookie = 0;
+    c->rights = rights;
+    if(strcmp(host, "local"))
+      info("S%x %s confirmed from %s", c->tag, user, host);
+    else
+      c->rights |= RIGHT__LOCAL;
+    /* Response contains username so client knows who they are acting as */
+    sink_printf(ev_writer_sink(c->w), "232 %s\n", quoteutf8(user));
+  }
   return 1;
 }
  

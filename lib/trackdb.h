@@ -169,7 +169,8 @@ struct kvp *trackdb_getuserinfo(const char *user);
 int trackdb_edituserinfo(const char *user,
                          const char *key, const char *value);
 char **trackdb_listusers(void);
-int trackdb_confirm(const char *user, const char *confirmation);
+int trackdb_confirm(const char *user, const char *confirmation,
+                    rights_type *rightsp);
 
 #endif /* TRACKDB_H */
 
