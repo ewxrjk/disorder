@@ -29,7 +29,6 @@ USA
 
    @if{@ne{@label:error@}{error}@}{
    @#{error reporting from some earlier operation}@
-   <!-- TODO make error string visually intrusive, also error.html -->
    <p class=error>@label{error.@label:error@}@</p>
    }@
 
@@ -68,9 +67,7 @@ USA
      <input name=back type=hidden value="@arg:back@">
    </form>
 
-   <!-- TODO disable registration button if guest doesn't have
-   register right -->
-
+   @right{register}{
    <h2>New Users</h2>
 
    <p>If you do not have a login enter a username, a password and your
@@ -105,7 +102,7 @@ USA
        </tr>
      </table>
      <input name=nonce type=hidden value="@nonce@">
-   </form>
+   </form>}@
    }{
    @#{not the guest user, allow change of details and logout}@
 
