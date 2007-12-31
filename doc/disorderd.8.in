@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004, 2005 Richard Kettlewell
+.\" Copyright (C) 2004, 2005, 2007 Richard Kettlewell
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -65,19 +65,12 @@ this automatically; if you want a rescan at every restart you must
 arrange that manually.
 .PP
 There is however an automatic rescan once every 24 hours.
-.SS "How To Configure Authentication"
-The administrator should create \fIpkgconfdir/config.private\fR, make sure it
-is not world-readable, and populate it with \fBallow\fR commands
-listing usernames and passwords.  Use
-e.g. \fBpwgen\fR(1) to generate random passwords.  Passwords should
-then be distributed to users.
 .PP
-Each user should create the file \fI~/.disorder/passwd\fR
-and make sure it is not world-readable.  Having done so
-they should add a \fBpassword\fR command to it giving their password (and
-optionally a \fBusername\fR command if their DisOrder username is not the
-same as their login name).
-.SS Locales
+A \fBroot\fR login is automatically created on startup if it does not
+exist.  If \fBdisorder\fR(1) is run as root on the same machine as the
+server it is capable of extracting the password from the database
+directly.
+.SS "Locales"
 .B disorderd
 is locale-aware.  If you do not set the locale correctly then it may
 not handle non-ASCII data properly.
