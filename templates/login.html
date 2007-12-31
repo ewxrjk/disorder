@@ -30,15 +30,13 @@ USA
    @if{@ne{@label:error@}{error}@}{
    @#{error reporting from some earlier operation}@
    <!-- TODO make error string visually intrusive, also error.html -->
-   <p>@label{error.@label:error@}@</p>
+   <p class=error>@label{error.@label:error@}@</p>
    }@
 
    @if{@ne{@label:status@}{status}@}{
    @#{some action succeeded}@
    <p class=loginstatus>@label{login.@label:status@}@</p>
    }@
-
-  <p>User: @user@</p>
 
    @if{@eq{@user@}{guest}@}{
    @#{guest user, allow login and registration}@
@@ -117,7 +115,7 @@ USA
 
    <p>Use this form to change your email address and/or password.</p>
 
-   <form class=register action="@url@" method=POST
+   <form class=edituser action="@url@" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <table class=edituser>
        <tr>
@@ -142,7 +140,7 @@ USA
 
    <p>Use this button to log out @user@.</p>
 
-   <form class=register action="@url@" method=POST
+   <form class=logout action="@url@" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <div class=logout>
        <button class=logout name=action type=submit value=logout>
