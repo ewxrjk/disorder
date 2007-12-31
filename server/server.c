@@ -118,7 +118,12 @@ struct conn {
   char *cookie;
   /** @brief Connection rights */
   rights_type rights;
+  /** @brief Next connection */
+  struct conn *next;
 };
+
+/** @brief Linked list of connections */
+static struct conn *connections;
 
 static int reader_callback(ev_source *ev,
 			   ev_reader *reader,
@@ -128,6 +133,16 @@ static int reader_callback(ev_source *ev,
 			   void *u);
 
 static const char *noyes[] = { "no", "yes" };
+
+/** @brief Remove a connection from the connection list */
+static void remove_connection(struct conn *c) {
+  struct conn **cc;
+
+  for(cc = &connections; *cc && *cc != c; cc = &(*cc)->next)
+    ;
+  if(*cc)
+    *cc = c->next;
+}
 
 /** @brief Called when a connection's writer fails or is shut down
  *
@@ -154,6 +169,7 @@ static int writer_error(ev_source attribute((unused)) *ev,
   }
   c->w = 0;
   ev_report(ev);
+  remove_connection(c);
   return 0;
 }
 
@@ -173,6 +189,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
   c->w = 0;
   c->r = 0;
   ev_report(ev);
+  remove_connection(c);
   return 0;
 }
 
@@ -785,6 +802,7 @@ static int logging_reader_callback(ev_source attribute((unused)) *ev,
       c->w = 0;
     }
     c->r = 0;
+    remove_connection(c);
   }
   return 0;
 }
@@ -1085,26 +1103,50 @@ static int c_adduser(struct conn *c,
 static int c_deluser(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  if(trackdb_deluser(vec[0]))
+  struct conn *d;
+
+  if(trackdb_deluser(vec[0])) {
     sink_writes(ev_writer_sink(c->w), "550 Cannot delete user\n");
-  else
-    sink_writes(ev_writer_sink(c->w), "250 User deleted\n");
+    return 1;
+  }
+  /* Zap connections belonging to deleted user */
+  for(d = connections; d; d = d->next)
+    if(!strcmp(d->who, vec[0]))
+      d->rights = 0;
+  sink_writes(ev_writer_sink(c->w), "250 User deleted\n");
   return 1;
 }
 
 static int c_edituser(struct conn *c,
 		      char **vec,
 		      int attribute((unused)) nvec) {
+  struct conn *d;
+
   /* RIGHT_ADMIN can do anything; otherwise you can only set your own email
    * address and password. */
   if((c->rights & RIGHT_ADMIN)
      || (!strcmp(c->who, vec[0])
 	 && (!strcmp(vec[1], "email")
 	     || !strcmp(vec[1], "password")))) {
-    if(trackdb_edituserinfo(vec[0], vec[1], vec[2]))
+    if(trackdb_edituserinfo(vec[0], vec[1], vec[2])) {
       sink_writes(ev_writer_sink(c->w), "550 Failed to change setting\n");
-    else
-      sink_writes(ev_writer_sink(c->w), "250 OK\n");
+      return 1;
+    }
+    if(!strcmp(vec[1], "password")) {
+      /* Zap all connections for this user after a password change */
+      for(d = connections; d; d = d->next)
+	if(!strcmp(d->who, vec[0]))
+	  d->rights = 0;
+    } else if(!strcmp(vec[1], "rights")) {
+      /* Update rights for this user */
+      rights_type r;
+
+      if(parse_rights(vec[1], &r, 1))
+	for(d = connections; d; d = d->next)
+	  if(!strcmp(d->who, vec[0]))
+	    d->rights = r;
+    }
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
     error(0, "%s attempted edituser but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
@@ -1396,6 +1438,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
       ev_writer_close(c->w);
       c->w = 0;
     }
+    remove_connection(c);
   }
   return 0;
 }
