@@ -477,7 +477,8 @@ static void act_login(cgi_sink *output,
   }
   /* We have a new cookie */
   header_cookie(output->sink);
-  if((back = cgi_get("back")) && back)
+  cgi_set_option("status", "loginok");
+  if((back = cgi_get("back")) && *back)
     /* Redirect back to somewhere or other */
     redirect(output->sink);
   else
@@ -492,6 +493,7 @@ static void act_logout(cgi_sink *output,
   /* Reconnect as guest */
   disorder_cgi_login(ds, output);
   /* Back to the login page */
+  cgi_set_option("status", "logoutok");
   expand_template(ds, output, "login");
 }
 
@@ -545,7 +547,7 @@ static void act_register(cgi_sink *output,
   sendmail("", config->mail_sender, email, "Welcome to DisOrder",
 	   encoding, content_type, text); /* TODO error checking  */
   /* We'll go back to the login page with a suitable message */
-  cgi_set_option("registered", "registeredok");
+  cgi_set_option("status", "registered");
   expand_template(ds, output, "login");
 }
 
@@ -561,7 +563,7 @@ static void act_confirm(cgi_sink *output,
     cgi_set_option("error", "badconfirm");
     expand_template(ds, output, "login");
   }
-  cgi_set_option("confirmed", "confirmedok");
+  cgi_set_option("status", "confirmed");
   expand_template(ds, output, "login");
 }
 

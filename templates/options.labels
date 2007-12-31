@@ -144,7 +144,12 @@ label	login.email		"Email address"
 label	login.login		"Login"
 label	login.register		"Register"
 label	login.edituser		"Change Details"
-label	login.lougout		"Logout"
+label	login.logout		"Logout"
+
+label	login.loginok		"Logged in OK"
+label	login.logoutok		"Logged out OK"
+label	login.registered	"Registered your new login"
+label	login.confirmed		"Confirmed your new login"
 
 # <TITLE> for account page
 label	account.title		"DisOrder User Details"

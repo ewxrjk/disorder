@@ -33,12 +33,12 @@ USA
    <p>@label{error.@label:error@}@</p>
    }@
 
-   @if{@ne{@label:registered@}{registered}@}{
-   @#{registration succeeded}@
-   <p>@label:login.registered@</p>
+   @if{@ne{@label:status@}{status}@}{
+   @#{some action succeeded}@
+   <p class=loginstatus>@label{login.@label:status@}@</p>
    }@
 
-  <!-- TODO report success of confirmation -->
+  <p>User: @user@</p>
 
    @if{@eq{@user@}{guest}@}{
    @#{guest user, allow login and registration}@
@@ -101,7 +101,7 @@ USA
                     size=32></td>
          <td>
            <button class=register name=action type=submit value=register>
-             @label:login.login@
+             @label:login.register@
            </button>
          </td>
        </tr>
