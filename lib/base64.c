@@ -65,7 +65,14 @@ char *generic_base64(const char *s, size_t *nsp, const char *table) {
   dynstr_init(&d);
   n = 0;
   while((c = (unsigned char)*s++)) {
-    if((t = strchr(table, c))) {
+    if(c == table[64]) {
+      if(n >= 2) {
+	dynstr_append(&d, (b[0] << 2) + (b[1] >> 4));
+	if(n == 3)
+	  dynstr_append(&d, (b[1] << 4) + (b[2] >> 2));
+      }
+      break;
+    } else if((t = strchr(table, c))) {
       b[n++] = t - table;
       if(n == 4) {
 	dynstr_append(&d, (b[0] << 2) + (b[1] >> 4));
@@ -73,13 +80,6 @@ char *generic_base64(const char *s, size_t *nsp, const char *table) {
 	dynstr_append(&d, (b[2] << 6) + b[3]);
 	n = 0;
       }
-    } else if(c == table[64]) {
-      if(n >= 2) {
-	dynstr_append(&d, (b[0] << 2) + (b[1] >> 4));
-	if(n == 3)
-	  dynstr_append(&d, (b[1] << 4) + (b[2] >> 2));
-      }
-      break;
     }
   }
   if(nsp)
