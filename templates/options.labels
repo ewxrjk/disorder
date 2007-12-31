@@ -143,7 +143,7 @@ label	login.password2		"Password"
 label	login.newpassword	"New Password"
 label	login.email		"Email address"
 
-label	login.registerusernameextra	"May only contain unaccented Roman letters and digit; case matters"
+label	login.registerusernameextra	"May only contain unaccented Roman letters and digits; case matters"
 label	login.registeremailextra	"Must be valid"
 label	login.registerpassword1extra	"Letter case matters"
 label	login.registerpassword2extra	"Type same password again to check"
