@@ -27,3 +27,19 @@ Description: Port number for clients to connect to
  Enter the port number that the server should listen on for clients.  This
  can be set to 'none' to permit only local clients or a port number for
  remote clients to connect to, e.g. using Disobedience.
+
+Template: disorder/smtp_server
+Type: string
+Default: localhost
+Description: SMTP server for web interface
+ The web interface requires an SMTP server in order to send messages to
+ newly registered users, and to send password reminders.  Enter the hostname
+ or IP address to use.
+
+Template: disorder/mail_sender
+Type: string
+Default: 
+Description: Sender address for email from web interface
+ The web interface needs to know what email address it should send messages
+ from.  It is possible that users will reply to this address if they are
+ unsure what to do.

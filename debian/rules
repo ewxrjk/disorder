@@ -150,7 +150,7 @@ pkg-disorder-server: build
 	rm -rf debian/disorder-server/usr/share/man/man5
 	$(MKDIR) debian/disorder-server/etc/disorder
 	$(MKDIR) debian/disorder-server/etc/init.d
-	$(MKDIR) debian/disorder-server/usr/lib/cgi-bin/disorder
+	$(MKDIR) debian/disorder-server/usr/lib/cgi-bin
 	$(MKDIR) debian/disorder-server/var/lib/disorder
 	$(INSTALL_SCRIPT) examples/disorder.init \
 		debian/disorder-server/etc/init.d/disorder
@@ -159,13 +159,11 @@ pkg-disorder-server: build
 	$(INSTALL_DATA) debian/etc.disorder.options \
 		debian/disorder-server/etc/disorder/options
 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) server/disorder.cgi \
-		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder/disorder
+		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
-		debian/disorder-server/usr/lib/cgi-bin/disorder/* \
+		debian/disorder-server/usr/lib/cgi-bin/disorder \
 		debian/disorder-server/usr/sbin/* \
 		debian/disorder-server/usr/lib/disorder/*.so*
-	$(INSTALL_DATA) debian/htaccess \
-		debian/disorder-server/usr/lib/cgi-bin/disorder/.htaccess
 	rm -rf debian/disorder-server/usr/share/doc/disorder-server
 	ln -s disorder debian/disorder-server/usr/share/doc/disorder-server
 	dpkg-gencontrol -isp -pdisorder-server -Pdebian/disorder-server -Tdebian/substvars.disorder-server

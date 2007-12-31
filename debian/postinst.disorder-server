@@ -34,6 +34,56 @@ configure_init_d() {
 
 restart_server() {
   /etc/init.d/disorder restart
+  # Wait for the server to get going.  This is a horrid bodge and ought
+  # to be done away with, but is required for the time being.  Sorry.
+  sleep 5
+}
+
+setup_guest() {
+  echo "Checking whether guest user exists..."
+  TMPFILE="$(mktemp -t)"
+  if disorder users > "$TMPFILE"; then
+    if grep -q '^guest$' "$TMPFILE"; then
+      echo "Guest user has already been set up."
+    else
+      echo "Attempting to set up guest user..."
+      if disorder setup-guest; then
+        echo "Created guest user."
+      else
+        echo "Failed to create guest user."
+        echo "You can use 'disorder setup-guest' to do this step manually."
+        echo
+      fi
+    fi
+  else
+    echo "Cannot determine whether guest user has been set up."
+    echo
+  fi
+  rm -f "$TMPFILE"
+}
+
+fix_configuration() {
+  # Once the server has started up, we can remove some of the obsolete
+  # directives from the config file.
+  if grep -q ^trust /etc/disorder/config; then
+    echo "Removing obsolete 'trust' directive from /etc/disorder/config"
+    sed < /etc/disorder/config > /etc/disorder/config.new \
+	's/^trust/#trust/'
+    chmod 644 /etc/disorder/config.new
+    mv /etc/disorder/config.new /etc/disorder/config
+  fi
+  if test -e /etc/disorder/config.private \
+      && grep -q ^allow /etc/disorder/config.private; then
+    echo "Removing obsolete 'allow' directive(s) from /etc/disorder/config.private"
+    u=$(umask)
+    umask 077
+    sed < /etc/disorder/config.private > /etc/disorder/config.private.new \
+	's/^allow/#allow/'
+    umask $u
+    chmod 640 /etc/disorder/config.private.new
+    chown root:jukebox /etc/disorder/config.private.new
+    mv /etc/disorder/config.private.new /etc/disorder/config.private
+  fi
 }
 
 case "$1" in
@@ -46,6 +96,8 @@ configure )
   chown jukebox:jukebox /var/lib/disorder
   configure_init_d
   restart_server
+  fix_configuration
+  setup_guest
   db_stop
   ;;
 abort-upgrade )
