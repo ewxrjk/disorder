@@ -31,7 +31,10 @@
   <a class=@if{@eq{@action@}{manage}@}{activemenu}{inactivemenu}@
  href="@url@?mgmt=true"
  title="@label:sidebar.manageverbose@">@label:sidebar.manage@</a>
-  <a class=@if{@eq{@action@}{login}@}{activemenu}{inactivemenu}@
+  <a class=@if{@or{@eq{@action@}{login}@}
+                  {@eq{@action@}{logout}@}
+                  {@eq{@action@}{register}@}
+                  {@eq{@action@}{edituser}@}@}{activemenu}{inactivemenu}@
  href="@url@?action=login&amp;nonce=@nonce@"
  title="@label:sidebar.loginverbose@">@label:sidebar.login@</a>
   <a class=@if{@eq{@action@}{help}@}{activemenu}{inactivemenu}@

@@ -29,12 +29,16 @@ USA
 
    @if{@ne{@label:error@}{error}@}{
    @#{error reporting from some earlier operation}@
-   <p class=error>@label{error.@label:error@}@</p>
+   <div class=error>
+     <p class=error>@label{error.@label:error@}@</p>
+   </div>
    }@
 
    @if{@ne{@label:status@}{status}@}{
    @#{some action succeeded}@
-   <p class=loginstatus>@label{login.@label:status@}@</p>
+   <div class=loginstatus>
+     <p class=loginstatus>@label{login.@label:status@}@</p>
+   </div>
    }@
 
    @if{@eq{@user@}{guest}@}{

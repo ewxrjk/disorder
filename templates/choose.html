@@ -26,6 +26,40 @@ USA
  <body>
 @include{topbar}@
    <h1 class=title>@label:choose.title@</h1>
+  
+  @#{always have the first-letter bar, if choosealpha enabled}@
+  @if{@eq{@label:sidebar.choosewhich@}{choosealpha}@}{
+
+   <p class=choosealpha>
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?a">A</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?b">B</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?c">C</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?d">D</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?e">E</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?f">F</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?g">G</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?h">H</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?i">I</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?j">J</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?k">K</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?l">L</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?m">M</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?n">N</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?o">O</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?p">P</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?q">Q</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?r">R</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?s">S</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(?!the [^t])t">T</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?u">U</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?v">V</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?w">W</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?x">X</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?y">Y</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^(the )?z">Z</a> |
+    <a class=choosealpha href="@url@?action=choose&#38;regexp=^[^a-z]">*</a>
+   </p>
+  }@
 
    @if{@ne{@arg:directory@}{}@}{
    <p class=directoryname>@navigate{@arg:directory@}{/<a

@@ -79,10 +79,10 @@ label	playing.albumverbose	"more tracks from this album"
 label	recent.title		"Recently Played"
 
 # <TITLE> for new tracks page
-label	new.title		"New tracks"
+label	new.title		"New Tracks"
 
 # <TITLE> for choose track page
-label	choose.title		"Pick track"
+label	choose.title		"Pick Track"
 
 # Text for play all button
 label	choose.playall		"Play all"
@@ -130,7 +130,7 @@ label	prefs.random		"Random play"
 label	prefs.tags		"Tags"
 
 # <TITLE> for help page
-label	help.title		"DisOrder help"
+label	help.title		"DisOrder Help"
 
 # <TITLE> for login page
 label	login.title		"DisOrder Login"

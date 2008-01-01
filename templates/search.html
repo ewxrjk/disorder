@@ -29,14 +29,14 @@ USA
 
    <form class=search action="@url@" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
-    <div class=search>
+     <p class=search>Enter search terms:
      <input class=query name=query type=text value="@arg:query@"
-      size=32>
+      size=50>
      <button class=search name=action type=submit value=search>
       @label:search.search@
      </button>
      <input name=nonce type=hidden value="@nonce@">
-    </div>
+     </p>
    </form>
 
    <div class=searchresults>

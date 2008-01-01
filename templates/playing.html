@@ -29,6 +29,7 @@ USA
 
    @#{extra control buttons for the management page}@
    @if{@arg:mgmt@}{
+   <div class=mgmt>
    <p class=mgmt>
     @if{@paused@}{
     <!-- paused -->
@@ -110,6 +111,8 @@ USA
      </a>}{<img class=button src="@image:noup@">}@
     </form>
     </span>
+    </p>
+    </div>
    }@
 
 @#{only display the table if there is something to put in it}@

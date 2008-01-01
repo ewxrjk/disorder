@@ -1,7 +1,11 @@
-/* default colors */
+/* default font and colors */
 body {
   color: black;
   background-color: white
+  font-family: serif;
+  font-weight: normal;
+  font-size: 12pt;
+  font-variant: normal
 }
 
 /* general link colors */
@@ -17,11 +21,24 @@ a:active {
   color: red
 }
 
+/* title bars */
 h1.title {
   font-family: sans-serif;
   font-weight: bold;
+  font-size: 18pt;
+  font-variant: normal;
   text-align: center;
-  font-size: 18pt
+  border: 1px solid black;
+  padding: 0.2em;
+  background-color: #e0e0e0
+}
+
+/* secondary titles */
+h2 {
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 16pt;
+  font-variant: normal;
 }
 
 /* playing, recent and new ***************************************************/
@@ -143,9 +160,7 @@ td.length {
 td.button {
   text-align: center;
   padding: 1px;
-  border-color: black;
-  border-width: 1px;
-  border-style: solid;
+  border: 1px solid black;
   background-color: #c0c0c0;
   color: #000000
 }
@@ -158,7 +173,11 @@ p.mgmt,form.volume {
 
 /* first letter choice */
 p.choosealpha {
-  text-align: center
+  text-align: center;
+  font-size: 140%;
+  font-weight: bold;
+  border: 1px solid black;
+  padding: 1em
 }
 
 /* containing directory */
@@ -307,6 +326,11 @@ a.search_title:visited {
 
 a.search_title:active {
   color: red
+}
+
+form.search {
+  border: 1px solid black;
+  padding: 1em
 }
 
 /* sidebar *******************************************************************/
@@ -460,25 +484,47 @@ p.volume {
 
 /* login page ****************************************************************/
 
-form.login,form.register,form.edituser {
-  border-style: solid;
-  border-width: 1px;
-  border-color: black
+form.login {
+  border: 1px solid black;
+  background-color: #e0ffe0	/* pastel green */
+}
+
+form.register {
+  border: 1px solid black;
+  background-color: #e0e0ff	/* pastel blue */
+}
+
+form.edituser {
+  border: 1px solid black;
+  background-color: #ffffe0	/* pastel yellow */
 }
 
 form.logout {
   border-style: none;
 }
 
+div.loginstatus {
+  border: 1px solid black;
+  background-color: #ffff00	/* solid yellow */
+}
+
 p.loginstatus {
-  color: green;
-  font-size: 150%
+  color: #0000ff;		/* solid blue */
+  font-size: 150%;
+  font-weight: bold
 }
 
 /* errors ********************************************************************/
 
+div.error {
+  border: 1px solid black;
+  background-color: #ff0000;	/* solid red */
+  color: white;
+  font-size: 150%;
+  font-weight: bold
+}
+
 p.error {
-  color: red
 }
 
 /* miscelleanous *************************************************************/
