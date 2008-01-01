@@ -930,6 +930,9 @@ struct ev_writer {
 
   /** @brief Tied reader or 0 */
   ev_reader *reader;
+
+  /** @brief Set when abandoned */
+  int abandoned;
 };
 
 /** @brief State structure for a buffered reader */
@@ -998,9 +1001,12 @@ static int writer_timebound_exceeded(ev_source *ev,
 				     void *u) {
   ev_writer *const w = u;
 
-  error(0, "abandoning writer %s because no writes within %ds",
-	w->what, w->timebound);
-  w->error = ETIMEDOUT;
+  if(!w->abandoned) {
+    w->abandoned = 1;
+    error(0, "abandoning writer '%s' because no writes within %ds",
+	  w->what, w->timebound);
+    w->error = ETIMEDOUT;
+  }
   return writer_shutdown(ev, now, u);
 }
 
@@ -1075,11 +1081,15 @@ static int ev_writer_write(struct sink *sk, const void *s, int n) {
     /* The new buffer contents will exceed the space bound.  We assume that the
      * remote client has gone away and TCP hasn't noticed yet, or that it's got
      * hopelessly stuck. */
-    error(0, "abandoning writer %s because buffer has reached %td bytes",
-	  w->what, w->b.end - w->b.start);
-    ev_fd_disable(w->ev, ev_write, w->fd);
-    w->error = EPIPE;
-    return ev_timeout(w->ev, 0, 0, writer_shutdown, w);
+    if(!w->abandoned) {
+      w->abandoned = 1;
+      error(0, "abandoning writer '%s' because buffer has reached %td bytes",
+	    w->what, w->b.end - w->b.start);
+      ev_fd_disable(w->ev, ev_write, w->fd);
+      w->error = EPIPE;
+      return ev_timeout(w->ev, 0, 0, writer_shutdown, w);
+    } else
+      return 0;
   }
   /* Make sure there is space */
   buffer_space(&w->b, n);

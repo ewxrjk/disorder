@@ -946,6 +946,7 @@ static const struct conf conf[] = {
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
+  { C(new_max),          &type_integer,          validate_positive },
   { C2(nice, nice_rescan), &type_integer,        validate_non_negative },
   { C(nice_rescan),      &type_integer,          validate_non_negative },
   { C(nice_server),      &type_integer,          validate_any },
@@ -1188,6 +1189,7 @@ static struct config *config_default(void) {
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
   c->smtp_server = xstrdup("127.0.0.1");
+  c->new_max = 100;
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);

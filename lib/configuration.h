@@ -261,6 +261,9 @@ struct config {
 
   /** @brief Origin address for outbound mail */
   char *mail_sender;
+
+  /** @brief Maximum number of tracks in response to 'new' */
+  long new_max;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

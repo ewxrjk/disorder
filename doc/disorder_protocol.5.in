@@ -148,7 +148,8 @@ depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
 Send the most recently added \fIMAX\fR tracks in a response body.  If the
-argument is ommitted, all recently added tracks are listed.
+argument is ommitted, the \fBnew_max\fR most recent tracks are listed (see
+\fBdisorder_config\fR(5)).
 .TP
 .B nop
 Do nothing.  Used by

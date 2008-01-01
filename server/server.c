@@ -995,9 +995,18 @@ static int c_nop(struct conn *c,
 static int c_new(struct conn *c,
 		 char **vec,
 		 int nvec) {
-  char **tracks = trackdb_new(0, nvec > 0 ? atoi(vec[0]) : INT_MAX);
+  int max, n;
+  char **tracks;
 
+  if(nvec > 0)
+    max = atoi(vec[0]);
+  else
+    max = INT_MAX;
+  if(max <= 0 || max > config->new_max)
+    max = config->new_max;
+  tracks = trackdb_new(0, max);
   sink_printf(ev_writer_sink(c->w), "253 New track list follows\n");
+  n = 0;
   while(*tracks) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
 		**tracks == '.' ? "." : "", *tracks);
