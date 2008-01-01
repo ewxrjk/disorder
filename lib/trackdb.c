@@ -2604,7 +2604,7 @@ int trackdb_adduser(const char *user,
   WITH_TRANSACTION(create_user(user, password, rights, email, confirmation,
                                tid, DB_NOOVERWRITE));
   if(e) {
-    error(0, "cannot created user '%s' because they already exist", user);
+    error(0, "cannot create user '%s' because they already exist", user);
     return -1;
   } else {
     if(email)
