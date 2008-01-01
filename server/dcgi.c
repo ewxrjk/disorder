@@ -113,7 +113,7 @@ static void header_cookie(struct sink *output) {
   parse_url(config->url, &u);
   if(login_cookie) {
     dynstr_append_string(d, "disorder=");
-    dynstr_append_string(d, quote822(login_cookie, 0));
+    dynstr_append_string(d, login_cookie);
   } else {
     /* Force browser to discard cookie */
     dynstr_append_string(d, "disorder=none;Max-Age=0");
@@ -123,8 +123,8 @@ static void header_cookie(struct sink *output) {
      * that.  But the default path only goes up to the rightmost /, which would
      * cause the browser to expose the cookie to other CGI programs on the same
      * web server. */
-    dynstr_append_string(d, ";Path=");
-    dynstr_append_string(d, quote822(u.path, 0));
+    dynstr_append_string(d, ";Version=1;Path=");
+    dynstr_append_string(d, u.path);
   }
   dynstr_terminate(d);
   cgi_header(output, "Set-Cookie", d->vec);

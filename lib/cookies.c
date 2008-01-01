@@ -83,6 +83,16 @@ static void newkey(void) {
     hash_foreach(revoked, revoked_cleanup_callback, &now);
 }
 
+/** @brief Base64 mapping table for cookies
+ *
+ * Stupid Safari cannot cope with quoted cookies, so cookies had better not
+ * need quoting.  We use $ to separate the parts of the cookie and +%# to where
+ * MIME uses +/=; see @ref base64.c.  See http_separator() for the characters
+ * to avoid.
+ */
+static const char cookie_base64_table[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+%#";
+
 /** @brief Sign @p subject with @p key and return the base64 of the result
  * @param key Key to sign with (@ref HASHSIZE bytes)
  * @param subject Subject string
@@ -106,7 +116,7 @@ static char *sign(const uint8_t *key,
   }
   gcry_md_write(h, subject, strlen(subject));
   sig = gcry_md_read(h, ALGO);
-  sig64 = mime_to_base64(sig, HASHSIZE);
+  sig64 = generic_to_base64(sig, HASHSIZE, cookie_base64_table);
   gcry_md_close(h);
   return sig64;
 }
@@ -120,9 +130,9 @@ char *make_cookie(const char *user) {
   time_t now;
   char *b, *bp, *c, *g;
 
-  /* semicolons aren't allowed in usernames */
-  if(strchr(user, ';')) {
-    error(0, "make_cookie for username with semicolon");
+  /* dollar signs aren't allowed in usernames */
+  if(strchr(user, '$')) {
+    error(0, "make_cookie for username with dollar sign");
     return 0;
   }
   /* look up the password */
@@ -136,7 +146,7 @@ char *make_cookie(const char *user) {
   if(now >= signing_key_validity_limit)
     newkey();
   /* construct the subject */
-  byte_xasprintf(&b, "%jx;%s;", (intmax_t)now + config->cookie_login_lifetime,
+  byte_xasprintf(&b, "%jx$%s$", (intmax_t)now + config->cookie_login_lifetime,
 		 urlencodestring(user));
   byte_xasprintf(&bp, "%s%s", b, password);
   /* sign it */
@@ -172,12 +182,12 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
     error(errno, "error parsing cookie timestamp");
     return 0;
   }
-  if(*c1 != ';') {
+  if(*c1 != '$') {
     error(0, "invalid cookie timestamp");
     return 0;
   }
-  /* There'd better be two semicolons */
-  c2 = strchr(c1 + 1, ';');
+  /* There'd better be two dollar signs */
+  c2 = strchr(c1 + 1, '$');
   if(c2 == 0) {
     error(0, "invalid cookie syntax");
     return 0;
@@ -202,7 +212,7 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
     return 0;
   /* construct the expected subject.  We re-encode the timestamp and the
    * password. */
-  byte_xasprintf(&bp, "%jx;%s;%s", t, urlencodestring(user), password);
+  byte_xasprintf(&bp, "%jx$%s$%s", t, urlencodestring(user), password);
   /* Compute the expected signature.  NB we base64 the expected signature and
    * compare that rather than exposing our base64 parser to the cookie. */
   if(!(sig = sign(signing_key, bp)))
@@ -234,7 +244,7 @@ void revoke_cookie(const char *cookie) {
   /* reject bogus cookies */
   if(errno)
     return;
-  if(*ptr != ';')
+  if(*ptr != '$')
     return;
   /* make sure the revocation list exists */
   if(!revoked)
