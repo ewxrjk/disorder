@@ -1,6 +1,6 @@
 #! /usr/bin/make -f
 #
-# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -156,8 +156,10 @@ pkg-disorder-server: build
 		debian/disorder-server/etc/init.d/disorder
 	$(INSTALL_DATA) debian/etc.disorder.config \
 		debian/disorder-server/etc/disorder/config
-	$(INSTALL_DATA) debian/etc.disorder.options \
+	$(INSTALL_DATA) templates/options \
 		debian/disorder-server/etc/disorder/options
+	$(INSTALL_DATA) debian/etc.disorder.options.user \
+		debian/disorder-server/etc/disorder/options.user
 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) server/disorder.cgi \
 		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \

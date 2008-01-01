@@ -1,3 +1,4 @@
 /etc/disorder/config
 /etc/disorder/options
+/etc/disorder/options.user
 /etc/init.d/disorder

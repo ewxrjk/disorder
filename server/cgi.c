@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -601,6 +601,11 @@ const char *cgi_label(const char *key) {
       label = key;
   }
   return label;
+}
+
+int cgi_label_exists(const char *key) {
+  read_options();
+  return kvp_get(labels, key) ? 1 : 0;
 }
 
 char **cgi_columns(const char *name, int *ncolumns) {

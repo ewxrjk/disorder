@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <!--
 This file is part of DisOrder.
-Copyright (C) 2004, 2005 Richard Kettlewell
+Copyright (C) 2004-2008 Richard Kettlewell
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ USA
      title="@label:playing.resumeverbose@">@label:playing.pause@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.tick@">
+    <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- not paused -->
     <span class=button>
@@ -47,7 +47,7 @@ USA
      title="@label:playing.pauseverbose@">@label:playing.pause@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.cross@">
+    <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     @if{@random-enabled@}{
     <!-- random played enabled -->
@@ -57,7 +57,7 @@ USA
      title="@label:playing.randomdisableverbose@">@label:playing.random@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.tick@">
+    <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- random played disabled -->
     <span class=button>
@@ -66,7 +66,7 @@ USA
      title="@label:playing.randomenableverbose@">@label:playing.random@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.cross@">
+    <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     @if{@enabled@}{
     <!-- playing enabled -->
@@ -76,7 +76,7 @@ USA
      title="@label:playing.disableverbose@">@label:playing.playing@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.tick@">
+    <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- playing disabled -->
     <span class=button>
@@ -85,7 +85,7 @@ USA
      title="@label:playing.enableverbose@">@label:playing.playing@</a>
     </a>
     </span>
-    <img width=16 height=16 class=imgbutton src="@label:images.cross@">
+    <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     <form class=volume action="@url@" method=POST
      enctype="multipart/form-data" accept-charset=utf-8>
@@ -93,9 +93,9 @@ USA
      @label:playing.volume@
      @right{volume}{<a class=imgbutton
       href="@url@?action=volume&#38;delta=-@label:volume.resolution@&#38;back=@urlquote{@thisurl@?mgmt=true}@">
-      <img class=button src="@label:images.down@"
+      <img class=button src="@image:down@"
        alt="@label:volume.reduce@" title="@label:volume.reduceverbose@">
-     </a>}{<img class=button src="@label:images.nodown@">}@
+     </a>}{<img class=button src="@image:nodown@">}@
      @label:volume.left@ <input size=3 name=left type=text value="@volume:left@">
      @label:volume.right@ <input size=3 name=right type=text value="@volume:right@">
      <input name=nonce type=hidden value="@nonce@">
@@ -105,9 +105,9 @@ USA
      </button>}@
      @right{volume}{<a class=imgbutton
       href="@url@?action=volume&#38;delta=@label:volume.resolution@&#38;back=@urlquote{@thisurl@?mgmt=true}@">
-      <img class=button src="@label:images.up@"
+      <img class=button src="@image:up@"
        alt="@label:volume.increase@" title="@label:volume.increaseverbose@">
-     </a>}{<img class=button src="@label:images.noup@">}@
+     </a>}{<img class=button src="@image:noup@">}@
     </form>
     </span>
    }@
@@ -155,10 +155,10 @@ USA
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@scratchable@}{<a class=imgbutton
        href="@url@?action=scratch&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
-       class=button src="@label:images.scratch@"
+       class=button src="@image:scratch@"
        title="@label:playing.scratchverbose@"
        alt="@label:playing.scratch@"></a>}{<img
-       class=button src="@label:images.noscratch@"
+       class=button src="@image:noscratch@"
        title="@label:playing.scratchverbose@"
        alt="@label:playing.scratch@">}@</td>
       @if{@arg:mgmt@}{
@@ -194,10 +194,10 @@ USA
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@removable@}{<a class=imgbutton
        href="@url@?action=remove&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
-       class=button src="@label:images.scratch@"
+       class=button src="@image:scratch@"
        title="@label:playing.removeverbose@" 
        alt="@label:playing.remove@"></a>}{<img
-       class=button src="@label:images.noscratch@"
+       class=button src="@image:noscratch@"
        title="@label:playing.removeverbose@"
        alt="@label:playing.remove@">}@</td>
 
@@ -207,24 +207,24 @@ USA
      <!-- cannot move up -->
      <td class=imgbutton>
       <img
-       class=button src="@label:images.noupup@"
+       class=button src="@image:noupall@"
        title="@label:playing.upallverbose@" alt="">
      <td class=imgbutton>
       <img
-       class=button src="@label:images.noup@"
+       class=button src="@image:noup@"
        title="@label:playing.upverbose@" alt="">
          }{
      <!-- can move up -->
      <td class=imgbutton>
       <a class=imgbutton
         href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=2147483647&#38;mgmt=true"><img
-       class=button src="@label:images.upup@"
+       class=button src="@image:upall@"
        title="@label:playing.upallverbose@"
        alt="@label:playing.upall@"></a>
      <td class=imgbutton>
      <a class=imgbutton
         href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=1&#38;mgmt=true"><img
-       class=button src="@label:images.up@"
+       class=button src="@image:up@"
        title="@label:playing.upverbose@" alt="@label:playing.up@"></a>
          }@
 
@@ -233,24 +233,24 @@ USA
      <!-- cannot move down -->
      <td class=imgbutton>
       <img
-       class=button src="@label:images.nodowndown@"
+       class=button src="@image:nodownall@"
        title="@label:playing.downallverbose@" alt="">
      <td class=imgbutton>
       <img
-       class=button src="@label:images.nodown@"
+       class=button src="@image:nodown@"
        title="@label:playing.downverbose@" alt="">
          }{
      <!-- can move down -->
      <td class=imgbutton>
       <a class=imgbutton
         href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=-2147483647&#38;mgmt=true"><img
-       class=button src="@label:images.downdown@"
+       class=button src="@image:downall@"
        title="@label:playing.downallverbose@"
        alt="@label:playing.downall@"></a>
      <td class=imgbutton>
      <a class=imgbutton
         href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=-1&#38;mgmt=true"><img
-       class=button src="@label:images.down@"
+       class=button src="@image:down@"
        title="@label:playing.downverbose@" alt="@label:playing.down@"></a>
          }@
 

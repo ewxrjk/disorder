@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1697,6 +1697,26 @@ static void exp_userinfo(int attribute((unused)) nargs,
   cgi_output(output, "%s", value);
 }
 
+static void exp_image(int attribute((unused)) nargs,
+		      char **args,
+		      cgi_sink *output,
+		      void attribute((unused)) *u) {
+  char *labelname;
+  const char *imagestem;
+
+  byte_xasprintf(&labelname, "images.%s", args[0]);
+  if(cgi_label_exists(labelname))
+    imagestem = cgi_label(labelname);
+  else if(strchr(args[0], '.'))
+    imagestem = args[0];
+  else
+    byte_xasprintf((char **)&imagestem, "%s.png", args[0]);
+  if(cgi_label_exists("url.static"))
+    cgi_output(output, "%s/%s", cgi_label("url.static"), imagestem);
+  else
+    cgi_output(output, "/disorder/%s", imagestem);
+}
+
 static const struct cgi_expansion expansions[] = {
   { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
   { "action", 0, 0, 0, exp_action },
@@ -1712,6 +1732,7 @@ static const struct cgi_expansion expansions[] = {
   { "fullname", 0, 0, 0, exp_fullname },
   { "id", 0, 0, 0, exp_id },
   { "if", 2, 3, EXP_MAGIC, exp_if },
+  { "image", 1, 1, 0, exp_image },
   { "include", 1, 1, 0, exp_include },
   { "index", 0, 0, 0, exp_index },
   { "isdirectories", 0, 0, 0, exp_isdirectories },

@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+.\" Copyright (C) 2004-2008 Richard Kettlewell
 .\"
 .\" This program is free software; you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -911,7 +911,18 @@ The ID of the current track.
 If \fIBOOL\fR expands to \fBtrue\fR then expands to \fITRUEPART\fR, otherwise
 to \fIFALSEPART\fR (which may be omitted).
 .TP
-.B @include:\fIPATH\fR@
+.B @image:\fINAME\fB@
+Expands to the (possibly relative) URL for image \fINAME\fR.
+.IP
+If there is a label \fBimages.\fINAME\fR then that will be the image base name.
+Otherwise the image base name is \fINAME\fB.png\fR or just \fINAME\fR if it
+alraedy has an extension.  Thus labels may be defined to give images role
+names.
+.IP
+If there is a label \fBurl.static\fR then that is the base URL for images.  If
+it is not defined then \fB/disorder\fR is used as a default.
+.TP
+.B @include:\fIPATH\fB@
 Include the named file as if it were a template file.  If \fIPATH\fR
 starts with a \fB/\fR then it is used as-is; otherwise, ".html" is
 appended and the template path is searched.

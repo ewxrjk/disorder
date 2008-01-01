@@ -229,12 +229,13 @@ label	heading.album		Album
 label	heading.title		Title
 label	heading.length		Length
 
-# (Possibly relative) URL to images.  This be a URL for the directory
-# containing the icons used by the web interface (which might be
-# /usr/local/share/disorder/static/).
-label	url.static		/disorder/
-
-# Stylesheet.  As above, a (possibly relative) URL, but this time pointing
-# to the stylesheet to use in all DisOrder web pages.
-label	links.css		/disorder/disorder.css
-
+# Role images.  See the documentation for @images:NAME@.
+label   images.enabled          tick.png
+label   images.disabled         cross.png
+label   images.scratch          cross.png
+label   images.noscratch        nocross.png
+label   images.noup             noup.png
+label   images.upall            upup.png
+label   images.noupall          noupup.png
+label   images.downall          downdown.png
+label   images.nodownall        nodowndown.png

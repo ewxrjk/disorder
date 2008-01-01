@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,6 +85,8 @@ char *cgi_makeurl(const char *url, ...);
 
 const char *cgi_label(const char *key);
 /* look up the translated label @key@ */
+
+int cgi_label_exists(const char *key);
 
 char **cgi_columns(const char *name, int *nheadings);
 /* return the list of columns for @name@ */
