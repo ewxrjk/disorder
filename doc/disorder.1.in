@@ -63,8 +63,12 @@ Create \fIUSER\fR with a random password.  \fIUSER\fR must be a UNIX login
 user (not just any old string).  If \fIRIGHTS\fR is not specified then the
 \fBdefault_rights\fR setting from the server's configuration file applies.
 .IP
-An appropriate \fIconfig.USER\fR is created, owned by the user, so they should
-be able to log in immediately.
+\fI~USER/.disorder/passwd\fR is created with the password in it, so the new
+user should be able to log in immediately.
+.IP
+If writing the \fIpasswd\fR file fails then the user will already have been
+created in DisOrder's user database.  Use \fBdisorder deluser\fR to remove them
+before trying again.
 .TP
 .B deluser \fIUSER\fR
 Delete a user.

@@ -34,7 +34,7 @@
 #include "log.h"
 #include "configuration.h"
 #include "printf.h"
-#include "hex.h"
+#include "base64.h"
 
 /** @brief Create a DisOrder login for the calling user, called @p user
  * @param client DisOrder client
@@ -43,49 +43,73 @@
  * @return 0 on success, non-0 on error
  */
 int authorize(disorder_client *client, const char *user, const char *rights) {
-  uint8_t pwbin[10];
-  const struct passwd *pw, *jbpw;
-  gid_t jbgid;
-  char *c, *t, *pwhex;
+  /* base64 is 3-into-4 so we make the password a multiple of 3 bytes long */
+  uint8_t pwbin[12];
+  const struct passwd *pw;
+  char *pwhex;
   int fd;
   FILE *fp;
+  char *configdir, *configpath, *configpathtmp;
+  struct stat sb;
+  uid_t old_uid = getuid();
+  gid_t old_gid = getgid();
 
-  if(!(jbpw = getpwnam(config->user)))
-    fatal(0, "cannot find user %s", config->user);
-  jbgid = jbpw->pw_gid;
   if(!(pw = getpwnam(user)))
-    fatal(0, "no such user as %s", user);
-  if((c = config_userconf(0, pw)) && access(c, F_OK) == 0) {
-    error(0, "%s already exists", c);
-    return -1;
-  }
-  if((c = config_usersysconf(pw)) && access(c, F_OK) == 0) {
-    error(0, "%s already exists", c);
-    return -1;
-  }
-  byte_xasprintf(&t, "%s.new", c);
-  gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
-  pwhex = hex(pwbin, sizeof pwbin);
+    /* If it's a NIS world then /etc/passwd may be a lie, but it emphasizes
+     * that it's talking about the login user, not the DisOrder user */
+    fatal(0, "no such user as %s in /etc/passwd", user);
 
-  /* create config.USER, to end up with mode 400 user:<anything> */
-  if((fd = open(t, O_WRONLY|O_CREAT|O_EXCL, 0600)) < 0)
-    fatal(errno, "error creating %s", t);
-  if(fchown(fd, pw->pw_uid, -1) < 0)
-    fatal(errno, "error chowning %s", t);
-  if(fchmod(fd, 0400) < 0)
-    fatal(errno, "error chmoding %s", t);
+  /* Choose a random password */
+  gcry_randomize(pwbin, sizeof pwbin, GCRY_STRONG_RANDOM);
+  pwhex = mime_to_base64(pwbin, sizeof pwbin);
+
+  /* Create the user on the server */
+  if(disorder_adduser(client, user, pwhex, rights))
+    return -1;
+
+  /* Become the target user */
+  if(setegid(pw->pw_gid) < 0)
+    fatal(errno, "setegid %lu", (unsigned long)pw->pw_gid);
+  if(seteuid(pw->pw_uid) < 0)
+    fatal(errno, "seteuid %lu", (unsigned long)pw->pw_uid);
+  
+  /* Make sure the configuration directory exists*/
+  byte_xasprintf(&configdir, "%s/.disorder", pw->pw_dir);
+  if(mkdir(configdir, 02700) < 0) {
+    if(errno != EEXIST)
+      fatal(errno, "creating %s", configdir);
+  }
+
+  /* Make sure the configuration file does not exist */
+  byte_xasprintf(&configpath, "%s/passwd", configdir);
+  if(lstat(configpath, &sb) == 0)
+    fatal(0, "%s already exists", configpath);
+  if(errno != ENOENT)
+    fatal(errno, " checking %s", configpath);
+  
+  byte_xasprintf(&configpathtmp, "%s.new", configpath);
+
+  /* Create config file with mode 600 */
+  if((fd = open(configpathtmp, O_WRONLY|O_CREAT, 0600)) < 0)
+    fatal(errno, "error creating %s", configpathtmp);
+
+  /* Write password */
   if(!(fp = fdopen(fd, "w")))
     fatal(errno, "error calling fdopen");
   if(fprintf(fp, "password %s\n", pwhex) < 0
      || fclose(fp) < 0)
-    fatal(errno, "error writing to %s", t);
-  if(rename(t, c) < 0)
-    fatal(errno, "error renaming %s to %s", t, c);
+    fatal(errno, "error writing to %s", configpathtmp);
 
-  /* create the user on the server */
-  if(disorder_adduser(client, user, pwhex, rights))
-    return -1;
+  /* Rename config file into place */
+  if(rename(configpathtmp, configpath) < 0)
+    fatal(errno, "error renaming %s to %s", configpathtmp, configpath);
 
+  /* Put our identity back */
+  if(seteuid(old_uid) < 0)
+    fatal(errno, "seteuid %lu", (unsigned long)old_uid);
+  if(setegid(old_gid) < 0)
+    fatal(errno, "setegid %lu", (unsigned long)old_gid);
+  
   return 0;
 }
 

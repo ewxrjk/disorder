@@ -200,17 +200,20 @@ Configuration files are read in the following order:
 .TP
 .I pkgconfdir/config.private
 Should be readable only by the jukebox group.  Not really useful any more and
-may be abolished in future.
-.TP
-.I pkgconfdir/config.\fRUSER
-Per-user system-controlled client configuration.  Optional but if it
-exists must be readable only by the relevant user.  Would normally
-contain a \fBpassword\fR directive.
+will be abolished in future.
 .TP
 .I ~\fRUSER\fI/.disorder/passwd
 Per-user client configuration.  Optional but if it exists must be
 readable only by the relevant user.  Would normally contain a
 \fBpassword\fR directive.
+.TP
+.I pkgconfdir/config.\fRUSER
+Per-user system-controlled client configuration.  Optional but if it
+exists must be readable only by the relevant user.  Would normally
+contain a \fBpassword\fR directive.
+.IP
+The prefererred location for per-user passwords is \fI~/.disorder/passwd\fR and
+\fBdisorder authorize\fR writes there now.  
 .SS "Global Configuration"
 .TP
 .B home \fIDIRECTORY\fR

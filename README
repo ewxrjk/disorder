@@ -8,12 +8,13 @@ DisOrder is a multi-user software jukebox.
    * It supports both ALSA and OSS and can also broadcast an RTP stream over a
      LAN; a player for the latter is included.
    * Tracks may be selected either via a hierarchical interface or by a fast
-     word search.
+     word or tag search.
    * It has a web interface (allowing access from graphical web browsers) and a
      GTK+ interface that runs on Linux and Mac systems.
    * Playing tracks can be paused or cancelled ("scratched").
 
-See CHANGES for details of recent changes to DisOrder.
+See CHANGES for details of recent changes to DisOrder and README.upgrades for
+upgrade instructions.
 
 The server supports Linux and can be made to work on a Mac (see README.mac).
 The clients work on both Linux and the Mac.  It could probably be ported to
@@ -71,10 +72,11 @@ Installation
    "This place'd be a paradise tomorrow, if every department had a supervisor
    with a machine-gun"
 
-NOTE: If you are upgrading from an earlier version, see README.upgrades.
+IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
 
-On a Debian system, if you install from .deb files then you should be able to
-skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
+On a Debian or Ubuntu system, if you install from .deb files then you should be
+able to skip steps 1 to 6 and configure it via debconf.  This is strongly
+recommended!
 
 1. Build the software.  Do something like this:
 
@@ -164,7 +166,7 @@ skip steps 1 to 6 and configure it via debconf.  This is strongly recommended!
      disorder authorize USERNAME
 
    This will automatically choose a random password and create
-   /etc/disorder/config.USERNAME.
+   ~USERNAME/.disorder/passwd.
 
    Those users should now be able to access the server from the same host as it
    runs on, either via the disorder command or Disobedience.  To run

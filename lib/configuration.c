@@ -1359,7 +1359,7 @@ int config_read(int server) {
       return -1;
     xfree(privconf);
     /* if we have a password file, read it */
-    if((privconf = config_userconf(getenv("HOME"), pw))
+    if((privconf = config_userconf(0, pw))
        && access(privconf, F_OK) == 0
        && config_include(c, privconf))
       return -1;
