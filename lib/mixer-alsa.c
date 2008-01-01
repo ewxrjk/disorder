@@ -108,11 +108,13 @@ static int alsa_open(struct alsa_mixer_state *h) {
   snd_mixer_selem_id_set_name(id, config->channel);
   snd_mixer_selem_id_set_index(id, atoi(config->mixer));
   if(!(h->elem = snd_mixer_find_selem(h->handle, id))) {
-    error(0, "snd_mixer_find_selem returned NULL");
+    error(0, "device '%s' mixer control '%s,%s' does not exist",
+	  config->device, config->channel, config->mixer);
     goto error;
   }
   if(!snd_mixer_selem_has_playback_volume(h->elem)) {
-    error(0, "configured mixer control has no playback volume");
+    error(0, "device '%s' mixer control '%s,%s' has no playback volume",
+	  config->device, config->channel, config->mixer);
     goto error;
   }
   if(snd_mixer_selem_is_playback_mono(h->elem)) {
@@ -123,7 +125,8 @@ static int alsa_open(struct alsa_mixer_state *h) {
   }
   if(!snd_mixer_selem_has_playback_channel(h->elem, h->left)
      || !snd_mixer_selem_has_playback_channel(h->elem, h->right)) {
-    error(0, "configured mixer control lacks required playback channels");
+    error(0, "device '%s' mixer control '%s,%s' lacks required playback channels",
+	  config->device, config->channel, config->mixer);
     goto error;
   }
   snd_mixer_selem_get_playback_volume_range(h->elem, &h->min, &h->max);
