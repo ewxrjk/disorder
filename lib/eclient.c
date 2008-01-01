@@ -146,6 +146,9 @@ struct disorder_eclient {
    * time to time so that we detect broken connections reasonably quickly.  The
    * server just ignores these bytes.
    */
+
+  /** @brief Protocol version */
+  int protocol;
 };
 
 /* Forward declarations ******************************************************/
@@ -539,16 +542,32 @@ static void authbanner_opcallback(disorder_eclient *c,
     disorder_eclient_close(c);
     return;
   }
-  if(nrvec != 3) {
+  switch(nrvec) {
+  case 1:
+    protocol = "1";
+    algorithm = "sha1";
+    challenge = *rvec++;
+    break;
+  case 2:
+    protocol = "1";
+    algorithm = *rvec++;
+    challenge = *rvec++;
+    break;
+  case 3:
+    protocol = *rvec++;
+    algorithm = *rvec++;
+    challenge = *rvec++;
+    break;
+  default:
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
     disorder_eclient_close(c);
+    return;
   }
-  protocol = *rvec++;
-  algorithm = *rvec++;
-  challenge = *rvec++;
-  if(strcmp(protocol, "2")) {
+  c->protocol = atoi(protocol);
+  if(c->protocol < 1 || c->protocol > 2) {
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
     disorder_eclient_close(c);
+    return;
   }
   nonce = unhex(challenge, &nonce_len);
   res = authhash(nonce, nonce_len, config->password, algorithm);
@@ -824,12 +843,16 @@ static void string_response_opcallback(disorder_eclient *c,
   D(("string_response_callback"));
   if(c->rc / 100 == 2) {
     if(op->completed) {
-      char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
-
-      if(rr && *rr)
-        ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
-      else
-        protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+      if(c->protocol >= 2) {
+        char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
+        
+        if(rr && *rr)
+          ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
+        else
+          protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+      } else
+        ((disorder_eclient_string_response *)op->completed)(op->v,
+                                                            c->line + 4);
     }
   } else
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
