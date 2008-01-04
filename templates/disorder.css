@@ -177,7 +177,7 @@ p.choosealpha {
   font-size: 140%;
   font-weight: bold;
   border: 1px solid black;
-  padding: 1em
+  padding: 0.2em
 }
 
 /* containing directory */
@@ -330,7 +330,7 @@ a.search_title:active {
 
 form.search {
   border: 1px solid black;
-  padding: 1em
+  padding: 0.2em
 }
 
 /* sidebar *******************************************************************/
@@ -508,6 +508,10 @@ div.loginstatus {
   background-color: #ffff00	/* solid yellow */
 }
 
+div.loginstatus > p {
+  margin: 0.2em
+}
+
 p.loginstatus {
   color: #0000ff;		/* solid blue */
   font-size: 150%;
@@ -522,6 +526,10 @@ div.error {
   color: white;
   font-size: 150%;
   font-weight: bold
+}
+
+div.error > p {
+  margin: 0.2em
 }
 
 p.error {
