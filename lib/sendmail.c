@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <gcrypt.h>
 #include <time.h>
+#include <netinet/in.h>
 
 #include "syscalls.h"
 #include "log.h"

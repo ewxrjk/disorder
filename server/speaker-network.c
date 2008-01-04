@@ -33,6 +33,7 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #include "configuration.h"
 #include "syscalls.h"

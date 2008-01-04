@@ -49,12 +49,12 @@ misc.o: images.h
 images.h: $(PNGS)
 	exec > @$.new;							\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | sed 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
 	  gdk-pixbuf-csource --raw --name=image_$$name $$png;		\
 	done;								\
 	echo "static const struct image images[] = {";			\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | sed 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
 	  echo "  { \"$$name.png\", image_$$name },";			\
 	done;								\
 	echo "};"
@@ -63,3 +63,5 @@ images.h: $(PNGS)
 # check everything has working --help
 check-help: all
 	./disobedience --version > /dev/null
+
+export GNUSED

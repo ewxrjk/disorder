@@ -85,8 +85,13 @@ case "$host" in
 *-freebsd* )
   AC_MSG_RESULT([FreeBSD])
   want_server=yes
+  # Ports install to /usr/local but the compiler stupidly doesn't look
+  # there by default
   LDFLAGS="${LDFLAGS} -L/usr/local/lib"
   CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  # libdb installs elsewhere again
+  LDFLAGS="${LDFLAGS} -L/usr/local/lib/db44"
+  CPPFLAGS="${CPPFLAGS} -I/usr/local/include/db44"
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
@@ -150,6 +155,20 @@ AC_DISABLE_STATIC
 
 AC_PROG_LIBTOOL
 
+AC_CACHE_CHECK([for GNU sed],[rjk_cv_gnused],[
+  rjk_cv_gnused="not found"
+  for candidate in sed gsed; do
+    if $candidate --version >/dev/null 2>&1; then
+      rjk_cv_gnused=$candidate 
+    fi
+  done
+])
+GNUSED="${GNUSED:-$rjk_cv_gnused}"
+if test "$GNUSED" = "not found"; then
+  AC_MSG_ERROR([GNU sed is required to build this program])
+fi
+AC_SUBST([GNUSED])
+
 missing_libraries=""
 missing_headers=""
 missing_functions=""
@@ -211,6 +230,9 @@ if test $want_server = yes; then
 	       [AC_SUBST(LIBFLAC,[-lFLAC])],
 	       [missing_libraries="$missing_libraries libFLAC"])
 fi
+AC_CHECK_LIB([pthread], [pthread_create],
+             [AC_SUBST(LIBPTHREAD,[-lpthread])],
+	     [missing_libraries="$missing_libraries libpthread"])
 
 if test $want_gtk = yes; then
   AM_PATH_GLIB_2_0([],[],[missing_libraries="$missing_libraries libglib"])

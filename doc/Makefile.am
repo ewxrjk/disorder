@@ -51,3 +51,5 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder-stats.8.in disorder-dbupgrade.8.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN)
+
+export GNUSED
