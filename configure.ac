@@ -82,6 +82,12 @@ case "$host" in
   fi
   browser=open
   ;;
+*-freebsd* )
+  AC_MSG_RESULT([FreeBSD])
+  want_server=yes
+  LDFLAGS="${LDFLAGS} -L/usr/local/lib"
+  CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
   want_server=no
@@ -233,9 +239,6 @@ if test ! -z "$missing_libraries"; then
   AC_MSG_ERROR([missing libraries:$missing_libraries])
 fi
 
-# We require that libpcre support UTF-8
-RJK_REQUIRE_PCRE_UTF8([-lpcre])
-
 # Checks for header files.
 RJK_FIND_GC_H
 if test $want_oss = yes; then
@@ -267,6 +270,9 @@ AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 if test ! -z "$missing_headers"; then
   AC_MSG_ERROR([missing headers:$missing_headers])
 fi
+
+# We require that libpcre support UTF-8
+RJK_REQUIRE_PCRE_UTF8([-lpcre])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
