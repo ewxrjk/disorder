@@ -189,6 +189,18 @@ p.directoryname {
   padding: 0.2em
 }
 
+a.thisdirectory:link {
+  color: black
+}
+
+a.thisdirectory:visited {
+  color: black
+}
+
+a.thisdirectory:active {
+  color: red
+}
+
 /* directories */
 div.directories {
 }
@@ -208,6 +220,7 @@ p.directory {
 }
 
 a.directory {
+  text-decoration: none;
 }
 
 a.directory:link {

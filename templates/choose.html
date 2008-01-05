@@ -117,7 +117,7 @@ USA
 
    @if{@ne{@arg:directory@}{}@}{
    <p class=directoryname>@navigate{@arg:directory@}{/<a
-   class=directory
+   class=thisdirectory
    href="@url@?action=choose&#38;directory=@urlquote{@fullname@}@&#38;nonce=@nonce@">@basename@</a>}@:</p>
    }@
 
@@ -128,7 +128,12 @@ USA
     </p>
     @choose{directories}{
     <p class=directory>
-     <a class=directory href="@url@?action=choose&#38;directory=@urlquote{@file@}@&#38;nonce=@nonce@">
+     <a class=directory
+     href="@url@?action=choose&#38;directory=@urlquote{@file@}@&#38;nonce=@nonce@"
+     title="@label:choose.directory@">
+     <img class=button
+      src="@image:directory@"
+      alt="">
       @transform{@file@}{dir}{display}@
      </a>
     </p>
@@ -159,7 +164,7 @@ USA
      @right{prefs}{<a class=imgprefs
      href="@url@?action=prefs&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@"
      ><img class=button 
-      src="@@image:edit@"
+      src="@image:edit@"
       title="@label:choose.allprefsverbose@"
       alt="@label:choose.allprefs@"></a>}@
      <a class=allfiles href="@url@?action=play&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@">

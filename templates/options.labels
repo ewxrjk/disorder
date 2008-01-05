@@ -93,6 +93,9 @@ label	choose.directories	Directories
 # Heading for track list
 label	choose.files		Tracks
 
+# Caption for visit-directory links
+label	choose.directory	"Visit directory"
+
 # Short and long text for edit prefs button (both recent and choose pages)
 label	choose.prefs		Edit
 label	choose.prefsverbose	"edit track information"
