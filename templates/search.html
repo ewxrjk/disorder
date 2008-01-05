@@ -32,9 +32,10 @@ USA
      <p class=search>Enter search terms:
      <input class=query name=query type=text value="@arg:query@"
       size=50>
-     <button class=search name=action type=submit value=search>
+     <button class=search name=submit type=submit>
       @label:search.search@
      </button>
+     <input name=action type=hidden value=search>
      <input name=nonce type=hidden value="@nonce@">
      </p>
    </form>

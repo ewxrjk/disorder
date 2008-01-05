@@ -74,7 +74,7 @@ USA
     <span class=button>
     <a class=button
     href="@url@?action=disable&#38;nonce=@nonce@&#38;mgmt=true"
-     title="@label:playing.playingdisableverbose@">@label:playing.playing@</a>
+     title="@label:playing.disableverbose@">@label:playing.playing@</a>
     </a>
     </span>
     <img width=16 height=16 class=imgbutton src="@image:enabled@">
@@ -83,7 +83,7 @@ USA
     <span class=button>
     <a class=button
     href="@url@?action=enable&#38;nonce=@nonce@&#38;mgmt=true"
-     title="@label:playing.playingenableverbose@">@label:playing.playing@</a>
+     title="@label:playing.enableverbose@">@label:playing.playing@</a>
     </a>
     </span>
     <img width=16 height=16 class=imgbutton src="@image:disabled@">
@@ -101,9 +101,9 @@ USA
      @label:volume.right@ <input size=3 name=right type=text value="@volume:right@">
      <input name=nonce type=hidden value="@nonce@">
      <input name=back type=hidden value="@thisurl@?mgmt=true">
-     @right{volume}{<button class=search name=action type=submit value=volume>
+     @right{volume}{<button class=search name=submit type=submit>
       @label:volume.set@
-     </button>}@
+     </button><input name=action type=hidden value=volume>}@
      @right{volume}{<a class=imgbutton
       href="@url@?action=volume&#38;delta=@label:volume.resolution@&#38;back=@urlquote{@thisurl@?mgmt=true}@">
       <img class=button src="@image:up@"

@@ -66,12 +66,13 @@ USA
        </tr>
        <tr>
          <td>
-           <button class=login name=action type=submit value=login>
+           <button class=login name=button type=submit>
              @label:login.login@
            </button>
          </td>
        </tr>
      </table>
+     <input name=action type=hidden value=login>
      <input name=nonce type=hidden value="@nonce@">
      <input name=back type=hidden value="@arg:back@">
    </form>
@@ -121,12 +122,13 @@ USA
        </tr>
        <tr>
          <td>
-           <button class=register name=action type=submit value=register>
+           <button class=register name=button>
              @label:login.register@
            </button>
          </td>
        </tr>
      </table>
+     <input name=action type=hidden value=register>
      <input name=nonce type=hidden value="@nonce@">
    </form>}@
    }{
@@ -137,10 +139,11 @@ USA
    <form class=logout action="@url@" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <div class=logout>
-       <button class=logout name=action type=submit value=logout>
+       <button class=logout name=submit type=submit>
          @label:login.logout@
        </button>
      </div>
+     <input name=action type=hidden value=logout>
      <input name=nonce type=hidden value="@nonce@">
    </form>
 
@@ -175,12 +178,13 @@ USA
        </tr>
        <tr>
          <td>
-           <button class=edituser name=action type=submit value=edituser>
+           <button class=edituser name=submit type=submit>
              @label:login.edituser@
            </button>
          </td>
        </tr>
      </table>
+     <input name=action type=hidden value=edituser>
      <input name=nonce type=hidden value="@nonce@">
    </form>
 
