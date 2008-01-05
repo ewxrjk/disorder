@@ -84,22 +84,22 @@ const struct plugin *open_plugin(const char *name,
 function_t *get_plugin_function(const struct plugin *pl,
 				const char *symbol) {
   function_t *f;
-  const char *e;
 
   f = (function_t *)dlsym(pl->dlhandle, symbol);
-  if((e = dlerror()))
-    fatal(0, "error looking up function '%s' in '%s': %s",symbol, pl->name, e);
+  if(!f)
+    fatal(0, "error looking up function '%s' in '%s': %s",
+	  symbol, pl->name, dlerror());
   return f;
 }
 
 const void *get_plugin_object(const struct plugin *pl,
 			      const char *symbol) {
   void *o;
-  const char *e;
 
   o = dlsym(pl->dlhandle, symbol);
-  if((e = dlerror()))
-    fatal(0, "error looking up object '%s' in '%s': %s", symbol, pl->name, e);
+  if(!o)
+    fatal(0, "error looking up object '%s' in '%s': %s",
+	  symbol, pl->name, dlerror());
   return o;
 }
 
