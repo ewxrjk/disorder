@@ -405,7 +405,7 @@ if test $want_server = yes; then
 		       #if DB_VERSION_MAJOR < 4
 		       # error inadequate db version
 		       #endif
-		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR < 2
+		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR <= 2
 		       # error inadequate db version
 		       #endif
 		      ],
