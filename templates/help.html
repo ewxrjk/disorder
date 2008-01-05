@@ -27,18 +27,19 @@ USA
 @include{topbar}@
    <h1 class=title>@label{help.title}@</h1>
 
-   <h2 class=sidebarlink>Introduction</h2>
+   <h2 class=helptitle>Introduction</h2>
 
    <div class=helpsection>
 
      <p>All screens in the DisOrder web interface have a set of
      hyperlinks at the top.  You can use these to visit the various
      screens described below.  Note that if you are not logged in some
-     of these will be greyed out.</p>
+     of these will be greyed out.  The link for the currently active
+     screen is highlighted.</p>
 
    </div>
   
-   <h2 class=sidebarlink><a name=playing>Playing</a></h2>
+   <h2 class=helptitle><a name=playing>Playing</a></h2>
 
    <div class=helpsection>
 
@@ -47,26 +48,23 @@ USA
     being listed first.)  Where possible, estimated start times are
     given.</p>
 
-    <p>Each track has a <img class=button
-       src="@image:scratch@"
-       title="@label:playing.scratch@"
-       alt="@label:playing.scratch@"> button next to it.  For the
-       currently playing track this can be used to stop playing the
-       track before it has finished.  For a track in the queue it
-       removes the track from the queue.</p>
+    <p>Each track has a <img class=button src="@image:scratch@"
+    title="@label:playing.scratch@" alt="@label:playing.scratch@">
+    button next to it.  For the currently playing track this can be
+    used to stop playing the track before it has finished; this is
+    called &ldquo;scratching&rdquo;.  For a track in the queue it
+    removes the track from the queue.</p>
 
-    <p>Depending on the server configuration, you may be able to do
-    this for any track, or only for tracks you submitted or that were
-    randomly picked.  See the "restrict" option in <a
-    href="@url@?action=disorder_config.5">disorder_config(5)</a> for more
-    details.</p>
+    <p>If you are not logged in, or if your user has limited rights,
+    you may only be able to scratch or remove certain tracks (for
+    instance, those you picked yourself).</p>
 
-   <p>Artist and album names are hyperlinks to the relevant locations
-   in the <a href="#choose">Choose</a> screen (see below).</p>
+    <p>Artist and album names are hyperlinks to the relevant locations
+    in the <a href="#choose">Choose</a> screen (see below).</p>
 
    </div>
 
-   <h2 class=sidebarlink><a name=manage>Manage</a></h2>
+   <h2 class=helptitle><a name=manage>Manage</a></h2>
 
    <div class=helpsection>
 
@@ -121,13 +119,16 @@ USA
      alt="@label:playing.upall@"> and <img
      src="@image:downall@" title="@label:playing.downall@"
      alt="@label:playing.downall@"> buttons move each track to the head or
-    tail of the queue.
-    Depending on server configuration, it may be that only trusted
-    users can move tracks around the queue.</p>
+    tail of the queue.</p>
+
+    <p>If you are not logged in, or if your user has limited rights,
+    you may only be able to move certain tracks (for instance, those
+    you picked yourself), and may not be able to adjust the volume,
+    random play setting, etc.</p>
 
    </div>
 
-   <h2 class=sidebarlink><a name=recent>Recent</a></h2>
+   <h2 class=helptitle><a name=recent>Recent</a></h2>
 
    <div class=helpsection>
 
@@ -138,13 +139,14 @@ USA
     href="#prefs">Editing Preferences</a> below.</p>
 
     <p>The number of tracks remembered is controlled by the server
-    configuration.  See the "history" option in <a
-    href="@url@?action=disorder_config.5">disorder_config(5)</a> for more
-    details.</p>
+    configuration.  See the <span class=configuration>history</span>
+    option in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for
+    more details.</p>
 
    </div>
 
-   <h2 class=sidebarlink><a name=new>New</a></h2>
+   <h2 class=helptitle><a name=new>New</a></h2>
 
    <div class=helpsection>
 
@@ -156,13 +158,14 @@ USA
     and clicking on the track title will add it to the queue.</p>
 
     <p>The time tracks are remembered for is controlled by the server
-    configuration.  See the "noticed_history" option in <a
+    configuration.  See the <span
+    class=configuration>noticed_history</span> option in <a
     href="@url@?action=disorder_config.5">disorder_config(5)</a> for
     more details.</p>
 
    </div>
 
-   <h2 class=sidebarlink><a name=choose>Choose</a></h2>
+   <h2 class=helptitle><a name=choose>Choose</a></h2>
 
    <div class=helpsection>
 
@@ -194,14 +197,19 @@ USA
     href="@url@?action=choosealpha&#38;nonce=@nonce@">choosealpha</a>,
     which breaks them down by initial letter.</p>
 
+    <p>This screen will may not be available if you are not logged in
+    or if your user has limited rights.</p>
+
    </div>
 
-   <h2 class=sidebarlink><a name=prefs>Editing Preferences</a></h2>
+   <h2 class=helptitle><a name=prefs>Editing Preferences</a></h2>
 
    <div class=helpsection>
 
     <p>This screen, reached from <a href="#choose">Choose</a> or <a
-    href="#recent">Recent</a>, is used to edit a track's preferences.</p>
+    href="#recent">Recent</a>, is used to edit a track's preferences.
+    Note that if you are not logged in, or your user has limited
+    rights, you may not be able to edit track preferences.</p>
     
     <p>The form can be used to
     edit artist, album and title fields for the track as displayed, or
@@ -212,12 +220,13 @@ USA
     characters (including spaces).  Leading and trailing spaces are
     not significant.</p>
 
-    <p>Random play for any given track is enabled by default, but you
-    can use this screen to disable it for undesirable tracks.</p>
+    <p>By default, any track can be picked for random play.  The check
+    box at the bottom can be used to selectivel enable or disable it
+    for individual tracks.</p>
 
    </div>
 
-   <h2 class=sidebarlink>Search</h2>
+   <h2 class=helptitle>Search</h2>
 
    <div class=helpsection>
 
@@ -228,14 +237,18 @@ USA
     <p>It is possible to limit results to tracks with a particular
     tag, by using <b>tag:</b><i>TAG</i> among the search terms.</p>
 
-    <p>Some keywords, known as "stopwords", are excluded from the search, and
-    will never match.  See the "stopword" option in <a
-    href="@url@?action=disorder_config.5">disorder_config(5)</a> for further
-    details about this.</p>
+    <p>Some keywords, known as &ldquo;stopwords&rdquo;, are excluded
+    from the search, and will never match.  See the <span
+    class=configuration>stopword</span> option in <a
+    href="@url@?action=disorder_config.5">disorder_config(5)</a> for
+    further details about this.</p>
+
+    <p>This screen will may not be available if you are not logged in
+    or if your user has limited rights.</p>
 
    </div>
 
-  <h2 class=sidebarlink><a name=Login>Login</a></h2>
+  <h2 class=helptitle><a name=Login>Login</a></h2>
 
   <div class=helpsection>
 
@@ -257,7 +270,7 @@ USA
 
   </div>
 
-  <h2 class=sidebarlink>Troubleshooting</h2>
+  <h2 class=helptitle>Troubleshooting</h2>
 
   <div class=helpsection>
 
@@ -267,29 +280,31 @@ USA
    <ul>
 
     <li>Are there any error messages in the system log?  The server
-    logs to <tt>LOG_DAEMON</tt>, which typically ends up in
-    <i>/var/log/daemon.log</i> or <i>/var/log/messages</i>, though
-    this depends on local configuration.
+    logs to <span class=configuration>LOG_DAEMON</span>, which
+    typically ends up in <i>/var/log/daemon.log</i> or
+    <i>/var/log/messages</i>, though this depends on local
+    configuration.
 
-    <li>Is the track in a known format?  Have a look at the
-    configuration file for the formats recognized by the local
-    installation.  The filename matching is case-sensitive.
+    <li>Is the track in a known format?  Out of the box, OGG, MP3,
+     FLAC and WAV are supported.  You can look at the configuration
+     file for additional formats recognized by the local installation.
 
-    <li>Do permissions on the track allow the server to read it?
+    <li>Do permissions on the track allow the server to read it?  If
+    the server cannot read it then it will not be able to play it.
      
     <li>Do the permissions on the containing directories allow the
     server to read and execute them?
 
    </ul>
 
-   <p>The user the server runs as is determined by the <tt>user</tt>
-   directive in the configuration file.  The README recommends using
-   <b>jukebox</b> for this purpose but it could be different
-   locally.</p>
+   <p>The user the server runs as is determined by the <span
+   class=configuration>user</span> directive in the configuration
+   file.  The README recommends using <b>jukebox</b> for this purpose
+   but it could be different locally.</p>
 
   </div>
 
-   <h2 class=sidebarlink>Man Pages</h2>
+   <h2 class=helptitle>Man Pages</h2>
 
    <div class=helpsection>
 

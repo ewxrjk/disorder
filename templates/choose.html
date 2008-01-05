@@ -145,7 +145,7 @@ USA
     @right{prefs}{<a class=imgprefs
      href="@url@?action=prefs&#38;0_file=@urlquote{@resolve{@file@}@}@&#38;nonce=@nonce@"
      ><img class=button
-      src="@@image:edit@"
+      src="@image:edit@"
       title="@label:choose.prefsverbose@"
       alt="@label:choose.prefs@"></a>}@
      <a class=file
@@ -155,18 +155,18 @@ USA
      @if{@eq{@trackstate{@file@}@}{queued}@}{[<b>queued</b>]}@
     </p>
     }@
+    <p class=allfiles>
+     @right{prefs}{<a class=imgprefs
+     href="@url@?action=prefs&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@"
+     ><img class=button 
+      src="@@image:edit@"
+      title="@label:choose.allprefsverbose@"
+      alt="@label:choose.allprefs@"></a>}@
+     <a class=allfiles href="@url@?action=play&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@">
+      @label:choose.playall@
+     </a>
+    </p>
    </div>
-   <p class=allfiles>
-    @right{prefs}{<a class=imgprefs
-    href="@url@?action=prefs&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@"
-    ><img class=button 
-     src="@@image:edit@"
-     title="@label:choose.allprefsverbose@"
-     alt="@label:choose.allprefs@"></a>}@
-    <a class=allfiles href="@url@?action=play&#38;directory=@urlquote{@arg:directory@}@&#38;nonce=@nonce@&#38;back=@urlquote{@thisurl@}@">
-     @label:choose.playall@
-    </a>
-   </p>
    }@
 
 @include{topbarend}@

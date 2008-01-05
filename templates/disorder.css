@@ -30,7 +30,8 @@ h1.title {
   text-align: center;
   border: 1px solid black;
   padding: 0.2em;
-  background-color: #e0e0e0
+  background-color: #e0e0e0;
+  display: block
 }
 
 /* secondary titles */
@@ -39,6 +40,7 @@ h2 {
   font-weight: bold;
   font-size: 16pt;
   font-variant: normal;
+  display: block
 }
 
 /* playing, recent and new ***************************************************/
@@ -182,7 +184,9 @@ p.choosealpha {
 
 /* containing directory */
 p.directoryname {
-  font-weight: bold
+  font-weight: bold;
+  background-color: #ffffe0;	/* pastel yellow */
+  padding: 0.2em
 }
 
 /* directories */
@@ -191,12 +195,16 @@ div.directories {
 
 /* heading for directories */
 p.directories {
-  font-weight: bold
+  font-weight: bold;
+  display: block;
+  background-color: #e0ffe0;	/* pastel green */
+  padding: 0.2em;
+  padding-left: 1.2em
 }
 
 /* one directory */
 p.directory {
-  margin-left: 1em
+  margin-left: 2em
 }
 
 a.directory {
@@ -220,12 +228,16 @@ div.files {
 
 /* heading for files */
 p.files {
-  font-weight: bold
+  font-weight: bold;
+  display: block;
+  background-color: #e0ffe0;	/* pastel green */
+  padding: 0.2em;
+  padding-left: 1.2em
 }
 
 /* one file */
 p.file {
-  margin-left: 1em
+  margin-left: 2em
 }
 
 a.file {
@@ -242,6 +254,11 @@ a.file:visited {
 
 a.file:active {
   color: red
+}
+
+/* all files */
+p.allfiles {
+  margin-left: 1.2em
 }
 
 /* buttons *******************************************************************/
@@ -476,6 +493,15 @@ input.prefs_name,input.prefs_value {
   font-weight: bold
 }
 
+span.configuration {
+  font-family: monospace
+}
+
+h2.helptitle {
+  background-color: #e0ffe0;	/* pastel green */
+  padding: 0.2em
+}
+
 /* volume ********************************************************************/
 
 p.volume {
@@ -540,7 +566,9 @@ p.error {
 /* credits */
 p.credits {
   font-size: small;		/* because visually intrusive */
-  text-align: right
+  text-align: right;
+  background-color: #e0e0e0;
+  padding: 0.2em
 }
 /*
 This file is part of DisOrder.
