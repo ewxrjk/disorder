@@ -47,18 +47,21 @@ h2 {
 
 /* table of current and future tracks */
 table.playing {
+  border-collapse: collapse;
   width: 100%;			/* use the full available width */
   border-spacing: 0		/* no unsightly gaps between cells */
 }
 
 /* table of recently played tracks */
 table.recent {
+  border-collapse: collapse;
   width: 100%;			/* use the full available width */
   border-spacing: 0		/* no unsightly gaps between cells */
 }
 
 /* table of newly added played tracks */
 table.new {
+  border-collapse: collapse;
   width: 100%;			/* use the full available width */
   border-spacing: 0		/* no unsightly gaps between cells */
 }
@@ -451,6 +454,7 @@ p.prefs_new,p.prefs_head {
 }
 
 table.prefs {
+  border-collapse: collapse;
   border-spacing: 0
 }
 
