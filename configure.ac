@@ -88,10 +88,10 @@ case "$host" in
   # Ports install to /usr/local but the compiler stupidly doesn't look
   # there by default
   LDFLAGS="${LDFLAGS} -L/usr/local/lib"
-  CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include"
   # libdb installs elsewhere again
   LDFLAGS="${LDFLAGS} -L/usr/local/lib/db44"
-  CPPFLAGS="${CPPFLAGS} -I/usr/local/include/db44"
+  CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include/db44"
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
