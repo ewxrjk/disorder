@@ -438,7 +438,7 @@ a.activemenu:active,a.inactivemenu:active {
 
 span.invalidmenu {
   text-decoration: none;
-  color: grey;
+  color: #808080;		/* grey */
   font-family: sans-serif;
   font-weight: bold;
   font-size: 14pt
