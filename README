@@ -204,6 +204,8 @@ You need to configure a number of things to make this work:
 
      smtp_server mail.example.com
 
+   Use 'disorder reconfigure' to make sure the server knows these settings.
+
 2. The web interface depends on a 'guest' user existing.  You can create this
    with the following command:
 

@@ -15,6 +15,8 @@ upgrading between particular versions.  Minor versions are not
 explicitly mentioned; a version number like 1.1 implicitly includes
 all 1.1.x versions.
 
+If you install from .deb files then much of this work is automated.
+
 * 2.0 -> 2.1
 
 ** Authentication
@@ -34,6 +36,8 @@ after the first run you should remove these directives and (optionally) add a
 but for now they will generate harmless error messages.  Remove them and the
 error messages will go away.
 
+See README for new setup instructions for the web interface.
+
 ** Other Server Configuration
 
 Sensible defaults for 'stopword', 'player' and 'tracklength' are now built into
@@ -42,6 +46,10 @@ configuration files then you can remove them.
 
 'gap' now defaults to 0 seconds instead of 2.
 
+The sound output API is now configured with the 'api' command although
+'speaker_backend' still works.  If you use 'api alsa' then you may need to
+change your 'mixer' and 'channel' settings.
+
 ** Web Interface
 
 The web interface no longer uses HTTP basic authentication and the web server
@@ -49,6 +57,15 @@ configuration imposing access control on it should be removed.  Users now log
 in using their main DisOrder password and the one in the htpassed file is now
 obsolete.  You should revisit the web interface setup instructions in README
 from scratch.
+
+** Checklist
+
+   * delete default 'stopword', 'player' and 'tracklength' directives
+   * set 'gap' if you want a non-0 inter-track gap
+   * set 'api' and maybe 'mixer' and 'channel'
+   * perhaps add 'default_rights' directive
+   * delete 'allow', 'restrict' and 'trust' directives after first run
+   * follow new web interface setup in README
 
 * 1.4/1.5 -> 2.0
 
