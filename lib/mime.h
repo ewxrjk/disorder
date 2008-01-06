@@ -24,14 +24,11 @@
 #ifndef MIME_H
 #define MIME_H
 
+struct kvp;
+
 int mime_content_type(const char *s,
 		      char **typep,
-		      char **parameternamep,
-		      char **parametervaluep);
-/* Parse a content-type value.  returns 0 on success, -1 on error.
- * paramaternamep and parametervaluep are only set if present.
- * type and parametername are forced to lower case.
- */
+		      struct kvp **parametersp);
 
 const char *mime_parse(const char *s,
 		       int (*callback)(const char *name, const char *value,

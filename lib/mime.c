@@ -35,6 +35,7 @@
 #include "hex.h"
 #include "log.h"
 #include "base64.h"
+#include "kvp.h"
 
 /** @brief Match whitespace characters */
 static int whitespace(int c) {
@@ -208,17 +209,17 @@ static const char *parsetoken(const char *s, char **valuep,
 /** @brief Parse a MIME content-type field
  * @param s Start of field
  * @param typep Where to store type
- * @param parameternamep Where to store parameter name
- * @param parametervaluep Wher to store parameter value
+ * @param parametersp Where to store parameter list
  * @return 0 on success, non-0 on error
  *
  * See <a href="http://tools.ietf.org/html/rfc2045#section-5">RFC 2045 s5</a>.
  */
 int mime_content_type(const char *s,
 		      char **typep,
-		      char **parameternamep,
-		      char **parametervaluep) {
+		      struct kvp **parametersp) {
   struct dynstr type, parametername;
+  struct kvp *parameters = 0;
+  char *parametervalue;
 
   dynstr_init(&type);
   if(!(s = skipwhite(s, 1))) return -1;
@@ -233,7 +234,7 @@ int mime_content_type(const char *s,
     dynstr_append(&type, tolower((unsigned char)*s++));
   if(!(s = skipwhite(s, 1))) return -1;
 
-  if(*s == ';') {
+  while(*s == ';') {
     dynstr_init(&parametername);
     ++s;
     if(!(s = skipwhite(s, 1))) return -1;
@@ -243,14 +244,14 @@ int mime_content_type(const char *s,
     if(!(s = skipwhite(s, 1))) return -1;
     if(*s++ != '=') return -1;
     if(!(s = skipwhite(s, 1))) return -1;
-    if(!(s = parseword(s, parametervaluep, tspecial))) return -1;
+    if(!(s = parseword(s, &parametervalue, tspecial))) return -1;
     if(!(s = skipwhite(s, 1))) return -1;
     dynstr_terminate(&parametername);
-    *parameternamep = parametername.vec;
-  } else
-    *parametervaluep = *parameternamep = 0;
+    kvp_set(&parameters, parametername.vec, parametervalue);
+  }
   dynstr_terminate(&type);
   *typep = type.vec;
+  *parametersp = parameters;
   return 0;
 }
 

@@ -152,13 +152,14 @@ static void cgi_parse_multipart(const char *boundary) {
 }
 
 static void cgi_parse_post(void) {
-  const char *ct;
-  char *q, *type, *pname, *pvalue;
+  const char *ct, *boundary;
+  char *q, *type;
   size_t n;
+  struct kvp *k;
 
   if(!(ct = getenv("CONTENT_TYPE")))
     ct = "application/x-www-form-urlencoded";
-  if(mime_content_type(ct, &type, &pname, &pvalue))
+  if(mime_content_type(ct, &type, &k))
     fatal(0, "invalid content type '%s'", ct);
   if(!strcmp(type, "application/x-www-form-urlencoded")) {
     cgi_input(&q, &n);
@@ -166,10 +167,9 @@ static void cgi_parse_post(void) {
     return;
   }
   if(!strcmp(type, "multipart/form-data")) {
-    if(!pname || strcmp(pname, "boundary"))
-      fatal(0, "expected a boundary parameter, found %s",
-	    pname ? pname : "nothing");
-    cgi_parse_multipart(pvalue);
+    if(!(boundary = kvp_get(k, "boundary")))
+      fatal(0, "no boundary parameter found");
+    cgi_parse_multipart(boundary);
     return;
   }
   fatal(0, "unrecognized content type '%s'", type);

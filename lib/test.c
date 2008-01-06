@@ -297,35 +297,42 @@ static int test_multipart_callback(const char *s, void *u) {
 static void test_mime(void) {
   char *t, *n, *v;
   struct vector parts[1];
+  struct kvp *k;
 
   fprintf(stderr, "test_mime\n");
 
-  t = n = v = 0;
-  insist(!mime_content_type("text/plain", &t, &n, &v));
+  t = 0;
+  k = 0;
+  insist(!mime_content_type("text/plain", &t, &k));
   check_string(t, "text/plain");
-  insist(n == 0);
-  insist(v == 0);
+  insist(k == 0);
 
-  insist(mime_content_type("TEXT ((broken) comment", &t, &n, &v) < 0);
-  insist(mime_content_type("TEXT ((broken) comment\\", &t, &n, &v) < 0);
+  insist(mime_content_type("TEXT ((broken) comment", &t, &k) < 0);
+  insist(mime_content_type("TEXT ((broken) comment\\", &t, &k) < 0);
   
-  t = n = v = 0;
-  insist(!mime_content_type("TEXT ((nested)\\ comment) /plain", &t, &n, &v));
+  t = 0;
+  k = 0;
+  insist(!mime_content_type("TEXT ((nested)\\ comment) /plain", &t, &k));
   check_string(t, "text/plain");
-  insist(n == 0);
-  insist(v == 0);
+  insist(k == 0);
 
-  t = n = v = 0;
-  insist(!mime_content_type(" text/plain ; Charset=\"utf-\\8\"", &t, &n, &v));
+  t = 0;
+  k = 0;
+  insist(!mime_content_type(" text/plain ; Charset=\"utf-\\8\"", &t, &k));
   check_string(t, "text/plain");
-  check_string(n, "charset");
-  check_string(v, "utf-8");
+  insist(k != 0);
+  insist(k->next == 0);
+  check_string(k->name, "charset");
+  check_string(k->value, "utf-8");
 
-  t = n = v = 0;
-  insist(!mime_content_type("text/plain;charset = ISO-8859-1 ", &t, &n, &v));
+  t = 0;
+  k = 0;
+  insist(!mime_content_type("text/plain;charset = ISO-8859-1 ", &t, &k));
+  insist(k != 0);
+  insist(k->next == 0);
   check_string(t, "text/plain");
-  check_string(n, "charset");
-  check_string(v, "ISO-8859-1");
+  check_string(k->name, "charset");
+  check_string(k->value, "ISO-8859-1");
 
   t = n = v = 0;
   insist(!mime_rfc2388_content_disposition("form-data; name=\"field1\"", &t, &n, &v));
