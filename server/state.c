@@ -54,10 +54,11 @@ static struct addrinfo *current_listen_addrinfo;
 static int current_listen_fd;
 
 void quit(ev_source *ev) {
+  info("shutting down...");
   quitting(ev);
   trackdb_close();
   trackdb_deinit();
-  info("terminating");
+  info("exiting");
   exit(0);
 }
 

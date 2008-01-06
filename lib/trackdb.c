@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2005-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -318,10 +318,18 @@ void trackdb_deinit(void) {
   if((err = trackdb_env->close(trackdb_env, 0)))
     fatal(0, "trackdb_env->close: %s", db_strerror(err));
 
-  if(rescan_pid != -1 && kill(rescan_pid, SIGTERM) < 0)
-    fatal(errno, "error killing rescanner");
+  if(rescan_pid != -1) {
+    /* shut down the rescanner */
+    if(kill(rescan_pid, SIGTERM) < 0)
+      fatal(errno, "error killing rescanner");
+    /* wait for the rescanner to finish */
+    while(waitpid(rescan_pid, &err, 0) == -1 && errno == EINTR)
+      ;
+  }
 
-  /* terminate the deadlock manager */
+  /* TODO kill any stats subprocesses */
+
+  /* finally terminate the deadlock manager */
   if(db_deadlock_pid != -1 && kill(db_deadlock_pid, SIGTERM) < 0)
     fatal(errno, "error killing deadlock manager");
   db_deadlock_pid = -1;
