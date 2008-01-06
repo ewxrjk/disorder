@@ -1166,6 +1166,15 @@ int disorder_revoke(disorder_client *c) {
   return disorder_simple(c, 0, "revoke", (char *)0);
 }
 
+/** @brief Request a password reminder email
+ * @param c Client
+ * @param user Username
+ * @return 0 on success, non-0 on error
+ */
+int disorder_reminder(disorder_client *c, const char *user) {
+  return disorder_simple(c, 0, "reminder", user, (char *)0);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

@@ -28,6 +28,13 @@ int sendmail(const char *sender,
 	     const char *encoding,
 	     const char *content_type,
 	     const char *body);
+pid_t sendmail_subprocess(const char *sender,
+                          const char *pubsender,
+                          const char *recipient,
+                          const char *subject,
+                          const char *encoding,
+                          const char *content_type,
+                          const char *body);
 
 #endif /* SENDMAIL_H */
 

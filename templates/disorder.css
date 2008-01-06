@@ -532,6 +532,11 @@ form.login {
   background-color: #e0ffe0	/* pastel green */
 }
 
+form.reminder {
+  border: 1px solid black;
+  background-color: #e0e0ff	/* pastel blue */
+}
+
 form.register {
   border: 1px solid black;
   background-color: #e0e0ff	/* pastel blue */

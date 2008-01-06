@@ -645,6 +645,23 @@ static void act_edituser(cgi_sink *output,
   expand_template(ds, output, "login");  
 }
 
+static void act_reminder(cgi_sink *output,
+			 dcgi_state *ds) {
+  const char *const username = cgi_get("username");
+
+  if(!username || !*username) {
+    cgi_set_option("error", "nousername");
+    expand_template(ds, output, "login");
+    return;
+  }
+  if(disorder_reminder(ds->g->client, username)) {
+    cgi_set_option("error", "reminderfailed");
+    expand_template(ds, output, "login");
+    return;
+  }
+  cgi_set_option("status", "reminded");
+  expand_template(ds, output, "login");  
+}
 
 static const struct action {
   const char *name;
@@ -664,6 +681,7 @@ static const struct action {
   { "random-disable", act_random_disable },
   { "random-enable", act_random_enable },
   { "register", act_register },
+  { "reminder", act_reminder },
   { "remove", act_remove },
   { "resume", act_resume },
   { "scratch", act_scratch },

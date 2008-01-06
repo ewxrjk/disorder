@@ -67,6 +67,10 @@
 #include "unicode.h"
 #include "cookies.h"
 #include "base64.h"
+#include "hash.h"
+#include "mime.h"
+#include "sendmail.h"
+#include "wstat.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
@@ -1270,7 +1274,97 @@ static int c_confirm(struct conn *c,
   }
   return 1;
 }
- 
+
+static int sent_reminder(ev_source attribute((unused)) *ev,
+			 pid_t attribute((unused)) pid,
+			 int status,
+			 const struct rusage attribute((unused)) *rusage,
+			 void *u) {
+  struct conn *const c = u;
+
+  /* Tell the client what went down */ 
+  if(!status) {
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  } else {
+    error(0, "reminder subprocess %s", wstat(status));
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+  }
+  /* Re-enable this connection */
+  ev_reader_enable(c->r);
+  return 0;
+}
+
+static int c_reminder(struct conn *c,
+		      char **vec,
+		      int attribute((unused)) nvec) {
+  struct kvp *k;
+  const char *password, *email, *text, *encoding, *charset, *content_type;
+  const time_t *last;
+  time_t now;
+  pid_t pid;
+  
+  static hash *last_reminder;
+
+  if(!config->mail_sender) {
+    error(0, "cannot send password reminders because mail_sender not set");
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  if(!(k = trackdb_getuserinfo(vec[0]))) {
+    error(0, "reminder for user '%s' who does not exist", vec[0]);
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  if(!(email = kvp_get(k, "email"))
+     || !strchr(email, '@')) {
+    error(0, "user '%s' has no valid email address", vec[0]);
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  if(!(password = kvp_get(k, "password"))
+     || !*password) {
+    error(0, "user '%s' has no password", vec[0]);
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  /* Rate-limit reminders.  This hash is bounded in size by the number of
+   * users.  If this is actually a problem for anyone then we can periodically
+   * clean it. */
+  if(!last_reminder)
+    last_reminder = hash_new(sizeof (time_t));
+  last = hash_find(last_reminder, vec[0]);
+  time(&now);
+  if(last && now < *last + config->reminder_interval) {
+    error(0, "sent a password reminder to '%s' too recently", vec[0]);
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  /* Send the reminder */
+  /* TODO this should be templatized and to some extent merged with
+   * the code in act_register() */
+  byte_xasprintf((char **)&text,
+"Someone requested that you be sent a reminder of your DisOrder password.\n"
+"Your password is:\n"
+"\n"
+"  %s\n", password);
+  if(!(text = mime_encode_text(text, &charset, &encoding)))
+    fatal(0, "cannot encode email");
+  byte_xasprintf((char **)&content_type, "text/plain;charset=%s",
+		 quote822(charset, 0));
+  pid = sendmail_subprocess("", config->mail_sender, email,
+			    "DisOrder password reminder",
+			    encoding, content_type, text);
+  if(pid < 0) {
+    sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
+    return 1;
+  }
+  hash_add(last_reminder, vec[0], &now, HASH_INSERT_OR_REPLACE);
+  info("sending a passsword reminder to user '%s'", vec[0]);
+  /* We can only continue when the subprocess finishes */
+  ev_child(c->ev, pid, 0, sent_reminder, c);
+  return 0;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1324,6 +1418,7 @@ static const struct command {
   { "recent",         0, 0,       c_recent,         RIGHT_READ },
   { "reconfigure",    0, 0,       c_reconfigure,    RIGHT_ADMIN },
   { "register",       3, 3,       c_register,       RIGHT_REGISTER|RIGHT__LOCAL },
+  { "reminder",       1, 1,       c_reminder,       RIGHT__LOCAL },
   { "remove",         1, 1,       c_remove,         RIGHT_REMOVE__MASK },
   { "rescan",         0, 0,       c_rescan,         RIGHT_RESCAN },
   { "resolve",        1, 1,       c_resolve,        RIGHT_READ },

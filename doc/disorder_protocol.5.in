@@ -223,6 +223,11 @@ Register a new user.  Requires the \fBregister\fR right.  The result contains a
 confirmation string; the user will be be able to log in until this has been
 presented back to the server via the \fBconfirm\fR command.
 .TP
+.B reminder \fIUSER\fR
+Send a password reminder to \fIUSER\fR.  If the user has no valid email
+address, or no password, or a reminder has been sent too recently, then no
+reminder will be sent.
+.TP
 .B remove \fIID\fR
 Remove the track identified by \fIID\fR.  Requires one of the \fBremove
 mine\fR, \fBremove random\fR or \fBremove any\fR rights depending on how the

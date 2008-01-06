@@ -958,6 +958,7 @@ static const struct conf conf[] = {
   { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
   { C(refresh),          &type_integer,          validate_positive },
+  { C(reminder_interval), &type_integer,         validate_positive },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
@@ -1190,6 +1191,7 @@ static struct config *config_default(void) {
   c->cookie_key_lifetime = 86400 * 7;
   c->smtp_server = xstrdup("127.0.0.1");
   c->new_max = 100;
+  c->reminder_interval = 600;		/* 10m */
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);

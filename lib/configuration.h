@@ -264,6 +264,9 @@ struct config {
 
   /** @brief Maximum number of tracks in response to 'new' */
   long new_max;
+
+  /** @brief Minimum interval between password reminder emails */
+  long reminder_interval;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

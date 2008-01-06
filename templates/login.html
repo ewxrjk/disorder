@@ -65,7 +65,7 @@ USA
          </td>
        </tr>
        <tr>
-         <td>
+         <td colspan=2>
            <button class=login name=button type=submit>
              @label:login.login@
            </button>
@@ -75,6 +75,33 @@ USA
      <input name=action type=hidden value=login>
      <input name=nonce type=hidden value="@nonce@">
      <input name=back type=hidden value="@arg:back@">
+   </form>
+
+   <p>If you've forgotten your password, use this form to request an
+   email reminder.  A reminder can only be sent if you registered with
+   your email address, and if a reminder has been sent too recently
+   then it won't be possible to send one.</p>
+
+   <form class=reminder action="@url@" method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <table class=login>
+       <tr>
+         <td>@label:login.username@</td>
+         <td>
+           <input class=username name=username type=text size=32
+	          value="@arg:username@">
+         </td>
+       </tr>
+       <tr>
+         <td colspan=2>
+           <button class=login name=button type=submit>
+             @label:login.reminder@
+           </button>
+         </td>
+       </tr>
+     </table>
+     <input name=action type=hidden value=reminder>
+     <input name=nonce type=hidden value="@nonce@">
    </form>
 
    @right{register}{
@@ -121,7 +148,7 @@ USA
          <td class=extra>@label:login.registerpassword2extra@</td>
        </tr>
        <tr>
-         <td>
+         <td colspan=3>
            <button class=register name=button>
              @label:login.register@
            </button>
@@ -177,7 +204,7 @@ USA
          <td class=extra>@label:login.edituserpassword2extra@</td>
        </tr>
        <tr>
-         <td>
+         <td colspan=3>
            <button class=edituser name=submit type=submit>
              @label:login.edituser@
            </button>

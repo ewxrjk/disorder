@@ -246,6 +246,37 @@ int sendmail(const char *sender,
   return rc;
 }
 
+/** @brief Start a subproces to send a mail message
+ * @param sender Sender address (can be "")
+ * @param pubsender Visible sender address (must not be "")
+ * @param recipient Recipient address
+ * @param subject Subject string
+ * @param encoding Body encoding
+ * @param content_type Content-type of body
+ * @param body Text of body (encoded, but \n for newline)
+ * @return Subprocess PID on success, -1 on error
+ */
+pid_t sendmail_subprocess(const char *sender,
+                          const char *pubsender,
+                          const char *recipient,
+                          const char *subject,
+                          const char *encoding,
+                          const char *content_type,
+                          const char *body) {
+  pid_t pid;
+
+  if(!(pid = fork())) {
+    exitfn = _exit;
+    if(sendmail(sender, pubsender, recipient, subject,
+                encoding, content_type, body))
+      _exit(1);
+    _exit(0);
+  }
+  if(pid < 0)
+    error(errno, "error calling fork");
+  return pid;
+}
+
 /*
 Local Variables:
 c-basic-offset:2
