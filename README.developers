@@ -1,0 +1,160 @@
+Dependencies:
+
+   * You'll need, in addition to the packages mentioned in README:
+     Automake         1.10           1.7 is no good; 1.8/9 might work
+     Autoconf         2.61           Slightly older might work too
+     Libtool          1.5.22         1.4 is no good
+     Bazaar (bzr)                    You might be able to manage without
+     Python           2.4
+
+   * On Debian and derivatives this should work:
+
+     apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
+		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
+		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
+		     libflac-dev
+
+   * Please report unstated dependencies (here, README or debian/control).
+
+Testing:
+
+   * There is an extensive test suite in lib/test.c and tests/*.py.  You can
+     run the tests with 'make check'.  If possible please add tests for new
+     code to at least one of these.  At the very least the existing tests
+     should continue to pass.
+
+   * The tests will not currently pass in an ASCII locale.  This is essentially
+     unavoidable given the need to test Unicode support.  ISO 8859-1 or UTF-8
+     locales should be OK for the time being.
+
+APIs And Formats:
+
+   * To support a new sound API:
+     1) Teach configure.ac how to detect any libraries required.
+     2) Define a new BACKEND_ value and update configuration.[ch] for it.
+     3) Create a suitable server/speaker-*.c along the pattern of the existing
+        ones.
+     4) If possible create a suitable lib/mixer-*.c.  This doesn't make sense
+        for all APIs (e.g. network), but even for those it does, playback
+        support without volume control support is likely to be acceptable (even
+        if inferior to full support).
+     5) Update doc/disorder_config.5.in.
+     6) If relevant, create a suitable clients/playrtp-*.c and update
+        doc/disorder-playrtp.1.in.
+
+   * To support a new file format:
+     1) Teach configure.ac how to detect any libraries required.
+     2) Add a new section to server/decode.c.  NB this file may be split into
+        several bits one day.
+     3) Add a new section to plugins/tracklength.c.  Again this file may be
+        split up in a future version.
+     4) Update default_players[] in lib/configuration.c.
+     5) Update doc/disorder_config.5.in.
+
+The Server:
+
+   * The server's command implementations must not block.  Waiting for a little
+     disk IO is OK but blocking on long-lasting transactions or external
+     resources is not acceptable.  Long-running subprocesses should use
+     subprograms (rather than forking but not execing) if reasonably possible;
+     see c_stats() for an example.  c_reminder() is probably in the grey area.
+
+   * The server process does not use threads and I would like to keep it that
+     way.
+
+   * The server uses the Boehm garbage collector.  This eliminates the need to
+     call free() and similar functions in many cases, though teardown calls to
+     that do more than free GC-allocated memory (such as fclose()) are still
+     required.
+
+   * DisOrder's *printf calls, such as byte_xasprintf(), are mostly preferred
+     within the server to the ones built into libc.  An important distinction
+     is that they will always accept UTF-8 strings whereas the built-in ones
+     may reject them in non-UTF-8 locales (for instance Glibc does this) with
+     EILSEQ.  Only where the data is guaranteed to be ASCII may the libc
+     functions be used.
+
+   * To add a new configuration directive:
+     1) Add a new entry to the struct in lib/configuration.h
+     2) Add a new table entry to conf[] in lib/configuration.c
+     3) If the directive is entirely unlike existing ones add a new type_
+        to lib/configuration.c
+     4) Set the default if non-0 in config_default().  In some cases
+        config_postdefaults() may be more appropriate.
+     5) Document the new directive in doc/disorder_config.5.in
+
+   * To add a new command:
+     1) Add a new c_ function and table entry in server/server.c
+     2) Document the new command in doc/disorder_protocol.5.in
+     3) Add a new function to lib/client.c
+     4) Add a new function to lib/eclient.c
+     5) Add a new function to python/disorder.py.in
+     6) Add a new command to clients/disorder.c and update doc/disorder.1.in
+     7) Add a new test somewhere in tests/*.py
+     Depending on the purpose of the command it may be acceptable to leave out
+     some of the client side work - for instance commands only ever used by the
+     web interface are not implemented in lib/eclient.c.
+
+   * See disorder_protocol(5) for details of how the status code is
+     constructed, and the existing commands for examples.
+
+   * If the command needs a new right to be defined then update lib/rights.[ch]
+     and doc/disorder_config.5.in.  New rights should definitely be mentioned
+     in README.upgrades as existing users will not automatically get new rights
+     even if they are in default_rights.  If the new right should not be in
+     default_rights by default then you must update config_postdefaults().
+
+Web Interface:
+
+   * The web interface does not use Javascript or Flash and I would like to
+     keep it that way.
+
+   * I know that the web template syntax is rather nasty.  Perhaps it will be
+     improved in a future version.
+
+   * Update templates/help.html for any changes you make.
+
+Disobedience:
+
+   * Disobedience does not currently use threads and I'd prefer to keep it that
+     way.
+
+   * Disobedience uses the Boehm garbage collector but not for GTK+/GLIB's
+     memory allocation, as they are incompatible with it.  So you still have to
+     do somewhat manual memory management for GTK+ objects.  Fortunately it has
+     its own refcounting system which does most of the work for you.
+
+   * Lengthy operations must not block.  In practice this seems to be a less of
+     a problem for Disobedience than the server.  Use the GLIB event loop to
+     deal with long-running operations if you do need any.
+
+   * Update doc/disobedience.1.in for any changes you make.
+
+Code And Patches:
+
+   * Please follow the existing layout conventions.
+
+   * Please try to write doc comments for new functions, types, etc using the
+     same syntax as the existing ones.  Doxygen can be used to turn this into
+     reference documentation.
+
+   * More importantly, new configuration directives, protocol commands,
+     interface features etc should be documented in the relevant places.
+
+   * If you add new dependencies please update README, README.developers and
+     debian/control.
+
+   * New dependencies that are not in Debian stable are likely to be rejected.
+     (But if your new feature only makes sense on a given platform then
+     obviously its new dependencies don't need to be available elsewhere.)
+
+   * Please submit patches either using 'diff -u', or by publishing a bzr
+     branch somewhere I can get at it.
+
+   * Please make it clear that your changes can be distributed under DisOrder's
+     licence (which is "GPL v2 or later").
+
+Local Variables:
+mode:text
+fill-column:79
+End:

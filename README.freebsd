@@ -1,0 +1,20 @@
+DisOrder on FreeBSD
+===================
+
+The server builds on FreeBSD, using the ports system to supply many of
+its dependencies.  It is not well tested in this environment.  In
+particular, since my FreeBSD VM lacks sound support, only network play
+has been tested.  Please report successes and failures!
+
+
+Things you will need to do:
+
+* Create the jukebox user and group
+
+  sudo pw groupadd -n jukebox
+  sudo pw useradd -n jukebox
+  sudo pw groupmod jukebox -m jukebox
+
+* Arrange for the server to start at boot time
+
+* Start the server

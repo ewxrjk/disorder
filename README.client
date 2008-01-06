@@ -6,37 +6,30 @@ has a 'listen PORT' directive in its configuration file.
 
 There is currently no standard DisOrder port number.
 
+ 1. Configure the software with --without-server (and, optionally,
+    --without-python) and build and install it.
 
-1. Configure the software with --without-server (and, optionally,
---without-python) and build and install it.  Set up a stub config in
-/etc/disorder/config (or /usr/local/etc/disorder/config if you didn't
-set a nondefault --prefix) with the following contents:
+ 2. Set up a stub config in /etc/disorder/config (or
+    /usr/local/etc/disorder/config if you didn't set a nondefault --prefix)
+    with the following contents:
 
-   connect jukebox PORT
+      connect jukebox PORT
 
-where PORT is the same as 'listen PORT' on the server.
+    where PORT is the same as 'listen PORT' on the server.
 
+ 3. Copy the password file for each user to ~USER/.disorder/passwd, the
+    contents being:
 
-2. Copy the password file for each user to /etc/disorder/config.USER,
-the contents being:
+      password PASSWORD
 
-  password PASSWORD
+    If the DisOrder username differs from the local username then use a
+    'username' directive.
 
-Alternatvely, each user can use ~/.disorder/passwd, with the same contents.  If
-the DisOrder username differs from the local username then use a 'username'
-directive.
+ 4. Test by issuing 'disorder playing'.
 
+ 5. Run 'disobedience' for the GUI client.
 
-3. Test by issuing 'disorder playing'.
-
-
-4. Run 'disobedience' for the GUI client.
-
-
-The web interface could in principle be made to work on a separate
-machine from the main server, though it is unlikely to be efficient
-and at the moment it is built whenever the server is, so you will have
-to unpick them a bit yourself if you wish to do this.
+Alternatively, skip steps 2-4 and use Disobedience's login dialog.
 
 
 Local Variables:

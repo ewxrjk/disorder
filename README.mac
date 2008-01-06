@@ -1,8 +1,9 @@
 DisOrder on OS X
 ================
 
-The server builds on OS X.  It is not well tested in this environment.
-Please report successes and failures!
+The server builds on OS X, using Fink to supply many of its
+dependencies.  It is not well tested in this environment.  Please
+report successes and failures!
 
 
 Things you will need to do:
