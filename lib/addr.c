@@ -125,8 +125,8 @@ int addrinfocmp(const struct addrinfo *a,
   }
 }
 
-static inline int multicast4(const struct sockaddr_in *sin) {
-  return IN_MULTICAST(ntohl(sin->sin_addr.s_addr));
+static inline int multicast4(const struct sockaddr_in *sin4) {
+  return IN_MULTICAST(ntohl(sin4->sin_addr.s_addr));
 }
 
 static inline int multicast6(const struct sockaddr_in6 *sin6) {
@@ -145,17 +145,17 @@ int multicast(const struct sockaddr *sa) {
   }
 }
 
-static inline char *format_sockaddr4(const struct sockaddr_in *sin) {
+static inline char *format_sockaddr4(const struct sockaddr_in *sin4) {
   char buffer[1024], *r;
 
-  if(sin->sin_port)
+  if(sin4->sin_port)
     byte_xasprintf(&r, "%s port %u",
-		   inet_ntop(sin->sin_family, &sin->sin_addr,
+		   inet_ntop(sin4->sin_family, &sin4->sin_addr,
 			     buffer, sizeof buffer),
-		   ntohs(sin->sin_port));
+		   ntohs(sin4->sin_port));
   else
     byte_xasprintf(&r, "%s",
-		   inet_ntop(sin->sin_family, &sin->sin_addr,
+		   inet_ntop(sin4->sin_family, &sin4->sin_addr,
 			     buffer, sizeof buffer));
   return r;
 }
