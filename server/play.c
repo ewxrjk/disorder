@@ -116,6 +116,11 @@ static int speaker_readable(ev_source *ev, int fd,
     D(("SM_FINISHED %s", sm.id));
     finished(ev);
     break;
+  case SM_UNKNOWN:
+    /* we asked for an unknown track to be cancelled */
+    if(playing && !strcmp(sm.id, playing->id))
+      finished(ev);
+    break;
   case SM_PLAYING:
     /* track ID is playing, DATA seconds played */
     D(("SM_PLAYING %s %ld", sm.id, sm.data));

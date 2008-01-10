@@ -563,8 +563,11 @@ static void mainloop(void) {
 	      playing = 0;
             }
 	    destroy(t);
-	  } else
+	  } else {
+            sm.type = SM_UNKNOWN;
+            speaker_send(1, &sm);
 	    error(0, "SM_CANCEL for unknown track %s", sm.id);
+          }
           report();
 	  break;
 	case SM_RELOAD:

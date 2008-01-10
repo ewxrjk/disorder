@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007 Richard Kettlewell
+# Copyright (C) 2007, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,9 +25,12 @@ def test():
     dtest.start_daemon()
     dtest.create_user()
     c = disorder.client()
+    c.random_disable()
+    assert c.random_enabled() == False
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     print " adding track to queue"
     c.disable()
+    assert c.enabled() == False
     c.play(track)
     print " checking track turned up in queue"
     q = c.queue()
@@ -38,6 +41,7 @@ def test():
     i = t['id']
     print " waiting for track"
     c.enable()
+    assert c.enabled() == True
     p = c.playing()
     r = c.recent()
     while not((p is not None and p['id'] == i)
@@ -54,33 +58,42 @@ def test():
     assert len(ts) == 1, "check track appears exactly once in recent"
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
-    print " disabling play"
-    c.disable()
-    print " scratching current track"
-    p = c.playing()
-    i = p['id']
-    c.scratch(i)
-    print " checking scratched track turned up in recent list"
-    while (p is not None and p['id'] == i):
-        time.sleep(1)
+
+    print " testing scratches"
+    retry = False
+    while True:
+        c.disable()
+        print " starting a track"
+        c.play(track)
+        c.enable()
         p = c.playing()
-    r = c.recent()
-    ts = filter(lambda t: t['id'] == i, r)
-    assert len(ts) == 1, "check scratched track appears exactly once in recent"
-    assert ts[0]['state'] == 'scratched', "checking track scratched"
+        if p is None:
+            print " track played too quickly, trying again..."
+            continue
+        print " scratching track"
+        i = p['id']
+        c.scratch(i)
+        print " waiting for track to finish"
+        p = c.playing()
+        while (p is not None and p['id'] == i):
+            time.sleep(1)
+            p = c.playing()
+        print " checking scratched track turned up in recent list"
+        r = c.recent()
+        ts = filter(lambda t: t['id'] == i, r)
+        assert len(ts) == 1, "check scratched track appears exactly once in recent"
+        if ts[0]['state'] == 'ok':
+            print " track played too quickly, trying again..."
+            continue
+        assert ts[0]['state'] == 'scratched', "checking track scratched"
+        break
     print " waiting for scratch to complete"
-    while (p is not None and p['state'] == 'isscratch'):
+    p = c.recent()
+    while p is not None:
         time.sleep(1)
         p = c.playing()
     assert p is None, "checking nothing is playing"
-    c.random_disable()
-    assert c.random_enabled() == False
-    assert c.enabled() == False
-    c.enable()
     assert c.enabled() == True
-    time.sleep(1)
-    p = c.playing()
-    assert p is None, "checking nothing playing when random disabled but playing enabled"
     c.random_enable()
     assert c.random_enabled() == True
 

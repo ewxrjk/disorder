@@ -42,6 +42,7 @@ struct speaker_message {
    * - @ref SM_PAUSED
    * - @ref SM_FINISHED
    * - @ref SM_PLAYING
+   * - @ref SM_UNKNOWN
    */
   int type;
 
@@ -82,6 +83,9 @@ struct speaker_message {
 
 /** @brief Finished playing track @c id */
 #define SM_FINISHED 129
+
+/** @brief Never heard of track @c id */
+#define SM_UNKNOWN 130
 
 /** @brief Currently track @c id, @c data seconds in
  *
