@@ -27,6 +27,7 @@ def test():
     c = disorder.client()
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     print " adding track to queue"
+    c.disable()
     c.play(track)
     print " checking track turned up in queue"
     q = c.queue()
@@ -36,6 +37,7 @@ def test():
     assert t['submitter'] == u'fred', "check queue submitter"
     i = t['id']
     print " waiting for track"
+    c.enable()
     p = c.playing()
     r = c.recent()
     while not((p is not None and p['id'] == i)
