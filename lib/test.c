@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005, 2007 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/un.h>
 
 #include "mem.h"
 #include "log.h"
@@ -1376,7 +1377,9 @@ static void test_addr(void) {
   const char *s[2];
   struct addrinfo *ai;
   char *name;
-  const struct sockaddr_in *sin;
+  const struct sockaddr_in *sin4;
+  struct sockaddr_in s4;
+  struct sockaddr_un su;
 
   static const struct addrinfo pref = {
     AI_PASSIVE,
@@ -1400,10 +1403,10 @@ static void test_addr(void) {
   check_integer(ai->ai_socktype, SOCK_STREAM);
   check_integer(ai->ai_protocol, IPPROTO_TCP);
   check_integer(ai->ai_addrlen, sizeof(struct sockaddr_in));
-  sin = (const struct sockaddr_in *)ai->ai_addr;
-  check_integer(sin->sin_family, AF_INET);
-  check_integer(sin->sin_addr.s_addr, 0);
-  check_integer(ntohs(sin->sin_port), 25);
+  sin4 = (const struct sockaddr_in *)ai->ai_addr;
+  check_integer(sin4->sin_family, AF_INET);
+  check_integer(sin4->sin_addr.s_addr, 0);
+  check_integer(ntohs(sin4->sin_port), 25);
   check_string(name, "host * service smtp");
 
   a.n = 2;
@@ -1415,11 +1418,35 @@ static void test_addr(void) {
   check_integer(ai->ai_socktype, SOCK_STREAM);
   check_integer(ai->ai_protocol, IPPROTO_TCP);
   check_integer(ai->ai_addrlen, sizeof(struct sockaddr_in));
-  sin = (const struct sockaddr_in *)ai->ai_addr;
-  check_integer(sin->sin_family, AF_INET);
-  check_integer(ntohl(sin->sin_addr.s_addr), 0x7F000001);
-  check_integer(ntohs(sin->sin_port), 119);
+  sin4 = (const struct sockaddr_in *)ai->ai_addr;
+  check_integer(sin4->sin_family, AF_INET);
+  check_integer(ntohl(sin4->sin_addr.s_addr), 0x7F000001);
+  check_integer(ntohs(sin4->sin_port), 119);
   check_string(name, "host localhost service nntp");
+
+  memset(&s4, 0, sizeof s4);
+  s4.sin_family = AF_INET;
+  s4.sin_addr.s_addr = 0;
+  s4.sin_port = 0;
+  check_string(format_sockaddr((struct sockaddr *)&s4),
+               "0.0.0.0");
+  check_integer(multicast((struct sockaddr *)&s4), 0);
+  s4.sin_addr.s_addr = htonl(0x7F000001);
+  s4.sin_port = htons(1000);
+  check_string(format_sockaddr((struct sockaddr *)&s4),
+               "127.0.0.1 port 1000");
+  check_integer(multicast((struct sockaddr *)&s4), 0);
+  s4.sin_addr.s_addr = htonl(0xE0000001);
+  check_string(format_sockaddr((struct sockaddr *)&s4),
+               "224.0.0.1 port 1000");
+  check_integer(multicast((struct sockaddr *)&s4), 1);
+
+  memset(&su, 0, sizeof su);
+  su.sun_family = AF_UNIX;
+  strcpy(su.sun_path, "/wibble/wobble");
+  check_string(format_sockaddr((struct sockaddr *)&su),
+               "/wibble/wobble");
+  check_integer(multicast((struct sockaddr *)&su), 0);
 }
 
 static void test_url(void) {
@@ -1440,6 +1467,17 @@ static void test_url(void) {
   insist(p.port == 82);
   check_string(p.path, "/example/path");
   check_string(p.query, "+query+");
+
+  insist(parse_url("//www.example.com/example/path", &p) == 0);
+  insist(p.scheme == 0);
+  check_string(p.host, "www.example.com");
+  insist(p.port == -1);
+  check_string(p.path, "/example/path");
+  insist(p.query == 0);
+
+  insist(parse_url("http://www.example.com:100000/", &p) == -1);
+  insist(parse_url("http://www.example.com:1000000000000/", &p) == -1);
+  insist(parse_url("http://www.example.com/example%2zpath", &p) == -1);
 }
 
 int main(void) {
