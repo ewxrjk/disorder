@@ -1154,7 +1154,7 @@ static int c_edituser(struct conn *c,
       /* Update rights for this user */
       rights_type r;
 
-      if(parse_rights(vec[1], &r, 1))
+      if(parse_rights(vec[2], &r, 1))
 	for(d = connections; d; d = d->next)
 	  if(!strcmp(d->who, vec[0]))
 	    d->rights = r;
