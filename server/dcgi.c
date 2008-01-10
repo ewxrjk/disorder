@@ -57,6 +57,7 @@
 #include "url.h"
 #include "mime.h"
 #include "sendmail.h"
+#include "base64.h"
 
 char *login_cookie;
 
@@ -73,15 +74,23 @@ struct entry {
   const char *display;
 };
 
-static const char *nonce(void) {
-  static unsigned long count;
-  char *s;
+static const char nonce_base64_table[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/*";
 
-  byte_xasprintf(&s, "%lx%lx%lx",
-	   (unsigned long)time(0),
-	   (unsigned long)getpid(),
-	   count++);
-  return s;
+static const char *nonce(void) {
+  static uint32_t count;
+
+  struct ndata {
+    uint16_t count;
+    uint16_t pid;
+    uint32_t when;
+  } nd;
+
+  nd.count = count++;
+  nd.pid = (uint32_t)getpid();
+  nd.when = (uint32_t)time(0);
+  return generic_to_base64((void *)&nd, sizeof nd,
+			   nonce_base64_table);
 }
 
 static int compare_entry(const void *a, const void *b) {

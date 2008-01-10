@@ -35,7 +35,7 @@ USA
     <!-- paused -->
     <span class=button>
     <a class=button
-    href="@url@?action=resume&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=resume&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.resumeverbose@">@label:playing.pause@</a>
     </a>
     </span>
@@ -44,7 +44,7 @@ USA
     <!-- not paused -->
     <span class=button>
     <a class=button
-    href="@url@?action=pause&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=pause&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.pauseverbose@">@label:playing.pause@</a>
     </a>
     </span>
@@ -54,7 +54,7 @@ USA
     <!-- random played enabled -->
     <span class=button>
     <a class=button
-    href="@url@?action=random-disable&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=random-disable&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.randomdisableverbose@">@label:playing.random@</a>
     </a>
     </span>
@@ -63,7 +63,7 @@ USA
     <!-- random played disabled -->
     <span class=button>
     <a class=button
-    href="@url@?action=random-enable&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=random-enable&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.randomenableverbose@">@label:playing.random@</a>
     </a>
     </span>
@@ -73,7 +73,7 @@ USA
     <!-- playing enabled -->
     <span class=button>
     <a class=button
-    href="@url@?action=disable&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=disable&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.disableverbose@">@label:playing.playing@</a>
     </a>
     </span>
@@ -82,7 +82,7 @@ USA
     <!-- playing disabled -->
     <span class=button>
     <a class=button
-    href="@url@?action=enable&#38;nonce=@nonce@&#38;mgmt=true"
+    href="@url@?action=enable&#38;n=@nonce@&#38;mgmt=true"
      title="@label:playing.enableverbose@">@label:playing.playing@</a>
     </a>
     </span>
@@ -157,7 +157,7 @@ USA
        title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@scratchable@}{<a class=imgbutton
-       href="@url@?action=scratch&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
+       href="@url@?action=scratch&#38;n=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
        class=button src="@image:scratch@"
        title="@label:playing.scratchverbose@"
        alt="@label:playing.scratch@"></a>}{<img
@@ -196,7 +196,7 @@ USA
        title="@part{title}@">@part{short}{title}@</span></td>
       <td class=length>@length@</td>
       <td class=imgbutton>@if{@removable@}{<a class=imgbutton
-       href="@url@?action=remove&#38;nonce=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
+       href="@url@?action=remove&#38;n=@nonce@&#38;id=@id@&#38;mgmt=@arg:mgmt@"><img
        class=button src="@image:scratch@"
        title="@label:playing.removeverbose@" 
        alt="@label:playing.remove@"></a>}{<img
@@ -220,13 +220,13 @@ USA
      <!-- can move up -->
      <td class=imgbutton>
       <a class=imgbutton
-        href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=2147483647&#38;mgmt=true"><img
+        href="@url@?action=move&#38;n=@nonce@&#38;id=@id@&#38;delta=2147483647&#38;mgmt=true"><img
        class=button src="@image:upall@"
        title="@label:playing.upallverbose@"
        alt="@label:playing.upall@"></a>
      <td class=imgbutton>
      <a class=imgbutton
-        href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=1&#38;mgmt=true"><img
+        href="@url@?action=move&#38;n=@nonce@&#38;id=@id@&#38;delta=1&#38;mgmt=true"><img
        class=button src="@image:up@"
        title="@label:playing.upverbose@" alt="@label:playing.up@"></a>
          }@
@@ -246,13 +246,13 @@ USA
      <!-- can move down -->
      <td class=imgbutton>
       <a class=imgbutton
-        href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=-2147483647&#38;mgmt=true"><img
+        href="@url@?action=move&#38;n=@nonce@&#38;id=@id@&#38;delta=-2147483647&#38;mgmt=true"><img
        class=button src="@image:downall@"
        title="@label:playing.downallverbose@"
        alt="@label:playing.downall@"></a>
      <td class=imgbutton>
      <a class=imgbutton
-        href="@url@?action=move&#38;nonce=@nonce@&#38;id=@id@&#38;delta=-1&#38;mgmt=true"><img
+        href="@url@?action=move&#38;n=@nonce@&#38;id=@id@&#38;delta=-1&#38;mgmt=true"><img
        class=button src="@image:down@"
        title="@label:playing.downverbose@" alt="@label:playing.down@"></a>
          }@
