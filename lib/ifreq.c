@@ -35,29 +35,6 @@
 #include "mem.h"
 #include "log.h"
 
-/** @brief Get the list of network interfaces
- * @param fd File descriptor to use
- * @param interfaces Where to put pointer to array of interfaces
- * @param ninterfaces Where to put count of interfaces
- */
-void ifreq_list(int fd, struct ifreq **interfaces, int *ninterfaces) {
-  struct ifconf ifc;
-  int l;
-
-  ifc.ifc_len = 0;
-  ifc.ifc_req = 0;
-  do {
-    l = ifc.ifc_len = ifc.ifc_len ? 2 * ifc.ifc_len
-                                  : 16 * (int)sizeof (struct ifreq);
-    if(!l) fatal(0, "out of memory");
-    ifc.ifc_req = xrealloc(ifc.ifc_req, l);
-    if(ioctl(fd, SIOCGIFCONF, &ifc) < 0)
-      fatal(errno, "error calling ioctl SIOCGIFCONF");
-  } while(l == ifc.ifc_len);
-  *ninterfaces = ifc.ifc_len / sizeof (struct ifreq);
-  *interfaces = ifc.ifc_req;
-}
-
 /** @brief Return true if two socket addresses match */
 int sockaddr_equal(const struct sockaddr *a, const struct sockaddr *b) {
   if(a->sa_family != b->sa_family)

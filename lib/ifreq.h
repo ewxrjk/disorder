@@ -25,13 +25,6 @@
 
 struct ifreq;
 
-/** @brief Get the list of network interfaces
- * @param fd File descriptor to use
- * @param interfaces Where to put pointer to array of interfaces
- * @param ninterfaces Where to put count of interfaces
- */
-void ifreq_list(int fd, struct ifreq **interfaces, int *ninterfaces);
-
 /** @brief Return true if two socket addresses match */
 int sockaddr_equal(const struct sockaddr *a, const struct sockaddr *b);
 
