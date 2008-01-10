@@ -134,12 +134,14 @@ static const char *skipwhite(const char *s, int rfc822_comments) {
 	case '(': ++depth; break;
 	case ')': --depth; break;
 	case '\\':
-	  if(!*s) return 0;
+	  if(!*s)
+	    return 0;
 	  ++s;
 	  break;
 	}
       }
-      if(depth) return 0;
+      if(depth)
+	return 0;
       break;
     default:
       return s;
@@ -175,13 +177,15 @@ static const char *parseword(const char *s, char **valuep,
     while((c = *s++) != '"') {
       switch(c) {
       case '\\':
-	if(!(c = *s++)) return 0;
+	if(!(c = *s++))
+	  return 0;
       default:
 	dynstr_append(value, c);
 	break;
       }
     }
-    if(!c) return 0;
+    if(!c)
+      return 0;
   } else {
     if(!iswordchar((unsigned char)*s, special))
       return NULL;
@@ -202,7 +206,8 @@ static const char *parseword(const char *s, char **valuep,
  */
 static const char *parsetoken(const char *s, char **valuep,
 			      int (*special)(int)) {
-  if(*s == '"') return 0;
+  if(*s == '"')
+    return 0;
   return parseword(s, valuep, special);
 }
 
@@ -222,30 +227,43 @@ int mime_content_type(const char *s,
   char *parametervalue;
 
   dynstr_init(&type);
-  if(!(s = skipwhite(s, 1))) return -1;
-  if(!*s) return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
+  if(!*s)
+    return -1;
   while(*s && !tspecial(*s) && !whitespace(*s))
     dynstr_append(&type, tolower((unsigned char)*s++));
-  if(!(s = skipwhite(s, 1))) return -1;
-  if(*s++ != '/') return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
+  if(*s++ != '/')
+    return -1;
   dynstr_append(&type, '/');
-  if(!(s = skipwhite(s, 1))) return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
   while(*s && !tspecial(*s) && !whitespace(*s))
     dynstr_append(&type, tolower((unsigned char)*s++));
-  if(!(s = skipwhite(s, 1))) return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
 
   while(*s == ';') {
     dynstr_init(&parametername);
     ++s;
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(!*s) return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(!*s)
+      return -1;
     while(*s && !tspecial(*s) && !whitespace(*s))
       dynstr_append(&parametername, tolower((unsigned char)*s++));
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(*s++ != '=') return -1;
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(!(s = parseword(s, &parametervalue, tspecial))) return -1;
-    if(!(s = skipwhite(s, 1))) return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(*s++ != '=')
+      return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(!(s = parseword(s, &parametervalue, tspecial)))
+      return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
     dynstr_terminate(&parametername);
     kvp_set(&parameters, parametername.vec, parametervalue);
   }
@@ -278,12 +296,25 @@ const char *mime_parse(const char *s,
     dynstr_init(&value);
     while(*s && !tspecial(*s) && !whitespace(*s))
       dynstr_append(&name, tolower((unsigned char)*s++));
-    if(!(s = skipwhite(s, 1))) return 0;
-    if(*s != ':') return 0;
+    if(!(s = skipwhite(s, 1)))
+      return 0;
+    if(*s != ':')
+      return 0;
     ++s;
-    while(*s && !(*s == '\n' && !(s[1] == ' ' || s[1] == '\t')))
-      dynstr_append(&value, *s++);
-    if(*s) ++s;
+    while(*s && !(*s == '\n' && !(s[1] == ' ' || s[1] == '\t'))) {
+      const int c = *s++;
+      /* Strip leading whitespace */
+      if(value.nvec || !(c == ' ' || c == '\t' || c == '\n' || c == '\r'))
+	dynstr_append(&value, c);
+    }
+    /* Strip trailing whitespace */
+    while(value.nvec > 0 && (value.vec[value.nvec - 1] == ' '
+			     || value.vec[value.nvec - 1] == '\t'
+			     || value.vec[value.nvec - 1] == '\n'
+			     || value.vec[value.nvec - 1] == '\r'))
+      --value.nvec;
+    if(*s)
+      ++s;
     dynstr_terminate(&name);
     dynstr_terminate(&value);
     if(!strcmp(name.vec, "content-transfer-encoding")) {
@@ -291,12 +322,20 @@ const char *mime_parse(const char *s,
       for(p = cte; *p; p++)
 	*p = tolower((unsigned char)*p);
     }
-    if(callback(name.vec, value.vec, u)) return 0;
+    if(callback(name.vec, value.vec, u))
+      return 0;
   }
-  if(*s) s += 2;
+  if(*s)
+    s += 2;
   if(cte) {
-    if(!strcmp(cte, "base64")) return mime_base64(s, 0);
-    if(!strcmp(cte, "quoted-printable")) return mime_qp(s);
+    if(!strcmp(cte, "base64"))
+      return mime_base64(s, 0);
+    if(!strcmp(cte, "quoted-printable"))
+      return mime_qp(s);
+    if(!strcmp(cte, "7bit") || !strcmp(cte, "8bit"))
+      return s;
+    error(0, "unknown content-transfer-encoding '%s'", cte);
+    return 0;
   }
   return s;
 }
@@ -378,24 +417,34 @@ int mime_rfc2388_content_disposition(const char *s,
   struct dynstr disposition, parametername;
 
   dynstr_init(&disposition);
-  if(!(s = skipwhite(s, 1))) return -1;
-  if(!*s) return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
+  if(!*s)
+    return -1;
   while(*s && !tspecial(*s) && !whitespace(*s))
     dynstr_append(&disposition, tolower((unsigned char)*s++));
-  if(!(s = skipwhite(s, 1))) return -1;
+  if(!(s = skipwhite(s, 1)))
+    return -1;
 
   if(*s == ';') {
     dynstr_init(&parametername);
     ++s;
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(!*s) return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(!*s)
+      return -1;
     while(*s && !tspecial(*s) && !whitespace(*s))
       dynstr_append(&parametername, tolower((unsigned char)*s++));
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(*s++ != '=') return -1;
-    if(!(s = skipwhite(s, 1))) return -1;
-    if(!(s = parseword(s, parametervaluep, tspecial))) return -1;
-    if(!(s = skipwhite(s, 1))) return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(*s++ != '=')
+      return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
+    if(!(s = parseword(s, parametervaluep, tspecial)))
+      return -1;
+    if(!(s = skipwhite(s, 1)))
+      return -1;
     dynstr_terminate(&parametername);
     *parameternamep = parametername.vec;
   } else
@@ -474,11 +523,14 @@ int parse_cookie(const char *s,
       s = skipwhite(s, 0);
       continue;
     }
-    if(!(s = parsetoken(s, &n, http_separator))) return -1;
+    if(!(s = parsetoken(s, &n, http_separator)))
+      return -1;
     s = skipwhite(s, 0);
-    if(*s++ != '=') return -1;
+    if(*s++ != '=')
+      return -1;
     s = skipwhite(s, 0);
-    if(!(s = parseword(s, &v, http_separator))) return -1;
+    if(!(s = parseword(s, &v, http_separator)))
+      return -1;
     if(n[0] == '$') {
       /* Some bit of meta-information */
       if(!strcmp(n, "$Version"))

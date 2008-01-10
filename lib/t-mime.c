@@ -26,10 +26,20 @@ static int test_multipart_callback(const char *s, void *u) {
   return 0;
 }
 
+static int header_callback(const char *name, const char *value,
+			   void *u) {
+  hash *const h = u;
+
+  hash_add(h, name, &value, HASH_INSERT);
+  return 0;
+}
+
 void test_mime(void) {
   char *t, *n, *v;
   struct vector parts[1];
   struct kvp *k;
+  const char *s;
+  hash *h;
 
   fprintf(stderr, "test_mime\n");
 
@@ -250,6 +260,54 @@ void test_mime(void) {
   /* Not actually valid base64 */
   check_string(mime_base64("BBBBx=", 0),
 	       "\x04\x10\x41");
+
+  h = hash_new(sizeof (char *));
+  s = mime_parse("From: sender@example.com\r\n"
+		 "To: rcpt@example.com\r\n"
+		 "Subject: test #1\r\n"
+		 "\r\n"
+		 "body\r\n",
+		 header_callback, h);
+  insist(s != 0);
+  check_string(*(char **)hash_find(h, "from"), "sender@example.com");
+  check_string(*(char **)hash_find(h, "to"), "rcpt@example.com");
+  check_string(*(char **)hash_find(h, "subject"), "test #1");
+  check_string(s, "body\r\n");
+
+  h = hash_new(sizeof (char *));
+  s = mime_parse("FROM: sender@example.com\r\n"
+		 "TO: rcpt@example.com\r\n"
+		 "SUBJECT: test #1\r\n"
+		 "CONTENT-TRANSFER-ENCODING: 7bit\r\n"
+		 "\r\n"
+		 "body\r\n",
+		 header_callback, h);
+  insist(s != 0);
+  check_string(*(char **)hash_find(h, "from"), "sender@example.com");
+  check_string(*(char **)hash_find(h, "to"), "rcpt@example.com");
+  check_string(*(char **)hash_find(h, "subject"), "test #1");
+  check_string(*(char **)hash_find(h, "content-transfer-encoding"), "7bit");
+  check_string(s, "body\r\n");
+
+  h = hash_new(sizeof (char *));
+  s = mime_parse("From: sender@example.com\r\n"
+		 "To:    \r\n"
+		 "     rcpt@example.com\r\n"
+		 "Subject: test #1\r\n"
+		 "MIME-Version: 1.0\r\n"
+		 "Content-Type: text/plain\r\n"
+		 "Content-Transfer-Encoding: BASE64\r\n"
+		 "\r\n"
+		 "d2liYmxlDQo=\r\n",
+		 header_callback, h);
+  insist(s != 0); 
+  check_string(*(char **)hash_find(h, "from"), "sender@example.com");
+  check_string(*(char **)hash_find(h, "to"), "rcpt@example.com");
+  check_string(*(char **)hash_find(h, "subject"), "test #1");
+  check_string(*(char **)hash_find(h, "mime-version"), "1.0");
+  check_string(*(char **)hash_find(h, "content-type"), "text/plain");
+  check_string(*(char **)hash_find(h, "content-transfer-encoding"), "BASE64");
+  check_string(s, "wibble\r\n");
 }
 
 /*
