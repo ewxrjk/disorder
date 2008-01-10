@@ -38,6 +38,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <pcre.h>
 
 #include "mem.h"
 #include "log.h"
@@ -64,6 +65,7 @@
 #include "addr.h"
 #include "base64.h"
 #include "url.h"
+#include "regsub.h"
 
 static int tests, errors;
 static int fail_first;
@@ -1117,6 +1119,17 @@ static void test_sink(void) {
   insist(inputline("tmpfile", fp, &l, '\n') == 0);
   check_string(l, "wibble: foobar");
   insist(inputline("tmpfile", fp, &l, '\n') == -1);
+
+  fp = tmpfile();
+  assert(fp != 0);
+  fprintf(fp, "foo\rbar\nwibble\r\n");
+  fprintf(fp, "second\n\rspong\r\n");
+  rewind(fp);
+  insist(inputline("tmpfile", fp, &l, CRLF) == 0);
+  check_string(l, "foo\rbar\nwibble");
+  insist(inputline("tmpfile", fp, &l, CRLF) == 0);
+  check_string(l, "second\n\rspong");
+  insist(inputline("tmpfile", fp, &l, CRLF) == -1);
   
   dynstr_init(d);
   s = sink_dynstr(d);
@@ -1480,6 +1493,52 @@ static void test_url(void) {
   insist(parse_url("http://www.example.com/example%2zpath", &p) == -1);
 }
 
+static void test_regsub(void) {
+  pcre *re;
+  const char *errstr;
+  int erroffset;
+
+  printf("test_regsub\n");
+
+  check_integer(regsub_flags(""), 0);
+  check_integer(regsub_flags("g"), REGSUB_GLOBAL);
+  check_integer(regsub_flags("i"), REGSUB_CASE_INDEPENDENT);
+  check_integer(regsub_flags("gi"), REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT);
+  check_integer(regsub_flags("iiggxx"), REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT);
+  check_integer(regsub_compile_options(0), 0);
+  check_integer(regsub_compile_options(REGSUB_CASE_INDEPENDENT), PCRE_CASELESS);
+  check_integer(regsub_compile_options(REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT), PCRE_CASELESS);
+  check_integer(regsub_compile_options(REGSUB_GLOBAL), 0);
+
+  re = pcre_compile("foo", PCRE_UTF8, &errstr, &erroffset, 0);
+  assert(re != 0);
+  check_string(regsub(re, "wibble-foo-foo-bar", "spong", 0),
+               "wibble-spong-foo-bar");
+  check_string(regsub(re, "wibble-foo-foo-bar", "spong", REGSUB_GLOBAL),
+               "wibble-spong-spong-bar");
+  check_string(regsub(re, "wibble-x-x-bar", "spong", REGSUB_GLOBAL),
+               "wibble-x-x-bar");
+  insist(regsub(re, "wibble-x-x-bar", "spong", REGSUB_MUST_MATCH) == 0);
+
+  re = pcre_compile("a+", PCRE_UTF8, &errstr, &erroffset, 0);
+  assert(re != 0);
+  check_string(regsub(re, "baaaaa", "spong", 0),
+               "bspong");
+  check_string(regsub(re, "baaaaa", "spong", REGSUB_GLOBAL),
+               "bspong");
+  check_string(regsub(re, "baaaaa", "foo-$&-bar", 0),
+               "bfoo-aaaaa-bar");
+
+  re = pcre_compile("(a+)(b+)", PCRE_UTF8|PCRE_CASELESS, &errstr, &erroffset, 0);
+  assert(re != 0);
+  check_string(regsub(re, "foo-aaaabbb-bar", "spong", 0),
+               "foo-spong-bar");
+  check_string(regsub(re, "foo-aaaabbb-bar", "x:$2/$1:y", 0),
+               "foo-x:bbb/aaaa:y-bar");
+  check_string(regsub(re, "foo-aAaAbBb-bar", "x:$2$$$1:y", 0),
+               "foo-x:bBb$aAaA:y-bar");
+}
+
 int main(void) {
   mem_init();
   fail_first = !!getenv("FAIL_FIRST");
@@ -1547,6 +1606,7 @@ int main(void) {
   test_selection();
   test_hash();
   test_url();
+  test_regsub();
   fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
   return !!errors;
 }
