@@ -18,7 +18,7 @@
 # USA
 #
 
-EXTRA_DIST=TODO CHANGES README.streams BUGS ChangeLog.d	\
+EXTRA_DIST=TODO CHANGES README.streams BUGS \
 README.upgrades README.client README.mac README.raw README.vhost \
 README.freebsd README.developers
 SUBDIRS=@subdirs@
@@ -35,9 +35,6 @@ make-coverage-reports:
 	  echo cd ..;\
 	  cd ..;\
 	done
-
-dist-hook:
-	bzr log > ${distdir}/ChangeLog.d/bzr-changelog
 
 echo-distdir:
 	@echo $(distdir)
