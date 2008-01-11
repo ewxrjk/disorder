@@ -38,7 +38,7 @@ void test_mime(void) {
   char *t, *n, *v;
   struct vector parts[1];
   struct kvp *k;
-  const char *s;
+  const char *s, *cs, *enc;
   hash *h;
 
   fprintf(stderr, "test_mime\n");
@@ -308,6 +308,31 @@ void test_mime(void) {
   check_string(*(char **)hash_find(h, "content-type"), "text/plain");
   check_string(*(char **)hash_find(h, "content-transfer-encoding"), "BASE64");
   check_string(s, "wibble\r\n");
+
+#define CHECK_QUOTE(INPUT, EXPECT) do {                 \
+  s = quote822(INPUT, 0);                               \
+  insist(s != 0);                                       \
+  check_string(s, EXPECT);                              \
+  s = mime_parse_word(s, &t, mime_http_separator);      \
+  check_string(t, INPUT);                               \
+} while(0)
+  CHECK_QUOTE("wibble", "wibble");
+  CHECK_QUOTE("wibble spong", "\"wibble spong\"");
+  CHECK_QUOTE("wibble\\spong", "\"wibble\\\\spong\"");
+  CHECK_QUOTE("wibble\"spong", "\"wibble\\\"spong\"");
+  CHECK_QUOTE("(wibble)", "\"(wibble)\"");
+
+  s = mime_encode_text("wibble\n", &cs, &enc);
+  insist(s != 0);
+  check_string(s, "wibble\n");
+  check_string(cs, "us-ascii");
+  check_string(enc, "7bit");
+
+  s = mime_encode_text("wibble\xC3\xB7\n", &cs, &enc);
+  insist(s != 0);
+  check_string(s, "wibble=C3=B7\n");
+  check_string(cs, "utf-8");
+  check_string(enc, "quoted-printable");
 }
 
 /*

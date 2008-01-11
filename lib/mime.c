@@ -51,7 +51,7 @@ static int whitespace(int c) {
 }
 
 /** @brief Match RFC2045 tspecial characters */
-static int tspecial(int c) {
+int mime_tspecial(int c) {
   switch(c) {
   case '(':
   case ')':
@@ -75,7 +75,7 @@ static int tspecial(int c) {
 }
 
 /** @brief Match RFC2616 separator characters */
-static int http_separator(int c) {
+int mime_http_separator(int c) {
   switch(c) {
   case '(':
   case ')':
@@ -151,7 +151,7 @@ static const char *skipwhite(const char *s, int rfc822_comments) {
 
 /** @brief Test for a word character
  * @param c Character to test
- * @param special tspecial() (MIME/RFC2405) or http_separator() (HTTP/RFC2616)
+ * @param special mime_tspecial() (MIME/RFC2405) or mime_http_separator() (HTTP/RFC2616)
  * @return 1 if @p c is a word character, else 0
  */
 static int iswordchar(int c, int (*special)(int)) {
@@ -161,13 +161,13 @@ static int iswordchar(int c, int (*special)(int)) {
 /** @brief Parse an RFC1521/RFC2616 word
  * @param s Pointer to start of word
  * @param valuep Where to store value
- * @param special tspecial() (MIME/RFC2405) or http_separator() (HTTP/RFC2616)
+ * @param special mime_tspecial() (MIME/RFC2405) or mime_http_separator() (HTTP/RFC2616)
  * @return Pointer just after end of word or NULL if there's no word
  *
  * A word is a token or a quoted-string.
  */
-static const char *parseword(const char *s, char **valuep,
-			     int (*special)(int)) {
+const char *mime_parse_word(const char *s, char **valuep,
+			    int (*special)(int)) {
   struct dynstr value[1];
   int c;
 
@@ -201,14 +201,14 @@ static const char *parseword(const char *s, char **valuep,
 /** @brief Parse an RFC1521/RFC2616 token
  * @param s Pointer to start of token
  * @param valuep Where to store value
- * @param special tspecial() (MIME/RFC2405) or http_separator() (HTTP/RFC2616)
+ * @param special mime_tspecial() (MIME/RFC2405) or mime_http_separator() (HTTP/RFC2616)
  * @return Pointer just after end of token or NULL if there's no token
  */
 static const char *parsetoken(const char *s, char **valuep,
 			      int (*special)(int)) {
   if(*s == '"')
     return 0;
-  return parseword(s, valuep, special);
+  return mime_parse_word(s, valuep, special);
 }
 
 /** @brief Parse a MIME content-type field
@@ -231,7 +231,7 @@ int mime_content_type(const char *s,
     return -1;
   if(!*s)
     return -1;
-  while(*s && !tspecial(*s) && !whitespace(*s))
+  while(*s && !mime_tspecial(*s) && !whitespace(*s))
     dynstr_append(&type, tolower((unsigned char)*s++));
   if(!(s = skipwhite(s, 1)))
     return -1;
@@ -240,7 +240,7 @@ int mime_content_type(const char *s,
   dynstr_append(&type, '/');
   if(!(s = skipwhite(s, 1)))
     return -1;
-  while(*s && !tspecial(*s) && !whitespace(*s))
+  while(*s && !mime_tspecial(*s) && !whitespace(*s))
     dynstr_append(&type, tolower((unsigned char)*s++));
   if(!(s = skipwhite(s, 1)))
     return -1;
@@ -252,7 +252,7 @@ int mime_content_type(const char *s,
       return -1;
     if(!*s)
       return -1;
-    while(*s && !tspecial(*s) && !whitespace(*s))
+    while(*s && !mime_tspecial(*s) && !whitespace(*s))
       dynstr_append(&parametername, tolower((unsigned char)*s++));
     if(!(s = skipwhite(s, 1)))
       return -1;
@@ -260,7 +260,7 @@ int mime_content_type(const char *s,
       return -1;
     if(!(s = skipwhite(s, 1)))
       return -1;
-    if(!(s = parseword(s, &parametervalue, tspecial)))
+    if(!(s = mime_parse_word(s, &parametervalue, mime_tspecial)))
       return -1;
     if(!(s = skipwhite(s, 1)))
       return -1;
@@ -294,7 +294,7 @@ const char *mime_parse(const char *s,
   while(*s && !iscrlf(s)) {
     dynstr_init(&name);
     dynstr_init(&value);
-    while(*s && !tspecial(*s) && !whitespace(*s))
+    while(*s && !mime_tspecial(*s) && !whitespace(*s))
       dynstr_append(&name, tolower((unsigned char)*s++));
     if(!(s = skipwhite(s, 1)))
       return 0;
@@ -421,7 +421,7 @@ int mime_rfc2388_content_disposition(const char *s,
     return -1;
   if(!*s)
     return -1;
-  while(*s && !tspecial(*s) && !whitespace(*s))
+  while(*s && !mime_tspecial(*s) && !whitespace(*s))
     dynstr_append(&disposition, tolower((unsigned char)*s++));
   if(!(s = skipwhite(s, 1)))
     return -1;
@@ -433,7 +433,7 @@ int mime_rfc2388_content_disposition(const char *s,
       return -1;
     if(!*s)
       return -1;
-    while(*s && !tspecial(*s) && !whitespace(*s))
+    while(*s && !mime_tspecial(*s) && !whitespace(*s))
       dynstr_append(&parametername, tolower((unsigned char)*s++));
     if(!(s = skipwhite(s, 1)))
       return -1;
@@ -441,7 +441,7 @@ int mime_rfc2388_content_disposition(const char *s,
       return -1;
     if(!(s = skipwhite(s, 1)))
       return -1;
-    if(!(s = parseword(s, parametervaluep, tspecial)))
+    if(!(s = mime_parse_word(s, parametervaluep, mime_tspecial)))
       return -1;
     if(!(s = skipwhite(s, 1)))
       return -1;
@@ -523,13 +523,13 @@ int parse_cookie(const char *s,
       s = skipwhite(s, 0);
       continue;
     }
-    if(!(s = parsetoken(s, &n, http_separator)))
+    if(!(s = parsetoken(s, &n, mime_http_separator)))
       return -1;
     s = skipwhite(s, 0);
     if(*s++ != '=')
       return -1;
     s = skipwhite(s, 0);
-    if(!(s = parseword(s, &v, http_separator)))
+    if(!(s = mime_parse_word(s, &v, mime_http_separator)))
       return -1;
     if(n[0] == '$') {
       /* Some bit of meta-information */
@@ -597,7 +597,7 @@ char *quote822(const char *s, int force) {
   if(!force) {
     /* See if we need to quote */
     for(t = s; (c = (unsigned char)*t); ++t) {
-      if(tspecial(c) || http_separator(c) || whitespace(c))
+      if(mime_tspecial(c) || mime_http_separator(c) || whitespace(c))
 	break;
     }
     if(*t)

@@ -96,6 +96,10 @@ char *mime_to_qp(const char *text);
 const char *mime_encode_text(const char *text,
 			     const char **charsetp,
 			     const char **encodingp);
+const char *mime_parse_word(const char *s, char **valuep,
+			    int (*special)(int));
+int mime_http_separator(int c);
+int mime_tspecial(int c);
 
 #endif /* MIME_H */
 
