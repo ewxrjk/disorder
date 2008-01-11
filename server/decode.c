@@ -34,6 +34,7 @@
 #include <fnmatch.h>
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
+#include <string.h>
 
 /* libFLAC has had an API change and stupidly taken away the old API */
 #if HAVE_FLAC_FILE_DECODER_H
@@ -70,22 +71,8 @@ static const char *path;
 /** @brief Input buffer */
 static char input_buffer[1048576];
 
-/** @brief Open the input file */
-static void open_input(void) {
-  if((inputfd = open(path, O_RDONLY)) < 0)
-    fatal(errno, "opening %s", path);
-}
-
-/** @brief Fill the buffer
- * @return Number of bytes read
- */
-static size_t fill(void) {
-  int n = read(inputfd, input_buffer, sizeof input_buffer);
-
-  if(n < 0)
-    fatal(errno, "reading from %s", path);
-  return n;
-}
+/** @brief Number of bytes read into buffer */
+static int input_count;
 
 /** @brief Write an 8-bit word */
 static inline void output_8(int n) {
@@ -165,11 +152,11 @@ static inline unsigned long prng(unsigned long state)
 
 /** @brief Generic linear sample quantize and dither routine
  * Filched from mpg321, which credits it to Robert Leslie */
-#define bits 16
 static long audio_linear_dither(mad_fixed_t sample,
 				struct audio_dither *dither) {
   unsigned int scalebits;
   mad_fixed_t output, mask, rnd;
+  const int bits = 16;
 
   enum {
     MIN = -MAD_F_ONE,
@@ -217,7 +204,6 @@ static long audio_linear_dither(mad_fixed_t sample,
   /* scale */
   return output >> scalebits;
 }
-#undef bits
 
 /** @brief MP3 output callback */
 static enum mad_flow mp3_output(void attribute((unused)) *data,
@@ -250,14 +236,33 @@ static enum mad_flow mp3_output(void attribute((unused)) *data,
 /** @brief MP3 input callback */
 static enum mad_flow mp3_input(void attribute((unused)) *data,
 			       struct mad_stream *stream) {
-  const size_t n = fill();
+  int used, remain, n;
 
-  if(!n)
+  /* libmad requires its caller to do ALL the buffering work, including coping
+   * with partial frames.  Given that it appears to be completely undocumented
+   * you could perhaps be forgiven for not discovering this...  */
+  if(input_count) {
+    /* Compute total number of bytes consumed */
+    used = (char *)stream->next_frame - input_buffer;
+    /* Compute number of bytes left to consume */
+    remain = input_count - used;
+    memmove(input_buffer, input_buffer + used, remain);
+  } else {
+    remain = 0;
+  }
+  /* Read new data */
+  n = read(inputfd, input_buffer + remain, (sizeof input_buffer) - remain);
+  if(n < 0)
+    fatal(errno, "reading from %s", path);
+  /* Compute total number of bytes available */
+  input_count = remain + n;
+  if(input_count)
+    mad_stream_buffer(stream, (unsigned char *)input_buffer, input_count);
+  if(n)
+    return MAD_FLOW_CONTINUE;
+  else
     return MAD_FLOW_STOP;
-  mad_stream_buffer(stream, (unsigned char *)input_buffer, n);
-  return MAD_FLOW_CONTINUE;
 }
-
 
 /** @brief MP3 error callback */
 static enum mad_flow mp3_error(void attribute((unused)) *data,
@@ -274,7 +279,8 @@ static enum mad_flow mp3_error(void attribute((unused)) *data,
 static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
-  open_input();
+  if((inputfd = open(path, O_RDONLY)) < 0)
+    fatal(errno, "opening %s", path);
   mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
   if(mad_decoder_run(mad, MAD_DECODER_MODE_SYNC))
