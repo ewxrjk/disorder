@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,12 +43,38 @@
 #include "dcgi.h"
 #include "url.h"
 
+/** @brief Return true if @p a is better than @p b
+ *
+ * NB. We don't bother checking if the path is right, we merely check for the
+ * longest path.  This isn't a security hole: if the browser wants to send us
+ * bad cookies it's quite capable of sending just the right path anyway.  The
+ * point of choosing the longest path is to avoid using a cookie set by another
+ * CGI script which shares a path prefix with us, which would allow it to
+ * maliciously log users out.
+ *
+ * Such a script could still "maliciously" log someone in, if it had acquired a
+ * suitable cookie.  But it could just log in directly if it had that, so there
+ * is no obvious vulnerability here either.
+ */
+static int better_cookie(const struct cookie *a, const struct cookie *b) {
+  if(a->path && b->path)
+    /* If both have a path then the one with the longest path is best */
+    return strlen(a->path) > strlen(b->path);
+  else if(a->path)
+    /* If only @p a has a path then it is better */
+    return 1;
+  else
+    /* If neither have a path, or if only @p b has a path, then @p b is
+     * better */
+    return 0;
+}
+
 int main(int argc, char **argv) {
   const char *cookie_env, *conf;
   dcgi_global g;
   dcgi_state s;
   cgi_sink output;
-  int n;
+  int n, best_cookie;
   struct cookiedata cd;
 
   if(argc > 0) progname = argv[0];
@@ -69,11 +95,19 @@ int main(int argc, char **argv) {
   if(cookie_env) {
     /* This will be an HTTP header */
     if(!parse_cookie(cookie_env, &cd)) {
-      for(n = 0; n < cd.ncookies
-	    && strcmp(cd.cookies[n].name, "disorder"); ++n)
-	;
-      if(n < cd.ncookies)
-	login_cookie = cd.cookies[n].value;
+      /* Pick the best available cookie from all those offered */
+      best_cookie = -1;
+      for(n = 0; n < cd.ncookies; ++n) {
+	/* Is this the right cookie? */
+	if(strcmp(cd.cookies[n].name, "disorder"))
+	  continue;
+	/* Is it better than anything we've seen so far? */
+	if(best_cookie < 0
+	   || better_cookie(&cd.cookies[n], &cd.cookies[best_cookie]))
+	  best_cookie = n;
+      }
+      if(best_cookie != -1)
+	login_cookie = cd.cookies[best_cookie].value;
     }
   }
   disorder_cgi_login(&s, &output);
@@ -87,5 +121,7 @@ int main(int argc, char **argv) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */
