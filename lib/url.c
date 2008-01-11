@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 #include "mem.h"
 #include "log.h"
@@ -40,7 +41,7 @@
  * See <a href="http://tools.ietf.org/html/rfc3875">RFC 3875</a>.
  */
 char *infer_url(void) {
-  const char *scheme = "http", *server, *script, *e;
+  const char *scheme = "http", *server, *script, *e, *request_uri;
   char *url;
   int port;
   
@@ -56,9 +57,24 @@ char *infer_url(void) {
   else
     port = 80;
   
-  /* Figure out path to ourselves */
-  if(!(script = getenv("SCRIPT_NAME")))
-    fatal(0, "SCRIPT_NAME is not set");
+  /* Figure out path to ourselves. */
+  if((request_uri = getenv("REQUEST_URI"))) {
+    /* REQUEST_URI is an Apache extexnsion.  If it's available it results in
+     * more accurate self-referencing URLs.  */
+    if((e = strchr(request_uri, '?')))
+      script = xstrndup(request_uri, e - request_uri);
+    else
+      script = xstrdup(request_uri);
+  } else {
+    /* RFC3875 s4.1.13 */
+    if(!(script = getenv("SCRIPT_NAME")))
+      fatal(0, "SCRIPT_NAME is not set");
+    /* SCRIPT_NAME may be "" */
+    if(!*script)
+      script = "/";
+    /* SCRIPT_NAME is not URL-encoded */
+    script = urlencodestring(script);
+  }
   if(script[0] != '/')
     fatal(0, "SCRIPT_NAME does not start with a '/'");
   script = xstrdup(script);
