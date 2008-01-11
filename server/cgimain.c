@@ -78,6 +78,15 @@ int main(int argc, char **argv) {
   struct cookiedata cd;
 
   if(argc > 0) progname = argv[0];
+  /* RFC 3875 s8.2 recommends rejecting PATH_INFO if we don't make use of
+   * it. */
+  if(getenv("PATH_INFO")) {
+    printf("Content-Type: text/html\n");
+    printf("Status: 404\n");
+    printf("\n");
+    printf("<p>Sorry, PATH_INFO not supported.</p>\n");
+    exit(0);
+  }
   cgi_parse();
   if((conf = getenv("DISORDER_CONFIG"))) configfile = xstrdup(conf);
   if(getenv("DISORDER_DEBUG")) debugging = 1;
@@ -111,7 +120,6 @@ int main(int argc, char **argv) {
     }
   }
   disorder_cgi_login(&s, &output);
-  /* TODO RFC 3875 s8.2 recommendations e.g. concerning PATH_INFO */
   disorder_cgi(&output, &s);
   if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
   return 0;
