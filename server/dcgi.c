@@ -133,6 +133,12 @@ static void header_cookie(struct sink *output) {
      * cause the browser to expose the cookie to other CGI programs on the same
      * web server. */
     dynstr_append_string(d, ";Version=1;Path=");
+    /* Formally we are supposed to quote the path, since it invariably has a
+     * slash in it.  However Safari does not parse quoted paths correctly, so
+     * this won't work.  Fortunately nothing else seems to care about proper
+     * quoting of paths, so in practice we get with it.  (See also
+     * parse_cookie() where we are liberal about cookie paths on the way back
+     * in.) */
     dynstr_append_string(d, u.path);
   }
   dynstr_terminate(d);

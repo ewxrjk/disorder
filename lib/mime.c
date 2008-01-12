@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2007 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -503,6 +503,30 @@ char *mime_qp(const char *s) {
   return d.vec;
 }
 
+/** @brief Match cookie separator characters
+ *
+ * This is a subset of the RFC2616 specials, and technically is in breach of
+ * the specification.  However rejecting (in particular) slashes is
+ * unreasonably strict and has broken at least one (admittedly somewhat
+ * obscure) browser, so we're more forgiving.
+ */
+static int cookie_separator(int c) {
+  switch(c) {
+  case '(':
+  case ')':
+  case ',':
+  case ';':
+  case '=':
+  case ' ':
+  case '"':
+  case '\t':
+    return 1;
+
+  default:
+    return 0;
+  }
+}
+
 /** @brief Parse a RFC2109 Cookie: header
  * @param s Header field value
  * @param cd Where to store result
@@ -523,14 +547,20 @@ int parse_cookie(const char *s,
       s = skipwhite(s, 0);
       continue;
     }
-    if(!(s = parsetoken(s, &n, mime_http_separator)))
+    if(!(s = parsetoken(s, &n, cookie_separator))) {
+      error(0, "parse_cookie: cannot parse attribute name");
       return -1;
+    }      
     s = skipwhite(s, 0);
-    if(*s++ != '=')
+    if(*s++ != '=') {
+      error(0, "parse_cookie: did not find expected '='");
       return -1;
+    }
     s = skipwhite(s, 0);
-    if(!(s = mime_parse_word(s, &v, mime_http_separator)))
+    if(!(s = mime_parse_word(s, &v, cookie_separator))) {
+      error(0, "parse_cookie: cannot parse value for '%s'", n);
       return -1;
+    }
     if(n[0] == '$') {
       /* Some bit of meta-information */
       if(!strcmp(n, "$Version"))

@@ -117,7 +117,8 @@ int main(int argc, char **argv) {
       }
       if(best_cookie != -1)
 	login_cookie = cd.cookies[best_cookie].value;
-    }
+    } else
+      error(0, "could not parse cookie field '%s'", cookie_env);
   }
   disorder_cgi_login(&s, &output);
   disorder_cgi(&output, &s);
