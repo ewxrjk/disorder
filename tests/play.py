@@ -44,11 +44,15 @@ def test():
     assert c.enabled() == True
     p = c.playing()
     r = c.recent()
+    limit = 60
     while not((p is not None and p['id'] == i)
-              or (len(filter(lambda t: t['track'] == track and 'submitter' in t, r)) > 0)):
+              or (len(filter(lambda t: t['track'] == track
+                             and 'submitter' in t, r)) > 0)) and limit > 0:
         time.sleep(1)
         p = c.playing()
         r = c.recent()
+        limit -= 1
+    assert limit > 0, "check track did complete in a reasonable time"
     print " checking track turned up in recent list"
     while (p is not None and p['id'] == i):
         time.sleep(1)
@@ -75,9 +79,12 @@ def test():
         c.scratch(i)
         print " waiting for track to finish"
         p = c.playing()
-        while (p is not None and p['id'] == i):
+        limit = 60
+        while (p is not None and p['id'] == i) and limit > 0:
             time.sleep(1)
             p = c.playing()
+            limit -= 1
+        assert limit > 0, "check track finishes in a reasonable period"
         print " checking scratched track turned up in recent list"
         r = c.recent()
         ts = filter(lambda t: t['id'] == i, r)
