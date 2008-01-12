@@ -3,29 +3,29 @@
  href="@url@"
  title="@label:sidebar.playingverbose@">@label:sidebar.playing@</a>
   <a class=@if{@eq{@action@}{recent}@}{activemenu}{inactivemenu}@
- href="@url@?action=recent&amp;n=@nonce@"
+ href="@url@?action=recent"
  title="@label:sidebar.recentverbose@">@label:sidebar.recent@</a>
   <a class=@if{@eq{@action@}{new}@}{activemenu}{inactivemenu}@
- href="@url@?action=new&amp;n=@nonce@"
+ href="@url@?action=new"
  title="@label:sidebar.newverbose@">@label:sidebar.new@</a>
 @right{play}{
   <a class=@if{@or{@eq{@action@}{choose}@}
                   {@eq{@action@}{choosealpha}@}@}
               {activemenu}
               {inactivemenu}@
- href="@url@?action=@label:sidebar.choosewhich@&amp;n=@nonce@"
+ href="@url@?action=@label:sidebar.choosewhich@"
  title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</a>}{
   <span class=invalidmenu
    title="@label:sidebar.chooseverbose@">@label:sidebar.choose@</span>}@
 @right{play}{
   <a class=@if{@eq{@action@}{search}@}{activemenu}{inactivemenu}@
- href="@url@?action=search&amp;n=@nonce@"
+ href="@url@?action=search"
  title="@label:sidebar.searchverbose@">@label:sidebar.search@</a>}{
   <span class=invalidmenu
    title="@label:sidebar.searchverbose@">@label:sidebar.search@</span>}@
 <!-- disabled by default since now available from 'manage'
   <a class=@if{@eq{@action@}{volume}@}{activemenu}{inactivemenu}@
- href="@url@?action=volume&amp;n=@nonce@"
+ href="@url@?action=volume"
  title="@label:sidebar.volumeverbose@">@label:sidebar.volume@</a>
 -->
   <a class=@if{@eq{@action@}{manage}@}{activemenu}{inactivemenu}@
@@ -36,13 +36,13 @@
                   {@eq{@action@}{register}@}
                   {@eq{@action@}{reminder}@}
                   {@eq{@action@}{edituser}@}@}{activemenu}{inactivemenu}@
- href="@url@?action=login&amp;n=@nonce@"
+ href="@url@?action=login"
  title="@label:sidebar.loginverbose@">@label:sidebar.login@</a>
   <a class=@if{@eq{@action@}{help}@}{activemenu}{inactivemenu}@
- href="@url@?action=help&amp;n=@nonce@"
+ href="@url@?action=help"
  title="@label:sidebar.helpverbose@">@label:sidebar.help@</a>
   <a class=@if{@eq{@action@}{about}@}{activemenu}{inactivemenu}@
- href="@url@?action=about&amp;n=@nonce@"
+ href="@url@?action=about"
  title="@label:sidebar.aboutverbose@">@label:sidebar.about@</a>
 </p>
 <hr>

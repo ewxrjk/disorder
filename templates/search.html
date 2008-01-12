@@ -36,7 +36,6 @@ USA
       @label:search.search@
      </button>
      <input name=action type=hidden value=search>
-     <input name=nonce type=hidden value="@nonce@">
      </p>
    </form>
 
@@ -52,7 +51,7 @@ USA
       @search{title}{
       <div class="search_title">
        <p class="search_title">Title:
-	<a href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@&#38;n=@nonce@">@part:title@</a>
+	<a href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@">@part:title@</a>
 	@if{@eq{@trackstate{@file@}@}{playing}@}{[<b>playing</b>]}@
 	@if{@eq{@trackstate{@file@}@}{queued}@}{[<b>queued</b>]}@
        </p>
