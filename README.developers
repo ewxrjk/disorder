@@ -16,6 +16,16 @@ Dependencies:
 
    * Please report unstated dependencies (here, README or debian/control).
 
+Building:
+
+   * Compiled versions of configure and the makefiles are including in bzr, so
+     if you didn't use a source tarball, you must start as follows:
+
+        bash ./prepare -C
+        make
+
+   * On FreeBSD you must use gmake.
+
 Testing:
 
    * There is an extensive test suite in lib/test.c and tests/*.py.  You can

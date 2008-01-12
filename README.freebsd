@@ -6,6 +6,8 @@ its dependencies.  It is not well tested in this environment.  In
 particular, since my FreeBSD VM lacks sound support, only network play
 has been tested.  Please report successes and failures!
 
+Use gmake to build DisOrder, not BSD make.
+
 
 Things you will need to do:
 
