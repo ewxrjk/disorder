@@ -136,7 +136,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks);
 /* return a list of tracks containing all of the words given.  If you
  * ask for only stopwords you get no tracks. */
 
-void trackdb_rescan(struct ev_source *ev, int check);
+void trackdb_rescan(struct ev_source *ev, int recheck);
 /* Start a rescan, if one is not running already */
 
 int trackdb_rescan_cancel(void);

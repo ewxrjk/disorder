@@ -2168,7 +2168,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
  * @param ev Event loop or 0 to block
  * @param check 1 to recheck lengths, 0 to suppress check
  */
-void trackdb_rescan(ev_source *ev, int check) {
+void trackdb_rescan(ev_source *ev, int recheck) {
   int w;
 
   if(rescan_pid != -1) {
@@ -2176,7 +2176,7 @@ void trackdb_rescan(ev_source *ev, int check) {
     return;
   }
   rescan_pid = subprogram(ev, -1, RESCAN,
-                          check ? "--check" : "--no-check",
+                          recheck ? "--check" : "--no-check",
                           (char *)0);
   if(ev) {
     ev_child(ev, rescan_pid, 0, reap_rescan, 0);
