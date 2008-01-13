@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <!--
 This file is part of DisOrder.
-Copyright (C) 2003, 2004, 2005 Richard Kettlewell
+Copyright (C) 2003, 2004, 2005, 2008 Richard Kettlewell
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ USA
  </head>
  <body>
 @include{topbar}@
-   <h1 class=title>@label:search.title@</h1>
+   <h1>@label:search.title@</h1>
 
    <form class=search action="@url@" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
@@ -42,15 +42,15 @@ USA
    <div class=searchresults>
     @search{artist}{display}{
     <div class="search_artist">
-     <p class="search_artist">Artist:
+     <p>Artist:
       <span class="search_artist">@part:artist@</span></p>
      @search{album}{display}{
      <div class="search_album">
-      <p class="search_album">Album:
+      <p>Album:
        <span class="search_album">@part:album@</span></p>
       @search{title}{
       <div class="search_title">
-       <p class="search_title">Title:
+       <p>Title:
 	<a href="@url@?action=play&#38;file=@urlquote{@file@}@&#38;back=@urlquote{@thisurl@}@">@part:title@</a>
 	@if{@eq{@trackstate{@file@}@}{playing}@}{[<b>playing</b>]}@
 	@if{@eq{@trackstate{@file@}@}{queued}@}{[<b>queued</b>]}@

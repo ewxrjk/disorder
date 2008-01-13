@@ -25,7 +25,7 @@ USA
  </head>
  <body>
 @include{topbar}@
-   <h1 class=title>@label:playing.title@</h1>
+   <h1>@label:playing.title@</h1>
 
    @#{extra control buttons for the management page}@
    @if{@arg:mgmt@}{
@@ -33,59 +33,47 @@ USA
    <p class=mgmt>
     @if{@paused@}{
     <!-- paused -->
-    <span class=button>
     <a class=button
     href="@url@?action=resume&#38;mgmt=true"
      title="@label:playing.resumeverbose@">@label:playing.pause@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- not paused -->
-    <span class=button>
     <a class=button
     href="@url@?action=pause&#38;mgmt=true"
      title="@label:playing.pauseverbose@">@label:playing.pause@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     @if{@random-enabled@}{
     <!-- random played enabled -->
-    <span class=button>
     <a class=button
     href="@url@?action=random-disable&#38;mgmt=true"
      title="@label:playing.randomdisableverbose@">@label:playing.random@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- random played disabled -->
-    <span class=button>
     <a class=button
     href="@url@?action=random-enable&#38;mgmt=true"
      title="@label:playing.randomenableverbose@">@label:playing.random@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     @if{@enabled@}{
     <!-- playing enabled -->
-    <span class=button>
     <a class=button
     href="@url@?action=disable&#38;mgmt=true"
      title="@label:playing.disableverbose@">@label:playing.playing@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:enabled@">
     }{
     <!-- playing disabled -->
-    <span class=button>
     <a class=button
     href="@url@?action=enable&#38;mgmt=true"
      title="@label:playing.enableverbose@">@label:playing.playing@</a>
     </a>
-    </span>
     <img width=16 height=16 class=imgbutton src="@image:disabled@">
     }@
     <form class=volume action="@url@" method=POST
@@ -134,7 +122,7 @@ USA
      </tr>
      @if{@isplaying@}{
      <tr class=nowplaying>
-      <td colspan=@if{@arg:mgmt@}{11}{7}@ class=nowplaying>@label:playing.now@</td>
+      <td colspan=@if{@arg:mgmt@}{11}{7}@>@label:playing.now@</td>
      </tr>
      @playing{
      <tr class=playing>
@@ -173,7 +161,7 @@ USA
      }@}@
      @if{@isqueue@}{
      <tr class=next>
-      <td colspan=@if{@arg:mgmt@}{11}{7}@ class=next>@label:playing.next@</td>
+      <td colspan=@if{@arg:mgmt@}{11}{7}@>@label:playing.next@</td>
      </tr>
      @queue{
      <tr class=@parity@>

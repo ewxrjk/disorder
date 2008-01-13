@@ -1,19 +1,22 @@
 /* default font and colors */
 body {
   color: black;
-  background-color: white
-  font-family: serif;
+  background-color: white;
+  font-family: times,serif;
+  font-weight: normal;
+  font-size: 12pt;
+  font-variant: normal
+}
+
+input {
+  font-family: helvetica,sans-serif;
   font-weight: normal;
   font-size: 12pt;
   font-variant: normal
 }
 
 /* general link colors */
-a:link {
-  color: blue
-}
-
-a:visited {
+a {
   color: blue
 }
 
@@ -22,8 +25,8 @@ a:active {
 }
 
 /* title bars */
-h1.title {
-  font-family: sans-serif;
+h1 {
+  font-family: helvetica,sans-serif;
   font-weight: bold;
   font-size: 18pt;
   font-variant: normal;
@@ -36,487 +39,291 @@ h1.title {
 
 /* secondary titles */
 h2 {
-  font-family: sans-serif;
+  font-family: helvetica,sans-serif;
   font-weight: bold;
   font-size: 16pt;
   font-variant: normal;
   display: block
 }
 
-/* playing, recent and new ***************************************************/
-
-/* table of current and future tracks */
-table.playing {
-  border-collapse: collapse;
-  width: 100%;			/* use the full available width */
-  border-spacing: 0		/* no unsightly gaps between cells */
+/* Some titles are links too, but we don't want them to go blue */
+h2 a {
+  color: black
 }
 
-/* table of recently played tracks */
-table.recent {
-  border-collapse: collapse;
-  width: 100%;			/* use the full available width */
-  border-spacing: 0		/* no unsightly gaps between cells */
+/* Use the same table model everywhere */
+table {
+  border-collapse: collapse
 }
 
-/* table of newly added played tracks */
-table.new {
-  border-collapse: collapse;
-  width: 100%;			/* use the full available width */
-  border-spacing: 0		/* no unsightly gaps between cells */
+/* tabular data **************************************************************/
+
+/* playing, recent and new classes correspond to the tables in playing.html,
+ * recent.html and new.html */
+table.playing, table.recent, table.new {
+  width: 100%  		     	/* use full screen width */
 }
 
-/* titles in tables */
-th {
-  text-align: left
+table.playing th, table.recent th, table.new th {
+  text-align: left		/* titles should be left-aligned */
 }
 
-/* ordinary cells in tables */
-td {
-  vertical-align: middle
+table.playing td, table.recent td, table.new td {
+  vertical-align: middle        /* centre cell contents vertically */
 }
 
-/* the headings <tr> of the table */
+table.playing a, table.recent a, table.new a {
+  color: black
+}
+
+/* tr.headings is the row containing column headings */
 tr.headings {
-  background-color: black;
+  background-color: black;      /* heading rows are white on black */
   color: white
 }
 
-/* The 'now playing' heading */
-tr.nowplaying {
-}
-
-td.nowplaying {
-  background-color: #d0d0d0;
-  font-weight: bold;
+/* tr.nowplaying and tr.next are the section heading rows */
+tr.nowplaying td, tr.next td {
+  background-color: #d0d0d0;    /* table section headings are black on grey */
+  color: black;
+  font-weight: bold;            /* table section headings are bold */
   text-align: center
 }
 
-/* the currently playing track */
+/* tr.playing is the row for the currently playing track */
 tr.playing {
-  background-color: #e0ffe0	/* pastel green */
+  background-color: #e0ffe0;	/* playing track is black on pastel green */
+  color: back
 }
 
-/* the "next" heading */
-tr.next {
-}
-
-td.next {
-  background-color: #d0d0d0;
-  font-weight: bold;
-  text-align: center
-}
-
-/* even-numbered rows */
+/* tr.even and tr.odd are odd and even rows of the main body of the table */
 tr.even {
-  background-color: #ffecec	/* faint pastel red */
+  background-color: #ffecec;	/* even rows are black on red */
+  color: black
 }
 
-/* odd-numbered rows */
 tr.odd {
-  background-color: #ffffff	/* white */
+  background-color: #ffffff;	/* odd rows are black on white */
+  color: black
 }
 
-/* column titles */
-th.when {
-}
-
-th.who {
-}
-
-th.artist {
-}
-
-th.album {
-}
-
-th.title {
-}
-
-th.length {
-  text-align: right
-}
-
-th.button {
-}
-
-/* individual cells */
-
-td.when {
-}
-
-td.who {
-}
-
-td.artist {
-}
-
-td.album {
-}
-
-td.title {
+/* th/td.length are the length column */
+table th.length {
+  text-align: right             /* track length column is right-aligned */
 }
 
 td.length {
-  text-align: right;
-  font-size: small		/* because otherwise visually intrusive */
+  text-align: right;            /* track length column is right-aligned */
+  font-size: 10pt		/* track length is slightly smaller */
 }
 
-td.button {
-  text-align: center;
-  padding: 1px;
-  border: 1px solid black;
-  background-color: #c0c0c0;
-  color: #000000
-}
-
-p.mgmt,form.volume {
+/* p.mgmt is the bar of management buttons */
+/* form.volume is the form for setting the volume */
+/* This is needed to stop FF breaking the management button line in two */
+p.mgmt, form.volume {
   display: inline
 }
 
 /* choose ********************************************************************/
 
-/* first letter choice */
+/* p.choosealpha is the bar of first-letter links */
 p.choosealpha {
   text-align: center;
-  font-size: 140%;
-  font-weight: bold;
-  border: 1px solid black;
+  font-size: 17pt;              /* links are one letter so make them big... */
+  font-weight: bold;            /* ...and bold */
+  border: 1px solid black;      /* border the link list */
   padding: 0.2em
 }
 
-/* containing directory */
+/* p.directoryname contains the current directory when navigating */
 p.directoryname {
   font-weight: bold;
   background-color: #ffffe0;	/* pastel yellow */
+  color: black;
   padding: 0.2em
 }
 
-a.thisdirectory:link {
+p.directoryname a {
   color: black
 }
 
-a.thisdirectory:visited {
-  color: black
-}
-
-a.thisdirectory:active {
-  color: red
-}
-
-/* directories */
-div.directories {
-}
-
-/* heading for directories */
-p.directories {
-  font-weight: bold;
+/* section headings */
+div.filesdirectories p.heading {
   display: block;
-  background-color: #e0ffe0;	/* pastel green */
+  background-color: #e0ffe0;	/* heading are black on pastel green */
+  color: black;
+  font-weight: bold;            /* ...and bold */
   padding: 0.2em;
   padding-left: 1.2em
 }
 
-/* one directory */
-p.directory {
-  margin-left: 2em
+/* one file or directory */
+div.filesdirectories p.entry {
+  margin-left: 2em              /* indent files & directories two steps */
 }
 
-a.directory {
-  text-decoration: none;
+div.filesdirectories a {
+  text-decoration: none         /* don't underline file/directory names */
 }
 
-a.directory:link {
+div.filesdirectories a {
   color: black
 }
 
-a.directory:visited {
-  color: black
-}
-
-a.directory:active {
-  color: red
-}
-
-/* files */
-div.files {
-}
-
-/* heading for files */
-p.files {
-  font-weight: bold;
-  display: block;
-  background-color: #e0ffe0;	/* pastel green */
-  padding: 0.2em;
-  padding-left: 1.2em
-}
-
-/* one file */
-p.file {
-  margin-left: 2em
-}
-
-a.file {
-  text-decoration: none;
-}
-
-a.file:link {
-  color: black
-}
-
-a.file:visited {
-  color: black
-}
-
-a.file:active {
+div.filesdirectories a:active {
   color: red
 }
 
 /* all files */
-p.allfiles {
-  margin-left: 1.2em
+div.filesdirectories p.all {
+  margin-left: 1em              /* indent play all button only one step */
 }
 
 /* buttons *******************************************************************/
 
-/* a.allfiles turns up in track choice
- * button is used e.g. in searching
- */
-a.allfiles,a.prefs,button,span.button {
+/* Buttons and links that look like buttons share the same formatting */
+button,a.button {
   padding: 1px;
-  border-color: #fefefe;
+  border-width: 3px;
+  border-color: #fefefe;	/* Off-white */
   border-style: inset;
-  background-color: #c0c0c0;
+  background-color: #c0c0c0;	/* Black on light grey */
   color: #000000;
-  text-decoration: none;
-  font-family: sans-serif
+  text-decoration: none;	/* Don't underline links */
+  font-family: helvetica,sans-serif;
+  font-weight: normal;
+  font-variant: normal;
+  font-size: 12pt
 }
 
-a.button {
-  text-decoration: none;
-  font-family: sans-serif
-}
-
-a.button:link,a.button:visited,a.allfiles:link,a.allfiles:visited {
-  background-color: #c0c0c0;
-  color: #000000
-}
-
-a.button:active,a.allfiles:active,button:active {
+a.button:active,button:active {
   background-color: #c0c0c0;
   color: #ffffff
 }
 
+/* Images that act like buttons aren't styled in the same way, but do want
+ * to lose their border */
 img.button {
   border-width: 0
 }
 
 /* searching *****************************************************************/
 
-div.searchresults {
-}
-
-div.search_artist {
-}
-
-p.search_artist {
-}
-
 span.search_artist {
-  font-weight: bold
+  font-weight: bold             /* Artist in bold */
 }
 
 div.search_album {
-  margin-left: 1em
-}
-
-p.search_album {
-}
-
-span.search_album {
+  margin-left: 1em		/* Indent album one step */
 }
 
 div.search_title {
-  margin-left: 1em
+  margin-left: 1em		/* Indent title two steps */
 }
 
-p.search_title {
-  margin-top: 0;
-  margin-bottom: 0
+div.search_title p {
+  margin-top: 0; 		/* Titles are compressed relative to ... */
+  margin-bottom: 0              /* ...artists and albums */
 }
 
-a.search_title {
-  text-decoration: underline
-}
-
-a.search_title:link {
+div.search_title a {
   color: black
 }
 
-a.search_title:visited {
-  color: black
-}
-
-a.search_title:active {
+div.search_title a:active {
   color: red
 }
 
 form.search {
-  border: 1px solid black;
+  border: 1px solid black;	/* Give the search box a border */
   padding: 0.2em
 }
 
-/* sidebar *******************************************************************/
+/* menu bar *******************************************************************/
 
-div#sidebar {
-  margin: 1em;
-  position: absolute;
-  width: 10em;
-  top: 0;
-  right: auto;
-  left: 0;
-}
-
-div#content {
-  position: absolute;
-  width: auto;
-  top: 0;
-  right: 1em;
-  left: 6em;
-}
-
-.sidebarlink {
-  font-family: sans-serif
-}
-
-a.sidebarlink {
-  text-decoration: none;
-  color: black
-}
-
-a.sidebarlink:visited {
-  color: black
-}
-
-a.sidebarlink:active {
-  color: red
-}
-
-a.sidebarlink:visited {
-  color: black
-}
-
-/* topbar ********************************************************************/
-
+/* p.menubar is the menu bar at the top */
 p.menubar {
-  word-spacing: 1em
+  word-spacing: 1em		/* Space out menu items */
 }
 
-.activemenu {
-  font-family: sans-serif;
+/* Subelements are A for usable menus or SPAN for unusable ones */
+p.menubar a, p.menubar span {
+  font-family: helvetica,sans-serif;
   font-weight: bold;
-  font-size: 14pt
+  font-size: 14pt;
+  text-decoration: none
 }
 
-.inactivemenu {
-  font-family: sans-serif;
-  font-weight: bold;
-  font-size: 14pt
+/* a.activemenu is the current menu item */
+a.activemenu {
+  color: red;
 }
 
-a.inactivemenu,a.inactivemenu:visited {
-  text-decoration: none;
+/* a.inactivemenu is a non-current but choosable menu item */
+a.inactivemenu {
   color: black
 }
 
-a.activemenu,a.activemenu:visited {
-  text-decoration: none;
-  color: red
-}
-
-a.activemenu:active,a.inactivemenu:active {
-  text-decoration: none;
-  color: red
-}
-
+/* span.invaliemenu is a non-choosable menu item */
 span.invalidmenu {
-  text-decoration: none;
-  color: #808080;		/* grey */
-  font-family: sans-serif;
+  color: #808080
+}
+
+/* track preferences *********************************************************/
+
+/* p.prefs_head is the per-track heading */
+p.prefs_head {
+  background-color: #ffffe0;	/* Pastel yellow on black */
+  color: black;
   font-weight: bold;
-  font-size: 14pt
+  padding: 0.2em
 }
 
-/* prefs *********************************************************************/
-
-p.prefs_new,p.prefs_head {
-  font-weight: bold
-}
-
+/* table.prefs contains the prefs for one track */
 table.prefs {
-  border-collapse: collapse;
-  border-spacing: 0
+  border-spacing: 0;
+  margin-left: 1em 		/* Indent each track's details */
 }
 
-tr.prefs_headings {
-  background-color: black;
-  color: white
+table.prefs th {
+  text-align: left		/* Titles should be left-aligned */
 }
 
-th.prefs_name {
-}
-
-th.prefs_value {
-}
-
-td.prefs_name {
+table.prefs td {
   vertical-align: top
 }
 
-td.prefs_value {
-  vertical-align: top
-}
-
-td.prefs_delete {
-  vertical-align: top
-}
-
-input.prefs_name,input.prefs_value {
+table.prefs input {
   font-family: monospace
 }
 
 /* help **********************************************************************/
 
-.helpbuttons,.helpprefs,.helpcontexts {
-  margin-left: 2em;
-  margin-right: 2em;
+/* table.helpbuttons is used for various tables of buttons */
+table.helpbuttons td {
   vertical-align: top
 }
 
-.helpsection {
-  margin-left: 1em;
+table.helpbuttons {
+  margin-left: 2em;
+  margin-right: 2em
 }
 
-.helppref {
-  font-family: monospace
+/* h2.helptitle is used for help subsection headings */
+h2.helptitle {
+  background-color: #e0ffe0;	/* Black on pastel green */
+  color: black;
+  padding: 0.2em
 }
 
-.helpprefbit {
-  font-family: monospace;
-  font-style: italic
+/* There is a div.helpsection for each subsection */
+div.helpsection {
+  margin-left: 1em
 }
 
-.helpcontext {
-  font-weight: bold
-}
-
+/* span.configuration marks configuration directives */
 span.configuration {
   font-family: monospace
-}
-
-h2.helptitle {
-  background-color: #e0ffe0;	/* pastel green */
-  padding: 0.2em
 }
 
 /* volume ********************************************************************/
@@ -547,6 +354,10 @@ form.edituser {
   background-color: #ffffe0	/* pastel yellow */
 }
 
+form.login table, form.reminder table, form.register table, form.edituser table {
+  margin: 0.2em			/* Space login boxes nicely */
+}
+
 form.logout {
   border-style: none;
 }
@@ -556,45 +367,40 @@ div.loginstatus {
   background-color: #ffff00	/* solid yellow */
 }
 
-div.loginstatus > p {
-  margin: 0.2em
-}
-
-p.loginstatus {
+div.loginstatus p {
   color: #0000ff;		/* solid blue */
-  font-size: 150%;
-  font-weight: bold
+  font-size: 18pt;
+  font-weight: bold;
+  margin: 0.2em
 }
 
 /* errors ********************************************************************/
 
 div.error {
   border: 1px solid black;
-  background-color: #ff0000;	/* solid red */
+  background-color: #ff0000;	/* White on solid red */
   color: white;
-  font-size: 150%;
+  font-size: 18pt;
   font-weight: bold
 }
 
-div.error > p {
+div.error p {
   margin: 0.2em
-}
-
-p.error {
 }
 
 /* miscelleanous *************************************************************/
 
 /* credits */
 p.credits {
-  font-size: small;		/* because visually intrusive */
+  font-size: 10pt;		/* because visually intrusive */
   text-align: right;
   background-color: #e0e0e0;
+  color: black;
   padding: 0.2em
 }
 /*
 This file is part of DisOrder.
-Copyright (C) 2003-2007 Richard Kettlewell
+Copyright (C) 2003-2008 Richard Kettlewell
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
