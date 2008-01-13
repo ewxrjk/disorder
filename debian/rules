@@ -53,9 +53,10 @@ FAKEROOT=fakeroot
 # run if building from a checkout rather than a tarball.
 build:
 	@if test ! -f configure; then \
-	  echo ./prepare ${CONFIGURE} ${CONFIGURE_EXTRA};\
-	  ./prepare ${CONFIGURE} ${CONFIGURE_EXTRA};\
-	elif test ! -f config.status; then \
+	  echo ./prepare;\
+	  ./prepare;\
+	fi
+	@if test ! -f config.status; then \
 	  echo ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\
 	  ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\
 	else\

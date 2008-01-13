@@ -21,7 +21,8 @@ Building:
    * Compiled versions of configure and the makefiles are including in bzr, so
      if you didn't use a source tarball, you must start as follows:
 
-        bash ./prepare -C
+        bash ./prepare
+        ./configure -C
         make
 
    * On FreeBSD you must use gmake.
