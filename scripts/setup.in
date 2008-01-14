@@ -27,11 +27,36 @@ echo "DisOrder setup script"
 
 case $(uname -s) in
 Darwin )
-  os=mac
+  echo "Mac OS X detected"
+  os=Mac
+  # TODO we should use jukebox and create it if necessary; see below
   user=daemon
   group=daemon
   ;;
+FreeBSD )
+  echo "FreeBSD detected"
+  os=FreeBSD
+  user=jukebox
+  group=jukebox
+  ;;
+Linux )
+  if grep Debian /etc/issue >/dev/null 2>&1; then
+    echo "You appear to be running Debian - please use .debs instead"
+    exit 1
+  fi
+  if grep Ubuntu /etc/issue >/dev/null 2>&1; then
+    echo "You appear to be running Ubuntu - please use .debs instead"
+    exit 1
+  fi
+  echo "Linux detected"
+  os=Linux
+  user=jukebox
+  group=jukebox
+  ;;
 * )
+  echo 
+  echo "WARNING: unknown operating system '$(uname -s)'"
+  echo "This script won't be able to do all setup on this platform"
   os=unknown
   user=daemon
   group=daemon
@@ -42,7 +67,7 @@ echo
 echo "This script will:"
 echo " - overwrite any existing configuration"
 case $os in
-mac )
+Mac )
   echo " - set the server up to be run at boot time"
   echo " - start the server"
   ;;
@@ -166,14 +191,48 @@ if [ ! -f pkgconfdir/options.user ]; then
   touch pkgconfdir/options.user
 fi
 
+case $os in
+Mac )
+  # TODO niutil?
+  ;;
+FreeBSD )
+  if pw groupshow $group >/dev/null 2>&1; then
+    echo "$group group already exists"
+  else
+    echo "Creating $group group"
+    pw groupadd $group
+  fi
+  if pw usershow $user >/dev/null 2>&1; then
+    echo "$user user already exists"
+  else
+    echo "Creating $user user"
+    pw useradd $user -w no -d pkgstatedir -g $group -c 'DisOrder user'
+  fi
+  ;;
+Linux )
+  if grep ^$group: /etc/group >/dev/null; then
+    echo "$group group already exists"
+  else
+    echo "Creating $group group"
+    groupadd $group
+  fi
+  if grep ^$user: /etc/passwd >/dev/null; then
+    echo "$user user already exists"
+  else
+    echo "Creating $user user"
+    useradd -d pkgstatedir -g $group $user -c 'DisOrder user'
+  fi
+  ;;
+esac
+
 echo "Making sure that pkgstatedir exists"
 mkdir -p pkgstatedir
 chown $user:$group pkgstatedir
 chmod 2755 pkgstatedir
 
 case $os in
-mac )
-  echo "Installing the plist into /Library/LaunchDaemons/"
+Mac )
+  echo "Installing the plist into /Library/LaunchDaemons"
   cp server/uk.org.greenend.rjk.disorder.plist /Library/LaunchDaemons/.
   echo "Reloading launchd"
   launchctl load /Library/LaunchDaemons
@@ -181,12 +240,9 @@ mac )
   launchctl start uk.org.greenend.rjk.disorder
   echo "Installing CGI"
   install -m 555 server/disorder.cgi /Library/WebServer/CGI-Executables/disorder
-  echo "Setting up link to CGI resources"
-  rm /etc/httpd/users/disorder.conf.new
-  echo Alias /disorder/ pkgdatadir/static/ >> /etc/httpd/users/disorder.conf.new
-  mv /etc/httpd/users/disorder.conf.new /etc/httpd/users/disorder.conf
-  echo "Reloading web server"
-  sudo apachectl graceful
+  echo "Setting up link to CGI;'s dependencies"
+  rm -f /Library/WebServer/Documents/disorder
+  ln -s pkgdatadir/static /Library/WebServer/Documents/disorder
   echo
   echo "You must sudo disorder setup-guest [--no-online-registration] next."
   ;;
