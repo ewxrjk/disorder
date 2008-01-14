@@ -1,0 +1,181 @@
+#! /bin/bash
+#
+# This file is part of DisOrder
+# Copyright (C) 2008 Richard Kettlewell
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+# USA
+#
+
+set -e
+
+echo
+echo ------------------------------------------------------------------------
+echo "DisOrder setup script"
+
+case $(uname -s) in
+Darwin )
+  os=mac
+  user=daemon
+  group=daemon
+  ;;
+* )
+  os=unknown
+  user=daemon
+  group=daemon
+  ;;
+esac
+
+echo
+echo "This script will:"
+echo " - overwrite any existing configuration"
+case $os in
+mac )
+  echo " - set the server up to be run at boot time"
+  echo " - start the server"
+  ;;
+esac
+echo
+echo "If this is not what you want, press ^C."
+echo ------------------------------------------------------------------------
+
+while :; do
+  echo
+  echo "What directory or directories contain your music files:"
+  echo "(enter one or more directories separated by spaces)"
+  read -r roots
+  ok=true
+  for root in $roots; do
+    if [ ! -d $root ]; then
+      echo "'$root' does not exist"
+      ok=false
+    fi
+  done
+  if $ok; then
+    break
+  fi
+done
+
+if [ -z "$encoding" ]; then
+  echo 
+  echo "What filesystem encoding should I assume for track names?"
+  echo "(e.g. UTF-8, ISO-8859-1, ...)"
+  read -r encoding
+fi
+
+while :; do
+  echo
+  echo "What TCP port should DisOrder listen on?"
+  echo "(enter 'none' for none)"
+  read -r port
+  case $port in
+  none )
+    break
+    ;;
+  [^0-9] )
+    echo "'$port' is not a valid port number"
+    continue
+    ;;
+  * )
+    break
+    ;;
+  esac
+done
+
+echo
+echo "What host should DisOrder use as an SMTP server?"
+read -r smtp_server
+  
+echo
+echo "What address should mail from DisOrder come from?"
+read -r mail_sender
+
+echo
+echo "Proposed DisOrder setup:"
+echo " Music directory:       $roots"
+if [ $port = none ]; then
+  echo " Do not listen on a TCP port"
+else
+  echo " TCP port to listen on: $port"
+fi
+echo " SMTP Server:           $smtp_server"
+echo " Sender address:        $mail_sender"
+
+echo "Is this OK?  (Enter 'y' or 'n')"
+read -r ok
+case $ok in
+y )
+  ;;
+* )
+  echo
+  echo "OK, didn't change anything."
+  exit 0
+  ;;
+esac
+
+mkdir -p pkgconfdir
+
+rm -f pkgconfdir/config.new
+for root in $roots; do
+  echo "collection fs $encoding $root" >> pkgconfdir/config.new
+done
+for scratch in slap.ogg scratch.ogg; do
+  echo "scratch pkgdatadir/$scratch" >> pkgconfdir/config.new
+done
+echo "user $user" >> pkgconfdir/config.new
+if [ $port != none ]; then
+  echo "listen 0.0.0.0 $port" >> pkgconfdir/config.new
+fi
+
+echo
+echo "Proposed pkgconfdir/config:"
+sed < pkgconfdir/config.new 's/^/  /'
+echo
+echo "Is this OK?  (Enter 'y' or 'n')"
+read -r ok
+case $ok in
+y )
+  ;;
+* )
+  echo
+  echo "OK, not installing it."
+  rm -f pkgconfdir/config.new
+  exit 0
+  ;;
+esac
+echo
+echo "Installing pkgconfdir/config"
+mv pkgconfdir/config.new pkgconfdir/config
+
+echo "Making sure that pkgstatedir exists"
+mkdir -p pkgstatedir
+chown $user:$group pkgstatedir
+chmod 2755 pkgstatedir
+
+case $os in
+mac )
+  echo "Installing the plist into /Library/LaunchDaemons/"
+  cp server/uk.org.greenend.rjk.disorder.plist /Library/LaunchDaemons/.
+  echo "Reloading launchd"
+  launchctl load /Library/LaunchDaemons
+  echo "Starting DisOrder server"
+  launchctl start uk.org.greenend.rjk.disorder
+  ;;
+* )
+  echo "Sorry, I don't know how to install the server on this platform."
+  echo "You will have to do that by hand."
+  exit 1
+  ;;
+esac

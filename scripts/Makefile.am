@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,13 @@
 #
 
 dist_pkgdata_DATA=completion.bash
+noinst_SCRIPTS=setup
+
+SEDFILES=setup
+
+include ${top_srcdir}/scripts/sedfiles.make
 
 EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata \
-	format-gcov-report make-version-string
+	format-gcov-report make-version-string setup.in
+
+CLEANFILES=$(SEDFILES)

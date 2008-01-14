@@ -5,25 +5,14 @@ The server builds on OS X, using Fink to supply many of its
 dependencies.  It is not well tested in this environment.  Please
 report successes and failures!
 
+There is an EXPERIMENTAL script in scripts/setup which asks a few
+questions, sets up a basic installation and starts the server.  To use
+it, after having done 'sudo make install', just do 'sudo
+scripts/setup' and follow the prompts.
 
-Things you will need to do:
-
-* Create the jukebox user and group
-
-You might find this URL helpful:
-
-http://developer.apple.com/documentation/Porting/Conceptual/PortingUnix/additionalfeatures/chapter_10_section_9.html
-
-* Install the plist
-
-Copy server/uk.org.greenend.rjk.disorder.plist into
-/Library/LaunchDaemons.  Having done this reload the contents:
-
-    sudo launchctl load /Library/LaunchDaemons
-
-Note that the RunAtLoad key has been deliberately commented out, if
-you want to start the server at boot time you must edit this first.
-
-* Start the server
-
-     sudo launchctl start uk.org.greenend.rjk.disorder
+Its current main deficiences are:
+   - it uses the 'daemon' user/group instead of creating a 'jukebox'
+     identity.
+   - the launchd configuration does not have the server started at
+     boot time.  You must start it manually.  This may be changed in a
+     future version.

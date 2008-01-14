@@ -27,7 +27,13 @@ $(SEDFILES) : % : %.in Makefile
 	    -e 's!pkgdatadir!${pkgdatadir}!g;' \
 	    -e 's!_version_!${VERSION}!g;' \
 	        < $< > $@.new
-	chmod 444 $@.new
+	@if test -x $<; then \
+	  echo chmod 555 $@.new;\
+	  chmod 555 $@.new;\
+	else \
+	  echo chmod 444 $@.new;\
+	  chmod 444 $@.new;\
+	fi
 	mv -f $@.new $@
 
 # Local Variables:
