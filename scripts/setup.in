@@ -138,6 +138,8 @@ echo "user $user" >> pkgconfdir/config.new
 if [ $port != none ]; then
   echo "listen 0.0.0.0 $port" >> pkgconfdir/config.new
 fi
+echo "smtp_server $smtp_server" >> pkgconfdir/config.new
+echo "mail_sender $mail_sender" >> pkgconfdir/config.new
 
 echo
 echo "Proposed pkgconfdir/config:"
@@ -159,6 +161,11 @@ echo
 echo "Installing pkgconfdir/config"
 mv pkgconfdir/config.new pkgconfdir/config
 
+if [ ! -f pkgconfdir/options.user ]; then
+  echo "Making sure pkgconfdir/options.user exists"
+  touch pkgconfdir/options.user
+fi
+
 echo "Making sure that pkgstatedir exists"
 mkdir -p pkgstatedir
 chown $user:$group pkgstatedir
@@ -172,6 +179,16 @@ mac )
   launchctl load /Library/LaunchDaemons
   echo "Starting DisOrder server"
   launchctl start uk.org.greenend.rjk.disorder
+  echo "Installing CGI"
+  install -m 555 server/disorder.cgi /Library/WebServer/CGI-Executables/disorder
+  echo "Setting up link to CGI resources"
+  rm /etc/httpd/users/disorder.conf.new
+  echo Alias /disorder/ pkgdatadir/static/ >> /etc/httpd/users/disorder.conf.new
+  mv /etc/httpd/users/disorder.conf.new /etc/httpd/users/disorder.conf
+  echo "Reloading web server"
+  sudo apachectl graceful
+  echo
+  echo "You must sudo disorder setup-guest [--no-online-registration] next."
   ;;
 * )
   echo "Sorry, I don't know how to install the server on this platform."
