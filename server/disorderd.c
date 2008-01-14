@@ -290,17 +290,10 @@ int main(int argc, char **argv) {
   if(ev_signal(ev, SIGTERM, handle_sigterm, 0)) fatal(0, "ev_signal failed");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
-  /* Start a rescan straight away if this is a new installation.  This rescan
-   * blocks; the point is that when it is finished we are in a good position to
-   * choose a random track. */
-  if(!trackdb_existing_database) {
-    trackdb_rescan(0/*ev*/, 0/*check*/);
-    /* No ev -> the rescan will block.  Since we called reconfigure() already
-     * any clients will also be forced to block. */
-  }
-  /* Start a second rescan, with length checking enabled, immediately after
-   * startup. */
-  rescan_after(1);
+  /* Start a rescan straight away */
+  trackdb_rescan(ev, 1/*check*/);
+  /* We'll rescan again after a day */
+  rescan_after(86400);
   /* periodically tidy up the database */
   dbgc_after(60);
   /* periodically check the volume */

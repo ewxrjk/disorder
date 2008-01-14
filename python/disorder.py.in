@@ -768,7 +768,8 @@ class client:
     second the line from the event log.
     
     The callback should return True to continue or False to stop (don't
-    forget this, or your program will mysteriously misbehave).
+    forget this, or your program will mysteriously misbehave).  Once you
+    stop reading the log the connection is useless and should be deleted.
 
     It is suggested that you use the disorder.monitor class instead of
     calling this method directly, but this is not mandatory.
@@ -788,11 +789,6 @@ class client:
         l = l[1:]
       if not callback(self, l):
         break
-    # tell the server to stop sending, eat the remains of the body,
-    # eat the response
-    self._send("version")
-    self._body()
-    self._response()
 
   def pause(self):
     """Pause the current track."""

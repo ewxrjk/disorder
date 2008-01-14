@@ -24,6 +24,11 @@ def test():
     """Check the queue is padded to the (default) configured length"""
     dtest.start_daemon()
     dtest.create_user()
+    print " waiting for queue to be populated..."
+    class wait_monitor(disorder.monitor):
+        def queue(self, q):
+            return False
+    wait_monitor().run()
     c = disorder.client()
     print " getting queue via python module"
     q = c.queue()
