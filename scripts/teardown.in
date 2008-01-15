@@ -35,6 +35,17 @@ FreeBSD )
   pw groupdel jukebox || true
   pw userdel jukebox || true
   ;;
+Darwin )
+  echo "* stopping server"
+  launchctl stop uk.org.greenend.rjk.disorder || true
+  launchctl unload /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist || true
+  echo "* removing files"
+  rm -f /Library/WebServer/CGI-Executables/disorder
+  rm -f /Library/WebServer/Documents/disorder
+  rm -f /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist
+  rm -rf pkgstatedir
+  rm -rf pkgconfdir
+  ;;  
 * )
   echo Unknown operating system >&2
   exit 1

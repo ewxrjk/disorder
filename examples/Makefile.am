@@ -19,12 +19,14 @@
 #
 
 noinst_SCRIPTS=disorder.init disorder.rc
-noinst_DATA=config.sample
+noinst_DATA=config.sample uk.org.greenend.rjk.disorder.plist
 
-SEDFILES=disorder.init config.sample disorder.rc
+SEDFILES=disorder.init config.sample disorder.rc \
+	uk.org.greenend.rjk.disorder.plist
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-EXTRA_DIST=disorder.init.in config.sample.in disorder-log disorder.rc.in
+EXTRA_DIST=disorder.init.in config.sample.in disorder-log disorder.rc.in \
+	uk.org.greenend.rjk.disorder.plist.in
 
 CLEANFILES=$(SEDFILES)

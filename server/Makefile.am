@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
 	      disorder-stats disorder-dbupgrade
 noinst_PROGRAMS=disorder.cgi trackname
-noinst_DATA=uk.org.greenend.rjk.disorder.plist
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
@@ -148,20 +147,4 @@ check-decode: disorder-decode disorder-normalize
 
 cgi.o: ../lib/definitions.h
 
-# for Mac OS X >=10.4
-SEDFILES=uk.org.greenend.rjk.disorder.plist
-include ${top_srcdir}/scripts/sedfiles.make
-EXTRA_DIST=uk.org.greenend.rjk.disorder.plist.in README.dbversions
-LAUNCHD=/Library/LaunchDaemons
-
-#install-data-hook:
-#	@if [ -d ${LAUNCHD} ]; then \
-#	  echo $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
-#	  $(INSTALL) -m 644 uk.org.greenend.rjk.disorder.plist ${LAUNCHD};\
-#	  if [ "$$(NOLAUNCH)" != "" ]; then \
-#	    echo launchctl unload ${LAUNCHD} \|\| true;\
-#	    launchctl unload ${LAUNCHD} || true;\
-#	    echo launchctl load ${LAUNCHD} \|\| true;\
-#	    launchctl load ${LAUNCHD} || true;\
-#         fi;\
-#	fi
+EXTRA_DIST=README.dbversions
