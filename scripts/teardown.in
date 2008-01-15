@@ -1,6 +1,7 @@
+#! /bin/bash
 #
-# This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# This file is part of DisOrder
+# Copyright (C) 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,15 +18,24 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
+set -e
 
-dist_pkgdata_DATA=completion.bash
-noinst_SCRIPTS=setup teardown
-
-SEDFILES=setup teardown
-
-include ${top_srcdir}/scripts/sedfiles.make
-
-EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata \
-	format-gcov-report make-version-string setup.in teardown.in
-
-CLEANFILES=$(SEDFILES)
+case $(uname -s) in
+FreeBSD )
+  APACHE=apache22
+  echo "* killing disorderd processes"
+  killall disorderd || true
+  echo "* removing files"
+  rm -f /usr/local/www/$APACHE/cgi-bin/disorder
+  rm -f /usr/local/www/$APACHE/data/disorder
+  rm -f /etc/rc.d/disorder
+  rm -rf pkgstatedir
+  rm -rf pkgconfdir
+  echo "* removing user and group"
+  pw groupdel jukebox || true
+  pw userdel jukebox || true
+  ;;
+* )
+  echo Unknown operating system >&2
+  exit 1
+esac

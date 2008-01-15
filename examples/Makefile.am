@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 # USA
 #
 
-noinst_SCRIPTS=disorder.init
+noinst_SCRIPTS=disorder.init disorder.rc
 noinst_DATA=config.sample
 
-SEDFILES=disorder.init config.sample
+SEDFILES=disorder.init config.sample disorder.rc
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-EXTRA_DIST=disorder.init.in config.sample.in disorder-log
+EXTRA_DIST=disorder.init.in config.sample.in disorder-log disorder.rc.in
 
 CLEANFILES=$(SEDFILES)

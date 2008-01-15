@@ -1,6 +1,7 @@
+#! /bin/sh
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +17,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
-#
 
-dist_pkgdata_DATA=completion.bash
-noinst_SCRIPTS=setup teardown
+# PROVIDE: disorder
+# REQUIRE: DAEMON
 
-SEDFILES=setup teardown
+. /etc/rc.subr
 
-include ${top_srcdir}/scripts/sedfiles.make
+name=disorder
+pidfile=/var/run/disorderd.pid
+procname=disorderd
+command=sbindir/disorderd
+command_args="--pidfile $pidfile"
 
-EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata \
-	format-gcov-report make-version-string setup.in teardown.in
+load_rc_config $name
+run_rc_command "$1"
 
-CLEANFILES=$(SEDFILES)

@@ -143,3 +143,5 @@ tests/disorder-udplog
 lib/version-string
 lib/version.h
 scripts/setup
+examples/disorder.rc
+scripts/teardown

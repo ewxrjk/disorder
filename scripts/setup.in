@@ -240,9 +240,41 @@ Mac )
   launchctl start uk.org.greenend.rjk.disorder
   echo "Installing CGI"
   install -m 555 server/disorder.cgi /Library/WebServer/CGI-Executables/disorder
-  echo "Setting up link to CGI;'s dependencies"
+  echo "Setting up link to CGI's dependencies"
   rm -f /Library/WebServer/Documents/disorder
   ln -s pkgdatadir/static /Library/WebServer/Documents/disorder
+  echo
+  echo "You must sudo disorder setup-guest [--no-online-registration] next."
+  ;;
+FreeBSD )
+  echo "Installing startup script into /etc/rc.d"
+  install -m 555 examples/disorder.rc /etc/rc.d/disorder
+  echo "Starting DisOrder server"
+  /etc/rc.d/disorder start
+  echo "Identifying web server"
+  set /usr/local/www/*
+  case $# in
+  0 )
+    echo
+    echo "Could not find a web server"
+    exit 1
+    ;;
+  1 )
+    ;;
+  * )
+    echo
+    echo "Yikes!  There seems to be more than one web server here."
+    echo "Guessing that you want $1."
+    echo
+    ;;
+  esac
+  web=$1
+  echo "Found $web"
+  echo "Installing CGI"
+  install -m 555 server/disorder.cgi $web/cgi-bin/disorder
+  echo "Setting up link to CGI's dependencies"
+  rm -f $web/data/disorder
+  ln -s pkgdatadir/static $web/data/disorder
   echo
   echo "You must sudo disorder setup-guest [--no-online-registration] next."
   ;;

@@ -6,17 +6,10 @@ its dependencies.  It is not well tested in this environment.  In
 particular, since my FreeBSD VM lacks sound support, only network play
 has been tested.  Please report successes and failures!
 
-Use gmake to build DisOrder, not BSD make.
+Use gmake to build DisOrder, not BSD make:
+  ./configure
+  gmake
+  sudo gmake install
 
-
-Things you will need to do:
-
-* Create the jukebox user and group
-
-  sudo pw groupadd -n jukebox
-  sudo pw useradd -n jukebox
-  sudo pw groupmod jukebox -m jukebox
-
-* Arrange for the server to start at boot time
-
-* Start the server
+Then to set up:
+  sudo scripts/setup
