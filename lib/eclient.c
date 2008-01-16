@@ -1288,6 +1288,7 @@ int disorder_eclient_log(disorder_eclient *c,
     c->log_callbacks->state(c->log_v, c->statebits);
   stash_command(c, 0/*queuejump*/, log_opcallback, 0/*completed*/, v,
                 "log", (char *)0);
+  disorder_eclient_polled(c, 0);
   return 0;
 }
 
@@ -1332,33 +1333,33 @@ static void logline(disorder_eclient *c, const char *line) {
 
 static void logentry_completed(disorder_eclient *c,
                                int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->completed) return;
   c->statebits &= ~DISORDER_PLAYING;
-  c->log_callbacks->completed(c->log_v, vec[0]);
+  if(c->log_callbacks->completed)
+    c->log_callbacks->completed(c->log_v, vec[0]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_failed(disorder_eclient *c,
                             int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->failed)return;
   c->statebits &= ~DISORDER_PLAYING;
-  c->log_callbacks->failed(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->failed)
+    c->log_callbacks->failed(c->log_v, vec[0], vec[1]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_moved(disorder_eclient *c,
                            int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->moved) return;
-  c->log_callbacks->moved(c->log_v, vec[0]);
+  if(c->log_callbacks->moved)
+    c->log_callbacks->moved(c->log_v, vec[0]);
 }
 
 static void logentry_playing(disorder_eclient *c,
                              int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->playing) return;
   c->statebits |= DISORDER_PLAYING;
-  c->log_callbacks->playing(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->playing)
+    c->log_callbacks->playing(c->log_v, vec[0], vec[1]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
@@ -1367,7 +1368,7 @@ static void logentry_queue(disorder_eclient *c,
                            int attribute((unused)) nvec, char **vec) {
   struct queue_entry *q;
 
-  if(!c->log_callbacks->completed) return;
+  if(!c->log_callbacks->queue) return;
   q = xmalloc(sizeof *q);
   if(queue_unmarshall_vec(q, nvec, vec, eclient_queue_error, c))
     return;                             /* bogus */
@@ -1387,28 +1388,28 @@ static void logentry_recent_added(disorder_eclient *c,
 
 static void logentry_recent_removed(disorder_eclient *c,
                                     int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->recent_removed) return;
-  c->log_callbacks->recent_removed(c->log_v, vec[0]);
+  if(c->log_callbacks->recent_removed)
+    c->log_callbacks->recent_removed(c->log_v, vec[0]);
 }
 
 static void logentry_removed(disorder_eclient *c,
                              int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->removed) return;
-  c->log_callbacks->removed(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->removed)
+    c->log_callbacks->removed(c->log_v, vec[0], vec[1]);
 }
 
 static void logentry_rescanned(disorder_eclient *c,
                                int attribute((unused)) nvec,
                                char attribute((unused)) **vec) {
-  if(!c->log_callbacks->rescanned) return;
-  c->log_callbacks->rescanned(c->log_v);
+  if(c->log_callbacks->rescanned)
+    c->log_callbacks->rescanned(c->log_v);
 }
 
 static void logentry_scratched(disorder_eclient *c,
                                int attribute((unused)) nvec, char **vec) {
-  if(!c->log_callbacks->scratched) return;
   c->statebits &= ~DISORDER_PLAYING;
-  c->log_callbacks->scratched(c->log_v, vec[0], vec[1]);
+  if(c->log_callbacks->scratched)
+    c->log_callbacks->scratched(c->log_v, vec[0], vec[1]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
@@ -1439,8 +1440,8 @@ static void logentry_state(disorder_eclient *c,
       c->statebits &= ~statestrings[n].bit;
       break;
     }
-  if(!c->log_callbacks->state) return;
-  c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
+  if(c->log_callbacks->state) 
+    c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
 }
 
 static void logentry_volume(disorder_eclient *c,
