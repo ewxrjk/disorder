@@ -53,18 +53,30 @@ Mailing lists:
 
 Developers should read README.developers.
 
+Installation (supported platforms)
+==================================
 
-Installation
-============
+If you are upgrading from an earlier version, see README.upgrades.
+
+For Debian and Ubuntu, you are best of using .deb files, either download from
+www.greenend.org.uk or built locally with 'fakeroot debian/rules binary'.  They
+will do the majority of the setup for you, using a debconf interface to collect
+details about your system.
+
+For FreeBSD, see README.freebsd (in conjunction with the notes below) and use
+scripts/setup.
+
+For Mac OS X, see README.mac (in conjunction with the notes below) and use
+scripts/setup.
+
+
+Installation (generic)
+======================
 
    "This place'd be a paradise tomorrow, if every department had a supervisor
    with a machine-gun"
 
 IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
-
-On a Debian or Ubuntu system, if you install from .deb files then you should be
-able to skip steps 1 to 6 and configure it via debconf.  This is strongly
-recommended!
 
 1. Build the software.  Do something like this:
 

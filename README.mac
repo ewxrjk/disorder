@@ -2,17 +2,15 @@ DisOrder on OS X
 ================
 
 The server builds on OS X, using Fink to supply many of its
-dependencies.  It is not well tested in this environment.  Please
-report successes and failures!
+dependencies.  It is not well tested in this environment.
 
-There is an EXPERIMENTAL script in scripts/setup which asks a few
-questions, sets up a basic installation and starts the server.  To use
-it, after having done 'sudo make install', just do 'sudo
-scripts/setup' and follow the prompts.
+After installation you can use scripts/setup to install the server
+(creating a 'jukebox' user, etc).
 
-Its current main deficiences are:
-   - it uses the 'daemon' user/group instead of creating a 'jukebox'
-     identity.
-   - the launchd configuration does not have the server started at
-     boot time.  You must start it manually.  This may be changed in a
-     future version.
+  ./configure
+  make
+  sudo make install
+  sudo scripts/setup
+  sudo disorder setup-guest [--no-online-registration]
+
+Please report successes and failures!

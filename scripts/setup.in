@@ -29,9 +29,8 @@ case $(uname -s) in
 Darwin )
   echo "Mac OS X detected"
   os=Mac
-  # TODO we should use jukebox and create it if necessary; see below
-  user=daemon
-  group=daemon
+  user=jukebox
+  group=jukebox
   ;;
 FreeBSD )
   echo "FreeBSD detected"
@@ -191,11 +190,60 @@ if [ ! -f pkgconfdir/options.user ]; then
   touch pkgconfdir/options.user
 fi
 
+# pick ID1 ID2 ... IDn
+# Echoes an ID matching none of ID1..IDn
+pick() {
+  local n
+  n=250				# better not choose 0!
+  while :; do
+    ok=true
+    for k in "$@"; do
+      if [ $n = $k ]; then
+        ok=false
+        break
+      fi
+    done
+    if $ok; then
+      echo $n
+      return
+    fi
+    n=$((1+$n))
+  done
+}
+
 case $os in
 Mac )
-  # TODO niutil?
+  # Apple don't seem to believe in creating a user as a discrete operation
+  if dscl / -read /Groups/$group >/dev/null 2>&1; then
+    echo "$group group already exists"
+  else
+    echo "Creating $group group"
+    gids=$(dscl / -list /Groups PrimaryGroupID|awk '{print $2}')
+    gid=$(pick $gids)
+    echo "(picked gid $gid)"
+    dscl / -create /Groups/$group
+    dscl / -create /Groups/$group PrimaryGroupID $gid
+    dscl / -create /Groups/$group Password \*
+  fi
+  if dscl / -read /Users/$user >/dev/null 2>&1; then
+    echo "$user user already exists"
+  else
+    echo "Creating $user user"
+    uids=$(dscl / -list /Users UniqueID|awk '{print $2}')
+    uid=$(pick $uids)
+    echo "(picked uid $uid)"
+    gid=$(dscl / -read /Groups/$group PrimaryGroupID | awk '{print $2}')
+    dscl / -create /Users/$user
+    dscl / -create /Users/$user UniqueID $uid
+    dscl / -create /Users/$user UserShell /usr/bin/false
+    dscl / -create /Users/$user RealName 'DisOrder server'
+    dscl / -create /Users/$user NFSHomeDirectory pkgstatedir
+    dscl / -create /Users/$user PrimaryGroupID $gid
+    dscl / -create /Users/$user Password \*
+  fi
   ;;
 FreeBSD )
+  # FreeBSD has a simple well-documented interface
   if pw groupshow $group >/dev/null 2>&1; then
     echo "$group group already exists"
   else

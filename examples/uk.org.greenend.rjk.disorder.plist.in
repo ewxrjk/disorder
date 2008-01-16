@@ -19,7 +19,7 @@
 	</array>
 	<key>WorkingDirectory</key>
 	<string>pkgstatedir</string>
-<!-- 	<key>RunAtLoad</key> -->
-<!-- 	<true/> -->
+ 	<key>RunAtLoad</key>
+ 	<true/>
 </dict>
 </plist>

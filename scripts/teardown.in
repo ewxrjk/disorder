@@ -32,8 +32,8 @@ FreeBSD )
   rm -rf pkgstatedir
   rm -rf pkgconfdir
   echo "* removing user and group"
-  pw groupdel jukebox || true
   pw userdel jukebox || true
+  pw groupdel jukebox || true
   ;;
 Darwin )
   echo "* stopping server"
@@ -45,6 +45,9 @@ Darwin )
   rm -f /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist
   rm -rf pkgstatedir
   rm -rf pkgconfdir
+  echo "* removing user and group"
+  dscl / -delete /Users/jukebox || true
+  dscl / -delete /Groups/jukebox || true
   ;;  
 * )
   echo Unknown operating system >&2
