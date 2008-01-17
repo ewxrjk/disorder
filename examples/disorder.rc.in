@@ -25,7 +25,6 @@
 
 name=disorder
 pidfile=/var/run/disorderd.pid
-procname=disorderd
 command=sbindir/disorderd
 command_args="--pidfile $pidfile"
 
