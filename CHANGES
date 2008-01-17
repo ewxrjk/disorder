@@ -20,7 +20,7 @@ online registration of new users.  Also it is no longer necessary to
 manually specify the URL of the web interface (but you can override it
 if you don't like the value it figures out).
 
-It is possibe to allow users to register via the web interface.
+It is possible to allow users to register via the web interface.
 
 The web interface's browser support has been improved.  It has been
 tested with Firefox 2, Safari 3, Konqueror 3, Internet Explorer 7 and
