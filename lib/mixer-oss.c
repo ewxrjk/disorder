@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "mixer.h"
 #include "log.h"
 #include "syscalls.h"
+#include "mem.h"
 
 /* documentation does not match implementation! */
 #ifndef SOUND_MIXER_READ
@@ -74,8 +75,16 @@ static int mixer_channel(const char *c) {
 static int oss_do_open(void) {
   int fd;
   
-  if((fd = open(config->mixer, O_RDWR, 0)) < 0)
-    error(errno, "error opening %s", config->mixer);
+  if((fd = open(config->mixer, O_RDWR, 0)) < 0) {
+    static char *reported;
+
+    if(!reported || strcmp(reported, config->mixer)) {
+      if(reported)
+	xfree(reported);
+      reported = xstrdup(config->mixer);
+      error(errno, "error opening %s", config->mixer);
+    }
+  }
   return fd;
 }
 

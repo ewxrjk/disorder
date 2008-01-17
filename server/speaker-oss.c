@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2008 Richard Kettlewell
  * Portions copyright (C) 2007 Ross Younger
  *
  * This program is free software; you can redistribute it and/or modify
@@ -73,7 +73,12 @@ static void oss_activate(void) {
       else if(access("/dev/audio", W_OK) == 0)
 	device = "/dev/audio";
       else {
-        error(0, "cannot determine default OSS device");
+        static int reported;
+        
+        if(!reported) {
+          error(0, "cannot determine default OSS device");
+          reported = 1;
+        }
         goto failed;
       }
     } else
