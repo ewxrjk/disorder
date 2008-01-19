@@ -41,11 +41,10 @@ FreeBSD )
 Linux )
   if grep Debian /etc/issue >/dev/null 2>&1; then
     echo "You appear to be running Debian - please use .debs instead"
-    exit 1
-  fi
-  if grep Ubuntu /etc/issue >/dev/null 2>&1; then
+    echo
+  elif grep Ubuntu /etc/issue >/dev/null 2>&1; then
     echo "You appear to be running Ubuntu - please use .debs instead"
-    exit 1
+    echo
   fi
   echo "Linux detected"
   os=Linux
@@ -121,10 +120,20 @@ done
 echo
 echo "What host should DisOrder use as an SMTP server?"
 read -r smtp_server
-  
-echo
-echo "What address should mail from DisOrder come from?"
-read -r mail_sender
+
+while :; do
+  echo
+  echo "What address should mail from DisOrder come from?"
+  read -r mail_sender
+  case "$mail_sender" in
+  *@* )
+    break
+    ;;
+  * )
+    echo "Email address must contain an '@' sign"
+    ;;
+  esac
+done
 
 echo
 echo "Proposed DisOrder setup:"
@@ -286,13 +295,9 @@ Mac )
   launchctl load /Library/LaunchDaemons
   echo "Starting DisOrder server"
   launchctl start uk.org.greenend.rjk.disorder
-  echo "Installing CGI"
-  install -m 555 server/disorder.cgi /Library/WebServer/CGI-Executables/disorder
-  echo "Setting up link to CGI's dependencies"
-  rm -f /Library/WebServer/Documents/disorder
-  ln -s pkgdatadir/static /Library/WebServer/Documents/disorder
-  echo
-  echo "You must sudo disorder setup-guest [--no-online-registration] next."
+  CGIBIN=/Library/WebServer/CGI-Executables
+  DOCROOT=/Library/WebServer/Documents
+  sever_running=true
   ;;
 FreeBSD )
   echo "Installing startup script into /etc/rc.d"
@@ -318,17 +323,98 @@ FreeBSD )
   esac
   web=$1
   echo "Found $web"
-  echo "Installing CGI"
-  install -m 555 server/disorder.cgi $web/cgi-bin/disorder
-  echo "Setting up link to CGI's dependencies"
-  rm -f $web/data/disorder
-  ln -s pkgdatadir/static $web/data/disorder
-  echo
-  echo "You must sudo disorder setup-guest [--no-online-registration] next."
+  CGIBIN=$web/cgi-bin
+  DOCROOT=$web/data
+  server_running=true
+  ;;
+Linux )
+  echo "Looking for init scripts directory"
+  for d in /etc/rc.d /etc; do
+    if [ -d $d/init.d ]; then
+      RC_D=$d
+      break
+    fi
+  done
+  if [ -z "$RC_D" ]; then
+    echo "Cannot find your init scripts directory"
+  else
+    echo "Installing init script into $RC_D/init.d"
+    install -m 755 examples/disorder.init $RC_D/init.d/disorder
+    echo "Linking init script into $RC_D/rc*.d"
+    for n in 2 3 4 5; do
+      echo " $RC_D/rc$n.d/S99disorder -> $RC_D/init.d/disorder"
+      rm -f $RC_D/rc$n.d/S99disorder
+      ln -s $RC_D/init.d/disorder $RC_D/rc$n.d/S99disorder
+    done
+    for n in 0 1 6; do
+      echo " $RC_D/rc$n.d/K01disorder -> $RC_D/init.d/disorder"
+      rm -f $RC_D/rc$n.d/K01disorder
+      ln -s $RC_D/init.d/disorder $RC_D/rc$n.d/K01disorder
+    done
+    echo "Starting DisOrder server"
+    $RC_D/init.d/disorder start
+  fi
+  echo "Looking for web server document root"
+  for d in /var/www/html /var/www; do
+    if [ -d $d ]; then
+      DOCROOT=$d
+      break
+    fi
+  done
+  echo "Looking for cgi-bin directory"
+  for d in /var/www/cgi-bin /usr/lib/cgi-bin; do
+    if [ -d $d ]; then
+      CGIBIN=$d
+      break
+    fi
+  done
+  server_running=true
   ;;
 * )
+  echo
   echo "Sorry, I don't know how to install the server on this platform."
   echo "You will have to do that by hand."
-  exit 1
+  server_running=false
   ;;
 esac
+
+echo
+if [ -z "$DOCROOT" ]; then
+  echo "Cannot find your web server's document root"
+else
+  echo "Setting up link to CGI's dependencies in $DOCROOT"
+  rm -f $DOCROOT/disorder
+  ln -s pkgdatadir/static $DOCROOT/disorder
+fi
+
+echo
+if [ -z "$CGIBIN" ]; then
+  echo "Cannot find your web server's cgi-bin directory"
+else
+  echo "Installing CGI in $CGIBIN"
+  install -m 555 server/disorder.cgi $CGIBIN/disorder
+fi
+
+if $server_running; then
+  while :; do
+    echo
+    echo "Do you want to enable online registration?  (Enter 'y' or 'n')"
+    read -r reg
+    case $reg in
+    y | n )
+      break
+      ;;
+    esac
+  done
+  echo
+  if [ $reg = y ]; then
+    echo "Creating guest user with 'register' right"
+    disorder setup-guest
+  else
+    echo "Creating guest user without 'register' right"
+    disorder setup-guest --no-online-registration
+  fi
+fi
+
+echo
+echo Done
