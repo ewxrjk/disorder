@@ -1,3 +1,9 @@
+disorder (2.0.99) unstable; urgency=low
+
+  * Intermediate version number
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 19 Jan 2008 14:55:51 +0000
+
 disorder (2.0+) unstable; urgency=low
 
   * Intermediate version number
