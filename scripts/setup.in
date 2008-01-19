@@ -64,12 +64,9 @@ esac
 echo
 echo "This script will:"
 echo " - overwrite any existing configuration"
-case $os in
-Mac )
-  echo " - set the server up to be run at boot time"
-  echo " - start the server"
-  ;;
-esac
+echo " - set the server up to be run at boot time"
+echo " - start the server"
+echo " - set up the web interface"
 echo
 echo "If this is not what you want, press ^C."
 echo ------------------------------------------------------------------------
@@ -407,6 +404,14 @@ if $server_running; then
     esac
   done
   echo
+  first=true
+  while ! disorder version >/dev/null 2>&1; do
+    if $first; then
+      echo "Waiting for server startup to complete..."
+      first=false
+    fi
+    sleep 1
+  done
   if [ $reg = y ]; then
     echo "Creating guest user with 'register' right"
     disorder setup-guest
