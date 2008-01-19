@@ -16,9 +16,12 @@ DisOrder is a multi-user software jukebox.
 See CHANGES for details of recent changes to DisOrder and README.upgrades for
 upgrade instructions.
 
-The server supports Linux and can be made to work on a Mac (see README.mac).
-The clients work on both Linux and the Mac.  It could probably be ported to
-some other UNIX variants without too much effort.  Things you will need:
+Platform support:
+  Linux            Well tested on Debian
+  Mac OS X         Disobedience well tested, server somewhat tested; use fink
+  FreeBSD          Scantily tested; use ports for dependencies
+It could probably be ported to some other UNIX variants without too much
+effort.
 
 Build dependencies:
   Name             Tested              Notes
@@ -53,39 +56,27 @@ Mailing lists:
 
 Developers should read README.developers.
 
-Installation (supported platforms)
-==================================
 
-If you are upgrading from an earlier version, see README.upgrades.
-
-For Debian and Ubuntu, you are best of using .deb files, either download from
-www.greenend.org.uk or built locally with 'fakeroot debian/rules binary'.  They
-will do the majority of the setup for you, using a debconf interface to collect
-details about your system.
-
-For FreeBSD, see README.freebsd (in conjunction with the notes below) and use
-scripts/setup.
-
-For Mac OS X, see README.mac (in conjunction with the notes below) and use
-scripts/setup.
-
-
-Installation (generic)
-======================
+Installation
+============
 
    "This place'd be a paradise tomorrow, if every department had a supervisor
    with a machine-gun"
 
 IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
 
+Debian/Ubuntu: steps 1 to 6 are dealt with automatically if you use the .deb
+files.
+
+OX X/FreeBSD/other Linux: after installation (step 1) 'sudo bash scripts/setup'
+covers steps 3 to 6.  If it doesn't work on your platform, please get in touch.
+
 1. Build the software.  Do something like this:
 
-     ./configure --sysconfdir=/etc --localstatedir=/var
-     make
+     ./configure
+     make                   # on FreeBSD use gmake
 
-   See INSTALL for more details about driving configure.  The precise set of
-   options you pass to configure is up to you, if you like configuration being
-   in /usr/local/etc or wherever then that should work.
+   See INSTALL or ./configure --help for more details about driving configure.
 
    If you only want to build a subset of DisOrder, specify one or more of the
    following options:
@@ -96,12 +87,18 @@ IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
    See README.client for setting up a standalone client (or read the
    disobedience man page).
 
+   To build .debs on Debian/Ubuntu, use:
+     fakeroot debian/rules binary
+
 2. Install it.  Most of the installation is done via the install target:
 
      make installdirs install
 
    The CGI interface has to be installed separately; see under 'Web Interface'
    below.
+
+   NB steps 3 to 6 are covered by scripts/setup.  It should work on FreeBSD, OS
+   X and Linux and could be adapted to other platforms.
 
 3. Create a 'jukebox' user and group, with the jukebox group being the default
    group of the jukebox user.  The server will run as this user and group.
@@ -173,6 +170,9 @@ IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
    Disobedience from some other host, File->Login allows hostnames, passwords
    etc to be configured.
 
+   Alternatively, after setting up the web interface (below), it's possible to
+   allow users to register themselves without operator involvement.
+
 9. Optionally source completion.bash from /etc/profile or similar, for
    example:
 
@@ -186,8 +186,10 @@ Web Interface
 
    "Thought I was a gonner baby, but I'm bullet proof"
 
-As above, if you install from a .deb, much of the work will be done
-automatically.
+Debian/Ubuntu: the .deb files will do the setup here automatically.
+
+OS X/FreeBSD/other Linux: scripts/setup as referred to above will do the setup
+here automatically.
 
 You need to configure a number of things to make this work:
 

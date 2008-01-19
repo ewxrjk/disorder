@@ -1,5 +1,10 @@
 * Changes up to version 2.1
 
+** Platforms And Installation
+
+Mac OS X and FreeBSD are somewhat supported.  There is now a bash script
+in scripts/setup which will automate the setup after 'make install'.
+
 ** Server
 
 Users are now stored in the database rather than a configuration file.

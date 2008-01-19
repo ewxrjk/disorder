@@ -105,8 +105,6 @@ pkg-disorder: build
 	$(INSTALL_DATA) CHANGES README debian/README.Debian \
 		BUGS README.* \
 		debian/disorder/usr/share/doc/disorder/.
-	rm -f debian/disorder/usr/share/doc/disorder/README.mac
-	rm -f debian/disorder/usr/share/doc/disorder/README.freebsd
 	gzip -9f debian/disorder/usr/share/doc/disorder/CHANGES \
 		 debian/disorder/usr/share/doc/disorder/README \
 		 debian/disorder/usr/share/doc/disorder/README.* \

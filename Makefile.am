@@ -19,8 +19,7 @@
 #
 
 EXTRA_DIST=TODO CHANGES README.streams BUGS \
-README.upgrades README.client README.mac README.raw README.vhost \
-README.freebsd README.developers
+README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 
 check-report: before-check check make-coverage-reports
