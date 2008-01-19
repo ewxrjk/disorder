@@ -441,6 +441,9 @@ void trackdb_open(int flags) {
     trackdb_existing_database = 0;
   }
   /* open the databases */
+  if(!(trackdb_usersdb = open_db("users.db",
+                                 0, DB_HASH, dbflags, 0600)))
+    fatal(0, "cannot open users.db");
   trackdb_tracksdb = open_db("tracks.db",
                              DB_RECNUM, DB_BTREE, dbflags, 0666);
   trackdb_searchdb = open_db("search.db",
@@ -451,8 +454,6 @@ void trackdb_open(int flags) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, dbflags, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, dbflags, 0666);
-  trackdb_usersdb = open_db("users.db",
-                            0, DB_HASH, dbflags, 0600);
   if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
