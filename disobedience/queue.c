@@ -52,6 +52,10 @@
  * These only exist while the drag proceeds, as otherwise they steal events
  * from more deserving widgets.  (It might work to hide them when not in use
  * too but this way around the d+d code is a bit more self-contained.)
+ *
+ * NB that while in the server the playing track is not in the queue, in
+ * Disobedience, the playing does live in @c ql_queue.q, despite its different
+ * status to everything else found in that list.
  */
 
 #include "disobedience.h"
@@ -194,6 +198,7 @@ struct queuelike {
   struct queue_menuitem *menuitems;     /**< @brief menu items */
   GtkWidget *dragmark;                  /**< @brief drag destination marker */
   GtkWidget **dropzones;                /**< @brief drag targets */
+  int ndropzones;                       /**< @brief number of drag targets */
 
   /* State */
   struct queue_entry *q;                /**< @brief head of queue */
@@ -833,15 +838,23 @@ static void queue_drag_leave(GtkWidget attribute((unused)) *widget,
     gtk_widget_hide(ql->dragmark);
 }
 
-/** @brief Add a drag target at position @p y
+/** @brief Add a drag target
+ * @param ql The queue-like (in practice this is always @ref ql_queue)
+ * @param y The Y coordinate to place the drag target
+ * @param id Track to insert moved tracks after, or NULL
  *
- * @p id is the track to insert the moved tracks after, and might be 0 to
- * insert before the start. */
-static void add_drag_target(struct queuelike *ql, int y, int row,
+ * Adds a drop zone at Y coordinate @p y, which is assumed to lie between two
+ * tracks (or before the start of the queue or after the end of the queue).  If
+ * tracks are dragged into this dropzone then they will be moved @em after
+ * track @p id, or to the start of the queue if @p id is NULL.
+ *
+ * We remember all the dropzones in @c ql->dropzones so they can be destroyed
+ * later.
+ */
+static void add_drag_target(struct queuelike *ql, int y,
                             const char *id) {
   GtkWidget *eventbox;
 
-  assert(ql->dropzones[row] == 0);
   NW(event_box);
   eventbox = gtk_event_box_new();
   /* Make the target zone invisible */
@@ -866,40 +879,43 @@ static void add_drag_target(struct queuelike *ql, int y, int row,
   /* The widget needs to be shown to receive drags */
   gtk_widget_show(eventbox);
   /* Remember the drag targets */
-  ql->dropzones[row] = eventbox;
+  ql->dropzones[ql->ndropzones] = eventbox;
   g_signal_connect(eventbox, "destroy",
-                   G_CALLBACK(gtk_widget_destroyed), &ql->dropzones[row]);
+                   G_CALLBACK(gtk_widget_destroyed),
+                   &ql->dropzones[ql->ndropzones]);
+  ++ql->ndropzones;
 }
 
 /** @brief Create dropzones for dragging into */
 static void add_drag_targets(struct queuelike *ql) {
-  int row, y;
+  int y;
   struct queue_entry *q;
 
   /* Create an array to store the widgets */
   ql->dropzones = xcalloc(ql->nrows, sizeof (GtkWidget *));
+  ql->ndropzones = 0;
   y = 0;
   /* Add a drag target before the first row provided it's not the playing
    * track */
   if(!playing_track || ql->q != playing_track)
-    add_drag_target(ql, 0, 0, 0);
+    add_drag_target(ql, 0, 0);
   /* Put a drag target at the bottom of every row */
-  for(q = ql->q, row = 0; q; q = q->next, ++row) {
+  for(q = ql->q; q; q = q->next) {
     y += ql->mainrowheight;
-    add_drag_target(ql, y, row, q->id);
+    add_drag_target(ql, y, q->id);
   }
 }
 
 /** @brief Remove the dropzones */
 static void remove_drag_targets(struct queuelike *ql) {
-  int row;
+  int n;
 
-  for(row = 0; row < ql->nrows; ++row) {
-    if(ql->dropzones[row]) {
+  for(n = 0; n < ql->ndropzones; ++n) {
+    if(ql->dropzones[n]) {
       DW(event_box);
-      gtk_widget_destroy(ql->dropzones[row]);
+      gtk_widget_destroy(ql->dropzones[n]);
     }
-    assert(ql->dropzones[row] == 0);
+    assert(ql->dropzones[n] == 0);
   }
 }
 
