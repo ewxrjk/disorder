@@ -103,7 +103,7 @@ static int sendcommand(const char *tag, FILE *out, const char *fmt, ...) {
  * @param recipient Recipient address
  * @param subject Subject string
  * @param encoding Body encoding
- * @param body_type Content-type of body
+ * @param content_type Content-type of body
  * @param body Text of body (encoded, but \n for newline)
  * @return 0 on success, non-0 on error
  */

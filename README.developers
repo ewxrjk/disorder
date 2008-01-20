@@ -65,10 +65,13 @@ APIs And Formats:
 The Server:
 
    * The server's command implementations must not block.  Waiting for a little
-     disk IO is OK but blocking on long-lasting transactions or external
-     resources is not acceptable.  Long-running subprocesses should use
-     subprograms (rather than forking but not execing) if reasonably possible;
-     see c_stats() for an example.  c_reminder() is probably in the grey area.
+     disk IO is OK but blocking for extended periods on long-lasting
+     transactions or external resources is not acceptable; it will wedge the
+     server for all other users.
+
+     Long-running subprocesses should use subprograms (rather than forking but
+     not execing) if reasonably possible; see c_stats() for an example.
+     c_reminder() is probably in the grey area.
 
    * The server process does not use threads and I would like to keep it that
      way.
@@ -118,7 +121,8 @@ The Server:
 Web Interface:
 
    * The web interface does not use Javascript or Flash and I would like to
-     keep it that way.
+     keep it that way.  Clever use of CSS is OK provided it works well on the
+     mainstream browsers.
 
    * I know that the web template syntax is rather nasty.  Perhaps it will be
      improved in a future version.
@@ -141,13 +145,24 @@ Disobedience:
 
    * Update doc/disobedience.1.in for any changes you make.
 
+New Platforms:
+
+   * It is not mandatory to have an entry in configure's 'case $host' section,
+     but may well be convenient.
+
+   * Complete support for a new platform implies updating scripts/setup.in and
+     scripts/teardown.in as well as getting the software to build and work (but
+     this doesn't mean that patches that don't achieve this will be rejected).
+
 Code And Patches:
 
    * Please follow the existing layout conventions.
 
    * Please try to write doc comments for new functions, types, etc using the
      same syntax as the existing ones.  Doxygen can be used to turn this into
-     reference documentation.
+     reference documentation (see http://www.stack.nl/~dimitri/doxygen/) but
+     really the point is to have good inline code documentation, not the
+     Doxygen output as such.
 
    * More importantly, new configuration directives, protocol commands,
      interface features etc should be documented in the relevant places.

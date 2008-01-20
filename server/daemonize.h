@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/daemonize.h
+ * @brief Go into background
+ */
 
 #ifndef DAEMONIZE_H
 #define DAEMONIZE_H

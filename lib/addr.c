@@ -125,10 +125,12 @@ int addrinfocmp(const struct addrinfo *a,
   }
 }
 
+/** @brief Return nonzero if @p sin4 is an IPv4 multicast address */
 static inline int multicast4(const struct sockaddr_in *sin4) {
   return IN_MULTICAST(ntohl(sin4->sin_addr.s_addr));
 }
 
+/** @brief Return nonzero if @p sin6 is an IPv6 multicast address */
 static inline int multicast6(const struct sockaddr_in6 *sin6) {
   return IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr);
 }
@@ -145,6 +147,7 @@ int multicast(const struct sockaddr *sa) {
   }
 }
 
+/** @brief Format an IPv4 address */
 static inline char *format_sockaddr4(const struct sockaddr_in *sin4) {
   char buffer[1024], *r;
 
@@ -160,6 +163,7 @@ static inline char *format_sockaddr4(const struct sockaddr_in *sin4) {
   return r;
 }
 
+/** @brief Format an IPv6 address */
 static inline char *format_sockaddr6(const struct sockaddr_in6 *sin6) {
   char buffer[1024], *r;
 
@@ -175,11 +179,15 @@ static inline char *format_sockaddr6(const struct sockaddr_in6 *sin6) {
   return r;
 }
 
+/** @brief Format a UNIX socket address */
 static inline char *format_sockaddrun(const struct sockaddr_un *sun) {
   return xstrdup(sun->sun_path);
 }
     
-/** @brief Construct a text description a sockaddr */
+/** @brief Construct a text description a sockaddr
+ * @param sa Socket address
+ * @return Human-readable form of address
+ */
 char *format_sockaddr(const struct sockaddr *sa) {
   switch(sa->sa_family) {
   case AF_INET:

@@ -59,12 +59,20 @@
 #include "rights.h"
 #include "trackdb.h"
 
+/** @brief Client handle contents */
 struct disorder_client {
-  FILE *fpin, *fpout;
+  /** @brief Stream to read from */
+  FILE *fpin;
+  /** @brief Stream to write to */
+  FILE *fpout;
+  /** @brief Peer description */
   char *ident;
+  /** @brief Username */
   char *user;
+  /** @brief Report errors to @c stderr */
   int verbose;
-  char *last;				/* last error string */
+  /** @brief Last error string */
+  char *last;
 };
 
 /** @brief Create a new client
@@ -547,6 +555,7 @@ int disorder_playing(disorder_client *c, struct queue_entry **qp) {
   return 0;
 }
 
+/** @brief Fetch the queue, recent list, etc */
 static int disorder_somequeue(disorder_client *c,
 			      const char *cmd, struct queue_entry **qp) {
   struct queue_entry *qh, **qt = &qh, *q;

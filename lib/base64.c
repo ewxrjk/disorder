@@ -38,7 +38,6 @@ static const char mime_base64_table[] =
 /** @brief Convert MIME base64
  * @param s base64 data
  * @param nsp Where to store length of converted data
- * @param table Table of characters to use
  * @return Decoded data
  *
  * See <a href="http://tools.ietf.org/html/rfc2045#section-6.8">RFC
@@ -51,6 +50,7 @@ char *mime_base64(const char *s, size_t *nsp) {
 /** @brief Convert base64
  * @param s base64 data
  * @param nsp Where to store length of converted data
+ * @param table Table of characters to use
  * @return Decoded data
  *
  * @p table should consist of 65 characters.  The first 64 will be used to

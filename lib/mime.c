@@ -718,7 +718,7 @@ char *mime_to_qp(const char *text) {
  * @param text Underlying UTF-8 text
  * @param charsetp Where to store charset string
  * @param encodingp Where to store encoding string
- * @return Encoded text (might be @ref text)
+ * @return Encoded text (might be @p text)
  */
 const char *mime_encode_text(const char *text,
 			     const char **charsetp,

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/daemonize.c
+ * @brief Go into background
+ */
 
 #include <config.h>
 
@@ -31,6 +34,15 @@
 #include "syscalls.h"
 #include "log.h"
 
+/** @brief Go into background
+ * @param tag Message tag, or NULL
+ * @param fac Logging facility
+ * @param pidfile Where to store PID, or NULL
+ *
+ * Become a daemon.  stdout/stderr are lost and DisOrder's logging is
+ * redirected to syslog.  It is assumed that there are no FDs beyond 2
+ * that need closing.
+ */
 void daemonize(const char *tag, int fac, const char *pidfile) {
   pid_t pid, r;
   int w, dn;
