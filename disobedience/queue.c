@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006,  2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -703,6 +703,16 @@ void queue_select_all(struct queuelike *ql) {
   set_widget_states(ql);
 }
 
+/** @brief Deselect all entries in a queue */
+void queue_select_none(struct queuelike *ql) {
+  struct queue_entry *qq;
+
+  for(qq = ql->q; qq; qq = qq->next)
+    selection_set(ql->selection, qq->id, 0);
+  ql->last_click = 0;
+  set_widget_states(ql);
+}
+
 /** @brief Pop up properties for selected tracks */
 void queue_properties(struct queuelike *ql) {
   struct vector v;
@@ -1252,6 +1262,21 @@ static void selectall_activate(GtkMenuItem attribute((unused)) *menuitem,
   queue_select_all(mii->ql);
 }
 
+/** @brief Determine whether the select none menu option should be sensitive */
+static int selectnone_sensitive(struct queuelike *ql,
+                                struct queue_menuitem attribute((unused)) *m,
+                                struct queue_entry attribute((unused)) *q) {
+  /* Sensitive if there is anything selected */
+  return hash_count(ql->selection) != 0;
+}
+
+/** @brief Select no tracks */
+static void selectnone_activate(GtkMenuItem attribute((unused)) *menuitem,
+                               gpointer user_data) {
+  const struct menuiteminfo *mii = user_data;
+  queue_select_none(mii->ql);
+}
+
 /** @brief Determine whether the play menu option should be sensitive */
 static int play_sensitive(struct queuelike *ql,
                           struct queue_menuitem attribute((unused)) *m,
@@ -1311,6 +1336,7 @@ static gboolean adjust_sofar(gpointer attribute((unused)) data) {
 static struct queue_menuitem queue_menu[] = {
   { "Track properties", properties_activate, properties_sensitive, 0, 0 },
   { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
   { "Scratch track", scratch_activate, scratch_sensitive, 0, 0 },
   { "Remove track from queue", remove_activate, remove_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }
@@ -1383,6 +1409,7 @@ static struct queue_entry *fixup_recent(struct queue_entry *q) {
 static struct queue_menuitem recent_menu[] = {
   { "Track properties", properties_activate, properties_sensitive,0, 0 },
   { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }
 };
 
@@ -1416,6 +1443,7 @@ static struct queue_menuitem added_menu[] = {
   { "Track properties", properties_activate, properties_sensitive, 0, 0 },
   { "Play track", play_activate, play_sensitive, 0, 0 },
   { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
   { 0, 0, 0, 0, 0 }
 };
 
@@ -1474,6 +1502,12 @@ static int queue_selectall_sensitive(GtkWidget *w) {
   return !!queue_count_entries(g_object_get_data(G_OBJECT(w), "queue"));
 }
 
+static int queue_selectnone_sensitive(GtkWidget *w) {
+  struct queuelike *const ql = g_object_get_data(G_OBJECT(w), "queue");
+
+  return hash_count(ql->selection) != 0;
+}
+
 static void queue_properties_activate(GtkWidget *w) {
   queue_properties(g_object_get_data(G_OBJECT(w), "queue"));
 }
@@ -1482,11 +1516,17 @@ static void queue_selectall_activate(GtkWidget *w) {
   queue_select_all(g_object_get_data(G_OBJECT(w), "queue"));
 }
 
+static void queue_selectnone_activate(GtkWidget *w) {
+  queue_select_none(g_object_get_data(G_OBJECT(w), "queue"));
+}
+
 static const struct tabtype tabtype_queue = {
   queue_properties_sensitive,
   queue_selectall_sensitive,
+  queue_selectnone_sensitive,
   queue_properties_activate,
   queue_selectall_activate,
+  queue_selectnone_activate,
 };
 
 /* Other entry points ------------------------------------------------------ */

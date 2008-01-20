@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1378,6 +1378,14 @@ static int choose_selectall_sensitive(GtkWidget attribute((unused)) *w) {
   return FALSE;
 }
 
+/** @brief Determine whether the edit menu's select none option should be sensitive
+ *
+ * TODO not implemented,  see also choose_selectnone_activate()
+ */
+static int choose_selectnone_sensitive(GtkWidget attribute((unused)) *w) {
+  return FALSE;
+}
+
 /** @brief Called when the edit menu's properties option is activated */
 static void choose_properties_activate(GtkWidget attribute((unused)) *w) {
   activate_track_properties(0, 0);
@@ -1389,12 +1397,20 @@ static void choose_properties_activate(GtkWidget attribute((unused)) *w) {
 static void choose_selectall_activate(GtkWidget attribute((unused)) *w) {
 }
 
+/** @brief Called when the edit menu's select none option is activated
+ *
+ * TODO not implemented, see choose_selectnone_sensitive() */
+static void choose_selectnone_activate(GtkWidget attribute((unused)) *w) {
+}
+
 /** @brief Main menu callbacks for Choose screen */
 static const struct tabtype tabtype_choose = {
   choose_properties_sensitive,
   choose_selectall_sensitive,
+  choose_selectnone_sensitive,
   choose_properties_activate,
   choose_selectall_activate,
+  choose_selectnone_activate,
 };
 
 /* Public entry points ----------------------------------------------------- */

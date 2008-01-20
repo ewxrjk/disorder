@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include "disobedience.h"
 
 static GtkWidget *selectall_widget;
+static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
 
 /** @brief Main menu widgets */
@@ -56,6 +57,20 @@ static void select_all(gpointer attribute((unused)) callback_data,
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
   t->selectall_activate(tab);
+}
+
+/** @brief Called when the select none option is activated
+ *
+ * Calls the per-tab select none function.
+ */
+static void select_none(gpointer attribute((unused)) callback_data,
+                        guint attribute((unused)) callback_action,
+                        GtkWidget attribute((unused)) *menu_item) {
+  GtkWidget *tab = gtk_notebook_get_nth_page
+    (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
+  const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
+
+  t->selectnone_activate(tab);
 }
 
 /** @brief Called when the track properties option is activated
@@ -97,6 +112,8 @@ void menu_update(int page) {
                             && (disorder_eclient_state(client) & DISORDER_CONNECTED)));
   gtk_widget_set_sensitive(selectall_widget,
                            t->selectall_sensitive(tab));
+  gtk_widget_set_sensitive(selectnone_widget,
+                           t->selectnone_sensitive(tab));
 }
    
 /** @brief Fetch version in order to display the about... popup */
@@ -228,6 +245,14 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     {
+      (char *)"/Edit/Deselect all tracks", /* path */
+      (char *)"<CTRL><SHIFT>A",         /* accelerator */
+      select_none,                      /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    {
       (char *)"/Edit/Track properties", /* path */
       0,                                /* accelerator */
       properties_item,                  /* callback */
@@ -316,9 +341,12 @@ GtkWidget *menubar(GtkWidget *w) {
   gtk_window_add_accel_group(GTK_WINDOW(w), accel);
   selectall_widget = gtk_item_factory_get_widget(mainmenufactory,
 						 "<GdisorderMain>/Edit/Select all tracks");
+  selectnone_widget = gtk_item_factory_get_widget(mainmenufactory,
+						 "<GdisorderMain>/Edit/Deselect all tracks");
   properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
   assert(selectall_widget != 0);
+  assert(selectnone_widget != 0);
   assert(properties_widget != 0);
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");

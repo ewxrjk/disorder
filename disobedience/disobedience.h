@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,8 +86,10 @@ struct callbackdata {
 struct tabtype {
   int (*properties_sensitive)(GtkWidget *tab);
   int (*selectall_sensitive)(GtkWidget *tab);
+  int (*selectnone_sensitive)(GtkWidget *tab);
   void (*properties_activate)(GtkWidget *tab);
   void (*selectall_activate)(GtkWidget *tab);
+  void (*selectnone_activate)(GtkWidget *tab);
 };
 
 /** @brief Button definitions */
@@ -211,7 +213,8 @@ void added_update(void);
  * changed */
 
 void queue_select_all(struct queuelike *ql);
-/* Select all on some queue */
+void queue_select_none(struct queuelike *ql);
+/* Select all/none on some queue */
 
 void queue_properties(struct queuelike *ql);
 /* Pop up properties of selected items in some queue */

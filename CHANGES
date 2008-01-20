@@ -34,7 +34,8 @@ Opera 9.
 ** Disobedience
 
 A bug which would cause a crash if you attempt to rearrange the queue
-while no rtack was playing has been fixed.
+while no rtack was playing has been fixed.  There is a new 'deselect all
+tracks' option, mirroring 'select all tracks.
 
 * Changes up to version 2.0
 
