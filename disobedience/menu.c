@@ -119,7 +119,7 @@ static void manual_popup(gpointer attribute((unused)) callback_data,
   popup_help();
 }
 
-/** @brief Callde when version arrives, displays about... popup */
+/** @brief Called when version arrives, displays about... popup */
 static void about_popup_got_version(void attribute((unused)) *v,
                                     const char *value) {
   GtkWidget *w;
