@@ -31,6 +31,11 @@ The web interface's browser support has been improved.  It has been
 tested with Firefox 2, Safari 3, Konqueror 3, Internet Explorer 7 and
 Opera 9.
 
+** Disobedience
+
+A bug which would cause a crash if you attempt to rearrange the queue
+while no rtack was playing has been fixed.
+
 * Changes up to version 2.0
 
 ** General
