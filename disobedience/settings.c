@@ -282,6 +282,70 @@ void set_tool_colors(GtkWidget *w) {
     set_tool_colors(child);
 }
 
+/** @brief Pop up a settings editor widget */
+void popup_settings(void) {
+  static GtkWidget *settings_window;
+  GtkWidget *table;
+  unsigned row, col;
+
+  if(settings_window) { 
+    gtk_window_present(GTK_WINDOW(settings_window));
+    return;
+  }
+  /* Create the window */
+  settings_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_style(settings_window, tool_style);
+  gtk_window_set_title(GTK_WINDOW(settings_window), "Disobedience Settings");
+  /* Clear the pointer to the window widget when it is closed */
+  g_signal_connect(settings_window, "destroy",
+		   G_CALLBACK(gtk_widget_destroyed), &settings_window);
+
+  /* The color settings live in a big table */
+  table = gtk_table_new(2 * NSTYLES + 1/*rows */, NSTATES + 1/*cols*/,
+                        TRUE/*homogeneous*/);
+  /* Titles */
+  for(row = 0; row < 2 * NSTYLES; ++row) {
+    char *legend;
+
+    byte_xasprintf(&legend, "%s %s", styles[row / 2].name,
+                   row % 2 ? "background" : "foreground");
+    gtk_table_attach(GTK_TABLE(table),
+                     gtk_label_new(legend),
+                     0, 1,
+                     row + 1, row + 2,
+                     GTK_FILL, GTK_FILL,
+                     1, 1);
+  }
+  for(col = 0; col < NSTATES; ++col) {
+    gtk_table_attach(GTK_TABLE(table),
+                     gtk_label_new(states[col]),
+                     col + 1, col + 2,
+                     0, 1,
+                     GTK_FILL, GTK_FILL,
+                     1, 1);
+  }
+  /* The actual colors */
+  for(row = 0; row < 2 * NSTYLES; ++row) {
+    for(col = 0; col <  NSTATES; ++col) {
+      GdkColor *const c = &(row % 2
+                            ? (**styles[row / 2].style).bg
+                            : (**styles[row / 2].style).fg)[col];
+      gtk_table_attach(GTK_TABLE(table),
+                       gtk_color_button_new_with_color(c),
+                       col + 1, col + 2,
+                       row + 1, row + 2,
+                       GTK_FILL, GTK_FILL,
+                       1, 1);
+    }
+  }
+  gtk_container_add(GTK_CONTAINER(settings_window), table);
+  gtk_widget_show_all(settings_window);
+  /* TODO: save settings
+     TODO: web browser
+     TODO: impose settings when they are set
+  */
+}
+
 /*
 Local Variables:
 c-basic-offset:2

@@ -267,6 +267,7 @@ extern const char *browser;
 void save_settings(void);
 void load_settings(void);
 void set_tool_colors(GtkWidget *w);
+void popup_settings(void);
 
 /* Widget leakage debugging rubbish ---------------------------------------- */
 

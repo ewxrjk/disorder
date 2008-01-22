@@ -94,6 +94,15 @@ static void login(gpointer attribute((unused)) callback_data,
   login_box();
 }
 
+#if 0
+/** @brief Called when the settings option is activated */
+static void settings(gpointer attribute((unused)) callback_data,
+                     guint attribute((unused)) callback_action,
+                     GtkWidget attribute((unused)) *menu_item) {
+  popup_settings();
+}
+#endif
+
 /** @brief Update menu state
  *
  * Determines option sensitivity according to the current tab and adjusts the
@@ -219,6 +228,16 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* item_type */
       0                                 /* extra_data */
     },
+#if 0
+    {
+      (char *)"/File/Settings",         /* path */
+      0,                                /* accelerator */
+      settings,                         /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+#endif
     {
       (char *)"/File/Quit Disobedience", /* path */
       (char *)"<CTRL>Q",                /* accelerator */
