@@ -29,7 +29,8 @@ concerning what is to be played.
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
-Set the configuration file.  The default is
+Set the configuration file.
+The default is
 .IR pkgconfdir/config .
 See
 .BR disorder_config (5)
@@ -39,12 +40,14 @@ for further information.
 Write a pidfile.
 .TP
 .B --foreground\fR, \fB-f
-Run in the foreground.  (By default,
+Run in the foreground.
+(By default,
 .B disorderd
 detaches from its terminal and runs in the background.)
 .TP
 .B --syslog\fR, \fB-s
-Log to syslog.  This is the default if DisOrder runs in the background.
+Log to syslog.
+This is the default if DisOrder runs in the background.
 .TP
 .B --debug\fR, \fB-d
 Enable debugging.
@@ -60,27 +63,32 @@ For configuration file documentation, see
 .SS "Startup"
 The first time a new install of DisOrder is started it will run
 .B disorder-rescan
-to pick up new tracks.  On subsequent server restarts it will NOT do
+to pick up new tracks.
+On subsequent server restarts it will NOT do
 this automatically; if you want a rescan at every restart you must
 arrange that manually.
 .PP
 There is however an automatic rescan once every 24 hours.
 .PP
 A \fBroot\fR login is automatically created on startup if it does not
-exist.  If \fBdisorder\fR(1) is run as root on the same machine as the
+exist.
+If \fBdisorder\fR(1) is run as root on the same machine as the
 server it is capable of extracting the password from the database
 directly.
 .SS "Locales"
 .B disorderd
-is locale-aware.  If you do not set the locale correctly then it may
-not handle non-ASCII data properly.
+is locale-aware.
+If you do not set the locale correctly then it may not handle
+non-ASCII data properly.
 .PP
 Filenames and the configuration file are assumed to be encoded using the
-current locale.  Internally (within the server, in the database and in
+current locale.
+Internally (within the server, in the database and in
 communication between client and server) the UTF-8 encoding is used.
 .SS Backups
 DisOrder uses Berkeley DB but currently discards log files that are no longer
-in use.  This means that DB's catastrophic recovery cannot be used (normal
+in use.
+This means that DB's catastrophic recovery cannot be used (normal
 recovery can be used, and indeed the server does this automatically on
 startup).
 .PP
@@ -104,7 +112,8 @@ It may be more convenient to perform these operations from the client
 .SH FILES
 .TP
 .I pkgconfdir/config
-Global configuration file.  See \fBdisorder_config\fR(5).
+Global configuration file.
+See \fBdisorder_config\fR(5).
 .TP
 .I pkgconfdir/config.private
 Private configuration (usernames and passwords).
@@ -113,7 +122,8 @@ Private configuration (usernames and passwords).
 Per-user password file.
 .TP
 .I pkgstatedir/queue
-Saved copy of queue.  Do not edit while the daemon is running.
+Saved copy of queue.
+Do not edit while the daemon is running.
 .TP
 .I pkgstatedir/recent
 Saved copy of recently played track list.
@@ -135,9 +145,10 @@ Tag lookup database.
 Tracks database.
 .TP
 .I pkgstatedir/DB_CONFIG
-Berkeley DB configuration file.  This may be used to override database
-settings without recompiling DisOrder.  See the Berkeley DB
-documention for further details.
+Berkeley DB configuration file.
+This may be used to override database settings without recompiling
+DisOrder.
+See the Berkeley DB documention for further details.
 .TP
 .I pkgstatedir/log.* \fRand \fIpkgstatedir/__db.*
 Database internal files.
@@ -146,12 +157,13 @@ Database internal files.
 Communication socket for \fBdisorder\fR(1).
 .TP
 .I pkgstatedir/lock
-Lockfile.  This prevents multiple instances of DisOrder running
-simultaneously.
+Lockfile.
+This prevents multiple instances of DisOrder running simultaneously.
 .SH ENVIRONMENT
 .TP
 .B LC_ALL\fR, \fBLANG\fR, etc
-Current locale.  See \fBlocale\fR(7).
+Current locale.
+See \fBlocale\fR(7).
 .SH "SEE ALSO"
 \fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder-dump\fR(8)
 .\" Local Variables:

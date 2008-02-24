@@ -28,9 +28,9 @@ The first half of this man page describes the functions DisOrder
 provides to plugins; the second half describes the functions that
 plugins must provide.
 .SH "MEMORY ALLOCATION"
-DisOrder uses a garbage collector internally.  Therefore it is recommended that
-plugins use the provided memory allocation interface, rather than calling
-\fBmalloc\fR(3) etc directly.
+DisOrder uses a garbage collector internally.
+Therefore it is recommended that plugins use the provided memory
+allocation interface, rather than calling \fBmalloc\fR(3) etc directly.
 .PP
 .nf
 \fBvoid *disorder_malloc(size_t);
@@ -54,7 +54,8 @@ except that they never fail and you must not put any pointer
 values in the allocated memory.
 .IP
 They may still return a null pointer if asked for a 0-sized
-allocation.  They do not guarantee to zero out the memory allocated.
+allocation.
+They do not guarantee to zero out the memory allocated.
 .PP
 .nf
 \fBchar *disorder_strdup(const char *);
@@ -85,22 +86,24 @@ some other encoding.
 .SH LOGGING
 Standard error doesn't reliably go anywhere in current versions of DisOrder,
 and whether syslog is to be used varies depending on how the program is
-invoked.  Therefore plugins should use these functions to log any errors or
+invoked.
+Therefore plugins should use these functions to log any errors or
 informational messages.
 .PP
 .nf
 \fBvoid disorder_error(int errno_value, const char *fmt, ...);
 .fi
 .IP
-Log an error message.  If \fBerrno_value\fR is not 0 then the relevant
+Log an error message.
+If \fBerrno_value\fR is not 0 then the relevant
 string is included in the error message.
 .PP
 .nf
 \fBvoid disorder_fatal(int errno_value, const char *fmt, ...);
 .fi
 .IP
-Log an error message and then terminate the process.  If
-\fBerrno_value\fR is not 0 then the relevant string is included in the
+Log an error message and then terminate the process.
+If \fBerrno_value\fR is not 0 then the relevant string is included in the
 error message.
 .IP
 .B disorder_fatal
@@ -133,7 +136,8 @@ not.
 .fi
 .IP
 This function looks up the value of \fBkey\fR for \fBtrack\fR and
-returns a pointer to a copy of it.  Do not bother to free the pointer.
+returns a pointer to a copy of it.
+Do not bother to free the pointer.
 If the track or key are not found a null pointer is returned.
 .PP
 .nf
@@ -143,14 +147,16 @@ If the track or key are not found a null pointer is returned.
 .fi
 .IP
 This function sets the value of \fBkey\fR for \fBtrack\fR to
-\fBvalue\fR.  On success, 0 is returned; on error, -1 is returned.
+\fBvalue\fR.
+On success, 0 is returned; on error, -1 is returned.
 .IP
 If \fBvalue\fR is a null pointer then the preference is deleted.
 .IP
 Values starting with an underscore are stored in the tracks database,
 and are lost if the track is deleted; they should only ever have
-values that can be regenerated on demand.  Other values are stored in
-the prefs database and never get automatically deleted.
+values that can be regenerated on demand.
+Other values are stored in the prefs database and never get
+automatically deleted.
 .PP
 .nf
 \fBconst char *disorder_track_random(void)
@@ -162,8 +168,9 @@ Aliases are never returned.
 Only available in server plugins.
 .SH "PLUGIN FUNCTIONS"
 This section describes the functions that you must implement to write various
-plugins.  All of the plugins have at least one standard implementation
-available in the DisOrder source.
+plugins.
+All of the plugins have at least one standard implementation available
+in the DisOrder source.
 .PP
 Some functions are listed as only available in server plugins.
 Currently this means that they are not even defined outside the
@@ -178,9 +185,10 @@ These are server plugins defined by the \fBtracklength\fR directive.
                           const char *path);
 .fi
 .IP
-Called to calculate the length of a track.  \fBtrack\fR is the track
-name (UTF-8) and \fBpath\fR is the path name if there was one, or a
-null pointer otherwise.  \fBpath\fR will be the same byte string return from
+Called to calculate the length of a track.
+\fBtrack\fR is the track name (UTF-8) and \fBpath\fR is the path
+name if there was one, or a null pointer otherwise.
+\fBpath\fR will be the same byte string return from
 the scanner plugin, and so presumably encoded according to the
 filesystem encoding.
 .IP
@@ -205,8 +213,9 @@ This is a server plugin.
                           const char *submitter);
 .fi
 .IP
-Called when \fBtrack\fR is about to be played.  \fBsubmitter\fR identifies the
-submitter or is a null pointer if the track was picked for random play.
+Called when \fBtrack\fR is about to be played.
+\fBsubmitter\fR identifies the submitter or is a null pointer if
+the track was picked for random play.
 .PP
 .nf
 \fBvoid disorder_notify_scratch(const char *track,
@@ -215,10 +224,10 @@ submitter or is a null pointer if the track was picked for random play.
                              int seconds);
 .fi
 .IP
-Called when \fBtrack\fR is scratched by \fBscratcher\fR.  \fBsubmitter\fR
-identifies the submitter or is a null pointer if the track was picked for
-random play.  \fBseconds\fR is the number of seconds since the track started
-playing.
+Called when \fBtrack\fR is scratched by \fBscratcher\fR.
+\fBsubmitter\fR identifies the submitter or is a null pointer if
+the track was picked for random play.
+\fBseconds\fR is the number of seconds since the track started playing.
 .PP
 .nf
 \fBvoid disorder_notify_not_scratched(const char *track,
@@ -226,8 +235,9 @@ playing.
 .fi
 .IP
 Called when \fBtrack\fR completes without being scratched (an error might have
-occurred though).  \fBsubmitter\fR identifies the submitter or is a null
-pointer if the track was picked for random play.
+occurred though).
+\fBsubmitter\fR identifies the submitter or is a null pointer if the
+track was picked for random play.
 .PP
 .nf
 \fBvoid disorder_notify_queue(const char *track,
@@ -235,7 +245,8 @@ pointer if the track was picked for random play.
 .fi
 .IP
 Called when \fBtrack\fR is added to the queue by \fBsubmitter\fR
-(which is never a null pointer).  Not called for scratches.
+(which is never a null pointer).
+Not called for scratches.
 .PP
 .nf
 \fBvoid disorder_notify_queue_remove(const char *track,
@@ -276,8 +287,8 @@ chosen via the configuration file.
 \fBvoid disorder_scan(const char *root);
 .fi
 .IP
-Write a list of files below \fBroot\fR to standard output.  Each
-filename should be in the encoding defined for this root in the
+Write a list of files below \fBroot\fR to standard output.
+Each filename should be in the encoding defined for this root in the
 configuration file and should be terminated by character 0.
 .IP
 It is up to the plugin implementor whether they prefer to use stdio or
@@ -291,9 +302,9 @@ match them back up to the right collection to call
 \fBint disorder_check(const char *root, const char *path);
 .fi
 .IP
-Check whether file \fBpath\fR under \fBroot\fR still exists.  Should
-return 1 if it exists, 0 if it does not and -1 on error.  This is run
-in the main server process.
+Check whether file \fBpath\fR under \fBroot\fR still exists.
+Should return 1 if it exists, 0 if it does not and -1 on error.
+This is run in the main server process.
 .PP
 Both scan and recheck are executed inside a subprocess, so it will not
 break the server if they block for an extended period (though of
@@ -307,9 +318,10 @@ chosen via the configuration file.
 extern const unsigned long disorder_player_type;
 .fi
 .IP
-This defines the player type and capabilities.  It should consist of a
-single type value ORed with any number of capability values.  The
-following are known type values:
+This defines the player type and capabilities.
+It should consist of a single type value ORed with any number of
+capability values.
+The following are known type values:
 .RS
 .TP
 .B DISORDER_PLAYER_STANDALONE
@@ -336,8 +348,8 @@ Supports the pause and resume calls.
 .fi
 .IP
 Called before a track is played, if \fB_PREFORK\fR is set.
-\fBtrack\fR is the name of the track in UTF-8.  This function must
-never block, as it runs inside the main loop of the server.
+\fBtrack\fR is the name of the track in UTF-8.
+This function must never block, as it runs inside the main loop of the server.
 .IP
 The return value will be passed to the functions below as \fBdata\fR.
 On error, a null pointer should be returned.
@@ -347,8 +359,8 @@ On error, a null pointer should be returned.
 .fi
 .IP
 Called after a track has been completed, if \fB_PREFORK\fR is set, for
-instance to release the memory used by \fBdata\fR.  This function must
-never block, as it runs inside the main loop of the server.
+instance to release the memory used by \fBdata\fR.
+This function must never block, as it runs inside the main loop of the server.
 .PP
 .nf
 \fBvoid disorder_play_track(const char *const *parameters,
@@ -363,8 +375,9 @@ Play a track.
 \fBpath\fR is the path name as originally encoded in the filesystem.
 This is the value you should ultimately pass to \fBopen\fR(2).
 .IP
-\fBtrack\fR is the path name converted to UTF-8.  This value (possibly
-converted to some other encoding) should be used in any logs, etc.
+\fBtrack\fR is the path name converted to UTF-8.
+This value (possibly converted to some other encoding) should be used
+in any logs, etc.
 .IP
 If there is no meaningful path, or if the track is a scratch (where no
 filename encoding information is available), \fBpath\fR will be equal
@@ -377,16 +390,16 @@ This function is always called inside a fork, and it should not return
 until playing has finished.
 .IP
 DisOrder sends the subprocess a signal if the track is to be scratched
-(and when \fBdisorderd\fR is shut down).  By default this signal is
-\fBSIGKILL\fR but it can be reconfigured.
+(and when \fBdisorderd\fR is shut down).
+By default this signal is \fBSIGKILL\fR but it can be reconfigured.
 .PP
 .nf
 \fBint disorder_play_pause(long *playedp,
                         void *data);
 .fi
 .IP
-Pauses the current track, for players that support pausing.  This
-function must never block, as it runs inside the main loop of the
+Pauses the current track, for players that support pausing.
+This function must never block, as it runs inside the main loop of the
 server.
 .IP
 On success, should return 0 and set \fB*playedp\fR to the number of
@@ -399,33 +412,34 @@ On error, should return -1.
 \fBvoid disorder_play_resume(void *data);
 .fi
 .IP
-Resume playing the current track after a pause.  This function must
-never block, as it runs inside the main loop of the server.
+Resume playing the current track after a pause.
+This function must never block, as it runs inside the main loop of the server.
 .SH NOTES
 There is no special DisOrder library to link against; the symbols are
-exported by the executables themselves.  
+exported by the executables themselves.
 (You should NOT try to link against \fB-ldisorder\fR.)
 Plugins must be separately
 linked against any other libraries they require, even if the DisOrder
 executables are already linked against them.
 .PP
 The easiest approach is probably to develop the plugin inside the
-DisOrder tree; then you can just use DisOrder's build system.  This
-might also make it easier to submit patches if you write something of
+DisOrder tree; then you can just use DisOrder's build system.
+This might also make it easier to submit patches if you write something of
 general utility.
 .PP
 Failing that you can use Libtool, if you make sure to pass the
-\fB-module\fR option.  For current versions of DisOrder you only need
-the shared object itself, not the \fB.la\fR file.
+\fB-module\fR option.
+For current versions of DisOrder you only need the shared object
+itself, not the \fB.la\fR file.
 .PP
 If you know the right runes for your toolchain you could also build
 the modules more directly.
 .PP
 It is possible, up to a point, to implement several plugin interfaces
-from within a single shared object.  If you ever use any of the
-functions that are listed as only being available in server plugins,
-though, then you can only use the resulting shared object as a server
-plugin.
+from within a single shared object.
+If you ever use any of the functions that are listed as only being
+available in server plugins, though, then you can only use the
+resulting shared object as a server plugin.
 .SH "SEE ALSO"
 .BR disorderd (8),
 .BR disorder (1),

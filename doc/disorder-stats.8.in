@@ -24,8 +24,8 @@ disorder-stats \- DisOrder statistics
 .RI [ OPTIONS ]
 .SH DESCRIPTION
 .B disorder-stats
-reports server statistics.  It is used by the server and would not
-normally be invoked manually.
+reports server statistics.
+It is used by the server and would not normally be invoked manually.
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
@@ -35,10 +35,12 @@ Set the configuration file.
 Enable debugging.
 .TP
 .B --syslog
-Log to syslog.  This is the default if stderr is not a terminal.
+Log to syslog.
+This is the default if stderr is not a terminal.
 .TP
 .B --no-syslog
-Do not log to syslog.  This is the default if stderr is a terminal.
+Do not log to syslog.
+This is the default if stderr is a terminal.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.

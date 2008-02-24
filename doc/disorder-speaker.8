@@ -26,7 +26,8 @@ disorder-speaker \- DisOrder output process
 is used by
 .BR disorderd (8)
 to play digital audio with buffering and avoiding gaps between
-tracks.  It is not intended for direct invocation.
+tracks.
+It is not intended for direct invocation.
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
@@ -36,10 +37,12 @@ Set the configuration file.
 Enable debugging.
 .TP
 .B --syslog
-Log to syslog.  This is the default if stderr is not a terminal.
+Log to syslog.
+This is the default if stderr is not a terminal.
 .TP
 .B --no-syslog
-Do not log to syslog.  This is the default if stderr is a terminal.
+Do not log to syslog.
+This is the default if stderr is a terminal.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.

@@ -24,8 +24,9 @@ disorder-deadlock \- DisOrder deadlock manager
 .RI [ OPTIONS ]
 .SH DESCRIPTION
 .B disorder-deadlock
-is DisOrder's deadlock manager.  It is automatically started by the
-server and does not need to be invoked manually.
+is DisOrder's deadlock manager.
+It is automatically started by the server and does not need to
+be invoked manually.
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
@@ -35,10 +36,12 @@ Set the configuration file.
 Enable debugging.
 .TP
 .B --syslog
-Log to syslog.  This is the default if stderr is not a terminal.
+Log to syslog.
+This is the default if stderr is not a terminal.
 .TP
 .B --no-syslog
-Do not log to syslog.  This is the default if stderr is a terminal.
+Do not log to syslog.
+This is the default if stderr is a terminal.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.

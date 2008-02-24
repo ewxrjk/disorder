@@ -52,15 +52,18 @@ Use OSS to play sound.
 Use Core Audio to play sound.
 .TP
 .B --device \fIDEVICE\fR, \fB-D \fIDEVICE\fR
-Specifies the audio device to use.  The exact meaning of this is
-platform-dependent; on Linux it is the ALSA device name.
+Specifies the audio device to use.
+The exact meaning of this is platform-dependent; on Linux it is the
+ALSA device name.
 .TP
 .B --config \fIPATH\fR, \fB-C \fIPATH
-Set the configuration file.  The default is
+Set the configuration file.
+The default is
 .IR pkgconfdir/config .
 .TP
 .B --socket \fIPATH\fR, \fB-s \fIPATH
-Set the control socket.  Normally this would not be used manually.
+Set the control socket.
+Normally this would not be used manually.
 .TP
 .B --help\fR, \fB-h
 Display a usage message.
@@ -71,29 +74,33 @@ Display version number.
 You shouldn't need to use these options.
 .TP
 .B --min \fIFRAMES\fR, \fB-m \fIFRAMES\fR
-Specifies the buffer low watermark in frames.  If the number of frames falls
-below this value then playing will be stopped until the buffer fills up.
+Specifies the buffer low watermark in frames.
+If the number of frames falls below this value then playing will be
+stopped until the buffer fills up.
 .TP
 .B --buffer \fIFRAMES\fR, \fB-b \fIFRAMES\fR
-Specifies the buffer high watermark in frames.  Once there are this many frames
-in the buffer, playing will be (re-)started.
+Specifies the buffer high watermark in frames.
+Once there are this many frames in the buffer, playing will be (re-)started.
 .TP
 .B --max \fIFRAMES\fR, \fB-x \fIFRAMES\fR
-Specifies the maximum buffer size in frames.  If there are this many frames in
-the buffer then reading from the network socket will be suspended.  The default
-is four times the \fB--buffer\fR value.
+Specifies the maximum buffer size in frames.
+If there are this many frames in the buffer then reading from the
+network socket will be suspended.
+The default is four times the \fB--buffer\fR value.
 .TP
 .B --rcvbuf \fIBYTES\fR, \fB-R \fIBYTES\fR
-Specifies socket receive buffer size.  The default is 131072 (128Kbytes).  The
-buffer size will not be reduced below the operating system's default.
+Specifies socket receive buffer size.
+The default is 131072 (128Kbytes).
+The buffer size will not be reduced below the operating system's default.
 .SH "REMOTE CONTROL"
 The
 .B --socket
 option is used by Disobedience to control a background
 .B disorder-playrtp
-daemon.  The socket will be created as a UNIX domain stream socket.  When a
-connection is received a single line is read from it.  The following commands
-are known:
+daemon.
+The socket will be created as a UNIX domain stream socket.
+When a connection is received a single line is read from it.
+The following commands are known:
 .TP
 .B stop
 Causes
@@ -103,7 +110,8 @@ to terminate.
 .B query
 Causes the string "running" to be sent back.
 .PP
-Other commands are ignored.  After the first command the connection is closed.
+Other commands are ignored.
+After the first command the connection is closed.
 Only one connection at a time will be serviced.
 .PP
 This protocol is not guaranteed to be stable.

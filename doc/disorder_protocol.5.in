@@ -23,10 +23,11 @@ disorder_protocol \- DisOrder communication protocol
 The DisOrder client and server communicate via the protocol described
 in this man page.
 .PP
-The protocol is liable to change without notice.  You are recommended to check
-the implementation before believing this document.
+The protocol is liable to change without notice.
+You are recommended to check the implementation before believing this document.
 .SH "GENERAL SYNTAX"
-Everything is encoded using UTF-8.  See
+Everything is encoded using UTF-8.
+See
 .B "CHARACTER ENCODING"
 below for more detail on character encoding issues.
 .PP
@@ -41,19 +42,21 @@ lines, with any initial full stop doubled up, and are terminated by a line
 consisting of a full stop and a line feed.
 .SH COMMANDS
 Commands always have a command name as the first field of the line; responses
-always have a 3-digit response code as the first field.  See below for more
-details about this field.
+always have a 3-digit response code as the first field.
+See below for more details about this field.
 .PP
 All commands require the connection to have been already authenticated unless
-stated otherwise.  If not stated otherwise, the \fBread\fR right is sufficient
-to execute the command.
+stated otherwise.
+If not stated otherwise, the \fBread\fR right is sufficient to execute
+the command.
 .PP
 Neither commands nor responses have a body unless stated otherwise.
 .TP
 .B adduser \fIUSERNAME PASSWORD \fR[\fIRIGHTS\fR]
-Create a new user with the given username and password.  The new user's rights
-list can be specified; if it is not then the \fBdefault_rights\fR setting
-applies instead.  Requires the \fBadmin\fR right, and only works on local
+Create a new user with the given username and password.
+The new user's rights list can be specified; if it is not
+then the \fBdefault_rights\fR setting applies instead.
+Requires the \fBadmin\fR right, and only works on local
 connections.
 .TP
 .B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
@@ -61,49 +64,53 @@ List all the files and directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files and directories are returned.
 .TP
 .B confirm \fICONFIRMATION
-Confirm user registration.  \fICONFIRMATION\fR is as returned from
-\fBregister\fR below.  This command can be used without logging in.
+Confirm user registration.
+\fICONFIRMATION\fR is as returned from \fBregister\fR below.
+This command can be used without logging in.
 .TP
 .B cookie \fICOOKIE
-Log a user back in using a cookie created with \fBmake-cookie\fR.  The response
-contains the username.
+Log a user back in using a cookie created with \fBmake-cookie\fR.
+The response contains the username.
 .TP
 .B deluser \fIUSERNAME
-Delete the named user.  Requires the \fBadmin\fR right, and only works on
-local connections.
+Delete the named user.
+Requires the \fBadmin\fR right, and only works on local connections.
 .TP
 .B dirs \fIDIRECTORY\fR [\fIREGEXP\fR]
 List all the directories in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching directories are returned.
 .TP
 .B disable \fR[\fBnow\fR]
-Disable further playing.  If the optional \fBnow\fR argument is present then
-the current track is stopped.  Requires the \fBglobal prefs\fR right.
+Disable further playing.
+If the optional \fBnow\fR argument is present then the current track
+is stopped.
+Requires the \fBglobal prefs\fR right.
 .TP
 .B edituser \fIUSERNAME PROPERTY VALUE
-Set a user property.  With the \fBadmin\fR right any username and property may
-be specified.  Otherwise the \fBuserinfo\fR right is required and only the
+Set a user property.
+With the \fBadmin\fR right any username and property may be specified.
+Otherwise the \fBuserinfo\fR right is required and only the
 \fBemail\fR and \fBpassword\fR properties may be set.
 .TP
 .B enable
-Re-enable further playing, and is the opposite of \fBdisable\fR.  Requires the
-\fBglobal prefs\fR right.
+Re-enable further playing, and is the opposite of \fBdisable\fR.
+Requires the \fBglobal prefs\fR right.
 .TP
 .B enabled
-Report whether playing is enabled.  The second field of the response line will
-be \fByes\fR or \fBno\fR.
+Report whether playing is enabled.
+The second field of the response line will be \fByes\fR or \fBno\fR.
 .TP
 .B exists \fITRACK\fR
-Report whether the named track exists.  The second field of the response line
-will be \fByes\fR or \fBno\fR.
+Report whether the named track exists.
+The second field of the response line will be \fByes\fR or \fBno\fR.
 .TP
 .B files \fIDIRECTORY\fR [\fIREGEXP\fR]
 List all the files in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files are returned.
 .TP
 .B get \fITRACK\fR \fIPREF\fR
-Getsa preference value.  On success the second field of the response line will
-have the value.
+Getsa preference value.
+On success the second field of the response line will have the value.
 .IP
 If the track or preference do not exist then the response code is 555.
 .TP
@@ -113,13 +120,14 @@ Get a global preference.
 If the preference does not exist then the response code is 555.
 .TP
 .B length \fITRACK\fR
-Get the length of the track in seconds.  On success the second field of the
-response line will have the value.
+Get the length of the track in seconds.
+On success the second field of the response line will have the value.
 .TP
 .B log
-Send event log messages in a response body.  The command will never terminate.
-Any further data sent to the server will be discarded (explicitly; i.e. it will
-not accumulate in a buffer somewhere).
+Send event log messages in a response body.
+The command will never terminate.
+Any further data sent to the server will be discarded (explicitly;
+i.e. it will not accumulate in a buffer somewhere).
 .IP
 See \fBEVENT LOG\fR below for more details.
 .TP
@@ -128,18 +136,20 @@ Returns an opaque string that can be used by the \fBcookie\fR command to log
 this user back in on another connection (until the cookie expires).
 .TP
 .B move \fITRACK\fR \fIDELTA\fR
-Move a track in the queue.  The track may be identified by ID (preferred) or
-name (which might cause confusion if it's there twice).  \fIDELTA\fR should be
-an negative or positive integer and indicates how many steps towards the head
-of the queue the track should be moved.
+Move a track in the queue.
+The track may be identified by ID (preferred) or name (which might cause
+confusion if it's there twice).
+\fIDELTA\fR should be an negative or positive integer and indicates how
+many steps towards the head of the queue the track should be moved.
 .IP
 Requires one of the \fBmove mine\fR, \fBmove random\fR or \fBmove any\fR rights
 depending on how the track came to be added to the queue.
 .TP
 .B moveafter \fITARGET\fR \fIID\fR ...
-Move all the tracks in the \fIID\fR list after ID \fITARGET\fR.  If
-\fITARGET\fR is the empty string then the listed tracks are put at the head of
-the queue.  If \fITARGET\fR is listed in the ID list then the tracks are moved
+Move all the tracks in the \fIID\fR list after ID \fITARGET\fR.
+If \fITARGET\fR is the empty string then the listed tracks are put
+at the head of the queue.
+If \fITARGET\fR is listed in the ID list then the tracks are moved
 to just after the first non-listed track before it, or to the head if there is
 no such track.
 .IP
@@ -147,18 +157,20 @@ Requires one of the \fBmove mine\fR, \fBmove random\fR or \fBmove any\fR rights
 depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
-Send the most recently added \fIMAX\fR tracks in a response body.  If the
-argument is ommitted, the \fBnew_max\fR most recent tracks are listed (see
-\fBdisorder_config\fR(5)).
+Send the most recently added \fIMAX\fR tracks in a response body.
+If the argument is ommitted, the \fBnew_max\fR most recent tracks are
+listed (see \fBdisorder_config\fR(5)).
 .TP
 .B nop
-Do nothing.  Used by
+Do nothing.
+Used by
 .BR disobedience (1)
-as a keepalive measure.  This command does not require authentication.
+as a keepalive measure.
+This command does not require authentication.
 .TP
 .B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
-Get a track name part.  Returns an empty string if a name part cannot be
-constructed.
+Get a track name part.
+Returns an empty string if a name part cannot be constructed.
 .IP
 .I CONTEXT
 is one of
@@ -174,10 +186,12 @@ or
 .BR title .
 .TP
 .B pause
-Pause the current track.  Requires the \fBpause\fR right.
+Pause the current track.
+Requires the \fBpause\fR right.
 .TP
 .B play \fITRACK\fR
-Add a track to the queue.  The response contains the queue ID of the track.
+Add a track to the queue.
+The response contains the queue ID of the track.
 Requires the \fBplay\fR right.
 .TP
 .B playing
@@ -195,74 +209,82 @@ name of the pref and the second the value.
 .TP
 .B queue
 Send back the current queue in a response body, one track to a line, the track
-at the head of the queue (i.e. next to be be played) first.  See below for the
-track information syntax.
+at the head of the queue (i.e. next to be be played) first.
+See below for the track information syntax.
 .TP
 .B random-disable
-Disable random play (but don't stop the current track).  Requires the \fBglobal
-prefs\fR right.
+Disable random play (but don't stop the current track).
+Requires the \fBglobal prefs\fR right.
 .TP
 .B random-enable
-Enable random play.  Requires the \fBglobal prefs\fR right.
+Enable random play.
+Requires the \fBglobal prefs\fR right.
 .TP
 .B random-enabled
-Report whether random play is enabled.  The second field of the response line
-will be \fByes\fR or \fBno\fR.
+Report whether random play is enabled.
+The second field of the response line will be \fByes\fR or \fBno\fR.
 .TP
 .B recent
 Send back the current recently-played list in a response body, one track to a
-line, the track most recently played last.  See below for the track
-information syntax.
+line, the track most recently played last.
+See below for the track information syntax.
 .TP
 .B reconfigure
-Request that DisOrder reconfigure itself.   Requires the \fBadmin\fR right.
-command.
+Request that DisOrder reconfigure itself.
+Requires the \fBadmin\fR right.
 .TP
 .B register \fIUSER PASSWORD EMAIL
-Register a new user.  Requires the \fBregister\fR right.  The result contains a
-confirmation string; the user will be be able to log in until this has been
-presented back to the server via the \fBconfirm\fR command.
+Register a new user.
+Requires the \fBregister\fR right.
+The result contains a confirmation string; the user will be be able
+to log in until this has been presented back to the server via the
+\fBconfirm\fR command.
 .TP
 .B reminder \fIUSER\fR
-Send a password reminder to \fIUSER\fR.  If the user has no valid email
-address, or no password, or a reminder has been sent too recently, then no
-reminder will be sent.
+Send a password reminder to \fIUSER\fR.
+If the user has no valid email address, or no password, or a
+reminder has been sent too recently, then no reminder will be sent.
 .TP
 .B remove \fIID\fR
-Remove the track identified by \fIID\fR.  Requires one of the \fBremove
-mine\fR, \fBremove random\fR or \fBremove any\fR rights depending on how the
+Remove the track identified by \fIID\fR.
+Requires one of the \fBremove mine\fR, \fBremove random\fR or
+\fBremove any\fR rights depending on how the
 track came to be added to the queue.
 .TP
 .B rescan
-Rescan all roots for new or obsolete tracks.   Requires the \fBrescan\fR right.
+Rescan all roots for new or obsolete tracks.
+Requires the \fBrescan\fR right.
 .TP
 .B resolve \fITRACK\fR
 Resolve a track name, i.e. if this is an alias then return the real track name.
 .TP
 .B resume
-Resume the current track after a \fBpause\fR command.  Requires the \fBpause\fR
-right.
+Resume the current track after a \fBpause\fR command.
+Requires the \fBpause\fR right.
 .TP
 .B revoke \fBcookie\fR
-Revoke a cookie previously created with \fBmake-cookie\fR.  It will not be
-possible to use this cookie in the future.
+Revoke a cookie previously created with \fBmake-cookie\fR.
+It will not be possible to use this cookie in the future.
 .TP
 .B rtp-address
 Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
-PORT\fR.  This command does not require authentication.
+PORT\fR.
+This command does not require authentication.
 .TP
 .B scratch \fR[\fIID\fR]
 Remove the track identified by \fIID\fR, or the currently playing track if no
-\fIID\fR is specified.  Requires one of the \fBscratch mine\fR, \fBscratch
-random\fR or \fBscratch any\fR rights depending on how the track came to be
+\fIID\fR is specified.
+Requires one of the \fBscratch mine\fR, \fBscratch random\fR or
+\fBscratch any\fR rights depending on how the track came to be
 added to the queue.
 .TP
 .B search \fITERMS\fR
-Search for tracks matching the search terms.  The results are put in a response
-body, one to a line.
+Search for tracks matching the search terms.
+The results are put in a response body, one to a line.
 .IP
 The search string is split in the usual way, with quoting supported, into a
-list of terms.  Only tracks matching all terms are included in the results.
+list of terms.
+Only tracks matching all terms are included in the results.
 .IP
 Any terms of the form \fBtag:\fITAG\fR limits the search to tracks with that
 tag.
@@ -274,10 +296,12 @@ Spaces in terms don't currently make sense, but may one day be interpreted to
 allow searching for phrases.
 .TP
 .B \fBset\fR \fITRACK\fR \fIPREF\fR \fIVALUE\fR
-Set a preference.  Requires the \fBprefs\fR right.
+Set a preference.
+Requires the \fBprefs\fR right.
 .TP
 .B set-global \fIKEY\fR \fIVALUE\fR
-Set a global preference.  Requires the \fBglobal prefs\fR right.
+Set a global preference.
+Requires the \fBglobal prefs\fR right.
 .TP
 .B stats
 Send server statistics in plain text in a response body.
@@ -286,13 +310,16 @@ Send server statistics in plain text in a response body.
 Send the list of currently known tags in a response body.
 .TP
 .B \fBunset\fR \fITRACK\fR \fIPREF\fR
-Unset a preference.  Requires the \fBprefs\fR right.
+Unset a preference.
+Requires the \fBprefs\fR right.
 .TP
 .B \fBunset-global\fR \fIKEY\fR
-Unset a global preference.  Requires the \fBglobal prefs\fR right.
+Unset a global preference.
+Requires the \fBglobal prefs\fR right.
 .TP
 .B user \fIUSER\fR \fIRESPONSE\fR
-Authenticate as \fIUSER\fR.  See
+Authenticate as \fIUSER\fR.
+See
 .B AUTHENTICATION
 below.
 .TP
@@ -308,11 +335,12 @@ Get or set the volume.
 With zero parameters just gets the volume and reports the left and right sides
 as the 2nd and 3rd fields of the response.
 .IP
-With one parameter sets both sides to the same value.  With two parameters sets
-each side independently.  Setting the volume requires the \fBvolume\fR right.
+With one parameter sets both sides to the same value.
+With two parameters sets each side independently.
+Setting the volume requires the \fBvolume\fR right.
 .SH RESPONSES
-Responses are three-digit codes.  The first digit distinguishes errors from
-succesful responses:
+Responses are three-digit codes.
+The first digit distinguishes errors from succesful responses:
 .TP
 .B 2
 Operation succeeded.
@@ -323,8 +351,8 @@ Operation failed.
 The second digit breaks down the origin of the response:
 .TP
 .B 0
-Generic responses not specific to the handling of the command.  Mostly this is
-parse errors.
+Generic responses not specific to the handling of the command.
+Mostly this is parse errors.
 .TP
 .B 1
 51x errors indicate that the user had insufficient rights for the command.
@@ -350,12 +378,12 @@ Text part is a potentially variable result.
 Text part is just commentary; a dot-stuffed body follows.
 .TP
 .B 4
-Text part is just commentary; an indefinite dot-stuffed body follows.  (Used
-for \fBlog\fR.)
+Text part is just commentary; an indefinite dot-stuffed body follows.
+(Used for \fBlog\fR.)
 .TP
 .B 5
-Used with "normal" errors, for instance a preference not being found.  The text
-part is commentary.
+Used with "normal" errors, for instance a preference not being found.
+The text part is commentary.
 .TP
 .B 9
 The text part is just commentary (but would normally be a response for this
@@ -365,20 +393,23 @@ Result strings (not bodies) intended for machine parsing (i.e. xx1 and xx2
 responses) are quoted.
 .SH AUTHENTICATION
 When a connection is made the server sends a \fB231\fR response before any
-command is received.  This contains a protocol generation, an algorithm name
-and a challenge encoded in hex, all separated by whitespace.
+command is received.
+This contains a protocol generation, an algorithm name and a
+challenge encoded in hex, all separated by whitespace.
 .PP
 The current protocol generation is \fB2\fR.
 .PP
 The possible algorithms are (currently) \fBsha1\fR, \fBsha256\fR, \fBsha384\fR
-and \fBsha512\fR.  \fBSHA1\fR etc work as synonyms.
+and \fBsha512\fR.
+\fBSHA1\fR etc work as synonyms.
 .PP
 The \fBuser\fR response consists of the selected hash of the user's password
 concatenated with the challenge, encoded in hex.
 .SH "TRACK INFORMATION"
 Track information is encoded in a line (i.e. using the usual line syntax) as
-pairs of fields.  The first is a name, the second a value.  The names have the
-following meanings:
+pairs of fields.
+The first is a name, the second a value.
+The names have the following meanings:
 .TP 12
 .B expected
 The time the track is expected to be played at.
@@ -393,7 +424,8 @@ The time the track was played at.
 The user that scratched the track.
 .TP
 .B state
-The current track state.  Valid states are:
+The current track state.
+Valid states are:
 .RS
 .TP 12
 .B failed
@@ -436,8 +468,8 @@ The wait status of the player in decimal.
 Times are decimal integers using the server's \fBtime_t\fR.
 .PP
 For file listings, the regexp applies to the basename of the returned file, not
-the whole filename, and letter case is ignored.  \fBpcrepattern\fR(3) describes
-the regexp syntax.
+the whole filename, and letter case is ignored.
+\fBpcrepattern\fR(3) describes the regexp syntax.
 .PP
 Filenames are in UTF-8 even if the collection they come from uses some other
 encoding - if you want to access the real file (in such cases as the filenames
@@ -445,8 +477,9 @@ actually correspond to a real file) you'll have to convert to whatever the
 right encoding is.
 .SH "EVENT LOG"
 The event log consists of lines starting with a hexadecimal timestamp and a
-keyword followed by (optionally) parameters.  The parameters are quoted in the
-usual DisOrder way.  Currently the following keywords are used:
+keyword followed by (optionally) parameters.
+The parameters are quoted in the usual DisOrder way.
+Currently the following keywords are used:
 .TP
 .B completed \fITRACK\fR
 Completed playing \fITRACK\fR
@@ -455,8 +488,8 @@ Completed playing \fITRACK\fR
 Completed playing \fITRACK\fR with an error status
 .TP
 .B moved \fIUSER\fR
-User \fIUSER\fR moved some track(s).  Further details aren't included any
-more.
+User \fIUSER\fR moved some track(s).
+Further details aren't included any more.
 .TP
 .B playing \fITRACK\fR [\fIUSER\fR]
 Started playing \fITRACK\fR.
@@ -471,8 +504,9 @@ Added \fIID\fR to the recently played list.
 Removed \fIID\fR from the recently played list.
 .TP
 .B removed \fIID\fR [\fIUSER\fR]
-Queue entry \fIID\fR was removed.  This is used both for explicit removal (when
-\fIUSER\fR is present) and when playing a track (when it is absent).
+Queue entry \fIID\fR was removed.
+This is used both for explicit removal (when \fIUSER\fR is present)
+and when playing a track (when it is absent).
 .TP
 .B rescanned
 A rescan completed.
@@ -481,7 +515,8 @@ A rescan completed.
 \fITRACK\fR was scratched by \fIUSER\fR.
 .TP
 .B state \fIKEYWORD\fR
-Some state change occurred.  The current set of keywords is:
+Some state change occurred.
+The current set of keywords is:
 .RS
 .TP
 .B completed
@@ -526,44 +561,50 @@ is as defined in
 .B "TRACK INFORMATION"
 above.
 .SH "CHARACTER ENCODING"
-All data sent by both server and client is encoded using UTF-8.  Moreover it
-must be valid UTF-8, i.e. non-minimal sequences are not permitted, nor are
-surrogates, nor are code points outside the Unicode code space.
+All data sent by both server and client is encoded using UTF-8.
+Moreover it must be valid UTF-8, i.e. non-minimal sequences are not
+permitted, nor are surrogates, nor are code points outside the
+Unicode code space.
 .PP
 There are no particular normalization requirements on either side of the
-protocol.  The server currently converts internally to NFC, the client must
+protocol.
+The server currently converts internally to NFC, the client must
 normalize the responses returned if it needs some normalized form for further
 processing.
 .PP
 The various characters which divide up lines may not be followed by combining
-characters.  For instance all of the following are prohibited:
+characters.
+For instance all of the following are prohibited:
 .TP
 .B o
-LINE FEED followed by a combining character.  For example the sequence
-LINE FEED, COMBINING GRAVE ACCENT is never permitted.
+LINE FEED followed by a combining character.
+For example the sequence LINE FEED, COMBINING GRAVE ACCENT is never permitted.
 .TP
 .B o
 APOSTROPHE or QUOTATION MARK followed by a combining character when used to
-delimit fields.  For instance a line starting APOSTROPHE, COMBINING CEDILLA
-is prohibited.
+delimit fields.
+For instance a line starting APOSTROPHE, COMBINING CEDILLA is prohibited.
 .IP
 Note that such sequences are not prohibited when the quote character cannot be
-interpreted as a field delimiter.  For instance APOSTROPHE, REVERSE SOLIDUS,
-APOSTROPHE, COMBINING CEDILLA, APOSTROPHE would be permitted.
+interpreted as a field delimiter.
+For instance APOSTROPHE, REVERSE SOLIDUS, APOSTROPHE, COMBINING CEDILLA,
+APOSTROPHE would be permitted.
 .TP
 .B o
 REVERSE SOLIDUS (BACKSLASH) followed by a combining character in a quoted
-string when it is the first character of an escape sequence.  For instance a
-line starting APOSTROPHE, REVERSE SOLIDUS, COMBINING TILDE is prohibited.
+string when it is the first character of an escape sequence.
+For instance a line starting APOSTROPHE, REVERSE SOLIDUS, COMBINING TILDE
+is prohibited.
 .IP
 As above such sequences are not prohibited when the character is not being used
-to start an escape sequence.  For instance APOSTROPHE, REVERSE SOLIDUS,
-REVERSE SOLIDS, COMBINING TILDER, APOSTROPHE is permitted.
+to start an escape sequence.
+For instance APOSTROPHE, REVERSE SOLIDUS, REVERSE SOLIDS, COMBINING TILDE,
+APOSTROPHE is permitted.
 .TP
 .B o
 Any of the field-splitting whitespace characters followed by a combining
-character when not part of a quoted field.  For instance a line starting COLON,
-SPACE, COMBINING CANDRABINDU is prohibited.
+character when not part of a quoted field.
+For instance a line starting COLON, SPACE, COMBINING CANDRABINDU is prohibited.
 .IP
 As above non-delimiter uses are fine.
 .TP
@@ -572,12 +613,14 @@ The FULL STOP characters used to quote or delimit a body.
 .PP
 Furthermore none of these characters are permitted to appear in the context of
 a canonical decomposition (i.e. they must still be present when converted to
-NFC).  In practice however this is not an issue in Unicode 5.0.
+NFC).
+In practice however this is not an issue in Unicode 5.0.
 .PP
 These rules are consistent with the observation that the split() function is
-essentially a naive ASCII parser.  The implication is not that these sequences
-never actually appear in the protocol, merely that the server is not required
-to honor them in any useful way nor be consistent between versions: in current
+essentially a naive ASCII parser.
+The implication is not that these sequences never actually appear in
+the protocol, merely that the server is not required to honor them in
+any useful way nor be consistent between versions: in current
 versions the result will be lines and fields that start with combining
 characters and are not necessarily split where you expect, but future versions
 may remove them, reject them or ignore some or all of the delimiters that have

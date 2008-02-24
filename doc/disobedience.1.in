@@ -41,7 +41,8 @@ This has the following options:
 Select all tracks in whichever of the Queue or Recent tabs are showing.
 .TP
 .B Properties
-Edit the details of the selected tracks.  See
+Edit the details of the selected tracks.
+See
 .B "Properties Window"
 below.
 .SS "Control Menu"
@@ -54,11 +55,12 @@ Interrupts the currently playing track.
 Pause and resume the current track.
 .TP
 .B "Random play"
-Enable and disable random play.  Does not take effect until the currently
-playing track finishes.
+Enable and disable random play.
+Does not take effect until the currently playing track finishes.
 .TP
 .B "Network player"
-Enables or disables network play.  See
+Enables or disables network play.
+See
 .B "NETWORK PLAY"
 below.
 .SS "Help Menu"
@@ -74,42 +76,48 @@ The scratch button, a red cross, can be used to interrupt the currently playing
 track.
 .TP
 .B "Random play button"
-The random play button can be used to enable and disable random play.  It does
-not take effect until the currently playing track finishes.
+The random play button can be used to enable and disable random play.
+It does not take effect until the currently playing track finishes.
 .TP
 .B "Play button"
-The play button controls whether tracks will be played at all.  As above it
-does not take effect until the currently playing track finishes.
+The play button controls whether tracks will be played at all.
+As above it does not take effect until the currently playing track finishes.
 .TP
 .B "Network play button"
-The network play buttons enables or disables network play.  See
+The network play buttons enables or disables network play.
+See
 .B "NETWORK PLAY"
 below.
 .TP
 .B "Volume slider"
 The volume slider indicates the current volume level and can be used to adjust
-it.  0 is silent and 10 is maximum volume.
+it.
+0 is silent and 10 is maximum volume.
 .TP
 .B "Balance slider"
 The balance slider indicates the current balance and can be used to adjust it.
 -1 means only the left speaker, 0 means both speakers at equal volume and +1
 means the only the right speaker.
 .SS "Queue Tab"
-This displays the currently playing track and the queue.  The currently playing
-track is at the top and has a green background.  Queued tracks appear below it
-and have alternating red and white backgrounds.
+This displays the currently playing track and the queue.
+The currently playing track is at the top and has a green background.
+Queued tracks appear below it and have alternating red and white backgrounds.
 .PP
-The left button can be use to select and deselect tracks.  On its own it just
-selects the pointed track and deselects everything else.  With CTRL it flips
-the state of the pointed track without affecting anything else.  With SHIFT it
-selects every track from the last click to the current position and deselects
-everything else.  With both CTRL and SHIFT it selects everything from the last
-click to the current position without deselecting anything.
+The left button can be use to select and deselect tracks.
+On its own it just selects the pointed track and deselects everything else.
+With CTRL it flips the state of the pointed track without affecting anything
+else.
+With SHIFT it selects every track from the last click to the current position
+and deselects everything else.
+With both CTRL and SHIFT it selects everything from the last click to the
+current position without deselecting anything.
 .PP
-The right button pops up a menu.  This has the following options:
+The right button pops up a menu.
+This has the following options:
 .TP
 .B Properties
-Edit the details of the selected tracks.  See
+Edit the details of the selected tracks.
+See
 .B "Properties Window"
 below.
 .TP
@@ -117,19 +125,21 @@ below.
 Select all tracks.
 .TP
 .B Scratch
-Interrupt the currently playing track.  (Note that this appears even if you
-right click over a queued track rather than the currently playing track.)
+Interrupt the currently playing track.
+(Note that this appears even if you right click over a queued track rather
+than the currently playing track.)
 .TP
 .B Remove
 Remove the selected tracks from the queue.
 .SS "Recent Tab"
 This displays recently played tracks, the most recent at the top.
 .PP
-The left button functions as above.  The right button pops up a menu with the
-following options:
+The left button functions as above.
+The right button pops up a menu with the following options:
 .TP
 .B Properties
-Edit the details of the selected tracks.  See
+Edit the details of the selected tracks.
+See
 .B "Properties Window"
 below.
 .TP
@@ -138,24 +148,26 @@ Select all tracks.
 .SS "Choose Tab"
 This displays all the tracks known to the server in a tree structure.
 .PP
-Directories are represented with an arrow to their left.  This can be clicked
-to reveal or hide the contents of the directory.  The top level "directories"
-break up tracks by their first letter.
+Directories are represented with an arrow to their left.
+This can be clicked to reveal or hide the contents of the directory.
+The top level "directories" break up tracks by their first letter.
 .PP
-Playable files are represented by their name.  If they are playing or in the
-queue then a notes icon appears next to them.
+Playable files are represented by their name.
+If they are playing or in the queue then a notes icon appears next to them.
 .PP
-Left clicking on a file will select it.  As with the queue tab you can use
-SHIFT and CTRL to select multiple files.
+Left clicking on a file will select it.
+As with the queue tab you can use SHIFT and CTRL to select multiple files.
 .PP
-The text box at the top is a search form.  If you enter search terms here then
-tracks containing all those words will be highlighted.  You can also
-limit the results to tracks with particular tags, by including \fBtag:\fITAG\fR
-for each tag.
+The text box at the top is a search form.
+If you enter search terms here then tracks containing all those words will be
+highlighted.
+You can also limit the results to tracks with particular tags, by including
+\fBtag:\fITAG\fR for each tag.
 .PP
-To start a new search just edit the contents of the search box.  The cancel
-button to its right clears the current search.  The up and down arrows will
-scroll the window to make the previous or next search result visible.
+To start a new search just edit the contents of the search box.
+The cancel button to its right clears the current search.
+The up and down arrows will scroll the window to make the previous or next
+search result visible.
 .PP
 Right clicking over a track will pop up a menu with the following options:
 .TP
@@ -163,7 +175,8 @@ Right clicking over a track will pop up a menu with the following options:
 Play selected tracks.
 .TP
 .B Properties
-Edit properties of selected tracks.  See
+Edit properties of selected tracks.
+See
 .B "Properties Window"
 below.
 .PP
@@ -183,16 +196,17 @@ Select all the tracks in the directory (and deselect everything else).
 Note that these options do not apply recursively - only the tracks in the
 relevant directory are affected, not those in its subdirectories.
 .SS "Added Tab"
-This displays a list of tracks recently added to the server's database.  The
-most recently added track is at the top.
+This displays a list of tracks recently added to the server's database.
+The most recently added track is at the top.
 .PP
-Left clicking a track will select it.  CTRL and SHIFT work as above to select
-muliple files.
+Left clicking a track will select it.
+CTRL and SHIFT work as above to select muliple files.
 .PP
 Right clicking over a track will pop up a menu with the following options:
 .TP
 .B "Track properties"
-Edit properties of selected tracks.  See
+Edit properties of selected tracks.
+See
 .B "Properties Window"
 below.
 .TP
@@ -203,7 +217,8 @@ Play selected tracks.
 Select all tracks.
 .SS "Login Details Window"
 The login details window allows you to edit the connection details and
-authorization information used by Disobedience.  It has four text entry fields:
+authorization information used by Disobedience.
+It has four text entry fields:
 .TP
 .B Hostname
 The host to connect to.
@@ -215,14 +230,16 @@ The service name or port number to connect to.
 The user name to log in as.
 .TP
 .B Password
-The password to use when logging in.  Note that this is NOT your login password
-but is your password to the DisOrder server.
+The password to use when logging in.
+Note that this is NOT your login password but is your password to the
+DisOrder server.
 .PP
 It has three buttons:
 .TP
 .B Login
 This button attempts to (re-)connect to the server with the currently displayed
-settings.  The settings are not saved.
+settings.
+The settings are not saved.
 .TP
 .B Save
 This button saves the current settings in 
@@ -237,17 +254,18 @@ edited.
 The Artist, Album and Title fields determine how the tracks appear in
 the queue and recently played tabs.
 .PP
-The Tags field determine which tags apply to the track.  Tags are separated by
-commas and can contain any printing characters except comma.
+The Tags field determine which tags apply to the track.
+Tags are separated by commas and can contain any printing characters except
+comma.
 .PP
 The Random checkbox determines whether the track will be picked at random.
 Random play is enabled for every track by default, but it can be turned off
 here.
 .PP
 The double-headed arrow to the right of each preference will propagate its
-value to all the other tracks in the window.  For instance, this can be used to
-efficiently correct the artist or album fields, or bulk-disable random play for
-many tracks.
+value to all the other tracks in the window.
+For instance, this can be used to efficiently correct the artist or album
+fields, or bulk-disable random play for many tracks.
 .PP
 Press "OK" to confirm all changes and close the window, "Apply" to confirm
 changes but keep the window open and "Cancel" to close the window and discard
@@ -265,7 +283,8 @@ Quit.
 .SH "NETWORK PLAY"
 Network play uses a background
 .BR disorder-playrtp (1)
-process.  If you quit Disobedience the player will continue playing and can be
+process.
+If you quit Disobedience the player will continue playing and can be
 disabled from a later run of Disobedience.
 .PP
 The player will log to
@@ -277,7 +296,8 @@ You can stop it without running Disobedience by the command
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
-Set the configuration file.  The default is
+Set the configuration file.
+The default is
 .IR pkgconfdir/config .
 .TP
 .B --debug\fR, \fB-d
@@ -289,8 +309,9 @@ Display a usage message.
 .B --version\fR, \fB-V
 Display version number.
 .SS "GTK+ Options"
-Additional options are supported by the GTK+ library.  Refer to GTK+
-documentation for further information.  Under X11 they include:
+Additional options are supported by the GTK+ library.
+Refer to GTK+ documentation for further information.
+Under X11 they include:
 .TP
 .B --display \fIDISPLAY\fR
 The X display to use.
@@ -308,21 +329,23 @@ on the same host as the server then no additional configuration should be
 required.
 .PP
 If it is running on a different host then the easiest way to set it up is to
-use the login details window in Disobedience.  Enter the connection details,
-use Login to connect to the server, and then use Save to store them for future
-sessions.
+use the login details window in Disobedience.
+Enter the connection details, use Login to connect to the server, and then
+use Save to store them for future sessions.
 .PP
 The other clients read their configuration from the same location so after
 setting up with Disobedience, tools such as
 .BR disorder (1)
 should work as well.
 .SH BUGS
-Disobedience is newly introduced with DisOrder 2.0.  There are bound to be
-bugs.  Please send feedback.
+Disobedience is newly introduced with DisOrder 2.0.
+There are bound to be bugs.
+Please send feedback.
 .PP
 There is no particular provision for multiple users of the same computer
-sharing a single \fBdisorder-playrtp\fR process.  This shouldn't be too much of
-a problem in practice but something could perhaps be done given demand.
+sharing a single \fBdisorder-playrtp\fR process.
+This shouldn't be too much of a problem in practice but something could
+perhaps be done given demand.
 .SH FILES
 .TP
 .I ~/.disorder/HOSTNAME-rtp

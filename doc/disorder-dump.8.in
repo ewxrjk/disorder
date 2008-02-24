@@ -34,30 +34,32 @@ is used to dump and restore preferences data.
 .SH OPTIONS
 .TP
 .B --dump
-Write preferences data to \fIPATH\fR.  This can safely be used whether
-or not the server is running.
+Write preferences data to \fIPATH\fR.
+This can safely be used whether or not the server is running.
 .TP
 .B --undump
 Read preferences data from \fIPATH\fR, replacing (unrecoverably) the
-current settings.  This should normally only be done while the server
-is not running.
+current settings.
+This should normally only be done while the server is not running.
 .IP
 If the server is running then it may hang while the undump completes.
 .TP
 .B --recover
-Perform database recovery at startup.  The server should not be
-running if this option is used.
+Perform database recovery at startup.
+The server should not be running if this option is used.
 .TP
 .B --recompute-aliases
-Recompute aliases without dumping or undumping the databases.  Under
-normal circumstances this is never necessary.
+Recompute aliases without dumping or undumping the databases.
+Under normal circumstances this is never necessary.
 .TP
 .B --remove-pathless
 Remove tracks with no associated path when undumping or when
-recomputing aliases.  In normal use such tracks are all aliases.
+recomputing aliases.
+In normal use such tracks are all aliases.
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
-Set the configuration file.  The default is
+Set the configuration file.
+The default is
 .IR /etc/disorder/config .
 .TP
 .B --debug\fR
@@ -76,11 +78,11 @@ Taking a backup of the non-regeneratable parts of DisOrder's databases.
 .TP
 .B .
 Indoctrinating one DisOrder server with the preference values of
-another.  
+another.
 .PP
 The output file is versioned, so versions produced from a future
-version of DisOrder may be rejected by \fB--undump\fR.  It has an end
-marker so truncated inputs will also be rejected.
+version of DisOrder may be rejected by \fB--undump\fR.
+It has an end marker so truncated inputs will also be rejected.
 .PP
 The input or output file must be a regular file, as it may be rewound
 and re-read or re-written multiple times.
@@ -89,21 +91,22 @@ The dump or undump operation is carried out inside a single
 transaction, so it should seem atomic from the point of view of
 anything else accessing the databases.
 .PP
-The server performs normal database recovery on startup.  However if
-the database needs normal recovery before an undump can succeed and
+The server performs normal database recovery on startup.
+However if the database needs normal recovery before an undump can succeed and
 you don't want to start the server for some reason then the
 .B --recover
-operation is available for this purpose.  No other process should be
-accessing the database at the time.
+operation is available for this purpose.
+No other process should be accessing the database at the time.
 .PP
 DisOrder does not currently support catastrophic recovery.
 .PP
-This program requires write access to DisOrder's databases.  Ideally
-therefore it should be run as the same user as the server or as root.
+This program requires write access to DisOrder's databases.
+Ideally therefore it should be run as the same user as the server or as root.
 .SH FILES
 .TP
 .I pkgconfdir/config
-Global configuration file.  See \fBdisorder_config\fR(5).
+Global configuration file.
+See \fBdisorder_config\fR(5).
 .SH "SEE ALSO"
 \fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorderd\fR(8)
 .\" Local Variables:

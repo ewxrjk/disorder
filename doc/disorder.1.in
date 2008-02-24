@@ -32,13 +32,14 @@ state, etc, and by an administrator to shutdown or reconfigure the
 daemon.
 .PP
 If no commands are specified then \fBdisorder\fR connects to the
-daemon and then immediately disconnects.  This can be used to test
-whether the daemon is running.  Otherwise, it executes the commands
-specified.
+daemon and then immediately disconnects.
+This can be used to test whether the daemon is running.
+Otherwise, it executes the commands specified.
 .SH OPTIONS
 .TP
 .B --config \fIPATH\fR, \fB-c \fIPATH
-Set the configuration file.  The default is
+Set the configuration file.
+The default is
 .IR pkgconfdir/config .
 .TP
 .B --debug\fR, \fB-d
@@ -55,20 +56,22 @@ List all known commands.
 .SH COMMANDS
 .TP
 .B adduser \fIUSER PASSWORD\fR [\fIRIGHTS\fR]
-Create a new user.  If \fIRIGHTS\fR is not specified then the
-\fBdefault_rights\fR setting from the server's configuration file applies.
+Create a new user.
+If \fIRIGHTS\fR is not specified then the \fBdefault_rights\fR
+setting from the server's configuration file applies.
 .TP
 .B authorize \fIUSER\fR [\fIRIGHTS\fR]
-Create \fIUSER\fR with a random password.  \fIUSER\fR must be a UNIX login
-user (not just any old string).  If \fIRIGHTS\fR is not specified then the
-\fBdefault_rights\fR setting from the server's configuration file applies.
+Create \fIUSER\fR with a random password.
+\fIUSER\fR must be a UNIX login user (not just any old string).
+If \fIRIGHTS\fR is not specified then the \fBdefault_rights\fR
+setting from the server's configuration file applies.
 .IP
 \fI~USER/.disorder/passwd\fR is created with the password in it, so the new
 user should be able to log in immediately.
 .IP
 If writing the \fIpasswd\fR file fails then the user will already have been
-created in DisOrder's user database.  Use \fBdisorder deluser\fR to remove them
-before trying again.
+created in DisOrder's user database.
+Use \fBdisorder deluser\fR to remove them before trying again.
 .TP
 .B deluser \fIUSER\fR
 Delete a user.
@@ -76,8 +79,8 @@ Delete a user.
 .B dirs \fIDIRECTORY\fR [\fB~\fIREGEXP\fR]
 List all the directories in \fIDIRECTORY\fR.
 .IP
-An optional regexp may be specified, marked with an initial \fB~\fR.  Only
-directories with a basename matching the regexp will be returned.
+An optional regexp may be specified, marked with an initial \fB~\fR.
+Only directories with a basename matching the regexp will be returned.
 .TP
 .B disable
 Disable playing after the current track finishes.
@@ -91,8 +94,8 @@ Set some property of a user.
 .B files \fIDIRECTORY\fR [\fB~\fIREGEXP\fR]
 List all the files in \fIDIRECTORY\fR.
 .IP
-An optional regexp may be specified, marked with an initial \fB~\fR.  Only
-files with a basename matching the regexp will be returned.
+An optional regexp may be specified, marked with an initial \fB~\fR.
+Only files with a basename matching the regexp will be returned.
 .TP
 .B get \fITRACK\fR \fIKEY\fR
 Display the preference \fIKEY\fR for \fITRACK\fR.
@@ -115,7 +118,8 @@ Move
 .I TRACK
 by
 .I DELTA
-within the queue.  Positive values move towards the head of the queue, negative
+within the queue.
+Positive values move towards the head of the queue, negative
 values towards the tail.
 .IP
 Note that if you specify a negative value then the
@@ -126,11 +130,13 @@ negative value is misinterpreted an an option.
 .B part \fITRACK\fR \fICONTEXT\fI \fIPART\fR
 Get a track name part.
 .IP
-\fICONTEXT\fR should be either \fBsort\fR or \fBdisplay\fR.  \fBpart\fR is the
-part of the name desired, typically \fBartist\fR, \fBalbum\fR or \fBtitle\fR.
+\fICONTEXT\fR should be either \fBsort\fR or \fBdisplay\fR.
+\fBpart\fR is the part of the name desired, typically \fBartist\fR,
+\fBalbum\fR or \fBtitle\fR.
 .TP
 .B pause
-Pause the current track.  (Note that not all players support pausing.)
+Pause the current track.
+(Note that not all players support pausing.)
 .TP
 .B play \fITRACKS\fR...
 Add \fITRACKS\fR to the end of the queue.
@@ -142,7 +148,8 @@ Report the currently playing track.
 Display all the preferences for \fITRACK\fR.
 .TP
 .B queue
-List the current queue.  The first entry in the list is the next track to play.
+List the current queue.
+The first entry in the list is the next track to play.
 .TP
 .B random-disable
 Disable random play.
@@ -151,8 +158,9 @@ Disable random play.
 Enable random play.
 .TP
 .B recent
-List recently played tracks.  The first entry is the oldest track, the last
-entry is the most recently played one.
+List recently played tracks.
+The first entry is the oldest track, the last entry is the most
+recently played one.
 .TP
 .B reconfigure
 Make the daemon reload its configuration file.
@@ -161,9 +169,9 @@ Make the daemon reload its configuration file.
 Remove a track from the queue.
 .TP
 .B rescan
-Rescan the filesystem for new tracks.  There is an automatic daily rescan but
-if you've just added some tracks and want them to show up immediately, use this
-command.
+Rescan the filesystem for new tracks.
+There is an automatic daily rescan but if you've just added some tracks
+and want them to show up immediately, use this command.
 .TP
 .B resolve \fITRACK\fR
 Resolve aliases for \fITRACK\fR and print out the real track name.
@@ -181,14 +189,15 @@ Scratch the currently playing track.
 Scratch the currently playing track, provided it has the given ID.
 .TP
 .B search \fITERMS\fR
-Search for tracks containing all of the listed terms.  The terms are
-separated by spaces and form a single argument, so must be quoted,
-for example:
+Search for tracks containing all of the listed terms.
+The terms are separated by spaces and form a single argument,
+so must be quoted, for example:
 .IP
 .B "disorder search 'bowie china'"
 .IP
 You can limit the search to tracks with a particular tag, too, using the
-\fBtag:\fR modifier.  For example:
+\fBtag:\fR modifier.
+For example:
 .IP
 .B "disorder search 'love tag:depressing'"
 .TP
@@ -202,15 +211,17 @@ Set a global preference.
 Set the volume.
 .TP
 .B setup-guest \fR[\fB--no-online-registration\fR]
-Create the "guest" user for use by the web interface.  This user will have no
-password and will only have the "read" and "register" rights, the latter
-allowing new users to automatically register themselves via the web interface.
+Create the "guest" user for use by the web interface.
+This user will have no password and will only have the "read" and
+"register" rights, the latter allowing new users to automatically
+register themselves via the web interface.
 .IP
 With the option \fB--no-online-registration\fR, the "register" right is
 suppressed and users must be manually created by an administrator.
 .IP
 If online registration is desired then \fBmail_sender\fR must be set in the
-configuration file.  See \fBdisorder_config\fR(5).
+configuration file.
+See \fBdisorder_config\fR(5).
 .TP
 .B shutdown
 Shut down the daemon.
@@ -240,19 +251,21 @@ For
 .B move
 and
 .BR remove ,
-tracks may be specified by name or by ID.  If you use the name and a track
-appears twice in the queue it is undefined which is affected.
+tracks may be specified by name or by ID.
+If you use the name and a track appears twice in the queue it is
+undefined which is affected.
 .SH PREFERENCES
-Currently the following preferences are supported.  Some are expected
-to be set by users, others updated automatically by plugins.
+Currently the following preferences are supported.
+Some are expected to be set by users, others updated automatically by plugins.
 .TP
 .B pick_at_random
 If this preference is present and set to "0" then the track will not
-be picked for random play.  Otherwise it may be.
+be picked for random play.
+Otherwise it may be.
 .TP
 .B played
-A decimal integer giving the number times the track was played.  This
-includes tracks that are scratched or were picked at random.
+A decimal integer giving the number times the track was played.
+This includes tracks that are scratched or were picked at random.
 .TP
 .B played_time
 The last time the track was played, as a \fBtime_t\fR converted to a
@@ -266,9 +279,9 @@ A decimal integer giving the number of times the track was requested.
 (Tracks that are removed before being played are not counted.)
 .TP
 .B tags
-Tags that apply to this track, separated by commas.  Tags can contain any
-printing character except comma.  Leading and trailing spaces are not
-significant but internal spaces are.
+Tags that apply to this track, separated by commas.
+Tags can contain any printing character except comma.
+Leading and trailing spaces are not significant but internal spaces are.
 .IP
 Using the
 .B required-tags
@@ -279,20 +292,22 @@ random.
 .TP
 .B trackname_\fICONTEXT\fB_\fIPART\fR
 These preferences can be used to override the filename parsing rules
-to find a track name part.  For backwards compatibility,
-\fBtrackname_\fIPART\fR will be used if the full version
-is not present.
+to find a track name part.
+For backwards compatibility, \fBtrackname_\fIPART\fR will be used
+if the full version is not present.
 .TP
 .B unscratched
 The number of times the track has been played to completion without
 being scratched.
 .SH NOTES
 .B disorder
-is locale-aware.  If you do not set the locale correctly then it may
-not handle non-ASCII data properly.
+is locale-aware.
+If you do not set the locale correctly then it may not handle non-ASCII
+data properly.
 .PP
 The client determines which user to attempt to authenticate as by examining the
-current UID.  This can be overridden in a per-user configuration file, see
+current UID.
+This can be overridden in a per-user configuration file, see
 \fBdisorder_config\fR(5).
 .PP
 See \fBdisorder_protocol\fR(5) for the rights required to run each command.
@@ -302,9 +317,11 @@ would not normally have.)
 This program is not intended to run in a setuid environment.
 .PP
 The regexp syntax used by the \fBfiles\fR and \fBdirs\fR commands use the
-syntax described in \fBpcrepattern\fR(3).  Matching is case-independent.  It is
-strongly recommended that you quote regexps, since they often contain
-characters treated specially by the shell.  For example:
+syntax described in \fBpcrepattern\fR(3).
+Matching is case-independent.
+It is strongly recommended that you quote regexps, since they often
+contain characters treated specially by the shell.
+For example:
 .PP
 .B "disorder dirs /Music ~'^(?!the [^t])t'"
 .SH TROUBLESHOOTING
@@ -322,8 +339,8 @@ though this depends on local configuration.
 .B .
 Is the track in a known format?  Have a look at
 .I pkgconfdir/config
-for the formats recognized by the local installation.  The filename matching is
-case-sensitive.
+for the formats recognized by the local installation.
+The filename matching is case-sensitive.
 .TP
 .B .
 Do permissions on the track allow the server to read it?
@@ -333,8 +350,9 @@ Do the permissions on the containing directories allow the server to read and
 execute them?
 .PP
 The user the server runs as is determined by the \fBuser\fR directive in the
-configuration file.  The README recommends using \fBjukebox\fR for this purpose
-but it could be different locally.
+configuration file.
+The README recommends using \fBjukebox\fR for this purpose but it could
+be different locally.
 .SH ENVIRONMENT
 .TP
 .B LOGNAME
@@ -344,11 +362,13 @@ The default username.
 The user's home directory.
 .TP
 .B LC_ALL\fR, \fBLANG\fR, etc
-Current locale.  See \fBlocale\fR(7).
+Current locale.
+See \fBlocale\fR(7).
 .SH FILES
 .TP
 .I pkgconfdir/config
-Global configuration file.  See \fBdisorder_config\fR(5).
+Global configuration file.
+See \fBdisorder_config\fR(5).
 .TP
 .I ~/.disorder/passwd
 Per-user password file

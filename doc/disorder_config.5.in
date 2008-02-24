@@ -21,9 +21,9 @@
 pkgconfdir/config - DisOrder jukebox configuration
 .SH DESCRIPTION
 The purpose of DisOrder is to organize and play digital audio files, under the
-control of multiple users.  \fIpkgconfdir/config\fR is the primary
-configuration file but this man page currently documents all of its various
-configuration files.
+control of multiple users.
+\fIpkgconfdir/config\fR is the primary configuration file but this
+man page currently documents all of its various configuration files.
 .SS Tracks
 DisOrder can be configured with multiple collections of tracks, indexing them
 by their filename, and picking players on the basis of filename patterns (for
@@ -31,15 +31,18 @@ instance, "*.mp3").
 .PP
 Although the model is of filenames, it is not inherent that there are
 corresponding real files - merely that they can be interpreted by the chosen
-player.  See \fBdisorder\fR(3) for more details about this.
+player.
+See \fBdisorder\fR(3) for more details about this.
 .PP
-Each track can have a set of preferences associated with it.  These are simple
-key-value pairs; they can be used for anything you like, but a number of keys
-have specific meanings.  See \fBdisorder\fR(1) for more details about these.
+Each track can have a set of preferences associated with it.
+These are simple key-value pairs; they can be used for anything you
+like, but a number of keys have specific meanings.
+See \fBdisorder\fR(1) for more details about these.
 .SS "Track Names"
 Track names are derived from filenames under the control of regular
 expressions, rather than attempting to interpret format-specific embedded name
-information.  They can be overridden by setting preferences.
+information.
+They can be overridden by setting preferences.
 .PP
 Names for display are distinguished from names for sorting, so with the right
 underlying filenames an album can be displayed in its original order even if
@@ -48,12 +51,13 @@ the displayed track titles are not lexically sorted.
 A collection of global preferences define various bits of server state: whether
 random play is enabled, what tags to check for when picking at random, etc.
 .SS "Users And Access Control"
-DisOrder distinguishes between multiple users.  This is for access control and
-reporting, not to provide different views of the world: i.e. preferences and so
-on are global.
+DisOrder distinguishes between multiple users.
+This is for access control and reporting, not to provide different
+views of the world: i.e. preferences and so on are global.
 .PP
 Each user has an associated set of rights which contorl which commands they may
-execute.  Normally you would give all users most rights, and expect them to
+execute.
+Normally you would give all users most rights, and expect them to
 cooperate (they are after all presumed to be in a shared sound environment).
 .PP
 The full set of rights are:
@@ -101,7 +105,8 @@ User can perform admin operations
 User can initiate a rescan
 .TP
 .B register
-User can register new users.  Normally only the
+User can register new users.
+Normally only the
 .B guest
 user would have this right.
 .TP
@@ -117,28 +122,32 @@ User can modify global preferences
 .B pause
 User can pause/resume 
 .PP
-Access control is entirely used-based.  If you configure DisOrder to listen for
-TCP/IP connections then it will accept a connection from anywhere provided the
-right password is available.  Passwords are never transmitted over TCP/IP
-connections in clear, but everything else is.  The expected model is that
-host-based access control is imposed at the network layer.
+Access control is entirely used-based.
+If you configure DisOrder to listen for TCP/IP connections then it will
+accept a connection from anywhere provided the right password is
+available.
+Passwords are never transmitted over TCP/IP connections in clear,
+but everything else is.
+The expected model is that host-based access control is imposed at
+the network layer.
 .SS "Web Interface"
 The web interface is controlled by a collection of template files, one for each
-kind of page, and a collection of option files.  These are split up and
-separate from the main configuration file to make it more convenient to
-override specific bits.
+kind of page, and a collection of option files.
+These are split up and separate from the main configuration file to
+make it more convenient to override specific bits.
 .PP
 The web interface connects to the DisOrder server like any other user, though
-it is given a special privilege to "become" any other user.  (Thus, any process
-with the same UID as the web interface is very powerful as far as DisOrder
-goes.  This model will be changed in a future version.)
+it is given a special privilege to "become" any other user.
+(Thus, any process with the same UID as the web interface is very
+powerful as far as DisOrder goes.
+This model will be changed in a future version.)
 .PP
 Access control to the web interface is (currently) separate from DisOrder's own
 access control (HTTP authentication is required) but uses the same user
 namespace.
 .SS "Searching And Tags"
-Search strings contain a list of search terms separated by spaces.  A search
-term can either be a single word or a tag, prefixed with "tag:".
+Search strings contain a list of search terms separated by spaces.
+A search term can either be a single word or a tag, prefixed with "tag:".
 .PP
 Search words are compared without regard to letter case or accents; thus, all
 of the following will be considered to be equal to one another:
@@ -157,18 +166,19 @@ disregarded and all whitespace sequences are treated as equal when they appear
 as internal whitespace.
 .PP
 Where several tags are listed, for instance the tags preference for a track,
-the tags are separated by commas.  Therefore tags may not contain commas.
+the tags are separated by commas.
+Therefore tags may not contain commas.
 .SH "CONFIGURATION FILE"
 .SS "General Syntax"
 Lines are split into fields separated by whitespace (space, tab, line
-feed, carriage return, form feed).  Comments are started by the number
-sign ("#").
+feed, carriage return, form feed).
+Comments are started by the number sign ("#").
 .PP
 Fields may be unquoted (in which case they may not contain spaces and
 may not start with a quotation mark or apostrophe) or quoted by either
-quotation marks or apostrophes.  Inside quoted fields every character
-stands for itself, except that a backslash can only appear as part of
-one of the following escape sequences:
+quotation marks or apostrophes.
+Inside quoted fields every character stands for itself, except that
+a backslash can only appear as part of one of the following escape sequences:
 .TP
 .B \e\e
 Backslash
@@ -186,44 +196,47 @@ Line feed
 No other escape sequences are allowed.
 .PP
 Within any line the first field is a configuration command and any
-further fields are parameters.  Lines with no fields are ignored.
+further fields are parameters.
+Lines with no fields are ignored.
 .PP
 After editing the config file use \fBdisorder reconfigure\fR to make
-it re-read it.  If there is anything wrong with it the daemon will
-record a log message and ignore the new config file.  (You should fix
-it before next terminating and restarting the daemon, as it cannot
-start up without a valid config file.)
+it re-read it.
+If there is anything wrong with it the daemon will record a log
+message and ignore the new config file.
+(You should fix it before next terminating and restarting the daemon,
+as it cannot start up without a valid config file.)
 .SS "Configuration Files"
 Configuration files are read in the following order:
 .TP
 .I pkgconfdir/config
 .TP
 .I pkgconfdir/config.private
-Should be readable only by the jukebox group.  Not really useful any more and
-will be abolished in future.
+Should be readable only by the jukebox group.
+Not really useful any more and will be abolished in future.
 .TP
 .I ~\fRUSER\fI/.disorder/passwd
-Per-user client configuration.  Optional but if it exists must be
-readable only by the relevant user.  Would normally contain a
-\fBpassword\fR directive.
+Per-user client configuration.
+Optional but if it exists must be readable only by the relevant user.
+Would normally contain a \fBpassword\fR directive.
 .TP
 .I pkgconfdir/config.\fRUSER
-Per-user system-controlled client configuration.  Optional but if it
-exists must be readable only by the relevant user.  Would normally
-contain a \fBpassword\fR directive.
+Per-user system-controlled client configuration.
+Optional but if it exists must be readable only by the relevant user.
+Would normally contain a \fBpassword\fR directive.
 .IP
 The prefererred location for per-user passwords is \fI~/.disorder/passwd\fR and
-\fBdisorder authorize\fR writes there now.  
+\fBdisorder authorize\fR writes there now.
 .SS "Global Configuration"
 .TP
 .B home \fIDIRECTORY\fR
-The home directory for state files.  Defaults to
+The home directory for state files.
+Defaults to
 .IR pkgstatedir .
 The server will create this directory on startup if it does not exist.
 .TP
 .B plugins \fIPATH\fR
-Adds a directory to the plugin path.  (This is also used by the web
-interface.)
+Adds a directory to the plugin path.
+(This is also used by the web interface.)
 .IP
 Plugins are opened the first time they are required and never after,
 so after changing a plugin you must restart the server before it is
@@ -251,42 +264,46 @@ automatically included, but should include the proper extension.
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
 .TP
 .B api \fINAME\fR
-Selects the backend used to play sound and to set the volume.  The following
-options are available:
+Selects the backend used to play sound and to set the volume.
+The following options are available:
 .RS
 .TP
 .B alsa
-Use the ALSA API.  This is only available on Linux systems, on which it is the
-default.
+Use the ALSA API.
+This is only available on Linux systems, on which it is the default.
 .TP
 .B coreaudio
-Use Apple Core Audio.  This only available on OS X systems, on which it is the
-default.
+Use Apple Core Audio.
+This only available on OS X systems, on which it is the default.
 .TP
 .B oss
-Use the OSS (/dev/dsp) API.  Not available on all platforms.
+Use the OSS (/dev/dsp) API.
+Not available on all platforms.
 .TP
 .B command
-Execute a command.  This is the default if
+Execute a command.
+This is the default if
 .B speaker_command
 is specified, or if no native is available.
 .TP
 .B network
-Transmit audio over the network.  This is the default if
-\fBbroadcast\fR is specified.  You can use
+Transmit audio over the network.
+This is the default if \fBbroadcast\fR is specified.
+You can use
 .BR disorder-playrtp (1)
 to receive and play the resulting stream on Linux and OS X.
 .RE
 .TP
 .B authorization_algorithm \fIALGORITHM\fR
-Defines the algorithm used to authenticate clients.  The valid options
-are sha1 (the default), sha256, sha384 and sha512.  See
+Defines the algorithm used to authenticate clients.
+The valid options are sha1 (the default), sha256, sha384 and sha512.
+See
 .BR disorder_protocol (5)
 for more details.
 .TP
 .B broadcast \fIADDRESS\fR \fIPORT\fR
-Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.  This implies
-\fBapi network\fR.
+Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.
+This implies \fBapi network\fR.
 .IP
 See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
@@ -300,8 +317,8 @@ For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
-Output level for the audio device.  This is probably what you want and is the
-default.
+Output level for the audio device.
+This is probably what you want and is the default.
 .TP
 .B speaker
 Output level for the PC speaker, if that is connected to the sound card.
@@ -310,14 +327,16 @@ Output level for the PC speaker, if that is connected to the sound card.
 Output level for alternative codec device.
 .TP
 .B vol
-Master output level.  The OSS documentation recommends against using this, as
-it affects all output devices.
+Master output level.
+The OSS documentation recommends against using this, as it affects all
+output devices.
 .RE
 .IP
 You can also specify channels by number, if you know the right value.
 .IP
-For \fBapi alsa\fR, this is the name of the mixer control to use.  The default
-is \fBPCM\fR.  Use \fBamixer scontrols\fR or similar to get a full list.
+For \fBapi alsa\fR, this is the name of the mixer control to use.
+The default is \fBPCM\fR.
+Use \fBamixer scontrols\fR or similar to get a full list.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP
@@ -329,26 +348,30 @@ For \fBapi coreaudio\fR, volume setting is not currently supported.
 Define a collection of tracks.
 .IP
 \fIMODULE\fR defines which plugin module should be used for this
-collection.  Use the supplied \fBfs\fR module for tracks that exist
-as ordinary files in the filesystem.  If no \fIMODULE\fR is specified
-then \fBfs\fR is assumed.
+collection.
+Use the supplied \fBfs\fR module for tracks that exist as ordinary
+files in the filesystem.
+If no \fIMODULE\fR is specified then \fBfs\fR is assumed.
 .IP
-\fIENCODING\fR defines the encoding of filenames in this collection.  For
-\fBfs\fR this would be the encoding you use for filenames.  Examples might be
-\fBiso-8859-1\fR or \fButf-8\fR.  If no encoding is specified then the current
-locale's character encoding is used.
+\fIENCODING\fR defines the encoding of filenames in this collection.
+For \fBfs\fR this would be the encoding you use for filenames.
+Examples might be \fBiso-8859-1\fR or \fButf-8\fR.
+If no encoding is specified then the current locale's character encoding
+is used.
 .IP
 NB that this default depends on the locale the server runs in, which is not
 necessarily the same as that of ordinary users, depending how the system is
-configured.  It's best to explicitly specify it to be certain.
+configured.
+It's best to explicitly specify it to be certain.
 .IP
 \fIROOT\fR is the root in the filesystem of the filenames and is
-passed to the plugin module.  It must be an absolute path and should not
-end with a "/".
+passed to the plugin module.
+It must be an absolute path and should not end with a "/".
 .TP
 .B default_rights \fIRIGHTS\fR
-Defines the set of rights given to new users.  The argument is a
-comma-separated list of rights.  For the possible values see
+Defines the set of rights given to new users.
+The argument is a comma-separated list of rights.
+For the possible values see
 .B "Users And Access Control"
 above.
 .IP
@@ -358,8 +381,9 @@ The default is to allow everything except \fBadmin\fR and \fBregister\fR
 .B device \fINAME\fR
 Sound output device.
 .IP
-For \fBapi oss\fR this is the path to the device to use.  If it is set to
-\fBdefault\fR then \fI/dev/dsp\fR and \fI/dev/audio\fR will be tried.
+For \fBapi oss\fR this is the path to the device to use.
+If it is set to \fBdefault\fR then \fI/dev/dsp\fR and \fI/dev/audio\fR
+will be tried.
 .IP
 For \fBapi alsa\fR this is the device name to use.
 .IP
@@ -369,8 +393,8 @@ The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
 .TP
 .B gap \fISECONDS\fR
-Specifies the number of seconds to leave between tracks.  The default
-is 0.
+Specifies the number of seconds to leave between tracks.
+The default is 0.
 .TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including
@@ -378,14 +402,15 @@ failed tracks and scratches).
 .TP
 .B listen \fR[\fIHOST\fR] \fISERVICE\fR
 Listen for connections on the address specified by \fIHOST\fR and port
-specified by \fISERVICE\fR.  If \fIHOST\fR is omitted then listens on all
-local addresses.
+specified by \fISERVICE\fR.
+If \fIHOST\fR is omitted then listens on all local addresses.
 .IP
 Normally the server only listens on a UNIX domain socket.
 .TP
 .B lock yes\fR|\fBno
-Determines whether the server locks against concurrent operation.  Default is
-\fByes\fR.  There is no good reason to set this to \fBno\fR and the option will
+Determines whether the server locks against concurrent operation.
+Default is \fByes\fR.
+There is no good reason to set this to \fBno\fR and the option will
 probably be removed in a future version.
 .TP
 .B mixer \fIDEVICE\fR
@@ -395,36 +420,38 @@ The mixer device name, if it needs to be specified separately from
 For \fBapi oss\fR this should be the path to the mixer device and the default
 is \fI/dev/mixer\fR.
 .IP
-For \fBapi alsa\fR, this is the index of the mixer control to use.  The default
-is 0.
+For \fBapi alsa\fR, this is the index of the mixer control to use.
+The default is 0.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
 .TP
 .B multicast_loop yes\fR|\fBno
-Determines whether multicast packets are loop backed to the sending host.  The
-default is \fByes\fR.  This only applies if
-\fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
-multicast address.
+Determines whether multicast packets are loop backed to the sending host.
+The default is \fByes\fR.
+This only applies if \fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR
+is actually a multicast address.
 .TP
 .B multicast_ttl \fIHOPS\fR
-Set the maximum number of hops to send multicast packets.  This only applies if
-\fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR is actually a
-multicast address.  The default is 1.
+Set the maximum number of hops to send multicast packets.
+This only applies if \fBapi\fR is set to \fBnetwork\fR and
+\fBbroadcast\fR is actually a multicast address.
+The default is 1.
 .TP
 .B namepart \fIPART\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how to extract trackname part \fIPART\fR from a 
 track name (with the collection root part removed).
 Used in \fB@recent@\fR, \fB@playing@\fR and \fB@search@\fR.
 .IP
-Track names can be different in different contexts.  For instance the sort
-string might include an initial track number, but this would be stripped for
-the display string.  \fICONTEXT\fR should be a glob pattern matching the
+Track names can be different in different contexts.
+For instance the sort string might include an initial track number,
+but this would be stripped for the display string.
+\fICONTEXT\fR should be a glob pattern matching the
 contexts in which this directive will be used.
 .IP
 Valid contexts are \fBsort\fR and \fBdisplay\fR.
 .IP
-All the \fBnamepart\fR directives are considered in order.  The
-first directive for the right part, that matches the desired context,
+All the \fBnamepart\fR directives are considered in order.
+The first directive for the right part, that matches the desired context,
 and with a \fIREGEXP\fR that
 matches the track is used, and the value chosen is constructed from
 \fISUBST\fR according to the substitution rules below.
@@ -434,8 +461,9 @@ not (currently) the results of \fBnamepart\fR, so generating words via this opti
 that aren't in the original track name will lead to confusing results.
 .IP
 If you supply no \fBnamepart\fR directives at all then a default set will be
-supplied automatically.  But if you supply even one then you must supply all of
-them.  The defaults are equivalent to:
+supplied automatically.
+But if you supply even one then you must supply all of them.
+The defaults are equivalent to:
 .PP
 .nf
 namepart title  "/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$" $2 display
@@ -446,35 +474,44 @@ namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .fi
 .TP
 .B new_max \fIMAX\fR
-The maximum number of tracks to list when reporting newly noticed tracks.  The
-default is 100.
+The maximum number of tracks to list when reporting newly noticed tracks.
+The default is 100.
 .TP
 .B nice_rescan \fIPRIORITY\fR
-Set the recan subprocess priority.  The default is 10.
+Set the recan subprocess priority.
+The default is 10.
 .IP
 (Note that higher values mean the process gets less CPU time; UNIX priority
 values are backwards.)
 .TP
 .B nice_server \fIPRIORITY\fR
-Set the server priority.  This is applied to the server at startup time (and
-not when you reload configuration).  The server does not use much CPU itself
-but this value is inherited by programs it executes.  If you have limited CPU
-then it might help to set this to a small negative value.  The default is 0.
+Set the server priority.
+This is applied to the server at startup time (and not when you reload
+configuration).
+The server does not use much CPU itself but this value is inherited
+by programs it executes.
+If you have limited CPU then it might help to set this to a small
+negative value.
+The default is 0.
 .TP
 .B nice_speaker \fIPRIORITY\fR
-Set the speaker process priority.  This is applied to the speaker process at
-startup time (and not when you reload the configuration).  The speaker process
-is not massively CPU intensive by today's standards but depends on reasonably
-timely scheduling.  If you have limited CPU then it might help to set this to a
-small negative value.  The default is 0.
+Set the speaker process priority.
+This is applied to the speaker process at startup time (and not when
+you reload the configuration).
+The speaker process is not massively CPU intensive by today's
+standards but depends on reasonably timely scheduling.
+If you have limited CPU then it might help to set this to a small
+negative value.
+The default is 0.
 .TP
 .B noticed_history
 The maximum days that a track can survive in the database of newly added
-tracks.  The default is 31.
+tracks.
+The default is 31.
 .TP
 .B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB--\fR]] \fIARGS\fR...
-Specifies the player for files matching the glob \fIPATTERN\fR.  \fIMODULE\fR
-specifies which plugin module to use.
+Specifies the player for files matching the glob \fIPATTERN\fR.
+\fIMODULE\fR specifies which plugin module to use.
 .IP
 The following options are supported:
 .RS
@@ -484,8 +521,8 @@ Waits (for up to a couple of seconds) for the default, or specified, libao
 device to become openable.
 .TP
 .B --
-Defines the end of the list of options.  Needed if the first argument to the
-plugin starts with a "-".
+Defines the end of the list of options.
+Needed if the first argument to the plugin starts with a "-".
 .RE
 .IP
 The following are the standard modules:
@@ -501,16 +538,17 @@ The command is expected to know how to open its own sound device.
 Identical to the \fBexec\fR except that the player is expected to use the
 DisOrder raw player protocol.
 .BR disorder-decode (8)
-can decode several common audio file formats to this format.  If your favourite
-format is not supported, but you have a player which uses libao, there is also
-a libao driver which supports this format; see below for more information about
-this.
+can decode several common audio file formats to this format.
+If your favourite format is not supported, but you have a player
+which uses libao, there is also a libao driver which supports this format;
+see below for more information about this.
 .TP
 .B shell \fR[\fISHELL\fR] \fICOMMAND\fR
-The command is executed using the shell.  If \fISHELL\fR is specified then that
-is used, otherwise \fBsh\fR will be used.  In either case the \fBPATH\fR
-environment variable is searched for the shell executable if it is not an
-absolute path.  The track name is stored in the environment variable
+The command is executed using the shell.
+If \fISHELL\fR is specified then that is used, otherwise \fBsh\fR will be used.
+In either case the \fBPATH\fR environment variable is searched for the shell
+executable if it is not an absolute path.
+The track name is stored in the environment variable
 \fBTRACK\fR.
 .IP
 Be careful of the interaction between the configuration file quoting rules and
@@ -530,26 +568,29 @@ If
 is used without arguments, the list of players is cleared.
 .TP
 .B prefsync \fISECONDS\fR
-The interval at which the preferences log file will be synchronised.  Defaults
-to 3600, i.e. one hour.
+The interval at which the preferences log file will be synchronised.
+Defaults to 3600, i.e. one hour.
 .TP
 .B queue_pad \fICOUNT\fR
-The target size of the queue.  If random play is enabled then randomly picked
-tracks will be added until the queue is at least this big.  The default is 10.
+The target size of the queue.
+If random play is enabled then randomly picked tracks will be added until
+the queue is at least this big.
+The default is 10.
 .TP
 .B reminder_interval \fISECONDS\fR
-The minimum number of seconds that must elapse between password reminders.  The
-default is 600, i.e. 10 minutes.
+The minimum number of seconds that must elapse between password reminders.
+The default is 600, i.e. 10 minutes.
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
-Describes the sample format expected by the \fBspeaker_command\fR (below).  The
-components of the format specification are as follows:
+Describes the sample format expected by the \fBspeaker_command\fR (below).
+The components of the format specification are as follows:
 .RS
 .TP 10
 .I BITS
-The number of bits per sample.  Optionally, may be suffixed by \fBb\fR or
-\fBl\fR for big-endian and little-endian words.  If neither is used the native
-byte order is assumed.
+The number of bits per sample.
+Optionally, may be suffixed by \fBb\fR or \fBl\fR for big-endian and
+little-endian words.
+If neither is used the native byte order is assumed.
 .TP
 .I RATE
 The number of samples per second.
@@ -573,15 +614,17 @@ in both cases regardless of what is specified in the configuration file.
 .TP
 .B signal \fINAME\fR
 Defines the signal to be sent to track player process groups when tracks are
-scratched.  The default is \fBSIGKILL\fR.
+scratched.
+The default is \fBSIGKILL\fR.
 .IP
 Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
 .TP
 .B sox_generation \fB0\fR|\fB1
 Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
-the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).  See the
-documentation for your installed copy of \fBsox\fR to determine which you need.
+the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).
+See the documentation for your installed copy of \fBsox\fR to determine
+which you need.
 The default is 0.
 .TP
 .B speaker_backend \fINAME
@@ -589,20 +632,21 @@ This is an alias for \fBapi\fR; see above.
 .TP
 .B speaker_command \fICOMMAND
 Causes the speaker subprocess to pipe audio data into shell command
-\fICOMMAND\fR, rather than writing to a local sound card.  The sample format is
-determine by
+\fICOMMAND\fR, rather than writing to a local sound card.
+The sample format is determine by
 .B sample_format
 above.
 .IP
 Note that if the sample format is wrong then
 .BR sox (1)
-is invoked to translate it.  If
+is invoked to translate it.
+If
 .B sox
 is not installed then this will not work.
 .TP
 .B scratch \fIPATH\fR
-Specifies a scratch.  When a track is scratched, a scratch track is
-played at random.
+Specifies a scratch.
+When a track is scratched, a scratch track is played at random.
 Scratches are played using the same logic as other tracks.
 .IP
 At least for the time being, path names of scratches must be encoded using
@@ -623,14 +667,15 @@ augment or replace that list.
 .TP
 .B tracklength \fIPATTERN\fR \fIMODULE\fR
 Specifies the module used to calculate the length of files matching
-\fIPATTERN\fR.  \fIMODULE\fR specifies which plugin module to use.
+\fIPATTERN\fR.
+\fIMODULE\fR specifies which plugin module to use.
 .IP
 If \fBtracklength\fR is used without arguments then the list of modules is
 cleared.
 .TP
 .B user \fIUSER\fR
-Specifies the user to run as.  Only makes sense if invoked as root (or
-the target user).
+Specifies the user to run as.
+Only makes sense if invoked as root (or the target user).
 .SS "Client Configuration"
 .TP
 .B connect \fIHOST SERVICE\fR
@@ -640,22 +685,26 @@ Connect to the address specified by \fIHOST\fR and port specified by
 .TP
 .B mail_sender \fIADDRESS\fR
 The email address that appears in the From: field of any mail messages sent by
-the web interface.  This must be set if you have online registration enabled.
+the web interface.
+This must be set if you have online registration enabled.
 .TP
 .B refresh \fISECONDS\fR
-Specifies the maximum refresh period in seconds.  Default 15.
+Specifies the maximum refresh period in seconds.
+Default 15.
 .TP
 .B short_display \fICHARACTERS\fR
 Defines the maximum number of characters to include in a \fBshort\fR name
-part.  Default 30.
+part.
+Default 30.
 .TP
 .B smtp_server \fIHOSTNAME\fR
-The hostname (or address) of the SMTP server to use for sending mail.  The
-default is 127.0.0.1.
+The hostname (or address) of the SMTP server to use for sending mail.
+The default is 127.0.0.1.
 .TP
 .B templates \fIPATH\fR ...
 Specifies the directory containing templates used by the web
-interface.  If a template appears in more than one template directory
+interface.
+If a template appears in more than one template directory
 then the one in the earliest directory specified is chosen.
 .IP
 See below for further details.
@@ -668,20 +717,21 @@ Determines how names are sorted and displayed in track choice displays.
 \fITYPE\fR is the type of transformation; usually \fBtrack\fR or
 \fBdir\fR but you can define your own.
 .IP
-\fICONTEXT\fR is a glob pattern matching the context.  Standard contexts are
-\fBsort\fR (which determines how directory names are sorted) and \fBdisplay\fR
-(which determines how they are displayed).  Again, you can define your
-own.
+\fICONTEXT\fR is a glob pattern matching the context.
+Standard contexts are \fBsort\fR (which determines how directory names
+are sorted) and \fBdisplay\fR (which determines how they are displayed).
+Again, you can define your own.
 .IP
-All the \fBtransform\fR directives are considered in order.  If
-the \fITYPE\fR, \fIREGEXP\fR and the \fICONTEXT\fR match
+All the \fBtransform\fR directives are considered in order.
+If the \fITYPE\fR, \fIREGEXP\fR and the \fICONTEXT\fR match
 then a new track name is constructed from
-\fISUBST\fR according to the substitution rules below.  If several
-match then each is executed in order.
+\fISUBST\fR according to the substitution rules below.
+If several match then each is executed in order.
 .IP
 If you supply no \fBtransform\fR directives at all then a default set will be
-supplied automatically.  But if you supply even one then you must supply all of
-them.  The defaults are:
+supplied automatically.
+But if you supply even one then you must supply all of them.
+The defaults are:
 .PP
 .nf
 transform track "^.*/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$" $2 display
@@ -692,8 +742,9 @@ transform dir   "[[:punct:]]"                       "" sort g
 .fi
 .TP
 .B url \fIURL\fR
-Specifies the URL of the web interface.  This URL will be used in
-generated web pages.  The default is inferred at runtime, so this option no
+Specifies the URL of the web interface.
+This URL will be used in generated web pages.
+The default is inferred at runtime, so this option no
 longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
@@ -706,8 +757,8 @@ These options would normally be used in \fI~\fRUSER\fI/.disorder/passwd\fR or
 Specify password.
 .TP
 .B username \fIUSERNAME\fR
-Specify username.  The default is taken from the environment variable
-\fBLOGNAME\fR.
+Specify username.
+The default is taken from the environment variable \fBLOGNAME\fR.
 .SH "GLOBAL PREFERENCES"
 These are the values set with \fBset-global\fR.
 .TP
@@ -720,19 +771,22 @@ If this is set an nonempty then randomly played tracks will never have any of
 the listed tags.
 .TP
 .B playing
-If unset or \fByes\fR then play is enabled.  Otherwise it is disabled.  Use
-\fBdisable\fR rather than setting it directly.
+If unset or \fByes\fR then play is enabled.
+Otherwise it is disabled.
+Use \fBdisable\fR rather than setting it directly.
 .TP
 .B random-play
-If unset or \fByes\fR then random play is enabled.  Otherwise it is disabled.
+If unset or \fByes\fR then random play is enabled.
+Otherwise it is disabled.
 Use \fBdisable\fR rather than setting it directly.
 .PP
 Global preferences starting '_' are read-only (in the sense that you cannot
-modify them; the server may modify them as part of its normal operation).  They
-are:
+modify them; the server may modify them as part of its normal operation).
+They are:
 .TP
 .B _dbversion
-The database version string.  This is used by DisOrder to detect when it must
+The database version string.
+This is used by DisOrder to detect when it must
 modify the database after an upgrade.
 .SH "LIBAO DRIVER"
 .SS "Raw Protocol Players"
@@ -743,18 +797,20 @@ driver and pass options to it.
 The known driver options are:
 .TP
 .B fd
-The file descriptor to write to.  If this is not specified then the driver
-looks like the environment variable \fBDISORDER_RAW_FD\fR.  If that is not set
-then the default is 1 (i.e. standard output).
+The file descriptor to write to.
+If this is not specified then the driver looks like the environment
+variable \fBDISORDER_RAW_FD\fR.
+If that is not set then the default is 1 (i.e. standard output).
 .TP
 .B fragile
 If this is set to a nonzero value then the driver will call \fB_exit\fR(2) if a
-write to the output file descriptor fails.  This is a workaround for buggy
-players such as \fBogg123\fR that ignore write errors.
+write to the output file descriptor fails.
+This is a workaround for buggy players such as \fBogg123\fR that ignore
+write errors.
 .SH "WEB TEMPLATES"
 When \fBdisorder.cgi\fR wants to generate a page for an action it searches the
-directories specified with \fBtemplates\fR for a matching file.  It is
-suggested that you leave the distributed templates unchanged and put
+directories specified with \fBtemplates\fR for a matching file.
+It is suggested that you leave the distributed templates unchanged and put
 any customisations in an earlier entry in the template path.
 .PP
 The supplied templates are:
@@ -763,8 +819,8 @@ The supplied templates are:
 Display information about DisOrder.
 .TP
 .B choose.html
-Navigates through the track database to choose a track to play.  The
-\fBdir\fR argument gives the directory to look in; if it is missing
+Navigates through the track database to choose a track to play.
+The \fBdir\fR argument gives the directory to look in; if it is missing
 then the root directory is used.
 .TP
 .B choosealpha.html
@@ -780,13 +836,14 @@ the queue.
 Gets an HTTP \fBRefresh\fR header.
 .IP
 If the \fBmgmt\fR CGI argument is set to \fBtrue\fR then we include extra
-buttons for moving tracks up and down in the queue.  There is some logic in
-\fBdisorder.cgi\fR to ensure that \fBmgmt=true\fR is preserved across refreshes
-and redirects back into itself, but URLs embedded in web pages must include it
-explicitly.
+buttons for moving tracks up and down in the queue.
+There is some logic in \fBdisorder.cgi\fR to ensure that \fBmgmt=true\fR
+is preserved across refreshes and redirects back into itself, but
+URLs embedded in web pages must include it explicitly.
 .TP
 .B prefs.html
-Views preferences.  If the \fBfile\fR, \fBname\fR and \fBvalue\fR arguments are
+Views preferences.
+If the \fBfile\fR, \fBname\fR and \fBvalue\fR arguments are
 all set then that preference is modified; if \fBfile\fR and \fBname\fR are set
 but not \fBvalue\fR then the preference is deleted.
 .TP
@@ -814,30 +871,33 @@ Included at the end of the \fB<BODY>\fR element.
 Included in the \fB<HEAD>\fR element.
 .TP
 .B stylesheet.html
-Contains the default DisOrder stylesheet.  You can override this by editing the
-CSS or by replacing it all with a \fB<LINK>\fR to an external stylesheet.
+Contains the default DisOrder stylesheet.
+You can override this by editing the CSS or by replacing it all with
+a \fB<LINK>\fR to an external stylesheet.
 .PP
 Templates are ASCII files containing HTML documents, with an expansion
 syntax to enable data supplied by the implementation to be inserted.
 .PP
 If you want to use characters outside the ASCII range, use either the
 appropriate HTML entity, e.g. \fB&eacute;\fR, or an SGML numeric
-character reference, e.g. \fB&#253;\fR.  Use \fB&#64;\fR to insert a
-literal \fB@\fR without falling foul of the expansion syntax.
+character reference, e.g. \fB&#253;\fR.
+Use \fB&#64;\fR to insert a literal \fB@\fR without falling foul of
+the expansion syntax.
 .SS "Expansion Syntax"
 Expansions are surrounded by at ("@") symbols take the form of a keyword
-followed by zero or more arguments.  Arguments may either be quoted by curly
-brackets ("{" and "}") or separated by colons (":").  Both kinds may be mixed
-in a single expansion, though doing so seems likely to cause confusion.
-The descriptions below contain suggested forms for each
-expansion.
+followed by zero or more arguments.
+Arguments may either be quoted by curly brackets ("{" and "}") or separated
+by colons (":").
+Both kinds may be mixed in a single expansion, though doing so seems
+likely to cause confusion.
+The descriptions below contain suggested forms for each expansion.
 .PP
 Leading and trailing whitespace in unquoted arguments is ignored, as is
 whitespace (including newlines) following a close bracket ("}").
 .PP
 Arguments are recursively expanded before being interpreted, except for
-\fITEMPLATE\fR arguments.  These are expanded (possibly more than once) to
-produce the final expansion.
+\fITEMPLATE\fR arguments.
+These are expanded (possibly more than once) to produce the final expansion.
 (More than once means the same argument being expanded more than once
 for different tracks or whatever, not the result of the first
 expansion itself being re-expanded.)
@@ -861,7 +921,8 @@ The following expansion keywords are defined:
 Ignored.
 .TP
 .B @action@
-The current action.  This reports
+The current action.
+This reports
 .B manage
 if the action is really
 .B playing
@@ -927,16 +988,16 @@ Expands to the (possibly relative) URL for image \fINAME\fR.
 .IP
 If there is a label \fBimages.\fINAME\fR then that will be the image base name.
 Otherwise the image base name is \fINAME\fB.png\fR or just \fINAME\fR if it
-alraedy has an extension.  Thus labels may be defined to give images role
-names.
+alraedy has an extension.
+Thus labels may be defined to give images role names.
 .IP
-If there is a label \fBurl.static\fR then that is the base URL for images.  If
-it is not defined then \fB/disorder\fR is used as a default.
+If there is a label \fBurl.static\fR then that is the base URL for images.
+If it is not defined then \fB/disorder\fR is used as a default.
 .TP
 .B @include:\fIPATH\fB@
-Include the named file as if it were a template file.  If \fIPATH\fR
-starts with a \fB/\fR then it is used as-is; otherwise, ".html" is
-appended and the template path is searched.
+Include the named file as if it were a template file.
+If \fIPATH\fR starts with a \fB/\fR then it is used as-is;
+otherwise, ".html" is appended and the template path is searched.
 .TP
 .B @index@
 Expands to the index of the current file in \fB@queue@\fR, \fB@recent@\fR or
@@ -974,8 +1035,9 @@ Expands to \fBtrue\fR if the recently played list has any tracks in it,
 otherwise to \fBfalse\fR.
 .TP
 .B @label:\fINAME\fR\fB@
-Expands to the value of label \fINAME\fR.  See the shipped \fIoptions.labels\fR
-file for full documentation of the labels used by the standard templates.
+Expands to the value of label \fINAME\fR.
+See the shipped \fIoptions.labels\fR file for full documentation of the
+labels used by the standard templates.
 .TP
 .B @length@
 Expands to the length of the current track.
@@ -995,7 +1057,8 @@ Expands to \fBtrue\fR if \fIA\fR and \fIB\fR differ, otherwise to \fBfalse\fR.
 .TP
 .B @new{\fITEMPLATE\fB}
 Expands \fITEMPLATE\fR for each track in the newly added tracks list, starting
-with the most recent.  Used in \fBnew.html\fR.
+with the most recent.
+Used in \fBnew.html\fR.
 .TP
 .B @nfiles@
 Expands to the number of files from \fB@files\fR (above).
@@ -1018,15 +1081,16 @@ an even or odd position in \fB@queue@\fR, \fB@recent@\fR or \fB@files@\fR.
 .TP
 .B @part{\fICONTEXT\fB}{\fIPART\fB}@
 Expands to track name part \fIPART\fR using context \fICONTEXT\fR for the
-current track.  The context may be omitted and defaults
-to \fBdisplay\fR.
+current track.
+The context may be omitted and defaults to \fBdisplay\fR.
 .IP
 The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
 the \fBshort_display\fR limit.
 .TP
 .B @part{\fICONTEXT\fB}{\fIPART\fB}{\fITRACK\fB}@
 Expands to track name part \fIPART\fR using context \fICONTEXT\fR for
-\fITRACK\fR.  In this usage the context may not be omitted.
+\fITRACK\fR.
+In this usage the context may not be omitted.
 .IP
 The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
 the \fBshort_display\fR limit.
@@ -1055,7 +1119,8 @@ argument of \fB@prefs@\fR.
 .TP
 .B @queue{\fITEMPLATE\fB}@
 Expands \fITEMPLATE\fR repeatedly using the each track on the queue in turn as
-the current track.  The track at the head of the queue comes first.
+the current track.
+The track at the head of the queue comes first.
 .TP
 .B @random-enabled@
 Expands to \fBtrue\fR if random play is currently enabled, otherwise to
@@ -1063,7 +1128,8 @@ Expands to \fBtrue\fR if random play is currently enabled, otherwise to
 .TP
 .B @recent{\fITEMPLATE\fB}@
 Expands \fITEMPLATE\fR repeatedly using the each recently played track in turn
-as the current track.  The most recently played track comes first.
+as the current track.
+The most recently played track comes first.
 .TP
 .B @removable@
 Expands to \fBtrue\fR if the current track is removable, otherwise to
@@ -1095,22 +1161,26 @@ and
 within the template will apply to one of the tracks in the group.
 .IP
 If \fICONTEXT\fR is specified it should be either \fBsort\fR or \fBdisplay\fR,
-and determines the context for \fIPART\fR.  The default is \fBsort\fR.  Usually
-you want \fBdisplay\fR for everything except the title and \fBsort\fR for the
-title.  If you use \fBsort\fR for artist and album then you are likely to get
+and determines the context for \fIPART\fR.
+The default is \fBsort\fR.
+Usually you want \fBdisplay\fR for everything except the title and
+\fBsort\fR for the title.
+If you use \fBsort\fR for artist and album then you are likely to get
 strange effects.
 .TP
 .B @server-version@
 Expands to the server's version string.
 .TP
 .B @shell{\fICOMMAND\fB}@
-Expands to the output of \fICOMMAND\fR executed via the shell.  \fBsh\fR is
-searched for using \fBPATH\fR.  If the command fails then this is logged but
-otherwise ignored.
+Expands to the output of \fICOMMAND\fR executed via the shell.
+\fBsh\fR is searched for using \fBPATH\fR.
+If the command fails then this is logged but otherwise ignored.
 .TP
 .B @state@
 In \fB@queue@\fR and \fB@recent@\fR, expands to the state of the current
-track.  Otherwise the empty string.  Known states are:
+track.
+Otherwise the empty string.
+Known states are:
 .RS
 .TP 12
 .B failed
@@ -1154,9 +1224,11 @@ This track is currently playing.
 Expands to the server statistics.
 .TP
 .B @thisurl@
-Expands to the URL of the current page.  Typically used in
+Expands to the URL of the current page.
+Typically used in
 .B back
-arguments.  If there is a
+arguments.
+If there is a
 .B nonce
 argument then it is changed to a fresh value.
 .TP
@@ -1181,7 +1253,8 @@ Expands to the canonical URL as defined in \fIpkgconfdir/config\fR.
 URL-quote \fISTRING\fR.
 .TP
 .B @user@
-The current username.  This will be "guest" if nobody is logged in.
+The current username.
+This will be "guest" if nobody is logged in.
 .TP
 .B @userinfo{\fIPROPERTY\fB}@
 Look up a property of the logged-in user.
@@ -1190,8 +1263,8 @@ Look up a property of the logged-in user.
 Expands to \fBdisorder.cgi\fR's version string.
 .TP
 .B @volume:\fISPEAKER\fB@
-The volume on the left or right speaker.  \fISPEAKER\fR must be \fBleft\fR or
-\fBright\fR.
+The volume on the left or right speaker.
+\fISPEAKER\fR must be \fBleft\fR or \fBright\fR.
 .TP
 .B @when@
 When the current track was played (or when it is expected to be played, if it
@@ -1201,8 +1274,9 @@ has not been played yet)
 Who submitted the current track.
 .SH "WEB OPTIONS"
 This is a file called \fIoptions\fR, searched for in the same manner
-as templates.  It includes numerous options for the control of the web
-interface.  The general syntax is the same as the main configuration
+as templates.
+It includes numerous options for the control of the web interface.
+The general syntax is the same as the main configuration
 file, except that it should be encoded using UTF-8 (though this might
 change to the current locale's character encoding; stick to ASCII to
 be safe).
@@ -1211,49 +1285,52 @@ The shipped \fIoptions\fR file includes four standard options files.
 In order, they are:
 .TP
 .I options.labels
-The default labels file.  You wouldn't normally edit this directly - instead
-supply your own commands in \fIoptions.user\fR.  Have a look at the shipped
-version of the file for documentation of labels used by the standard templates.
+The default labels file.
+You wouldn't normally edit this directly - instead supply your own commands
+in \fIoptions.user\fR.
+Have a look at the shipped version of the file for documentation of
+labels used by the standard templates.
 .TP
 .I options.user
-A user options file.  Here you should put any overrides for the default
-labels and any extra labels required by your modified templates.
+A user options file.
+Here you should put any overrides for the default labels and any
+extra labels required by your modified templates.
 .PP
 Valid directives are:
 .TP
 .B columns \fINAME\fR \fIHEADING\fR...
-Defines the columns used in \fB@playing@\fR and \fB@recent@\fB.  \fINAME\fR
-must be either \fBplaying\fR, \fBrecent\fR or \fBsearch\fR.
-\fIHEADING\fR...  is a list of
-heading names.  If a column is defined more than once then the last definitions
-is used.
+Defines the columns used in \fB@playing@\fR and \fB@recent@\fB.
+\fINAME\fR must be either \fBplaying\fR, \fBrecent\fR or \fBsearch\fR.
+\fIHEADING\fR...  is a list of heading names.
+If a column is defined more than once then the last definitions is used.
 .IP
 The heading names \fBbutton\fR, \fBlength\fR, \fBwhen\fR and \fBwho\fR
 are built in.
 .TP
 .B include \fIPATH\fR
-Includes another file.  If \fIPATH\fR starts with a \fB/\fR then it is
-taken as is, otherwise it is searched for in the template path.
+Includes another file.
+If \fIPATH\fR starts with a \fB/\fR then it is taken as is, otherwise
+it is searched for in the template path.
 .TP
 .B label \fINAME\fR \fIVALUE\fR
-Define a label.  If a label is defined more than once then the last definition
-is used.
+Define a label.
+If a label is defined more than once then the last definition is used.
 .SS Labels
 Some labels are defined inside \fBdisorder.cgi\fR and others by the
-default templates.  You can define your own labels and use them inside
-a template.
+default templates.
+You can define your own labels and use them inside a template.
 .PP
 When an undefined label is expanded, if it has a dot in its name then
-the part after the final dot is used as its value.  Otherwise the
-whole name is used as the value.
+the part after the final dot is used as its value.
+Otherwise the whole name is used as the value.
 .PP
 Labels are no longer documented here, see the shipped \fIoptions.labels\fR file
 instead.
 .SH "REGEXP SUBSTITUTION RULES"
-Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).  The
-only option used is \fBPCRE_UTF8\fR.  Remember that the configuration
-file syntax means you have to escape backslashes and quotes inside
-quoted strings.
+Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
+The only option used is \fBPCRE_UTF8\fR.
+Remember that the configuration file syntax means you have to
+escape backslashes and quotes inside quoted strings.
 .PP
 In a \fISUBST\fR string the following sequences are interpreted
 specially:
@@ -1271,12 +1348,13 @@ All other pairs starting with \fB$\fR are undefined (and might be used
 for something else in the future, so don't rely on the current
 behaviour.)
 .PP
-If \fBi\fR is present in \fIREFLAGS\fR then the match is case-independent.  If
-\fBg\fR is present then all matches are replaced, otherwise only the first
+If \fBi\fR is present in \fIREFLAGS\fR then the match is case-independent.
+If \fBg\fR is present then all matches are replaced, otherwise only the first
 match is replaced.
 .SH "ACTIONS"
 What the web interface actually does is terminated by the \fBaction\fR CGI
-argument.  The values listed below are supported.
+argument.
+The values listed below are supported.
 .PP
 Except as specified, all actions redirect back to the \fBplaying.html\fR
 template unless the \fBback\fR argument is present, in which case the URL it
@@ -1293,8 +1371,8 @@ Play track \fBfile\fR, or if that is missing then play all the tracks in
 .TP
 .B "playing"
 Don't change any state, but instead compute a suitable refresh time and include
-that in an HTTP header.  Expands the \fBplaying.html\fR template rather than
-redirecting.
+that in an HTTP header.
+Expands the \fBplaying.html\fR template rather than redirecting.
 .IP
 This is the default if \fBaction\fR is missing.
 .TP
@@ -1320,13 +1398,13 @@ Remove track \fBid\fR.
 Resumes play after a pause.
 .TP
 .B "scratch"
-Scratch the playing track.  If \fBid\fR is present it must match the playing
-track.
+Scratch the playing track.
+If \fBid\fR is present it must match the playing track.
 .TP
 .B "volume"
 Change the volume by \fBdelta\fR, or if that is missing then set it to the
-values of \fBleft\fR and \fBright\fR.  Expands to the \fBvolume.html\fR template
-rather than redirecting.
+values of \fBleft\fR and \fBright\fR.
+Expands to the \fBvolume.html\fR template rather than redirecting.
 .TP
 .B "prefs"
 Adjust preferences from the \fBprefs.html\fR template (which it then expands
@@ -1334,13 +1412,16 @@ rather than redirecting).
 .IP
 If
 .B parts
-is set then the cooked interface is assumed.  The value of
+is set then the cooked interface is assumed.
+The value of
 .B parts
-is used to determine which trackname preferences are set.  By default the
+is used to determine which trackname preferences are set.
+By default the
 .B display
 context is adjusted but this can be overridden with the
 .B context
-argument.  Also the
+argument.
+Also the
 .B random
 argument is checked; if it is set then random play is enabled for that track,
 otherwise it is disabled.
@@ -1356,17 +1437,18 @@ Otherwise if just the
 argument is set then that preference is deleted.
 .IP
 It is recommended that links to the \fBprefs\fR action use \fB@resolve@\fR to
-enure that the real track name is always used.  Otherwise if the preferences
-page is used to adjust a trackname_ preference, the alias may change, leading
-to the URL going stale.
+enure that the real track name is always used.
+Otherwise if the preferences page is used to adjust a trackname_ preference,
+the alias may change, leading to the URL going stale.
 .TP
 .B "error"
 This action is generated automatically when an error occurs connecting to the
-server.  The \fBerror\fR label is set to an indication of what the error is.
+server.
+The \fBerror\fR label is set to an indication of what the error is.
 .SH "TRACK NAME PARTS"
 The traditional track name parts are \fBartist\fR, \fBalbum\fR and \fBtitle\fR,
-with the obvious intended meaning.  These are controlled by configuration and
-by \fBtrackname_\fR preferences.
+with the obvious intended meaning.
+These are controlled by configuration and by \fBtrackname_\fR preferences.
 .PP
 In addition there are two built-in parts, \fBpath\fR which is the whole path
 name and \fBext\fR which is the filename extension, including the initial dot

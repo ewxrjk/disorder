@@ -25,8 +25,8 @@ disorder-decode \- DisOrder audio decoder
 .I PATH
 .SH DESCRIPTION
 .B disorder-decode
-converts MP3, OGG, FLAC and WAV files into DisOrders "raw" format.  It is
-therefore suitable for use as an
+converts MP3, OGG, FLAC and WAV files into DisOrders "raw" format.
+It is therefore suitable for use as an
 .B execraw
 player.
 .PP
