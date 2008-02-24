@@ -28,7 +28,7 @@ is a daemon which plays audio files and services requests from users
 concerning what is to be played.
 .SH OPTIONS
 .TP
-.B --config \fIPATH\fR, \fB-c \fIPATH
+.B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
 .IR pkgconfdir/config .
@@ -36,26 +36,26 @@ See
 .BR disorder_config (5)
 for further information.
 .TP
-.B --pidfile \fIPATH\fR, \fB-P \fIPATH
+.B \-\-pidfile \fIPATH\fR, \fB\-P \fIPATH
 Write a pidfile.
 .TP
-.B --foreground\fR, \fB-f
+.B \-\-foreground\fR, \fB\-f
 Run in the foreground.
 (By default,
 .B disorderd
 detaches from its terminal and runs in the background.)
 .TP
-.B --syslog\fR, \fB-s
+.B \-\-syslog\fR, \fB\-s
 Log to syslog.
 This is the default if DisOrder runs in the background.
 .TP
-.B --debug\fR, \fB-d
+.B \-\-debug\fR, \fB\-d
 Enable debugging.
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .SH NOTES
 For configuration file documentation, see
@@ -93,7 +93,7 @@ recovery can be used, and indeed the server does this automatically on
 startup).
 .PP
 It is suggested that instead you just back up the output of
-.BR disorder-dump (8),
+.BR disorder\-dump (8),
 which saves only the parts of the database that cannot be regenerated
 automatically, and thus has relatively modest storage requirements.
 .SH SIGNALS
@@ -165,7 +165,7 @@ This prevents multiple instances of DisOrder running simultaneously.
 Current locale.
 See \fBlocale\fR(7).
 .SH "SEE ALSO"
-\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder-dump\fR(8)
+\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder\-dump\fR(8)
 .\" Local Variables:
 .\" mode:nroff
 .\" End:

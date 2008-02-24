@@ -69,7 +69,7 @@ Confirm user registration.
 This command can be used without logging in.
 .TP
 .B cookie \fICOOKIE
-Log a user back in using a cookie created with \fBmake-cookie\fR.
+Log a user back in using a cookie created with \fBmake\-cookie\fR.
 The response contains the username.
 .TP
 .B deluser \fIUSERNAME
@@ -114,7 +114,7 @@ On success the second field of the response line will have the value.
 .IP
 If the track or preference do not exist then the response code is 555.
 .TP
-.B get-global \fIKEY\fR
+.B get\-global \fIKEY\fR
 Get a global preference.
 .IP
 If the preference does not exist then the response code is 555.
@@ -131,7 +131,7 @@ i.e. it will not accumulate in a buffer somewhere).
 .IP
 See \fBEVENT LOG\fR below for more details.
 .TP
-.B make-cookie
+.B make\-cookie
 Returns an opaque string that can be used by the \fBcookie\fR command to log
 this user back in on another connection (until the cookie expires).
 .TP
@@ -212,15 +212,15 @@ Send back the current queue in a response body, one track to a line, the track
 at the head of the queue (i.e. next to be be played) first.
 See below for the track information syntax.
 .TP
-.B random-disable
+.B random\-disable
 Disable random play (but don't stop the current track).
 Requires the \fBglobal prefs\fR right.
 .TP
-.B random-enable
+.B random\-enable
 Enable random play.
 Requires the \fBglobal prefs\fR right.
 .TP
-.B random-enabled
+.B random\-enabled
 Report whether random play is enabled.
 The second field of the response line will be \fByes\fR or \fBno\fR.
 .TP
@@ -263,10 +263,10 @@ Resume the current track after a \fBpause\fR command.
 Requires the \fBpause\fR right.
 .TP
 .B revoke \fBcookie\fR
-Revoke a cookie previously created with \fBmake-cookie\fR.
+Revoke a cookie previously created with \fBmake\-cookie\fR.
 It will not be possible to use this cookie in the future.
 .TP
-.B rtp-address
+.B rtp\-address
 Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
 PORT\fR.
 This command does not require authentication.
@@ -299,7 +299,7 @@ allow searching for phrases.
 Set a preference.
 Requires the \fBprefs\fR right.
 .TP
-.B set-global \fIKEY\fR \fIVALUE\fR
+.B set\-global \fIKEY\fR \fIVALUE\fR
 Set a global preference.
 Requires the \fBglobal prefs\fR right.
 .TP
@@ -313,7 +313,7 @@ Send the list of currently known tags in a response body.
 Unset a preference.
 Requires the \fBprefs\fR right.
 .TP
-.B \fBunset-global\fR \fIKEY\fR
+.B \fBunset\-global\fR \fIKEY\fR
 Unset a global preference.
 Requires the \fBglobal prefs\fR right.
 .TP

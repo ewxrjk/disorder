@@ -282,45 +282,45 @@ Brings up the \fBLogin Details Window\fR.
 Quit.
 .SH "NETWORK PLAY"
 Network play uses a background
-.BR disorder-playrtp (1)
+.BR disorder\-playrtp (1)
 process.
 If you quit Disobedience the player will continue playing and can be
 disabled from a later run of Disobedience.
 .PP
 The player will log to
-.I ~/.disorder/HOSTNAME-rtp.log
+.I ~/.disorder/HOSTNAME\-rtp.log
 so look there if it does not seem to be working.
 .PP
 You can stop it without running Disobedience by the command
-.BR "killall disorder-playrtp" .
+.BR "killall disorder\-playrtp" .
 .SH OPTIONS
 .TP
-.B --config \fIPATH\fR, \fB-c \fIPATH
+.B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
 .IR pkgconfdir/config .
 .TP
-.B --debug\fR, \fB-d
+.B \-\-debug\fR, \fB\-d
 Enable debugging.
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .SS "GTK+ Options"
 Additional options are supported by the GTK+ library.
 Refer to GTK+ documentation for further information.
 Under X11 they include:
 .TP
-.B --display \fIDISPLAY\fR
+.B \-\-display \fIDISPLAY\fR
 The X display to use.
 .TP
-.B --screen \fISCREEN\fR
+.B \-\-screen \fISCREEN\fR
 The screen number to use.
 .\" If know enough to use it you know enough to find it
 .\" .TP
-.\" .B --sync
+.\" .B \-\-sync
 .\" Make all X requests synchronously.
 .SH CONFIGURATION
 If you are using
@@ -343,25 +343,25 @@ There are bound to be bugs.
 Please send feedback.
 .PP
 There is no particular provision for multiple users of the same computer
-sharing a single \fBdisorder-playrtp\fR process.
+sharing a single \fBdisorder\-playrtp\fR process.
 This shouldn't be too much of a problem in practice but something could
 perhaps be done given demand.
 .SH FILES
 .TP
-.I ~/.disorder/HOSTNAME-rtp
+.I ~/.disorder/HOSTNAME\-rtp
 Socket for communication with RTP player.
 .TP
-.I ~/.disorder/HOSTNAME-rtp.log
+.I ~/.disorder/HOSTNAME\-rtp.log
 Log file for RTP player.
 .SH "SEE ALSO"
-.BR disorder-playrtp (1),
+.BR disorder\-playrtp (1),
 .BR disorder_config (5)
 .PP
 .B http://www.greenend.org.uk/rjk/disorder/
 .br
 - DisOrder home page
 .PP
-.B http://www.gtk.org/api/2.6/gtk/gtk-x11.html
+.B http://www.gtk.org/api/2.6/gtk/gtk\-x11.html
 .br
 - Using GTK+ on the X Window System
 .\" Local Variables:

@@ -18,57 +18,57 @@
 .\"
 .TH disorder-dump 8
 .SH NAME
-disorder-dump \- DisOrder dump/undump tool
+disorder\-dump \- DisOrder dump/undump tool
 .SH SYNOPSIS
-.B disorder-dump
+.B disorder\-dump
 .RI [ OPTIONS ]
-.BR --dump | --undump
+.BR \-\-dump | \-\-undump
 .I PATH
 .br
-.B disorder-dump
+.B disorder\-dump
 .RI [ OPTIONS ]
-.BR --recompute-aliases
+.BR \-\-recompute\-aliases
 .SH DESCRIPTION
-.B disorder-dump
+.B disorder\-dump
 is used to dump and restore preferences data.
 .SH OPTIONS
 .TP
-.B --dump
+.B \-\-dump
 Write preferences data to \fIPATH\fR.
 This can safely be used whether or not the server is running.
 .TP
-.B --undump
+.B \-\-undump
 Read preferences data from \fIPATH\fR, replacing (unrecoverably) the
 current settings.
 This should normally only be done while the server is not running.
 .IP
 If the server is running then it may hang while the undump completes.
 .TP
-.B --recover
+.B \-\-recover
 Perform database recovery at startup.
 The server should not be running if this option is used.
 .TP
-.B --recompute-aliases
+.B \-\-recompute\-aliases
 Recompute aliases without dumping or undumping the databases.
 Under normal circumstances this is never necessary.
 .TP
-.B --remove-pathless
+.B \-\-remove\-pathless
 Remove tracks with no associated path when undumping or when
 recomputing aliases.
 In normal use such tracks are all aliases.
 .TP
-.B --config \fIPATH\fR, \fB-c \fIPATH
+.B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
 .IR /etc/disorder/config .
 .TP
-.B --debug\fR
+.B \-\-debug\fR
 Enable debugging.
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .SH NOTES
 This program might be used for a number of purposes:
@@ -81,7 +81,7 @@ Indoctrinating one DisOrder server with the preference values of
 another.
 .PP
 The output file is versioned, so versions produced from a future
-version of DisOrder may be rejected by \fB--undump\fR.
+version of DisOrder may be rejected by \fB\-\-undump\fR.
 It has an end marker so truncated inputs will also be rejected.
 .PP
 The input or output file must be a regular file, as it may be rewound
@@ -94,7 +94,7 @@ anything else accessing the databases.
 The server performs normal database recovery on startup.
 However if the database needs normal recovery before an undump can succeed and
 you don't want to start the server for some reason then the
-.B --recover
+.B \-\-recover
 operation is available for this purpose.
 No other process should be accessing the database at the time.
 .PP

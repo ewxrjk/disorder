@@ -22,7 +22,7 @@ disorder \- DisOrder jukebox client
 .SH SYNOPSIS
 .B disorder
 .RI [ OPTIONS ]
-.RB [ -- ]
+.RB [ \-\- ]
 .RI [ COMMANDS ...]
 .SH DESCRIPTION
 .B disorder
@@ -37,21 +37,21 @@ This can be used to test whether the daemon is running.
 Otherwise, it executes the commands specified.
 .SH OPTIONS
 .TP
-.B --config \fIPATH\fR, \fB-c \fIPATH
+.B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
 .IR pkgconfdir/config .
 .TP
-.B --debug\fR, \fB-d
+.B \-\-debug\fR, \fB\-d
 Enable debugging.
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .TP
-.B --help-commands\fR, \fB-H
+.B \-\-help\-commands\fR, \fB\-H
 List all known commands.
 .SH COMMANDS
 .TP
@@ -100,10 +100,10 @@ Only files with a basename matching the regexp will be returned.
 .B get \fITRACK\fR \fIKEY\fR
 Display the preference \fIKEY\fR for \fITRACK\fR.
 .TP
-.B get-global \fIKEY\fR
+.B get\-global \fIKEY\fR
 Get a global preference.
 .TP
-.B get-volume
+.B get\-volume
 Display the current volume settings.
 .TP
 .B length \fITRACK\fR
@@ -123,7 +123,7 @@ Positive values move towards the head of the queue, negative
 values towards the tail.
 .IP
 Note that if you specify a negative value then the
-.B --
+.B \-\-
 option separate (before all commands) becomes mandatory, as otherwise the
 negative value is misinterpreted an an option.
 .TP
@@ -151,10 +151,10 @@ Display all the preferences for \fITRACK\fR.
 List the current queue.
 The first entry in the list is the next track to play.
 .TP
-.B random-disable
+.B random\-disable
 Disable random play.
 .TP
-.B random-enable
+.B random\-enable
 Enable random play.
 .TP
 .B recent
@@ -179,13 +179,13 @@ Resolve aliases for \fITRACK\fR and print out the real track name.
 .B resume
 Resume the current track after a pause.
 .TP
-.B rtp-address
+.B rtp\-address
 Report the RTP brodcast address used by the server (if any).
 .TP
 .B scratch
 Scratch the currently playing track.
 .TP
-.B scratch-id \fIID\fR
+.B scratch\-id \fIID\fR
 Scratch the currently playing track, provided it has the given ID.
 .TP
 .B search \fITERMS\fR
@@ -204,19 +204,19 @@ For example:
 .B set \fITRACK\fR \fIKEY\fR \fIVALUE\fR
 Set the preference \fIKEY\fR for \fITRACK\fR to \fIVALUE\fR.
 .TP
-.B set-global \fIKEY\fR \fIVALUE\fR
+.B set\-global \fIKEY\fR \fIVALUE\fR
 Set a global preference.
 .TP
-.B set-volume \fBLEFT\fR \fBRIGHT\fR
+.B set\-volume \fBLEFT\fR \fBRIGHT\fR
 Set the volume.
 .TP
-.B setup-guest \fR[\fB--no-online-registration\fR]
+.B setup\-guest \fR[\fB\-\-no\-online\-registration\fR]
 Create the "guest" user for use by the web interface.
 This user will have no password and will only have the "read" and
 "register" rights, the latter allowing new users to automatically
 register themselves via the web interface.
 .IP
-With the option \fB--no-online-registration\fR, the "register" right is
+With the option \fB\-\-no-online\-registration\fR, the "register" right is
 suppressed and users must be manually created by an administrator.
 .IP
 If online registration is desired then \fBmail_sender\fR must be set in the
@@ -235,7 +235,7 @@ List known tags.
 .B unset \fITRACK\fR \fIKEY\fR
 Unset the preference \fIKEY\fR for \fITRACK\fR.
 .TP
-.B unset-global \fIKEY\fR
+.B unset\-global \fIKEY\fR
 Unset the global preference \fIKEY\fR.
 .TP
 .B userinfo \fIUSER PROPERTY
@@ -284,9 +284,9 @@ Tags can contain any printing character except comma.
 Leading and trailing spaces are not significant but internal spaces are.
 .IP
 Using the
-.B required-tags
+.B required\-tags
 and
-.B prohibited-tags
+.B prohibited\-tags
 global preferences, it is possible to limit the tracks that will be selected at
 random.
 .TP

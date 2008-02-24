@@ -355,7 +355,7 @@ If no \fIMODULE\fR is specified then \fBfs\fR is assumed.
 .IP
 \fIENCODING\fR defines the encoding of filenames in this collection.
 For \fBfs\fR this would be the encoding you use for filenames.
-Examples might be \fBiso-8859-1\fR or \fButf-8\fR.
+Examples might be \fBiso\-8859\-1\fR or \fButf\-8\fR.
 If no encoding is specified then the current locale's character encoding
 is used.
 .IP
@@ -509,20 +509,20 @@ The maximum days that a track can survive in the database of newly added
 tracks.
 The default is 31.
 .TP
-.B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB--\fR]] \fIARGS\fR...
+.B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB\-\-\fR]] \fIARGS\fR...
 Specifies the player for files matching the glob \fIPATTERN\fR.
 \fIMODULE\fR specifies which plugin module to use.
 .IP
 The following options are supported:
 .RS
 .TP
-.B --wait-for-device\fR[\fB=\fIDEVICE\fR]
+.B \-\-wait\-for\-device\fR[\fB=\fIDEVICE\fR]
 Waits (for up to a couple of seconds) for the default, or specified, libao
 device to become openable.
 .TP
-.B --
+.B \-\-
 Defines the end of the list of options.
-Needed if the first argument to the plugin starts with a "-".
+Needed if the first argument to the plugin starts with a "\-".
 .RE
 .IP
 The following are the standard modules:
@@ -621,8 +621,8 @@ Signals are specified by their full C name, i.e. \fBSIGINT\fR and not \fBINT\fR
 or \fBInterrupted\fR or whatever.
 .TP
 .B sox_generation \fB0\fR|\fB1
-Determines whether calls to \fBsox\fR(1) should use \fB-b\fR, \fB-x\fR, etc (if
-the generation is 0) or \fB-\fIbits\fR, \fB-L\fR etc (if it is 1).
+Determines whether calls to \fBsox\fR(1) should use \fB\-b\fR, \fB\-x\fR, etc (if
+the generation is 0) or \fB\-\fIbits\fR, \fB\-L\fR etc (if it is 1).
 See the documentation for your installed copy of \fBsox\fR to determine
 which you need.
 The default is 0.
@@ -760,13 +760,13 @@ Specify password.
 Specify username.
 The default is taken from the environment variable \fBLOGNAME\fR.
 .SH "GLOBAL PREFERENCES"
-These are the values set with \fBset-global\fR.
+These are the values set with \fBset\-global\fR.
 .TP
-.B required-tags
+.B required\-tags
 If this is set an nonempty then randomly played tracks will always have at
 least one of the listed tags.
 .TP
-.B prohibited-tags
+.B prohibited\-tags
 If this is set an nonempty then randomly played tracks will never have any of
 the listed tags.
 .TP
@@ -775,7 +775,7 @@ If unset or \fByes\fR then play is enabled.
 Otherwise it is disabled.
 Use \fBdisable\fR rather than setting it directly.
 .TP
-.B random-play
+.B random\-play
 If unset or \fByes\fR then random play is enabled.
 Otherwise it is disabled.
 Use \fBdisable\fR rather than setting it directly.
@@ -1122,7 +1122,7 @@ Expands \fITEMPLATE\fR repeatedly using the each track on the queue in turn as
 the current track.
 The track at the head of the queue comes first.
 .TP
-.B @random-enabled@
+.B @random\-enabled@
 Expands to \fBtrue\fR if random play is currently enabled, otherwise to
 \fBfalse\fR.
 .TP
@@ -1168,7 +1168,7 @@ Usually you want \fBdisplay\fR for everything except the title and
 If you use \fBsort\fR for artist and album then you are likely to get
 strange effects.
 .TP
-.B @server-version@
+.B @server\-version@
 Expands to the server's version string.
 .TP
 .B @shell{\fICOMMAND\fB}@
@@ -1376,10 +1376,10 @@ Expands the \fBplaying.html\fR template rather than redirecting.
 .IP
 This is the default if \fBaction\fR is missing.
 .TP
-.B "random-disable"
+.B "random\-disable"
 Disables random play.
 .TP
-.B "random-enable"
+.B "random\-enable"
 Enables random play.
 .TP
 .B "disable"
@@ -1454,7 +1454,7 @@ In addition there are two built-in parts, \fBpath\fR which is the whole path
 name and \fBext\fR which is the filename extension, including the initial dot
 (or the empty string if there is not extension).
 .SH "SEE ALSO"
-\fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder-dump\fR(8),
+\fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder\-dump\fR(8),
 \fBpcrepattern\fR(3)
 .\" Local Variables:
 .\" mode:nroff

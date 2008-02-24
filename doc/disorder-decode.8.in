@@ -21,10 +21,10 @@
 .SH NAME
 disorder-decode \- DisOrder audio decoder
 .SH SYNOPSIS
-.B disorder-decode
+.B disorder\-decode
 .I PATH
 .SH DESCRIPTION
-.B disorder-decode
+.B disorder\-decode
 converts MP3, OGG, FLAC and WAV files into DisOrders "raw" format.
 It is therefore suitable for use as an
 .B execraw
@@ -33,10 +33,10 @@ player.
 It is not intended to be used from the command line.
 .SH OPTIONS
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .SH LIMITATIONS
 OGG files with multiple bitstreams are not supported.

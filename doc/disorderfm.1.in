@@ -36,19 +36,19 @@ This program is not well-tested!
 .SH OPTIONS
 .SS "Filename Format"
 .TP
-.B --from\fI ENCODING\fR, \fB-f\fI ENCODING
+.B \-\-from\fI ENCODING\fR, \fB\-f\fI ENCODING
 Specifies the filename encoding used below
 .IR SOURCE .
 .TP
-.B --to\fI ENCODING\fR, \fB-t\fI ENCODING
+.B \-\-to\fI ENCODING\fR, \fB\-t\fI ENCODING
 Specifies the filename encoding used below
 .IR DESTINATION .
 .PP
-If neither of \fB--from\fR or \fB--to\fR are specified then no encoding
+If neither of \fB\-\-from\fR or \fB\-\-to\fR are specified then no encoding
 translation is performed.
 If only one is specified then the other is set to the current locale.
 .TP
-.B --windows-friendly\fR, \fB-w
+.B \-\-windows\-friendly\fR, \fB\-w
 Specifies that filenames below
 .I DESTINATION
 must be Windows-friendly.
@@ -57,45 +57,45 @@ device names with '_' and stripping trailing dots and
 spaces.
 .SS "File Selection"
 .TP
-.B --include\fI PATTERN\fR, \fB-i\fI PATTERN
+.B \-\-include\fI PATTERN\fR, \fB\-i\fI PATTERN
 Include filenames matching the glob pattern \fIPATTERN\fR.
 .TP
-.B --exclude\fI PATTERN\fR, \fB-e\fI PATTERN
+.B \-\-exclude\fI PATTERN\fR, \fB\-e\fI PATTERN
 Exclude filenames matching the glob pattern \fIPATTERN\fR.
 .PP
 These options may be used more than once.
 They will be checked in order and the first that matches any given
 filename will determine whether that file is included or excluded.
 .PP
-If none of the options match and \fB--include\fR was used at all then the file
+If none of the options match and \fB\-\-include\fR was used at all then the file
 is excluded.
-If none of the options match and \fB--include\fR was never used then the file
+If none of the options match and \fB\-\-include\fR was never used then the file
 is included.
 .SS "File Copying"
 .TP
-.B --link\fR, \fB-l
+.B \-\-link\fR, \fB\-l
 Files are hard-linked to their destination location.
 This is the default action.
 .TP
-.B --symlink\fR, \fB-s
+.B \-\-symlink\fR, \fB\-s
 Symlinks are made in the destination location pointing back into the source
 directory.
 .TP
-.B --copy\fR, \fB-c
+.B \-\-copy\fR, \fB\-c
 Files are copied into their destination location.
 .TP
-.B --no-action\fR, \fB-n
+.B \-\-no\-action\fR, \fB\-n
 The destination location is not modified in any way.
 Instead a report is written to standard output saying what would be done.
 .SS "Other"
 .TP
-.B --debug\fR, \fB-d
+.B \-\-debug\fR, \fB\-d
 Enable debugging.
 .TP
-.B --help\fR, \fB-h
+.B \-\-help\fR, \fB\-h
 Display a usage message.
 .TP
-.B --version\fR, \fB-V
+.B \-\-version\fR, \fB\-V
 Display version number.
 .\" Local Variables:
 .\" mode:nroff
