@@ -99,6 +99,9 @@ struct speaker_message {
  * initialization. */
 #define SM_READY 132
 
+/** @brief Cancelled track @c id which wasn't playing */
+#define SM_STILLBORN 133
+
 void speaker_send(int fd, const struct speaker_message *sm);
 /* Send a message. */
 

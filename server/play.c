@@ -111,13 +111,9 @@ static int speaker_readable(ev_source *ev, int fd,
     D(("SM_PAUSED %s %ld", sm.id, sm.data));
     playing->sofar = sm.data;
     break;
-  case SM_FINISHED:
-    /* the playing track finished */
-    D(("SM_FINISHED %s", sm.id));
-    finished(ev);
-    break;
-  case SM_UNKNOWN:
-    /* we asked for an unknown track to be cancelled */
+  case SM_FINISHED:			/* scratched the playing track */
+  case SM_STILLBORN:			/* scratched too early */
+  case SM_UNKNOWN:			/* scratched WAY too early */
     if(playing && !strcmp(sm.id, playing->id))
       finished(ev);
     break;

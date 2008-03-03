@@ -553,21 +553,31 @@ static void mainloop(void) {
           report();
 	  break;
 	case SM_CANCEL:
-          D(("SM_CANCEL %s",  sm.id));
+          D(("SM_CANCEL %s", sm.id));
 	  t = removetrack(sm.id);
 	  if(t) {
 	    if(t == playing) {
+              /* scratching the playing track */
               sm.type = SM_FINISHED;
-              strcpy(sm.id, playing->id);
-              speaker_send(1, &sm);
 	      playing = 0;
+            } else {
+              /* Could be scratching the playing track before it's quite got
+               * going, or could be just removing a track from the queue.  We
+               * log more because there's been a bug here recently than because
+               * it's particularly interesting; the log message will be removed
+               * if no further problems show up. */
+              info("SM_CANCEL for nonplaying track %s", sm.id);
+              sm.type = SM_STILLBORN;
             }
+            strcpy(sm.id, t->id);
 	    destroy(t);
 	  } else {
+            /* Probably scratching the playing track well before it's got
+             * going, but could indicate a bug, so we log this as an error. */
             sm.type = SM_UNKNOWN;
-            speaker_send(1, &sm);
 	    error(0, "SM_CANCEL for unknown track %s", sm.id);
           }
+          speaker_send(1, &sm);
           report();
 	  break;
 	case SM_RELOAD:
