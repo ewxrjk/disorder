@@ -48,6 +48,9 @@ For the web interface to work you will additionally need a web server.  I've
 had both Apache 1.3.x and 2.x working.  Anything that supports CGI should be
 OK.
 
+Bug tracker, etc:
+  http://code.google.com/p/disorder/
+
 Mailing lists:
   http://www.chiark.greenend.org.uk/mailman/listinfo/sgo-software-discuss
    - discussion of DisOrder (and other software), bug reports, etc
