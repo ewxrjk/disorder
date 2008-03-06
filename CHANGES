@@ -18,6 +18,8 @@ How sound is played is now controlled via the new 'api' configuration
 command.  This also controls how the volume is set, which now works with
 ALSA as well as OSS.
 
+A bug in the MP3 decoder was fixed (also in 2.0.4).
+
 ** Web Interface
 
 The web interface now uses cookies to remember user identity, and allows
