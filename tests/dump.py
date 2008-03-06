@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007 Richard Kettlewell
+# Copyright (C) 2007, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ def test():
     """Exercise database dumper"""
     dtest.start_daemon()
     dtest.create_user()
+    dtest.rescan()
     c = disorder.client()
     track = "%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     dump = "%s/dumpfile" % dtest.testroot

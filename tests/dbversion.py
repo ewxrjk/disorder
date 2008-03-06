@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007 Richard Kettlewell
+# Copyright (C) 2007, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ def test():
     open(config, "a").write("dbversion 1\n")
     dtest.start_daemon()
     dtest.create_user()
+    dtest.rescan()
     dtest.stop_daemon()
     # Revert to default configuration
     dtest.copyfile(configsave, config)

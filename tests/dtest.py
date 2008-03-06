@@ -1,7 +1,7 @@
 #-*-python-*-
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007 Richard Kettlewell
+# Copyright (C) 2007 ,2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -269,6 +269,19 @@ def create_user(username="fred", password="fredpass"):
              "--config", disorder._configfile, "--no-per-user-config",
              "--user", "root", "edituser", username, "rights", "all"])
 
+def rescan(c=None):
+    class rescan_monitor(disorder.monitor):
+        def rescanned(self):
+            return False
+    if c is None:
+        c = disorder.client()
+    m = rescan_monitor()
+    print " initiating rescan"
+    c.rescan()
+    print " waiting for rescan to complete"
+    m.run()
+    print " rescan completed"
+
 def stop_daemon():
     """stop_daemon()
 
@@ -353,28 +366,30 @@ def lists_have_same_contents(l1, l2):
     s2 = []
     s2.extend(l2)
     s2.sort()
-    return s1 == s2
+    return map(nfc, s1) == map(nfc, s2)
 
-def check_files():
+def check_files(chatty=True):
     c = disorder.client()
     failures = 0
     for d in dirs_by_dir:
         xdirs = dirs_by_dir[d]
         dirs = c.directories(d)
         if not lists_have_same_contents(xdirs, dirs):
-            print
-            print "directory: %s" % d
-            print "expected:  %s" % xdirs
-            print "got:       %s" % dirs
+            if chatty:
+                print
+                print "directory: %s" % d
+                print "expected:  %s" % xdirs
+                print "got:       %s" % dirs
             failures += 1
     for d in files_by_dir:
         xfiles = files_by_dir[d]
         files = c.files(d)
         if not lists_have_same_contents(xfiles, files):
-            print
-            print "directory: %s" % d
-            print "expected:  %s" % xfiles
-            print "got:       %s" % files
+            if chatty:
+                print
+                print "directory: %s" % d
+                print "expected:  %s" % xfiles
+                print "got:       %s" % files
             failures += 1
     return failures
 

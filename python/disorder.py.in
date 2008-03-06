@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
+# Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -479,15 +479,12 @@ class client:
     """
     self._simple("reconfigure")
 
-  def rescan(self, pattern):
+  def rescan(self):
     """Rescan one or more collections.
-
-    Arguments:
-    pattern -- glob pattern matching collections to rescan.
 
     Only trusted users can perform this operation.
     """
-    self._simple("rescan", pattern)
+    self._simple("rescan")
 
   def version(self):
     """Return the server's version number."""
@@ -1100,6 +1097,8 @@ class monitor:
     elif keyword == 'scratched':
       if len(bits) == 2:
         return self.scratched(bits[0], bits[1])
+    elif keyword == 'rescanned':
+      return self.rescanned()
     return self.invalid(line)
 
   def completed(self, track):
@@ -1177,6 +1176,10 @@ class monitor:
 
     Arguments:
     line -- line that could not be understood"""
+    return True
+
+  def rescanned(self):
+    """Called when a rescan completes"""
     return True
 
 # Local Variables:
