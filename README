@@ -71,8 +71,9 @@ IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
 Debian/Ubuntu: steps 1 to 6 are dealt with automatically if you use the .deb
 files.
 
-OX X/FreeBSD/other Linux: after installation (step 1) 'sudo bash scripts/setup'
-covers steps 3 to 6.  If it doesn't work on your platform, please get in touch.
+OX X/FreeBSD/other Linux: after installation (step 1 and 2), running
+'sudo bash scripts/setup' will cover steps 3 to 6.  If it doesn't work on your
+platform, please get in touch.
 
 1. Build the software.  Do something like this:
 
