@@ -36,6 +36,7 @@
 #include "configuration.h"
 #include "rights.h"
 #include "trackdb.h"
+#include "version.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -64,13 +65,6 @@ static void help(void) {
   exit(0);
 }
 
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
-  xfclose(stdout);
-  exit(0);
-}
-
 int main(int argc, char **argv) {
   int n, logsyslog = !isatty(2);
   char **stats;
@@ -81,7 +75,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-stats");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;
