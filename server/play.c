@@ -392,7 +392,7 @@ static int start(ev_source *ev,
 	fatal(errno, "error calling socketpair");
       /* Beware of the Leopard!  On OS X 10.5.x, the order of the shutdown
        * calls here DOES MATTER.  If you do the SHUT_WR first then the SHUT_RD
-       * fails iwth "Socket is not connected".  I think this is a bug but
+       * fails with "Socket is not connected".  I think this is a bug but
        * provided implementors either don't care about the order or all agree
        * about the order, choosing the reliable order is an adequate
        * workaround.  */
