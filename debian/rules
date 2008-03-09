@@ -48,15 +48,14 @@ export INSTALL_PROGRAM
 LIBTOOL=./libtool
 FAKEROOT=fakeroot
 
-.PHONY: build
 # ./prepare is the script that generates configure etc.  It only needs to be
 # run if building from a checkout rather than a tarball.
 build:
-	@if test ! -f configure; then \
+	@set -e;if test ! -f configure; then \
 	  echo ./prepare;\
 	  ./prepare;\
 	fi
-	@if test ! -f config.status; then \
+	@set -e;if test ! -f config.status; then \
 	  echo ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\
 	  ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\
 	else\
@@ -65,11 +64,6 @@ build:
 	fi
 	$(MAKE)
 
-.PHONY: cleanpkg-disorder
-cleanpkg-disorder:
-	rm -rf debian/disorder
-
-.PHONY: pkg-disorder
 pkg-disorder: build
 	rm -rf debian/disorder
 	$(MKDIR) debian/disorder
@@ -115,12 +109,6 @@ pkg-disorder: build
 	chmod -R g-ws debian/disorder
 	dpkg --build debian/disorder ..
 
-
-.PHONY: cleanpkg-disorder-server
-cleanpkg-disorder-server:
-	rm -rf debian/disorder-server
-
-.PHONY: pkg-disorder-server
 pkg-disorder-server: build
 	rm -rf debian/disorder-server
 	$(MKDIR) debian/disorder-server
@@ -172,12 +160,6 @@ pkg-disorder-server: build
 	chmod -R g-ws debian/disorder-server
 	dpkg --build debian/disorder-server ..
 
-
-.PHONY: cleanpkg-disorder-playrtp
-cleanpkg-disorder-playrtp:
-	rm -rf debian/disorder-playrtp
-
-.PHONY: pkg-disorder-playrtp
 pkg-disorder-playrtp: build
 	rm -rf debian/disorder-playrtp
 	$(MKDIR) debian/disorder-playrtp
@@ -212,12 +194,6 @@ pkg-disorder-playrtp: build
 	chmod -R g-ws debian/disorder-playrtp
 	dpkg --build debian/disorder-playrtp ..
 
-
-.PHONY: cleanpkg-disobedience
-cleanpkg-disobedience:
-	rm -rf debian/disobedience
-
-.PHONY: pkg-disobedience
 pkg-disobedience: build
 	rm -rf debian/disobedience
 	$(MKDIR) debian/disobedience
@@ -255,7 +231,6 @@ pkg-disobedience: build
 	chmod -R g-ws debian/disobedience
 	dpkg --build debian/disobedience ..
 
-
 DEBVERSION:=$(shell dpkg-parsechangelog|awk '/Version:/ {print $$2}')
 DSC=disorder_$(DEBVERSION).dsc
 DEBSRC=disorder_$(DEBVERSION).tar.gz
@@ -273,16 +248,20 @@ source-check: source
 	dpkg-source -x $(DSC)
 	cd disorder-$(DEBVERSION) && dpkg-buildpackage -r$(FAKEROOT)
 
-.PHONY: source source-check
-
-.PHONY: binary binary-arch binary-indep
 binary: binary-arch binary-indep
-binary-arch:  pkg-disorder pkg-disorder-server pkg-disorder-playrtp pkg-disobedience
+binary-arch: pkg-disorder pkg-disorder-server pkg-disorder-playrtp \
+	     pkg-disobedience
 binary-indep: 
 
-.PHONY: clean
-clean:  cleanpkg-disorder cleanpkg-disorder-server cleanpkg-disorder-playrtp cleanpkg-disobedience
+clean:
 	-$(MAKE) distclean
 	rm -f config.cache
 	rm -f debian/files
 	rm -f debian/substvars.*
+	rm -rf debian/disorder
+	rm -rf debian/disorder-server
+	rm -rf debian/disorder-playrtp
+	rm -rf debian/disobedience
+
+.PHONY: clean build pkg-disorder pkg-disorder-server pkg-disorder-playrtp \
+	pkg-disobedience source source-check binary binary-arch binary-indep

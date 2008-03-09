@@ -5,7 +5,9 @@ Packaged by:
   Richard Kettlewell <rjk@greenend.org.uk>
 
 DisOrder - select and play digital audio files
-Copyright (C) 2003, 2004, 2005, 2006, 2007 Richard Kettlewell
+Copyright (C) 2003-2008 Richard Kettlewell
+Portions copyright (C) 2007 Ross Younger
+Portions copyright (C) 2007 Mark Wooding
 Portions extracted from MPG321, http://mpg321.sourceforge.net/
   Copyright (C) 2001 Joe Drew
   Copyright (C) (C) 2000-2001 Robert Leslie
