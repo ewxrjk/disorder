@@ -38,6 +38,7 @@
 #include "charset.h"
 #include "defs.h"
 #include "mem.h"
+#include "version.h"
 
 /* Arguments etc ----------------------------------------------------------- */
 
@@ -123,13 +124,6 @@ static void help(void) {
 "  --help, -h              Display usage message\n"
 "  --version, -V           Display version number\n");
   /* TODO: tag extraction stuff when implemented */
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -356,7 +350,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVdf:t:i:e:ET:u:wlscn", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorderfm");
     case 'd': debugging = 1; break;
     case 'f': fromencoding = optarg; break;
     case 't': toencoding = optarg; break;

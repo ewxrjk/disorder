@@ -140,7 +140,7 @@ server/index.html
 .DS_Store
 tests/disorder-udplog
 lib/version-string
-lib/version.h
+lib/versionstring.h
 scripts/setup
 examples/disorder.rc
 scripts/teardown

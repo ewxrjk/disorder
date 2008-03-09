@@ -53,6 +53,7 @@
 #include "defs.h"
 #include "authorize.h"
 #include "vector.h"
+#include "version.h"
 
 static disorder_client *client;
 
@@ -80,13 +81,6 @@ static void help(void) {
 	  "  --config PATH, -c PATH  Set configuration file\n"
 	  "  --local, -l             Force connection to local server\n"
 	  "  --debug, -d             Turn on debugging\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -622,7 +616,7 @@ int main(int argc, char **argv) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
-    case 'V': version();
+    case 'V': version("disorder");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'l': local = 1; break;

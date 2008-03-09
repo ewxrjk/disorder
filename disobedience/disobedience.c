@@ -23,6 +23,7 @@
 
 #include "disobedience.h"
 #include "mixer.h"
+#include "version.h"
 
 #include <getopt.h>
 #include <locale.h>
@@ -407,13 +408,6 @@ static void help(void) {
   exit(0);
 }
 
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
-  xfclose(stdout);
-  exit(0);
-}
-
 /* reset state */
 void reset(void) {
   struct reset_callback_node *r;
@@ -454,7 +448,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disobedience");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 't': goesupto = 11; break;

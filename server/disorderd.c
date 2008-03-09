@@ -57,6 +57,7 @@
 #include "mixer.h"
 #include "eventlog.h"
 #include "printf.h"
+#include "version.h"
 
 static ev_source *ev;
 
@@ -89,13 +90,6 @@ static void help(void) {
 	  "  --foreground, -f         Do not become a daemon\n"
 	  "  --syslog, -s             Log to syslog even with -f\n"
 	  "  --pidfile PATH, -P PATH  Leave a pidfile\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -217,7 +211,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dfP:Ns", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorderd");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'f': background = 0; break;

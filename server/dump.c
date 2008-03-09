@@ -46,6 +46,7 @@
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "charset.h"
+#include "version.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -78,13 +79,6 @@ static void help(void) {
 	  "  --recompute-aliases, -a  Recompute aliases\n"
 	  "  --remove-pathless, -P    Remove pathless tracks\n"
 	  "  --debug                  Debug mode\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -454,7 +448,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDutsrRaP", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-dump");
     case 'c': configfile = optarg; break;
     case 'd': dump = 1; break;
     case 'u': undump = 1; break;

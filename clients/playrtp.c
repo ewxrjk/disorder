@@ -85,6 +85,7 @@
 #include "client.h"
 #include "playrtp.h"
 #include "inputline.h"
+#include "version.h"
 
 #define readahead linux_headers_are_borked
 
@@ -531,13 +532,6 @@ static void help(void) {
   exit(0);
 }
 
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
-  xfclose(stdout);
-  exit(0);
-}
-
 int main(int argc, char **argv) {
   int n, err;
   struct addrinfo *res;
@@ -574,7 +568,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:r", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-playrtp");
     case 'd': debugging = 1; break;
     case 'D': device = optarg; break;
     case 'm': minbuffer = 2 * atol(optarg); break;

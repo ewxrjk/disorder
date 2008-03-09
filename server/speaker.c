@@ -35,7 +35,7 @@
  * this is arranged by the @c disorder-normalize program (see @ref
  * server/normalize.c).
  *
- * @b Garbage @b Collection.  This program deliberately does not use the
+7 * @b Garbage @b Collection.  This program deliberately does not use the
  * garbage collector even though it might be convenient to do so.  This is for
  * two reasons.  Firstly some sound APIs use thread threads and we do not want
  * to have to deal with potential interactions between threading and garbage
@@ -80,6 +80,7 @@
 #include "user.h"
 #include "speaker.h"
 #include "printf.h"
+#include "version.h"
 
 /** @brief Linked list of all prepared tracks */
 struct track *tracks;
@@ -138,13 +139,6 @@ static void help(void) {
           "\n"
           "Speaker process for DisOrder.  Not intended to be run\n"
           "directly.\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* Display version number and terminate. */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -620,7 +614,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-speaker");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;

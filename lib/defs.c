@@ -59,7 +59,7 @@ const char finkbindir[] = FINKBINDIR;
 /** @brief Package documentation directory */
 const char docdir[] = DOCDIR;
 
-#include "version.h"
+#include "versionstring.h"
 
 /*
 Local Variables:

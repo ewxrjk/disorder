@@ -50,6 +50,7 @@
 #include "defs.h"
 #include "wav.h"
 #include "speaker-protocol.h"
+#include "version.h"
 
 /** @brief Encoding lookup table type */
 struct decoder {
@@ -444,13 +445,6 @@ static void help(void) {
   exit(0);
 }
 
-/* Display version number and terminate. */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
-  xfclose(stdout);
-  exit(0);
-}
-
 int main(int argc, char **argv) {
   int n;
   const char *e;
@@ -460,7 +454,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hV", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-decode");
     default: fatal(0, "invalid option");
     }
   }

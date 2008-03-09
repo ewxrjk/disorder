@@ -40,6 +40,7 @@
 #include "mem.h"
 #include "configuration.h"
 #include "unicode.h"
+#include "version.h"
 
 static DB_TXN *global_tid;
 
@@ -81,13 +82,6 @@ static void help(void) {
           "\n"
           "Database upgrader for DisOrder.  Not intended to be run\n"
           "directly.\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -343,7 +337,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDSsxX", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-dbupgrade");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;

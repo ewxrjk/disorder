@@ -74,6 +74,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	unidata.h unidata.c				\
 	vacopy.h					\
 	vector.c vector.h				\
+	version.c version.h				\
 	wav.h wav.c					\
 	wstat.c wstat.h					\
 	disorder.h
@@ -84,7 +85,7 @@ version-string: ../config.status ${top_srcdir}/scripts/make-version-string
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi
 
-version.h: version-string ${top_srcdir}/scripts/text2c
+versionstring.h: version-string ${top_srcdir}/scripts/text2c
 	${top_srcdir}/scripts/text2c -extern disorder_version_string \
 		version-string > $@.new
 	@if cmp $@.new $@; then \
@@ -104,8 +105,8 @@ definitions.h: Makefile
 	@if cmp $@.new $@; then \
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi
-defs.o: definitions.h version.h
-defs.lo: definitions.h version.h
+defs.o: definitions.h versionstring.h
+defs.lo: definitions.h versionstring.h
 
 test_SOURCES=test.c memgc.c test.h t-addr.c t-basen.c t-cache.c		\
 	t-casefold.c t-cookies.c t-filepart.c t-hash.c t-heap.c		\

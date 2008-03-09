@@ -52,6 +52,7 @@
 #include "trackdb-int.h"
 #include "trackname.h"
 #include "unicode.h"
+#include "version.h"
 
 static DB_TXN *global_tid;
 
@@ -82,13 +83,6 @@ static void help(void) {
           "\n"
           "Rescanner for DisOrder.  Not intended to be run\n"
           "directly.\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -398,7 +392,7 @@ int main(int argc, char **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDSsKC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-rescan");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;

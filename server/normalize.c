@@ -42,6 +42,7 @@
 #include "configuration.h"
 #include "speaker-protocol.h"
 #include "defs.h"
+#include "version.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -67,13 +68,6 @@ static void help(void) {
           "\n"
           "Audio format normalizer for DisOrder.  Not intended to be run\n"
           "directly.\n");
-  xfclose(stdout);
-  exit(0);
-}
-
-/* display version number and terminate */
-static void version(void) {
-  xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
 }
@@ -157,7 +151,7 @@ int main(int argc, char attribute((unused)) **argv) {
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
-    case 'V': version();
+    case 'V': version("disorder-normalize");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'D': debugging = 0; break;
