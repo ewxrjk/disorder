@@ -373,6 +373,7 @@ static int start(ev_source *ev,
   switch(pid = fork()) {
   case 0:			/* child */
     exitfn = _exit;
+    progname = "disorderd-fork";
     ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
     if(lfd != -1) {
@@ -389,8 +390,14 @@ static int start(ev_source *ev,
       /* np will be the pipe to disorder-normalize */
       if(socketpair(PF_UNIX, SOCK_STREAM, 0, np) < 0)
 	fatal(errno, "error calling socketpair");
-      xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
+      /* Beware of the Leopard!  On OS X 10.5.x, the order of the shutdown
+       * calls here DOES MATTER.  If you do the SHUT_WR first then the SHUT_RD
+       * fails iwth "Socket is not connected".  I think this is a bug but
+       * provided implementors either don't care about the order or all agree
+       * about the order, choosing the reliable order is an adequate
+       * workaround.  */
       xshutdown(np[1], SHUT_RD);	/* decoder writes to np[1] */
+      xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
       blocking(np[0]);
       blocking(np[1]);
       /* Start disorder-normalize */
