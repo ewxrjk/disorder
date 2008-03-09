@@ -81,6 +81,28 @@ case "$host" in
     COREAUDIO="-framework CoreAudio"
   fi
   browser=open
+  AC_MSG_CHECKING([Mac OS X target version])
+  # We honor MACOSX_DEPLOYMENT_TARGET in the environment, emulating gcc's
+  # behaviour.  But we provide a command line option to override it and
+  # we default to wide support instead of supporting only the build platform.
+  #
+  # Currently if you ask for 10.5 you will get a deprecation warning
+  # when building the CoreAudio support code.  For the time being the
+  # answer to this is "don't do that then".  If a good reason to ask
+  # for a 10.5 deployment target emerges then this will be fixed.
+  if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
+    MACOSX_DEPLOYMENT_TARGET=10.0
+  fi
+  AC_ARG_WITH([deployment-target],
+              [AS_HELP_STRING([--with-deployment-target=TARGET],
+                              [set target OS X version])],
+              [MACOSX_DEPLOYMENT_TARGET=$withval])
+  # Convert to desired format
+  underscored=`echo $MACOSX_DEPLOYMENT_TARGET|sed 's/\./_/'`
+  minver="MAC_OS_X_VERSION_$underscored"
+  AC_MSG_RESULT([$minver])
+  AC_DEFINE_UNQUOTED([MAC_OS_X_VERSION_MIN_REQUIRED], [$minver],
+                     [define to minimum version of Mac OS X to support])
   ;;
 *-freebsd* )
   AC_MSG_RESULT([FreeBSD])
