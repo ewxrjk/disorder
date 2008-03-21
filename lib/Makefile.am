@@ -101,7 +101,6 @@ definitions.h: Makefile
 	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
 	echo "#define BINDIR \"${bindir}/\"" >> $@.new
 	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new
-	echo "#define DOCDIR \"${docdir}/\"" >> $@.new
 	@if cmp $@.new $@; then \
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi

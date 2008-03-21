@@ -30,7 +30,6 @@ extern const char pkgdatadir[];
 extern const char bindir[];
 extern const char sbindir[];
 extern const char finkbindir[];
-extern const char docdir[];
 
 #endif /* DEFS_H */
 

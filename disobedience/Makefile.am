@@ -19,7 +19,7 @@
 #
 
 bin_PROGRAMS=disobedience
-doc_DATA=disobedience.html
+pkgdata_DATA=disobedience.html
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)

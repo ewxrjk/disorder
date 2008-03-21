@@ -56,9 +56,6 @@ const char sbindir[] = SBINDIR;
  */
 const char finkbindir[] = FINKBINDIR;
 
-/** @brief Package documentation directory */
-const char docdir[] = DOCDIR;
-
 #include "versionstring.h"
 
 /*

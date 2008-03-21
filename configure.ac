@@ -129,7 +129,7 @@ AC_ARG_WITH([browser],
 
 AC_CACHE_CHECK([default HTML viewer],[rjk_cv_browser],[
   rjk_cv_browser=UNKNOWN
-  for candidate in x-www-browser firefox mozilla konqueror netscape; do
+  for candidate in x-www-browser sensible-browser firefox mozilla konqueror netscape; do
     if type $candidate >/dev/null 2>&1; then
       rjk_cv_browser="$candidate"
       break
