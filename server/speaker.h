@@ -182,6 +182,8 @@ struct speaker_backend {
    *
    * @p timeoutp points to the poll timeout value in milliseconds.  It may be
    * reduced, but never increased.
+   *
+   * NB you can NOT assume that @c beforepoll is always called before @c play.
    */
   void (*beforepoll)(int *timeoutp);
 

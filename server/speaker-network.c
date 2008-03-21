@@ -200,6 +200,9 @@ static size_t network_play(size_t frames) {
   /* We transmit using RTP (RFC3550) and attempt to conform to the internet
    * AVT profile (RFC3551). */
 
+  /* If we're starting then initialize the base time */
+  if(!rtp_time)
+    xgettimeofday(&rtp_time_0, 0);
   if(idled) {
     /* There may have been a gap.  Fix up the RTP time accordingly. */
     struct timeval now;
@@ -210,7 +213,12 @@ static size_t network_play(size_t frames) {
     xgettimeofday(&now, 0);
     /* Find the number of microseconds elapsed since rtp_time=0 */
     delta = tvsub_us(now, rtp_time_0);
-    assert(delta <= UINT64_MAX / 88200);
+    if(delta > UINT64_MAX / 88200)
+      fatal(0, "rtp_time=%llu now=%ld.%06ld rtp_time_0=%ld.%06ld delta=%llu (%lld)",
+            rtp_time,
+            (long)now.tv_sec, (long)now.tv_usec,
+            (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
+            delta, delta);
     target_rtp_time = (delta * config->sample_format.rate
                        * config->sample_format.channels) / 1000000;
     /* Overflows at ~6 years uptime with 44100Hz stereo */
@@ -305,7 +313,12 @@ static void network_beforepoll(int *timeoutp) {
   /* We send audio data whenever we would otherwise get behind */
   xgettimeofday(&now, 0);
   target_us = tvsub_us(now, rtp_time_0);
-  assert(target_us <= UINT64_MAX / 88200);
+  if(target_us > UINT64_MAX / 88200)
+    fatal(0, "rtp_time=%llu rtp_time_0=%ld.%06ld now=%ld.%06ld target_us=%llu (%lld)\n",
+          rtp_time,
+          (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
+          (long)now.tv_sec, (long)now.tv_usec,
+          target_us, target_us);
   target_rtp_time = (target_us * config->sample_format.rate
                                * config->sample_format.channels)
                      / 1000000;
