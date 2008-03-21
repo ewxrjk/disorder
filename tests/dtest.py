@@ -166,11 +166,11 @@ def bindable(p):
     except:
         return False
 
-def default_config():
+def default_config(encoding="UTF-8"):
     """Write the default config"""
     open("%s/config" % testroot, "w").write(
     """home %s
-collection fs UTF-8 %s/tracks
+collection fs %s %s/tracks
 scratch %s/scratch.ogg
 gap 0
 stopword 01 02 03 04 05 06 07 08 09 10
@@ -195,7 +195,7 @@ api network
 broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
 mail_sender no.such.user.sorry@greenend.org.uk
-""" % (testroot, testroot, testroot, top_builddir, top_builddir,
+""" % (testroot, encoding, testroot, testroot, top_builddir, top_builddir,
        port, port + 1))
 
 def common_setup():
