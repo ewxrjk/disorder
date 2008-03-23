@@ -111,9 +111,20 @@ case "$host" in
   # there by default
   LDFLAGS="${LDFLAGS} -L/usr/local/lib"
   CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include"
-  # libdb installs elsewhere again
-  LDFLAGS="${LDFLAGS} -L/usr/local/lib/db44"
-  CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include/db44"
+  # Look for a suitable version of libdb among the versions found in FreeBSD 7.0
+  AC_CACHE_CHECK([looking for a libdb install],[rjk_cv_libdb],[
+    rjk_cv_libdb="none"
+    for db in db43 db44 db45 db46; do
+      if test -e /usr/local/lib/$db; then
+        rjk_cv_libdb=$db
+        break
+      fi
+    done
+  ])
+  if test $rjk_cv_libdb != none; then
+    LDFLAGS="${LDFLAGS} -L/usr/local/lib/$rjk_cv_libdb"
+    CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include/$rjk_cv_libdb"
+  fi
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])

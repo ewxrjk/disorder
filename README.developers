@@ -14,6 +14,20 @@ Dependencies:
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
 		     libflac-dev
 
+   * On FreeBSD you'll need at least these packages:
+	 autotools
+	 bash
+	 flac
+	 mad
+         boehm-gc
+         db43
+         gmake
+         gsed
+         libao
+         libgcrypt
+         wget
+         vorbis-tools
+
    * Please report unstated dependencies (here, README or debian/control).
 
 Building:
