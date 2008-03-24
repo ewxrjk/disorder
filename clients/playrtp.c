@@ -330,8 +330,9 @@ static void *queue_thread(void attribute((unused)) *arg) {
   for(;;) {
     /* Get the next packet */
     pthread_mutex_lock(&receive_lock);
-    while(!received_packets)
+    while(!received_packets) {
       pthread_cond_wait(&receive_cond, &receive_lock);
+    }
     p = received_packets;
     received_packets = p->next;
     if(!received_packets)
@@ -429,8 +430,9 @@ static void *listen_thread(void attribute((unused)) *arg) {
      * out of order then we guarantee dropouts.  But for now... */
     if(nsamples >= maxbuffer) {
       pthread_mutex_lock(&lock);
-      while(nsamples >= maxbuffer)
+      while(nsamples >= maxbuffer) {
         pthread_cond_wait(&cond, &lock);
+      }
       pthread_mutex_unlock(&lock);
     }
     /* Add the packet to the receive queue */
@@ -453,8 +455,9 @@ void playrtp_fill_buffer(void) {
   while(nsamples)
     drop_first_packet();
   info("Buffering...");
-  while(nsamples < readahead)
+  while(nsamples < readahead) {
     pthread_cond_wait(&cond, &lock);
+  }
   next_timestamp = pheap_first(&packets)->timestamp;
   active = 1;
 }
