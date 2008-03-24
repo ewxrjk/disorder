@@ -24,6 +24,7 @@ def test():
     """Play some tracks"""
     dtest.start_daemon()
     dtest.create_user()
+    dtest.rescan()                      # ensure all files are scanned
     c = disorder.client()
     c.random_disable()
     assert c.random_enabled() == False
