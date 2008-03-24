@@ -36,7 +36,7 @@ Opera 9.
 ** Disobedience
 
 A bug which would cause a crash if you attempt to rearrange the queue
-while no rtack was playing has been fixed.  There is a new 'deselect all
+while no track was playing has been fixed.  There is a new 'deselect all
 tracks' option, mirroring 'select all tracks.
 
 * Changes up to version 2.0
@@ -53,7 +53,7 @@ prohibited-tags in disorder_config(5)).
 
 Unicode support is improved.  Case-folding and word breaking now follows
 the rules given in the Unicode standard (with a bit of tailoring in the
-latte case).
+latter case).
 
 ** Disobedience
 
@@ -251,7 +251,7 @@ Enable/disable buttons are now colored to reflect current state.
 Entering numeric volume values (rather than clicking on the arrows) now
 works.
 
-Connection errors are reported more gracefuly.
+Connection errors are reported more gracefully.
 
 ** Plugins
 
