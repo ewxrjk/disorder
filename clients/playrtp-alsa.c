@@ -84,8 +84,8 @@ static void playrtp_alsa_init(void) {
           channels, err);
   if((err = snd_pcm_hw_params_set_buffer_size_near(pcm, hwparams,
                                                    &pcm_bufsize)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%d): %d",
-          MAXSAMPLES * samplesize * 3, err);
+    fatal(0, "error from snd_pcm_hw_params_set_buffer_size (%ld): %d",
+          (long)pcm_bufsize, err);
   if((err = snd_pcm_hw_params(pcm, hwparams)) < 0)
     fatal(0, "error calling snd_pcm_hw_params: %d", err);
   /* Set up 'software' parameters */
@@ -95,6 +95,12 @@ static void playrtp_alsa_init(void) {
   if((err = snd_pcm_sw_params_set_avail_min(pcm, swparams, avail_min)) < 0)
     fatal(0, "error calling snd_pcm_sw_params_set_avail_min %d: %d",
           avail_min, err);
+  /* Default start threshold is 1, which means that PCM starts as soon as we've
+   * written anything.  Setting it to pcm_bufsize (around 15000) produces
+   * -EINVAL.  1024 is a guess... */
+  if((err = snd_pcm_sw_params_set_start_threshold(pcm, swparams, 1024)) < 0)
+    fatal(0, "error calling snd_pcm_sw_params_set_start_threshold %d: %d",
+          1024, err);
   if((err = snd_pcm_sw_params(pcm, swparams)) < 0)
     fatal(0, "error calling snd_pcm_sw_params: %d", err);
 }
@@ -124,8 +130,11 @@ static void wait_alsa(void) {
  * @return 0 on success, -1 on non-fatal error
  */
 static int playrtp_alsa_writei(const void *s, size_t n) {
+  int err;
+  snd_pcm_sframes_t frames_written;
+  
   /* Do the write */
-  const snd_pcm_sframes_t frames_written = snd_pcm_writei(pcm, s, n / 2);
+  frames_written = snd_pcm_writei(pcm, s, n / 2);
   if(frames_written < 0) {
     /* Something went wrong */
     switch(frames_written) {
@@ -134,25 +143,36 @@ static int playrtp_alsa_writei(const void *s, size_t n) {
     case -EPIPE:
       error(0, "error calling snd_pcm_writei: %ld",
             (long)frames_written);
-      return -1;
+      if((err = snd_pcm_prepare(pcm)) < 0) {
+        error(0, "error calling snd_pcm_prepare: %d", err);
+        return -1;
+      }
+      frames_written = snd_pcm_writei(pcm, s, n / 2);
+      if(frames_written == -EAGAIN)
+        return 0;
+      else if(frames_written < 0) {
+        error(0, "error calling snd_pcm_writei: %ld",
+              (long)frames_written);
+        return -1;
+      }
+      break;
     default:
       fatal(0, "error calling snd_pcm_writei: %ld",
             (long)frames_written);
     }
-  } else {
-    /* Success */
-    next_timestamp += frames_written * 2;
-    if(dump_buffer) {
-      snd_pcm_sframes_t count;
-      const int16_t *sp = s;
-      
-      for(count = 0; count < frames_written * 2; ++count) {
-        dump_buffer[dump_index++] = (int16_t)ntohs(*sp++);
-        dump_index %= dump_size;
-      }
-    }
-    return 0;
   }
+  /* Success */
+  next_timestamp += frames_written * 2;
+  if(dump_buffer) {
+    snd_pcm_sframes_t count;
+    const int16_t *sp = s;
+    
+    for(count = 0; count < frames_written * 2; ++count) {
+      dump_buffer[dump_index++] = (int16_t)ntohs(*sp++);
+      dump_index %= dump_size;
+    }
+  }
+  return 0;
 }
 
 /** @brief Play the relevant part of a packet
