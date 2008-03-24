@@ -143,15 +143,15 @@ static int playrtp_alsa_writei(const void *s, size_t n) {
     case -EPIPE:
       error(0, "error calling snd_pcm_writei: %ld",
             (long)frames_written);
-      if((err = snd_pcm_prepare(pcm)) < 0) {
-        error(0, "error calling snd_pcm_prepare: %d", err);
+      if((err = snd_pcm_recover(pcm, -EPIPE, 0)) < 0) {
+        error(0, "error calling snd_pcm_recover: %d", err);
         return -1;
       }
       frames_written = snd_pcm_writei(pcm, s, n / 2);
       if(frames_written == -EAGAIN)
         return 0;
       else if(frames_written < 0) {
-        error(0, "error calling snd_pcm_writei: %ld",
+        error(0, "error retrying snd_pcm_writei: %ld",
               (long)frames_written);
         return -1;
       }
@@ -216,9 +216,13 @@ static void playrtp_alsa_disable(int hard_reset) {
   if(hard_reset) {
     if((err = snd_pcm_drop(pcm)))
       fatal(0, "error calling snd_pcm_drop: %d", err);
-  } else
-    if((err = snd_pcm_drain(pcm)))
-      fatal(0, "error calling snd_pcm_drain: %d", err);
+  } else {
+    if((err = snd_pcm_drain(pcm))) {
+      error(0, "error calling snd_pcm_drain: %d", err);
+      if((err = snd_pcm_drop(pcm)))
+        fatal(0, "error calling snd_pcm_drop: %d", err);
+    }
+  }
   if((err = snd_pcm_nonblock(pcm, 1)))
     fatal(0, "error calling snd_pcm_nonblock: %d", err);
   playrtp_alsa_prepared = 0;
