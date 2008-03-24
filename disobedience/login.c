@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ static void default_connect(void) {
 static const char *get_hostname(void) { return config->connect.s[0]; }
 static const char *get_service(void) { return config->connect.s[1]; }
 static const char *get_username(void) { return config->username; }
-static const char *get_password(void) { return config->password; }
+static const char *get_password(void) { return config->password ? config->password : ""; }
 
 static void set_hostname(const char *s) { config->connect.s[0] = (char *)s; }
 static void set_service(const char *s) { config->connect.s[1] = (char *)s; }
