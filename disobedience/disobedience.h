@@ -240,6 +240,8 @@ void choose_update(void);
 
 void login_box(void);
 
+GtkWidget *login_window;
+
 /* Help */
 
 void popup_help(void);

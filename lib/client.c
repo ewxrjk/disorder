@@ -72,7 +72,7 @@ struct disorder_client {
   /** @brief Report errors to @c stderr */
   int verbose;
   /** @brief Last error string */
-  char *last;
+  const char *last;
 };
 
 /** @brief Create a new client
@@ -98,8 +98,10 @@ disorder_client *disorder_new(int verbose) {
 static int response(disorder_client *c, char **rp) {
   char *r;
 
-  if(inputline(c->ident, c->fpin, &r, '\n'))
+  if(inputline(c->ident, c->fpin, &r, '\n')) {
+    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
     return -1;
+  }
   D(("response: %s", r));
   if(rp)
     *rp = r;
@@ -110,6 +112,7 @@ static int response(disorder_client *c, char **rp) {
     c->last = r + 4;
     return (r[0] * 10 + r[1]) * 10 + r[2] - 111 * '0';
   } else {
+    c->last = "invalid reply format";
     error(0, "invalid reply format from %s", c->ident);
     return -1;
   }
@@ -174,6 +177,7 @@ static int disorder_simple_v(disorder_client *c,
   struct dynstr d;
 
   if(!c->fpout) {
+    c->last = "not connected";
     error(0, "not connected to server");
     return -1;
   }
@@ -188,6 +192,7 @@ static int disorder_simple_v(disorder_client *c,
     dynstr_terminate(&d);
     D(("command: %s", d.vec));
     if(fputs(d.vec, c->fpout) < 0 || fflush(c->fpout)) {
+      byte_xasprintf((char **)&c->last, "write error: %s", strerror(errno));
       error(errno, "error writing to %s", c->ident);
       return -1;
     }
@@ -273,23 +278,28 @@ static int disorder_connect_generic(disorder_client *c,
     return -1;
   c->fpin = c->fpout = 0;
   if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
+    byte_xasprintf((char **)&c->last, "socket: %s", strerror(errno));
     error(errno, "error calling socket");
     return -1;
   }
   if(connect(fd, sa, salen) < 0) {
+    byte_xasprintf((char **)&c->last, "connect: %s", strerror(errno));
     error(errno, "error calling connect");
     goto error;
   }
   if((fd2 = dup(fd)) < 0) {
+    byte_xasprintf((char **)&c->last, "dup: %s", strerror(errno));
     error(errno, "error calling dup");
     goto error;
   }
   if(!(c->fpin = fdopen(fd, "rb"))) {
+    byte_xasprintf((char **)&c->last, "fdopen: %s", strerror(errno));
     error(errno, "error calling fdopen");
     goto error;
   }
   fd = -1;
   if(!(c->fpout = fdopen(fd2, "wb"))) {
+    byte_xasprintf((char **)&c->last, "fdopen: %s", strerror(errno));
     error(errno, "error calling fdopen");
     goto error;
   }
@@ -299,11 +309,13 @@ static int disorder_connect_generic(disorder_client *c,
   if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
     goto error;
   if(nrvec != 3) {
+    c->last = "cannot parse server greeting";
     error(0, "cannot parse server greeting %s", r);
     goto error;
   }
   protocol = *rvec++;
   if(strcmp(protocol, "2")) {
+    c->last = "unknown protocol version";
     error(0, "unknown protocol version: %s", protocol);
     goto error;
   }
@@ -316,11 +328,15 @@ static int disorder_connect_generic(disorder_client *c,
 		&c->user))
       return 0;				/* success */
     if(!username) {
+      c->last = "cookie failed and no username";
       error(0, "cookie did not work and no username available");
       goto error;
     }
   }
-  if(!(res = authhash(nonce, nl, password, algorithm))) goto error;
+  if(!(res = authhash(nonce, nl, password, algorithm))) {
+    c->last = "error computing authorization hash";
+    goto error;
+  }
   if((rc = disorder_simple(c, 0, "user", username, res, (char *)0)))
     goto error_rc;
   c->user = xstrdup(username);
@@ -368,6 +384,7 @@ int disorder_connect(disorder_client *c) {
   const char *username, *password;
 
   if(!(username = config->username)) {
+    c->last = "no username";
     error(0, "no username configured");
     return -1;
   }
@@ -382,6 +399,7 @@ int disorder_connect(disorder_client *c) {
   }
   if(!password) {
     /* Oh well */
+    c->last = "no password";
     error(0, "no password configured");
     return -1;
   }
@@ -420,6 +438,7 @@ int disorder_close(disorder_client *c) {
 
   if(c->fpin) {
     if(fclose(c->fpin) < 0) {
+      byte_xasprintf((char **)&c->last, "fclose: %s", strerror(errno));
       error(errno, "error calling fclose");
       ret = -1;
     }
@@ -427,6 +446,7 @@ int disorder_close(disorder_client *c) {
   }
   if(c->fpout) {
     if(fclose(c->fpout) < 0) {
+      byte_xasprintf((char **)&c->last, "fclose: %s", strerror(errno));
       error(errno, "error calling fclose");
       ret = -1;
     }
@@ -576,10 +596,13 @@ static int disorder_somequeue(disorder_client *c,
       qt = &q->next;
     }
   }
-  if(ferror(c->fpin))
+  if(ferror(c->fpin)) {
+    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
     error(errno, "error reading %s", c->ident);
-  else
+  } else {
+    c->last = "input error: unexpxected EOF";
     error(0, "error reading %s: unexpected EOF", c->ident);
+  }
   return -1;
 }
 
@@ -628,10 +651,13 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
     }
     vector_append(&v, l + (*l == '.'));
   }
-  if(ferror(c->fpin))
+  if(ferror(c->fpin)) {
+    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
     error(errno, "error reading %s", c->ident);
-  else
+  } else {
+    c->last = "input error: unexpxected EOF";
     error(0, "error reading %s: unexpected EOF", c->ident);
+  }
   return -1;
 }
 
@@ -923,6 +949,7 @@ int disorder_get_volume(disorder_client *c, int *left, int *right) {
   if((rc = disorder_simple(c, &r, "volume", (char *)0)))
     return rc;
   if(sscanf(r, "%d %d", left, right) != 2) {
+    c->last = "malformed volume response";
     error(0, "error parsing response to 'volume': '%s'", r);
     return -1;
   }
@@ -942,7 +969,11 @@ int disorder_log(disorder_client *c, struct sink *s) {
     return rc;
   while(inputline(c->ident, c->fpin, &l, '\n') >= 0 && strcmp(l, "."))
     if(sink_printf(s, "%s\n", l) < 0) return -1;
-  if(ferror(c->fpin) || feof(c->fpin)) return -1;
+  if(ferror(c->fpin) || feof(c->fpin)) {
+    byte_xasprintf((char **)&c->last, "input error: %s",
+		   ferror(c->fpin) ? strerror(errno) : "unexpxected EOF");
+    return -1;
+  }
   return 0;
 }
 
@@ -1071,6 +1102,7 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
     return rc;
   vec = split(r, &n, SPLIT_QUOTES, 0, 0);
   if(n != 2) {
+    c->last = "malformed RTP address";
     error(0, "malformed rtp-address reply");
     return -1;
   }

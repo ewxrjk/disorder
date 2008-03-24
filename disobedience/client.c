@@ -68,7 +68,8 @@ static gboolean gtkclient_dispatch(GSource *source,
   if(revents & (G_IO_OUT|G_IO_HUP|G_IO_ERR))
     mode |= DISORDER_POLL_WRITE;
   time(&esource->last_poll);
-  disorder_eclient_polled(esource->client, mode);
+  if(!login_window)
+    disorder_eclient_polled(esource->client, mode);
   return TRUE;                          /* ??? not documented */
 }
 

@@ -19,11 +19,20 @@
  */
 /** @file disobedience/login.c
  * @brief Login box for Disobedience
+ *
+ * As of 2.1 we have only two buttons: Login and Cancel.
+ *
+ * If you hit Login then a login is attempted.  If it works the window
+ * disappears and the settings are saved, otherwise they are NOT saved and the
+ * window remains.
+ *
+ * It you hit Cancel then the window disappears without saving anything.
  */
 
 #include "disobedience.h"
 #include "split.h"
 #include "filepart.h"
+#include "client.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -51,7 +60,7 @@ struct login_window_item {
 #define LWI_HIDDEN 0x0001
 
 /** @brief Current login window */
-static GtkWidget *login_window;
+GtkWidget *login_window;
 
 /** @brief Set connection defaults */
 static void default_connect(void) {
@@ -84,59 +93,18 @@ static const struct login_window_item lwis[] = {
 
 static GtkWidget *lwi_entry[NLWIS];
 
-static void update_config(void) {
+static void login_update_config(void) {
   size_t n;
 
   for(n = 0; n < NLWIS; ++n)
     lwis[n].set(xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
 }
 
-#if 0
-static int modified_config(void) {
-  size_t n;
-
-  for(n = 0; n < NLWIS; ++n) {
-    const char *entered = gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]));
-    const char *current = lwis[n].get();
-    if(strcmp(entered, current))
-      return 1;
-  }
-  return 0;
-}
-#endif
-
-static void login_ok(GtkButton attribute((unused)) *button,
-                     gpointer attribute((unused)) userdata) {
-  update_config();
-  reset();
-}
-
-static void login_save(GtkButton attribute((unused)) *button,
-                       gpointer attribute((unused)) userdata) {
+/** @brief Save current login details */
+static void login_save_config(void) {
   char *path = config_userconf(0, 0), *tmp;
   FILE *fp;
-  GtkWidget *yorn = 0;
 
-  update_config();
-  /* See if the file already exists */
-  if(access(path, F_OK) == 0) {
-    yorn = gtk_message_dialog_new
-      (GTK_WINDOW(login_window),
-       GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-       GTK_MESSAGE_QUESTION,
-       GTK_BUTTONS_NONE,
-       "File %s already exists.", path);
-    gtk_window_set_title(GTK_WINDOW(yorn),
-                         "Configuration file already exists");
-    gtk_dialog_add_buttons(GTK_DIALOG(yorn),
-                           "Overwrite it", GTK_RESPONSE_ACCEPT,
-                           "Don't save after all", GTK_RESPONSE_REJECT,
-                           (char *)0);
-    if(gtk_dialog_run(GTK_DIALOG(yorn)) != GTK_RESPONSE_ACCEPT)
-      goto done;
-    gtk_widget_destroy(yorn);
-    yorn = 0;
-  }
   byte_xasprintf(&tmp, "%s.tmp", path);
   /* Make sure the directory exists; don't care if it already exists. */
   mkdir(d_dirname(tmp), 02700);
@@ -169,13 +137,33 @@ static void login_save(GtkButton attribute((unused)) *button,
                tmp, strerror(errno));
     goto done;
   }
-  fpopup_msg(GTK_MESSAGE_INFO, "Saved login configuration to %s", path);
-  gtk_widget_destroy(login_window);
 done:
-  if(yorn)
-    gtk_widget_destroy(yorn);
+  ;
 }
 
+/** @brief User pressed OK in login window */
+static void login_ok(GtkButton attribute((unused)) *button,
+                     gpointer attribute((unused)) userdata) {
+  disorder_client *c;
+  
+  /* Copy the new config into @ref config */
+  login_update_config();
+  /* Attempt a login with the new details */
+  c = disorder_new(0);
+  if(!disorder_connect(c)) {
+    /* Success; save the config and start using it */
+    login_save_config();
+    reset();
+    /* Pop down login window */
+    gtk_widget_destroy(login_window);
+  } else {
+    /* Failed to connect - report the error */
+    popup_msg(GTK_MESSAGE_ERROR, disorder_last(c));
+  }
+  disorder_close(c);                    /* no use for this any more */
+}
+
+/** @brief User pressed cancel in the login window */
 static void login_cancel(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(login_window);
@@ -187,11 +175,6 @@ static const struct button buttons[] = {
     "Login",
     login_ok,
     "(Re-)connect using these settings",
-  },
-  {
-    GTK_STOCK_SAVE,
-    login_save,
-    "Save these settings and close window",
   },
   {
     GTK_STOCK_CLOSE,
