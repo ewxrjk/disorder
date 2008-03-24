@@ -27,7 +27,7 @@ disorder_udplog_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 
 check:
-	${PYTHON} ${srcdir}/alltests
+	${PYTHON} -u ${srcdir}/alltests
 
 clean-local:
 	rm -rf testroot *.log *.pyc
