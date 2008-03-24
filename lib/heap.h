@@ -85,7 +85,7 @@
   }                                                                     \
                                                                         \
   static inline NAME##_element NAME##_first(struct NAME *heap) {        \
-    assert(heap->nvec > 0);                                             \
+    assert(heap->nvec > 0 && "_first");                                 \
     return heap->vec[0];                                                \
   }                                                                     \
                                                                         \
@@ -116,7 +116,7 @@
     int n = 0;                                                  \
     NAME##_element r;                                           \
                                                                 \
-    assert(heap->nvec > 0);                                     \
+    assert(heap->nvec > 0 && "_remove");                        \
     r = heap->vec[0];                                           \
     heap->vec[0] = heap->vec[--heap->nvec];                     \
     while(2 * n + 1 < heap->nvec) {                             \
