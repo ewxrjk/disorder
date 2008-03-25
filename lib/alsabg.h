@@ -37,9 +37,9 @@
  * occurred.  It will be called in a background thread.
  */
 typedef int alsa_bg_supply(void *dst,
-			   unsigned nsamples);
+			   unsigned nsamples_max);
 
-void alsa_bg_init(const char *device,
+void alsa_bg_init(const char *dev,
 		  alsa_bg_supply *supply);
 
 void alsa_bg_enable(void);

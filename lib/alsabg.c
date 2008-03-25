@@ -179,12 +179,14 @@ static void *alsa_bg_play(void attribute((unused)) *arg) {
     rframes = snd_pcm_writei(pcm, alsa_bg_buffer + start, nframes);
     ep(pthread_mutex_lock(&alsa_bg_lock));
     if(rframes < 0) {
-      error(0, "snd_pcm_writei: %d", rframes);
       switch(rframes) {
       case -EPIPE:
-        if((err = snd_pcm_recover(pcm, -EPIPE, 0)))
-          fatal(0, "snd_pcm_recover: %d", err);
+        error(0, "underrun detected");
+        if((err = snd_pcm_prepare(pcm)))
+          fatal(0, "snd_pcm_prepare: %d", err);
         break;
+      default:
+        fatal(0, "snd_pcm_writei: %d", rframes);
       }
     } else {
       const int rbytes = rframes * BYTES_PER_FRAME;
