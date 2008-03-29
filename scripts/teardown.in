@@ -51,8 +51,8 @@ Darwin )
   s rm -rf pkgstatedir
   s rm -rf pkgconfdir
   echo "* removing user and group"
-  s dscl / -delete /Users/jukebox || true
-  s dscl / -delete /Groups/jukebox || true
+  s dscl . -delete /Users/jukebox || true
+  s dscl . -delete /Groups/jukebox || true
   ;;
 Linux )
   echo "* stopping server"

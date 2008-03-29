@@ -220,32 +220,32 @@ pick() {
 case $os in
 Mac )
   # Apple don't seem to believe in creating a user as a discrete operation
-  if dscl / -read /Groups/$group >/dev/null 2>&1; then
+  if dscl . -read /Groups/$group >/dev/null 2>&1; then
     echo "$group group already exists"
   else
     echo "Creating $group group"
-    gids=$(dscl / -list /Groups PrimaryGroupID|awk '{print $2}')
+    gids=$(dscl . -list /Groups PrimaryGroupID|awk '{print $2}')
     gid=$(pick $gids)
     echo "(picked gid $gid)"
-    dscl / -create /Groups/$group
-    dscl / -create /Groups/$group PrimaryGroupID $gid
-    dscl / -create /Groups/$group Password \*
+    dscl . -create /Groups/$group
+    dscl . -create /Groups/$group PrimaryGroupID $gid
+    dscl . -create /Groups/$group Password \*
   fi
-  if dscl / -read /Users/$user >/dev/null 2>&1; then
+  if dscl . -read /Users/$user >/dev/null 2>&1; then
     echo "$user user already exists"
   else
     echo "Creating $user user"
-    uids=$(dscl / -list /Users UniqueID|awk '{print $2}')
+    uids=$(dscl . -list /Users UniqueID|awk '{print $2}')
     uid=$(pick $uids)
     echo "(picked uid $uid)"
-    gid=$(dscl / -read /Groups/$group PrimaryGroupID | awk '{print $2}')
-    dscl / -create /Users/$user
-    dscl / -create /Users/$user UniqueID $uid
-    dscl / -create /Users/$user UserShell /usr/bin/false
-    dscl / -create /Users/$user RealName 'DisOrder server'
-    dscl / -create /Users/$user NFSHomeDirectory pkgstatedir
-    dscl / -create /Users/$user PrimaryGroupID $gid
-    dscl / -create /Users/$user Password \*
+    gid=$(dscl . -read /Groups/$group PrimaryGroupID | awk '{print $2}')
+    dscl . -create /Users/$user
+    dscl . -create /Users/$user UniqueID $uid
+    dscl . -create /Users/$user UserShell /usr/bin/false
+    dscl . -create /Users/$user RealName 'DisOrder server'
+    dscl . -create /Users/$user NFSHomeDirectory pkgstatedir
+    dscl . -create /Users/$user PrimaryGroupID $gid
+    dscl . -create /Users/$user Password \*
   fi
   ;;
 FreeBSD )
