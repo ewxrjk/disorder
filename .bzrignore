@@ -144,3 +144,5 @@ lib/versionstring.h
 scripts/setup
 examples/disorder.rc
 scripts/teardown
+sounds/long.ogg
+sounds/slap.raw
