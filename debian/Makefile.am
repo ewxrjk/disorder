@@ -22,7 +22,7 @@ noinst_SCRIPTS=rules
 
 EXTRA_DIST=README.Debian config.disorder-server control \
 	   copyright README.RTP \
-	   etc.disorder.options.user etc.disorder.config htaccess \
+	   etc.disorder.options.user etc.disorder.config \
 	   postinst.disorder-server prerm.disorder-server \
 	   postrm.disorder-server \
 	   templates.disorder-server conffiles.disorder-server \

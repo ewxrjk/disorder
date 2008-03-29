@@ -1,3 +1,7 @@
+* Bug Tracking System
+
+http://code.google.com/p/disorder/issues/list
+
 * Compilation Bugs
 
 The configure script make pointless checks for C++ and Fortran compilers.  This
@@ -34,6 +38,9 @@ Solution: Use snd-via82xx driver instead (from ALSA).
 
 ALSA drivers can be found in Linux 2.6.x; for 2.4.x they must be built
 separately.
+
+I would that some instances of this chipset appear to work incredibly badly
+even with ALSA.  
 
 Local Variables:
 mode:outline

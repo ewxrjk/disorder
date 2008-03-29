@@ -1,36 +1,8 @@
 Debian package for DisOrder
 ===========================
 
-To get the web interface working:
+The web interface should now start working automatically.  Test it at
+http://YOURHOSTNAME/cgi-bin/disorder/disorder If it doesn't work,
+always look at the web server error log.
 
-1) Make sure you /etc/apache/access.conf allows AuthConfig for
-   /usr/lib/cgi-bin.  For instance:
-
-    <Directory /usr/lib/cgi-bin>
-    AllowOverride AuthConfig
-    Options ExecCGI FollowSymLinks
-    </Directory>
-
-2) If you want to use digest authentication, make sure your Apache has
-   mod_auth_digest enabled and edit
-   /usr/lib/cgi-bin/disorder/.htaccess accordingly (it has been made a
-   conffile).
-
-3) Remember to reload apache if you've changed anything.
-
-4) Add users to /etc/disorder/http.users.  For instance:
-
-    # htpasswd -b /etc/disorder/http.users USERNAME PASSWORD
-
-   Or with digest authentication:
-
-    # htdigest /etc/disorder/http.users USER
-    Adding password for USER in realm jukebox.
-    New password:
-    Re-type new password:
-
-5) Test it at http://YOURHOSTNAME/cgi-bin/disorder/disorder
-
-   If it doesn't work, always look at the web server error log.
-
- -- Richard Kettlewell <rjk@greenend.org.uk>, Tue Jan 23 21:35:13 2007
+ -- Richard Kettlewell <rjk@greenend.org.uk>, Sat, 29 Mar 2008 16:20:20 +0000

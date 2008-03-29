@@ -1,4 +1,0 @@
-Require valid-user
-AuthType basic
-AuthName jukebox
-AuthUserFile /etc/disorder/http.users

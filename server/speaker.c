@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2005-2008 Richard Kettlewell
  * Portions (C) 2007 Mark Wooding
  *
  * This program is free software; you can redistribute it and/or modify

@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,9 +20,9 @@
 # USA
 #
 
-AC_INIT([disorder], [2.0+], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [3.0], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [2.0+])
+AM_INIT_AUTOMAKE(disorder, [3.0])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
