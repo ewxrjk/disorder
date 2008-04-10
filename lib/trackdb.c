@@ -839,7 +839,7 @@ static int tagchar(int c) {
 }
 
 /* Parse and de-dupe a tag list.  If S=0 then assumes "". */
-static char **parsetags(const char *s) {
+char **parsetags(const char *s) {
   const char *t;
   struct vector v;
 
@@ -1577,7 +1577,7 @@ int trackdb_listkeys(DB *db, struct vector *v, DB_TXN *tid) {
 }
 
 /* return 1 iff sorted tag lists A and B have at least one member in common */
-static int tag_intersection(char **a, char **b) {
+int tag_intersection(char **a, char **b) {
   int cmp;
 
   /* Same sort of logic as trackdb_set() above */

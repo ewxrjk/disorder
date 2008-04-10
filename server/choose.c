@@ -40,6 +40,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "configuration.h"
 #include "log.h"
@@ -51,6 +52,7 @@
 #include "trackdb.h"
 #include "trackdb-int.h"
 #include "version.h"
+#include "trackname.h"
 
 static DB_TXN *global_tid;
 
@@ -101,6 +103,9 @@ static unsigned long long total_weight;
 /** @brief Count of tracks */
 static long ntracks;
 
+static char **required_tags;
+static char **prohibited_tags;
+
 /** @brief Compute the weight of a track
  * @param track Track name (UTF-8)
  * @param data Track data
@@ -109,16 +114,48 @@ static long ntracks;
  *
  * Tracks to be excluded entirely are given a weight of 0.
  */
-static unsigned long compute_weight(const char attribute((unused)) *track,
-                                    struct kvp attribute((unused)) *data,
+static unsigned long compute_weight(const char *track,
+                                    struct kvp *data,
                                     struct kvp *prefs) {
   const char *s;
+  char **track_tags;
+  time_t last, now;
 
-  /* Firstly, tracks with random play disabled always have weight 0 and that's
-   * that */
+  /* Reject tracks not in any collection (race between edit config and
+   * rescan) */
+  if(!find_track_root(track)) {
+    info("found track not in any collection: %s", track);
+    return 0;
+  }
+
+  /* Reject aliases to avoid giving aliased tracks extra weight */
+  if(kvp_get(data, "_alias_for"))
+    return 0;
+  
+  /* Reject tracks with random play disabled */
   if((s = kvp_get(prefs, "pick_at_random"))
      && !strcmp(s, "0"))
     return 0;
+
+  /* Reject tracks played within the last 8 hours */
+  if((s = kvp_get(prefs, "played_time"))) {
+    last = atoll(s);
+    now = time(0);
+    if(now < last + 8 * 3600)       /* TODO configurable */
+      return 0;
+  }
+
+  /* We'll need tags for a number of things */
+  track_tags = parsetags(kvp_get(prefs, "tags"));
+
+  /* Reject tracks with prohibited tags */
+  if(prohibited_tags && tag_intersection(track_tags, prohibited_tags))
+    return 0;
+
+  /* Reject tracks that lack required tags */
+  if(*required_tags && !tag_intersection(track_tags, required_tags))
+    return 0;
+
   return 90000;
 }
 
@@ -177,7 +214,8 @@ static void pick_track(void) {
 }
 
 int main(int argc, char **argv) {
-  int n, logsyslog = !isatty(2);
+  int n, logsyslog = !isatty(2), err;
+  const char *tags;
   
   set_progname(argv);
   mem_init();
@@ -203,6 +241,12 @@ int main(int argc, char **argv) {
   trackdb_init(TRACKDB_NO_RECOVER);
   trackdb_open(TRACKDB_NO_UPGRADE|TRACKDB_READ_ONLY);
   global_tid = trackdb_begin_transaction();
+  if((err = trackdb_get_global_tid("required-tags", global_tid, &tags)))
+    fatal(0, "error getting required-tags: %s", db_strerror(err));
+  required_tags = parsetags(tags);
+  if((err = trackdb_get_global_tid("prohibited-tags", global_tid, &tags)))
+    fatal(0, "error getting prohibited-tags: %s", db_strerror(err));
+  prohibited_tags = parsetags(tags);
   if(trackdb_scan(0, collect_tracks_callback, 0, global_tid))
     exit(1);
   trackdb_commit_transaction(global_tid);

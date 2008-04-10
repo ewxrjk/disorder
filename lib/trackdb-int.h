@@ -145,6 +145,9 @@ int trackdb_get_global_tid(const char *name,
                            DB_TXN *tid,
                            const char **rp);
 
+char **parsetags(const char *s);
+int tag_intersection(char **a, char **b);
+
 #endif /* TRACKDB_INT_H */
 
 /*
