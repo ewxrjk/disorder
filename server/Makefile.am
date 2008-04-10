@@ -20,7 +20,7 @@
 
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
-	      disorder-stats disorder-dbupgrade
+	      disorder-stats disorder-dbupgrade disorder-choose
 noinst_PROGRAMS=disorder.cgi trackname
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -73,6 +73,15 @@ disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
+
+disorder_choose_SOURCES=choose.c                        \
+        api.c api-server.c                              \
+        exports.c					\
+	../lib/memgc.c
+disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBGCRYPT)
+disorder_choose_LDFLAGS=-export-dynamic
+disorder_choose_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_stats_SOURCES=stats.c
 disorder_stats_LDADD=$(LIBOBJS) ../lib/libdisorder.a \

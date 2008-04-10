@@ -2091,15 +2091,16 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
 int trackdb_scan(const char *root,
                  int (*callback)(const char *track,
                                  struct kvp *data,
+                                 struct kvp *prefs,
                                  void *u,
                                  DB_TXN *tid),
                  void *u,
                  DB_TXN *tid) {
   DBC *cursor;
-  DBT k, d;
+  DBT k, d, pd;
   const size_t root_len = root ? strlen(root) : 0;
   int err, cberr;
-  struct kvp *data;
+  struct kvp *data, *prefs;
   const char *track;
 
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
@@ -2119,10 +2120,33 @@ int trackdb_scan(const char *root,
       data = kvp_urldecode(d.data, d.size);
       if(kvp_get(data, "_path")) {
         track = xstrndup(k.data, k.size);
+        /* TODO: trackdb_prefsdb is currently a DB_HASH.  This means we have to
+         * do a lookup for every single track.  In fact this is quite quick:
+         * with around 10,000 tracks a complete scan is around 0.3s on my
+         * 2.2GHz Athlon.  However, if it were a DB_BTREE, we could do the same
+         * linear walk as we already do over trackdb_tracksdb, and probably get
+         * even higher performance.  That would require upgrade logic to
+         * translate old databases though.
+         */
+        switch(err = trackdb_prefsdb->get(trackdb_prefsdb, tid, &k,
+                                          prepare_data(&pd), 0)) {
+        case 0:
+          prefs = kvp_urldecode(pd.data, pd.size);
+          break;
+        case DB_NOTFOUND:
+          prefs = 0;
+          break;
+        case DB_LOCK_DEADLOCK:
+          error(0, "getting prefs: %s", db_strerror(err));
+          trackdb_closecursor(cursor);
+          return err;
+        default:
+          fatal(0, "getting prefs: %s", db_strerror(err));
+        }
         /* Advance to the next track before the callback so that the callback
          * may safely delete the track */
         err = cursor->c_get(cursor, &k, &d, DB_NEXT);
-        if((cberr = callback(track, data, u, tid))) {
+        if((cberr = callback(track, data, prefs, u, tid))) {
           err = cberr;
           break;
         }

@@ -207,6 +207,7 @@ struct recheck_track {
 /* called for each non-alias track */
 static int recheck_list_callback(const char *track,
                                  struct kvp attribute((unused)) *data,
+                                 struct kvp attribute((unused)) *prefs,
                                  void *u,
                                  DB_TXN attribute((unused)) *tid) {
   struct recheck_state *cs = u;
