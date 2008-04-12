@@ -426,8 +426,18 @@ static void process_prefs(dcgi_state *ds, int numfile) {
       disorder_unset(ds->g->client, file, "pick_at_random");
     else
       disorder_set(ds->g->client, file, "pick_at_random", "0");
-    if((value = numbered_arg("tags", numfile)))
-      disorder_set(ds->g->client, file, "tags", value);
+    if((value = numbered_arg("tags", numfile))) {
+      if(!*value)
+	disorder_unset(ds->g->client, file, "tags");
+      else
+	disorder_set(ds->g->client, file, "tags", value);
+    }
+    if((value = numbered_arg("weight", numfile))) {
+      if(!*value || !strcmp(value, "90000"))
+	disorder_unset(ds->g->client, file, "weight");
+      else
+	disorder_set(ds->g->client, file, "weight", value);
+    }
   } else if((name = cgi_get("name"))) {
     /* Raw preferences.  Not well supported in the templates at the moment. */
     value = cgi_get("value");

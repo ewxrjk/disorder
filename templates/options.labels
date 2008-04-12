@@ -131,6 +131,7 @@ label	prefs.value		Value
 # Legend for prefs controls that don't correspond to a heading
 label	prefs.random		"Random play"
 label	prefs.tags		"Tags"
+label	prefs.weight		"Weight"
 
 # <TITLE> for help page
 label	help.title		"DisOrder Help"
