@@ -75,6 +75,7 @@ disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_choose_SOURCES=choose.c                        \
+	server-queue.c server-queue.h			\
         api.c api-server.c                              \
         exports.c					\
 	../lib/memgc.c

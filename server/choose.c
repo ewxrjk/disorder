@@ -53,6 +53,8 @@
 #include "trackdb-int.h"
 #include "version.h"
 #include "trackname.h"
+#include "queue.h"
+#include "server-queue.h"
 
 static DB_TXN *global_tid;
 
@@ -106,6 +108,16 @@ static long ntracks;
 static char **required_tags;
 static char **prohibited_tags;
 
+static int queue_contains(const struct queue_entry *head,
+                          const char *track) {
+  const struct queue_entry *q;
+
+  for(q = head->next; q != head; q = q->next)
+    if(!strcmp(q->track, track))
+      return 1;
+  return 0;
+}
+
 /** @brief Compute the weight of a track
  * @param track Track name (UTF-8)
  * @param data Track data
@@ -144,6 +156,11 @@ static unsigned long compute_weight(const char *track,
     if(now < last + 8 * 3600)       /* TODO configurable */
       return 0;
   }
+
+  /* Reject tracks currently in the queue or in the recent list */
+  if(queue_contains(&qhead, track)
+     || queue_contains(&phead, track))
+    return 0;
 
   /* We'll need tags for a number of things */
   track_tags = parsetags(kvp_get(prefs, "tags"));
@@ -237,6 +254,9 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
+  /* Find out current queue/recent list */
+  queue_read();
+  recent_read();
   /* Generate the candidate track list */
   trackdb_init(TRACKDB_NO_RECOVER);
   trackdb_open(TRACKDB_NO_UPGRADE|TRACKDB_READ_ONLY);
