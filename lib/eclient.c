@@ -1263,6 +1263,20 @@ int disorder_eclient_rtp_address(disorder_eclient *c,
                 "rtp-address", (char *)0);
 }
 
+/** @brief Get the list of users
+ * @param c Client
+ * @param completed Called with list of users
+ * @param v Passed to @p completed
+ *
+ * The user list is not sorted in any particular order.
+ */
+int disorder_eclient_users(disorder_eclient *c,
+                           disorder_eclient_list_response *completed,
+                           void *v) {
+  return simple(c, list_response_opcallback, (void (*)())completed, v,
+                "users", (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

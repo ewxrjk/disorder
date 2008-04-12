@@ -94,6 +94,13 @@ static void login(gpointer attribute((unused)) callback_data,
   login_box();
 }
 
+/** @brief Called when the login option is activated */
+static void users(gpointer attribute((unused)) callback_data,
+                  guint attribute((unused)) callback_action,
+                  GtkWidget attribute((unused)) *menu_item) {
+  manage_users();
+}
+
 #if 0
 /** @brief Called when the settings option is activated */
 static void settings(gpointer attribute((unused)) callback_data,
@@ -224,6 +231,14 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"/File/Login",            /* path */
       (char *)"<CTRL>L",                /* accelerator */
       login,                            /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+    { 
+      (char *)"/File/Users",            /* path */
+      0,                                /* accelerator */
+      users,                            /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */

@@ -159,6 +159,9 @@ GtkWidget *iconbutton(const char *path, const char *tip);
 
 GtkWidget *create_buttons(const struct button *buttons,
                           size_t nbuttons);
+GtkWidget *create_buttons_box(const struct button *buttons,
+                              size_t nbuttons,
+                              GtkWidget *box);
 
 void register_monitor(monitor_callback *callback,
                       void *u,
@@ -241,6 +244,10 @@ void choose_update(void);
 void login_box(void);
 
 GtkWidget *login_window;
+
+/* User management */
+
+void manage_users(void);
 
 /* Help */
 

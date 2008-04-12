@@ -161,22 +161,31 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
   return button;
 }
 
-/** @brief Create buttons and pack them into an hbox */
-GtkWidget *create_buttons(const struct button *buttons,
-                          size_t nbuttons) {
+/** @brief Create buttons and pack them into a box, which is returned */
+GtkWidget *create_buttons_box(const struct button *buttons,
+                              size_t nbuttons,
+                              GtkWidget *box) {
   size_t n;
-  GtkWidget *const hbox = gtk_hbox_new(FALSE, 1);
 
   for(n = 0; n < nbuttons; ++n) {
     GtkWidget *const button = gtk_button_new_from_stock(buttons[n].stock);
     gtk_widget_set_style(button, tool_style);
     g_signal_connect(G_OBJECT(button), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
-    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
+    gtk_box_pack_start(GTK_BOX(box), button, FALSE, FALSE, 1);
     gtk_tooltips_set_tip(tips, button, buttons[n].tip, "");
   }
-  return hbox;
+  return box;
 }
+
+/** @brief Create buttons and pack them into an hbox */
+GtkWidget *create_buttons(const struct button *buttons,
+                          size_t nbuttons) {
+  return create_buttons_box(buttons, nbuttons,
+                            gtk_hbox_new(FALSE, 1));
+}
+
+
 
 /*
 Local Variables:
