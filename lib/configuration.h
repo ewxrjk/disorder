@@ -226,6 +226,9 @@ struct config {
   /** @brief Target queue length */
   long queue_pad;
 
+  /** @brief Minimum time between a track being played again */
+  long replay_min;
+  
   struct namepartlist namepart;		/* transformations */
 
   /** @brief Termination signal for subprocesses */

@@ -5,6 +5,15 @@
 The 'gap' directive will no longer work.  It could be restored if there
 is real demand.
 
+*** Random Track Choice
+
+This has been completely rewritten to support new features:
+   - tracks in the recently-played list or in the queue are no longer
+     eligible for random choice
+   - there is a new configuration item replay_min defining the minimum
+     time before a played track can be picked at random.  The default is
+     8 hours (which matches the earlier behaviour).
+
 * Changes up to version 3.0
 
 Important!  See README.upgrades when upgrading.

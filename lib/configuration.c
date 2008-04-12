@@ -957,6 +957,7 @@ static const struct conf conf[] = {
   { C(plugins),          &type_string_accum,     validate_isdir },
   { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
+  { C(replay_min),       &type_integer,          validate_non_negative },
   { C(refresh),          &type_integer,          validate_positive },
   { C(reminder_interval), &type_integer,         validate_positive },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
@@ -1178,6 +1179,7 @@ static struct config *config_default(void) {
   c->sample_format.channels = 2;
   c->sample_format.endian = ENDIAN_NATIVE;
   c->queue_pad = 10;
+  c->replay_min = 8 * 3600;
   c->api = -1;
   c->multicast_ttl = 1;
   c->multicast_loop = 1;

@@ -153,7 +153,7 @@ static unsigned long compute_weight(const char *track,
   if((s = kvp_get(prefs, "played_time"))) {
     last = atoll(s);
     now = time(0);
-    if(now < last + 8 * 3600)       /* TODO configurable */
+    if(now < last + config->replay_min)
       return 0;
   }
 
