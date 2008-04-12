@@ -121,6 +121,7 @@ static const struct pref {
   { "Album", "album", 0, &preftype_namepart },
   { "Title", "title", 0, &preftype_namepart },
   { "Tags", "tags", "", &preftype_string },
+  { "Weight", "weight", "90000", &preftype_string },
   { "Random", "pick_at_random", "1", &preftype_boolean },
 };
 
