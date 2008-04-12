@@ -299,6 +299,22 @@ if the full version is not present.
 .B unscratched
 The number of times the track has been played to completion without
 being scratched.
+.TP
+.B weight
+The weight for this track.  Weights are non-negative integers which determine
+the relative likelihood of a track being picked at random (i.e. if track A has
+twice the weight of track B then it is twice as likely to be picked at random).
+A track with weight 0 will not be picked at random, though \fBpick_at_random\fR
+is a more sensible way to configure this.
+.IP
+The default weight, used if no weight is set or the weight value is invalid, is
+90000.  Note that many other factors than track weight affect whether a track
+will be played - tracks already in the queue will not be picked at random for
+instance.
+.IP
+The maximum allowed weight is 2147483647.  If you set a larger value it will be
+clamped to this value.  Negative weights will be completely ignored and the
+default value used instead.
 .SH NOTES
 .B disorder
 is locale-aware.

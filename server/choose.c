@@ -173,6 +173,16 @@ static unsigned long compute_weight(const char *track,
   if(*required_tags && !tag_intersection(track_tags, required_tags))
     return 0;
 
+  /* Use the configured weight if available */
+  if((s = kvp_get(prefs, "weight"))) {
+    long n;
+    errno = 0;
+
+    n = strtol(s, 0, 10);
+    if((errno == 0 || errno == ERANGE) && n >= 0)
+      return n;
+  }
+  
   return 90000;
 }
 
@@ -182,11 +192,15 @@ static int collect_tracks_callback(const char *track,
                                    struct kvp *prefs,
 				   void attribute((unused)) *u,
 				   DB_TXN attribute((unused)) *tid) {
-  const unsigned long weight = compute_weight(track, data, prefs);
+  unsigned long weight = compute_weight(track, data, prefs);
 
   if(weight) {
     struct weighted_track *const t = xmalloc(sizeof *t);
 
+    /* Clamp weight so that we can fit in billions of tracks when we do
+     * arithmetic in long long */
+    if(weight > 0x7fffffff)
+      weight = 0x7fffffff;
     t->next = tracks;
     t->track = track;
     t->weight = weight;

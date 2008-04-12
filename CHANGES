@@ -10,6 +10,8 @@ is real demand.
 This has been completely rewritten to support new features:
    - tracks in the recently-played list or in the queue are no longer
      eligible for random choice
+   - there is a new 'weight' track preference allowing for non-uniform
+     track selection.  See disorder(1) for details.
    - there is a new configuration item replay_min defining the minimum
      time before a played track can be picked at random.  The default is
      8 hours (which matches the earlier behaviour).
