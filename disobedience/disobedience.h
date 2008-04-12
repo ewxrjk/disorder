@@ -75,6 +75,7 @@ struct callbackdata {
     struct choosenode *choosenode;      /* gtkchoose.c got_files/got_dirs */
     struct queuelike *ql;               /* gtkqueue.c queuelike_completed */
     struct prefdata *f;                 /* properties.c */
+    const char *user;                   /* users.c */
   } u;
 };
 

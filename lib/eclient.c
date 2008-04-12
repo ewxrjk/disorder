@@ -1277,6 +1277,20 @@ int disorder_eclient_users(disorder_eclient *c,
                 "users", (char *)0);
 }
 
+/** @brief Delete a user
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to delete
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_deluser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "deluser", user, (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

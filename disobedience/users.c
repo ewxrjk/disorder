@@ -25,6 +25,7 @@
 
 static GtkWidget *users_window;
 static GtkListStore *users_list;
+static GtkTreeSelection *users_selection;
 
 static int usercmp(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
@@ -50,8 +51,60 @@ static void users_add(GtkButton attribute((unused)) *button,
 		      gpointer attribute((unused)) userdata) {
 }
 
+static void users_deleted_error(struct callbackdata attribute((unused)) *cbd,
+				int attribute((unused)) code,
+				const char *msg) {
+  popup_msg(GTK_MESSAGE_ERROR, msg);
+}
+
+static void users_deleted(void *v) {
+  const struct callbackdata *const cbd = v;
+  GtkTreeIter iter;
+  char *who;
+
+  /* Find the user */
+  if(!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(users_list), &iter))
+    return;
+  do {
+    gtk_tree_model_get(GTK_TREE_MODEL(users_list), &iter,
+		       0, &who, -1);
+    if(!strcmp(who, cbd->u.user))
+      break;
+    g_free(who);
+    who = 0;
+  } while(gtk_tree_model_iter_next(GTK_TREE_MODEL(users_list), &iter));
+  /* Remove them */
+  gtk_list_store_remove(users_list, &iter);
+  g_free(who);
+}
+
 static void users_delete(GtkButton attribute((unused)) *button,
 			 gpointer attribute((unused)) userdata) {
+  GtkTreeIter iter;
+  GtkWidget *yesno;
+  char *who;
+  int res;
+  struct callbackdata *cbd;
+
+  if(gtk_tree_selection_get_selected(users_selection, 0, &iter)) {
+    gtk_tree_model_get(GTK_TREE_MODEL(users_list), &iter,
+		       0, &who, -1);
+    yesno = gtk_message_dialog_new(GTK_WINDOW(users_window),
+				   GTK_DIALOG_MODAL,
+				   GTK_MESSAGE_QUESTION,
+				   GTK_BUTTONS_YES_NO,
+				   "Do you really want to delete user %s?"
+				   " This action cannot be undone.", who);
+    res = gtk_dialog_run(GTK_DIALOG(yesno));
+    gtk_widget_destroy(yesno);
+    if(res == GTK_RESPONSE_YES) {
+      cbd = xmalloc(sizeof *cbd);
+      cbd->onerror = users_deleted_error;
+      cbd->u.user = xstrdup(who);
+      disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
+    }
+    g_free(who);
+  }
 }
 
 static void users_edit(GtkButton attribute((unused)) *button,
@@ -108,6 +161,9 @@ void manage_users(void) {
 						 "text", 0,
 						 NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree), col);
+  /* Get the selection for the view and set its mode */
+  users_selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+  gtk_tree_selection_set_mode(users_selection, GTK_SELECTION_BROWSE);
   /* Create the control buttons */
   buttons = create_buttons_box(users_buttons,
 			       NUSERS_BUTTONS,

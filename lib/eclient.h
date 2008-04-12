@@ -329,6 +329,10 @@ int disorder_eclient_rtp_address(disorder_eclient *c,
 int disorder_eclient_users(disorder_eclient *c,
                            disorder_eclient_list_response *completed,
                            void *v);
+int disorder_eclient_deluser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             void *v);
 
 #endif
 
