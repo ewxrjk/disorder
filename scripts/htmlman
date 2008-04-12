@@ -53,7 +53,7 @@ if $stdhead; then
 fi
 printf "   <pre class=manpage>"
 # this is kind of painful using only BREs
-nroff -man "$1" | ${GNUSED} \
+nroff -Tascii -man "$1" | ${GNUSED} \
                       '1d;$d;
                        1,/./{/^$/d};
                        s/&/\&amp;/g;
