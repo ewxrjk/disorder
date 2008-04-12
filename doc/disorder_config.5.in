@@ -368,6 +368,15 @@ It's best to explicitly specify it to be certain.
 passed to the plugin module.
 It must be an absolute path and should not end with a "/".
 .TP
+.B cookie_key_lifetime \fISECONDS\fR
+Lifetime of the signing key used in constructing cookies.  The default is one
+week.
+.TP
+.B cookie_login_lifetime \fISECONDS\fR
+Lifetime of a cookie enforced by the server.  When the cookie expires the user
+will have to log in again even if their browser has remembered the cookie that
+long.  The default is one day.
+.TP
 .B default_rights \fIRIGHTS\fR
 Defines the set of rights given to new users.
 The argument is a comma-separated list of rights.
