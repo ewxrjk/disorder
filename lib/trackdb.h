@@ -172,6 +172,11 @@ char **trackdb_listusers(void);
 int trackdb_confirm(const char *user, const char *confirmation,
                     rights_type *rightsp);
 
+typedef void random_callback(struct ev_source *ev,
+                             const char *track);
+int trackdb_request_random(struct ev_source *ev,
+                           random_callback *callback);
+
 #endif /* TRACKDB_H */
 
 /*

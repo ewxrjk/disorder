@@ -1,3 +1,10 @@
+* Changes up to version 3.1
+
+** Server
+
+The 'gap' directive will no longer work.  It could be restored if there
+is real demand.
+
 * Changes up to version 3.0
 
 Important!  See README.upgrades when upgrading.

@@ -61,10 +61,6 @@
 
 static ev_source *ev;
 
-static void rescan_after(long offset);
-static void dbgc_after(long offset);
-static void volumecheck_after(long offset);
-
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -94,6 +90,8 @@ static void help(void) {
   exit(0);
 }
 
+/* signals ------------------------------------------------------------------ */
+
 /* SIGHUP callback */
 static int handle_sighup(ev_source attribute((unused)) *ev_,
 			 int attribute((unused)) sig,
@@ -119,41 +117,57 @@ static int handle_sigterm(ev_source attribute((unused)) *ev_,
   quit(ev);
 }
 
-static int rescan_again(ev_source *ev_,
-			const struct timeval attribute((unused)) *now,
-			void attribute((unused)) *u) {
-  trackdb_rescan(ev_, 1/*check*/);
-  rescan_after(86400);
-  return 0;
-}
+/* periodic actions --------------------------------------------------------- */
 
-static void rescan_after(long offset) {
-  struct timeval w;
+struct periodic_data {
+  void (*callback)(ev_source *);
+  int period;
+};
 
-  gettimeofday(&w, 0);
-  w.tv_sec += offset;
-  ev_timeout(ev, 0, &w, rescan_again, 0);
-}
-
-static int dbgc_again(ev_source attribute((unused)) *ev_,
-		      const struct timeval attribute((unused)) *now,
-		      void attribute((unused)) *u) {
-  trackdb_gc();
-  dbgc_after(60);
-  return 0;
-}
-
-static void dbgc_after(long offset) {
-  struct timeval w;
-
-  gettimeofday(&w, 0);
-  w.tv_sec += offset;
-  ev_timeout(ev, 0, &w, dbgc_again, 0);
-}
-
-static int volumecheck_again(ev_source attribute((unused)) *ev_,
+static int periodic_callback(ev_source *ev_,
 			     const struct timeval attribute((unused)) *now,
-			     void attribute((unused)) *u) {
+			     void *u) {
+  struct timeval w;
+  struct periodic_data *const pd = u;
+
+  pd->callback(ev_);
+  gettimeofday(&w, 0);
+  w.tv_sec += pd->period;
+  ev_timeout(ev, 0, &w, periodic_callback, pd);
+  return 0;
+}
+
+/** @brief Create a periodic action
+ * @param ev Event loop
+ * @param callback Callback function
+ * @param period Interval between calls in seconds
+ * @param immediate If true, call @p callback straight away
+ */
+static void create_periodic(ev_source *ev_,
+			    void (*callback)(ev_source *),
+			    int period,
+			    int immediate) {
+  struct timeval w;
+  struct periodic_data *const pd = xmalloc(sizeof *pd);
+
+  pd->callback = callback;
+  pd->period = period;
+  if(immediate)
+    callback(ev_);
+  gettimeofday(&w, 0);
+  w.tv_sec += period;
+  ev_timeout(ev_, 0, &w, periodic_callback, pd);
+}
+
+static void periodic_rescan(ev_source *ev_) {
+  trackdb_rescan(ev_, 1/*check*/);
+}
+
+static void periodic_database_gc(ev_source attribute((unused)) *ev_) {
+  trackdb_gc();
+}
+
+static void periodic_volume_check(ev_source attribute((unused)) *ev_) {
   int l, r;
   char lb[32], rb[32];
 
@@ -166,16 +180,14 @@ static int volumecheck_again(ev_source attribute((unused)) *ev_,
       eventlog("volume", lb, rb, (char *)0);
     }
   }
-  volumecheck_after(60);
-  return 0;
 }
 
-static void volumecheck_after(long offset) {
-  struct timeval w;
+static void periodic_play_check(ev_source *ev_) {
+  play(ev_);
+}
 
-  gettimeofday(&w, 0);
-  w.tv_sec += offset;
-  ev_timeout(ev, 0, &w, volumecheck_again, 0);
+static void periodic_add_random(ev_source *ev_) {
+  add_random_track(ev_);
 }
 
 /* We fix the path to include the bindir and sbindir we were installed into */
@@ -284,17 +296,16 @@ int main(int argc, char **argv) {
   if(ev_signal(ev, SIGTERM, handle_sigterm, 0)) fatal(0, "ev_signal failed");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
-  /* Start a rescan straight away */
-  trackdb_rescan(ev, 1/*check*/);
-  /* We'll rescan again after a day */
-  rescan_after(86400);
-  /* periodically tidy up the database */
-  dbgc_after(60);
-  /* periodically check the volume */
-  volumecheck_again(0, 0, 0);
-  /* set initial state */
-  add_random_track();
-  play(ev);
+  /* Rescan immediately and then daily */
+  create_periodic(ev, periodic_rescan, 86400, 1/*immediate*/);
+  /* Tidy up the database once a minute */
+  create_periodic(ev, periodic_database_gc, 60, 0);
+  /* Check the volume immediately and then once a minute */
+  create_periodic(ev, periodic_volume_check, 60, 1);
+  /* Check for a playable track once a second */
+  create_periodic(ev, periodic_play_check, 1, 0);
+  /* Try adding a random track immediately and once every ten seconds */
+  create_periodic(ev, periodic_add_random, 10, 1);
   /* enter the event loop */
   n = ev_run(ev);
   /* if we exit the event loop, something must have gone wrong */

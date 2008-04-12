@@ -156,10 +156,6 @@ static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
 static int initialized, opened;         /* state */
 
-/* tracks matched by required_tags */
-static char **reqtracks;
-static size_t nreqtracks;
-
 /* comparison function for keys */
 static int compare(DB attribute((unused)) *db_,
 		   const DBT *a, const DBT *b) {
@@ -1038,7 +1034,6 @@ int trackdb_notice_tid(const char *track,
   for(n = 0; w[n]; ++n)
     if((err = register_tag(track, w[n], tid)))
       return err;
-  reqtracks = 0;
   /* only store the tracks.db entry if it has changed */
   if(t_changed && (err = trackdb_putdata(trackdb_tracksdb, track, t, tid, 0)))
     return err;
@@ -1096,7 +1091,6 @@ int trackdb_obsolete(const char *track, DB_TXN *tid) {
     if(trackdb_delkeydata(trackdb_tagsdb,
                           w[n], track, tid) == DB_LOCK_DEADLOCK)
       return err;
-  reqtracks = 0;
   /* update tracks.db */
   if(trackdb_delkey(trackdb_tracksdb, track, tid) == DB_LOCK_DEADLOCK)
     return err;
@@ -1458,7 +1452,6 @@ int trackdb_set(const char *track,
             ++newtags;
           }
         }
-        reqtracks = 0;
       }
     }
     err = 0;
@@ -1589,176 +1582,93 @@ int tag_intersection(char **a, char **b) {
   return 0;
 }
 
-/* Check whether a track is suitable for random play.  Returns 0 if it is,
- * DB_NOTFOUND if it is not or DB_LOCK_DEADLOCK if the database gave us
- * that. */
-static int check_suitable(const char *track,
-                          DB_TXN *tid,
-                          char **required_tags,
-                          char **prohibited_tags) {
-  char **track_tags;
-  time_t last, now;
-  struct kvp *p, *t;
-  const char *pick_at_random, *played_time;
+static pid_t choose_pid = -1;
+static int choose_fd;
+static random_callback *choose_callback;
+static struct dynstr choose_output;
+static unsigned choose_complete;
+static int choose_status;
+#define CHOOSE_RUNNING 1
+#define CHOOSE_READING 2
 
-  /* don't pick tracks that aren't in any surviving collection (for instance
-   * you've edited the config but the rescan hasn't done its job yet) */
-  if(!find_track_root(track)) {
-    info("found track not in any collection: %s", track);
-    return DB_NOTFOUND;
-  }
-  /* don't pick aliases - only pick the canonical form */
-  if(gettrackdata(track, &t, &p, 0, 0, tid) == DB_LOCK_DEADLOCK)
-    return DB_LOCK_DEADLOCK;
-  if(kvp_get(t, "_alias_for"))
-    return DB_NOTFOUND;
-  /* check that random play is not suppressed for this track */
-  if((pick_at_random = kvp_get(p, "pick_at_random"))
-     && !strcmp(pick_at_random, "0"))
-    return DB_NOTFOUND;
-  /* don't pick a track that's been played in the last 8 hours */
-  if((played_time = kvp_get(p, "played_time"))) {
-    last = atoll(played_time);
-    now = time(0);
-    if(now < last + 8 * 3600)       /* TODO configurable */
-      return DB_NOTFOUND;
-  }
-  track_tags = parsetags(kvp_get(p, "tags"));
-  /* check that no prohibited tag is present for this track */
-  if(prohibited_tags && tag_intersection(track_tags, prohibited_tags))
-    return DB_NOTFOUND;
-  /* check that at least one required tags is present for this track */
-  if(*required_tags && !tag_intersection(track_tags, required_tags))
-    return DB_NOTFOUND;
+static void choose_finished(ev_source *ev, unsigned which) {
+  choose_complete |= which;
+  if(choose_complete != (CHOOSE_RUNNING|CHOOSE_READING))
+    return;
+  choose_pid = -1;
+  if(choose_status == 0 && choose_output.nvec > 0) {
+    dynstr_terminate(&choose_output);
+    choose_callback(ev, xstrdup(choose_output.vec));
+  } else
+    choose_callback(ev, 0);
+}
+
+/** @brief Called when @c disorder-choose terminates */
+static int choose_exited(ev_source *ev,
+                         pid_t attribute((unused)) pid,
+                         int status,
+                         const struct rusage attribute((unused)) *rusage,
+                         void attribute((unused)) *u) {
+  if(status)
+    error(0, "disorder-choose %s", wstat(status));
+  choose_status = status;
+  choose_finished(ev, CHOOSE_RUNNING);
   return 0;
 }
 
-/* attempt to pick a random non-alias track */
-const char *trackdb_random(int tries) {
-  DBT key, data;
-  DB_BTREE_STAT *sp;
-  int err, n;
-  DB_TXN *tid;
-  const char *track, *candidate;
-  db_recno_t r;
-  const char *tags;
-  char **required_tags, **prohibited_tags, **tp;
-  hash *h;
-  DBC *c = 0;
+/** @brief Called with data from @c disorder-choose pipe */
+static int choose_readable(ev_source *ev,
+                           ev_reader *reader,
+                           void *ptr,
+                           size_t bytes,
+                           int eof,
+                           void attribute((unused)) *u) {
+  dynstr_append_bytes(&choose_output, ptr, bytes);
+  ev_reader_consume(reader, bytes);
+  if(eof)
+    choose_finished(ev, CHOOSE_READING);
+  return 0;
+}
 
-  for(;;) {
-    tid = trackdb_begin_transaction();
-    if((err = trackdb_get_global_tid("required-tags", tid, &tags)))
-      goto fail;
-    required_tags = parsetags(tags);
-    if((err = trackdb_get_global_tid("prohibited-tags", tid, &tags)))
-      goto fail;
-    prohibited_tags = parsetags(tags);
-    track = 0;
-    if(*required_tags) {
-      /* Bung all the suitable tracks into a hash and convert to a list of keys
-       * (to eliminate duplicates).  We cache this list since it is possible
-       * that it will be very large. */
-      if(!reqtracks) {
-        h = hash_new(0);
-        for(tp = required_tags; *tp; ++tp) {
-          c = trackdb_opencursor(trackdb_tagsdb, tid);
-          memset(&key, 0, sizeof key);
-          key.data = *tp;
-          key.size = strlen(*tp);
-          n = 0;
-          err = c->c_get(c, &key, prepare_data(&data), DB_SET);
-          while(err == 0) {
-            hash_add(h, xstrndup(data.data, data.size), 0,
-                     HASH_INSERT_OR_REPLACE);
-            ++n;
-            err = c->c_get(c, &key, prepare_data(&data), DB_NEXT_DUP);
-          }
-          switch(err) {
-          case 0:
-          case DB_NOTFOUND:
-            break;
-          case DB_LOCK_DEADLOCK:
-            goto fail;
-          default:
-            fatal(0, "error querying tags.db: %s", db_strerror(err));
-          }
-          trackdb_closecursor(c);
-          c = 0;
-          if(!n)
-            error(0, "required tag %s does not match any tracks", *tp);
-        }
-        nreqtracks = hash_count(h);
-        reqtracks = hash_keys(h);
-      }
-      while(nreqtracks && !track && tries-- > 0) {
-        r = (rand() * (double)nreqtracks / (RAND_MAX + 1.0));
-        candidate = reqtracks[r];
-        switch(check_suitable(candidate, tid,
-                              required_tags, prohibited_tags)) {
-        case 0:
-          track = candidate;
-          break;
-        case DB_NOTFOUND:
-          break;
-        case DB_LOCK_DEADLOCK:
-          goto fail;
-        }
-      }
-    } else {
-      /* No required tags.  We pick random record numbers in the database
-       * instead. */
-      switch(err = trackdb_tracksdb->stat(trackdb_tracksdb, tid, &sp, 0)) {
-      case 0:
-        break;
-      case DB_LOCK_DEADLOCK:
-        error(0, "error querying tracks.db: %s", db_strerror(err));
-        goto fail;
-      default:
-        fatal(0, "error querying tracks.db: %s", db_strerror(err));
-      }
-      if(!sp->bt_nkeys)
-        error(0, "cannot pick tracks at random from an empty database");
-      while(sp->bt_nkeys && !track && tries-- > 0) {
-        /* record numbers count from 1 upwards */
-        r = 1 + (rand() * (double)sp->bt_nkeys / (RAND_MAX + 1.0));
-        memset(&key, sizeof key, 0);
-        key.flags = DB_DBT_MALLOC;
-        key.size = sizeof r;
-        key.data = &r;
-        switch(err = trackdb_tracksdb->get(trackdb_tracksdb, tid, &key, prepare_data(&data),
-                                           DB_SET_RECNO)) {
-        case 0:
-          break;
-        case DB_LOCK_DEADLOCK:
-          error(0, "error querying tracks.db: %s", db_strerror(err));
-          goto fail;
-        default:
-          fatal(0, "error querying tracks.db: %s", db_strerror(err));
-        }
-        candidate = xstrndup(key.data, key.size);
-        switch(check_suitable(candidate, tid,
-                              required_tags, prohibited_tags)) {
-        case 0:
-          track = candidate;
-          break;
-        case DB_NOTFOUND:
-          break;
-        case DB_LOCK_DEADLOCK:
-          goto fail;
-        }
-      }
-    }
-    break;
-fail:
-    trackdb_closecursor(c);
-    c = 0;
-    trackdb_abort_transaction(tid);
-  }
-  trackdb_commit_transaction(tid);
-  if(!track)
-    error(0, "could not pick a random track");
-  return track;
+static int choose_read_error(ev_source *ev,
+                             int errno_value,
+                             void attribute((unused)) *u) {
+  error(errno_value, "error reading disorder-choose pipe");
+  choose_finished(ev, CHOOSE_READING);
+  return 0;
+}
+
+/** @brief Request a random track
+ * @param ev Event source
+ * @param callback Called with random track or NULL
+ * @return 0 if a request was initiated, else -1
+ *
+ * Initiates a random track choice.  @p callback will later be called back with
+ * the choice (or NULL on error).  If a choice is already underway then -1 is
+ * returned and there will be no additional callback.
+ *
+ * The caller shouldn't assume that the track returned actually exists (it
+ * might be removed between the choice and the callback, or between being added
+ * to the queue and being played).
+ */
+int trackdb_request_random(ev_source *ev,
+                           random_callback *callback) {
+  int p[2];
+  
+  if(choose_pid != -1)
+    return -1;                          /* don't run concurrent chooses */
+  xpipe(p);
+  cloexec(p[0]);
+  choose_pid = subprogram(ev, p[1], "disorder-choose", (char *)0);
+  choose_fd = p[0];
+  xclose(p[1]);
+  choose_callback = callback;
+  choose_output.nvec = 0;
+  choose_complete = 0;
+  ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
+                "disorder-choose reader"); /* owns p[0] */
+  ev_child(ev, choose_pid, 0, choose_exited, 0); /* owns the subprocess */
+  return 0;
 }
 
 /* get a track name given the prefs.  Set *used_db to 1 if we got the answer
@@ -2253,8 +2163,6 @@ void trackdb_set_global(const char *name,
          who ? who : "-");
     eventlog("state", state ? "enable_random" : "disable_random", (char *)0);
   }
-  if(!strcmp(name, "required-tags"))
-    reqtracks = 0;
 }
 
 int trackdb_set_global_tid(const char *name,

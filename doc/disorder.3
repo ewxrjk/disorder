@@ -157,15 +157,6 @@ and are lost if the track is deleted; they should only ever have
 values that can be regenerated on demand.
 Other values are stored in the prefs database and never get
 automatically deleted.
-.PP
-.nf
-\fBconst char *disorder_track_random(void)
-.fi
-.IP
-Returns a pointer to a copy of the name of a randomly chosen track.
-Each non-alias track has an equal probability of being chosen.
-Aliases are never returned.
-Only available in server plugins.
 .SH "PLUGIN FUNCTIONS"
 This section describes the functions that you must implement to write various
 plugins.

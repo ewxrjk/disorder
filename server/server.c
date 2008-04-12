@@ -272,9 +272,8 @@ static int c_remove(struct conn *c, char **vec,
   queue_remove(q, c->who);
   /* De-prepare the track. */
   abandon(c->ev, q);
-  /* If we removed a random track then add another one. */
-  if(q->state == playing_random)
-    add_random_track();
+  /* See about adding a new random track */
+  add_random_track(c->ev);
   /* Prepare whatever the next head track is. */
   if(qhead.next != &qhead)
     prepare(c->ev, qhead.next);

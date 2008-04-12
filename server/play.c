@@ -174,25 +174,6 @@ void speaker_reload(void) {
   speaker_send(speaker_fd, &sm);
 }
 
-/* timeout for play retry */
-static int play_again(ev_source *ev,
-		      const struct timeval attribute((unused)) *now,
-		      void attribute((unused)) *u) {
-  D(("play_again"));
-  play(ev);
-  return 0;
-}
-
-/* try calling play() again after @offset@ seconds */
-static void retry_play(ev_source *ev, int offset) {
-  struct timeval w;
-
-  D(("retry_play(%d)", offset));
-  gettimeofday(&w, 0);
-  w.tv_sec += offset;
-  ev_timeout(ev, 0, &w, play_again, 0);
-}
-
 /* Called when the currently playing track finishes playing.  This
  * might be because the player finished or because the speaker process
  * told us so. */
@@ -219,7 +200,10 @@ static void finished(ev_source *ev) {
   recent_write();
   forget_player_pid(playing->id);
   playing = 0;
-  if(ev) retry_play(ev, config->gap);
+  /* Try to play something else */
+  /* TODO re-support config->gap? */
+  if(ev)
+    play(ev);
 }
 
 /* Called when a player terminates. */
@@ -531,34 +515,40 @@ void abandon(ev_source attribute((unused)) *ev,
   speaker_send(speaker_fd, &sm);
 }
 
-int add_random_track(void) {
+/** @brief Called with a new random track
+ * @param track Track name
+ */
+static void chosen_random_track(ev_source *ev,
+				const char *track) {
   struct queue_entry *q;
-  const char *p;
+
+  if(!track)
+    return;
+  /* Add the track to the queue */
+  q = queue_add(track, 0, WHERE_END);
+  q->state = playing_random;
+  D(("picked %p (%s) at random", (void *)q, q->track));
+  queue_write();
+  /* Maybe a track can now be played */
+  play(ev);
+}
+
+/** @brief Maybe add a randomly chosen track
+ * @param ev Event loop
+ */
+void add_random_track(ev_source *ev) {
+  struct queue_entry *q;
   long qlen = 0;
-  int rc = 0;
 
   /* If random play is not enabled then do nothing. */
   if(shutting_down || !random_is_enabled())
-    return 0;
+    return;
   /* Count how big the queue is */
   for(q = qhead.next; q != &qhead; q = q->next)
     ++qlen;
-  /* Add random tracks until the queue is at the right size */
-  while(qlen < config->queue_pad) {
-    /* Try to pick a random track */
-    if(!(p = trackdb_random(16))) {
-      rc = -1;
-      break;
-    }
-    /* Add it to the end of the queue. */
-    q = queue_add(p, 0, WHERE_END);
-    q->state = playing_random;
-    D(("picked %p (%s) at random", (void *)q, q->track));
-    ++qlen;
-  }
-  /* Commit the queue */
-  queue_write();
-  return rc;
+  /* If it's smaller than the desired size then add a track */
+  if(qlen < config->queue_pad)
+    trackdb_request_random(ev, chosen_random_track);
 }
 
 /* try to play a track */
@@ -568,17 +558,15 @@ void play(ev_source *ev) {
 
   D(("play playing=%p", (void *)playing));
   if(shutting_down || playing || !playing_is_enabled()) return;
-  /* If the queue is empty then add a random track. */
+  /* See if there's anything to play */
   if(qhead.next == &qhead) {
-    if(!random_enabled)
-      return;
-    if(add_random_track()) {
-      /* On error, try again in 10s. */
-      retry_play(ev, 10);
-      return;
-    }
-    /* Now there must be at least one track in the queue. */
+    /* Queue is empty.  We could just wait around since there are periodic
+     * attempts to add a random track anyway.  However they are rarer than
+     * attempts to force a track so we initiate one now. */
+    add_random_track(ev);
+    return;
   }
+  /* There must be at least one track in the queue. */
   q = qhead.next;
   /* If random play is disabled but the track is a random one then don't play
    * it.  play() will be called again when random play is re-enabled. */
@@ -593,19 +581,11 @@ void play(ev_source *ev) {
       queue_played(q);
       recent_write();
     }
-    if(qhead.next == &qhead)
-      /* Queue is empty, wait a bit before trying something else (so we don't
-       * sit there looping madly in the presence of persistent problem).  Note
-       * that we might not reliably get a random track lookahead in this case,
-       * but if we get here then really there are bigger problems. */
-      retry_play(ev, 1);
-    else
-      /* More in queue, try again now. */
-      play(ev);
+    /* Oh well, try the next one */
+    play(ev);
     break;
   case START_SOFTFAIL:
-    /* Try same track again in a bit. */
-    retry_play(ev, 10);
+    /* We'll try the same track again shortly. */
     break;
   case START_OK:
     if(q == qhead.next) {
@@ -620,7 +600,7 @@ void play(ev_source *ev) {
 	     playing->submitter ? playing->submitter : (const char *)0,
 	     (const char *)0);
     /* Maybe add a random track. */
-    add_random_track();
+    add_random_track(ev);
     /* If there is another track in the queue prepare it now.  This could
      * potentially be a just-added random track. */
     if(qhead.next != &qhead)
@@ -638,7 +618,7 @@ int playing_is_enabled(void) {
 void enable_playing(const char *who, ev_source *ev) {
   trackdb_set_global("playing", "yes", who);
   /* Add a random track if necessary. */
-  add_random_track();
+  add_random_track(ev);
   play(ev);
 }
 
@@ -654,7 +634,7 @@ int random_is_enabled(void) {
 
 void enable_random(const char *who, ev_source *ev) {
   trackdb_set_global("random-play", "yes", who);
-  add_random_track();
+  add_random_track(ev);
   play(ev);
 }
 

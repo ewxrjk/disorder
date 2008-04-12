@@ -75,9 +75,8 @@ void abandon(ev_source *ev,
 	     struct queue_entry *q);
 /* Abandon a possibly-prepared track. */
 
-int add_random_track(void);
-/* If random play is enabled then try to add a track to the queue.  On success
- * (including deliberartely doing nothing) return 0.  On error return -1. */
+void add_random_track(ev_source *ev);
+/* If random play is enabled then try to add a track to the queue. */
 
 #endif /* PLAY_H */
 

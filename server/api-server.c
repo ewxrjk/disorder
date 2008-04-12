@@ -49,10 +49,6 @@ int disorder_track_set_data(const char *track,
   return trackdb_set(track, key, value);
 }
 
-const char *disorder_track_random(void)  {
-  return trackdb_random(16);
-}
-
 /*
 Local Variables:
 c-basic-offset:2

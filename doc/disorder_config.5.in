@@ -395,6 +395,9 @@ default is.
 .B gap \fISECONDS\fR
 Specifies the number of seconds to leave between tracks.
 The default is 0.
+.IP
+NB this option currently DOES NOT WORK.  If there is genuine demand it might be
+reinstated.
 .TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including

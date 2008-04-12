@@ -1234,7 +1234,7 @@ int ev_writer_flush(ev_writer *w) {
 
 /* buffered reader ************************************************************/
 
-/** @brief Shut down a reader*
+/** @brief Shut down a reader
  *
  * This is the only path through which we cancel and close the file descriptor.
  * As with the writer case it is given timeout signature to allow it be
