@@ -258,6 +258,10 @@ The Tags field determine which tags apply to the track.
 Tags are separated by commas and can contain any printing characters except
 comma.
 .PP
+The Weight field determines the track weight.  Tracks with higher weights are
+proportionately more likely to be picked at random.  The default weight is
+90000, and the maximum weight is 2147483647.
+.PP
 The Random checkbox determines whether the track will be picked at random.
 Random play is enabled for every track by default, but it can be turned off
 here.
