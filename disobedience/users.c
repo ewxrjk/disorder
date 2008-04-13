@@ -27,6 +27,13 @@ static GtkWidget *users_window;
 static GtkListStore *users_list;
 static GtkTreeSelection *users_selection;
 
+static GtkWidget *users_details_window;
+static GtkWidget *users_details_name;
+static GtkWidget *users_details_email;
+static GtkWidget *users_details_password;
+static GtkWidget *users_details_password2;
+//static GtkWidget *users_details_rights;
+
 static int usercmp(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
 }
@@ -61,6 +68,127 @@ static char *users_getuser(void) {
     }
   }
   return 0;
+}
+
+/** @brief Create the user details window
+ * @param title Window title
+ * @param name User name (users_edit()) or NULL (users_add())
+ * @param email Email address
+ * @param rights User rights string
+ * @param password Password
+ *
+ * This is used both by users_add() and users_edit().
+ *
+ * The window contains:
+ * - display or edit fields for the username
+ * - edit fields for the email address
+ * - two hidden edit fields for the password (they must match)
+ * - check boxes for the rights
+ */
+static void users_makedetails(const char *title,
+                              const char *name,
+                              const char *email,
+                              const char attribute((unused)) *rights,
+                              const char *password) {
+  GtkWidget *table, *label;
+  
+  /* Create the window */
+  users_details_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_style(users_details_window, tool_style);
+  g_signal_connect(users_details_window, "destroy",
+		   G_CALLBACK(gtk_widget_destroyed), &users_details_window);
+  gtk_window_set_title(GTK_WINDOW(users_details_window), title);
+  gtk_window_set_transient_for(GTK_WINDOW(users_details_window),
+                               GTK_WINDOW(users_window));
+  table = gtk_table_new(4, 2, FALSE/*!homogeneous*/);
+
+  /* Username */
+  label = gtk_label_new("Username");
+  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
+  gtk_table_attach(GTK_TABLE(table),
+                   label,
+                   0, 1,                /* left/right_attach */
+                   0, 1,                /* top/bottom_attach */
+                   GTK_FILL,            /* xoptions */
+                   0,                   /* yoptions */
+                   1, 1);               /* x/ypadding */
+  users_details_name = gtk_entry_new();
+  if(name) {
+    /* For users_edit(), we cannot modify the name */
+    gtk_entry_set_text(GTK_ENTRY(users_details_name), name);
+    gtk_editable_set_editable(GTK_EDITABLE(users_details_name), FALSE);
+  }
+  gtk_table_attach(GTK_TABLE(table),
+                   users_details_name,
+                   1, 2,                /* left/right_attach */
+                   0, 1,                /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+
+  /* Email address */
+  label = gtk_label_new("Email");
+  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
+  gtk_table_attach(GTK_TABLE(table),
+                   label,
+                   0, 1,                /* left/right_attach */
+                   1, 2,                /* top/bottom_attach */
+                   GTK_FILL,            /* xoptions */
+                   0,                   /* yoptions */
+                   1, 1);               /* x/ypadding */
+  users_details_email = gtk_entry_new();
+  gtk_entry_set_text(GTK_ENTRY(users_details_email), email);
+  gtk_table_attach(GTK_TABLE(table),
+                   users_details_email,
+                   1, 2,                /* left/right_attach */
+                   1, 2,                /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+
+  /* Password */
+  label = gtk_label_new("Password");
+  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
+  gtk_table_attach(GTK_TABLE(table),
+                   label,
+                   0, 1,                /* left/right_attach */
+                   2, 3,                /* top/bottom_attach */
+                   GTK_FILL,            /* xoptions */
+                   0,                   /* yoptions */
+                   1, 1);               /* x/ypadding */
+  users_details_password = gtk_entry_new();
+  gtk_entry_set_text(GTK_ENTRY(users_details_password), password);
+  gtk_entry_set_visibility(GTK_ENTRY(users_details_password), FALSE);
+  gtk_table_attach(GTK_TABLE(table),
+                   users_details_password,
+                   1, 2,                /* left/right_attach */
+                   2, 3,                /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+  label = gtk_label_new("Password");
+  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
+  gtk_table_attach(GTK_TABLE(table),
+                   label,
+                   0, 1,                /* left/right_attach */
+                   3, 4,                /* top/bottom_attach */
+                   GTK_FILL,            /* xoptions */
+                   0,                   /* yoptions */
+                   1, 1);               /* x/ypadding */
+  users_details_password2 = gtk_entry_new();
+  gtk_entry_set_text(GTK_ENTRY(users_details_password2), password);
+  gtk_entry_set_visibility(GTK_ENTRY(users_details_password2), FALSE);
+  gtk_table_attach(GTK_TABLE(table),
+                   users_details_password2,
+                   1, 2,                /* left/right_attach */
+                   3, 4,                /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+
+  /* TODO rights */
+  gtk_container_add(GTK_CONTAINER(users_details_window), table);
+  gtk_widget_show_all(users_details_window);
 }
 
 static void users_add(GtkButton attribute((unused)) *button,
@@ -121,7 +249,11 @@ static void users_delete(GtkButton attribute((unused)) *button,
 
 static void users_edit(GtkButton attribute((unused)) *button,
 		       gpointer attribute((unused)) userdata) {
+  char *who;
   
+  if(!(who = users_getuser()))
+    return;
+  users_makedetails("editing user details", who, "foo@bar", "wibble", "wobble");
 }
 
 static const struct button users_buttons[] = {
