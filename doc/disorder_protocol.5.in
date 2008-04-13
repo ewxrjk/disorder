@@ -323,6 +323,9 @@ See
 .B AUTHENTICATION
 below.
 .TP
+.B userinfo \fIUSER PROPERTY
+Get a user property.
+.TP
 .B users
 Send the list of currently known users in a response body.
 .TP
