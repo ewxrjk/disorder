@@ -47,6 +47,22 @@ static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
   gtk_widget_show_all(users_window);
 }
 
+static char *users_getuser(void) {
+  GtkTreeIter iter;
+  char *who, *c;
+
+  if(gtk_tree_selection_get_selected(users_selection, 0, &iter)) {
+    gtk_tree_model_get(GTK_TREE_MODEL(users_list), &iter,
+                       0, &who, -1);
+    if(who) {
+      c = xstrdup(who);
+      g_free(who);
+      return c;
+    }
+  }
+  return 0;
+}
+
 static void users_add(GtkButton attribute((unused)) *button,
 		      gpointer attribute((unused)) userdata) {
 }
@@ -80,35 +96,32 @@ static void users_deleted(void *v) {
 
 static void users_delete(GtkButton attribute((unused)) *button,
 			 gpointer attribute((unused)) userdata) {
-  GtkTreeIter iter;
   GtkWidget *yesno;
   char *who;
   int res;
   struct callbackdata *cbd;
 
-  if(gtk_tree_selection_get_selected(users_selection, 0, &iter)) {
-    gtk_tree_model_get(GTK_TREE_MODEL(users_list), &iter,
-		       0, &who, -1);
-    yesno = gtk_message_dialog_new(GTK_WINDOW(users_window),
-				   GTK_DIALOG_MODAL,
-				   GTK_MESSAGE_QUESTION,
-				   GTK_BUTTONS_YES_NO,
-				   "Do you really want to delete user %s?"
-				   " This action cannot be undone.", who);
-    res = gtk_dialog_run(GTK_DIALOG(yesno));
-    gtk_widget_destroy(yesno);
-    if(res == GTK_RESPONSE_YES) {
-      cbd = xmalloc(sizeof *cbd);
-      cbd->onerror = users_deleted_error;
-      cbd->u.user = xstrdup(who);
-      disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
-    }
-    g_free(who);
+  if(!(who = users_getuser()))
+    return;
+  yesno = gtk_message_dialog_new(GTK_WINDOW(users_window),
+                                 GTK_DIALOG_MODAL,
+                                 GTK_MESSAGE_QUESTION,
+                                 GTK_BUTTONS_YES_NO,
+                                 "Do you really want to delete user %s?"
+                                 " This action cannot be undone.", who);
+  res = gtk_dialog_run(GTK_DIALOG(yesno));
+  gtk_widget_destroy(yesno);
+  if(res == GTK_RESPONSE_YES) {
+    cbd = xmalloc(sizeof *cbd);
+    cbd->onerror = users_deleted_error;
+    cbd->u.user = who;
+    disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
   }
 }
 
 static void users_edit(GtkButton attribute((unused)) *button,
 		       gpointer attribute((unused)) userdata) {
+  
 }
 
 static const struct button users_buttons[] = {
