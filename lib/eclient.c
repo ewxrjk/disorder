@@ -1291,6 +1291,41 @@ int disorder_eclient_deluser(disorder_eclient *c,
                 "deluser", user, (char *)0);
 }
 
+/** @brief Get a user property
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to look up
+ * @param property Property to look up
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_userinfo(disorder_eclient *c,
+                              disorder_eclient_string_response *completed,
+                              const char *user,
+                              const char *property,
+                              void *v) {
+  return simple(c, string_response_opcallback,  (void (*)())completed, v, 
+                "userinfo", user, property, (char *)0);
+}
+
+/** @brief Modify a user property
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to modify
+ * @param property Property to modify
+ * @param value New property value
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_edituser(disorder_eclient *c,
+                              disorder_eclient_no_response *completed,
+                              const char *user,
+                              const char *property,
+                              const char *value,
+                              void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "edituser", user, property, value, (char *)0);
+}
+
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

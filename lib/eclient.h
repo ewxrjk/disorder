@@ -333,6 +333,17 @@ int disorder_eclient_deluser(disorder_eclient *c,
                              disorder_eclient_no_response *completed,
                              const char *user,
                              void *v);
+int disorder_eclient_userinfo(disorder_eclient *c,
+                              disorder_eclient_string_response *completed,
+                              const char *user,
+                              const char *property,
+                              void *v);
+int disorder_eclient_edituser(disorder_eclient *c,
+                              disorder_eclient_no_response *completed,
+                              const char *user,
+                              const char *property,
+                              const char *value,
+                              void *v);
 
 #endif
 
