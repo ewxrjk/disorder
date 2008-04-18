@@ -76,24 +76,12 @@ static char *users_getuser(void) {
 /** @brief Text should be editable */
 #define DETAIL_EDITABLE 2
 
-/** @brief Add a row to the user details table
- * @param table Containin table widget
- * @param rowp Pointer to row number, incremented
- * @param title Label for this row
- * @param value Initial value or NULL
- * @param flags Flags word
- *
- * @return The text entry widget
- */
-static GtkWidget *users_add_detail(GtkWidget *table,
-                                   int *rowp,
-                                   const char *title,
-                                   const char *value,
-                                   unsigned flags) {
+static GtkWidget *users_detail_generic(GtkWidget *table,
+                                       int *rowp,
+                                       const char *title,
+                                       GtkWidget *selector) {
   const int row = (*rowp)++;
-  GtkWidget *label, *entry;
-  
-  label = gtk_label_new(title);
+  GtkWidget *const label = gtk_label_new(title);
   gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
   gtk_table_attach(GTK_TABLE(table),
                    label,
@@ -102,21 +90,48 @@ static GtkWidget *users_add_detail(GtkWidget *table,
                    GTK_FILL,            /* xoptions */
                    0,                   /* yoptions */
                    1, 1);               /* x/ypadding */
-  entry = gtk_entry_new();
+  gtk_table_attach(GTK_TABLE(table),
+                   selector,
+                   1, 2,                /* left/right_attach */
+                   row, row + 1,        /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+  return selector;
+}
+
+/** @brief Add a row to the user details table
+ * @param table Containin table widget
+ * @param rowp Pointer to row number, incremented
+ * @param title Label for this row
+ * @param value Initial value or NULL
+ * @param flags Flags word
+ * @return The text entry widget
+ */
+static GtkWidget *users_add_detail(GtkWidget *table,
+                                   int *rowp,
+                                   const char *title,
+                                   const char *value,
+                                   unsigned flags) {
+  GtkWidget *entry = gtk_entry_new();
+
   gtk_entry_set_visibility(GTK_ENTRY(entry),
                            !!(flags & DETAIL_VISIBLE));
   gtk_editable_set_editable(GTK_EDITABLE(entry),
                             !!(flags & DETAIL_EDITABLE));
   if(value)
     gtk_entry_set_text(GTK_ENTRY(entry), value);
-  gtk_table_attach(GTK_TABLE(table),
-                   entry,
-                   1, 2,                /* left/right_attach */
-                   row, row + 1,        /* top/bottom_attach */
-                   GTK_EXPAND|GTK_FILL, /* xoptions */
-                   GTK_FILL,            /* yoptions */
-                   1, 1);               /* x/ypadding */
-  return entry;
+  return users_detail_generic(table, rowp, title, entry);
+}
+
+static GtkWidget *users_add_right(GtkWidget *table,
+                                  int *rowp,
+                                  const char *title,
+                                  rights_type value) {
+  GtkWidget *check = gtk_check_button_new();
+  
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), !!value);
+  return users_detail_generic(table, rowp, title, check);
 }
                                                    
 
@@ -138,10 +153,11 @@ static GtkWidget *users_add_detail(GtkWidget *table,
 static void users_makedetails(const char *title,
                               const char *name,
                               const char *email,
-                              const char attribute((unused)) *rights,
+                              const char *rights,
                               const char *password) {
   GtkWidget *table;
   int row = 0;
+  rights_type r = 0;
   
   /* Create the window */
   users_details_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -167,7 +183,20 @@ static void users_makedetails(const char *title,
                                              password,
                                              DETAIL_EDITABLE);
 
-  /* TODO rights */
+  parse_rights(rights, &r, 1);
+  users_add_right(table, &row, "Read operations", r & RIGHT_READ);
+  users_add_right(table, &row, "Play track", r & RIGHT_PLAY);
+  /* TODO move */
+  /* TODO remove */
+  /* TODO scratch */
+  users_add_right(table, &row, "Set volume", r & RIGHT_VOLUME);
+  users_add_right(table, &row, "Admin operations", r & RIGHT_ADMIN);
+  users_add_right(table, &row, "Rescan", r & RIGHT_RESCAN);
+  users_add_right(table, &row, "Register new users", r & RIGHT_REGISTER);
+  users_add_right(table, &row, "Modify own userinfo", r & RIGHT_USERINFO);
+  users_add_right(table, &row, "Modify track preferences", r & RIGHT_PREFS);
+  users_add_right(table, &row, "Modify global preferences", r & RIGHT_GLOBAL_PREFS);
+  users_add_right(table, &row, "Pause/resume tracks", r & RIGHT_PAUSE);
 
   gtk_container_add(GTK_CONTAINER(users_details_window), table);
   gtk_widget_show_all(users_details_window);
@@ -235,7 +264,7 @@ static void users_edit(GtkButton attribute((unused)) *button,
   
   if(!(who = users_getuser()))
     return;
-  users_makedetails("editing user details", who, "foo@bar", "wibble", "wobble");
+  users_makedetails("editing user details", who, "foo@bar", "play", "wobble");
 }
 
 static const struct button users_buttons[] = {
