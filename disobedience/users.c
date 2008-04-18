@@ -70,6 +70,56 @@ static char *users_getuser(void) {
   return 0;
 }
 
+/** @brief Text should be visible */
+#define DETAIL_VISIBLE 1
+
+/** @brief Text should be editable */
+#define DETAIL_EDITABLE 2
+
+/** @brief Add a row to the user details table
+ * @param table Containin table widget
+ * @param rowp Pointer to row number, incremented
+ * @param title Label for this row
+ * @param value Initial value or NULL
+ * @param flags Flags word
+ *
+ * @return The text entry widget
+ */
+static GtkWidget *users_add_detail(GtkWidget *table,
+                                   int *rowp,
+                                   const char *title,
+                                   const char *value,
+                                   unsigned flags) {
+  const int row = (*rowp)++;
+  GtkWidget *label, *entry;
+  
+  label = gtk_label_new(title);
+  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
+  gtk_table_attach(GTK_TABLE(table),
+                   label,
+                   0, 1,                /* left/right_attach */
+                   row, row+1,          /* top/bottom_attach */
+                   GTK_FILL,            /* xoptions */
+                   0,                   /* yoptions */
+                   1, 1);               /* x/ypadding */
+  entry = gtk_entry_new();
+  gtk_entry_set_visibility(GTK_ENTRY(entry),
+                           !!(flags & DETAIL_VISIBLE));
+  gtk_editable_set_editable(GTK_EDITABLE(entry),
+                            !!(flags & DETAIL_EDITABLE));
+  if(value)
+    gtk_entry_set_text(GTK_ENTRY(entry), value);
+  gtk_table_attach(GTK_TABLE(table),
+                   entry,
+                   1, 2,                /* left/right_attach */
+                   row, row + 1,        /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, /* xoptions */
+                   GTK_FILL,            /* yoptions */
+                   1, 1);               /* x/ypadding */
+  return entry;
+}
+                                                   
+
 /** @brief Create the user details window
  * @param title Window title
  * @param name User name (users_edit()) or NULL (users_add())
@@ -90,7 +140,8 @@ static void users_makedetails(const char *title,
                               const char *email,
                               const char attribute((unused)) *rights,
                               const char *password) {
-  GtkWidget *table, *label;
+  GtkWidget *table;
+  int row = 0;
   
   /* Create the window */
   users_details_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -102,91 +153,22 @@ static void users_makedetails(const char *title,
                                GTK_WINDOW(users_window));
   table = gtk_table_new(4, 2, FALSE/*!homogeneous*/);
 
-  /* Username */
-  label = gtk_label_new("Username");
-  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
-  gtk_table_attach(GTK_TABLE(table),
-                   label,
-                   0, 1,                /* left/right_attach */
-                   0, 1,                /* top/bottom_attach */
-                   GTK_FILL,            /* xoptions */
-                   0,                   /* yoptions */
-                   1, 1);               /* x/ypadding */
-  users_details_name = gtk_entry_new();
-  if(name) {
-    /* For users_edit(), we cannot modify the name */
-    gtk_entry_set_text(GTK_ENTRY(users_details_name), name);
-    gtk_editable_set_editable(GTK_EDITABLE(users_details_name), FALSE);
-  }
-  gtk_table_attach(GTK_TABLE(table),
-                   users_details_name,
-                   1, 2,                /* left/right_attach */
-                   0, 1,                /* top/bottom_attach */
-                   GTK_EXPAND|GTK_FILL, /* xoptions */
-                   GTK_FILL,            /* yoptions */
-                   1, 1);               /* x/ypadding */
+  users_details_name = users_add_detail(table, &row, "Username", name,
+                                        (name ? 0 : DETAIL_EDITABLE)
+                                        |DETAIL_VISIBLE);
 
-  /* Email address */
-  label = gtk_label_new("Email");
-  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
-  gtk_table_attach(GTK_TABLE(table),
-                   label,
-                   0, 1,                /* left/right_attach */
-                   1, 2,                /* top/bottom_attach */
-                   GTK_FILL,            /* xoptions */
-                   0,                   /* yoptions */
-                   1, 1);               /* x/ypadding */
-  users_details_email = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(users_details_email), email);
-  gtk_table_attach(GTK_TABLE(table),
-                   users_details_email,
-                   1, 2,                /* left/right_attach */
-                   1, 2,                /* top/bottom_attach */
-                   GTK_EXPAND|GTK_FILL, /* xoptions */
-                   GTK_FILL,            /* yoptions */
-                   1, 1);               /* x/ypadding */
+  users_details_email = users_add_detail(table, &row, "Email", email,
+                                         DETAIL_EDITABLE|DETAIL_VISIBLE);
 
-  /* Password */
-  label = gtk_label_new("Password");
-  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
-  gtk_table_attach(GTK_TABLE(table),
-                   label,
-                   0, 1,                /* left/right_attach */
-                   2, 3,                /* top/bottom_attach */
-                   GTK_FILL,            /* xoptions */
-                   0,                   /* yoptions */
-                   1, 1);               /* x/ypadding */
-  users_details_password = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(users_details_password), password);
-  gtk_entry_set_visibility(GTK_ENTRY(users_details_password), FALSE);
-  gtk_table_attach(GTK_TABLE(table),
-                   users_details_password,
-                   1, 2,                /* left/right_attach */
-                   2, 3,                /* top/bottom_attach */
-                   GTK_EXPAND|GTK_FILL, /* xoptions */
-                   GTK_FILL,            /* yoptions */
-                   1, 1);               /* x/ypadding */
-  label = gtk_label_new("Password");
-  gtk_misc_set_alignment(GTK_MISC(label), 1, 0);
-  gtk_table_attach(GTK_TABLE(table),
-                   label,
-                   0, 1,                /* left/right_attach */
-                   3, 4,                /* top/bottom_attach */
-                   GTK_FILL,            /* xoptions */
-                   0,                   /* yoptions */
-                   1, 1);               /* x/ypadding */
-  users_details_password2 = gtk_entry_new();
-  gtk_entry_set_text(GTK_ENTRY(users_details_password2), password);
-  gtk_entry_set_visibility(GTK_ENTRY(users_details_password2), FALSE);
-  gtk_table_attach(GTK_TABLE(table),
-                   users_details_password2,
-                   1, 2,                /* left/right_attach */
-                   3, 4,                /* top/bottom_attach */
-                   GTK_EXPAND|GTK_FILL, /* xoptions */
-                   GTK_FILL,            /* yoptions */
-                   1, 1);               /* x/ypadding */
+  users_details_password = users_add_detail(table, &row, "Password",
+                                            password,
+                                            DETAIL_EDITABLE);
+  users_details_password2 = users_add_detail(table, &row, "Password",
+                                             password,
+                                             DETAIL_EDITABLE);
 
   /* TODO rights */
+
   gtk_container_add(GTK_CONTAINER(users_details_window), table);
   gtk_widget_show_all(users_details_window);
 }
