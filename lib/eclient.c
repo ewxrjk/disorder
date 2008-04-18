@@ -841,9 +841,11 @@ static void stash_command(disorder_eclient *c,
 static void string_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
   D(("string_response_callback"));
-  if(c->rc / 100 == 2) {
+  if(c->rc / 100 == 2 || c->rc == 555) {
     if(op->completed) {
-      if(c->protocol >= 2) {
+      if(c->rc == 555)
+        ((disorder_eclient_string_response *)op->completed)(op->v, NULL);
+      else if(c->protocol >= 2) {
         char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
         
         if(rr && *rr)

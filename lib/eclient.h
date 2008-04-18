@@ -141,8 +141,14 @@ struct sink;
 typedef void disorder_eclient_no_response(void *v);
 /* completion callback with no data */
 
+/** @brief String result completion callback
+ * @param v User data
+ * @param value or NULL
+ *
+ * @p value can be NULL for disorder_eclient_get(),
+ * disorder_eclient_get_global() and disorder_eclient_userinfo().
+ */
 typedef void disorder_eclient_string_response(void *v, const char *value);
-/* completion callback with a string result */
 
 typedef void disorder_eclient_integer_response(void *v, long value);
 /* completion callback with a integer result */
