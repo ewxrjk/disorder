@@ -34,6 +34,8 @@ static GtkWidget *users_details_password;
 static GtkWidget *users_details_password2;
 //static GtkWidget *users_details_rights;
 
+static const char *users_who, *users_email, *users_rights, *users_password;
+
 static int usercmp(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
 }
@@ -182,7 +184,6 @@ static void users_add_right_group(GtkWidget *table,
   }
   users_detail_generic(table, rowp, title, hbox);
 }
-                                                   
 
 /** @brief Create the user details window
  * @param title Window title
@@ -307,13 +308,32 @@ static void users_delete(GtkButton attribute((unused)) *button,
   }
 }
 
+static void users_got_email(void attribute((unused)) *v, const char *value) {
+  users_email = value;
+}
+
+static void users_got_rights(void attribute((unused)) *v, const char *value) {
+  users_rights = value;
+}
+
+static void users_got_password(void attribute((unused)) *v, const char *value) {
+  users_password = value;
+  users_makedetails("editing user details",
+                    users_who,
+                    users_email,
+                    users_rights,
+                    users_password);
+}
+
 static void users_edit(GtkButton attribute((unused)) *button,
 		       gpointer attribute((unused)) userdata) {
-  char *who;
-  
-  if(!(who = users_getuser()))
+  if(!(users_who = users_getuser()))
     return;
-  users_makedetails("editing user details", who, "foo@bar", "play", "wobble");
+  /* Schedule user lookups for all the properties we know about.  This is all a
+   * bit ad-hoc but will do for now. */
+  disorder_eclient_userinfo(client, users_got_email, users_who, "email", 0);
+  disorder_eclient_userinfo(client, users_got_rights, users_who, "rights", 0);
+  disorder_eclient_userinfo(client, users_got_password, users_who, "password", 0);
 }
 
 static const struct button users_buttons[] = {
