@@ -51,6 +51,7 @@ static GtkWidget *users_details_password2;
 static GtkWidget *users_details_rights[32];
 static int users_details_row;
 static const char *users_selected;
+static const char *users_deferred_select;
 
 static int users_mode;
 #define MODE_NONE 0
@@ -71,12 +72,38 @@ static int usercmp(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
 }
 
+/** @brief Find a user
+ * @param user User to find
+ * @param iter Iterator to point at user
+ * @return 0 on success, -1 if not found
+ */
+static int users_find_user(const char *user,
+                           GtkTreeIter *iter) {
+  char *who;
+
+  /* Find the user */
+  if(!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(users_list), iter))
+    return -1;
+  do {
+    gtk_tree_model_get(GTK_TREE_MODEL(users_list), iter,
+		       0, &who, -1);
+    if(!strcmp(who, user)) {
+      g_free(who);
+      return 0;
+    }
+    g_free(who);
+  } while(gtk_tree_model_iter_next(GTK_TREE_MODEL(users_list), iter));
+  return -1;
+}
+
 /** @brief Called with the list of users
  *
  * Called:
  * - at startup to populate the initial list
  * - when we add a user
  * - maybe in the future when we delete a user
+ *
+ * If users_deferred_select is set then that user is selected.
  */
 static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
   int n;
@@ -92,6 +119,11 @@ static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
 				      -1);	 /* no more columns */
   /* Only show the window when the list is populated */
   gtk_widget_show_all(users_window);
+  if(users_deferred_select) {
+    if(!users_find_user(users_deferred_select, &iter))
+      gtk_tree_selection_select_iter(users_selection, &iter);
+    users_deferred_select = 0;
+  }
 }
 
 /** @brief Text should be visible */
@@ -327,33 +359,56 @@ static rights_type users_get_rights(void) {
   return r;
 }
 
+/** @brief Called when various things fail */
+static void users_op_failed(struct callbackdata attribute((unused)) *cbd,
+                            int attribute((unused)) code,
+                            const char *msg) {
+  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
+}
+
+/** @brief Called when a new user has been created */
 static void users_adduser_completed(void *v) {
   struct callbackdata *cbd = v;
 
   /* Now the user is created we can go ahead and set the email address */
-  if(*cbd->u.edituser.email)
+  if(*cbd->u.edituser.email) {
+    struct callbackdata *ncbd = xmalloc(sizeof *cbd);
+    ncbd->onerror = users_op_failed;
     disorder_eclient_edituser(client, NULL, cbd->u.edituser.user,
-                              "email", cbd->u.edituser.email, cbd);
+                              "email", cbd->u.edituser.email, ncbd);
+  }
   /* Refresh the list of users */
   disorder_eclient_users(client, users_got_list, 0);
+  /* We'll select the newly created user */
+  users_deferred_select = cbd->u.edituser.user;
 }
 
+/** @brief Called if creating a new user fails */
 static void users_adduser_failed(struct callbackdata attribute((unused)) *cbd,
                                  int attribute((unused)) code,
                                  const char *msg) {
   popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
+  mode(ADD);                            /* Let the user try again */
 }
 
 /** @brief Called when the 'Apply' button is pressed */
 static void users_apply(GtkButton attribute((unused)) *button,
                         gpointer attribute((unused)) userdata) {
   struct callbackdata *cbd;
+  const char *password;
+  const char *password2;
+  const char *name;
+  const char *email;
 
   switch(users_mode) {
   case MODE_NONE:
     return;
   case MODE_ADD:
-    if(!*gtk_entry_get_text(GTK_ENTRY(users_details_name))) {
+    name = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_name)));
+    email = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_email)));
+    password = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password)));
+    password2 = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password2)));
+    if(!*name) {
       /* No username.  Really we wanted to desensitize the Apply button when
        * there's no userame but there doesn't seem to be a signal to detect
        * changes to the entry text.  Consequently we have error messages
@@ -361,68 +416,61 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Must enter a username");
       return;
     }
-    if(strcmp(gtk_entry_get_text(GTK_ENTRY(users_details_password)),
-              gtk_entry_get_text(GTK_ENTRY(users_details_password2)))) {
+    if(strcmp(password, password2)) {
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Passwords do not match");
       return;
     }
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_adduser_failed;
-    cbd->u.edituser.user = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_name)));
-    cbd->u.edituser.email = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_email)));
-    if(*cbd->u.edituser.email && !strchr(cbd->u.edituser.email, '@')) {
+    if(*email && !strchr(email, '@')) {
       /* The server will complain about this but we can give a better error
        * message this way */
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
       return;
     }
+    cbd = xmalloc(sizeof *cbd);
+    cbd->onerror = users_adduser_failed;
+    cbd->u.edituser.user = name;
+    cbd->u.edituser.email = email;
     disorder_eclient_adduser(client, users_adduser_completed,
-                             cbd->u.edituser.user,
-                             xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password))),
+                             name,
+                             password,
                              rights_string(users_get_rights()),
                              cbd);
+    /* We switch to no-op mode while creating the user */
     mode(NONE);
     break;
   case MODE_EDIT:
-    if(strcmp(gtk_entry_get_text(GTK_ENTRY(users_details_password)),
-              gtk_entry_get_text(GTK_ENTRY(users_details_password2)))) {
+    /* Ugh, can we de-dupe with above? */
+    email = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_email)));
+    password = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password)));
+    password2 = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password2)));
+    if(strcmp(password, password2)) {
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Passwords do not match");
       return;
     }
-    /* TODO */
-    mode(NONE);
-    popup_submsg(users_window, GTK_MESSAGE_INFO, "Would edit user");
+    if(*email && !strchr(email, '@')) {
+      popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
+      return;
+    }
+    cbd = xmalloc(sizeof *cbd);
+    cbd->onerror = users_op_failed;
+    disorder_eclient_edituser(client, NULL, users_selected,
+                              "email", email, cbd);
+    disorder_eclient_edituser(client, NULL, users_selected,
+                              "password", password, cbd);
+    disorder_eclient_edituser(client, NULL, users_selected,
+                              "rights", rights_string(users_get_rights()), cbd);
+    /* We remain in edit mode */
     break;
   }
-}
-
-/** @brief Called when user deletion goes wrong */
-static void users_deleted_error(struct callbackdata attribute((unused)) *cbd,
-				int attribute((unused)) code,
-				const char *msg) {
-  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
 }
 
 /** @brief Called when a user has been deleted */
 static void users_deleted(void *v) {
   const struct callbackdata *const cbd = v;
-  GtkTreeIter iter;
-  char *who;
+  GtkTreeIter iter[1];
 
-  /* Find the user */
-  if(!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(users_list), &iter))
-    return;
-  do {
-    gtk_tree_model_get(GTK_TREE_MODEL(users_list), &iter,
-		       0, &who, -1);
-    if(!strcmp(who, cbd->u.user))
-      break;
-    g_free(who);
-    who = 0;
-  } while(gtk_tree_model_iter_next(GTK_TREE_MODEL(users_list), &iter));
-  /* Remove them */
-  gtk_list_store_remove(users_list, &iter);
-  g_free(who);
+  if(!users_find_user(cbd->u.user, iter))    /* Find the user... */
+    gtk_list_store_remove(users_list, iter); /* ...and remove them */
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -445,7 +493,7 @@ static void users_delete(GtkButton attribute((unused)) *button,
   gtk_widget_destroy(yesno);
   if(res == GTK_RESPONSE_YES) {
     cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_deleted_error;
+    cbd->onerror = users_op_failed;
     cbd->u.user = users_selected;
     disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
   }
