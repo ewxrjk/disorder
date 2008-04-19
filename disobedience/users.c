@@ -57,6 +57,12 @@ static int users_mode;
 #define MODE_ADD 1
 #define MODE_EDIT 2
 
+#define mode(X) do {                                    \
+  users_mode = MODE_##X;                                \
+  fprintf(stderr, "%s:%d: %s(): mode -> %s\n",          \
+          __FILE__, __LINE__, __FUNCTION__, #X);        \
+} while(0)
+
 static const char *users_email, *users_rights, *users_password;
 
 /** @brief qsort() callback for username comparison */
@@ -160,7 +166,7 @@ static void users_details_sensitize(rights_type r) {
   const int bit = leftmost_bit(r);
   const GtkWidget *all = users_details_rights[bit];
   const int sensitive = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(all));
-  
+
   gtk_widget_set_sensitive(users_details_rights[bit + 1], sensitive);
   gtk_widget_set_sensitive(users_details_rights[bit + 2], sensitive);
 }
@@ -188,7 +194,6 @@ static void users_details_sensitize_all(void) {
     assert(!"reached");
   }
   gtk_widget_set_sensitive(users_apply_button, apply_sensitive);
-  /* Delete button */
   gtk_widget_set_sensitive(users_delete_button, !!users_selected);
 }
 
@@ -302,7 +307,7 @@ static void users_add(GtkButton attribute((unused)) *button,
                     DETAIL_EDITABLE|DETAIL_VISIBLE,
                     DETAIL_EDITABLE|DETAIL_VISIBLE);
   /* Remember we're adding a user */
-  users_mode = MODE_ADD;
+  mode(ADD);
 }
 
 /** @brief Called when the 'Apply' button is pressed */
@@ -393,7 +398,7 @@ static void users_got_password(void attribute((unused)) *v, const char *value) {
                     users_password,
                     DETAIL_VISIBLE,
                     DETAIL_EDITABLE|DETAIL_VISIBLE);
-  users_mode = MODE_EDIT;
+  mode(EDIT);
 }
 
 /** @brief Called when the selection MIGHT have changed */
@@ -421,13 +426,15 @@ static void users_selection_changed(GtkTreeSelection attribute((unused)) *treese
   users_makedetails("", "", "", "",
                     DETAIL_VISIBLE,
                     DETAIL_VISIBLE);
-  disorder_eclient_userinfo(client, users_got_email, users_selected,
-                            "email", 0);
-  disorder_eclient_userinfo(client, users_got_rights, users_selected,
-                            "rights", 0);
-  disorder_eclient_userinfo(client, users_got_password, users_selected,
-                            "password", 0);
-  users_mode = MODE_NONE;               /* not editing *yet* */
+  if(users_selected) {
+    disorder_eclient_userinfo(client, users_got_email, users_selected,
+                              "email", 0);
+    disorder_eclient_userinfo(client, users_got_rights, users_selected,
+                              "rights", 0);
+    disorder_eclient_userinfo(client, users_got_password, users_selected,
+                              "password", 0);
+  }
+  mode(NONE);                           /* not editing *yet* */
 }
 
 /** @brief Table of buttons below the user list */
@@ -498,10 +505,11 @@ void manage_users(void) {
   gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
 
   /* Create an empty user details table, and put an apply button below it */
+  users_apply_button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
   users_makedetails("", "", "", "",
                     DETAIL_VISIBLE,
                     DETAIL_VISIBLE);
-  users_apply_button = gtk_button_new_from_stock(GTK_STOCK_APPLY);
+  /* TODO apply button is much too wide right now... */
   g_signal_connect(users_apply_button, "clicked",
                    G_CALLBACK(users_apply), NULL);
   vbox2 = gtk_vbox_new(FALSE, 2);
