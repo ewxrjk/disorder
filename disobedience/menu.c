@@ -130,6 +130,7 @@ void menu_update(int page) {
                            t->selectall_sensitive(tab));
   gtk_widget_set_sensitive(selectnone_widget,
                            t->selectnone_sensitive(tab));
+  /* TODO Users should only be sensitive if have RIGHT_ADMIN */
 }
    
 /** @brief Fetch version in order to display the about... popup */

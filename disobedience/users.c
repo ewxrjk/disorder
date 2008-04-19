@@ -37,10 +37,12 @@ static GtkWidget *users_details_rights[32];
 
 static const char *users_who, *users_email, *users_rights, *users_password;
 
+/** @brief qsort() callback for username comparison */
 static int usercmp(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
 }
 
+/** @brief Called with the list of users */
 static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
   int n;
   GtkTreeIter iter;
@@ -57,6 +59,7 @@ static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
   gtk_widget_show_all(users_window);
 }
 
+/** @brief Pick the selected user from the list */
 static char *users_getuser(void) {
   GtkTreeIter iter;
   char *who, *c;
@@ -79,6 +82,7 @@ static char *users_getuser(void) {
 /** @brief Text should be editable */
 #define DETAIL_EDITABLE 2
 
+/** @brief Add a row to the user detail table */
 static GtkWidget *users_detail_generic(GtkWidget *table,
                                        int *rowp,
                                        const char *title,
@@ -275,17 +279,20 @@ static void users_makedetails(const char *title,
   gtk_widget_show_all(users_details_window);
 }
 
+/** @brief Called when the 'add' button is pressed */
 static void users_add(GtkButton attribute((unused)) *button,
 		      gpointer attribute((unused)) userdata) {
   /* TODO */
 }
 
+/** @brief Called when user deletion goes wrong */
 static void users_deleted_error(struct callbackdata attribute((unused)) *cbd,
 				int attribute((unused)) code,
 				const char *msg) {
   popup_msg(GTK_MESSAGE_ERROR, msg);
 }
 
+/** @brief Called when a user has been deleted */
 static void users_deleted(void *v) {
   const struct callbackdata *const cbd = v;
   GtkTreeIter iter;
@@ -307,6 +314,7 @@ static void users_deleted(void *v) {
   g_free(who);
 }
 
+/** @brief Called when the 'Delete' button is pressed */
 static void users_delete(GtkButton attribute((unused)) *button,
 			 gpointer attribute((unused)) userdata) {
   GtkWidget *yesno;
@@ -349,6 +357,7 @@ static void users_got_password(void attribute((unused)) *v, const char *value) {
                     users_password);
 }
 
+/** @brief Called when the 'Edit' button is pressed */
 static void users_edit(GtkButton attribute((unused)) *button,
 		       gpointer attribute((unused)) userdata) {
   if(!(users_who = users_getuser()))
@@ -360,6 +369,7 @@ static void users_edit(GtkButton attribute((unused)) *button,
   disorder_eclient_userinfo(client, users_got_password, users_who, "password", 0);
 }
 
+/** @brief Table of buttons for the user window */
 static const struct button users_buttons[] = {
   {
     "Add user",
@@ -379,6 +389,7 @@ static const struct button users_buttons[] = {
 };
 #define NUSERS_BUTTONS (sizeof users_buttons / sizeof *users_buttons)
 
+/** @brief Pop up the user management window */
 void manage_users(void) {
   GtkWidget *tree, *buttons, *hbox;
   GtkCellRenderer *cr;
