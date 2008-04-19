@@ -144,6 +144,33 @@ static void users_add_right(GtkWidget *table,
   users_detail_generic(table, rowp, title, check);
 }
 
+/** @brief Set sensitivity of particular mine/random rights bits */
+static void users_details_sensitize(rights_type r) {
+  const int bit = leftmost_bit(r);
+  const GtkWidget *all = users_details_rights[bit];
+  const int sensitive = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(all));
+  
+  gtk_widget_set_sensitive(users_details_rights[bit + 1], sensitive);
+  gtk_widget_set_sensitive(users_details_rights[bit + 2], sensitive);
+}
+
+/** @brief Set sensitivity of all mine/random rights bits */
+static void users_details_sensitize_all(void) {
+  users_details_sensitize(RIGHT_MOVE_ANY);
+  users_details_sensitize(RIGHT_REMOVE_ANY);
+  users_details_sensitize(RIGHT_SCRATCH_ANY);
+}
+
+/** @brief Called when an _ALL widget is toggled
+ *
+ * Modifies sensitivity of the corresponding _MINE and _RANDOM widgets.  We
+ * just do the lot rather than trying to figure out which one changed,
+ */
+static void users_any_toggled(GtkToggleButton attribute((unused)) *togglebutton,
+                              gpointer attribute((unused)) user_data) {
+  users_details_sensitize_all();
+}
+
 /** @brief Add a checkbox for a three-right group
  * @param table Containing table
  * @param rowp Pointer to row number, incremented
@@ -177,6 +204,7 @@ static void users_add_right_group(GtkWidget *table,
   users_details_rights[bit + 1] = mine;
   users_details_rights[bit + 2] = random;
   users_detail_generic(table, rowp, title, hbox);
+  g_signal_connect(any, "toggled", G_CALLBACK(users_any_toggled), NULL);
 }
 
 /** @brief Create the user details window
@@ -241,6 +269,7 @@ static void users_makedetails(const char *title,
   users_add_right(table, &row, "Modify track preferences", r & RIGHT_PREFS);
   users_add_right(table, &row, "Modify global preferences", r & RIGHT_GLOBAL_PREFS);
   users_add_right(table, &row, "Pause/resume tracks", r & RIGHT_PAUSE);
+  users_details_sensitize_all();
 
   gtk_container_add(GTK_CONTAINER(users_details_window), table);
   gtk_widget_show_all(users_details_window);
