@@ -642,7 +642,7 @@ void manage_users(void) {
 
   /* Buttons live below the list */
   vbox = gtk_vbox_new(FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(vbox), tree, TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), scroll_widget(tree), TRUE/*expand*/, TRUE/*fill*/, 0);
   gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
 
   /* Create an empty user details table, and put an apply button below it */

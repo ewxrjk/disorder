@@ -51,7 +51,8 @@ GtkWidget *scroll_widget(GtkWidget *child) {
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller),
                                  GTK_POLICY_AUTOMATIC,
                                  GTK_POLICY_AUTOMATIC);
-  if(GTK_IS_LAYOUT(child)) {
+  if(GTK_IS_LAYOUT(child)
+     || GTK_IS_TREE_VIEW(child)) {
     /* Child widget has native scroll support */
     gtk_container_add(GTK_CONTAINER(scroller), child);
     /* Fix up the step increments if they are 0 (seems like an odd default?) */
