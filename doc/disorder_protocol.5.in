@@ -91,6 +91,10 @@ Set a user property.
 With the \fBadmin\fR right any username and property may be specified.
 Otherwise the \fBuserinfo\fR right is required and only the
 \fBemail\fR and \fBpassword\fR properties may be set.
+.IP
+User properties are syntax-checked before setting.  For instance \fBemail\fR
+must contain an "@" sign or you will get an error.  (Setting an empty value for
+\fBemail\fR is allowed and removes the property.)
 .TP
 .B enable
 Re-enable further playing, and is the opposite of \fBdisable\fR.
