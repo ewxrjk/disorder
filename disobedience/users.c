@@ -22,6 +22,7 @@
  */
 
 #include "disobedience.h"
+#include "bits.h"
 
 static GtkWidget *users_window;
 static GtkListStore *users_list;
@@ -32,7 +33,7 @@ static GtkWidget *users_details_name;
 static GtkWidget *users_details_email;
 static GtkWidget *users_details_password;
 static GtkWidget *users_details_password2;
-//static GtkWidget *users_details_rights;
+static GtkWidget *users_details_rights[32];
 
 static const char *users_who, *users_email, *users_rights, *users_password;
 
@@ -131,16 +132,16 @@ static GtkWidget *users_add_detail(GtkWidget *table,
  * @param rowp Pointer to row number, incremented
  * @param title Label for this row
  * @param value Right bit (masked but not necessarily normalized)
- * @return Checkbox widget
  */
-static GtkWidget *users_add_right(GtkWidget *table,
-                                  int *rowp,
-                                  const char *title,
-                                  rights_type value) {
+static void users_add_right(GtkWidget *table,
+                            int *rowp,
+                            const char *title,
+                            rights_type value) {
   GtkWidget *check = gtk_check_button_new();
   
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), !!value);
-  return users_detail_generic(table, rowp, title, check);
+  users_details_rights[leftmost_bit(value)] = check;
+  users_detail_generic(table, rowp, title, check);
 }
 
 /** @brief Add a checkbox for a three-right group
@@ -149,39 +150,32 @@ static GtkWidget *users_add_right(GtkWidget *table,
  * @param title Label for this row
  * @param bits Rights bits (not masked or normalized)
  * @param mask Mask for this group (must be 7.2^n)
- * @param checks Where to store triple of check widgets
- * @return Checkbox widget
  */
 static void users_add_right_group(GtkWidget *table,
                                   int *rowp,
                                   const char *title,
                                   rights_type bits,
-                                  rights_type mask,
-                                  GtkWidget *checks[3]) {
+                                  rights_type mask) {
   GtkWidget *any = gtk_check_button_new_with_label("Any");
   GtkWidget *mine = gtk_check_button_new_with_label("Own");
   GtkWidget *random = gtk_check_button_new_with_label("Random");
   GtkWidget *hbox = gtk_hbox_new(FALSE, 2);
+  const uint32_t first = mask / 7;
+  const int bit = leftmost_bit(first);
 
   /* Discard irrelevant bits */
   bits &= mask;
   /* Shift down to bits 0-2; the mask is always 3 contiguous bits */
-  bits /= (mask / 7);
-  /* If _ANY is set then the other two are implied; we'll take them out when we
-   * set. */
-  if(bits & 1)
-    bits = 7;
+  bits >>= bit;
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(any), !!(bits & 1));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mine), !!(bits & 2));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(random), !!(bits & 4));
   gtk_box_pack_start(GTK_BOX(hbox), any, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), mine, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), random, FALSE, FALSE, 0);
-  if(checks) {
-    checks[0] = any;
-    checks[1] = mine;
-    checks[2] = random;
-  }
+  users_details_rights[bit] = any;
+  users_details_rights[bit + 1] = mine;
+  users_details_rights[bit + 2] = random;
   users_detail_generic(table, rowp, title, hbox);
 }
 
@@ -236,9 +230,9 @@ static void users_makedetails(const char *title,
   parse_rights(rights, &r, 1);
   users_add_right(table, &row, "Read operations", r & RIGHT_READ);
   users_add_right(table, &row, "Play track", r & RIGHT_PLAY);
-  users_add_right_group(table, &row, "Move", r, RIGHT_MOVE__MASK, NULL);
-  users_add_right_group(table, &row, "Remove", r, RIGHT_REMOVE__MASK, NULL);
-  users_add_right_group(table, &row, "Scratch", r, RIGHT_SCRATCH__MASK, NULL);
+  users_add_right_group(table, &row, "Move", r, RIGHT_MOVE__MASK);
+  users_add_right_group(table, &row, "Remove", r, RIGHT_REMOVE__MASK);
+  users_add_right_group(table, &row, "Scratch", r, RIGHT_SCRATCH__MASK);
   users_add_right(table, &row, "Set volume", r & RIGHT_VOLUME);
   users_add_right(table, &row, "Admin operations", r & RIGHT_ADMIN);
   users_add_right(table, &row, "Rescan", r & RIGHT_RESCAN);
@@ -254,6 +248,7 @@ static void users_makedetails(const char *title,
 
 static void users_add(GtkButton attribute((unused)) *button,
 		      gpointer attribute((unused)) userdata) {
+  /* TODO */
 }
 
 static void users_deleted_error(struct callbackdata attribute((unused)) *cbd,
