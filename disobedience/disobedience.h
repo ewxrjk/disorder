@@ -98,6 +98,7 @@ struct button {
   const gchar *stock;
   void (*clicked)(GtkButton *button, gpointer userdata);
   const char *tip;
+  GtkWidget *widget;
 };
 
 /* Variables --------------------------------------------------------------- */
@@ -158,9 +159,9 @@ void progress_window_progress(struct progress_window *pw,
 
 GtkWidget *iconbutton(const char *path, const char *tip);
 
-GtkWidget *create_buttons(const struct button *buttons,
+GtkWidget *create_buttons(struct button *buttons,
                           size_t nbuttons);
-GtkWidget *create_buttons_box(const struct button *buttons,
+GtkWidget *create_buttons_box(struct button *buttons,
                               size_t nbuttons,
                               GtkWidget *box);
 

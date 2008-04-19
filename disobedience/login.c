@@ -170,16 +170,18 @@ static void login_cancel(GtkButton attribute((unused)) *button,
 }
 
 /* Buttons that appear at the bottom of the window */
-static const struct button buttons[] = {
+static struct button buttons[] = {
   {
     "Login",
     login_ok,
     "(Re-)connect using these settings",
+    0
   },
   {
     GTK_STOCK_CLOSE,
     login_cancel,
-    "Discard changes and close window"
+    "Discard changes and close window",
+    0
   },
 };
 

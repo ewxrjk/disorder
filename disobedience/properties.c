@@ -128,21 +128,24 @@ static const struct pref {
 #define NPREFS (int)(sizeof prefs / sizeof *prefs)
 
 /* Buttons that appear at the bottom of the window */
-static const struct button buttons[] = {
+static struct button buttons[] = {
   {
     GTK_STOCK_OK,
     properties_ok,
-    "Apply all changes and close window"
+    "Apply all changes and close window",
+    0
   },
   {
     GTK_STOCK_APPLY,
     properties_apply,
-    "Apply all changes and keep window open"
+    "Apply all changes and keep window open",
+    0
   },
   {
     GTK_STOCK_CANCEL,
     properties_cancel,
-    "Discard all changes and close window"
+    "Discard all changes and close window",
+    0
   },
 };
 
