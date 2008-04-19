@@ -32,6 +32,13 @@
  *
  * When you select 'add' a new empty set of details are displayed to be edited.
  * Again Apply will commit them.
+ *
+ * TODO: @ref RIGHT_ADMIN and @ref RIGHT_USERINFO should be applied here, so we
+ * can give decent error messages.
+ *
+ * TODO: it would be really nice if the Username entry could be removed and new
+ * user names entered in the list, rather off in the details panel.  This may
+ * be possible with a sufficiently clever GtkCellRenderer.
  */
 
 #include "disobedience.h"
@@ -274,6 +281,20 @@ static void users_add_right_group(const char *title,
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(random), !!(bits & 4));
 }
 
+/** @brief Called when the details table is destroyed */
+static void users_details_destroyed(GtkWidget attribute((unused)) *widget,
+                                    GtkWidget attribute((unused)) **wp) {
+  users_details_table = 0;
+  g_object_unref(users_list);
+  users_list = 0;
+  users_details_name = 0;
+  users_details_email = 0;
+  users_details_password = 0;
+  users_details_password2 = 0;
+  memset(users_details_rights, 0, sizeof users_details_rights);
+  /* also users_selection?  Not AFAICT; _get_selection does upref */
+}
+
 /** @brief Create or modify the user details table
  * @param name User name (users_edit()) or NULL (users_add())
  * @param email Email address
@@ -289,8 +310,11 @@ static void users_makedetails(const char *name,
   rights_type r = 0;
   
   /* Create the table if it doesn't already exist */
-  if(!users_details_table)
+  if(!users_details_table) {
     users_details_table = gtk_table_new(4, 2, FALSE/*!homogeneous*/);
+    g_signal_connect(users_details_table, "destroy",
+                     G_CALLBACK(users_details_destroyed), 0);
+  }
 
   /* Create or update the widgets */
   users_add_detail(&users_details_name, "Username", name,
