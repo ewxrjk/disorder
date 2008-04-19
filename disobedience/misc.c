@@ -112,9 +112,13 @@ GdkPixbuf *find_image(const char *name) {
 
 /** @brief Pop up a message */
 void popup_msg(GtkMessageType mt, const char *msg) {
+  popup_submsg(toplevel, mt, msg);
+}
+
+void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg) {
   GtkWidget *w;
 
-  w = gtk_message_dialog_new(GTK_WINDOW(toplevel),
+  w = gtk_message_dialog_new(GTK_WINDOW(parent),
                              GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
                              mt,
                              GTK_BUTTONS_CLOSE,

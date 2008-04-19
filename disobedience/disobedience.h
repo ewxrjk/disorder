@@ -145,7 +145,7 @@ GdkPixbuf *find_image(const char *name);
  * found. */
 
 void popup_msg(GtkMessageType mt, const char *msg);
-/* Pop up a message */
+void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg);
 
 void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 

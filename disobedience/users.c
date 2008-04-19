@@ -61,6 +61,7 @@ static int users_mode;
   users_mode = MODE_##X;                                \
   fprintf(stderr, "%s:%d: %s(): mode -> %s\n",          \
           __FILE__, __LINE__, __FUNCTION__, #X);        \
+  users_details_sensitize_all();                        \
 } while(0)
 
 static const char *users_email, *users_rights, *users_password;
@@ -165,7 +166,8 @@ static void users_add_right(const char *title,
 static void users_details_sensitize(rights_type r) {
   const int bit = leftmost_bit(r);
   const GtkWidget *all = users_details_rights[bit];
-  const int sensitive = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(all));
+  const int sensitive = (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(all))
+                         && users_mode != MODE_ADD);
 
   gtk_widget_set_sensitive(users_details_rights[bit + 1], sensitive);
   gtk_widget_set_sensitive(users_details_rights[bit + 2], sensitive);
@@ -173,27 +175,19 @@ static void users_details_sensitize(rights_type r) {
 
 /** @brief Set sensitivity of everything in sight */
 static void users_details_sensitize_all(void) {
-  int apply_sensitive;
+  int n;
 
-  /* Three-right groups */
+  for(n = 0; n < 32; ++n)
+    if(users_details_rights[n])
+      gtk_widget_set_sensitive(users_details_rights[n], users_mode != MODE_NONE);
+  gtk_widget_set_sensitive(users_details_name, users_mode != MODE_NONE);
+  gtk_widget_set_sensitive(users_details_email, users_mode != MODE_NONE);
+  gtk_widget_set_sensitive(users_details_password, users_mode != MODE_NONE);
+  gtk_widget_set_sensitive(users_details_password2, users_mode != MODE_NONE);
   users_details_sensitize(RIGHT_MOVE_ANY);
   users_details_sensitize(RIGHT_REMOVE_ANY);
   users_details_sensitize(RIGHT_SCRATCH_ANY);
-  /* Apply button */
-  switch(users_mode) {
-  case MODE_NONE:
-    apply_sensitive = 0;
-    break;
-  case MODE_EDIT:
-    apply_sensitive = 1;
-    break;
-  case MODE_ADD:
-    apply_sensitive = !!*gtk_entry_get_text(GTK_ENTRY(users_details_name));
-    break;
-  default:
-    assert(!"reached");
-  }
-  gtk_widget_set_sensitive(users_apply_button, apply_sensitive);
+  gtk_widget_set_sensitive(users_apply_button, users_mode != MODE_NONE);
   gtk_widget_set_sensitive(users_delete_button, !!users_selected);
 }
 
@@ -300,9 +294,11 @@ static void users_add(GtkButton attribute((unused)) *button,
   /* Unselect whatever is selected */
   gtk_tree_selection_unselect_all(users_selection);
   /* Reset the form */
+  /* TODO it would be better to use the server default_rights if there's no
+   * client setting. */
   users_makedetails("",
                     "",
-                    "",                 /* TODO default_rights */
+                    config->default_rights,
                     "",
                     DETAIL_EDITABLE|DETAIL_VISIBLE,
                     DETAIL_EDITABLE|DETAIL_VISIBLE);
@@ -317,12 +313,32 @@ static void users_apply(GtkButton attribute((unused)) *button,
   case MODE_NONE:
     return;
   case MODE_ADD:
-    if(!*gtk_entry_get_text(GTK_ENTRY(users_details_name)))
+    if(!*gtk_entry_get_text(GTK_ENTRY(users_details_name))) {
+      /* No username.  Really we wanted to desensitize the Apply button when
+       * there's no userame but there doesn't seem to be a signal to detect
+       * changes to the entry text.  Consequently we have error messages
+       * instead.  */
+      popup_submsg(users_window, GTK_MESSAGE_ERROR, "Must enter a username");
       return;
+    }
+    if(strcmp(gtk_entry_get_text(GTK_ENTRY(users_details_password)),
+              gtk_entry_get_text(GTK_ENTRY(users_details_password2)))) {
+      popup_submsg(users_window, GTK_MESSAGE_ERROR, "Passwords do not match");
+      return;
+    }
     /* TODO create user */
+    mode(NONE);
+    popup_submsg(users_window, GTK_MESSAGE_INFO, "Would create user");
     break;
   case MODE_EDIT:
+    if(strcmp(gtk_entry_get_text(GTK_ENTRY(users_details_password)),
+              gtk_entry_get_text(GTK_ENTRY(users_details_password2)))) {
+      popup_submsg(users_window, GTK_MESSAGE_ERROR, "Passwords do not match");
+      return;
+    }
     /* TODO */
+    mode(NONE);
+    popup_submsg(users_window, GTK_MESSAGE_INFO, "Would edit user");
     break;
   }
 }
@@ -331,7 +347,7 @@ static void users_apply(GtkButton attribute((unused)) *button,
 static void users_deleted_error(struct callbackdata attribute((unused)) *cbd,
 				int attribute((unused)) code,
 				const char *msg) {
-  popup_msg(GTK_MESSAGE_ERROR, msg);
+  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
 }
 
 /** @brief Called when a user has been deleted */
