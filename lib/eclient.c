@@ -1327,6 +1327,23 @@ int disorder_eclient_edituser(disorder_eclient *c,
                 "edituser", user, property, value, (char *)0);
 }
 
+/** @brief Create a new user
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to create
+ * @param password Initial password
+ * @param rights Initial rights or NULL
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_adduser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             const char *password,
+                             const char *rights,
+                             void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "adduser", user, password, rights, (char *)0);
+}
 
 /* Log clients ***************************************************************/
 

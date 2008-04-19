@@ -350,6 +350,12 @@ int disorder_eclient_edituser(disorder_eclient *c,
                               const char *property,
                               const char *value,
                               void *v);
+int disorder_eclient_adduser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             const char *password,
+                             const char *rights,
+                             void *v);
 
 #endif
 

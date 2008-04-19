@@ -76,6 +76,9 @@ struct callbackdata {
     struct queuelike *ql;               /* gtkqueue.c queuelike_completed */
     struct prefdata *f;                 /* properties.c */
     const char *user;                   /* users.c */
+    struct {
+      const char *user, *email;         /* users.c */
+    } edituser;
   } u;
 };
 

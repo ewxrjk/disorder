@@ -59,7 +59,7 @@ static int users_mode;
 
 #define mode(X) do {                                    \
   users_mode = MODE_##X;                                \
-  fprintf(stderr, "%s:%d: %s(): mode -> %s\n",          \
+  if(0) fprintf(stderr, "%s:%d: %s(): mode -> %s\n",    \
           __FILE__, __LINE__, __FUNCTION__, #X);        \
   users_details_sensitize_all();                        \
 } while(0)
@@ -73,9 +73,10 @@ static int usercmp(const void *a, const void *b) {
 
 /** @brief Called with the list of users
  *
- * Currently this is called when the window is created, and is responsible for
- * showing it.  There's currently no facility for refreshing the list, which
- * hopefuly would preserve the select user (if any).
+ * Called:
+ * - at startup to populate the initial list
+ * - when we add a user
+ * - maybe in the future when we delete a user
  */
 static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
   int n;
@@ -167,7 +168,7 @@ static void users_details_sensitize(rights_type r) {
   const int bit = leftmost_bit(r);
   const GtkWidget *all = users_details_rights[bit];
   const int sensitive = (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(all))
-                         && users_mode != MODE_ADD);
+                         && users_mode != MODE_NONE);
 
   gtk_widget_set_sensitive(users_details_rights[bit + 1], sensitive);
   gtk_widget_set_sensitive(users_details_rights[bit + 2], sensitive);
@@ -306,9 +307,48 @@ static void users_add(GtkButton attribute((unused)) *button,
   mode(ADD);
 }
 
+static rights_type users_get_rights(void) {
+  rights_type r = 0;
+  int n;
+
+  /* Extract the rights value */
+  for(n = 0; n < 32; ++n) {
+    if(users_details_rights[n])
+      if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(users_details_rights[n])))
+         r |= 1 << n;
+  }
+  /* Throw out redundant bits */
+  if(r & RIGHT_REMOVE_ANY)
+    r &= ~(rights_type)(RIGHT_REMOVE_MINE|RIGHT_REMOVE_RANDOM);
+  if(r & RIGHT_MOVE_ANY)
+    r &= ~(rights_type)(RIGHT_MOVE_MINE|RIGHT_MOVE_RANDOM);
+  if(r & RIGHT_SCRATCH_ANY)
+    r &= ~(rights_type)(RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM);
+  return r;
+}
+
+static void users_adduser_completed(void *v) {
+  struct callbackdata *cbd = v;
+
+  /* Now the user is created we can go ahead and set the email address */
+  if(*cbd->u.edituser.email)
+    disorder_eclient_edituser(client, NULL, cbd->u.edituser.user,
+                              "email", cbd->u.edituser.email, cbd);
+  /* Refresh the list of users */
+  disorder_eclient_users(client, users_got_list, 0);
+}
+
+static void users_adduser_failed(struct callbackdata attribute((unused)) *cbd,
+                                 int attribute((unused)) code,
+                                 const char *msg) {
+  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
+}
+
 /** @brief Called when the 'Apply' button is pressed */
 static void users_apply(GtkButton attribute((unused)) *button,
                         gpointer attribute((unused)) userdata) {
+  struct callbackdata *cbd;
+
   switch(users_mode) {
   case MODE_NONE:
     return;
@@ -326,9 +366,22 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Passwords do not match");
       return;
     }
-    /* TODO create user */
+    cbd = xmalloc(sizeof *cbd);
+    cbd->onerror = users_adduser_failed;
+    cbd->u.edituser.user = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_name)));
+    cbd->u.edituser.email = xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_email)));
+    if(*cbd->u.edituser.email && !strchr(cbd->u.edituser.email, '@')) {
+      /* The server will complain about this but we can give a better error
+       * message this way */
+      popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
+      return;
+    }
+    disorder_eclient_adduser(client, users_adduser_completed,
+                             cbd->u.edituser.user,
+                             xstrdup(gtk_entry_get_text(GTK_ENTRY(users_details_password))),
+                             rights_string(users_get_rights()),
+                             cbd);
     mode(NONE);
-    popup_submsg(users_window, GTK_MESSAGE_INFO, "Would create user");
     break;
   case MODE_EDIT:
     if(strcmp(gtk_entry_get_text(GTK_ENTRY(users_details_password)),
@@ -534,7 +587,7 @@ void manage_users(void) {
   gtk_box_pack_start(GTK_BOX(vbox2), users_apply_button,
                      FALSE/*expand*/, FALSE, 0);
   
-    /* User details are to the right of the list */
+  /* User details are to the right of the list */
   hbox = gtk_hbox_new(FALSE, 2);
   gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 0);
