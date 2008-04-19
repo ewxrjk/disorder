@@ -173,6 +173,7 @@ def default_config(encoding="UTF-8"):
 collection fs %s %s/tracks
 scratch %s/scratch.ogg
 gap 0
+queue_pad 5
 stopword 01 02 03 04 05 06 07 08 09 10
 stopword 1 2 3 4 5 6 7 8 9
 stopword 11 12 13 14 15 16 17 18 19 20
