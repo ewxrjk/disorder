@@ -215,6 +215,29 @@ static void about_popup_got_version(void attribute((unused)) *v,
   gtk_widget_destroy(w);
 }
 
+/** @brief Set 'Manage Users' menu item sensitivity */
+void users_set_sensitive(int sensitive) {
+  GtkWidget *w = gtk_item_factory_get_widget(mainmenufactory,
+                                             "<GdisorderMain>/Server/Manage users");
+  gtk_widget_set_sensitive(w, sensitive);
+}
+
+/** @brief Called with current user's rights string */
+static void menu_got_rights(void attribute((unused)) *v, const char *value) {
+  rights_type r;
+
+  if(parse_rights(value, &r, 0))
+    r = 0;
+  users_set_sensitive(!!(r & RIGHT_ADMIN));
+}
+
+/** @brief Called when we need to reset state */
+static void menu_reset(void) {
+  users_set_sensitive(0);               /* until we know better */
+  disorder_eclient_userinfo(client, menu_got_rights, config->username, "rights",
+                            0);
+}
+
 /** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *w) {
   GtkWidget *m;
@@ -383,6 +406,8 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
+  register_reset(menu_reset);
+  menu_reset();
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);
