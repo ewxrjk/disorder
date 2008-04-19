@@ -557,13 +557,13 @@ static void users_selection_changed(GtkTreeSelection attribute((unused)) *treese
 /** @brief Table of buttons below the user list */
 static struct button users_buttons[] = {
   {
-    "Add user",
+    GTK_STOCK_ADD,
     users_add,
     "Create a new user",
     0
   },
   {
-    "Delete user",
+    GTK_STOCK_REMOVE,
     users_delete,
     "Delete a user",
     0
@@ -573,7 +573,7 @@ static struct button users_buttons[] = {
 
 /** @brief Pop up the user management window */
 void manage_users(void) {
-  GtkWidget *tree, *buttons, *hbox, *vbox, *vbox2;
+  GtkWidget *tree, *buttons, *hbox, *hbox2, *vbox, *vbox2;
   GtkCellRenderer *cr;
   GtkTreeViewColumn *col;
   
@@ -626,19 +626,22 @@ void manage_users(void) {
   users_makedetails("", "", "", "",
                     DETAIL_VISIBLE,
                     DETAIL_VISIBLE);
-  /* TODO apply button is much too wide right now... */
   g_signal_connect(users_apply_button, "clicked",
                    G_CALLBACK(users_apply), NULL);
-  vbox2 = gtk_vbox_new(FALSE, 2);
+  hbox2 = gtk_hbox_new(FALSE, 0);
+  gtk_box_pack_end(GTK_BOX(hbox2), users_apply_button,
+                   FALSE/*expand*/, FALSE, 0);
+  
+  vbox2 = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox2), users_details_table,
                      TRUE/*expand*/, TRUE/*fill*/, 0);
-  gtk_box_pack_start(GTK_BOX(vbox2), users_apply_button,
+  gtk_box_pack_start(GTK_BOX(vbox2), hbox2,
                      FALSE/*expand*/, FALSE, 0);
   
   /* User details are to the right of the list */
   hbox = gtk_hbox_new(FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 2);
   gtk_container_add(GTK_CONTAINER(users_window), hbox);
 }
 
