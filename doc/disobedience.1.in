@@ -26,7 +26,7 @@ disobedience \- GUI client for DisOrder jukebox
 .B disobedience
 is a graphical client for DisOrder.
 .SH "WINDOWS AND ICONS"
-.SS "File Menu"
+.SS "Server Menu"
 This has the following options:
 .TP
 .B Login

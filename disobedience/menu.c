@@ -221,7 +221,7 @@ GtkWidget *menubar(GtkWidget *w) {
 
   static const GtkItemFactoryEntry entries[] = {
     {
-      (char *)"/File",                  /* path */
+      (char *)"/Server",                /* path */
       0,                                /* accelerator */
       0,                                /* callback */
       0,                                /* callback_action */
@@ -229,7 +229,7 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     { 
-      (char *)"/File/Login",            /* path */
+      (char *)"/Server/Login",          /* path */
       (char *)"<CTRL>L",                /* accelerator */
       login,                            /* callback */
       0,                                /* callback_action */
@@ -237,7 +237,7 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     { 
-      (char *)"/File/Users",            /* path */
+      (char *)"/Server/Manage users",   /* path */
       0,                                /* accelerator */
       users,                            /* callback */
       0,                                /* callback_action */
@@ -246,7 +246,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
 #if 0
     {
-      (char *)"/File/Settings",         /* path */
+      (char *)"/Server/Settings",       /* path */
       0,                                /* accelerator */
       settings,                         /* callback */
       0,                                /* callback_action */
@@ -255,7 +255,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
 #endif
     {
-      (char *)"/File/Quit Disobedience", /* path */
+      (char *)"/Server/Quit Disobedience", /* path */
       (char *)"<CTRL>Q",                /* accelerator */
       quit_program,                     /* callback */
       0,                                /* callback_action */
