@@ -20,25 +20,29 @@
 #
 import dtest,time,disorder,re
 
+class wait_monitor(disorder.monitor):
+    def queue(self, q):
+        return False
+
 def test():
     """Check the queue is padded to the (default) configured length"""
     dtest.start_daemon()
     dtest.create_user()
-    print " waiting for queue to be populated..."
-    class wait_monitor(disorder.monitor):
-        def queue(self, q):
-            return False
-    wait_monitor().run()
     c = disorder.client()
-    print " getting queue via python module"
+    print " disabling play"
+    c.disable()
+    print " waiting for queue to be populated..."
     q = c.queue()
-    assert len(q) == 10, "queue is at proper length"
+    while len(q) < 5:
+        print "  queue at %d tracks" % len(q)
+        wait_monitor().run()
+        q = c.queue()
     print " getting queue via disorder(1)"
     q = dtest.command(["disorder",
                        "--config", disorder._configfile, "--no-per-user-config",
                        "queue"])
     tracks = filter(lambda s: re.match("^track", s), q)
-    assert len(tracks) == 10, "queue is at proper length"
+    assert len(tracks) == 5, "queue is at proper length"
     print " disabling random play"
     c.random_disable()
     print " emptying queue"
@@ -49,9 +53,12 @@ def test():
     assert q == [], "checking queue is empty"
     print " enabling random play"
     c.random_enable()
-    print " checking queue refills"
+    print " waiting for queue to refill..."
     q = c.queue()
-    assert len(q) == 10, "queue is at proper length"
+    while len(q) < 5:
+        print "  queue at %d tracks" % len(q)
+        wait_monitor().run()
+        q = c.queue()
     print " disabling all play"
     c.random_disable()
     c.disable()
