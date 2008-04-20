@@ -212,8 +212,7 @@ static int collect_tracks_callback(const char *track,
 }
 
 /** @brief Pick a random integer uniformly from [0, limit) */
-static unsigned long long pick_weight(unsigned long long limit) {
-  unsigned long long n;
+static void random_bytes(unsigned char *buf, size_t n) {
   static int fd = -1;
   int r;
 
@@ -221,11 +220,68 @@ static unsigned long long pick_weight(unsigned long long limit) {
     if((fd = open("/dev/urandom", O_RDONLY)) < 0)
       fatal(errno, "opening /dev/urandom");
   }
-  if((r = read(fd, &n, sizeof n)) < 0)
+  if((r = read(fd, buf, n)) < 0)
     fatal(errno, "reading /dev/urandom");
-  if((size_t)r < sizeof n)
+  if((size_t)r < n)
     fatal(0, "short read from /dev/urandom");
-  return n % limit;
+}
+
+/** @brief Pick a random integer uniformly from [0, limit) */
+static unsigned long long pick_weight(unsigned long long limit) {
+  unsigned char buf[(sizeof(unsigned long long) * CHAR_BIT + 7)/8], m;
+  unsigned long long t, r, slop;
+  int i, nby, nbi;
+
+  //info("pick_weight: limit = %llu", limit);
+
+  /* First, decide how many bits of output we actually need; do bytes first
+   * (they're quicker) and then bits.
+   *
+   * To speed this up, we could use a binary search if we knew where to
+   * start.  (Note that shifting by ULLONG_BITS or more (if such a constant
+   * existed) is undefined behaviour, so we mustn't do that.)  Figuring out a
+   * start point involves preprocessor and/or autoconf magic.
+   */
+  for (nby = 1, t = (limit - 1) >> 8; t; nby++, t >>= 8)
+    ;
+  nbi = (nby - 1) << 3; t = limit >> nbi;
+  if (t >> 4) { t >>= 4; nbi += 4; }
+  if (t >> 2) { t >>= 2; nbi += 2; }
+  if (t >> 1) { t >>= 1; nbi += 1; }
+  nbi++;
+  //info("nby = %d; nbi = %d", nby, nbi);
+
+  /* Main randomness collection loop.  We read a number of bytes from the
+   * randomness source, and glue them together into an integer (dropping
+   * bits off the top byte as necessary).  Call the result r; we have
+   * 2^{nbi - 1) <= limit < 2^nbi and r < 2^nbi.  If r < limit then we win;
+   * otherwise we try again.  Given the above bounds, we expect fewer than 2
+   * iterations.
+   *
+   * Unfortunately there are subtleties.  In particular, 2^nbi may in fact be
+   * zero due to overflow.  So in fact what we do is compute slop = 2^nbi -
+   * limit > 0; if r < slop then we try again, otherwise r - slop is our
+   * winner.
+   */
+  slop = (2 << (nbi - 1)) - limit;
+  m = nbi & 7 ? (1 << (nbi & 7)) - 1 : 0xff;
+  //info("slop = %llu", slop);
+  //info("m = 0x%02x", m);
+
+  do {
+    /* Actually get some random data. */
+    random_bytes(buf, nby);
+
+    /* Clobber the top byte.  */
+    buf[0] &= m;
+
+    /* Turn it into an integer.  */
+    for (r = 0, i = 0; i < nby; i++)
+      r = (r << 8) | buf[i];
+    //info("r = %llu", r);
+  } while (r < slop);
+
+  return r - slop;
 }
 
 /** @brief Pick a track at random and write it to stdout */
