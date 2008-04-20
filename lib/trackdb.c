@@ -166,6 +166,16 @@ static int compare(DB attribute((unused)) *db_,
   return compare_path_raw(a->data, a->size, b->data, b->size);
 }
 
+/** @brief Test whether the track database can be read
+ * @return 1 if it can, 0 if it cannot
+ */
+int trackdb_readable(void) {
+  char *usersdb;
+
+  byte_xasprintf(&usersdb, "%s/users.db", config->home);
+  return access(usersdb, R_OK) == 0;
+}
+
 /** @brief Open database environment
  * @param flags Flags word
  *

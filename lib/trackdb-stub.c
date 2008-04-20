@@ -44,6 +44,10 @@ void trackdb_open(int attribute((unused)) flags) {
 void trackdb_init(int attribute((unused)) flags) {
 }
 
+int trackdb_readable(void) {
+  return 0;
+}
+
 /*
 Local Variables:
 c-basic-offset:2
