@@ -214,12 +214,12 @@ Configuration files are read in the following order:
 Should be readable only by the jukebox group.
 Not really useful any more and will be abolished in future.
 .TP
-.I ~\fRUSER\fI/.disorder/passwd
+.I ~\fRUSERNAME\fI/.disorder/passwd
 Per-user client configuration.
 Optional but if it exists must be readable only by the relevant user.
 Would normally contain a \fBpassword\fR directive.
 .TP
-.I pkgconfdir/config.\fRUSER
+.I pkgconfdir/config.\fRUSERNAME
 Per-user system-controlled client configuration.
 Optional but if it exists must be readable only by the relevant user.
 Would normally contain a \fBpassword\fR directive.
@@ -691,7 +691,7 @@ Specifies the module used to calculate the length of files matching
 If \fBtracklength\fR is used without arguments then the list of modules is
 cleared.
 .TP
-.B user \fIUSER\fR
+.B user \fIUSERNAME\fR
 Specifies the user to run as.
 Only makes sense if invoked as root (or the target user).
 .SS "Client Configuration"
@@ -768,8 +768,9 @@ longer needs to be specified.
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
 .SS "Authentication Configuration"
-These options would normally be used in \fI~\fRUSER\fI/.disorder/passwd\fR or
-\fIpkgconfdir/config.\fRUSER.
+These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
+or
+\fIpkgconfdir/config.\fRUSERNAME.
 .TP
 .B password \fIPASSWORD\fR
 Specify password.

@@ -70,7 +70,7 @@
 #include "url.h"
 #include "regsub.h"
 
-extern int tests, errors;
+extern long long tests, errors;
 extern int fail_first;
 
 /** @brief Checks that @p expr is nonzero */
@@ -153,6 +153,7 @@ void test_url(void);
 void test_utf8(void);
 void test_words(void);
 void test_wstat(void);
+void test_bits(void);
 
 #endif /* TEST_H */
 

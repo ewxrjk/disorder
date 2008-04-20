@@ -141,8 +141,14 @@ struct sink;
 typedef void disorder_eclient_no_response(void *v);
 /* completion callback with no data */
 
+/** @brief String result completion callback
+ * @param v User data
+ * @param value or NULL
+ *
+ * @p value can be NULL for disorder_eclient_get(),
+ * disorder_eclient_get_global() and disorder_eclient_userinfo().
+ */
 typedef void disorder_eclient_string_response(void *v, const char *value);
-/* completion callback with a string result */
 
 typedef void disorder_eclient_integer_response(void *v, long value);
 /* completion callback with a integer result */
@@ -325,6 +331,31 @@ int disorder_eclient_new_tracks(disorder_eclient *c,
 int disorder_eclient_rtp_address(disorder_eclient *c,
                                  disorder_eclient_list_response *completed,
                                  void *v);
+
+int disorder_eclient_users(disorder_eclient *c,
+                           disorder_eclient_list_response *completed,
+                           void *v);
+int disorder_eclient_deluser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             void *v);
+int disorder_eclient_userinfo(disorder_eclient *c,
+                              disorder_eclient_string_response *completed,
+                              const char *user,
+                              const char *property,
+                              void *v);
+int disorder_eclient_edituser(disorder_eclient *c,
+                              disorder_eclient_no_response *completed,
+                              const char *user,
+                              const char *property,
+                              const char *value,
+                              void *v);
+int disorder_eclient_adduser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             const char *password,
+                             const char *rights,
+                             void *v);
 
 #endif
 

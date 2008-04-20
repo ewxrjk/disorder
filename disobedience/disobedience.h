@@ -75,6 +75,10 @@ struct callbackdata {
     struct choosenode *choosenode;      /* gtkchoose.c got_files/got_dirs */
     struct queuelike *ql;               /* gtkqueue.c queuelike_completed */
     struct prefdata *f;                 /* properties.c */
+    const char *user;                   /* users.c */
+    struct {
+      const char *user, *email;         /* users.c */
+    } edituser;
   } u;
 };
 
@@ -97,6 +101,7 @@ struct button {
   const gchar *stock;
   void (*clicked)(GtkButton *button, gpointer userdata);
   const char *tip;
+  GtkWidget *widget;
 };
 
 /* Variables --------------------------------------------------------------- */
@@ -138,12 +143,14 @@ void properties_reset(void);
 GtkWidget *scroll_widget(GtkWidget *child);
 /* Wrap a widget up for scrolling */
 
+GtkWidget *frame_widget(GtkWidget *w, const char *title);
+
 GdkPixbuf *find_image(const char *name);
 /* Get the pixbuf for an image.  Returns a null pointer if it cannot be
  * found. */
 
 void popup_msg(GtkMessageType mt, const char *msg);
-/* Pop up a message */
+void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg);
 
 void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 
@@ -157,8 +164,11 @@ void progress_window_progress(struct progress_window *pw,
 
 GtkWidget *iconbutton(const char *path, const char *tip);
 
-GtkWidget *create_buttons(const struct button *buttons,
+GtkWidget *create_buttons(struct button *buttons,
                           size_t nbuttons);
+GtkWidget *create_buttons_box(struct button *buttons,
+                              size_t nbuttons,
+                              GtkWidget *box);
 
 void register_monitor(monitor_callback *callback,
                       void *u,
@@ -185,6 +195,7 @@ void menu_update(int page);
 /* Called whenever the main menu might need to change.  PAGE is the current
  * page if known or -1 otherwise. */
 
+void users_set_sensitive(int sensitive);
 
 /* Controls */
 
@@ -241,6 +252,10 @@ void choose_update(void);
 void login_box(void);
 
 GtkWidget *login_window;
+
+/* User management */
+
+void manage_users(void);
 
 /* Help */
 

@@ -1173,7 +1173,7 @@ static int c_userinfo(struct conn *c,
   const char *value;
 
   /* RIGHT_ADMIN allows anything; otherwise you can only get your own email
-   * address and righst list. */
+   * address and rights list. */
   if((c->rights & RIGHT_ADMIN)
      || (!strcmp(c->who, vec[0])
 	 && (!strcmp(vec[1], "email")

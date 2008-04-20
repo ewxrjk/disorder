@@ -94,6 +94,13 @@ static void login(gpointer attribute((unused)) callback_data,
   login_box();
 }
 
+/** @brief Called when the login option is activated */
+static void users(gpointer attribute((unused)) callback_data,
+                  guint attribute((unused)) callback_action,
+                  GtkWidget attribute((unused)) *menu_item) {
+  manage_users();
+}
+
 #if 0
 /** @brief Called when the settings option is activated */
 static void settings(gpointer attribute((unused)) callback_data,
@@ -123,6 +130,7 @@ void menu_update(int page) {
                            t->selectall_sensitive(tab));
   gtk_widget_set_sensitive(selectnone_widget,
                            t->selectnone_sensitive(tab));
+  /* TODO Users should only be sensitive if have RIGHT_ADMIN */
 }
    
 /** @brief Fetch version in order to display the about... popup */
@@ -207,13 +215,36 @@ static void about_popup_got_version(void attribute((unused)) *v,
   gtk_widget_destroy(w);
 }
 
+/** @brief Set 'Manage Users' menu item sensitivity */
+void users_set_sensitive(int sensitive) {
+  GtkWidget *w = gtk_item_factory_get_widget(mainmenufactory,
+                                             "<GdisorderMain>/Server/Manage users");
+  gtk_widget_set_sensitive(w, sensitive);
+}
+
+/** @brief Called with current user's rights string */
+static void menu_got_rights(void attribute((unused)) *v, const char *value) {
+  rights_type r;
+
+  if(parse_rights(value, &r, 0))
+    r = 0;
+  users_set_sensitive(!!(r & RIGHT_ADMIN));
+}
+
+/** @brief Called when we need to reset state */
+static void menu_reset(void) {
+  users_set_sensitive(0);               /* until we know better */
+  disorder_eclient_userinfo(client, menu_got_rights, config->username, "rights",
+                            0);
+}
+
 /** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *w) {
   GtkWidget *m;
 
   static const GtkItemFactoryEntry entries[] = {
     {
-      (char *)"/File",                  /* path */
+      (char *)"/Server",                /* path */
       0,                                /* accelerator */
       0,                                /* callback */
       0,                                /* callback_action */
@@ -221,16 +252,24 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     { 
-      (char *)"/File/Login",            /* path */
+      (char *)"/Server/Login",          /* path */
       (char *)"<CTRL>L",                /* accelerator */
       login,                            /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
     },
+    { 
+      (char *)"/Server/Manage users",   /* path */
+      0,                                /* accelerator */
+      users,                            /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
 #if 0
     {
-      (char *)"/File/Settings",         /* path */
+      (char *)"/Server/Settings",       /* path */
       0,                                /* accelerator */
       settings,                         /* callback */
       0,                                /* callback_action */
@@ -239,7 +278,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
 #endif
     {
-      (char *)"/File/Quit Disobedience", /* path */
+      (char *)"/Server/Quit Disobedience", /* path */
       (char *)"<CTRL>Q",                /* accelerator */
       quit_program,                     /* callback */
       0,                                /* callback_action */
@@ -367,6 +406,8 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
+  register_reset(menu_reset);
+  menu_reset();
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);

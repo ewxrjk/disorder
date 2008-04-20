@@ -21,7 +21,7 @@
 
 #include "test.h"
 
-int tests, errors;
+long long tests, errors;
 int fail_first;
 
 void count_error(void) {
@@ -158,7 +158,8 @@ int main(void) {
   test_hash();
   test_url();
   test_regsub();
-  fprintf(stderr,  "%d errors out of %d tests\n", errors, tests);
+  test_bits();
+  fprintf(stderr,  "%lld errors out of %lld tests\n", errors, tests);
   return !!errors;
 }
   

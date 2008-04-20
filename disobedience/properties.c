@@ -128,21 +128,24 @@ static const struct pref {
 #define NPREFS (int)(sizeof prefs / sizeof *prefs)
 
 /* Buttons that appear at the bottom of the window */
-static const struct button buttons[] = {
+static struct button buttons[] = {
   {
     GTK_STOCK_OK,
     properties_ok,
-    "Apply all changes and close window"
+    "Apply all changes and close window",
+    0
   },
   {
     GTK_STOCK_APPLY,
     properties_apply,
-    "Apply all changes and keep window open"
+    "Apply all changes and keep window open",
+    0
   },
   {
     GTK_STOCK_CANCEL,
     properties_cancel,
-    "Discard all changes and close window"
+    "Discard all changes and close window",
+    0
   },
 };
 
@@ -268,7 +271,7 @@ void properties(int ntracks, const char **tracks) {
                      scroll_widget(properties_table),
                      TRUE, TRUE, 1);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox, FALSE, FALSE, 1);
-  gtk_container_add(GTK_CONTAINER(properties_window), vbox);
+  gtk_container_add(GTK_CONTAINER(properties_window), frame_widget(vbox, NULL));
   /* The table only really wants to be vertically scrollable */
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(GTK_WIDGET(properties_table)->parent->parent),
                                  GTK_POLICY_NEVER,

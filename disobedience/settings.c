@@ -338,7 +338,7 @@ void popup_settings(void) {
                        1, 1);
     }
   }
-  gtk_container_add(GTK_CONTAINER(settings_window), table);
+  gtk_container_add(GTK_CONTAINER(settings_window), frame_widget(table, NULL));
   gtk_widget_show_all(settings_window);
   /* TODO: save settings
      TODO: web browser

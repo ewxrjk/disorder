@@ -2630,10 +2630,13 @@ int trackdb_edituserinfo(const char *user,
       return -1;
     }
   } else if(!strcmp(key, "email")) {
-    if(!strchr(value, '@')) {
-      error(0, "invalid email address '%s' for user '%s'", user, value);
-      return -1;
-    }
+    if(*value) {
+      if(!strchr(value, '@')) {
+        error(0, "invalid email address '%s' for user '%s'", user, value);
+        return -1;
+      }
+    } else
+      value = 0;                        /* no email -> remove key */
   } else if(!strcmp(key, "created")) {
     error(0, "cannot change creation date for user '%s'", user);
     return -1;

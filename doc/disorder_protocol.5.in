@@ -91,6 +91,10 @@ Set a user property.
 With the \fBadmin\fR right any username and property may be specified.
 Otherwise the \fBuserinfo\fR right is required and only the
 \fBemail\fR and \fBpassword\fR properties may be set.
+.IP
+User properties are syntax-checked before setting.  For instance \fBemail\fR
+must contain an "@" sign or you will get an error.  (Setting an empty value for
+\fBemail\fR is allowed and removes the property.)
 .TP
 .B enable
 Re-enable further playing, and is the opposite of \fBdisable\fR.
@@ -233,15 +237,15 @@ See below for the track information syntax.
 Request that DisOrder reconfigure itself.
 Requires the \fBadmin\fR right.
 .TP
-.B register \fIUSER PASSWORD EMAIL
+.B register \fIUSERNAME PASSWORD EMAIL
 Register a new user.
 Requires the \fBregister\fR right.
 The result contains a confirmation string; the user will be be able
 to log in until this has been presented back to the server via the
 \fBconfirm\fR command.
 .TP
-.B reminder \fIUSER\fR
-Send a password reminder to \fIUSER\fR.
+.B reminder \fIUSERNAME\fR
+Send a password reminder to user \fIUSERNAME\fR.
 If the user has no valid email address, or no password, or a
 reminder has been sent too recently, then no reminder will be sent.
 .TP
@@ -317,11 +321,14 @@ Requires the \fBprefs\fR right.
 Unset a global preference.
 Requires the \fBglobal prefs\fR right.
 .TP
-.B user \fIUSER\fR \fIRESPONSE\fR
-Authenticate as \fIUSER\fR.
+.B user \fIUSERNAME\fR \fIRESPONSE\fR
+Authenticate as user \fIUSERNAME\fR.
 See
 .B AUTHENTICATION
 below.
+.TP
+.B userinfo \fIUSERNAME PROPERTY
+Get a user property.
 .TP
 .B users
 Send the list of currently known users in a response body.
@@ -487,11 +494,11 @@ Completed playing \fITRACK\fR
 .B failed \fITRACK\fR \fIERROR\fR
 Completed playing \fITRACK\fR with an error status
 .TP
-.B moved \fIUSER\fR
-User \fIUSER\fR moved some track(s).
+.B moved \fIUSERNAME\fR
+User \fIUSERNAME\fR moved some track(s).
 Further details aren't included any more.
 .TP
-.B playing \fITRACK\fR [\fIUSER\fR]
+.B playing \fITRACK\fR [\fIUSERNAME\fR]
 Started playing \fITRACK\fR.
 .TP
 .B queue \fIQUEUE-ENTRY\fR...
@@ -503,16 +510,16 @@ Added \fIID\fR to the recently played list.
 .B recent_removed \fIID\fR
 Removed \fIID\fR from the recently played list.
 .TP
-.B removed \fIID\fR [\fIUSER\fR]
+.B removed \fIID\fR [\fIUSERNAME\fR]
 Queue entry \fIID\fR was removed.
-This is used both for explicit removal (when \fIUSER\fR is present)
+This is used both for explicit removal (when \fIUSERNAME\fR is present)
 and when playing a track (when it is absent).
 .TP
 .B rescanned
 A rescan completed.
 .TP
-.B scratched \fITRACK\fR \fIUSER\fR
-\fITRACK\fR was scratched by \fIUSER\fR.
+.B scratched \fITRACK\fR \fIUSERNAME\fR
+\fITRACK\fR was scratched by \fIUSERNAME\fR.
 .TP
 .B state \fIKEYWORD\fR
 Some state change occurred.

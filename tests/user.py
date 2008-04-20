@@ -79,6 +79,22 @@ def test():
     print " checking confirmed user can log in"
     jc = disorder.client(user="joe", password="joepass")
     jc.version()
+    print " checking new user's email address"
+    assert c.userinfo("joe", "email") == "joe@nowhere.invalid"
+    print " checking can change user email address"
+    c.edituser("joe", "email", "joe@another.invalid")
+    assert c.userinfo("joe", "email") == "joe@another.invalid"
+    print " checking bad email address rejected"
+    try:
+      c.edituser("joe", "email", "invalid")
+      print "*** should not be able to set invalid email address ***"
+      assert False
+    except disorder.operationError:
+      pass                              # good
+    assert c.userinfo("joe", "email") == "joe@another.invalid"
+    print " checking removal of email address"
+    c.edituser("joe", "email", "")
+    assert c.userinfo("joe", "email") == None
 
 if __name__ == '__main__':
     dtest.run()

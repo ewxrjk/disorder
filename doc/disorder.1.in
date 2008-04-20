@@ -55,25 +55,25 @@ Display version number.
 List all known commands.
 .SH COMMANDS
 .TP
-.B adduser \fIUSER PASSWORD\fR [\fIRIGHTS\fR]
+.B adduser \fIUSERNAME PASSWORD\fR [\fIRIGHTS\fR]
 Create a new user.
 If \fIRIGHTS\fR is not specified then the \fBdefault_rights\fR
 setting from the server's configuration file applies.
 .TP
-.B authorize \fIUSER\fR [\fIRIGHTS\fR]
-Create \fIUSER\fR with a random password.
-\fIUSER\fR must be a UNIX login user (not just any old string).
+.B authorize \fIUSERNAME\fR [\fIRIGHTS\fR]
+Create user \fIUSERNAME\fR with a random password.
+User \fIUSERNAME\fR must be a UNIX login user (not just any old string).
 If \fIRIGHTS\fR is not specified then the \fBdefault_rights\fR
 setting from the server's configuration file applies.
 .IP
-\fI~USER/.disorder/passwd\fR is created with the password in it, so the new
+\fI~USERNAME/.disorder/passwd\fR is created with the password in it, so the new
 user should be able to log in immediately.
 .IP
 If writing the \fIpasswd\fR file fails then the user will already have been
 created in DisOrder's user database.
 Use \fBdisorder deluser\fR to remove them before trying again.
 .TP
-.B deluser \fIUSER\fR
+.B deluser \fIUSERNAME\fR
 Delete a user.
 .TP
 .B dirs \fIDIRECTORY\fR [\fB~\fIREGEXP\fR]
@@ -85,7 +85,7 @@ Only directories with a basename matching the regexp will be returned.
 .B disable
 Disable playing after the current track finishes.
 .TP
-.B edituser \fIUSER PROPERTY VALUE
+.B edituser \fIUSERNAME PROPERTY VALUE
 Set some property of a user.
 .TP
 .B enable
@@ -238,7 +238,7 @@ Unset the preference \fIKEY\fR for \fITRACK\fR.
 .B unset\-global \fIKEY\fR
 Unset the global preference \fIKEY\fR.
 .TP
-.B userinfo \fIUSER PROPERTY
+.B userinfo \fIUSERNAME PROPERTY
 Get some property of a user.
 .TP
 .B users

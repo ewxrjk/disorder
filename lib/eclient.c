@@ -841,9 +841,11 @@ static void stash_command(disorder_eclient *c,
 static void string_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
   D(("string_response_callback"));
-  if(c->rc / 100 == 2) {
+  if(c->rc / 100 == 2 || c->rc == 555) {
     if(op->completed) {
-      if(c->protocol >= 2) {
+      if(c->rc == 555)
+        ((disorder_eclient_string_response *)op->completed)(op->v, NULL);
+      else if(c->protocol >= 2) {
         char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
         
         if(rr && *rr)
@@ -1261,6 +1263,86 @@ int disorder_eclient_rtp_address(disorder_eclient *c,
                                  void *v) {
   return simple(c, rtp_response_opcallback, (void (*)())completed, v,
                 "rtp-address", (char *)0);
+}
+
+/** @brief Get the list of users
+ * @param c Client
+ * @param completed Called with list of users
+ * @param v Passed to @p completed
+ *
+ * The user list is not sorted in any particular order.
+ */
+int disorder_eclient_users(disorder_eclient *c,
+                           disorder_eclient_list_response *completed,
+                           void *v) {
+  return simple(c, list_response_opcallback, (void (*)())completed, v,
+                "users", (char *)0);
+}
+
+/** @brief Delete a user
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to delete
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_deluser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "deluser", user, (char *)0);
+}
+
+/** @brief Get a user property
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to look up
+ * @param property Property to look up
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_userinfo(disorder_eclient *c,
+                              disorder_eclient_string_response *completed,
+                              const char *user,
+                              const char *property,
+                              void *v) {
+  return simple(c, string_response_opcallback,  (void (*)())completed, v, 
+                "userinfo", user, property, (char *)0);
+}
+
+/** @brief Modify a user property
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to modify
+ * @param property Property to modify
+ * @param value New property value
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_edituser(disorder_eclient *c,
+                              disorder_eclient_no_response *completed,
+                              const char *user,
+                              const char *property,
+                              const char *value,
+                              void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "edituser", user, property, value, (char *)0);
+}
+
+/** @brief Create a new user
+ * @param c Client
+ * @param completed Called on completion
+ * @param user User to create
+ * @param password Initial password
+ * @param rights Initial rights or NULL
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_adduser(disorder_eclient *c,
+                             disorder_eclient_no_response *completed,
+                             const char *user,
+                             const char *password,
+                             const char *rights,
+                             void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "adduser", user, password, rights, (char *)0);
 }
 
 /* Log clients ***************************************************************/

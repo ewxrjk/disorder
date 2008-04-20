@@ -51,7 +51,8 @@ GtkWidget *scroll_widget(GtkWidget *child) {
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller),
                                  GTK_POLICY_AUTOMATIC,
                                  GTK_POLICY_AUTOMATIC);
-  if(GTK_IS_LAYOUT(child)) {
+  if(GTK_IS_LAYOUT(child)
+     || GTK_IS_TREE_VIEW(child)) {
     /* Child widget has native scroll support */
     gtk_container_add(GTK_CONTAINER(scroller), child);
     /* Fix up the step increments if they are 0 (seems like an odd default?) */
@@ -70,6 +71,24 @@ GtkWidget *scroll_widget(GtkWidget *child) {
   gtk_widget_set_style(GTK_SCROLLED_WINDOW(scroller)->hscrollbar, tool_style);
   gtk_widget_set_style(GTK_SCROLLED_WINDOW(scroller)->vscrollbar, tool_style);
   return scroller;
+}
+
+/** @brief Put a frame round a widget
+ * @param w Widget
+ * @param label Label or NULL
+ * @return Frame widget
+ */
+GtkWidget *frame_widget(GtkWidget *w, const char *label) {
+  GtkWidget *const frame = gtk_frame_new(label);
+  GtkWidget *const hbox = gtk_hbox_new(FALSE, 0);
+  GtkWidget *const vbox = gtk_vbox_new(FALSE, 0);
+  /* We want 4 pixels outside the frame boundary... */
+  gtk_container_set_border_width(GTK_CONTAINER(frame), 4);
+  /* ...and 4 pixels inside */
+  gtk_box_pack_start(GTK_BOX(hbox), w, TRUE/*expand*/, TRUE/*fill*/, 4);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE/*expand*/, TRUE/*fill*/, 4);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  return frame;
 }
 
 /** @brief Find an image
@@ -112,9 +131,13 @@ GdkPixbuf *find_image(const char *name) {
 
 /** @brief Pop up a message */
 void popup_msg(GtkMessageType mt, const char *msg) {
+  popup_submsg(toplevel, mt, msg);
+}
+
+void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg) {
   GtkWidget *w;
 
-  w = gtk_message_dialog_new(GTK_WINDOW(toplevel),
+  w = gtk_message_dialog_new(GTK_WINDOW(parent),
                              GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
                              mt,
                              GTK_BUTTONS_CLOSE,
@@ -161,22 +184,31 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
   return button;
 }
 
-/** @brief Create buttons and pack them into an hbox */
-GtkWidget *create_buttons(const struct button *buttons,
-                          size_t nbuttons) {
+/** @brief Create buttons and pack them into a box, which is returned */
+GtkWidget *create_buttons_box(struct button *buttons,
+                              size_t nbuttons,
+                              GtkWidget *box) {
   size_t n;
-  GtkWidget *const hbox = gtk_hbox_new(FALSE, 1);
 
   for(n = 0; n < nbuttons; ++n) {
-    GtkWidget *const button = gtk_button_new_from_stock(buttons[n].stock);
-    gtk_widget_set_style(button, tool_style);
-    g_signal_connect(G_OBJECT(button), "clicked",
+    buttons[n].widget = gtk_button_new_from_stock(buttons[n].stock);
+    gtk_widget_set_style(buttons[n].widget, tool_style);
+    g_signal_connect(G_OBJECT(buttons[n].widget), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
-    gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 1);
-    gtk_tooltips_set_tip(tips, button, buttons[n].tip, "");
+    gtk_box_pack_start(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
+    gtk_tooltips_set_tip(tips, buttons[n].widget, buttons[n].tip, "");
   }
-  return hbox;
+  return box;
 }
+
+/** @brief Create buttons and pack them into an hbox */
+GtkWidget *create_buttons(struct button *buttons,
+                          size_t nbuttons) {
+  return create_buttons_box(buttons, nbuttons,
+                            gtk_hbox_new(FALSE, 1));
+}
+
+
 
 /*
 Local Variables:
