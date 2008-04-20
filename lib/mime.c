@@ -527,6 +527,26 @@ static int cookie_separator(int c) {
   }
 }
 
+/** @brief Match cookie value separator characters
+ *
+ * Same as cookie_separator() but allows for @c = in cookie values.
+ */
+static int cookie_value_separator(int c) {
+  switch(c) {
+  case '(':
+  case ')':
+  case ',':
+  case ';':
+  case ' ':
+  case '"':
+  case '\t':
+    return 1;
+
+  default:
+    return 0;
+  }
+}
+
 /** @brief Parse a RFC2109 Cookie: header
  * @param s Header field value
  * @param cd Where to store result
@@ -557,7 +577,7 @@ int parse_cookie(const char *s,
       return -1;
     }
     s = skipwhite(s, 0);
-    if(!(s = mime_parse_word(s, &v, cookie_separator))) {
+    if(!(s = mime_parse_word(s, &v, cookie_value_separator))) {
       error(0, "parse_cookie: cannot parse value for '%s'", n);
       return -1;
     }

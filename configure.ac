@@ -450,6 +450,8 @@ if test $want_server = yes; then
   fi
 fi
 
+AM_CONDITIONAL([SERVER], [test x$want_server = xyes])
+
 if test "x$GCC" = xyes; then
   # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29478
   AC_CACHE_CHECK([checking for GCC bug 29478],[rjk_cv_pr29478],[
