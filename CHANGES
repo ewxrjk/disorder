@@ -16,6 +16,10 @@ This has been completely rewritten to support new features:
      time before a played track can be picked at random.  The default is
      8 hours (which matches the earlier behaviour).
 
+* Changes up to version 3.0.1
+
+Debian upgrades from 2.0.x should now work better.
+
 * Changes up to version 3.0
 
 Important!  See README.upgrades when upgrading.

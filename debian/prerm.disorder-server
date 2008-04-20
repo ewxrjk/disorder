@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # This file is part of DisOrder
-# Copyright (C) 2004 Richard Kettlewell
+# Copyright (C) 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,5 +18,16 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-set -e
-/etc/init.d/disorder stop
+set -
+case "$1" in
+upgrade )
+  /etc/init.d/disorder stop
+  ;;
+failed-upgrade )
+  # Upgrading from 2.0 to 3.0.x can provoke this problem.  The 2.0
+  # init script attempts to run disorder(1) but that isn't ready to go
+  # get as users.db has not been created.  Therefore old-prerm upgrade
+  # fails and dpkg tries new-prerm failed-upgrade instead.
+  start-stop-daemon -K -q -n disorderd
+  ;;
+esac
