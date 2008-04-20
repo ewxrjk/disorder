@@ -196,7 +196,7 @@ static void users_add_right(const char *title,
   GtkWidget **checkp = &users_details_rights[leftmost_bit(right)];
 
   if(!(check = *checkp)) {
-    *checkp = check = gtk_check_button_new();
+    *checkp = check = gtk_check_button_new_with_label("");
     users_detail_generic(title, check);
   }
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check), !!(value & right));
