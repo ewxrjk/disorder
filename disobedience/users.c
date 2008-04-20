@@ -33,9 +33,6 @@
  * When you select 'add' a new empty set of details are displayed to be edited.
  * Again Apply will commit them.
  *
- * TODO: @ref RIGHT_ADMIN and @ref RIGHT_USERINFO should be applied here, so we
- * can give decent error messages.
- *
  * TODO: it would be really nice if the Username entry could be removed and new
  * user names entered in the list, rather off in the details panel.  This may
  * be possible with a sufficiently clever GtkCellRenderer.

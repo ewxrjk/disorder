@@ -17,7 +17,7 @@ There is currently no standard DisOrder port number.
 
     where PORT is the same as 'listen PORT' on the server.
 
- 3. Copy the password file for each user to ~USER/.disorder/passwd, the
+ 3. Copy the password file for each user to ~USERNAME/.disorder/passwd, the
     contents being:
 
       password PASSWORD
