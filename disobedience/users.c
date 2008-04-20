@@ -248,26 +248,26 @@ static void users_add_right_group(const char *title,
                                   rights_type mask) {
   const uint32_t first = mask / 7;
   const int bit = leftmost_bit(first);
-  GtkWidget **widgets = &users_details_rights[bit], *any, *mine, *random;
+  GtkWidget **widgets = &users_details_rights[bit], *any, *mine, *rnd;
 
   if(!*widgets) {
     GtkWidget *hbox = gtk_hbox_new(FALSE, 2);
 
     any = widgets[0] = gtk_check_button_new_with_label("Any");
     mine = widgets[1] = gtk_check_button_new_with_label("Own");
-    random = widgets[2] = gtk_check_button_new_with_label("Random");
+    rnd = widgets[2] = gtk_check_button_new_with_label("Random");
     gtk_box_pack_start(GTK_BOX(hbox), any, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), mine, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox), random, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), rnd, FALSE, FALSE, 0);
     users_detail_generic(title, hbox);
     g_signal_connect(any, "toggled", G_CALLBACK(users_any_toggled), NULL);
     users_details_rights[bit] = any;
     users_details_rights[bit + 1] = mine;
-    users_details_rights[bit + 2] = random;
+    users_details_rights[bit + 2] = rnd;
   } else {
     any = widgets[0];
     mine = widgets[1];
-    random = widgets[2];
+    rnd = widgets[2];
   }
   /* Discard irrelevant bits */
   bits &= mask;
@@ -275,7 +275,7 @@ static void users_add_right_group(const char *title,
   bits >>= bit;
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(any), !!(bits & 1));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mine), !!(bits & 2));
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(random), !!(bits & 4));
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(rnd), !!(bits & 4));
 }
 
 /** @brief Called when the details table is destroyed */
