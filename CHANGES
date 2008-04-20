@@ -1,3 +1,7 @@
+* Changes up to version 3.0.2
+
+Builds --without-server should work again.
+
 * Changes up to version 3.0.1
 
 Debian upgrades from 2.0.x should now work better.

@@ -22,6 +22,12 @@ noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
 noinst_PROGRAMS=test
 
+if SERVER
+TRACKDB=trackdb.c
+else
+TRACKDB=trackdb-stub.c
+endif
+
 libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
 	alsabg.c alsabg.h				\
@@ -67,7 +73,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	types.h						\
 	table.c table.h					\
 	timeval.h					\
-	trackdb.h trackdb.c trackdb-int.h		\
+	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackname.h				\
 	url.h url.c					\
 	user.h user.c					\
@@ -133,3 +139,5 @@ rebuild-unicode:
 	mv $@.new $@
 
 CLEANFILES=definitions.h definitions.h.new
+
+EXTRA_DIST=trackdb.c trackdb-stub.c
