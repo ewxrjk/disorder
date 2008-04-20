@@ -171,6 +171,7 @@ int trackdb_edituserinfo(const char *user,
 char **trackdb_listusers(void);
 int trackdb_confirm(const char *user, const char *confirmation,
                     rights_type *rightsp);
+int trackdb_readable(void);
 
 typedef void random_callback(struct ev_source *ev,
                              const char *track);

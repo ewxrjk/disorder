@@ -28,6 +28,8 @@ Builds --without-server should work again.
 The web interface is a bit more liberal in the cookie value syntax it
 will accept.
 
+Clients fail more gracefully if no password is available.
+
 * Changes up to version 3.0.1
 
 Debian upgrades from 2.0.x should now work better.

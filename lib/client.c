@@ -389,9 +389,8 @@ int disorder_connect(disorder_client *c) {
     return -1;
   }
   password = config->password;
-  if(!password) {
-    /* Maybe we can read the database */
-    /* TODO failure to open the database should not be fatal */
+  /* Maybe we can read the database */
+  if(!password && trackdb_readable()) {
     trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
     trackdb_open(TRACKDB_READ_ONLY);
     password = trackdb_get_password(username);
