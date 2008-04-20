@@ -85,22 +85,11 @@ static void help(void) {
   xfclose(stdout);
   exit(0);
 }
-
-/** @brief Weighted track record */
-struct weighted_track {
-  /** @brief Next track in the list */
-  struct weighted_track *next;
-  /** @brief Track name */
-  const char *track;
-  /** @brief Weight for this track (always positive) */
-  unsigned long weight;
-};
-
-/** @brief List of tracks with nonzero weight */
-static struct weighted_track *tracks;
-
 /** @brief Sum of all weights */
 static unsigned long long total_weight;
+
+/** @brief The winning track */
+static const char *winning = 0;
 
 /** @brief Count of tracks */
 static long ntracks;
@@ -186,31 +175,6 @@ static unsigned long compute_weight(const char *track,
   return 90000;
 }
 
-/** @brief Called for each track */
-static int collect_tracks_callback(const char *track,
-				   struct kvp *data,
-                                   struct kvp *prefs,
-				   void attribute((unused)) *u,
-				   DB_TXN attribute((unused)) *tid) {
-  unsigned long weight = compute_weight(track, data, prefs);
-
-  if(weight) {
-    struct weighted_track *const t = xmalloc(sizeof *t);
-
-    /* Clamp weight so that we can fit in billions of tracks when we do
-     * arithmetic in long long */
-    if(weight > 0x7fffffff)
-      weight = 0x7fffffff;
-    t->next = tracks;
-    t->track = track;
-    t->weight = weight;
-    tracks = t;
-    total_weight += weight;
-    ++ntracks;
-  }
-  return 0;
-}
-
 /** @brief Pick a random integer uniformly from [0, limit) */
 static void random_bytes(unsigned char *buf, size_t n) {
   static int fd = -1;
@@ -284,20 +248,44 @@ static unsigned long long pick_weight(unsigned long long limit) {
   return r - slop;
 }
 
-/** @brief Pick a track at random and write it to stdout */
-static void pick_track(void) {
-  long long w;
-  struct weighted_track *t;
+/** @brief Called for each track */
+static int collect_tracks_callback(const char *track,
+				   struct kvp *data,
+                                   struct kvp *prefs,
+				   void attribute((unused)) *u,
+				   DB_TXN attribute((unused)) *tid) {
+  unsigned long weight = compute_weight(track, data, prefs);
 
-  w = pick_weight(total_weight);
-  t = tracks;
-  while(t && w >= t->weight) {
-    w -= t->weight;
-    t = t->next;
+  /* Decide whether this is the winning track.
+   *
+   * Suppose that we have n things, and thing i, for 0 <= i < n, has weight
+   * w_i.  Let c_i = w_0 + ... + w_{i-1} be the cumulative weight of the
+   * things previous to thing i, and let W = c_n = w_0 + ... + w_{i-1} be the
+   * total weight.  We can clearly choose a random thing with the correct
+   * weightings by picking a random number r in [0, W) and chooeing thing i
+   * where c_i <= r < c_i + w_i.  But this involves having an enormous list
+   * and taking two passes over it (which has bad locality and is ugly).
+   *
+   * Here's another way.  Initialize v = -1.  Examine the things in order;
+   * for thing i, choose a random number r_i in [0, c_i + w_i).  If r_i < w_i
+   * then set v <- i.
+   *
+   * Claim.  For all 0 <= i < n, the above algorithm chooses thing i with
+   * probability w_i/W.
+   *
+   * Proof.  Induction on n.   The claim is clear for n = 1.  Suppose it's
+   * true for n - 1.  Let L be the event that we choose thing n - 1.  Clearly
+   * Pr[L] = w_{n-1}/W.  Condition on not-L: then the probabilty that we
+   * choose thing i, for 0 <= i < n - 1, is w_i/c_{n-1} (induction
+   * hypothesis); undoing the conditioning gives the desired result.
+   */
+  if(weight) {
+    total_weight += weight;
+    if (pick_weight(total_weight) < weight)
+      winning = track;
   }
-  if(!t)
-    fatal(0, "ran out of tracks but %lld weighting left", w);
-  xprintf("%s", t->track);
+  ntracks++;
+  return 0;
 }
 
 int main(int argc, char **argv) {
@@ -345,8 +333,10 @@ int main(int argc, char **argv) {
   //info("ntracks=%ld total_weight=%lld", ntracks, total_weight);
   if(!total_weight)
     fatal(0, "no tracks match random choice criteria");
+  if(!winning)
+    fatal(0, "internal: failed to pick a track");
   /* Pick a track */
-  pick_track();
+  xprintf("%s", winning);
   xfclose(stdout);
   return 0;
 }
