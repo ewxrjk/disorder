@@ -32,6 +32,9 @@ This has the following options:
 .B Login
 Brings up the \fBLogin Details Window\fR; see below.
 .TP
+.B "Manage Users"
+Brings up the \fBUser Management Window\fR; see below.
+.TP
 .B Quit
 Terminates the program.
 .SS "Edit Menu"
@@ -274,6 +277,23 @@ fields, or bulk-disable random play for many tracks.
 Press "OK" to confirm all changes and close the window, "Apply" to confirm
 changes but keep the window open and "Cancel" to close the window and discard
 all changes.
+.SS "User Management Window"
+This window is primarily of interest to adminstrators, and will not be
+available to users without admin rights.  The left hand side is a list of all
+users; the right hand side contains the editable details of the currently
+selected user.
+.PP
+When you select any user you can edit their email address or change their
+password.  It is also possible to edit the individual user rights.  Click on
+the "Apply" button to commit any changes you make.
+.PP
+The "Add" button creates a new user.  You must enter at least a username.
+Default rights are setting according to local configuration, \fInot\fR server
+configuration (but this may be changed in the future).  As above, click on
+"Apply" to actually create the new user.
+.PP
+The "Delete" button deletes the selected user.  This operation cannot be
+undone.
 .SH "KEYBOARD SHORTCUTS"
 .TP
 .B CTRL+A

@@ -16,6 +16,11 @@ This has been completely rewritten to support new features:
      time before a played track can be picked at random.  The default is
      8 hours (which matches the earlier behaviour).
 
+** Disobedience
+
+There is now a new user management window.  From here you can add and
+remove users or modify their settings.
+
 * Changes up to version 3.0
 
 Important!  See README.upgrades when upgrading.
