@@ -27,7 +27,7 @@ void test_cookies(void) {
   /* These are the examples from RFC2109 */
   insist(!parse_cookie("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", cd));
   insist(!strcmp(cd->version, "1"));
-  insist(cd->ncookies = 1);
+  insist(cd->ncookies == 1);
   insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
   check_string(cd->cookies[0].value, "WILE_E_COYOTE");
   check_string(cd->cookies[0].path, "/acme");
@@ -36,7 +36,7 @@ void test_cookies(void) {
                        "Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\";\n"
                        "Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\"",
                        cd));
-  insist(cd->ncookies = 2);
+  insist(cd->ncookies == 2);
   insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
   insist(find_cookie(cd, "Part_Number") == &cd->cookies[1]);
   check_string(cd->cookies[0].value, "WILE_E_COYOTE");
@@ -50,7 +50,7 @@ void test_cookies(void) {
                        "Part_Number=\"Rocket_Launcher_0001\"; $Path=\"/acme\";\n"
                        "Shipping=\"FedEx\"; $Path=\"/acme\"",
                        cd));
-  insist(cd->ncookies = 3);
+  insist(cd->ncookies == 3);
   insist(find_cookie(cd, "Customer") == &cd->cookies[0]);
   insist(find_cookie(cd, "Part_Number") == &cd->cookies[1]);
   insist(find_cookie(cd, "Shipping") == &cd->cookies[2]);
@@ -63,6 +63,13 @@ void test_cookies(void) {
   check_string(cd->cookies[2].value, "FedEx");
   check_string(cd->cookies[2].path, "/acme");
   insist(cd->cookies[2].domain == 0);
+
+  insist(!parse_cookie("BX=brqn3il3r9jro&b=3&s=vv", cd));
+  insist(cd->ncookies == 1);
+  insist(find_cookie(cd, "BX") == &cd->cookies[0]);
+  check_string(cd->cookies[0].value, "brqn3il3r9jro&b=3&s=vv");
+  insist(cd->cookies[0].path == 0);
+  insist(cd->cookies[0].domain == 0);
 }
 
 /*
