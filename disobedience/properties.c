@@ -271,7 +271,7 @@ void properties(int ntracks, const char **tracks) {
                      scroll_widget(properties_table),
                      TRUE, TRUE, 1);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox, FALSE, FALSE, 1);
-  gtk_container_add(GTK_CONTAINER(properties_window), vbox);
+  gtk_container_add(GTK_CONTAINER(properties_window), frame_widget(vbox, NULL));
   /* The table only really wants to be vertically scrollable */
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(GTK_WIDGET(properties_table)->parent->parent),
                                  GTK_POLICY_NEVER,

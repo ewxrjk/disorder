@@ -641,7 +641,7 @@ void manage_users(void) {
   users_delete_button = users_buttons[1].widget;
 
   /* Buttons live below the list */
-  vbox = gtk_vbox_new(FALSE, 2);
+  vbox = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox), scroll_widget(tree), TRUE/*expand*/, TRUE/*fill*/, 0);
   gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
 
@@ -662,11 +662,14 @@ void manage_users(void) {
   gtk_box_pack_start(GTK_BOX(vbox2), hbox2,
                      FALSE/*expand*/, FALSE, 0);
   
-  /* User details are to the right of the list */
-  hbox = gtk_hbox_new(FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 2);
-  gtk_container_add(GTK_CONTAINER(users_window), hbox);
+  /* User details are to the right of the list.  We put in a pointless event
+   * box as as spacer, so that the longest label in the user details isn't
+   * cuddled up to the user list. */
+  hbox = gtk_hbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), gtk_event_box_new(), FALSE/*expand*/, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_container_add(GTK_CONTAINER(users_window), frame_widget(hbox, NULL));
 }
 
 /*

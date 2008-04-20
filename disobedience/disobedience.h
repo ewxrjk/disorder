@@ -143,6 +143,8 @@ void properties_reset(void);
 GtkWidget *scroll_widget(GtkWidget *child);
 /* Wrap a widget up for scrolling */
 
+GtkWidget *frame_widget(GtkWidget *w, const char *title);
+
 GdkPixbuf *find_image(const char *name);
 /* Get the pixbuf for an image.  Returns a null pointer if it cannot be
  * found. */

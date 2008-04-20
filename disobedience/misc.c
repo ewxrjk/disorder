@@ -73,6 +73,24 @@ GtkWidget *scroll_widget(GtkWidget *child) {
   return scroller;
 }
 
+/** @brief Put a frame round a widget
+ * @param w Widget
+ * @param label Label or NULL
+ * @return Frame widget
+ */
+GtkWidget *frame_widget(GtkWidget *w, const char *label) {
+  GtkWidget *const frame = gtk_frame_new(label);
+  GtkWidget *const hbox = gtk_hbox_new(FALSE, 0);
+  GtkWidget *const vbox = gtk_vbox_new(FALSE, 0);
+  /* We want 4 pixels outside the frame boundary... */
+  gtk_container_set_border_width(GTK_CONTAINER(frame), 4);
+  /* ...and 4 pixels inside */
+  gtk_box_pack_start(GTK_BOX(hbox), w, TRUE/*expand*/, TRUE/*fill*/, 4);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE/*expand*/, TRUE/*fill*/, 4);
+  gtk_container_add(GTK_CONTAINER(frame), vbox);
+  return frame;
+}
+
 /** @brief Find an image
  * @param name Relative path to image
  * @return pixbuf containing image
