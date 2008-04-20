@@ -1,3 +1,4 @@
+
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
@@ -427,6 +428,10 @@ AC_CHECK_FUNCS([fdatasync],[:],[
 if test ! -z "$missing_functions"; then
   AC_MSG_ERROR([missing functions:$missing_functions])
 fi
+
+# Functions we can take or leave
+AC_CHECK_FUNCS([fls])
+
 if test $want_server = yes; then
   # <db.h> had better be version 3 or later
   AC_CACHE_CHECK([db.h version],[rjk_cv_db_version],[

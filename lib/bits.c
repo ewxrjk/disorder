@@ -29,6 +29,7 @@
 
 #include "bits.h"
 
+#if !HAVE_FLS
 /** @brief Compute index of leftmost 1 bit
  * @param n Integer
  * @return Index of leftmost 1 bit or -1
@@ -69,7 +70,7 @@ int leftmost_bit(uint32_t n) {
    */
   return x - 1;
 }
-
+#endif
 
 /*
 Local Variables:
