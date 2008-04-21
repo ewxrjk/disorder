@@ -264,22 +264,13 @@ void load_settings(void) {
   }
 }
 
-/** @brief Callback used by set_tool_colors() */
-static void set_tool_colors_callback(GtkWidget *w,
-                                     gpointer attribute((unused)) data) {
-  set_tool_colors(w);
-}
-
-/** @brief Recursively set tool widget colors */
-void set_tool_colors(GtkWidget *w) {
-  GtkWidget *child;
-
-  gtk_widget_set_style(w, tool_style);
-  if(GTK_IS_CONTAINER(w))
-    gtk_container_foreach(GTK_CONTAINER(w), set_tool_colors_callback, 0);
-  if(GTK_IS_MENU_ITEM(w)
-     && (child = gtk_menu_item_get_submenu(GTK_MENU_ITEM(w))))
-    set_tool_colors(child);
+/** @brief Recursively set tool widget colors
+ *
+ * This is currently unused; the idea was to allow for configurability without
+ * allowing GTK+ to override our use of color, but things seem generally better
+ * without this particular call.
+ */
+void set_tool_colors(GtkWidget attribute((unused)) *w) {
 }
 
 /** @brief Pop up a settings editor widget */
