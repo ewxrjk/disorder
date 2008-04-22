@@ -27,6 +27,7 @@ while [ $# -gt 0 ]; do
   case "$opt" in
   -h | --help )
     cat  <<EOF
+
 Usage:
   scripts/setup [OPTIONS]
 
@@ -37,8 +38,18 @@ Options:
   --smtp-server HOSTNAME  SMTP server
   --email ADDRESS         Origin email address
   --register y|n          Enable/disable online registration
+  --play local|network    Choose local or network play
+  --mcast ADDRESS PORT    Set multicast address and port for --play network
   -h, --help              Display this message
+
+Sets up a basic DisOrder installation.  You must have run 'make install'
+first.  Use scripts/teardown to stop the server and deconfigure.
+
 EOF
+    exit 0
+    ;;
+  --version | -V )
+    echo "DisOrder scripts/setup _version_"
     exit 0
     ;;
   --root )
@@ -63,6 +74,17 @@ EOF
     ;;
   --register )
     register="$1"
+    shift
+    ;;
+  --play )
+    play="$1"
+    shift
+    ;;
+  --mcast )
+    play=network
+    mcast_address="$1"
+    shift
+    mcast_port="$1"
     shift
     ;;
   * )
@@ -169,6 +191,52 @@ if [ -z "$port" ]; then
   done
 fi
 
+if [ -z "$play" ]; then
+  while :; do
+    echo
+    echo "How do you want to play sound?  Enter 'local' to use a local sound"
+    echo "device or 'network' to multicast sound across your network."
+    read -r play
+    case $play in
+    'local' | network )
+      break
+      ;;
+    * )
+      echo "Enter 'local' or 'network'"
+      continue
+      ;;
+    esac
+  done
+fi
+
+if [ "x$play" = xnetwork ]; then
+  if [ -z "$mcast_address" ]; then
+    echo
+    echo "Enter destination address for network transmission"
+    echo "(e.g. a multicast address)"
+    read -r mcast_address
+  fi
+  if [ -z "$mcast_port" ]; then
+    while :; do
+      echo
+      echo "Enter destination port for network transmission"
+      read -r mcast_port
+      case $mcast_port in
+      none )
+	break
+	;;
+      [^0-9] )
+	echo "'$mcast_port' is not a valid port number"
+	continue
+	;;
+      * )
+	break
+	;;
+      esac
+    done
+  fi
+fi
+
 if [ -z "$smtp_server" ]; then
   echo
   echo "What host should DisOrder use as an SMTP server?"
@@ -215,6 +283,9 @@ fi
 echo " SMTP Server:           $smtp_server"
 echo " Sender address:        $mail_sender"
 echo " Online registration:   $register"
+if [ $play = network ]; then
+  echo " Send sound to:         $mcast_address port $mcast_port"
+fi
 
 echo "Is this OK?  (Enter 'y' or 'n')"
 read -r ok
@@ -240,6 +311,9 @@ done
 echo "user $user" >> pkgconfdir/config.new
 if [ $port != none ]; then
   echo "listen 0.0.0.0 $port" >> pkgconfdir/config.new
+fi
+if [ $play = network ]; then
+  echo "broadcast $mcast_address $mcast_port" >> pkgconfdir/config.new
 fi
 echo "smtp_server $smtp_server" >> pkgconfdir/config.new
 echo "mail_sender $mail_sender" >> pkgconfdir/config.new

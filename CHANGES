@@ -26,7 +26,8 @@ remote_userman to 'yes'.
 
 ** Miscellaneous
 
-scripts/setup now honors command line options.
+scripts/setup now honors command line options, and can set up network
+play as well as the local default sound device.
 
 * Changes up to version 3.0.2
 

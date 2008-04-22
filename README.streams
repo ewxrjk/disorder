@@ -5,7 +5,7 @@ get called 'streams'.
 
 * RTP Streaming
 
-DisOrder is capable to transmitting RTP streams over a suitable network.
+DisOrder is capable of transmitting RTP streams over a suitable network.
 
 ** Server Setup
 
@@ -31,6 +31,8 @@ instance:
 
 (The destination can also be a unicast address but that's not a tested
 configuration.)
+
+scripts/setup now knows how to do basic setup for network play.
 
 ** Playing The Stream
 
