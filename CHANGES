@@ -24,6 +24,10 @@ remove users or modify their settings.
 Relatedly, the server will only allow remote user management if you set
 remote_userman to 'yes'.
 
+** Miscellaneous
+
+scripts/setup now honors command line options.
+
 * Changes up to version 3.0.2
 
 Builds --without-server should work again.

@@ -21,6 +21,57 @@
 
 set -e
 
+while [ $# -gt 0 ]; do
+  opt="$1"
+  shift
+  case "$opt" in
+  -h | --help )
+    cat  <<EOF
+Usage:
+  scripts/setup [OPTIONS]
+
+Options:
+  --root ROOT             Add a root (can be used multiple times)
+  --encoding ENCODING     Filename encoding
+  --port PORT             TCP port to listen on or 'none'
+  --smtp-server HOSTNAME  SMTP server
+  --email ADDRESS         Origin email address
+  --register y|n          Enable/disable online registration
+  -h, --help              Display this message
+EOF
+    exit 0
+    ;;
+  --root )
+    roots="$roots $1"
+    shift
+    ;;
+  --encoding )
+    encoding="$1"
+    shift
+    ;;
+  --port )
+    port="$1"
+    shift
+    ;;
+  --smtp-server )
+    smtp_server="$1"
+    shift
+    ;;
+  --email )
+    mail_sender="$1"
+    shift
+    ;;
+  --register )
+    register="$1"
+    shift
+    ;;
+  * )
+    echo >&2 "ERROR: unknown option '$opt'"
+    exit 1
+    ;;
+  esac
+done
+
 echo
 echo ------------------------------------------------------------------------
 echo "DisOrder setup script"
@@ -71,22 +122,24 @@ echo
 echo "If this is not what you want, press ^C."
 echo ------------------------------------------------------------------------
 
-while :; do
-  echo
-  echo "What directory or directories contain your music files:"
-  echo "(enter one or more directories separated by spaces)"
-  read -r roots
-  ok=true
-  for root in $roots; do
-    if [ ! -d $root ]; then
-      echo "'$root' does not exist"
-      ok=false
+if [ -z "$roots" ]; then
+  while :; do
+    echo
+    echo "What directory or directories contain your music files:"
+    echo "(enter one or more directories separated by spaces)"
+    read -r roots
+    ok=true
+    for root in $roots; do
+      if [ ! -d $root ]; then
+	echo "'$root' does not exist"
+	ok=false
+      fi
+    done
+    if $ok; then
+      break
     fi
   done
-  if $ok; then
-    break
-  fi
-done
+fi
 
 if [ -z "$encoding" ]; then
   echo 
@@ -95,42 +148,61 @@ if [ -z "$encoding" ]; then
   read -r encoding
 fi
 
-while :; do
-  echo
-  echo "What TCP port should DisOrder listen on?"
-  echo "(enter 'none' for none)"
-  read -r port
-  case $port in
-  none )
-    break
-    ;;
-  [^0-9] )
-    echo "'$port' is not a valid port number"
-    continue
-    ;;
-  * )
-    break
-    ;;
-  esac
-done
+if [ -z "$port" ]; then
+  while :; do
+    echo
+    echo "What TCP port should DisOrder listen on?"
+    echo "(enter 'none' for none)"
+    read -r port
+    case $port in
+    none )
+      break
+      ;;
+    [^0-9] )
+      echo "'$port' is not a valid port number"
+      continue
+      ;;
+    * )
+      break
+      ;;
+    esac
+  done
+fi
 
-echo
-echo "What host should DisOrder use as an SMTP server?"
-read -r smtp_server
-
-while :; do
+if [ -z "$smtp_server" ]; then
   echo
-  echo "What address should mail from DisOrder come from?"
-  read -r mail_sender
-  case "$mail_sender" in
-  *@* )
-    break
-    ;;
-  * )
-    echo "Email address must contain an '@' sign"
-    ;;
-  esac
-done
+  echo "What host should DisOrder use as an SMTP server?"
+  read -r smtp_server
+fi
+
+if [ -z "$mail_sender" ]; then
+  while :; do
+    echo
+    echo "What address should mail from DisOrder come from?"
+    read -r mail_sender
+    case "$mail_sender" in
+    *@* )
+      break
+      ;;
+    * )
+      echo "Email address must contain an '@' sign"
+      ;;
+    esac
+  done
+fi
+
+if [ -z "$register" ]; then
+  while :; do
+    echo
+    echo "Do you want to enable online registration?  (Enter 'y' or 'n')"
+    read -r register
+    case $reguser in
+    y | n )
+      break
+      ;;
+    esac
+  done
+fi
 
 echo
 echo "Proposed DisOrder setup:"
@@ -142,6 +214,7 @@ else
 fi
 echo " SMTP Server:           $smtp_server"
 echo " Sender address:        $mail_sender"
+echo " Online registration:   $register"
 
 echo "Is this OK?  (Enter 'y' or 'n')"
 read -r ok
@@ -393,17 +466,6 @@ else
 fi
 
 if $server_running; then
-  while :; do
-    echo
-    echo "Do you want to enable online registration?  (Enter 'y' or 'n')"
-    read -r reg
-    case $reg in
-    y | n )
-      break
-      ;;
-    esac
-  done
-  echo
   first=true
   sleep 5
   while ! disorder version >/dev/null 2>&1; do
@@ -413,7 +475,7 @@ if $server_running; then
     fi
     sleep 1
   done
-  if [ $reg = y ]; then
+  if [ $register = y ]; then
     echo "Creating guest user with 'register' right"
     disorder setup-guest
   else
