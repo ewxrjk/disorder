@@ -405,6 +405,7 @@ if $server_running; then
   done
   echo
   first=true
+  sleep 5
   while ! disorder version >/dev/null 2>&1; do
     if $first; then
       echo "Waiting for server startup to complete..."
