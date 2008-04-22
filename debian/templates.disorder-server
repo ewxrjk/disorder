@@ -28,6 +28,31 @@ Description: Port number for clients to connect to
  can be set to 'none' to permit only local clients or a port number for
  remote clients to connect to, e.g. using Disobedience.
 
+Template: disorder/interface
+Type: select
+Choices: local, network
+Default: local
+Description: Interface to use to play sound
+ 'local' means the default local sound device will be used.  Use this
+ if you want to play through your sound card and don't want to play on any
+ other computers.
+ .
+ 'network' means sound will be transmitted over the network using RTP,
+ for instance to a multicast address.  Use this option if you want to play
+ sound through more than one computer.
+
+Template: disorder/mcast_address
+Type: string
+Description: Destination address for network sound transmission
+ Sound data will be sent to this address using the RTP protocol.  Users
+ would use (for instance) disorder-playrtp to play it.  Typically this
+ would be a multicast address but this is not mandatory.
+
+Template: disorder/mcast_port
+Type: string
+Description: Destination port for network sound transmission
+ Sound data will be sent to this UDP port using the RTP protocol.
+
 Template: disorder/smtp_server
 Type: string
 Default: localhost

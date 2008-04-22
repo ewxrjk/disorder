@@ -26,8 +26,9 @@ db_input high disorder/roots || true
 db_input high disorder/encoding || true
 db_input high disorder/port || true
 db_input medium disorder/scratches || true
-db_input medium disorder/smtp_server || true
+db_input high disorder/smtp_server || true
 db_input high disorder/mail_sender || true
+db_input high disorder/interface || true
 db_go || true
 
 db_get disorder/roots || true
@@ -42,6 +43,18 @@ db_get disorder/smtp_server || true
 smtp_server="$RET"
 db_get disorder/mail_sender || true
 mail_sender="$RET"
+db_get disorder/interface || true
+interface="$RET"
+
+if test "x$interface" = xnetwork; then
+  db_input high disorder/mcast_address || true
+  db_input high disorder/mcast_port || true
+  db_go || true
+  db_get disorder/mcast_address || true
+  mcast_address="$RET"
+  db_get disorder/mcast_port || true
+  mcast_port="$RET"
+fi
 
 mkdir -p /etc/disorder
 cat > /etc/disorder/conf.debconf.new <<EOF
@@ -78,6 +91,12 @@ if test "$port" != none && test "$port" != ""; then
   echo >> /etc/disorder/conf.debconf.new
   echo "# Listen for remote clients" >> /etc/disorder/conf.debconf.new
   echo "listen 0.0.0.0 $port" >> /etc/disorder/conf.debconf.new
+fi
+
+if test "x$interface" = xnetwork; then
+  echo "" >> /etc/disorder/conf.debconf.new
+  echo "# Target address for RTP frames" >> /etc/disorder/conf.debconf.new
+  echo "broadcast $mcast_address $mcast_port" >> /etc/disorder/conf.debconf.new
 fi
 
 mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf
