@@ -960,6 +960,7 @@ static const struct conf conf[] = {
   { C(replay_min),       &type_integer,          validate_non_negative },
   { C(refresh),          &type_integer,          validate_positive },
   { C(reminder_interval), &type_integer,         validate_positive },
+  { C(remote_userman),   &type_boolean,          validate_any },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },

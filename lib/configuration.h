@@ -270,6 +270,9 @@ struct config {
 
   /** @brief Minimum interval between password reminder emails */
   long reminder_interval;
+
+  /** @brief Whether to allow user management over TCP */
+  int remote_userman;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

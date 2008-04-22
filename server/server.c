@@ -1096,6 +1096,10 @@ static int c_adduser(struct conn *c,
 		     int nvec) {
   const char *rights;
 
+  if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    return 1;
+  }
   if(nvec > 2) {
     rights = vec[2];
     if(parse_rights(vec[2], 0, 1)) {
@@ -1117,6 +1121,10 @@ static int c_deluser(struct conn *c,
 		     int attribute((unused)) nvec) {
   struct conn *d;
 
+  if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    return 1;
+  }
   if(trackdb_deluser(vec[0])) {
     sink_writes(ev_writer_sink(c->w), "550 Cannot delete user\n");
     return 1;
@@ -1134,6 +1142,10 @@ static int c_edituser(struct conn *c,
 		      int attribute((unused)) nvec) {
   struct conn *d;
 
+  if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    return 1;
+  }
   /* RIGHT_ADMIN can do anything; otherwise you can only set your own email
    * address and password. */
   if((c->rights & RIGHT_ADMIN)
@@ -1172,6 +1184,10 @@ static int c_userinfo(struct conn *c,
   struct kvp *k;
   const char *value;
 
+  if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    return 1;
+  }
   /* RIGHT_ADMIN allows anything; otherwise you can only get your own email
    * address and rights list. */
   if((c->rights & RIGHT_ADMIN)

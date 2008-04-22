@@ -21,6 +21,9 @@ This has been completely rewritten to support new features:
 There is now a new user management window.  From here you can add and
 remove users or modify their settings.
 
+Relatedly, the server will only allow remote user management if you set
+remote_userman to 'yes'.
+
 * Changes up to version 3.0.2
 
 Builds --without-server should work again.

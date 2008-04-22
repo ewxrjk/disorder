@@ -593,6 +593,10 @@ The default is 10.
 The minimum number of seconds that must elapse between password reminders.
 The default is 600, i.e. 10 minutes.
 .TP
+.B remote_userman yes\fR|\fBno
+User management over TCP connection is only allowed if this is set to
+\fByes\fR.  By default it is set to \fBno\fR.
+.TP
 .B replay_min \fISECONDS\fR
 The minimum number of seconds that must elapse after a track has been played
 before it can be picked at random.  The default is 8 hours.  If this is set to
