@@ -42,7 +42,7 @@ def test():
     """Check that the search produces the right results"""
     dtest.start_daemon()
     dtest.create_user()
-    time.sleep(2)                       # give rescan a chance
+    dtest.rescan()
     global client
     client = disorder.client()
     first = ["Joe Bloggs/First Album/01:F\xC3\x8Crst track.ogg",
