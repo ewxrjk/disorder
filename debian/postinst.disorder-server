@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # This file is part of DisOrder
-# Copyright (C) 2004, 2007 Richard Kettlewell
+# Copyright (C) 2004, 2007, 2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,24 +40,24 @@ restart_server() {
 }
 
 setup_guest() {
-  echo "Checking whether guest user exists..."
+  echo "Checking whether guest user exists..." >&2
   TMPFILE="$(mktemp -t)"
   if disorder users > "$TMPFILE"; then
     if grep -q '^guest$' "$TMPFILE"; then
-      echo "Guest user has already been set up."
+      echo "Guest user has already been set up." >&2
     else
-      echo "Attempting to set up guest user..."
+      echo "Attempting to set up guest user..." >&2
       if disorder setup-guest; then
-        echo "Created guest user."
+        echo "Created guest user." >&2
       else
-        echo "Failed to create guest user."
-        echo "You can use 'disorder setup-guest' to do this step manually."
-        echo
+        echo "Failed to create guest user." >&2
+        echo "You can use 'disorder setup-guest' to do this step manually." >&2
+        echo >&2
       fi
     fi
   else
-    echo "Cannot determine whether guest user has been set up."
-    echo
+    echo "Cannot determine whether guest user has been set up." >&2
+    echo >&2
   fi
   rm -f "$TMPFILE"
 }
@@ -66,7 +66,7 @@ fix_configuration() {
   # Once the server has started up, we can remove some of the obsolete
   # directives from the config file.
   if grep -q ^trust /etc/disorder/config; then
-    echo "Removing obsolete 'trust' directive from /etc/disorder/config"
+    echo "Removing obsolete 'trust' directive from /etc/disorder/config" >&2
     sed < /etc/disorder/config > /etc/disorder/config.new \
 	's/^trust/#trust/'
     chmod 644 /etc/disorder/config.new
@@ -74,7 +74,7 @@ fix_configuration() {
   fi
   if test -e /etc/disorder/config.private \
       && grep -q ^allow /etc/disorder/config.private; then
-    echo "Removing obsolete 'allow' directive(s) from /etc/disorder/config.private"
+    echo "Removing obsolete 'allow' directive(s) from /etc/disorder/config.private" >&2
     u=$(umask)
     umask 077
     sed < /etc/disorder/config.private > /etc/disorder/config.private.new \
@@ -86,6 +86,75 @@ fix_configuration() {
   fi
 }
 
+# Create configuration from debconf answers
+create_config() {
+  db_get disorder/roots || true
+  roots="$RET"
+  db_get disorder/scratches || true
+  scratches="$RET"
+  db_get disorder/encoding || true
+  encoding="$RET"
+  db_get disorder/port || true
+  port="$RET"
+  db_get disorder/smtp_server || true
+  smtp_server="$RET"
+  db_get disorder/mail_sender || true
+  mail_sender="$RET"
+  db_get disorder/interface || true
+  interface="$RET"
+  if test "x$interface" = xnetwork; then
+    db_get disorder/mcast_address || true
+    mcast_address="$RET"
+    db_get disorder/mcast_port || true
+    mcast_port="$RET"
+  fi
+
+  mkdir -p /etc/disorder
+  cat > /etc/disorder/conf.debconf.new <<EOF
+# created automatically from debconf information
+# do not edit manually
+# run 'dpkg-reconfigure disorder' instead
+EOF
+
+  echo >> /etc/disorder/conf.debconf.new
+  echo "# Collection roots"  >> /etc/disorder/conf.debconf.new
+  for r in $roots; do
+    echo "collection fs $encoding $r" >> /etc/disorder/conf.debconf.new
+  done
+
+  echo >> /etc/disorder/conf.debconf.new
+  echo "# Scratches" >> /etc/disorder/conf.debconf.new
+  for s in $scratches; do
+    echo "scratch $s" >> /etc/disorder/conf.debconf.new
+  done
+
+  if test "$mail_sender" != ""; then
+    echo "" >> /etc/disorder/conf.debconf.new
+    echo "# SMTP server" >> /etc/disorder/conf.debconf.new
+    echo "smtp_server $smtp_server" >> /etc/disorder/conf.debconf.new
+  fi
+
+  if test "$mail_sender" != ""; then
+    echo "" >> /etc/disorder/conf.debconf.new
+    echo "# Source mail address" >> /etc/disorder/conf.debconf.new
+    echo "mail_sender $mail_sender" >> /etc/disorder/conf.debconf.new
+  fi
+
+  if test "$port" != none && test "$port" != ""; then
+    echo >> /etc/disorder/conf.debconf.new
+    echo "# Listen for remote clients" >> /etc/disorder/conf.debconf.new
+    echo "listen 0.0.0.0 $port" >> /etc/disorder/conf.debconf.new
+  fi
+
+  if test "x$interface" = xnetwork; then
+    echo "" >> /etc/disorder/conf.debconf.new
+    echo "# Target address for RTP frames" >> /etc/disorder/conf.debconf.new
+    echo "broadcast $mcast_address $mcast_port" >> /etc/disorder/conf.debconf.new
+  fi
+
+  mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf
+}
+
 case "$1" in
 configure )
   if grep -q ^jukebox: /etc/passwd; then
@@ -95,10 +164,13 @@ configure )
   fi
   chown jukebox:jukebox /var/lib/disorder
   configure_init_d
+  create_config
   restart_server
   fix_configuration
   setup_guest
-  db_stop
+  ;;
+reconfigure )
+  create_config
   ;;
 abort-upgrade )
   /etc/init.d/disorder restart
@@ -107,3 +179,5 @@ reconfigure )
   /etc/init.d/disorder reload
   ;;
 esac
+
+db_stop

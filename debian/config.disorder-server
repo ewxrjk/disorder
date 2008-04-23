@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2004, 2005, 2007 Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,18 +31,6 @@ db_input high disorder/mail_sender || true
 db_input high disorder/interface || true
 db_go || true
 
-db_get disorder/roots || true
-roots="$RET"
-db_get disorder/scratches || true
-scratches="$RET"
-db_get disorder/encoding || true
-encoding="$RET"
-db_get disorder/port || true
-port="$RET"
-db_get disorder/smtp_server || true
-smtp_server="$RET"
-db_get disorder/mail_sender || true
-mail_sender="$RET"
 db_get disorder/interface || true
 interface="$RET"
 
@@ -50,53 +38,4 @@ if test "x$interface" = xnetwork; then
   db_input high disorder/mcast_address || true
   db_input high disorder/mcast_port || true
   db_go || true
-  db_get disorder/mcast_address || true
-  mcast_address="$RET"
-  db_get disorder/mcast_port || true
-  mcast_port="$RET"
 fi
-
-mkdir -p /etc/disorder
-cat > /etc/disorder/conf.debconf.new <<EOF
-# created automatically from debconf information
-# do not edit manually
-# run 'dpkg-reconfigure disorder' instead
-EOF
-
-echo >> /etc/disorder/conf.debconf.new
-echo "# Collection roots"  >> /etc/disorder/conf.debconf.new
-for r in $roots; do
-  echo "collection fs $encoding $r" >> /etc/disorder/conf.debconf.new
-done
-
-echo >> /etc/disorder/conf.debconf.new
-echo "# Scratches" >> /etc/disorder/conf.debconf.new
-for s in $scratches; do
-  echo "scratch $s" >> /etc/disorder/conf.debconf.new
-done
-
-if test "$mail_sender" != ""; then
-  echo "" >> /etc/disorder/conf.debconf.new
-  echo "# SMTP server" >> /etc/disorder/conf.debconf.new
-  echo "smtp_server $smtp_server" >> /etc/disorder/conf.debconf.new
-fi
-
-if test "$mail_sender" != ""; then
-  echo "" >> /etc/disorder/conf.debconf.new
-  echo "# Source mail address" >> /etc/disorder/conf.debconf.new
-  echo "mail_sender $mail_sender" >> /etc/disorder/conf.debconf.new
-fi
-
-if test "$port" != none && test "$port" != ""; then
-  echo >> /etc/disorder/conf.debconf.new
-  echo "# Listen for remote clients" >> /etc/disorder/conf.debconf.new
-  echo "listen 0.0.0.0 $port" >> /etc/disorder/conf.debconf.new
-fi
-
-if test "x$interface" = xnetwork; then
-  echo "" >> /etc/disorder/conf.debconf.new
-  echo "# Target address for RTP frames" >> /etc/disorder/conf.debconf.new
-  echo "broadcast $mcast_address $mcast_port" >> /etc/disorder/conf.debconf.new
-fi
-
-mv /etc/disorder/conf.debconf.new /etc/disorder/conf.debconf
