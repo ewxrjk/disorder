@@ -304,8 +304,8 @@ int main(int argc, char **argv) {
   create_periodic(ev, periodic_volume_check, 60, 1);
   /* Check for a playable track once a second */
   create_periodic(ev, periodic_play_check, 1, 0);
-  /* Try adding a random track immediately and once every ten seconds */
-  create_periodic(ev, periodic_add_random, 10, 1);
+  /* Try adding a random track immediately and once every two seconds */
+  create_periodic(ev, periodic_add_random, 2, 1);
   /* enter the event loop */
   n = ev_run(ev);
   /* if we exit the event loop, something must have gone wrong */
