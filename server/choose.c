@@ -85,22 +85,11 @@ static void help(void) {
   xfclose(stdout);
   exit(0);
 }
-
-/** @brief Weighted track record */
-struct weighted_track {
-  /** @brief Next track in the list */
-  struct weighted_track *next;
-  /** @brief Track name */
-  const char *track;
-  /** @brief Weight for this track (always positive) */
-  unsigned long weight;
-};
-
-/** @brief List of tracks with nonzero weight */
-static struct weighted_track *tracks;
-
 /** @brief Sum of all weights */
 static unsigned long long total_weight;
+
+/** @brief The winning track */
+static const char *winning = 0;
 
 /** @brief Count of tracks */
 static long ntracks;
@@ -186,6 +175,79 @@ static unsigned long compute_weight(const char *track,
   return 90000;
 }
 
+/** @brief Pick a random integer uniformly from [0, limit) */
+static void random_bytes(unsigned char *buf, size_t n) {
+  static int fd = -1;
+  int r;
+
+  if(fd < 0) {
+    if((fd = open("/dev/urandom", O_RDONLY)) < 0)
+      fatal(errno, "opening /dev/urandom");
+  }
+  if((r = read(fd, buf, n)) < 0)
+    fatal(errno, "reading /dev/urandom");
+  if((size_t)r < n)
+    fatal(0, "short read from /dev/urandom");
+}
+
+/** @brief Pick a random integer uniformly from [0, limit) */
+static unsigned long long pick_weight(unsigned long long limit) {
+  unsigned char buf[(sizeof(unsigned long long) * CHAR_BIT + 7)/8], m;
+  unsigned long long t, r, slop;
+  int i, nby, nbi;
+
+  //info("pick_weight: limit = %llu", limit);
+
+  /* First, decide how many bits of output we actually need; do bytes first
+   * (they're quicker) and then bits.
+   *
+   * To speed this up, we could use a binary search if we knew where to
+   * start.  (Note that shifting by ULLONG_BITS or more (if such a constant
+   * existed) is undefined behaviour, so we mustn't do that.)  Figuring out a
+   * start point involves preprocessor and/or autoconf magic.
+   */
+  for (nby = 1, t = (limit - 1) >> 8; t; nby++, t >>= 8)
+    ;
+  nbi = (nby - 1) << 3; t = limit >> nbi;
+  if (t >> 4) { t >>= 4; nbi += 4; }
+  if (t >> 2) { t >>= 2; nbi += 2; }
+  if (t >> 1) { t >>= 1; nbi += 1; }
+  nbi++;
+  //info("nby = %d; nbi = %d", nby, nbi);
+
+  /* Main randomness collection loop.  We read a number of bytes from the
+   * randomness source, and glue them together into an integer (dropping
+   * bits off the top byte as necessary).  Call the result r; we have
+   * 2^{nbi - 1) <= limit < 2^nbi and r < 2^nbi.  If r < limit then we win;
+   * otherwise we try again.  Given the above bounds, we expect fewer than 2
+   * iterations.
+   *
+   * Unfortunately there are subtleties.  In particular, 2^nbi may in fact be
+   * zero due to overflow.  So in fact what we do is compute slop = 2^nbi -
+   * limit > 0; if r < slop then we try again, otherwise r - slop is our
+   * winner.
+   */
+  slop = (2 << (nbi - 1)) - limit;
+  m = nbi & 7 ? (1 << (nbi & 7)) - 1 : 0xff;
+  //info("slop = %llu", slop);
+  //info("m = 0x%02x", m);
+
+  do {
+    /* Actually get some random data. */
+    random_bytes(buf, nby);
+
+    /* Clobber the top byte.  */
+    buf[0] &= m;
+
+    /* Turn it into an integer.  */
+    for (r = 0, i = 0; i < nby; i++)
+      r = (r << 8) | buf[i];
+    //info("r = %llu", r);
+  } while (r < slop);
+
+  return r - slop;
+}
+
 /** @brief Called for each track */
 static int collect_tracks_callback(const char *track,
 				   struct kvp *data,
@@ -194,54 +256,36 @@ static int collect_tracks_callback(const char *track,
 				   DB_TXN attribute((unused)) *tid) {
   unsigned long weight = compute_weight(track, data, prefs);
 
+  /* Decide whether this is the winning track.
+   *
+   * Suppose that we have n things, and thing i, for 0 <= i < n, has weight
+   * w_i.  Let c_i = w_0 + ... + w_{i-1} be the cumulative weight of the
+   * things previous to thing i, and let W = c_n = w_0 + ... + w_{i-1} be the
+   * total weight.  We can clearly choose a random thing with the correct
+   * weightings by picking a random number r in [0, W) and chooeing thing i
+   * where c_i <= r < c_i + w_i.  But this involves having an enormous list
+   * and taking two passes over it (which has bad locality and is ugly).
+   *
+   * Here's another way.  Initialize v = -1.  Examine the things in order;
+   * for thing i, choose a random number r_i in [0, c_i + w_i).  If r_i < w_i
+   * then set v <- i.
+   *
+   * Claim.  For all 0 <= i < n, the above algorithm chooses thing i with
+   * probability w_i/W.
+   *
+   * Proof.  Induction on n.   The claim is clear for n = 1.  Suppose it's
+   * true for n - 1.  Let L be the event that we choose thing n - 1.  Clearly
+   * Pr[L] = w_{n-1}/W.  Condition on not-L: then the probabilty that we
+   * choose thing i, for 0 <= i < n - 1, is w_i/c_{n-1} (induction
+   * hypothesis); undoing the conditioning gives the desired result.
+   */
   if(weight) {
-    struct weighted_track *const t = xmalloc(sizeof *t);
-
-    /* Clamp weight so that we can fit in billions of tracks when we do
-     * arithmetic in long long */
-    if(weight > 0x7fffffff)
-      weight = 0x7fffffff;
-    t->next = tracks;
-    t->track = track;
-    t->weight = weight;
-    tracks = t;
     total_weight += weight;
-    ++ntracks;
+    if (pick_weight(total_weight) < weight)
+      winning = track;
   }
+  ntracks++;
   return 0;
-}
-
-/** @brief Pick a random integer uniformly from [0, limit) */
-static unsigned long long pick_weight(unsigned long long limit) {
-  unsigned long long n;
-  static int fd = -1;
-  int r;
-
-  if(fd < 0) {
-    if((fd = open("/dev/urandom", O_RDONLY)) < 0)
-      fatal(errno, "opening /dev/urandom");
-  }
-  if((r = read(fd, &n, sizeof n)) < 0)
-    fatal(errno, "reading /dev/urandom");
-  if((size_t)r < sizeof n)
-    fatal(0, "short read from /dev/urandom");
-  return n % limit;
-}
-
-/** @brief Pick a track at random and write it to stdout */
-static void pick_track(void) {
-  long long w;
-  struct weighted_track *t;
-
-  w = pick_weight(total_weight);
-  t = tracks;
-  while(t && w >= t->weight) {
-    w -= t->weight;
-    t = t->next;
-  }
-  if(!t)
-    fatal(0, "ran out of tracks but %lld weighting left", w);
-  xprintf("%s", t->track);
 }
 
 int main(int argc, char **argv) {
@@ -289,8 +333,10 @@ int main(int argc, char **argv) {
   //info("ntracks=%ld total_weight=%lld", ntracks, total_weight);
   if(!total_weight)
     fatal(0, "no tracks match random choice criteria");
+  if(!winning)
+    fatal(0, "internal: failed to pick a track");
   /* Pick a track */
-  pick_track();
+  xprintf("%s", winning);
   xfclose(stdout);
   return 0;
 }
