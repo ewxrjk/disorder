@@ -1,6 +1,7 @@
 /*
  * This file is part of DisOrder 
  * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008 Mark Wooding
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -175,19 +176,33 @@ static unsigned long compute_weight(const char *track,
   return 90000;
 }
 
-/** @brief Pick a random integer uniformly from [0, limit) */
-static void random_bytes(unsigned char *buf, size_t n) {
-  static int fd = -1;
-  int r;
+static unsigned char random_buffer[4096];
+static size_t random_left;
 
-  if(fd < 0) {
-    if((fd = open("/dev/urandom", O_RDONLY)) < 0)
-      fatal(errno, "opening /dev/urandom");
+/** @brief Fill [buf, buf+n) with random bytes */
+static void random_bytes(unsigned char *buf, size_t n) {
+  while(n > 0) {
+    if(random_left > 0) {
+      const size_t this_time = n > random_left ? random_left : n;
+
+      memcpy(buf, random_buffer + random_left - this_time, this_time);
+      n -= this_time;
+      random_left -= this_time;
+    } else {
+      static int fd = -1;
+      int r;
+
+      if(fd < 0) {
+        if((fd = open("/dev/urandom", O_RDONLY)) < 0)
+          fatal(errno, "opening /dev/urandom");
+      }
+      if((r = read(fd, random_buffer, sizeof random_buffer)) < 0)
+        fatal(errno, "reading /dev/urandom");
+      if((size_t)r < sizeof random_buffer)
+        fatal(0, "short read from /dev/urandom");
+      random_left = sizeof random_buffer;
+    }
   }
-  if((r = read(fd, buf, n)) < 0)
-    fatal(errno, "reading /dev/urandom");
-  if((size_t)r < n)
-    fatal(0, "short read from /dev/urandom");
 }
 
 /** @brief Pick a random integer uniformly from [0, limit) */
