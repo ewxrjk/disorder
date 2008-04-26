@@ -21,7 +21,7 @@
 
 void test_addr(void) {
   struct stringlist a;
-  const char *s[2];
+  const char *s[3];
   struct addrinfo *ai;
   char *name;
   const struct sockaddr_in *sin4;
@@ -39,7 +39,33 @@ void test_addr(void) {
     0
   };
 
+  struct sockaddr_in a1 = {
+    .sin_port = ntohs(25),
+    .sin_addr = { .s_addr = 0}
+  };
+  struct addrinfo p1 = {
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_STREAM,
+    .ai_protocol = IPPROTO_TCP,
+    .ai_addrlen = sizeof a1,
+    .ai_addr = (struct sockaddr *)&a1,
+  };
+
+  struct sockaddr_in a2 = {
+    .sin_port = ntohs(119),
+    .sin_addr = { .s_addr = htonl(0x7F000001) }
+  };
+  struct addrinfo p2 = {
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_STREAM,
+    .ai_protocol = IPPROTO_TCP,
+    .ai_addrlen = sizeof a2,
+    .ai_addr = (struct sockaddr *)&a2,
+  };
+
   printf("test_addr\n");
+
+  insist(addrinfocmp(&p1, &p2) < 0);
 
   a.n = 1;
   a.s = (char **)s;
@@ -55,6 +81,8 @@ void test_addr(void) {
   check_integer(sin4->sin_addr.s_addr, 0);
   check_integer(ntohs(sin4->sin_port), 25);
   check_string(name, "host * service smtp");
+  insist(addrinfocmp(ai, &p1) == 0);
+  insist(addrinfocmp(ai, &p2) < 0);
 
   a.n = 2;
   s[0] = "localhost";
@@ -70,6 +98,19 @@ void test_addr(void) {
   check_integer(ntohl(sin4->sin_addr.s_addr), 0x7F000001);
   check_integer(ntohs(sin4->sin_port), 119);
   check_string(name, "host localhost service nntp");
+  insist(addrinfocmp(ai, &p2) == 0);
+  insist(addrinfocmp(ai, &p1) > 0);
+
+  a.n = 2;
+  s[0] = "no.such.domain.really.i.mean.it.greenend.org.uk";
+  s[1] = "nntp";
+  insist(get_address(&a, &pref, &name) == 0);
+
+  a.n = 3;
+  s[0] = 0;
+  s[1] = 0;
+  s[2] = 0;
+  insist(get_address(&a, &pref, &name) == 0);
 
   memset(&s4, 0, sizeof s4);
   s4.sin_family = AF_INET;

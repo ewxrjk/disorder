@@ -105,7 +105,7 @@ int addrinfocmp(const struct addrinfo *a,
   if(a->ai_family != b->ai_family) return a->ai_family - b->ai_family;
   if(a->ai_socktype != b->ai_socktype) return a->ai_socktype - b->ai_socktype;
   if(a->ai_protocol != b->ai_protocol) return a->ai_protocol - b->ai_protocol;
-  switch(a->ai_protocol) {
+  switch(a->ai_family) {
   case PF_INET:
     ina = (const struct sockaddr_in *)a->ai_addr;
     inb = (const struct sockaddr_in *)b->ai_addr;
