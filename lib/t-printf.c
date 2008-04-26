@@ -30,6 +30,7 @@ void test_printf(void) {
   ptrdiff_t p;
   char *cp;
   char buffer[16];
+  FILE *fp;
   
   fprintf(stderr, "test_printf\n");
   check_string(do_printf("%d", 999), "999");
@@ -122,6 +123,13 @@ void test_printf(void) {
     i = byte_asprintf(&cp, f);
     insist(i == -1);
   }
+
+  fp = tmpfile();
+  insist(byte_fprintf(fp, "%10s\n", "wibble") == 11);
+  rewind(fp);
+  insist(fgets(buffer, sizeof buffer, fp) == buffer);
+  check_string(buffer, "    wibble\n");
+  fclose(fp);
 }
 
 /*
