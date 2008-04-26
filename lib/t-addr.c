@@ -29,14 +29,9 @@ void test_addr(void) {
   struct sockaddr_un su;
 
   static const struct addrinfo pref = {
-    AI_PASSIVE,
-    PF_INET,
-    SOCK_STREAM,
-    0,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = AI_PASSIVE,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_STREAM,
   };
 
   struct sockaddr_in a1 = {

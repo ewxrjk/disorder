@@ -69,14 +69,10 @@ static void reset_socket(ev_source *ev) {
   char *name;
   
   static const struct addrinfo pref = {
-    AI_PASSIVE,
-    PF_INET,
-    SOCK_STREAM,
-    IPPROTO_TCP,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = AI_PASSIVE,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_STREAM,
+    .ai_protocol = IPPROTO_TCP,
   };
 
   /* unix first */

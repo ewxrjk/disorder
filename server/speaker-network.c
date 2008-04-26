@@ -84,24 +84,16 @@ static int audio_errors;
 static void network_init(void) {
   struct addrinfo *res, *sres;
   static const struct addrinfo pref = {
-    0,
-    PF_INET,
-    SOCK_DGRAM,
-    IPPROTO_UDP,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = 0,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_DGRAM,
+    .ai_protocol = IPPROTO_UDP,
   };
   static const struct addrinfo prefbind = {
-    AI_PASSIVE,
-    PF_INET,
-    SOCK_DGRAM,
-    IPPROTO_UDP,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = AI_PASSIVE,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_DGRAM,
+    .ai_protocol = IPPROTO_UDP,
   };
   static const int one = 1;
   int sndbuf, target_sndbuf = 131072;

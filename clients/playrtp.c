@@ -556,14 +556,10 @@ int main(int argc, char **argv) {
   const char *dumpfile = 0;
 
   static const struct addrinfo prefs = {
-    AI_PASSIVE,
-    PF_INET,
-    SOCK_DGRAM,
-    IPPROTO_UDP,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = AI_PASSIVE,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_DGRAM,
+    .ai_protocol = IPPROTO_UDP
   };
 
   mem_init();

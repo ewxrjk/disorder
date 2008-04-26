@@ -81,14 +81,10 @@ int main(int argc, char **argv) {
   fd_set fds;
   struct timeval tv;
   static const struct addrinfo pref = {
-    0,				/* ai_flags */
-    AF_UNSPEC,			/* ai_family */
-    SOCK_DGRAM,			/* ai_socktype */
-    IPPROTO_UDP,		/* ai_protocol */
-    0,
-    0,
-    0,
-    0
+    .ai_flags = 0,
+    .ai_family = AF_UNSPEC,
+    .ai_socktype = SOCK_DGRAM,
+    .ai_protocol = IPPROTO_UDP,
   };
   
   set_progname(argv);

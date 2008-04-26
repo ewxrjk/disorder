@@ -210,14 +210,10 @@ int sendmail(const char *sender,
   FILE *in, *out;
    
   static const struct addrinfo pref = {
-    0,
-    PF_INET,
-    SOCK_STREAM,
-    IPPROTO_TCP,
-    0,
-    0,
-    0,
-    0
+    .ai_flags = 0,
+    .ai_family = PF_INET,
+    .ai_socktype = SOCK_STREAM,
+    .ai_protocol = IPPROTO_TCP,
   };
 
   /* Find the SMTP server */
