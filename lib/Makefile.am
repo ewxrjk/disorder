@@ -119,7 +119,7 @@ test_SOURCES=test.c memgc.c test.h t-addr.c t-basen.c t-cache.c		\
 	t-casefold.c t-cookies.c t-filepart.c t-hash.c t-heap.c		\
 	t-hex.c t-kvp.c t-mime.c t-printf.c t-regsub.c t-selection.c	\
 	t-signame.c t-sink.c t-split.c t-unicode.c t-url.c t-utf8.c	\
-	t-words.c t-wstat.c t-bits.c
+	t-words.c t-wstat.c t-bits.c t-vector.c
 test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 test_DEPENDENCIES=libdisorder.a
 

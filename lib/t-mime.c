@@ -220,7 +220,9 @@ void test_mime(void) {
 	       "Now's the time for all folk to come to the aid of their country.");
 
 #define check_base64(encoded, decoded) do {                     \
-    check_string(mime_base64(encoded, 0), decoded);             \
+    size_t ns;                                                  \
+    check_string(mime_base64(encoded, &ns), decoded);           \
+    insist(ns == (sizeof decoded) - 1);                         \
     check_string(mime_to_base64((const uint8_t *)decoded,       \
                                          (sizeof decoded) - 1), \
                  encoded);                                      \

@@ -159,6 +159,7 @@ int main(void) {
   test_url();
   test_regsub();
   test_bits();
+  test_vector();
   fprintf(stderr,  "%lld errors out of %lld tests\n", errors, tests);
   return !!errors;
 }

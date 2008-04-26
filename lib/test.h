@@ -154,6 +154,7 @@ void test_utf8(void);
 void test_words(void);
 void test_wstat(void);
 void test_bits(void);
+void test_vector(void);
 
 #endif /* TEST_H */
 
