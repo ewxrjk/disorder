@@ -456,6 +456,9 @@ if test $want_server = yes; then
 fi
 
 AM_CONDITIONAL([SERVER], [test x$want_server = xyes])
+if test $want_gtk = yes; then
+  AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
+fi
 
 if test "x$GCC" = xyes; then
   # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29478
@@ -495,7 +498,12 @@ if test "x$GCC" = xyes; then
 		    rjk_cv_werror, [
       save_CFLAGS="${CFLAGS}"
       CFLAGS="${CFLAGS} ${GTK_CFLAGS} -Werror"
-      AC_TRY_COMPILE([#include <gtk/gtk.h>],
+      AC_TRY_COMPILE([#if WITH_GTK
+ #include <gtk/gtk.h>
+#endif
+
+struct s { int a, b; };
+const struct s sv = { .a = 1 };],
 		     [],
 		     [rjk_cv_werror=yes],
 		     [rjk_cv_werror=no])

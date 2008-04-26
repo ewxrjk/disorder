@@ -47,9 +47,10 @@
 static int playrtp_alsa_supply(void *dst,
                                unsigned supply_nsamples) {
   unsigned samples_available;
+  const struct packet *p;
 
   pthread_mutex_lock(&lock);
-  const struct packet *p = playrtp_next_packet();
+  p = playrtp_next_packet();
   if(p && contains(p, next_timestamp)) {
     /* This packet is ready to play */
     const uint32_t packet_end = p->timestamp + p->nsamples;
