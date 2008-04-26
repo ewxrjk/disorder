@@ -312,9 +312,10 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
   }
   last = now;
 #endif
-  if(rtp_supported) {
+  if(rtp_supported && mixer_supported(DEFAULT_BACKEND)) {
     int nl, nr;
-    if(!mixer_control(&nl, &nr, 0) && (nl != volume_l || nr != volume_r)) {
+    if(!mixer_control(DEFAULT_BACKEND, &nl, &nr, 0)
+       && (nl != volume_l || nr != volume_r)) {
       volume_l = nl;
       volume_r = nr;
       volume_update();

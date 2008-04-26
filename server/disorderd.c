@@ -171,7 +171,7 @@ static void periodic_volume_check(ev_source attribute((unused)) *ev_) {
   int l, r;
   char lb[32], rb[32];
 
-  if(!mixer_control(&l, &r, 0)) {
+  if(!mixer_control(-1/*as configured*/, &l, &r, 0)) {
     if(l != volume_left || r != volume_right) {
       volume_left = l;
       volume_right = r;

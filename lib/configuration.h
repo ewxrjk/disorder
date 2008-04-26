@@ -189,6 +189,16 @@ struct config {
 #define BACKEND_COREAUDIO 3		/**< Use Core Audio (Mac only) */
 #define BACKEND_OSS 4		        /**< Use OSS */
 
+#if HAVE_ALSA_ASOUNDLIB_H
+# define DEFAULT_BACKEND BACKEND_ALSA
+#elif HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
+# define DEFAULT_BACKEND BACKEND_OSS
+#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
+# define DEFAULT_BACKEND BACKEND_COREAUDIO
+#else
+# error Cannot choose a default backend
+#endif
+
   /** @brief Home directory for state files */
   const char *home;
 

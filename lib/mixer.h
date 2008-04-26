@@ -52,9 +52,10 @@ struct mixer {
   const char *channel;
 };
 
-int mixer_control(int *left, int *right, int set);
+int mixer_control(int api, int *left, int *right, int set);
 const char *mixer_default_device(int api);
 const char *mixer_default_channel(int api);
+int mixer_supported(int api);
 
 extern const struct mixer mixer_oss;
 extern const struct mixer mixer_alsa;

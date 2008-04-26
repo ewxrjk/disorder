@@ -69,13 +69,25 @@ static const struct mixer *mixers[] = {
 static const struct mixer *find_mixer(int api) {
   size_t n;
 
+  if(api == -1)
+    api = config->api;
   for(n = 0; n < NMIXERS; ++n)
     if(mixers[n]->api == api)
       return mixers[n];
   return &mixer_none;
 }
 
+/** @brief Return true if we know how to drive the mixer
+ * @param api Sound api or -1 for default
+ * @return true if suppored, false otherwise
+ */
+int mixer_supported(int api) {
+  const struct mixer *const m = find_mixer(api);
+  return m != &mixer_none;
+}
+
 /** @brief Get/set volume
+ * @param api Sound api or -1 for default
  * @param left Left channel level, 0-100
  * @param right Right channel level, 0-100
  * @param set Set volume if non-0
@@ -86,8 +98,8 @@ static const struct mixer *find_mixer(int api) {
  * If setting the volume then the target levels are read from @p left and
  * @p right, and the actual level set is stored in them.
  */
-int mixer_control(int *left, int *right, int set) {
-  const struct mixer *const m = find_mixer(config->api);
+int mixer_control(int api, int *left, int *right, int set) {
+  const struct mixer *const m = find_mixer(api);
 
   /* We impose defaults bizarrely late, but this has the advantage of
    * not making everything depend on sound libraries */

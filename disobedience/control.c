@@ -208,20 +208,30 @@ static struct icon icons[] = {
 
 static GtkAdjustment *volume_adj;
 static GtkAdjustment *balance_adj;
+static GtkWidget *volume_widget;
+static GtkWidget *balance_widget;
 
 /** @brief Called whenever last_state changes in any way */
 void control_monitor(void attribute((unused)) *u) {
   int n;
+  gboolean volume_supported;
 
   D(("control_monitor"));
   for(n = 0; n < NICONS; ++n)
     icons[n].update(&icons[n]);
+  /* Only display volume/balance controls if they will work */
+  if(!rtp_supported
+     || (rtp_supported && mixer_supported(DEFAULT_BACKEND)))
+    volume_supported = TRUE;
+  else
+    volume_supported = FALSE;
+  (volume_supported ? gtk_widget_show : gtk_widget_hide)(volume_widget);
+  (volume_supported ? gtk_widget_show : gtk_widget_hide)(balance_widget);
 }
 
 /** @brief Create the control bar */
 GtkWidget *control_widget(void) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
-  GtkWidget *v, *b;
   int n;
 
   NW(hbox);
@@ -266,31 +276,31 @@ GtkWidget *control_widget(void) {
                                                   0.2, 0.2, 0));
   /* the volume control */
   NW(hscale);
-  v = gtk_hscale_new(volume_adj);
+  volume_widget = gtk_hscale_new(volume_adj);
   NW(hscale);
-  b = gtk_hscale_new(balance_adj);
-  gtk_widget_set_style(v, tool_style);
-  gtk_widget_set_style(b, tool_style);
-  gtk_scale_set_digits(GTK_SCALE(v), 10);
-  gtk_scale_set_digits(GTK_SCALE(b), 10);
-  gtk_widget_set_size_request(v, 192, -1);
-  gtk_widget_set_size_request(b, 192, -1);
-  gtk_tooltips_set_tip(tips, v, "Volume", "");
-  gtk_tooltips_set_tip(tips, b, "Balance", "");
-  gtk_box_pack_start(GTK_BOX(hbox), v, FALSE, TRUE, 0);
-  gtk_box_pack_start(GTK_BOX(hbox), b, FALSE, TRUE, 0);
+  balance_widget = gtk_hscale_new(balance_adj);
+  gtk_widget_set_style(volume_widget, tool_style);
+  gtk_widget_set_style(balance_widget, tool_style);
+  gtk_scale_set_digits(GTK_SCALE(volume_widget), 10);
+  gtk_scale_set_digits(GTK_SCALE(balance_widget), 10);
+  gtk_widget_set_size_request(volume_widget, 192, -1);
+  gtk_widget_set_size_request(balance_widget, 192, -1);
+  gtk_tooltips_set_tip(tips, volume_widget, "Volume", "");
+  gtk_tooltips_set_tip(tips, balance_widget, "Balance", "");
+  gtk_box_pack_start(GTK_BOX(hbox), volume_widget, FALSE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), balance_widget, FALSE, TRUE, 0);
   /* space updates rather than hammering the server */
-  gtk_range_set_update_policy(GTK_RANGE(v), GTK_UPDATE_DELAYED);
-  gtk_range_set_update_policy(GTK_RANGE(b), GTK_UPDATE_DELAYED);
+  gtk_range_set_update_policy(GTK_RANGE(volume_widget), GTK_UPDATE_DELAYED);
+  gtk_range_set_update_policy(GTK_RANGE(balance_widget), GTK_UPDATE_DELAYED);
   /* notice when the adjustments are changed */
   g_signal_connect(G_OBJECT(volume_adj), "value-changed",
                    G_CALLBACK(volume_adjusted), 0);
   g_signal_connect(G_OBJECT(balance_adj), "value-changed",
                    G_CALLBACK(volume_adjusted), 0);
   /* format the volume/balance values ourselves */
-  g_signal_connect(G_OBJECT(v), "format-value",
+  g_signal_connect(G_OBJECT(volume_widget), "format-value",
                    G_CALLBACK(format_volume), 0);
-  g_signal_connect(G_OBJECT(b), "format-value",
+  g_signal_connect(G_OBJECT(balance_widget), "format-value",
                    G_CALLBACK(format_balance), 0);
   register_monitor(control_monitor, 0, -1UL);
   return hbox;
@@ -447,7 +457,7 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
    * from the log. */
   if(rtp_supported) {
     int l = nearbyint(left(v, b) * 100), r = nearbyint(right(v, b) * 100);
-    mixer_control(&l, &r, 1);
+    mixer_control(DEFAULT_BACKEND, &l, &r, 1);
   } else
     /* We don't want a reply, we'll get the actual new volume from the log. */
     disorder_eclient_volume(client, 0,

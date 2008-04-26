@@ -767,7 +767,7 @@ static int c_volume(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
-  if(mixer_control(&l, &r, set))
+  if(mixer_control(-1/*as configured*/, &l, &r, set))
     sink_writes(ev_writer_sink(c->w), "550 error accessing mixer\n");
   else {
     sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);

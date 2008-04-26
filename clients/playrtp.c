@@ -175,18 +175,16 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 /** @brief Condition variable signalled whenever @ref packets is changed */
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-#if HAVE_ALSA_ASOUNDLIB_H
-# define DEFAULT_BACKEND playrtp_alsa
-#elif HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-# define DEFAULT_BACKEND playrtp_oss
-#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-# define DEFAULT_BACKEND playrtp_coreaudio
-#else
-# error No known backend
+#if DEFAULT_BACKEND == BACKEND_ALSA
+# define DEFAULT_PLAYRTP_BACKEND playrtp_alsa
+#elif DEFAULT_BACKEND == BACKEND_OSS
+# define DEFAULT_PLAYRTP_BACKEND playrtp_oss
+#elif DEFAULT_BACKEND == BACKEND_COREAUDIO
+# define DEFAULT_PLAYRTP_BACKEND playrtp_coreaudio
 #endif
 
 /** @brief Backend to play with */
-static void (*backend)(void) = &DEFAULT_BACKEND;
+static void (*backend)(void) = DEFAULT_PLAYRTP_BACKEND;
 
 HEAP_DEFINE(pheap, struct packet *, lt_packet);
 
