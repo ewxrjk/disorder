@@ -1014,7 +1014,8 @@ int trackdb_notice_tid(const char *track,
   int err, n;
   struct kvp *t, *a, *p;
   int t_changed, ret;
-  char *alias, **w;
+  char *alias, **w, *noticed;
+  time_t now;
 
   /* notice whether the tracks.db entry changes */
   t_changed = 0;
@@ -1025,6 +1026,12 @@ int trackdb_notice_tid(const char *track,
   /* this is a real track */
   t_changed += kvp_set(&t, "_alias_for", 0);
   t_changed += kvp_set(&t, "_path", path);
+  time(&now);
+  if(ret == DB_NOTFOUND) {
+    /* It's a new track; record the time */
+    byte_xasprintf(&noticed, "%lld", (long long)now);
+    t_changed += kvp_set(&t, "_noticed", noticed);
+  }
   /* if we have an alias record it in the database */
   if((err = compute_alias(&alias, track, p, tid))) return err;
   if(alias) {
@@ -1049,10 +1056,8 @@ int trackdb_notice_tid(const char *track,
     return err;
   if(ret == DB_NOTFOUND) {
     uint32_t timestamp[2];
-    time_t now;
     DBT key, data;
 
-    time(&now);
     timestamp[0] = htonl((uint64_t)now >> 32);
     timestamp[1] = htonl((uint32_t)now);
     memset(&key, 0, sizeof key);
