@@ -74,6 +74,32 @@ struct cgi_macro {
 
 static hash *cgi_macros;
 
+/** @brief Parse of a template */
+struct cgi_element {
+  /** @brief Next element */
+  struct cgi_element *next;
+
+  /** @brief Element type */
+  int type;
+#define ELEMENT_TEXT 0
+#define ELEMENT_EXPANSION 1
+
+  /** @brief Line number at start of element */
+  int line;
+  
+  /** @brief Plain text */
+  char *text;
+
+  /** @brief Expansion name */
+  char *name;
+
+  /** @brief Argument count */
+  int nargs;
+
+  /** @brief Argument values (NOT recursively expanded) */
+  char **args;
+};
+
 #define RELIST(x) struct re *x, **x##_tail = &x
 
 static int have_read_options;
@@ -370,33 +396,38 @@ void cgi_expand(const char *template,
   cgi_expand_string(template, b, expansions, nexpansions, output, u);
 }
 
-void cgi_expand_string(const char *name,
-		       const char *template,
-		       const struct cgi_expansion *expansions,
-		       size_t nexpansions,
-		       cgi_sink *output,
-		       void *u) {
-  int braces, n, m, line = 1, sline;
-  char *argname;
+/** @brief Return a linked list of the parse of @p template */
+static struct cgi_element *cgi_parse_string(const char *name,
+					    const char *template) {
+  int braces, line = 1, sline;
   const char *p;
   struct vector v;
   struct dynstr d;
-  cgi_sink parameter_output;
-  const struct cgi_macro *macro;
-  
+  struct cgi_element *head = 0, **tailp = &head, *e;
+
   while(*template) {
     if(*template != '@') {
-      p = template;
-      while(*p && *p != '@') {
-	if(*p == '\n') ++line;
-	++p;
+      sline = line;
+      dynstr_init(&d);
+      /* Gather up text without any expansions in. */
+      while(*template && *template != '@') {
+	if(*template == '\n')
+	  ++line;
+	dynstr_append(&d, *template++);
       }
-      output->sink->write(output->sink, template, p - template);
-      template = p;
+      dynstr_terminate(&d);
+      e = xmalloc(sizeof *e);
+      e->next = 0;
+      e->line = sline;
+      e->type = ELEMENT_TEXT;
+      e->text = d.vec;
+      *tailp = e;
+      tailp = &e->next;
       continue;
     }
     vector_init(&v);
     braces = 0;
+    p = template;
     ++template;
     sline = line;
     while(*template != '@') {
@@ -415,7 +446,8 @@ void cgi_expand_string(const char *name,
 	  }
 	  dynstr_append(&d, *template++);
 	}
-	if(!*template) fatal(0, "%s:%d: unterminated expansion", name, sline);
+	if(!*template) fatal(0, "%s:%d: unterminated expansion '%.*s'",
+			     name, sline, (int)(template - p), p);
 	++template;
 	if(isspace((unsigned char)*template)) {
 	  /* We have @{...}<WHITESPACE><SOMETHING> */
@@ -436,7 +468,8 @@ void cgi_expand_string(const char *name,
 	}
 	if(*template == ':')
 	  ++template;
-	if(!*template) fatal(0, "%s:%d: unterminated expansion", name, sline);
+	if(!*template) fatal(0, "%s:%d: unterminated expansion '%.*s'",
+			     name, sline, (int)(template - p), p);
 	/* trailing whitespace is not significant in unquoted args */
 	while(d.nvec && (isspace((unsigned char)d.vec[d.nvec - 1])))
 	  --d.nvec;
@@ -445,54 +478,89 @@ void cgi_expand_string(const char *name,
       vector_append(&v, d.vec);
     }
     ++template;
-finished_expansion:
+    finished_expansion:
     vector_terminate(&v);
     /* @@ terminates this file */
     if(v.nvec == 0)
       break;
-    if((n = table_find(expansions,
-		       offsetof(struct cgi_expansion, name),
-		       sizeof (struct cgi_expansion),
-		       nexpansions,
-		       v.vec[0])) >= 0) {
-      /* We found a built-in */
-      if(v.nvec - 1 < expansions[n].minargs)
-	fatal(0, "%s:%d: insufficient arguments to @%s@ (min %d, got %d)",
-	      name, line, v.vec[0], expansions[n].minargs, v.nvec - 1);
-      if(v.nvec - 1 > expansions[n].maxargs)
-	fatal(0, "%s:%d: too many arguments to @%s@ (max %d, got %d)",
-	      name, line, v.vec[0], expansions[n].maxargs, v.nvec - 1);
-      /* for ordinary expansions, recursively expand the arguments */
-      if(!(expansions[n].flags & EXP_MAGIC)) {
-	for(m = 1; m < v.nvec; ++m) {
-	  dynstr_init(&d);
-	  byte_xasprintf(&argname, "<%s:%d arg #%d>", name, sline, m);
-	  parameter_output.quote = 0;
-	  parameter_output.sink = sink_dynstr(&d);
-	  cgi_expand_string(argname, v.vec[m],
-			    expansions, nexpansions,
-			    &parameter_output, u);
-	  dynstr_terminate(&d);
-	  v.vec[m] = d.vec;
+    e = xmalloc(sizeof *e);
+    e->next = 0;
+    e->line = sline;
+    e->type = ELEMENT_EXPANSION;
+    e->name = v.vec[0];
+    e->nargs = v.nvec - 1;
+    e->args = &v.vec[1];
+    *tailp = e;
+    tailp = &e->next;
+  }
+  return head;
+}
+
+void cgi_expand_string(const char *name,
+		       const char *template,
+		       const struct cgi_expansion *expansions,
+		       size_t nexpansions,
+		       cgi_sink *output,
+		       void *u) {
+  int n, m;
+  char *argname;
+  struct dynstr d;
+  cgi_sink parameter_output;
+  const struct cgi_macro *macro;
+
+  struct cgi_element *e;
+
+  for(e = cgi_parse_string(name, template); e; e = e->next) {
+    switch(e->type) {
+    case ELEMENT_TEXT:
+      output->sink->write(output->sink, e->text, strlen(e->text));
+      break;
+    case ELEMENT_EXPANSION:
+      if((n = table_find(expansions,
+			 offsetof(struct cgi_expansion, name),
+			 sizeof (struct cgi_expansion),
+			 nexpansions,
+			 e->name)) >= 0) {
+	/* We found a built-in */
+	if(e->nargs < expansions[n].minargs)
+	  fatal(0, "%s:%d: insufficient arguments to @%s@ (min %d, got %d)",
+		name, e->line, e->name, expansions[n].minargs, e->nargs);
+	if(e->nargs > expansions[n].maxargs)
+	  fatal(0, "%s:%d: too many arguments to @%s@ (max %d, got %d)",
+		name, e->line, e->name, expansions[n].maxargs, e->nargs);
+	/* for ordinary expansions, recursively expand the arguments */
+	if(!(expansions[n].flags & EXP_MAGIC)) {
+	  for(m = 0; m < e->nargs; ++m) {
+	    dynstr_init(&d);
+	    byte_xasprintf(&argname, "<%s:%d arg #%d>", name, e->line, m);
+	    parameter_output.quote = 0;
+	    parameter_output.sink = sink_dynstr(&d);
+	    cgi_expand_string(argname, e->args[m],
+			      expansions, nexpansions,
+			      &parameter_output, u);
+	    dynstr_terminate(&d);
+	    e->args[m] = d.vec;
+	  }
 	}
+	expansions[n].handler(e->nargs, e->args, output, u);
+      } else if(cgi_macros && (macro = hash_find(cgi_macros, e->name))) {
+	/* We found a macro */
+	if(e->nargs != macro->nargs)
+	  fatal(0, "%s:%d: wrong number of arguments to @%s@ (need %d, got %d)",
+		name, e->line, e->name, macro->nargs, e->nargs);
+	/* We must substitute in argument values */
+	/* TODO  */
+	cgi_expand_string(e->name,
+			  macro->value,
+			  expansions,
+			  nexpansions,
+			  output,
+			  u);
+      } else {
+	/* Totally undefined */
+	fatal(0, "%s:%d: unknown expansion '%s'", name, e->line, e->name);
       }
-      expansions[n].handler(v.nvec - 1, v.vec + 1, output, u);
-    } else if(cgi_macros && (macro = hash_find(cgi_macros, v.vec[0]))) {
-      /* We found a macro */
-      if(v.nvec - 1 != macro->nargs)
-	fatal(0, "%s:%d: wrong number of arguments to @%s@ (need %d, got %d)",
-	      name, line, v.vec[0], macro->nargs, v.nvec - 1);
-      /* We must substitute in argument values */
-      /* TODO  */
-      cgi_expand_string(v.vec[0],
-			macro->value,
-			expansions,
-			nexpansions,
-			output,
-			u);
-    } else {
-      /* Totally undefined */
-      fatal(0, "%s:%d: unknown expansion '%s'", name, line, v.vec[0]);
+      break;
     }
   }
 }
