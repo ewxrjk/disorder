@@ -65,6 +65,11 @@ struct cgi_expansion {
   void (*handler)(int nargs, char **args, cgi_sink *output, void *u);
 };
 
+void cgi_define(const char *name,
+		int nargs,
+		char **args,
+		const char *value);
+
 void cgi_expand(const char *name,
 		const struct cgi_expansion *expansions,
 		size_t nexpansions,

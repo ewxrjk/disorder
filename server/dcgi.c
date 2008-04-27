@@ -1760,6 +1760,17 @@ static void exp_image(int attribute((unused)) nargs,
     cgi_output(output, "/disorder/%s", imagestem);
 }
 
+static void exp_define(int attribute((unused)) nargs,
+		       char **args,
+		       cgi_sink attribute((unused)) *output,
+		       void attribute((unused)) *u) {
+  const char *n = args[0], *a = args[1], *v = args[2];
+  int nas;
+  char **as = split(a, &nas, 0, 0, 0);
+
+  cgi_define(n, nas, as, v);
+}
+
 static const struct cgi_expansion expansions[] = {
   { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
   { "action", 0, 0, 0, exp_action },
@@ -1767,6 +1778,7 @@ static const struct cgi_expansion expansions[] = {
   { "arg", 1, 1, 0, exp_arg },
   { "basename", 0, 1, 0, exp_basename },
   { "choose", 2, 2, EXP_MAGIC, exp_choose },
+  { "define", 3, 3, EXP_MAGIC, exp_define },
   { "dirname", 0, 1, 0, exp_dirname },
   { "enabled", 0, 0, 0, exp_enabled },
   { "eq", 2, 2, 0, exp_eq },

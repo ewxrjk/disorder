@@ -53,6 +53,7 @@
 #include "printf.h"
 #include "mime.h"
 #include "unicode.h"
+#include "hash.h"
 
 struct kvp *cgi_args;
 
@@ -63,6 +64,15 @@ struct column {
   int ncolumns;
   char **columns;
 };
+
+/* macros */
+struct cgi_macro {
+  int nargs;
+  char **args;
+  const char *value;
+};
+
+static hash *cgi_macros;
 
 #define RELIST(x) struct re *x, **x##_tail = &x
 
@@ -372,6 +382,7 @@ void cgi_expand_string(const char *name,
   struct vector v;
   struct dynstr d;
   cgi_sink parameter_output;
+  const struct cgi_macro *macro;
   
   while(*template) {
     if(*template != '@') {
@@ -443,29 +454,46 @@ finished_expansion:
 		       offsetof(struct cgi_expansion, name),
 		       sizeof (struct cgi_expansion),
 		       nexpansions,
-		       v.vec[0])) < 0)
-      fatal(0, "%s:%d: unknown expansion '%s'", name, line, v.vec[0]);
-    if(v.nvec - 1 < expansions[n].minargs)
-      fatal(0, "%s:%d: insufficient arguments to @%s@ (min %d, got %d)",
-	    name, line, v.vec[0], expansions[n].minargs, v.nvec - 1);
-    if(v.nvec - 1 > expansions[n].maxargs)
-      fatal(0, "%s:%d: too many arguments to @%s@ (max %d, got %d)",
-	    name, line, v.vec[0], expansions[n].maxargs, v.nvec - 1);
-    /* for ordinary expansions, recursively expand the arguments */
-    if(!(expansions[n].flags & EXP_MAGIC)) {
-      for(m = 1; m < v.nvec; ++m) {
-	dynstr_init(&d);
-	byte_xasprintf(&argname, "<%s:%d arg #%d>", name, sline, m);
-	parameter_output.quote = 0;
-	parameter_output.sink = sink_dynstr(&d);
-	cgi_expand_string(argname, v.vec[m],
-			  expansions, nexpansions,
-			  &parameter_output, u);
-	dynstr_terminate(&d);
-	v.vec[m] = d.vec;
+		       v.vec[0])) >= 0) {
+      /* We found a built-in */
+      if(v.nvec - 1 < expansions[n].minargs)
+	fatal(0, "%s:%d: insufficient arguments to @%s@ (min %d, got %d)",
+	      name, line, v.vec[0], expansions[n].minargs, v.nvec - 1);
+      if(v.nvec - 1 > expansions[n].maxargs)
+	fatal(0, "%s:%d: too many arguments to @%s@ (max %d, got %d)",
+	      name, line, v.vec[0], expansions[n].maxargs, v.nvec - 1);
+      /* for ordinary expansions, recursively expand the arguments */
+      if(!(expansions[n].flags & EXP_MAGIC)) {
+	for(m = 1; m < v.nvec; ++m) {
+	  dynstr_init(&d);
+	  byte_xasprintf(&argname, "<%s:%d arg #%d>", name, sline, m);
+	  parameter_output.quote = 0;
+	  parameter_output.sink = sink_dynstr(&d);
+	  cgi_expand_string(argname, v.vec[m],
+			    expansions, nexpansions,
+			    &parameter_output, u);
+	  dynstr_terminate(&d);
+	  v.vec[m] = d.vec;
+	}
       }
+      expansions[n].handler(v.nvec - 1, v.vec + 1, output, u);
+    } else if(cgi_macros && (macro = hash_find(cgi_macros, v.vec[0]))) {
+      /* We found a macro */
+      if(v.nvec - 1 != macro->nargs)
+	fatal(0, "%s:%d: wrong number of arguments to @%s@ (need %d, got %d)",
+	      name, line, v.vec[0], macro->nargs, v.nvec - 1);
+      /* We must substitute in argument values */
+      /* TODO  */
+      cgi_expand_string(v.vec[0],
+			macro->value,
+			expansions,
+			nexpansions,
+			output,
+			u);
+    } else {
+      /* Totally undefined */
+      fatal(0, "%s:%d: unknown expansion '%s'", name, line, v.vec[0]);
     }
-    expansions[n].handler(v.nvec - 1, v.vec + 1, output, u);
   }
 }
 
@@ -631,6 +659,20 @@ char **cgi_columns(const char *name, int *ncolumns) {
       *ncolumns = 0;
     return 0;
   }
+}
+
+void cgi_define(const char *name,
+		int nargs,
+		char **args,
+		const char *value) {
+  struct cgi_macro m;
+
+  if(!cgi_macros)
+    cgi_macros = hash_new(sizeof(struct cgi_macro));
+  m.nargs = nargs;
+  m.args = args;
+  m.value = value;
+  hash_add(cgi_macros, name, &m, HASH_INSERT_OR_REPLACE);
 }
 
 /*
