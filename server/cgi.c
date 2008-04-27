@@ -107,6 +107,12 @@ static struct kvp *labels;
 static struct column *columns;
 
 static void include_options(const char *name);
+static void cgi_expand_parsed(const char *name,
+			      struct cgi_element *head,
+			      const struct cgi_expansion *expansions,
+			      size_t nexpansions,
+			      cgi_sink *output,
+			      void *u);
 
 static void cgi_parse_get(void) {
   const char *q;
@@ -502,6 +508,16 @@ void cgi_expand_string(const char *name,
 		       size_t nexpansions,
 		       cgi_sink *output,
 		       void *u) {
+  cgi_expand_parsed(name, cgi_parse_string(name, template),
+		    expansions, nexpansions, output, u);
+}
+
+static void cgi_expand_parsed(const char *name,
+			      struct cgi_element *head,
+			      const struct cgi_expansion *expansions,
+			      size_t nexpansions,
+			      cgi_sink *output,
+			      void *u) {
   int n, m;
   char *argname;
   struct dynstr d;
@@ -510,7 +526,7 @@ void cgi_expand_string(const char *name,
 
   struct cgi_element *e;
 
-  for(e = cgi_parse_string(name, template); e; e = e->next) {
+  for(e = head; e; e = e->next) {
     switch(e->type) {
     case ELEMENT_TEXT:
       output->sink->write(output->sink, e->text, strlen(e->text));
