@@ -156,6 +156,7 @@ void test_wstat(void);
 void test_bits(void);
 void test_vector(void);
 void test_syscalls(void);
+void test_trackname(void);
 
 #endif /* TEST_H */
 

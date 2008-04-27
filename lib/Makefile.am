@@ -75,7 +75,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	table.c table.h					\
 	timeval.h					\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
-	trackname.c trackname.h				\
+	trackname.c trackorder.c trackname.h		\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
@@ -119,7 +119,8 @@ test_SOURCES=test.c memgc.c test.h t-addr.c t-basen.c t-cache.c		\
 	t-casefold.c t-cookies.c t-filepart.c t-hash.c t-heap.c		\
 	t-hex.c t-kvp.c t-mime.c t-printf.c t-regsub.c t-selection.c	\
 	t-signame.c t-sink.c t-split.c t-unicode.c t-url.c t-utf8.c	\
-	t-words.c t-wstat.c t-bits.c t-vector.c t-syscalls.c
+	t-words.c t-wstat.c t-bits.c t-vector.c t-syscalls.c            \
+	t-trackname.c
 test_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 test_DEPENDENCIES=libdisorder.a
 

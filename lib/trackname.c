@@ -109,46 +109,6 @@ const char *trackname_transform(const char *type,
   return subject;
 }
 
-int compare_tracks(const char *sa, const char *sb,
-		   const char *da, const char *db,
-		   const char *ta, const char *tb) {
-  int c;
-
-  if((c = strcmp(utf8_casefold_canon(sa, strlen(sa), 0),
-		 utf8_casefold_canon(sb, strlen(sb), 0))))
-    return c;
-  if((c = strcmp(sa, sb))) return c;
-  if((c = strcmp(utf8_casefold_canon(da, strlen(da), 0),
-		 utf8_casefold_canon(db, strlen(db), 0))))
-    return c;
-  if((c = strcmp(da, db))) return c;
-  return compare_path(ta, tb);
-}
-
-int compare_path_raw(const unsigned char *ap, size_t an,
-		     const unsigned char *bp, size_t bn) {
-  /* Don't change this function!  The database sort order depends on it */
-  while(an > 0 && bn > 0) {
-    if(*ap == *bp) {
-      ap++;
-      bp++;
-      an--;
-      bn--;
-    } else if(*ap == '/') {
-      return -1;		/* /a/b < /aa/ */
-    } else if(*bp == '/') {
-      return 1;			/* /aa > /a/b */
-    } else
-      return *ap - *bp;
-  }
-  if(an > 0)
-    return 1;			/* /a/b > /a and /ab > /a */
-  else if(bn > 0)
-    return -1;			/* /a < /ab and /a < /a/b */
-  else
-    return 0;
-}
-
 /*
 Local Variables:
 c-basic-offset:2

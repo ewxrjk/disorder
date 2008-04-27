@@ -161,6 +161,7 @@ int main(void) {
   test_bits();
   test_vector();
   test_syscalls();
+  test_trackname();
   fprintf(stderr,  "%lld errors out of %lld tests\n", errors, tests);
   return !!errors;
 }
