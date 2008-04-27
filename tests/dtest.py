@@ -169,7 +169,7 @@ def bindable(p):
 def default_config(encoding="UTF-8"):
     """Write the default config"""
     open("%s/config" % testroot, "w").write(
-    """home %s
+    """home %s/home
 collection fs %s %s/tracks
 scratch %s/scratch.ogg
 gap 0
@@ -231,7 +231,7 @@ Start the daemon."""
             time.sleep(1)
     print " starting daemon"
     # remove the socket if it exists
-    socket = "%s/socket" % testroot
+    socket = "%s/home/socket" % testroot
     try:
         os.remove(socket)
     except:
