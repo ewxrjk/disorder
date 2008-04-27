@@ -512,19 +512,75 @@ void cgi_expand_string(const char *name,
 		    expansions, nexpansions, output, u);
 }
 
+/** @brief Expand a list of arguments in place */
+static void cgi_expand_all_args(const char *name,
+				int line,
+				const struct cgi_expansion *expansions,
+				size_t nexpansions,
+				void *u,
+				char **args,
+				int nargs) {
+  int n;
+  struct dynstr d;
+  char *argname;
+  cgi_sink parameter_output;
+
+  for(n = 0; n < nargs; ++n) {
+    dynstr_init(&d);
+    byte_xasprintf(&argname, "<%s:%d arg #%d>", name, line,n);
+    parameter_output.quote = 0;
+    parameter_output.sink = sink_dynstr(&d);
+    cgi_expand_string(argname, args[n],
+		      expansions, nexpansions,
+		      &parameter_output, u);
+    dynstr_terminate(&d);
+    args[n] = d.vec;
+  }
+}
+			 
+
+/** @brief Substitute macro arguments in place */
+static void cgi_substitute_args(const char *name,
+				struct cgi_element *head,
+				const struct cgi_macro *macro,
+				char **values) {
+  struct cgi_element *e;
+  int n;
+
+  for(e = head; e; e = e->next) {
+    if(e->type != ELEMENT_EXPANSION)
+      continue;
+    /* See if this is an argument name */
+    for(n = 0; n < macro->nargs; ++n)
+      if(!strcmp(e->name, macro->args[n]))
+	break;
+    if(n < macro->nargs) {
+      /* It is! */
+      if(e->nargs != 0)
+	fatal(0, "%s:%d: macro argument (%s) cannot take parameters",
+	      name, e->line, e->name);
+      /* Replace it with the argument text */
+      e->type = ELEMENT_TEXT;
+      e->text = values[n];
+      continue;
+    }
+    /* It's not a macro argument.  We must recurse into its arguments to
+     * substitute the macro arguments. */
+    /* TODO */
+    /* In order to do this we must parse it and our callers must expect the
+     * parsed form.  We're not ready for this yet... */
+  }
+}
+
 static void cgi_expand_parsed(const char *name,
 			      struct cgi_element *head,
 			      const struct cgi_expansion *expansions,
 			      size_t nexpansions,
 			      cgi_sink *output,
 			      void *u) {
-  int n, m;
-  char *argname;
-  struct dynstr d;
-  cgi_sink parameter_output;
+  int n;
   const struct cgi_macro *macro;
-
-  struct cgi_element *e;
+  struct cgi_element *e, *macro_head;
 
   for(e = head; e; e = e->next) {
     switch(e->type) {
@@ -545,29 +601,27 @@ static void cgi_expand_parsed(const char *name,
 	  fatal(0, "%s:%d: too many arguments to @%s@ (max %d, got %d)",
 		name, e->line, e->name, expansions[n].maxargs, e->nargs);
 	/* for ordinary expansions, recursively expand the arguments */
-	if(!(expansions[n].flags & EXP_MAGIC)) {
-	  for(m = 0; m < e->nargs; ++m) {
-	    dynstr_init(&d);
-	    byte_xasprintf(&argname, "<%s:%d arg #%d>", name, e->line, m);
-	    parameter_output.quote = 0;
-	    parameter_output.sink = sink_dynstr(&d);
-	    cgi_expand_string(argname, e->args[m],
-			      expansions, nexpansions,
-			      &parameter_output, u);
-	    dynstr_terminate(&d);
-	    e->args[m] = d.vec;
-	  }
-	}
+	if(!(expansions[n].flags & EXP_MAGIC))
+	  cgi_expand_all_args(name, e->line, expansions, nexpansions, u,
+			      e->args, e->nargs);
 	expansions[n].handler(e->nargs, e->args, output, u);
       } else if(cgi_macros && (macro = hash_find(cgi_macros, e->name))) {
 	/* We found a macro */
 	if(e->nargs != macro->nargs)
 	  fatal(0, "%s:%d: wrong number of arguments to @%s@ (need %d, got %d)",
 		name, e->line, e->name, macro->nargs, e->nargs);
-	/* We must substitute in argument values */
-	/* TODO  */
-	cgi_expand_string(e->name,
-			  macro->value,
+	/* Expand arguments */
+	cgi_expand_all_args(name, e->line, expansions, nexpansions, u,
+			    e->args, e->nargs);
+	/* Parse the macro value.  Doing this every time isn't very efficient,
+	 * but NB that we mess with the result of the parse, so for the time
+	 * being we do need to do it. */
+	macro_head = cgi_parse_string(e->name, macro->value);
+	/* Substitute in argument values */
+	cgi_substitute_args(name, macro_head, macro, e->args);
+	/* Expand the result */
+	cgi_expand_parsed(e->name,
+			  macro_head,
 			  expansions,
 			  nexpansions,
 			  output,
