@@ -389,6 +389,9 @@ void cgi_expand_string(const char *name,
     ++template;
     sline = line;
     while(*template != '@') {
+      /* Skip whitespace */
+      while(isspace((unsigned char)*template))
+	++template;
       dynstr_init(&d);
       if(*template == '{') {
 	/* bracketed arg */
@@ -403,14 +406,18 @@ void cgi_expand_string(const char *name,
 	}
 	if(!*template) fatal(0, "%s:%d: unterminated expansion", name, sline);
 	++template;
-	/* skip whitespace after closing bracket */
-	while(isspace((unsigned char)*template))
-	  ++template;
+	if(isspace((unsigned char)*template)) {
+	  /* We have @{...}<WHITESPACE><SOMETHING> */
+	  for(p = template; isspace((unsigned char)*p); ++p)
+	    ;
+	  /* Now we are looking at <SOMETHING>.  If it's "{" then that
+	   * must be the next argument.  Otherwise we infer that this
+	   * is really the end of the expansion. */
+	  if(*p != '{')
+	    goto finished_expansion;
+	}
       } else {
 	/* unbracketed arg */
-	/* leading whitespace is not significant in unquoted args */
-	while(isspace((unsigned char)*template))
-	  ++template;
 	while(*template
 	      && *template != '@' && *template != '{' && *template != ':') {
 	  if(*template == '\n') ++line;
@@ -427,6 +434,7 @@ void cgi_expand_string(const char *name,
       vector_append(&v, d.vec);
     }
     ++template;
+finished_expansion:
     vector_terminate(&v);
     /* @@ terminates this file */
     if(v.nvec == 0)

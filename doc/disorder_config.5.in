@@ -907,13 +907,19 @@ character reference, e.g. \fB&#253;\fR.
 Use \fB&#64;\fR to insert a literal \fB@\fR without falling foul of
 the expansion syntax.
 .SS "Expansion Syntax"
-Expansions are surrounded by at ("@") symbols take the form of a keyword
-followed by zero or more arguments.
-Arguments may either be quoted by curly brackets ("{" and "}") or separated
+An expansion starts with an at ("@") symbol and takes the form of an expansion
+name followed by zero or more arguments.
+.PP
+Arguments can be quoted by curly brackets ("{" and "}") or separated
 by colons (":").
 Both kinds may be mixed in a single expansion, though doing so seems
 likely to cause confusion.
 The descriptions below contain suggested forms for each expansion.
+.PP
+An expansion is terminated by another "@" symbol, but this is optional in the
+specific case that the last argument is quoted by curly brackets and it is
+followed by whitespace and then some character that is not "{" (since that
+could be interpreted as a further argument).
 .PP
 Leading and trailing whitespace in unquoted arguments is ignored, as is
 whitespace (including newlines) following a close bracket ("}").
