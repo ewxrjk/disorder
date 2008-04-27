@@ -461,6 +461,28 @@ if test $want_gtk = yes; then
 fi
 
 if test "x$GCC" = xyes; then
+  # We need LLONG_MAX and annoyingly GCC doesn't always give it to us
+  # by default.
+  AC_CACHE_CHECK([what C version to ask for],[rjk_cv_cstd],[
+    AC_TRY_COMPILE([#include <limits.h>],[
+      long long n = LLONG_MAX;
+    ],[rjk_cv_cstd=default],[
+      old_CC="$CC"
+      CC="${CC} -std=gnu99"
+      AC_TRY_COMPILE([#include <limits.h>],[
+        long long n = LLONG_MAX;
+      ],[rjk_cv_cstd=gnu99],[rjk_cv_cstd=unknown])
+      CC="$old_CC"
+    ])
+  ])
+  case $rjk_cv_cstd in
+  default | unknown )
+    ;;
+  * )
+    CC="${CC} -std=${rjk_cv_cstd}"
+    ;;
+  esac
+
   # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=29478
   AC_CACHE_CHECK([checking for GCC bug 29478],[rjk_cv_pr29478],[
     old_CC="$CC"
