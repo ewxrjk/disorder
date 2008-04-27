@@ -160,6 +160,7 @@ int main(void) {
   test_regsub();
   test_bits();
   test_vector();
+  test_syscalls();
   fprintf(stderr,  "%lld errors out of %lld tests\n", errors, tests);
   return !!errors;
 }

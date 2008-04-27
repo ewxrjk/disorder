@@ -155,6 +155,7 @@ void test_words(void);
 void test_wstat(void);
 void test_bits(void);
 void test_vector(void);
+void test_syscalls(void);
 
 #endif /* TEST_H */
 
