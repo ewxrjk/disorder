@@ -1280,17 +1280,8 @@ static void config_postdefaults(struct config *c,
       c->api = BACKEND_COMMAND;
     else if(c->broadcast.n)
       c->api = BACKEND_NETWORK;
-    else {
-#if HAVE_ALSA_ASOUNDLIB_H
-      c->api = BACKEND_ALSA;
-#elif HAVE_SYS_SOUNDCARD_H
-      c->api = BACKEND_OSS;
-#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-      c->api = BACKEND_COREAUDIO;
-#else
-      c->api = BACKEND_COMMAND;
-#endif
-    }
+    else
+      c->api = DEFAULT_BACKEND;
   }
   if(server) {
     if(c->api == BACKEND_COMMAND && !c->speaker_command)

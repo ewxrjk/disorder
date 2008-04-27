@@ -183,6 +183,8 @@ struct config {
    * BACKEND_NETWORK.
    */
   int api;
+
+/* These values had better be non-negative */
 #define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
 #define BACKEND_COMMAND 1		/**< Execute a command */
 #define BACKEND_NETWORK 2		/**< Transmit RTP  */
