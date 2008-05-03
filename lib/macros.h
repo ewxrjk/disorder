@@ -25,6 +25,8 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+struct sink;
+
 /** @brief One node in a macro expansion parse tree */
 struct mx_node {
   /** @brief Next element or NULL at end of list */
@@ -62,8 +64,56 @@ const struct mx_node *mx_parse(const char *filename,
 			       int line,
 			       const char *input,
 			       const char *end);
-
 char *mx_dump(const struct mx_node *m);
+
+
+/** @brief Callback for simple expansions
+ * @param nargs Number of arguments
+ * @param args Pointer to array of arguments
+ * @param output Where to send output
+ * @param u User data
+ * @return 0 on success, non-zero on error
+ */
+typedef int mx_simple_callback(int nargs,
+                               char **args,
+                               struct sink *output,
+                               void *u);
+
+/** @brief Callback for magic expansions
+ * @param nargs Number of arguments
+ * @param args Pointer to array of arguments
+ * @param output Where to send output
+ * @param u User data
+ * @return 0 on success, non-zero on error
+ */
+typedef int mx_magic_callback(int nargs,
+                              const struct mx_node **args,
+                              struct sink *output,
+                              void *u);
+
+void mx_register(const char *name,
+                 int min,
+                 int max,
+                 mx_simple_callback *callback);
+void mx_magic_register(const char *name,
+                       int min,
+                       int max,
+                       mx_magic_callback *callback);
+
+void mx_register_builtin(void);
+
+int mx_expand_file(const char *path,
+                   struct sink *output,
+                   void *u);
+int mx_expand(const struct mx_node *m,
+              struct sink *output,
+              void *u);
+int mx_expandstr(const struct mx_node *m,
+                 char **sp,
+                 void *u);
+
+int mx_str2bool(const char *s);
+const char *mx_bool2str(int n);
 
 #endif /* MACROS_H */
 
