@@ -172,3 +172,4 @@ lib/t-utf8
 lib/t-vector
 lib/t-words
 lib/t-wstat
+lib/t-macros
