@@ -1097,6 +1097,7 @@ static int c_adduser(struct conn *c,
   const char *rights;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    error(0, "S%x: remote adduser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1122,6 +1123,7 @@ static int c_deluser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    error(0, "S%x: remote deluser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1143,6 +1145,7 @@ static int c_edituser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+    error(0, "S%x: remote edituser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1184,7 +1187,12 @@ static int c_userinfo(struct conn *c,
   struct kvp *k;
   const char *value;
 
-  if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
+  /* We allow remote querying of rights so that clients can figure out what
+   * they're allowed to do */
+  if(!config->remote_userman
+     && !(c->rights & RIGHT__LOCAL)
+     && strcmp(vec[1], "rights")) {
+    error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }

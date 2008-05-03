@@ -19,13 +19,11 @@
  */
 #include "test.h"
 
-void test_sink(void) {
+static void test_sink(void) {
   struct sink *s;
   struct dynstr d[1];
   FILE *fp;
   char *l;
-  
-  fprintf(stderr, "test_sink\n");
 
   fp = tmpfile();
   assert(fp != 0);
@@ -57,6 +55,8 @@ void test_sink(void) {
   dynstr_terminate(d);
   check_string(d->vec, "test: 999\nwibble: foobar\n");
 }
+
+TEST(sink);
 
 /*
 Local Variables:

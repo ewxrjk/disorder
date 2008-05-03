@@ -19,7 +19,7 @@
  */
 #include "test.h"
 
-void test_addr(void) {
+static void test_addr(void) {
   struct stringlist a;
   const char *s[3];
   struct addrinfo *ai;
@@ -57,8 +57,6 @@ void test_addr(void) {
     .ai_addrlen = sizeof a2,
     .ai_addr = (struct sockaddr *)&a2,
   };
-
-  printf("test_addr\n");
 
   insist(addrinfocmp(&p1, &p2) < 0);
 
@@ -131,6 +129,8 @@ void test_addr(void) {
                "/wibble/wobble");
   check_integer(multicast((struct sockaddr *)&su), 0);
 }
+
+TEST(addr);
 
 /*
 Local Variables:

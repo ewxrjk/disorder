@@ -131,32 +131,18 @@ const char *format_utf32(const uint32_t *s);
 uint32_t *ucs4parse(const char *s);
 const char *do_printf(const char *fmt, ...);
 
-void test_addr(void);
-void test_basen(void);
-void test_cache(void);
-void test_casefold(void);
-void test_cookies(void);
-void test_filepart(void);
-void test_hash(void);
-void test_heap(void);
-void test_hex(void);
-void test_kvp(void);
-void test_mime(void);
-void test_printf(void);
-void test_regsub(void);
-void test_selection(void);
-void test_signame(void);
-void test_sink(void);
-void test_split(void);
-void test_unicode(void);
-void test_url(void);
-void test_utf8(void);
-void test_words(void);
-void test_wstat(void);
-void test_bits(void);
-void test_vector(void);
-void test_syscalls(void);
-void test_trackname(void);
+#define TEST(name)                                                      \
+   int main(void) {                                                     \
+    mem_init();                                                         \
+    fail_first = !!getenv("FAIL_FIRST");                                \
+    test_##name();                                                      \
+    if(errors)                                                          \
+      fprintf(stderr, "test_"#name": %lld errors out of %lld tests\n",  \
+              errors, tests);                                           \
+    return !!errors;                                                    \
+  }                                                                     \
+                                                                        \
+  struct swallow_semicolon
 
 #endif /* TEST_H */
 

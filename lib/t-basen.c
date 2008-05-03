@@ -19,11 +19,10 @@
  */
 #include "test.h"
 
-void test_basen(void) {
+static void test_basen(void) {
   unsigned long v[64];
   char buffer[1024];
 
-  fprintf(stderr, "test_basen\n");
   v[0] = 999;
   insist(basen(v, 1, buffer, sizeof buffer, 10) == 0);
   check_string(buffer, "999");
@@ -52,6 +51,8 @@ void test_basen(void) {
   v[3] = 0x0C0D0E0F;
   insist(basen(v, 4, buffer, 10, 16) == -1);
 }
+
+TEST(basen);
 
 /*
 Local Variables:

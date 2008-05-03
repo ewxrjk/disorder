@@ -28,12 +28,10 @@ HEAP_TYPE(iheap, int, int_lt);
 HEAP_DEFINE(iheap, int, int_lt);
 
 /** @brief Tests for @ref heap.h */
-void test_heap(void) {
+static void test_heap(void) {
   struct iheap h[1];
   int n;
   int last = -1;
-
-  fprintf(stderr, "test_heap\n");
 
   iheap_init(h);
   for(n = 0; n < 1000; ++n)
@@ -45,8 +43,9 @@ void test_heap(void) {
     insist(last <= latest);
     last = latest;
   }
-  putchar('\n');
 }
+
+TEST(heap);
 
 /*
 Local Variables:

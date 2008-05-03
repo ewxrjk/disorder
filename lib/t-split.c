@@ -19,11 +19,10 @@
  */
 #include "test.h"
 
-void test_split(void) {
+static void test_split(void) {
   char **v;
   int nv;
 
-  fprintf(stderr, "test_split\n");
   insist(split("\"misquoted", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
   insist(split("\'misquoted", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
   insist(split("\'misquoted\\", &nv, SPLIT_COMMENTS|SPLIT_QUOTES, 0, 0) == 0);
@@ -87,6 +86,8 @@ void test_split(void) {
   check_string(quoteutf8("wibble\\wobble"), "\"wibble\\\\wobble\"");
   check_string(quoteutf8("wibble'wobble"), "\"wibble'wobble\"");
 }
+
+TEST(split);
 
 /*
 Local Variables:

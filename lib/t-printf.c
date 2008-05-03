@@ -19,7 +19,7 @@
  */
 #include "test.h"
 
-void test_printf(void) {
+static void test_printf(void) {
   char c;
   short s;
   int i;
@@ -32,7 +32,6 @@ void test_printf(void) {
   char buffer[16];
   FILE *fp;
   
-  fprintf(stderr, "test_printf\n");
   check_string(do_printf("%d", 999), "999");
   check_string(do_printf("%d", -999), "-999");
   check_string(do_printf("%i", 999), "999");
@@ -131,6 +130,8 @@ void test_printf(void) {
   check_string(buffer, "    wibble\n");
   fclose(fp);
 }
+
+TEST(printf);
 
 /*
 Local Variables:

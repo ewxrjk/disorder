@@ -19,12 +19,11 @@
  */
 #include "test.h"
 
-void test_hash(void) {
+static void test_hash(void) {
   hash *h;
   int i, *ip;
   char **keys;
 
-  fprintf(stderr, "test_hash\n");
   h = hash_new(sizeof(int));
   for(i = 0; i < 10000; ++i)
     insist(hash_add(h, do_printf("%d", i), &i, HASH_INSERT) == 0);
@@ -43,6 +42,8 @@ void test_hash(void) {
     insist(hash_remove(h, do_printf("%d", i)) == 0);
   check_integer(hash_count(h), 0);
 }
+
+TEST(hash);
 
 /*
 Local Variables:

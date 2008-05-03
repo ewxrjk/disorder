@@ -19,13 +19,11 @@
  */
 #include "test.h"
 
-void test_syscalls(void) {
+static void test_syscalls(void) {
   int p[2];
   char buf[128], *e;
   long n;
   long long nn;
-  
-  printf("test_syscalls\n");
 
   xpipe(p);
   nonblock(p[1]);
@@ -70,6 +68,10 @@ void test_syscalls(void) {
   insist(e != 0);
   check_string(e, "xyzzy");
 
+#ifdef LLONG_MAX
+  /* Debian's gcc 2.95 cannot easily be persuaded to define LLONG_MAX even in
+   * extensions modes.  If your compiler is this broken you just don't get the
+   * full set of tests.  Deal. */
   nn = 0;
   e = 0;
   sprintf(buf, "%lld", LLONG_MAX);
@@ -90,8 +92,11 @@ void test_syscalls(void) {
   insist(xstrtoll(&nn, buf, &e, 0) == 0);
   insist(nn == LLONG_MAX);
   insist(e != 0);
-  check_string(e, "xyzzy");  
+  check_string(e, "xyzzy");
+#endif
 }
+
+TEST(syscalls);
 
 /*
 Local Variables:

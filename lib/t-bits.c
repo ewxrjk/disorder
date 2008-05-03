@@ -20,10 +20,9 @@
 #include "test.h"
 #include "bits.h"
 
-void test_bits(void) {
+static void test_bits(void) {
   int n;
   
-  printf("test_bits\n");
   check_integer(leftmost_bit(0), -1);
   check_integer(leftmost_bit(0x80000000), 31);
   check_integer(leftmost_bit(0xffffffff), 31);
@@ -35,6 +34,8 @@ void test_bits(void) {
       check_integer(leftmost_bit(v), n);
   }
 }
+
+TEST(bits);
 
 /*
 Local Variables:

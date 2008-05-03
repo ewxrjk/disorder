@@ -34,14 +34,12 @@ static int header_callback(const char *name, const char *value,
   return 0;
 }
 
-void test_mime(void) {
+static void test_mime(void) {
   char *t, *n, *v;
   struct vector parts[1];
   struct kvp *k;
   const char *s, *cs, *enc;
   hash *h;
-
-  fprintf(stderr, "test_mime\n");
 
   t = 0;
   k = 0;
@@ -336,6 +334,8 @@ void test_mime(void) {
   check_string(cs, "utf-8");
   check_string(enc, "quoted-printable");
 }
+
+TEST(mime);
 
 /*
 Local Variables:

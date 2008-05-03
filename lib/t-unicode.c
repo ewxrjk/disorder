@@ -100,7 +100,7 @@ static void breaktest(const char *path,
 }
 
 /** @brief Tests for @ref lib/unicode.h */
-void test_unicode(void) {
+static void test_unicode(void) {
   FILE *fp;
   int lineno = 0;
   char *l, *lp;
@@ -108,7 +108,6 @@ void test_unicode(void) {
   uint32_t *c[6], *NFD_c[6], *NFKD_c[6], *NFC_c[6], *NFKC_c[6]; /* 1-indexed */
   int cn, bn;
 
-  fprintf(stderr, "test_unicode\n");
   fp = open_unicode_test("NormalizationTest.txt");
   while(!inputline("NormalizationTest.txt", fp, &l, '\n')) {
     ++lineno;
@@ -188,6 +187,8 @@ void test_unicode(void) {
   insist(utf32_combining_class(0x40000) == 0);
   insist(utf32_combining_class(0xE0000) == 0);
 }
+
+TEST(unicode);
 
 /*
 Local Variables:
