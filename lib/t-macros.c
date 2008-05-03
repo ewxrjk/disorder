@@ -32,85 +32,85 @@ static void test_macros(void) {
 
   /* Almost as simple as that */
   m = mx_parse("plaintext1", 1, plain, NULL);
-  insist(m->type == MX_TEXT);
+  check_integer(m->type, MX_TEXT);
   check_string(m->filename, "plaintext1");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->text, L1 L2);
   insist(m->next == 0);
   check_string(mx_dump(m), plain);
 
   /* Check that partial parses stop in the right place */
   m = mx_parse("plaintext2", 5, plain, plain + strlen(L1));
-  insist(m->type == MX_TEXT);
+  check_integer(m->type, MX_TEXT);
   check_string(m->filename, "plaintext2");
-  insist(m->line == 5);
+  check_integer(m->line, 5);
   check_string(m->text, L1);
   insist(m->next == 0);
   check_string(mx_dump(m), L1);
 
   /* The simplest possible expansion */
   m = mx_parse("macro1", 1, "@macro@", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro1");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 0);
+  check_integer(m->nargs, 0);
   insist(m->args == 0);
   insist(m->next == 0);
   check_string(mx_dump(m), "@macro@");
 
   /* Spacing variants of the above */
   m = mx_parse("macro2", 1, "@    macro@", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro2");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 0);
+  check_integer(m->nargs, 0);
   insist(m->args == 0);
   insist(m->next == 0);
   check_string(mx_dump(m), "@macro@");
   m = mx_parse("macro3", 1, "@macro    @", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro3");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 0);
+  check_integer(m->nargs, 0);
   insist(m->args == 0);
   insist(m->next == 0);
   check_string(mx_dump(m), "@macro@");
 
   /* Unterminated variants */
   m = mx_parse("macro4", 1, "@macro", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro4");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 0);
+  check_integer(m->nargs, 0);
   insist(m->args == 0);
   insist(m->next == 0);
   check_string(mx_dump(m), "@macro@");
   m = mx_parse("macro5", 1, "@macro   ", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro5");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 0);
+  check_integer(m->nargs, 0);
   insist(m->args == 0);
   insist(m->next == 0);
   check_string(mx_dump(m), "@macro@");
 
   /* Macros with a :-separated argument */
   m = mx_parse("macro5", 1, "@macro:arg@", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro5");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 1);
+  check_integer(m->nargs, 1);
   insist(m->next == 0);
   
-  insist(m->args[0]->type == MX_TEXT);
+  check_integer(m->args[0]->type, MX_TEXT);
   check_string(m->args[0]->filename, "macro5");
-  insist(m->args[0]->line == 1);
+  check_integer(m->args[0]->line, 1);
   check_string(m->args[0]->text, "arg");
   insist(m->args[0]->next == 0);
 
@@ -118,30 +118,43 @@ static void test_macros(void) {
 
   /* Multiple :-separated arguments, and spacing, and newlines */
   m = mx_parse("macro6", 1, "@macro : \n arg1 : \n arg2@", NULL);
-  insist(m->type == MX_EXPANSION);
+  check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro6");
-  insist(m->line == 1);
+  check_integer(m->line, 1);
   check_string(m->name, "macro");
-  insist(m->nargs == 2);
+  check_integer(m->nargs, 2);
   insist(m->next == 0);
   
-  insist(m->args[0]->type == MX_TEXT);
+  check_integer(m->args[0]->type, MX_TEXT);
   check_string(m->args[0]->filename, "macro6");
-  insist(m->args[0]->line == 2);
+  check_integer(m->args[0]->line, 2);
   check_string(m->args[0]->text, "arg1");
   insist(m->args[0]->next == 0);
   
-  insist(m->args[1]->type == MX_TEXT);
+  check_integer(m->args[1]->type, MX_TEXT);
   check_string(m->args[1]->filename, "macro6");
-  insist(m->args[1]->line == 3);
+  check_integer(m->args[1]->line, 3);
   check_string(m->args[1]->text, "arg2");
   insist(m->args[1]->next == 0);
 
   check_string(mx_dump(m), "@macro{arg1}{arg2}@");
 
   /* Multiple bracketed arguments */
-  
+  m = mx_parse("macro7", 1, "@macro{arg1}{arg2}@", NULL);
+  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
 
+  m = mx_parse("macro7", 1, "@macro{\narg1}{\narg2}@", NULL);
+  check_string(mx_dump(m), "@macro{\narg1}{\narg2}@");
+  check_integer(m->args[0]->line, 1);
+  check_integer(m->args[1]->line, 2);
+  /* ...yes, lines 1 and 2: the first character of the first arg is
+   * the \n at the end of line 1.  Compare with macro8: */
+
+  m = mx_parse("macro8", 1, "@macro\n{arg1}\n{arg2}@", NULL);
+  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
+  check_integer(m->args[0]->line, 2);
+  check_integer(m->args[1]->line, 3);
+  
 }
 
 TEST(macros);
