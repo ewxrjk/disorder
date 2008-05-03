@@ -162,7 +162,11 @@ static void test_macros(void) {
   /* ...and with omitted trailing @ */
   m = mx_parse("macro11", 1, "@macro{@macro2{arg1}{arg2}}", NULL);
   check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@}@");
-  
+
+  /* Similarly but with more whitespace; NB that the whitespace is
+   * preserved. */
+  m = mx_parse("macro12", 1, "@macro {@macro2 {arg1} {arg2}  }\n", NULL);
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@  }@\n");
 }
 
 TEST(macros);
