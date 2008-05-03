@@ -26,11 +26,11 @@ disorder_udplog_SOURCES=udplog.c
 disorder_udplog_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 
-check:
-	${PYTHON} -u ${srcdir}/alltests
+TESTS=cookie.py dbversion.py dump.py files.py play.py queue.py	\
+	recode.py search.py user-upgrade.py user.py
 
 clean-local:
 	rm -rf testroot *.log *.pyc
 
-EXTRA_DIST=alltests dtest.py dbversion.py search.py \
+EXTRA_DIST=dtest.py dbversion.py search.py \
 	queue.py dump.py play.py cookie.py user-upgrade.py user.py recode.py

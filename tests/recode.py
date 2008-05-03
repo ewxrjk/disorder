@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python -u
 #
 # This file is part of DisOrder.
 # Copyright (C) 2008 Richard Kettlewell
@@ -42,7 +42,7 @@ def test():
     if sys.platform == "darwin":
       print "Sorry, cannot run this test on Darwin"
       # ...because local fs is always UTF-8
-      return
+      sys.exit(77)
     dtest.start_daemon()
     dtest.create_user()
     dtest.rescan()
