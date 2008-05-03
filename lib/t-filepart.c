@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
@@ -19,8 +20,7 @@
  */
 #include "test.h"
 
-void test_filepart(void) {
-  fprintf(stderr, "test_filepart\n");
+static void test_filepart(void) {
   check_string(d_dirname("/"), "/");
   check_string(d_dirname("////"), "/");
   check_string(d_dirname("/spong"), "/");
@@ -46,6 +46,8 @@ void test_filepart(void) {
   check_string(strip_extension("foo.---xyz"), "foo.---xyz");
   check_string(strip_extension("foo.bar/wibble.spong"), "foo.bar/wibble");
 }
+
+TEST(filepart);
 
 /*
 Local Variables:

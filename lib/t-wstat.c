@@ -19,11 +19,10 @@
  */
 #include "test.h"
 
-void test_wstat(void) {
+static void test_wstat(void) {
   pid_t pid;
   int w;
   
-  fprintf(stderr, "test_wstat\n");
   if(!(pid = xfork())) {
     _exit(1);
   }
@@ -38,6 +37,8 @@ void test_wstat(void) {
     ;
   check_string_prefix(wstat(w), "terminated by signal 15");
 }
+
+TEST(wstat);
 
 /*
 Local Variables:

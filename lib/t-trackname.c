@@ -28,8 +28,7 @@
 			  a, (sizeof a) - 1) == -(EXPECTED));	\
 } while(0)
 
-void test_trackname(void) {
-  printf("test_trackname\n");
+static void test_trackname(void) {
   CHECK_PATH_ORDER("/a/b", "/aa/", -1);
   CHECK_PATH_ORDER("/a/b", "/a", 1);
   CHECK_PATH_ORDER("/ab", "/a", 1);
@@ -37,6 +36,8 @@ void test_trackname(void) {
   CHECK_PATH_ORDER("/aa", "/aa", 0);
   CHECK_PATH_ORDER("/", "/", 0);
 }
+
+TEST(trackname);
 
 /*
 Local Variables:

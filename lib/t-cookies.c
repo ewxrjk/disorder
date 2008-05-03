@@ -19,10 +19,8 @@
  */
 #include "test.h"
 
-void test_cookies(void) {
+static void test_cookies(void) {
   struct cookiedata cd[1];
-
-  fprintf(stderr, "test_cookies\n");
 
   /* These are the examples from RFC2109 */
   insist(!parse_cookie("$Version=\"1\"; Customer=\"WILE_E_COYOTE\"; $Path=\"/acme\"", cd));
@@ -71,6 +69,8 @@ void test_cookies(void) {
   insist(cd->cookies[0].path == 0);
   insist(cd->cookies[0].domain == 0);
 }
+
+TEST(cookies);
 
 /*
 Local Variables:

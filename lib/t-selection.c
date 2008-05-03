@@ -19,9 +19,9 @@
  */
 #include "test.h"
 
-void test_selection(void) {
+static void test_selection(void) {
   hash *h;
-  fprintf(stderr, "test_selection\n");
+
   insist((h = selection_new()) != 0);
   selection_set(h, "one", 1);
   selection_set(h, "two", 1);
@@ -56,6 +56,8 @@ void test_selection(void) {
   insist(selection_selected(h, "five") == 0);
   insist(hash_count(h) == 0);
 }
+
+TEST(selection);
 
 /*
 Local Variables:

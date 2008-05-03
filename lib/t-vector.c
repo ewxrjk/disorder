@@ -19,13 +19,12 @@
  */
 #include "test.h"
 
-void test_vector(void) {
+static void test_vector(void) {
   struct vector v[1];
   static const char *s[10] = { "three", "four", "five", "six", "seven",
 			       "eight", "nine", "ten", "eleven", "twelve" };
   int n;
   
-  printf("test_vector\n");
   vector_init(v);
   insist(v->nvec == 0);
 
@@ -55,6 +54,7 @@ void test_vector(void) {
   insist(v->vec[12] == 0);
 }
 
+TEST(vector);
 
 /*
 Local Variables:

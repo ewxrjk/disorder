@@ -19,12 +19,10 @@
  */
 #include "test.h"
 
-void test_regsub(void) {
+static void test_regsub(void) {
   pcre *re;
   const char *errstr;
   int erroffset;
-
-  printf("test_regsub\n");
 
   check_integer(regsub_flags(""), 0);
   check_integer(regsub_flags("g"), REGSUB_GLOBAL);
@@ -64,6 +62,8 @@ void test_regsub(void) {
   check_string(regsub(re, "foo-aAaAbBb-bar", "x:$2$$$1:y", 0),
                "foo-x:bBb$aAaA:y-bar");
 }
+
+TEST(regsub);
 
 /*
 Local Variables:

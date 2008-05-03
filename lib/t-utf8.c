@@ -19,7 +19,7 @@
  */
 #include "test.h"
 
-void test_utf8(void) {
+static void test_utf8(void) {
   /* Test validutf8, convert to UCS-4, check the answer is right,
    * convert back to UTF-8, check we got to where we started */
 #define U8(CHARS, WORDS) do {			\
@@ -36,7 +36,6 @@ void test_utf8(void) {
   check_string(u8, CHARS);			\
 } while(0)
 
-  fprintf(stderr, "test_utf8\n");
 #define validutf8(S) utf8_valid((S), strlen(S))
 
   /* empty string */
@@ -133,6 +132,8 @@ void test_utf8(void) {
   insist(!validutf8("\xF5\x80\x80\x80"));
   insist(!validutf8("\xF8"));
 }
+
+TEST(utf8);
 
 /*
 Local Variables:

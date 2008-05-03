@@ -49,11 +49,10 @@ struct {
 };
 #define NWTEST (sizeof wtest / sizeof *wtest)
 
-void test_words(void) {
+static void test_words(void) {
   size_t t, nexpect, ngot, i;
   int right;
   
-  fprintf(stderr, "test_words\n");
   for(t = 0; t < NWTEST; ++t) {
     char **got = utf8_word_split(wtest[t].in, strlen(wtest[t].in), &ngot, 0);
 
@@ -81,6 +80,8 @@ void test_words(void) {
     ++tests;
   }
 }
+
+TEST(words);
 
 /*
 Local Variables:

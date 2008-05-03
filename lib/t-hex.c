@@ -19,13 +19,11 @@
  */
 #include "test.h"
 
-void test_hex(void) {
+static void test_hex(void) {
   unsigned n;
   static const unsigned char h[] = { 0x00, 0xFF, 0x80, 0x7F };
   uint8_t *u;
   size_t ul;
-
-  fprintf(stderr, "test_hex\n");
 
   for(n = 0; n <= UCHAR_MAX; ++n) {
     if(!isxdigit(n))
@@ -68,6 +66,8 @@ void test_hex(void) {
   insist(unhex("az", 0) == 0);
   fprintf(stderr, "}\n");
 }
+
+TEST(hex);
 
 /*
 Local Variables:

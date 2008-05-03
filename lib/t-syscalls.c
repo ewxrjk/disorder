@@ -19,13 +19,11 @@
  */
 #include "test.h"
 
-void test_syscalls(void) {
+static void test_syscalls(void) {
   int p[2];
   char buf[128], *e;
   long n;
   long long nn;
-  
-  printf("test_syscalls\n");
 
   xpipe(p);
   nonblock(p[1]);
@@ -97,6 +95,8 @@ void test_syscalls(void) {
   check_string(e, "xyzzy");
 #endif
 }
+
+TEST(syscalls);
 
 /*
 Local Variables:

@@ -19,10 +19,10 @@
  */
 #include "test.h"
 
-void test_cache(void) {
+static void test_cache(void) {
   const struct cache_type t1 = { 1 }, t2 = { 10 };
   const char v11[] = "spong", v12[] = "wibble", v2[] = "blat";
-  fprintf(stderr, "test_cache\n");
+
   cache_put(&t1, "1_1", v11);
   cache_put(&t1, "1_2", v12);
   cache_put(&t2, "2", v2);
@@ -46,6 +46,8 @@ void test_cache(void) {
   insist(cache_count() == 0);
   insist(cache_get(&t2, "2") == 0); 
 }
+
+TEST(cache);
 
 /*
 Local Variables:

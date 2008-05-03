@@ -19,8 +19,7 @@
  */
 #include "test.h"
 
-void test_signame(void) {
-  fprintf(stderr, "test_signame\n");
+static void test_signame(void) {
   insist(find_signal("SIGTERM") == SIGTERM);
   insist(find_signal("SIGHUP") == SIGHUP);
   insist(find_signal("SIGINT") == SIGINT);
@@ -28,6 +27,8 @@ void test_signame(void) {
   insist(find_signal("SIGKILL") == SIGKILL);
   insist(find_signal("SIGYOURMUM") == -1);
 }
+
+TEST(signame);
 
 /*
 Local Variables:

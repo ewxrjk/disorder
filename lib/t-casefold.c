@@ -19,11 +19,9 @@
  */
 #include "test.h"
 
-void test_casefold(void) {
+static void test_casefold(void) {
   uint32_t c, l;
   const char *input, *canon_folded, *compat_folded, *canon_expected, *compat_expected;
-
-  fprintf(stderr, "test_casefold\n");
 
   /* This isn't a very exhaustive test.  Unlike for normalization, there don't
    * seem to be any public test vectors for these algorithms. */
@@ -74,6 +72,8 @@ void test_casefold(void) {
   }
   check_string(utf8_casefold_canon("", 0, 0), "");
 }
+
+TEST(casefold);
 
 /*
 Local Variables:

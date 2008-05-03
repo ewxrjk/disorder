@@ -19,18 +19,19 @@
  */
 #include "test.h"
 
-void test_kvp(void) {
+static void test_kvp(void) {
   struct kvp *k;
   size_t n;
   
-  fprintf(stderr, "test_kvp\n");
   /* decoding */
 #define KVP_URLDECODE(S) kvp_urldecode((S), strlen(S))
+  fprintf(stderr, "5 ERROR reports expected {\n");
   insist(KVP_URLDECODE("=%zz") == 0);
   insist(KVP_URLDECODE("=%0") == 0);
   insist(KVP_URLDECODE("=%0z") == 0);
   insist(KVP_URLDECODE("=%%") == 0);
   insist(KVP_URLDECODE("==%") == 0);
+  fprintf(stderr, "}\n");
   insist(KVP_URLDECODE("wibble") == 0);
   insist(KVP_URLDECODE("") == 0);
   insist(KVP_URLDECODE("wibble&") == 0);
@@ -57,6 +58,8 @@ void test_kvp(void) {
   check_string(urlencodestring("abc% +\n"),
                "abc%25%20%2b%0a");
 }
+
+TEST(kvp);
 
 /*
 Local Variables:

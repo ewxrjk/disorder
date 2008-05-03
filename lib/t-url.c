@@ -19,10 +19,8 @@
  */
 #include "test.h"
 
-void test_url(void) {
+static void test_url(void) {
   struct url p;
-  
-  printf("test_url\n");
 
   insist(parse_url("http://www.example.com/example/path", &p) == 0);
   check_string(p.scheme, "http");
@@ -49,6 +47,8 @@ void test_url(void) {
   insist(parse_url("http://www.example.com:1000000000000/", &p) == -1);
   insist(parse_url("http://www.example.com/example%2zpath", &p) == -1);
 }
+
+TEST(url);
 
 /*
 Local Variables:
