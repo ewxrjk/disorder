@@ -143,17 +143,25 @@ static void test_macros(void) {
   m = mx_parse("macro7", 1, "@macro{arg1}{arg2}@", NULL);
   check_string(mx_dump(m), "@macro{arg1}{arg2}@");
 
-  m = mx_parse("macro7", 1, "@macro{\narg1}{\narg2}@", NULL);
+  m = mx_parse("macro8", 1, "@macro{\narg1}{\narg2}@", NULL);
   check_string(mx_dump(m), "@macro{\narg1}{\narg2}@");
   check_integer(m->args[0]->line, 1);
   check_integer(m->args[1]->line, 2);
   /* ...yes, lines 1 and 2: the first character of the first arg is
-   * the \n at the end of line 1.  Compare with macro8: */
+   * the \n at the end of line 1.  Compare with macro9: */
 
-  m = mx_parse("macro8", 1, "@macro\n{arg1}\n{arg2}@", NULL);
+  m = mx_parse("macro9", 1, "@macro\n{arg1}\n{arg2}@", NULL);
   check_string(mx_dump(m), "@macro{arg1}{arg2}@");
   check_integer(m->args[0]->line, 2);
   check_integer(m->args[1]->line, 3);
+
+  /* Arguments that themselves contain expansions */
+  m = mx_parse("macro10", 1, "@macro{@macro2{arg1}{arg2}@}@", NULL);
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@}@");
+
+  /* ...and with omitted trailing @ */
+  m = mx_parse("macro11", 1, "@macro{@macro2{arg1}{arg2}}", NULL);
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@}@");
   
 }
 
