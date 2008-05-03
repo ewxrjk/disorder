@@ -63,6 +63,8 @@ const struct mx_node *mx_parse(const char *filename,
 			       const char *input,
 			       const char *end);
 
+char *mx_dump(const struct mx_node *m);
+
 #endif /* MACROS_H */
 
 

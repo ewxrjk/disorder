@@ -37,6 +37,7 @@ static void test_macros(void) {
   insist(m->line == 1);
   check_string(m->text, L1 L2);
   insist(m->next == 0);
+  check_string(mx_dump(m), plain);
 
   /* Check that partial parses stop in the right place */
   m = mx_parse("plaintext2", 5, plain, plain + strlen(L1));
@@ -45,6 +46,7 @@ static void test_macros(void) {
   insist(m->line == 5);
   check_string(m->text, L1);
   insist(m->next == 0);
+  check_string(mx_dump(m), L1);
 
   /* The simplest possible expansion */
   m = mx_parse("macro1", 1, "@macro@", NULL);
@@ -55,6 +57,7 @@ static void test_macros(void) {
   insist(m->nargs == 0);
   insist(m->args == 0);
   insist(m->next == 0);
+  check_string(mx_dump(m), "@macro@");
 
   /* Spacing variants of the above */
   m = mx_parse("macro2", 1, "@    macro@", NULL);
@@ -65,6 +68,7 @@ static void test_macros(void) {
   insist(m->nargs == 0);
   insist(m->args == 0);
   insist(m->next == 0);
+  check_string(mx_dump(m), "@macro@");
   m = mx_parse("macro3", 1, "@macro    @", NULL);
   insist(m->type == MX_EXPANSION);
   check_string(m->filename, "macro3");
@@ -73,6 +77,7 @@ static void test_macros(void) {
   insist(m->nargs == 0);
   insist(m->args == 0);
   insist(m->next == 0);
+  check_string(mx_dump(m), "@macro@");
 
   /* Unterminated variants */
   m = mx_parse("macro4", 1, "@macro", NULL);
@@ -83,6 +88,7 @@ static void test_macros(void) {
   insist(m->nargs == 0);
   insist(m->args == 0);
   insist(m->next == 0);
+  check_string(mx_dump(m), "@macro@");
   m = mx_parse("macro5", 1, "@macro   ", NULL);
   insist(m->type == MX_EXPANSION);
   check_string(m->filename, "macro5");
@@ -91,6 +97,7 @@ static void test_macros(void) {
   insist(m->nargs == 0);
   insist(m->args == 0);
   insist(m->next == 0);
+  check_string(mx_dump(m), "@macro@");
 
   /* Macros with a :-separated argument */
   m = mx_parse("macro5", 1, "@macro:arg@", NULL);
@@ -106,6 +113,8 @@ static void test_macros(void) {
   insist(m->args[0]->line == 1);
   check_string(m->args[0]->text, "arg");
   insist(m->args[0]->next == 0);
+
+  check_string(mx_dump(m), "@macro{arg}@");
 
   /* Multiple :-separated arguments, and spacing, and newlines */
   m = mx_parse("macro6", 1, "@macro : \n arg1 : \n arg2@", NULL);
@@ -128,6 +137,9 @@ static void test_macros(void) {
   check_string(m->args[1]->text, "arg2");
   insist(m->args[1]->next == 0);
 
+  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
+
+  /* Multiple bracketed arguments */
   
 
 }

@@ -201,6 +201,41 @@ const struct mx_node *mx_parse(const char *filename,
   return head;
 }
 
+static void mx__dump(struct dynstr *d, const struct mx_node *m) {
+  int n;
+  
+  if(!m)
+    return;
+  switch(m->type) {
+  case MX_TEXT:
+    dynstr_append_string(d, m->text);
+    break;
+  case MX_EXPANSION:
+    dynstr_append(d, '@');
+    dynstr_append_string(d, m->name);
+    for(n = 0; n < m->nargs; ++n) {
+      dynstr_append(d, '{');
+      mx__dump(d, m->args[n]);
+      dynstr_append(d, '}');
+    }
+    dynstr_append(d, '@');
+    break;
+  default:
+    assert(!"invalid m->type");
+  }
+  mx__dump(d, m->next);
+}
+
+/** @brief Dump a parse macro expansion to a string */
+char *mx_dump(const struct mx_node *m) {
+  struct dynstr d[1];
+
+  dynstr_init(d);
+  mx__dump(d, m);
+  dynstr_terminate(d);
+  return d->vec;
+}
+
 /*
 Local Variables:
 c-basic-offset:2
