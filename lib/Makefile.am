@@ -224,10 +224,6 @@ t_wstat_SOURCES=t-wstat.c test.c test.h
 t_wstat_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_wstat_DEPENDENCIES=libdisorder.a
 
-
-#check: test #test.i
-#	./test
-
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f *.gcda *.gcov
