@@ -182,7 +182,7 @@ static void test_macros(void) {
   check_integer(mx_expandstr(m, &s, 0/*u*/, NAME), 0);          \
   if(s && strcmp(s, OUTPUT)) {                                  \
     fprintf(stderr, "%s:%d: test %s\n"                          \
-            "     INPUT: %s\n"                                  \
+            "     INPUT:\n%s\n"                                 \
             "  EXPECTED: '%s'\n"                                \
             "       GOT: '%s'\n",                               \
             __FILE__, __LINE__, NAME, INPUT, OUTPUT, s);        \
@@ -260,6 +260,21 @@ static void test_macros(void) {
   check_macro("macro1", "@define{m}{a b c}{@c@ @b@ @a@}@"
               "@m{1}{2}{3}",
               "3 2 1");
+  check_macro("macro2", "@m{b}{c}{a}",
+              "a c b");
+  check_macro("macro3", "@m{@eq{z}{z}}{p}{q}",
+              "q p true");
+  check_macro("macro4",
+              "@discard{\n"
+              "  @define{n}{a b c}\n"
+              "    {@if{@eq{@a@}{@b@}} {@c@} {no}}\n"
+              "}@"
+              "@n{x}{y}{z}",
+              "no");
+  check_macro("macro5",
+              "@n{x}{x}{z}",
+              "z");
+
 }
 
 TEST(macros);

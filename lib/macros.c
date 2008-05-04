@@ -557,13 +557,13 @@ int mx_expand_file(const char *path,
  * @param h Hash mapping argument names to argument values
  * @return Rewritten parse tree
  */
-static const struct mx_node *mx__rewrite(const struct mx_node *m,
+static const struct mx_node *mx__rewrite(const struct mx_node *definition,
                                          hash *h) {
-  const struct mx_node *head = 0, **tailp = &head, *argvalue, *mm;
+  const struct mx_node *head = 0, **tailp = &head, *argvalue, *m, *mm;
   struct mx_node *nm;
   int n;
   
-  for(; m; m = m->next) {
+  for(m = definition; m; m = m->next) {
     switch(m->type) {
     case MX_TEXT:
       nm = xmalloc(sizeof *nm);
@@ -596,6 +596,7 @@ static const struct mx_node *mx__rewrite(const struct mx_node *m,
          * values according to h. */
         nm = xmalloc(sizeof *nm);
         *nm = *m;
+        nm->args = xcalloc(nm->nargs, sizeof (struct mx_node *));
         for(n = 0; n < nm->nargs; ++n)
           nm->args[n] = mx__rewrite(m->args[n], h);
         nm->next = 0;
