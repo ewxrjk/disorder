@@ -95,10 +95,14 @@ void mx_register(const char *name,
                  int min,
                  int max,
                  mx_simple_callback *callback);
-void mx_magic_register(const char *name,
+void mx_register_magic(const char *name,
                        int min,
                        int max,
                        mx_magic_callback *callback);
+int mx_register_macro(const char *name,
+                      int nargs,
+                      char **args,
+                      const struct mx_node *definition);
 
 void mx_register_builtin(void);
 
@@ -110,7 +114,8 @@ int mx_expand(const struct mx_node *m,
               void *u);
 int mx_expandstr(const struct mx_node *m,
                  char **sp,
-                 void *u);
+                 void *u,
+                 const char *what);
 
 int mx_str2bool(const char *s);
 const char *mx_bool2str(int n);
