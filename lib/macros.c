@@ -559,7 +559,7 @@ int mx_expand_file(const char *path,
  */
 static const struct mx_node *mx__rewrite(const struct mx_node *m,
                                          hash *h) {
-  const struct mx_node *head = 0, **tailp = &head, *arg, *mm;
+  const struct mx_node *head = 0, **tailp = &head, *argvalue, *mm;
   struct mx_node *nm;
   int n;
   
@@ -574,7 +574,7 @@ static const struct mx_node *mx__rewrite(const struct mx_node *m,
       break;
     case MX_EXPANSION:
       if(m->nargs == 0
-         && (arg = hash_find(h, m->name))) {
+         && (argvalue = *(const struct mx_node **)hash_find(h, m->name))) {
         /* This expansion has no arguments and its name matches one of the
          * macro arguments.  (Even if it's a valid expansion name we override
          * it.)  We insert its value at this point.  We do NOT recursively
@@ -584,7 +584,7 @@ static const struct mx_node *mx__rewrite(const struct mx_node *m,
          * We need to recreate the list structure but a shallow copy will
          * suffice here.
          */
-        for(mm = arg; mm; mm = mm->next) {
+        for(mm = argvalue; mm; mm = mm->next) {
           nm = xmalloc(sizeof *nm);
           *nm = *mm;
           nm->next = 0;
@@ -595,7 +595,7 @@ static const struct mx_node *mx__rewrite(const struct mx_node *m,
         /* This is some other expansion.  We recursively rewrite its argument
          * values according to h. */
         nm = xmalloc(sizeof *nm);
-        *nm = *mm;
+        *nm = *m;
         for(n = 0; n < nm->nargs; ++n)
           nm->args[n] = mx__rewrite(m->args[n], h);
         nm->next = 0;
@@ -629,7 +629,7 @@ static int mx__expand_macro(const struct expansion *e,
    * duplicate argument names (and this would be the wrong place for it
    * anyway); if you do that you just lose in some undefined way. */
   for(n = 0; n < m->nargs; ++n)
-    hash_add(h, e->args[n], m->args[n], HASH_INSERT);
+    hash_add(h, e->args[n], &m->args[n], HASH_INSERT);
   /* Generate a rewritten parse tree */
   m = mx__rewrite(e->definition, h);
   /* Expand the result */

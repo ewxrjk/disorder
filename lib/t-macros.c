@@ -248,14 +248,18 @@ static void test_macros(void) {
 
   check_macro("sh1", "@shell{true}", "");
   check_macro("sh2", "@shell{echo spong}", "spong\n");
-  fprintf(stderr, "expxect error message from macro expander:\n");
+  fprintf(stderr, "expect error message from macro expander:\n");
   check_macro("sh3", "@shell{echo spong;exit 3}", "spong\n");
 
   check_macro("url1", "@urlquote{unreserved}", "unreserved");
   check_macro("url2", "@urlquote{has space}", "has%20space");
   check_macro("url3", "@urlquote{\xc0\xc1}", "%c0%c1");
 
-  
+  /* Macro definitions ------------------------------------------------------ */
+
+  check_macro("macro1", "@define{m}{a b c}{@c@ @b@ @a@}@"
+              "@m{1}{2}{3}",
+              "3 2 1");
 }
 
 TEST(macros);
