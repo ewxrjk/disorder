@@ -18,8 +18,8 @@
  * USA
  */
 
-#ifndef CGI_H
-#define CGI_H
+#ifndef SERVER_CGI_H
+#define SERVER_CGI_H
 
 extern struct kvp *cgi_args;
 
@@ -104,7 +104,7 @@ const char *cgi_transform(const char *type,
 void cgi_set_option(const char *name, const char *value);
 /* set an option */
 
-#endif /* CGI_H */
+#endif /* SERVER_CGI_H */
 
 /*
 Local Variables:

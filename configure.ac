@@ -417,7 +417,7 @@ if test $ac_cv_type_long_long = yes; then
     AC_DEFINE([DECLARES_ATOLL],[1],[define if <stdlib.h> declares atoll])
   fi
 fi
-AC_CHECK_FUNCS([ioctl nl_langinfo strsignal],[:],[
+AC_CHECK_FUNCS([ioctl nl_langinfo strsignal setenv unsetenv],[:],[
   missing_functions="$missing_functions $ac_func"
 ])
 # fsync will do if fdatasync not available

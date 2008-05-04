@@ -22,7 +22,7 @@ TESTS=t-addr t-basen t-bits t-cache t-casefold t-cookies \
 		t-filepart t-hash t-heap t-hex t-kvp t-mime t-printf \
 		t-regsub t-selection t-signame t-sink t-split t-syscalls \
 		t-trackname t-unicode t-url t-utf8 t-vector t-words t-wstat \
-		t-macros
+		t-macros t-cgi
 
 noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
@@ -42,6 +42,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	base64.c base64.h				\
 	bits.c bits.h					\
 	cache.c cache.h					\
+	cgi.c cgi.h					\
 	client.c client.h				\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
@@ -141,6 +142,10 @@ t_cache_DEPENDENCIES=libdisorder.a
 t_casefold_SOURCES=t-casefold.c test.c test.h
 t_casefold_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_casefold_DEPENDENCIES=libdisorder.a
+
+t_cgi_SOURCES=t-cgi.c test.c test.h
+t_cgi_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
+t_cgi_DEPENDENCIES=libdisorder.a
 
 t_cookies_SOURCES=t-cookies.c test.c test.h
 t_cookies_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
