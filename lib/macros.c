@@ -416,17 +416,17 @@ int mx_expand(const struct mx_node *m,
     if(!(e = hash_find(expansions, m->name))) {
       error(0, "%s:%d: unknown expansion name '%s'",
             m->filename, m->line, m->name);
-      if(sink_printf(output, "[[%s unknown]]", m->name) < 0)
+      if(sink_printf(output, "[['%s' unknown]]", m->name) < 0)
         return -1;
     } else if(m->nargs < e->min) {
       error(0, "%s:%d: expansion '%s' requires %d args, only %d given",
             m->filename, m->line, m->name, e->min, m->nargs);
-      if(sink_printf(output, "[[%s too few args]]", m->name) < 0)
+      if(sink_printf(output, "[['%s' too few args]]", m->name) < 0)
         return -1;
     } else if(m->nargs > e->max) {
       error(0, "%s:%d: expansion '%s' takes at most %d args, but %d given",
             m->filename, m->line, m->name, e->max, m->nargs);
-      if(sink_printf(output, "[[%s too many args]]", m->name) < 0)
+      if(sink_printf(output, "[['%s' too many args]]", m->name) < 0)
         return -1;
     } else switch(e->flags & EXP_TYPE_MASK) {
       case EXP_MAGIC: {
@@ -470,7 +470,7 @@ int mx_expand(const struct mx_node *m,
     if(rc) {
       /* For non-IO errors we generate some backtrace */
       if(rc != -1)
-        error(0,  "  ...in '%s' at %s:%d",
+        error(0,  "  ...in @%s at %s:%d",
               m->name, m->filename, m->line);
       return rc;
     }

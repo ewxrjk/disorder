@@ -245,4 +245,4 @@ rebuild-unicode:
 
 CLEANFILES=definitions.h definitions.h.new
 
-EXTRA_DIST=trackdb.c trackdb-stub.c
+EXTRA_DIST=trackdb.c trackdb-stub.c t-macros-1.tmpl t-macros-2

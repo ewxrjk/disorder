@@ -101,7 +101,7 @@ static int exp_include(int attribute((unused)) nargs,
       error(errno, "cannot read template %s", name);
       if(sink_printf(output, "[[cannot open template '%s']]", name) < 0)
         return -1;
-      return -3;
+      return 0;
     }
     path = xstrdup(name);
   } else {
@@ -117,7 +117,7 @@ static int exp_include(int attribute((unused)) nargs,
       error(0, "cannot find template '%s'",  name);
       if(sink_printf(output, "[[cannot find template '%s']]", name) < 0)
         return -1;
-      return -3;
+      return 0;
     }
   }
   /* If it's a template expand it */
@@ -388,6 +388,7 @@ static int exp_define(int attribute((unused)) nargs,
   return 0;
 }
 
+/** @brief Register built-in expansions */
 void mx_register_builtin(void) {
   mx_register_magic("#", 0, INT_MAX, exp_comment);
   mx_register_magic("and", 0, INT_MAX, exp_and);
@@ -401,6 +402,13 @@ void mx_register_builtin(void) {
   mx_register("not", 1, 1, exp_not);
   mx_register("shell", 1, 1, exp_shell);
   mx_register("urlquote", 1, 1, exp_urlquote);
+}
+
+/** @brief Add a directory to the search path
+ * @param s Directory to add
+ */
+void mx_search_path(const char *s) {
+  vector_append(&include_path, xstrdup(s));
 }
 
 /*

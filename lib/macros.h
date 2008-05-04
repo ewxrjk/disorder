@@ -105,6 +105,7 @@ int mx_register_macro(const char *name,
                       const struct mx_node *definition);
 
 void mx_register_builtin(void);
+void mx_search_path(const char *s);
 
 int mx_expand_file(const char *path,
                    struct sink *output,
