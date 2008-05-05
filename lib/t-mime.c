@@ -189,7 +189,37 @@ static void test_mime(void) {
                "Content-Description: jpeg-1\r\n"
                "\r\n"
                "<jpeg data>");
- 
+
+  /* Bogus inputs to mime_multipart() */
+  fprintf(stderr, "expect two mime_multipart errors:\n");
+  insist(mime_multipart("--inner\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Disposition: inline\r\n"
+                        "Content-Description: text-part-2\r\n"
+                        "\r\n"
+                        "Some more text here.\r\n"
+                        "\r\n"
+                        "--inner\r\n"
+                        "Content-Type: image/jpeg\r\n"
+                        "Content-Disposition: attachment\r\n"
+                        "Content-Description: jpeg-1\r\n"
+                        "\r\n"
+                        "<jpeg data>\r\n",
+                        test_multipart_callback,
+                        "inner",
+                        parts) == -1);
+  insist(mime_multipart("--wrong\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Content-Disposition: inline\r\n"
+                        "Content-Description: text-part-2\r\n"
+                        "\r\n"
+                        "Some more text here.\r\n"
+                        "\r\n"
+                        "--inner--\r\n",
+                        test_multipart_callback,
+                        "inner",
+                        parts) == -1);
+    
   /* XXX mime_parse */
 
   check_string(mime_qp(""), "");
