@@ -333,6 +333,29 @@ char *cgi_makeurl(const char *url, ...) {
   return d.vec;
 }
 
+/** @brief Construct a URL from current parameters
+ * @param url Base URL
+ * @return Constructed URL
+ */
+char *cgi_thisurl(const char *url) {
+  struct dynstr d[1];
+  char **keys = hash_keys(cgi_args);
+  int n;
+
+  dynstr_init(d);
+  dynstr_append_string(d, url);
+  if(*keys) {
+    dynstr_append(d, '?');
+    for(n = 0; keys[n]; ++n) {
+      dynstr_append_string(d, urlencodestring(keys[n]));
+      dynstr_append(d, '=');
+      dynstr_append_string(d, cgi_get(keys[n]));
+    }
+  }
+  dynstr_terminate(d);
+  return d->vec;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

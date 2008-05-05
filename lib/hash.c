@@ -26,6 +26,7 @@
 #include "hash.h"
 #include "mem.h"
 #include "log.h"
+#include "kvp.h"
 
 struct entry {
   struct entry *next;                   /* next entry same key */

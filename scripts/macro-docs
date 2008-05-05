@@ -40,6 +40,11 @@ for my $m (sort keys %macros) {
   print ".TP\n";
   print ".B $heading\n";
   for my $d (@docs) {
+    if($d =~ /^- /) {
+      $d = $';
+      print ".TP\n";
+      print ".B .\n";
+    }
     if($d eq '') {
       print ".PP\n";
     } else {

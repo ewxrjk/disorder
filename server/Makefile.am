@@ -102,7 +102,7 @@ disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_cgi_SOURCES=dcgi.c dcgi.h			\
 	api.c api-client.c api-client.h			\
-	cgi.c cgi.h cgimain.c exports.c
+	cgi.c server-cgi.h cgimain.c exports.c
 disorder_cgi_LDADD=../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
 disorder_cgi_LDFLAGS=-export-dynamic

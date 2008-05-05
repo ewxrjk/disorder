@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/cgimain.c
+ * @brief DisOrder CGI
+ */
 
 #include <config.h>
 #include "types.h"
@@ -32,7 +35,7 @@
 
 #include "client.h"
 #include "sink.h"
-#include "cgi.h"
+#include "server-cgi.h"
 #include "mem.h"
 #include "log.h"
 #include "configuration.h"
@@ -42,6 +45,9 @@
 #include "printf.h"
 #include "dcgi.h"
 #include "url.h"
+
+#include "macros.h"
+#include "macros-disorder.h"
 
 /** @brief Return true if @p a is better than @p b
  *
@@ -77,10 +83,12 @@ int main(int argc, char **argv) {
   int n, best_cookie;
   struct cookiedata cd;
 
-  if(argc > 0) progname = argv[0];
+  if(argc > 0)
+    progname = argv[0];
   /* RFC 3875 s8.2 recommends rejecting PATH_INFO if we don't make use of
    * it. */
   if(getenv("PATH_INFO")) {
+    /* TODO it might be nice to link back to the right place... */
     printf("Content-Type: text/html\n");
     printf("Status: 404\n");
     printf("\n");
@@ -88,9 +96,16 @@ int main(int argc, char **argv) {
     exit(0);
   }
   cgi_parse();
-  if((conf = getenv("DISORDER_CONFIG"))) configfile = xstrdup(conf);
-  if(getenv("DISORDER_DEBUG")) debugging = 1;
-  if(config_read(0)) exit(EXIT_FAILURE);
+  /* We allow various things to be overridden from the environment.  This is
+   * intended for debugging and is not a documented feature. */
+  if((conf = getenv("DISORDER_CONFIG")))
+    configfile = xstrdup(conf);
+  if(getenv("DISORDER_DEBUG"))
+    debugging = 1;
+  if(config_read(0))
+    exit(EXIT_FAILURE);
+  /* Figure out our URL.  This can still be overridden from the config file if
+   * necessary but it shouldn't be necessary in ordinary installations. */
   if(!config->url)
     config->url = infer_url();
   memset(&g, 0, sizeof g);
@@ -120,9 +135,22 @@ int main(int argc, char **argv) {
     } else
       error(0, "could not parse cookie field '%s'", cookie_env);
   }
+  /* Register expansions */
+  mx_register_builtin();
+  register_disorder_expansions();
+  /* Update search path.  We look in the config directory first and the data
+   * directory second, so that the latter overrides the former. */
+  mx_search_path(pkgconfdir);
+  mx_search_path(pkgdatadir);
+  /* Create the initial connection, trying the cookie if we found a suitable
+   * one. */
   disorder_cgi_login(&s, &output);
+  /* The main program... */
   disorder_cgi(&output, &s);
-  if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
+  /* In practice if a write fails that probably means the web server went away,
+   * but we log it anyway. */
+  if(fclose(stdout) < 0)
+    fatal(errno, "error closing stdout");
   return 0;
 }
 

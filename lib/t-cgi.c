@@ -24,7 +24,10 @@ static void input_from(const char *s) {
   FILE *fp = tmpfile();
   char buffer[64];
 
-  if(fputs(s, fp) < 0 || fflush(fp) < 0)
+  if(fputs(s, fp) < 0
+     || fputs("wibble wibble\r\nspong", fp) < 0 /* ensure CONTENT_LENGTH
+                                                 * honored */
+     || fflush(fp) < 0)
     fatal(errno, "writing to temporary file");
   rewind(fp);
   xdup2(fileno(fp), 0);

@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "hash.h"
 #include "mem.h"
 #include "macros.h"
 #include "sink.h"
@@ -43,7 +44,6 @@
 #include "log.h"
 #include "wstat.h"
 #include "kvp.h"
-#include "hash.h"
 #include "split.h"
 #include "printf.h"
 #include "vector.h"
@@ -68,7 +68,33 @@ static int mx_bool_result(struct sink *output, int result) {
     return 0;
 }
 
-/* @include{TEMPLATE}
+/** @brief Search the include path */
+char *mx_find(const char *name) {
+  char *path;
+  int n;
+  
+  if(name[0] == '/') {
+    if(access(name, O_RDONLY) < 0) {
+      error(errno, "cannot read %s", name);
+      return 0;
+    }
+    path = xstrdup(name);
+  } else {
+    /* Search the include path */
+    for(n = 0; n < include_path.nvec; ++n) {
+      byte_xasprintf(&path, "%s/%s", include_path.vec[n], name);
+      if(access(path, O_RDONLY) == 0)
+        break;
+    }
+    if(n >= include_path.nvec) {
+      error(0, "cannot find '%s' in search path", name);
+      return 0;
+    }
+  }
+  return path;
+}
+
+/* @include{TEMPLATE}@
  *
  * Includes TEMPLATE.
  *
@@ -90,35 +116,15 @@ static int exp_include(int attribute((unused)) nargs,
 		       char **args,
 		       struct sink *output,
 		       void *u) {
-  const char *name = args[0];
-  char *path;
+  const char *path;
   int fd, n;
   char buffer[4096];
   struct stat sb;
-  
-  if(name[0] == '/') {
-    if(access(name, O_RDONLY) < 0) {
-      error(errno, "cannot read template %s", name);
-      if(sink_printf(output, "[[cannot open template '%s']]", name) < 0)
-        return -1;
-      return 0;
-    }
-    path = xstrdup(name);
-  } else {
-    int n;
 
-    /* Search the include path */
-    for(n = 0; n < include_path.nvec; ++n) {
-      byte_xasprintf(&path, "%s/%s", include_path.vec[n], name);
-      if(access(path, O_RDONLY) == 0)
-        break;
-    }
-    if(n >= include_path.nvec) {
-      error(0, "cannot find template '%s'",  name);
-      if(sink_printf(output, "[[cannot find template '%s']]", name) < 0)
-        return -1;
+  if(!(path = mx_find(args[0]))) {
+    if(sink_printf(output, "[[cannot find '%s']]", name) < 0)
       return 0;
-    }
+    return 0;
   }
   /* If it's a template expand it */
   if(strlen(path) >= 5 && !strncmp(path + strlen(path) - 5, ".tmpl", 5))
@@ -143,7 +149,7 @@ static int exp_include(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @include{COMMAND}
+/* @include{COMMAND}@
  *
  * Executes COMMAND via the shell (using "sh -c") and copies its
  * standard output to the template output.  The shell command output
@@ -192,7 +198,7 @@ static int exp_shell(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @if{CONDITION}{IF-TRUE}{IF-FALSE}
+/* @if{CONDITION}{IF-TRUE}{IF-FALSE}@
  *
  * If CONDITION is "true" then evaluates to IF-TRUE.  Otherwise
  * evaluates to IF-FALSE.  The IF-FALSE part is optional.
@@ -214,7 +220,7 @@ static int exp_if(int nargs,
     return 0;
 }
 
-/* @and{BRANCH}{BRANCH}...
+/* @and{BRANCH}{BRANCH}...@
  *
  * Expands to "true" if all the branches are "true" otherwise to "false".  If
  * there are no brances then the result is "true".  Only as many branches as
@@ -240,7 +246,7 @@ static int exp_and(int nargs,
   return mx_bool_result(output, result);
 }
 
-/* @or{BRANCH}{BRANCH}...
+/* @or{BRANCH}{BRANCH}...@
  *
  * Expands to "true" if any of the branches are "true" otherwise to "false".
  * If there are no brances then the result is "false".  Only as many branches
@@ -266,7 +272,7 @@ static int exp_or(int nargs,
   return mx_bool_result(output, result);
 }
 
-/* @not{CONDITION}
+/* @not{CONDITION}@
  *
  * Expands to "true" unless CONDITION is "true" in which case "false".
  */
@@ -277,7 +283,7 @@ static int exp_not(int attribute((unused)) nargs,
   return mx_bool_result(output, !mx_str2bool(args[0]));
 }
 
-/* @#{...}
+/* @#{...}@
  *
  * Expands to nothing.  The argument(s) are not fully evaluated, and no side
  * effects occur.
@@ -289,7 +295,7 @@ static int exp_comment(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @urlquote{STRING}
+/* @urlquote{STRING}@
  *
  * URL-quotes a string, i.e. replaces any characters not safe to use unquoted
  * in a URL with %-encoded form.
@@ -304,7 +310,7 @@ static int exp_urlquote(int attribute((unused)) nargs,
     return 0;
 }
 
-/* @eq{S1}{S2}...
+/* @eq{S1}{S2}...@
  *
  * Expands to "true" if all the arguments are identical, otherwise to "false"
  * (i.e. if any pair of arguments differs).
@@ -328,7 +334,7 @@ static int exp_eq(int nargs,
   return mx_bool_result(output, result);
 }
 
-/* @ne{S1}{S2}...
+/* @ne{S1}{S2}...@
  *
  * Expands to "true" if all of the arguments differ from one another, otherwise
  * to "false" (i.e. if any value appears more than once).
@@ -352,7 +358,7 @@ static int exp_ne(int nargs,
   return mx_bool_result(output, result);
 }
 
-/* @discard{...}
+/* @discard{...}@
  *
  * Expands to nothing.  Unlike the comment expansion @#{...}, side effects of
  * arguments are not suppressed.  So this can be used to surround a collection
@@ -365,7 +371,7 @@ static int exp_discard(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @define{NAME}{ARG1 ARG2...}{DEFINITION}
+/* @define{NAME}{ARG1 ARG2...}{DEFINITION}@
  *
  * Define a macro.  The macro will be called NAME and will act like an
  * expansion.  When it is expanded, the expansion is replaced by DEFINITION,

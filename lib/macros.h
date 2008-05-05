@@ -106,6 +106,7 @@ int mx_register_macro(const char *name,
 
 void mx_register_builtin(void);
 void mx_search_path(const char *s);
+char *mx_find(const char *name);
 
 int mx_expand_file(const char *path,
                    struct sink *output,
@@ -117,6 +118,10 @@ int mx_expandstr(const struct mx_node *m,
                  char **sp,
                  void *u,
                  const char *what);
+const struct mx_node *mx_rewrite(const struct mx_node *definition,
+                                 hash *h);
+const struct mx_node *mx_rewritel(const struct mx_node *m,
+                                  ...);
 
 int mx_str2bool(const char *s);
 const char *mx_bool2str(int n);

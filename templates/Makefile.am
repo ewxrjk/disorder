@@ -18,10 +18,10 @@
 # USA
 #
 
-pkgdata_DATA=about.html choose.html credits.html playing.html recent.html \
-	     stdhead.html stylesheet.html search.html about.html volume.html \
-	     prefs.html help.html choosealpha.html topbar.html \
-	     topbarend.html error.html new.html login.html \
+pkgdata_DATA=about.tmpl choose.tmpl credits.tmpl playing.tmpl recent.tmpl \
+	     stdhead.tmpl stylesheet.tmpl search.tmpl about.tmpl volume.tmpl \
+	     prefs.tmpl help.tmpl choosealpha.tmpl topbar.tmpl \
+	     topbarend.tmpl error.tmpl new.tmpl login.tmpl \
 	     options options.labels \
 	     options.columns
 static_DATA=disorder.css

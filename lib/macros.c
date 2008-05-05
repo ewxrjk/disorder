@@ -34,11 +34,11 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "hash.h"
 #include "macros.h"
 #include "mem.h"
 #include "vector.h"
 #include "log.h"
-#include "hash.h"
 #include "sink.h"
 #include "syscalls.h"
 #include "printf.h"
@@ -552,13 +552,45 @@ int mx_expand_file(const char *path,
   return rc;
 }
 
-/** @brief Rewrite a parse tree substituting in macro arguments
+/* Macros ------------------------------------------------------------------- */
+
+/** @brief Rewrite a parse tree substituting sub-expansions
  * @param m Parse tree to rewrite (from macro definition)
+ * @param ... Name/value pairs to rewrite
+ * @return Rewritten parse tree
+ *
+ * The name/value pair list consists of pairs of strings and is terminated by
+ * (char *)0.  Names and values are both copied so need not survive the call.
+ */
+const struct mx_node *mx_rewritel(const struct mx_node *m,
+                                  ...) {
+  va_list ap;
+  hash *h = hash_new(sizeof (struct mx_node *));
+  const char *n, *v;
+  struct mx_node *e;
+
+  va_start(ap, m);
+  while((n = va_arg(ap, const char *))) {
+    v = va_arg(ap, const char *);
+    e = xmalloc(sizeof *e);
+    e->next = 0;
+    e->filename = m->filename;
+    e->line = m->line;
+    e->type = MX_TEXT;
+    e->text = xstrdup(v);
+    hash_add(h, n, &e, HASH_INSERT);
+    /* hash_add() copies n */
+  }
+  return mx_rewrite(m, h);
+}
+
+/** @brief Rewrite a parse tree substituting in macro arguments
+ * @param definition Parse tree to rewrite (from macro definition)
  * @param h Hash mapping argument names to argument values
  * @return Rewritten parse tree
  */
-static const struct mx_node *mx__rewrite(const struct mx_node *definition,
-                                         hash *h) {
+const struct mx_node *mx_rewrite(const struct mx_node *definition,
+                                 hash *h) {
   const struct mx_node *head = 0, **tailp = &head, *argvalue, *m, *mm;
   struct mx_node *nm;
   int n;
@@ -598,7 +630,7 @@ static const struct mx_node *mx__rewrite(const struct mx_node *definition,
         *nm = *m;
         nm->args = xcalloc(nm->nargs, sizeof (struct mx_node *));
         for(n = 0; n < nm->nargs; ++n)
-          nm->args[n] = mx__rewrite(m->args[n], h);
+          nm->args[n] = mx_rewrite(m->args[n], h);
         nm->next = 0;
         *tailp = nm;
         tailp = (const struct mx_node **)&nm->next;
@@ -632,7 +664,7 @@ static int mx__expand_macro(const struct expansion *e,
   for(n = 0; n < m->nargs; ++n)
     hash_add(h, e->args[n], &m->args[n], HASH_INSERT);
   /* Generate a rewritten parse tree */
-  m = mx__rewrite(e->definition, h);
+  m = mx_rewrite(e->definition, h);
   /* Expand the result */
   return mx_expand(m, output, u);
   /* mx_expand() will update the backtrace */
