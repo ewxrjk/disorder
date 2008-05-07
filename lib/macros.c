@@ -107,6 +107,13 @@ static int mx__expand_macro(const struct expansion *e,
 
 /* Parsing ------------------------------------------------------------------ */
 
+static int next_non_whitespace(const char *input,
+                               const char *end) {
+  while(input < end && isspace((unsigned char)*input))
+    ++input;
+  return input < end ? *input : -1;
+}
+
 /** @brief Parse a template
  * @param filename Input filename (for diagnostics)
  * @param line Line number (use 1 on initial call)
@@ -126,18 +133,21 @@ const struct mx_node *mx_parse(const char *filename,
 			       int line,
 			       const char *input,
 			       const char *end) {
-  int braces, expansion_start_line, argument_start_line;
-  const char *argument_start, *argument_end, *p;
+  int braces, argument_start_line, obracket, cbracket;
+  const char *argument_start, *argument_end;
   struct mx_node_vector v[1];
   struct dynstr d[1];
   struct mx_node *head = 0, **tailp = &head, *e;
-  int omitted_terminator;
 
   if(!end)
     end = input + strlen(input);
   while(input < end) {
     if(*input != '@') {
-      expansion_start_line = line;
+      e = xmalloc(sizeof *e);
+      e->next = 0;
+      e->filename = filename;
+      e->line = line;
+      e->type = MX_TEXT;
       dynstr_init(d);
       /* Gather up text without any expansions in. */
       while(input < end && *input != '@') {
@@ -146,126 +156,115 @@ const struct mx_node *mx_parse(const char *filename,
 	dynstr_append(d, *input++);
       }
       dynstr_terminate(d);
-      e = xmalloc(sizeof *e);
-      e->next = 0;
-      e->filename = filename;
-      e->line = expansion_start_line;
-      e->type = MX_TEXT;
       e->text = d->vec;
       *tailp = e;
       tailp = &e->next;
       continue;
     }
-    mx_node_vector_init(v);
-    braces = 0;
-    p = input;
+    if(input + 1 < end)
+      switch(input[1]) {
+      case '@':
+        /* '@@' expands to '@' */
+        e = xmalloc(sizeof *e);
+        e->next = 0;
+        e->filename = filename;
+        e->line = line;
+        e->type = MX_TEXT;
+        e->text = "@";
+        *tailp = e;
+        tailp = &e->next;
+        input += 2;
+        continue;
+      case '#':
+        /* '@#' starts a (newline-eating comment), like dnl */
+        input += 2;
+        while(input < end && *input != '\n')
+          ++input;
+        if(*input == '\n') {
+          ++line;
+          ++input;
+        }
+        continue;
+      case '_':
+        /* '@_' expands to nothing.  It's there to allow dump to terminate
+         * expansions without having to know what follows. */
+        input += 2;
+        continue;
+      }
+    /* It's a full expansion */
     ++input;
-    expansion_start_line = line;
-    omitted_terminator = 0;
-    while(!omitted_terminator && input < end && *input != '@') {
-      /* Skip whitespace */
-      if(isspace((unsigned char)*input)) {
-	if(*input == '\n')
-	  ++line;
-	++input;
-	continue;
-      }
-      if(*input == '{') {
-	/* This is a bracketed argument.  We'll walk over it counting
-	 * braces to figure out where the end is. */
-	++input;
-	argument_start = input;
-	argument_start_line = line;
-	while(input < end && (*input != '}' || braces > 0)) {
-	  switch(*input++) {
-	  case '{': ++braces; break;
-	  case '}': --braces; break;
-	  case '\n': ++line; break;
-	  }
-	}
-        /* If we run out of input without seeing a '}' that's an error */
-	if(input >= end)
-	  fatal(0, "%s:%d: unterminated expansion '%.*s'",
-		filename, argument_start_line,
-		(int)(input - argument_start), argument_start);
-        /* Consistency check */
-	assert(*input == '}');
-        /* Record the end of the argument */
-        argument_end = input;
-        /* Step over the '}' */
-	++input;
-	if(input < end && isspace((unsigned char)*input)) {
-	  /* There is at least some whitespace after the '}'.  Look
-	   * ahead and see what is after all the whitespace. */
-	  for(p = input; p < end && isspace((unsigned char)*p); ++p)
-	    ;
-	  /* Now we are looking after the whitespace.  If it's
-	   * anything other than '{', including the end of the input,
-	   * then we infer that this expansion finished at the '}' we
-	   * just saw.  (NB that we don't move input forward to p -
-	   * the whitespace is NOT part of the expansion.) */
-	  if(p == end || *p != '{')
-	    omitted_terminator = 1;
-	}
-      } else {
-	/* We are looking at an unbracketed argument.  (A common example would
-	 * be the expansion or macro name.)  This is terminated by an '@'
-	 * (indicating the end of the expansion), a ':' (allowing a subsequent
-	 * unbracketed argument) or a '{' (allowing a bracketed argument).  The
-	 * end of the input will also do. */
-	argument_start = input;
-	argument_start_line = line;
-	while(input < end
-	      && *input != '@' && *input != '{' && *input != ':') {
-	  if(*input == '\n') ++line;
-	  ++input;
-	}
-        argument_end = input;
-        /* Trailing whitespace is not significant in unquoted arguments (and
-         * leading whitespace is eliminated by the whitespace skip above). */
-        while(argument_end > argument_start
-              && isspace((unsigned char)argument_end[-1]))
-          --argument_end;
-        /* Step over the ':' if that's what we see */
-	if(input < end && *input == ':')
-	  ++input;
-      }
-      /* Now we have an argument in [argument_start, argument_end), and we know
-       * its filename and initial line number.  This is sufficient to parse
-       * it. */
-      mx_node_vector_append(v, mx_parse(filename, argument_start_line,
-                                        argument_start, argument_end));
-    }
-    /* We're at the end of an expansion.  We might have hit the end of the
-     * input, we might have hit an '@' or we might have matched the
-     * omitted_terminator criteria. */
-    if(input < end) {
-      if(!omitted_terminator) {
-        assert(*input == '@');
-        ++input;
-      }
-    }
-    /* @@ terminates this file */
-    if(v->nvec == 0)
-      break;
-    /* Currently we require that the first element, the expansion name, is
-     * always plain text.  Removing this restriction would raise some
-     * interesting possibilities but for the time being it is considered an
-     * error. */
-    if(v->vec[0]->type != MX_TEXT)
-      fatal(0, "%s:%d: expansion names may not themselves contain expansions",
-            v->vec[0]->filename, v->vec[0]->line);
-    /* Guarantee a NULL terminator (for the case where there's more than one
-     * argument) */
-    mx_node_vector_terminate(v);
     e = xmalloc(sizeof *e);
     e->next = 0;
     e->filename = filename;
-    e->line = expansion_start_line;
+    e->line = line;
     e->type = MX_EXPANSION;
-    e->name = v->vec[0]->text;
-    e->nargs = v->nvec - 1;
-    e->args = v->nvec > 1 ? &v->vec[1] : 0;
+    /* Collect the expansion name.  Expansion names start with an alnum and
+     * consist of alnums and '-'.  We don't permit whitespace between the '@'
+     * and the name. */
+    dynstr_init(d);
+    if(input == end || !isalnum((unsigned char)*input))
+      fatal(0, "%s:%d: invalid expansion", filename, e->line);
+    while(input < end && (isalnum((unsigned char)*input) || *input == '-'))
+      dynstr_append(d, *input++);
+    dynstr_terminate(d);
+    e->name = d->vec;
+    /* See what the bracket character is */
+    obracket = next_non_whitespace(input, end);
+    switch(obracket) {
+    case '(': cbracket = ')'; break;
+    case '[': cbracket = ']'; break;
+    case '{': cbracket = '}'; break;
+    default: obracket = -1; break;      /* no arguments */
+    }
+    mx_node_vector_init(v);
+    if(obracket >= 0) {
+      /* Gather up arguments */
+      while(next_non_whitespace(input, end) == obracket) {
+        while(isspace((unsigned char)*input)) {
+          if(*input == '\n')
+            ++line;
+          ++input;
+        }
+        ++input;                        /* the bracket */
+        braces = 0;
+        /* Find the end of the argument */
+        argument_start = input;
+        argument_start_line = line;
+        while(input < end && (*input != cbracket || braces > 0)) {
+          const int c = *input++;
+
+          if(c == obracket)
+            ++braces;
+          else if(c == cbracket)
+            --braces;
+          else if(c == '\n')
+            ++line;
+        }
+        if(input >= end) {
+          /* We ran out of input without encountering a balanced cbracket */
+	  fatal(0, "%s:%d: unterminated expansion argument '%.*s'",
+		filename, argument_start_line,
+		(int)(input - argument_start), argument_start);
+        }
+        /* Consistency check */
+        assert(*input == cbracket);
+        /* Record the end of the argument */
+        argument_end = input;
+        /* Step over the cbracket */
+	++input;
+        /* Now we have an argument in [argument_start, argument_end), and we
+         * know its filename and initial line number.  This is sufficient to
+         * parse it. */
+        mx_node_vector_append(v, mx_parse(filename, argument_start_line,
+                                          argument_start, argument_end));
+      }
+    }
+    /* Guarantee a NULL terminator (for the case where there's more than one
+     * argument) */
+    mx_node_vector_terminate(v);
+    /* Fill in the remains of the node */
+    e->nargs = v->nvec;
+    e->args = v->vec;
     *tailp = e;
     tailp = &e->next;
   }
@@ -274,11 +273,14 @@ const struct mx_node *mx_parse(const char *filename,
 
 static void mx__dump(struct dynstr *d, const struct mx_node *m) {
   int n;
-  
+  const struct mx_node *mm;
+
   if(!m)
     return;
   switch(m->type) {
   case MX_TEXT:
+    if(m->text[0] == '@')
+      dynstr_append(d, '@');
     dynstr_append_string(d, m->text);
     break;
   case MX_EXPANSION:
@@ -289,7 +291,22 @@ static void mx__dump(struct dynstr *d, const struct mx_node *m) {
       mx__dump(d, m->args[n]);
       dynstr_append(d, '}');
     }
-    dynstr_append(d, '@');
+    /* If the next non-whitespace is '{', add @_ to stop it being
+     * misinterpreted */
+    mm = m->next;
+    while(mm && mm->type == MX_TEXT) {
+      switch(next_non_whitespace(mm->text, mm->text + strlen(mm->text))) {
+      case -1:
+        mm = mm->next;
+        continue;
+      case '{':
+        dynstr_append_string(d, "@_");
+        break;
+      default:
+        break;
+      }
+      break;
+    }
     break;
   default:
     assert(!"invalid m->type");
@@ -297,7 +314,10 @@ static void mx__dump(struct dynstr *d, const struct mx_node *m) {
   mx__dump(d, m->next);
 }
 
-/** @brief Dump a parse macro expansion to a string */
+/** @brief Dump a parse macro expansion to a string
+ *
+ * Not of production quality!  Only intended for testing!
+ */
 char *mx_dump(const struct mx_node *m) {
   struct dynstr d[1];
 

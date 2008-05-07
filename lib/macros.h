@@ -42,10 +42,10 @@ struct mx_node {
   int line;
   
   /** @brief Plain text (if @p type is @ref MX_TEXT) */
-  char *text;
+  const char *text;
 
   /** @brief Expansion name (if @p type is @ref MX_EXPANSION) */
-  char *name;
+  const char *name;
 
   /** @brief Argument count (if @p type is @ref MX_EXPANSION) */
   int nargs;

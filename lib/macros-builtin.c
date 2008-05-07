@@ -122,7 +122,7 @@ static int exp_include(int attribute((unused)) nargs,
   struct stat sb;
 
   if(!(path = mx_find(args[0]))) {
-    if(sink_printf(output, "[[cannot find '%s']]", name) < 0)
+    if(sink_printf(output, "[[cannot find '%s']]", args[0]) < 0)
       return 0;
     return 0;
   }

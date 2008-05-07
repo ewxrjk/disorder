@@ -55,124 +55,53 @@ static void test_macros(void) {
   /* Simple macro parsing --------------------------------------------------- */
 
   /* The simplest possible expansion */
-  m = mx_parse("macro1", 1, "@macro@", NULL);
+  m = mx_parse("macro1", 1, "@macro", NULL);
   check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro1");
   check_integer(m->line, 1);
   check_string(m->name, "macro");
   check_integer(m->nargs, 0);
-  insist(m->args == 0);
   insist(m->next == 0);
-  check_string(mx_dump(m), "@macro@");
+  check_string(mx_dump(m), "@macro");
 
-  /* Spacing variants of the above */
-  m = mx_parse("macro2", 1, "@    macro@", NULL);
+  m = mx_parse("macro2", 1, "@macro    ", NULL);
   check_integer(m->type, MX_EXPANSION);
   check_string(m->filename, "macro2");
   check_integer(m->line, 1);
   check_string(m->name, "macro");
   check_integer(m->nargs, 0);
-  insist(m->args == 0);
-  insist(m->next == 0);
-  check_string(mx_dump(m), "@macro@");
-  m = mx_parse("macro3", 1, "@macro    @", NULL);
-  check_integer(m->type, MX_EXPANSION);
-  check_string(m->filename, "macro3");
-  check_integer(m->line, 1);
-  check_string(m->name, "macro");
-  check_integer(m->nargs, 0);
-  insist(m->args == 0);
-  insist(m->next == 0);
-  check_string(mx_dump(m), "@macro@");
-
-  /* Unterminated variants */
-  m = mx_parse("macro4", 1, "@macro", NULL);
-  check_integer(m->type, MX_EXPANSION);
-  check_string(m->filename, "macro4");
-  check_integer(m->line, 1);
-  check_string(m->name, "macro");
-  check_integer(m->nargs, 0);
-  insist(m->args == 0);
-  insist(m->next == 0);
-  check_string(mx_dump(m), "@macro@");
-  m = mx_parse("macro5", 1, "@macro   ", NULL);
-  check_integer(m->type, MX_EXPANSION);
-  check_string(m->filename, "macro5");
-  check_integer(m->line, 1);
-  check_string(m->name, "macro");
-  check_integer(m->nargs, 0);
-  insist(m->args == 0);
-  insist(m->next == 0);
-  check_string(mx_dump(m), "@macro@");
-
-  /* Macros with a :-separated argument */
-  m = mx_parse("macro5", 1, "@macro:arg@", NULL);
-  check_integer(m->type, MX_EXPANSION);
-  check_string(m->filename, "macro5");
-  check_integer(m->line, 1);
-  check_string(m->name, "macro");
-  check_integer(m->nargs, 1);
-  insist(m->next == 0);
-  
-  check_integer(m->args[0]->type, MX_TEXT);
-  check_string(m->args[0]->filename, "macro5");
-  check_integer(m->args[0]->line, 1);
-  check_string(m->args[0]->text, "arg");
-  insist(m->args[0]->next == 0);
-
-  check_string(mx_dump(m), "@macro{arg}@");
-
-  /* Multiple :-separated arguments, and spacing, and newlines */
-  m = mx_parse("macro6", 1, "@macro : \n arg1 : \n arg2@", NULL);
-  check_integer(m->type, MX_EXPANSION);
-  check_string(m->filename, "macro6");
-  check_integer(m->line, 1);
-  check_string(m->name, "macro");
-  check_integer(m->nargs, 2);
-  insist(m->next == 0);
-  
-  check_integer(m->args[0]->type, MX_TEXT);
-  check_string(m->args[0]->filename, "macro6");
-  check_integer(m->args[0]->line, 2);
-  check_string(m->args[0]->text, "arg1");
-  insist(m->args[0]->next == 0);
-  
-  check_integer(m->args[1]->type, MX_TEXT);
-  check_string(m->args[1]->filename, "macro6");
-  check_integer(m->args[1]->line, 3);
-  check_string(m->args[1]->text, "arg2");
-  insist(m->args[1]->next == 0);
-
-  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
+  insist(m->next != 0);
+  check_integer(m->next->type, MX_TEXT);
+  check_string(mx_dump(m), "@macro    ");
 
   /* Multiple bracketed arguments */
-  m = mx_parse("macro7", 1, "@macro{arg1}{arg2}@", NULL);
-  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
+  m = mx_parse("macro7", 1, "@macro{arg1}{arg2}", NULL);
+  check_string(mx_dump(m), "@macro{arg1}{arg2}");
 
-  m = mx_parse("macro8", 1, "@macro{\narg1}{\narg2}@", NULL);
-  check_string(mx_dump(m), "@macro{\narg1}{\narg2}@");
+  m = mx_parse("macro8", 1, "@macro{\narg1}{\narg2}", NULL);
+  check_string(mx_dump(m), "@macro{\narg1}{\narg2}");
   check_integer(m->args[0]->line, 1);
   check_integer(m->args[1]->line, 2);
   /* ...yes, lines 1 and 2: the first character of the first arg is
    * the \n at the end of line 1.  Compare with macro9: */
 
-  m = mx_parse("macro9", 1, "@macro\n{arg1}\n{arg2}@", NULL);
-  check_string(mx_dump(m), "@macro{arg1}{arg2}@");
+  m = mx_parse("macro9", 1, "@macro\n{arg1}\n{arg2}", NULL);
+  check_string(mx_dump(m), "@macro{arg1}{arg2}");
   check_integer(m->args[0]->line, 2);
   check_integer(m->args[1]->line, 3);
 
   /* Arguments that themselves contain expansions */
-  m = mx_parse("macro10", 1, "@macro{@macro2{arg1}{arg2}@}@", NULL);
-  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@}@");
+  m = mx_parse("macro10", 1, "@macro{@macro2{arg1}{arg2}}", NULL);
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}}");
 
   /* ...and with omitted trailing @ */
   m = mx_parse("macro11", 1, "@macro{@macro2{arg1}{arg2}}", NULL);
-  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@}@");
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}}");
 
   /* Similarly but with more whitespace; NB that the whitespace is
    * preserved. */
   m = mx_parse("macro12", 1, "@macro {@macro2 {arg1} {arg2}  }\n", NULL);
-  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}@  }@\n");
+  check_string(mx_dump(m), "@macro{@macro2{arg1}{arg2}  }\n");
 
   /* Simple expansions ------------------------------------------------------ */
 
@@ -197,13 +126,21 @@ static void test_macros(void) {
 
   check_macro("empty", "", "", 0);
   check_macro("plain", plain, plain, 0);
+  check_macro("quote1", "@@", "@", 0);
+  check_macro("quote2", "@@@@", "@@", 0);
+  check_macro("nothing1", "@_", "", 0);
+  check_macro("nothing2", "<@_>", "<>", 0);
 
   check_macro("if1", "@if{true}{yes}{no}", "yes", 0);
   check_macro("if2", "@if{true}{yes}", "yes", 0);
   check_macro("if3", "@if{false}{yes}{no}", "no", 0);
   check_macro("if4", "@if{false}{yes}", "", 0);
   check_macro("if5", "@if{ true}{yes}", "", 0);
+  check_macro("if6", "@if{true}{yes}@_{wible}t", "yes{wible}t", 0);
 
+  check_macro("br1", "@if(true)(yes)(no)", "yes", 0);
+  check_macro("br1", "@if[true][yes]{no}", "yes{no}", 0);
+  
   check_macro("and1", "@and", "true", 0);
   check_macro("and2", "@and{true}", "true", 0);
   check_macro("and3", "@and{false}", "false", 0);
@@ -224,8 +161,8 @@ static void test_macros(void) {
   check_macro("not2", "@not{false}", "true", 0);
   check_macro("not3", "@not{wibble}", "true", 0);
 
-  check_macro("comment1", "@#{wibble}", "", 0);
-  check_macro("comment2", "@#{comment with a\nnewline in}", "", 0);
+  check_macro("comment1", "@# wibble\n", "", 0);
+  check_macro("comment2", "@# comment\nplus a line", "plus a line", 0);
 
   check_macro("discard1", "@discard{wibble}", "", 0);
   check_macro("discard2", "@discard{comment with a\nnewline in}", "", 0);
@@ -265,21 +202,21 @@ static void test_macros(void) {
   check_macro("include2", "@include{t-macros-2}",
               "wibble\n", 0);
   fprintf(stderr, ">>> expect error message about t-macros-nonesuch:\n");
-  check_macro("include3", "<@include{t-macros-nonesuch}@>",
-              "<[[cannot find template 't-macros-nonesuch']]>", 0);
+  check_macro("include3", "<@include{t-macros-nonesuch}>",
+              "<[[cannot find 't-macros-nonesuch']]>", 0);
   fprintf(stderr, ">>> expect error message about 'wibble':\n");
-  check_macro("badex1", "<@wibble@>",
+  check_macro("badex1", "<@wibble>",
               "<[['wibble' unknown]]>", 0);
   fprintf(stderr, ">>> expect error message about 'if':\n");
-  check_macro("badex2", "<@if@>",
+  check_macro("badex2", "<@if>",
               "<[['if' too few args]]>", 0);
   fprintf(stderr, ">>> expect error message about 'if':\n");
-  check_macro("badex3", "<@if:1:2:3:4:5@>",
+  check_macro("badex3", "<@if{1}{2}{3}{4}{5}>",
               "<[['if' too many args]]>", 0);
   
   /* Macro definitions ------------------------------------------------------ */
 
-  check_macro("macro1", "@define{m}{a b c}{@c@ @b@ @a@}@"
+  check_macro("macro1", "@define{m}{a b c}{@c @b @a}@#\n"
               "@m{1}{2}{3}",
               "3 2 1", 0);
   check_macro("macro2", "@m{b}{c}{a}",
@@ -289,8 +226,8 @@ static void test_macros(void) {
   check_macro("macro4",
               "@discard{\n"
               "  @define{n}{a b c}\n"
-              "    {@if{@eq{@a@}{@b@}} {@c@} {no}}\n"
-              "}@"
+              "    {@if{@eq{@a}{@b}} {@c} {no}}\n"
+              "}@#\n"
               "@n{x}{y}{z}",
               "no", 0);
   check_macro("macro5",
