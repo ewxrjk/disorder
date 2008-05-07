@@ -94,51 +94,6 @@ void cgi_body(struct sink *output) {
   sink_printf(output, "\r\n");
 }
 
-const char *cgi_label(const char *key) {
-  const char *label;
-
-  read_options();
-  if(!(label = kvp_get(labels, key))) {
-    /* No label found */
-    if(!strncmp(key, "images.", 7)) {
-      static const char *url_static;
-      /* images.X defaults to <url.static>X.png */
-
-      if(!url_static)
-	url_static = cgi_label("url.static");
-      byte_xasprintf((char **)&label, "%s%s.png", url_static, key + 7);
-    } else if((label = strchr(key, '.')))
-      /* X.Y defaults to Y */
-      ++label;
-    else
-      /* otherwise default to label name */
-      label = key;
-  }
-  return label;
-}
-
-int cgi_label_exists(const char *key) {
-  read_options();
-  return kvp_get(labels, key) ? 1 : 0;
-}
-
-char **cgi_columns(const char *name, int *ncolumns) {
-  struct column *c;
-
-  read_options();
-  for(c = columns; c && strcmp(name, c->name); c = c->next)
-    ;
-  if(c) {
-    if(ncolumns)
-      *ncolumns = c->ncolumns;
-    return c->columns;
-  } else {
-    if(ncolumns)
-      *ncolumns = 0;
-    return 0;
-  }
-}
-
 /*
 Local Variables:
 c-basic-offset:2
