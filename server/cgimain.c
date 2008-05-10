@@ -23,41 +23,14 @@
 
 #include "disorder-cgi.h"
 
-/** @brief Return true if @p a is better than @p b
- *
- * NB. We don't bother checking if the path is right, we merely check for the
- * longest path.  This isn't a security hole: if the browser wants to send us
- * bad cookies it's quite capable of sending just the right path anyway.  The
- * point of choosing the longest path is to avoid using a cookie set by another
- * CGI script which shares a path prefix with us, which would allow it to
- * maliciously log users out.
- *
- * Such a script could still "maliciously" log someone in, if it had acquired a
- * suitable cookie.  But it could just log in directly if it had that, so there
- * is no obvious vulnerability here either.
- */
-static int better_cookie(const struct cookie *a, const struct cookie *b) {
-  if(a->path && b->path)
-    /* If both have a path then the one with the longest path is best */
-    return strlen(a->path) > strlen(b->path);
-  else if(a->path)
-    /* If only @p a has a path then it is better */
-    return 1;
-  else
-    /* If neither have a path, or if only @p b has a path, then @p b is
-     * better */
-    return 0;
-}
-
 int main(int argc, char **argv) {
-  const char *cookie_env, *conf;
-  int n, best_cookie;
-  struct cookiedata cd;
+  const char *conf;
 
   if(argc > 0)
     progname = argv[0];
   /* RFC 3875 s8.2 recommends rejecting PATH_INFO if we don't make use of
    * it. */
+  /* TODO we could make disorder/ACTION equivalent to disorder?action=ACTION */
   if(getenv("PATH_INFO")) {
     /* TODO it might be nice to link back to the right place... */
     printf("Content-Type: text/html\n");
@@ -66,6 +39,7 @@ int main(int argc, char **argv) {
     printf("<p>Sorry, PATH_INFO not supported.</p>\n");
     exit(0);
   }
+  /* Parse CGI arguments */
   cgi_init();
   /* We allow various things to be overridden from the environment.  This is
    * intended for debugging and is not a documented feature. */
@@ -79,27 +53,8 @@ int main(int argc, char **argv) {
    * necessary but it shouldn't be necessary in ordinary installations. */
   if(!config->url)
     config->url = infer_url();
-  /* See if there's a cookie */
-  cookie_env = getenv("HTTP_COOKIE");
-  if(cookie_env) {
-    /* This will be an HTTP header */
-    if(!parse_cookie(cookie_env, &cd)) {
-      /* Pick the best available cookie from all those offered */
-      best_cookie = -1;
-      for(n = 0; n < cd.ncookies; ++n) {
-	/* Is this the right cookie? */
-	if(strcmp(cd.cookies[n].name, "disorder"))
-	  continue;
-	/* Is it better than anything we've seen so far? */
-	if(best_cookie < 0
-	   || better_cookie(&cd.cookies[n], &cd.cookies[best_cookie]))
-	  best_cookie = n;
-      }
-      if(best_cookie != -1)
-	dcgi_cookie = cd.cookies[best_cookie].value;
-    } else
-      error(0, "could not parse cookie field '%s'", cookie_env);
-  }
+  /* Pick up the cookie, if there is one */
+  dcgi_get_cookie();
   /* Register expansions */
   mx_register_builtin();
   dcgi_expansions();

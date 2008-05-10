@@ -28,8 +28,63 @@
  */
 disorder_client *dcgi_client;
 
+/** @brief Return true if @p a is better than @p b
+ *
+ * NB. We don't bother checking if the path is right, we merely check for the
+ * longest path.  This isn't a security hole: if the browser wants to send us
+ * bad cookies it's quite capable of sending just the right path anyway.  The
+ * point of choosing the longest path is to avoid using a cookie set by another
+ * CGI script which shares a path prefix with us, which would allow it to
+ * maliciously log users out.
+ *
+ * Such a script could still "maliciously" log someone in, if it had acquired a
+ * suitable cookie.  But it could just log in directly if it had that, so there
+ * is no obvious vulnerability here either.
+ */
+static int better_cookie(const struct cookie *a, const struct cookie *b) {
+  if(a->path && b->path)
+    /* If both have a path then the one with the longest path is best */
+    return strlen(a->path) > strlen(b->path);
+  else if(a->path)
+    /* If only @p a has a path then it is better */
+    return 1;
+  else
+    /* If neither have a path, or if only @p b has a path, then @p b is
+     * better */
+    return 0;
+}
+
 /** @brief Login cookie */
 char *dcgi_cookie;
+
+/** @brief Set @ref login_cookie */
+void dcgi_get_cookie(void) {
+  const char *cookie_env;
+  int n, best_cookie;
+  struct cookiedata cd;
+
+  /* See if there's a cookie */
+  cookie_env = getenv("HTTP_COOKIE");
+  if(cookie_env) {
+    /* This will be an HTTP header */
+    if(!parse_cookie(cookie_env, &cd)) {
+      /* Pick the best available cookie from all those offered */
+      best_cookie = -1;
+      for(n = 0; n < cd.ncookies; ++n) {
+	/* Is this the right cookie? */
+	if(strcmp(cd.cookies[n].name, "disorder"))
+	  continue;
+	/* Is it better than anything we've seen so far? */
+	if(best_cookie < 0
+	   || better_cookie(&cd.cookies[n], &cd.cookies[best_cookie]))
+	  best_cookie = n;
+      }
+      if(best_cookie != -1)
+	dcgi_cookie = cd.cookies[best_cookie].value;
+    } else
+      error(0, "could not parse cookie field '%s'", cookie_env);
+  }
+}
 
 /** @brief Return a Cookie: header */
 char *dcgi_cookie_header(void) {

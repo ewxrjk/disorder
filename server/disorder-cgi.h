@@ -69,6 +69,7 @@ void dcgi_lookup_reset(void);
 void dcgi_expansions(void);
 char *dcgi_cookie_header(void);
 void dcgi_login(void);
+void dcgi_get_cookie(void);
 
 void option_set(const char *name, const char *value);
 const char *option_label(const char *key);
