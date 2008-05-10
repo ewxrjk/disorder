@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "hash.h"
 #include "mem.h"
