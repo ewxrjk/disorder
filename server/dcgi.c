@@ -63,38 +63,6 @@ static const char *front_url(void) {
   return config->url;
 }
 
-static void header_cookie(struct sink *output) {
-  struct dynstr d[1];
-  struct url u;
-
-  memset(&u, 0, sizeof u);
-  dynstr_init(d);
-  parse_url(config->url, &u);
-  if(login_cookie) {
-    dynstr_append_string(d, "disorder=");
-    dynstr_append_string(d, login_cookie);
-  } else {
-    /* Force browser to discard cookie */
-    dynstr_append_string(d, "disorder=none;Max-Age=0");
-  }
-  if(u.path) {
-    /* The default domain matches the request host, so we need not override
-     * that.  But the default path only goes up to the rightmost /, which would
-     * cause the browser to expose the cookie to other CGI programs on the same
-     * web server. */
-    dynstr_append_string(d, ";Version=1;Path=");
-    /* Formally we are supposed to quote the path, since it invariably has a
-     * slash in it.  However Safari does not parse quoted paths correctly, so
-     * this won't work.  Fortunately nothing else seems to care about proper
-     * quoting of paths, so in practice we get with it.  (See also
-     * parse_cookie() where we are liberal about cookie paths on the way back
-     * in.) */
-    dynstr_append_string(d, u.path);
-  }
-  dynstr_terminate(d);
-  cgi_header(output, "Set-Cookie", d->vec);
-}
-
 static void redirect(struct sink *output) {
   const char *back;
 
@@ -168,49 +136,6 @@ static void act_scratch(cgi_sink *output,
   if(ds->g->client)
     disorder_scratch(ds->g->client, cgi_get("id"));
   redirect(output->sink);
-}
-
-static void act_playing(cgi_sink *output, dcgi_state *ds) {
-  char r[1024];
-  long refresh = config->refresh, length;
-  time_t now, fin;
-  int random_enabled = 0;
-  int enabled = 0;
-
-  lookups(ds, DC_PLAYING|DC_QUEUE);
-  cgi_header(output->sink, "Content-Type", "text/html");
-  disorder_random_enabled(ds->g->client, &random_enabled);
-  disorder_enabled(ds->g->client, &enabled);
-  if(ds->g->playing
-     && ds->g->playing->state == playing_started /* i.e. not paused */
-     && !disorder_length(ds->g->client, ds->g->playing->track, &length)
-     && length
-     && ds->g->playing->sofar >= 0) {
-    /* Try to put the next refresh at the start of the next track. */
-    time(&now);
-    fin = now + length - ds->g->playing->sofar + config->gap;
-    if(now + refresh > fin)
-      refresh = fin - now;
-  }
-  if(ds->g->queue && ds->g->queue->state == playing_isscratch) {
-    /* next track is a scratch, don't leave more than the inter-track gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
-  }
-  if(!ds->g->playing && ((ds->g->queue
-			  && ds->g->queue->state != playing_random)
-			 || random_enabled) && enabled) {
-    /* no track playing but playing is enabled and there is something coming
-     * up, must be in a gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
-  }
-  byte_snprintf(r, sizeof r, "%ld;url=%s", refresh > 0 ? refresh : 1,
-		front_url());
-  cgi_header(output->sink, "Refresh", r);
-  header_cookie(output->sink);
-  cgi_body(output->sink);
-  expand(output, "playing", ds);
 }
 
 static void act_play(cgi_sink *output,

@@ -207,6 +207,12 @@ const char *cgi_get(const char *name) {
   return v ? *v : NULL;
 }
 
+/** @brief Set a CGI argument */
+void cgi_set(const char *name, const char *value) {
+  value = xstrdup(value);
+  hash_add(cgi_args, name, &value, HASH_INSERT_OR_REPLACE);
+}
+
 /** @brief Add SGML-style quoting
  * @param src String to quote (UTF-8)
  * @return Quoted string

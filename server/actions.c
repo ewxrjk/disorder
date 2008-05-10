@@ -27,6 +27,60 @@
 /** @brief Login cookie */
 char *login_cookie;
 
+/** @brief Return a Cookie: header */
+static char *cookie(void) {
+  struct dynstr d[1];
+  struct url u;
+  char *s;
+
+  memset(&u, 0, sizeof u);
+  dynstr_init(d);
+  parse_url(config->url, &u);
+  if(login_cookie) {
+    dynstr_append_string(d, "disorder=");
+    dynstr_append_string(d, login_cookie);
+  } else {
+    /* Force browser to discard cookie */
+    dynstr_append_string(d, "disorder=none;Max-Age=0");
+  }
+  if(u.path) {
+    /* The default domain matches the request host, so we need not override
+     * that.  But the default path only goes up to the rightmost /, which would
+     * cause the browser to expose the cookie to other CGI programs on the same
+     * web server. */
+    dynstr_append_string(d, ";Version=1;Path=");
+    /* Formally we are supposed to quote the path, since it invariably has a
+     * slash in it.  However Safari does not parse quoted paths correctly, so
+     * this won't work.  Fortunately nothing else seems to care about proper
+     * quoting of paths, so in practice we get with it.  (See also
+     * parse_cookie() where we are liberal about cookie paths on the way back
+     * in.) */
+    dynstr_append_string(d, u.path);
+  }
+  dynstr_terminate(d);
+  byte_xasprintf(&s, "Set-Cookie: %s", d->vec);
+  return s;
+}
+
+/** @brief Redirect to some other action or URL */
+static void redirect(const char *url) {
+  /* By default use the 'back' argument */
+  if(!url)
+    url = cgi_get("back")
+  if(url) {
+    if(!strncmp(url, "http", 4))
+      /* If the target is not a full URL assume it's the action */
+      url = cgi_makeurl(config->url, "action", url, (char *)0);
+  } else {
+    /* If back= is not set just go back to the front page */
+    url = config->url;
+  }
+  if(printf("Location: %s\n"
+            "%s\n"
+            "\n", url, cookie()) < 0)
+    fatal(errno, "error writing to stdout");
+}
+
 /* 'playing' and 'manage' just add a Refresh: header */
 static void act_playing(void) {
   long refresh = config->refresh;
@@ -67,9 +121,9 @@ static void act_playing(void) {
     url = config->url;
   if(printf("Content-Type: text/html\n"
             "Refresh: %ld;url=%s\n"
-            /* TODO cookie */
+            "%s\n"
             "\n",
-            refresh, url) < 0)
+            refresh, url, cookie()) < 0)
     fatal(errno, "error writing to stdout");
   disorder_cgi_expand(action ? action : "playing");
 }
@@ -141,6 +195,8 @@ void disorder_cgi_action(const char *action) {
       action = "confirm";
     else
       action = "playing";
+    /* Make sure 'action' is always set */
+    cgi_set("action", action);
   }
   if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)
     /* Its a known action */
@@ -148,8 +204,8 @@ void disorder_cgi_action(const char *action) {
   else {
     /* Just expand the template */
     if(printf("Content-Type: text/html\n"
-              /* TODO cookie */
-              "\n") < 0)
+              "%s\n"
+              "\n", cookie()) < 0)
       fatal(errno, "error writing to stdout");
     disorder_cgi_expand(action);
   }
