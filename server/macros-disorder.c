@@ -590,7 +590,7 @@ static int exp_enabled(int attribute((unused)) nargs,
   return mx_bool_result(output, enabled);
 }
 
-/* @trackstate{TRACK
+/* @trackstate{TRACK}
  *
  * Expands to "playing" if TRACK is currently playing, or "queue" if it is in
  * the queue, otherwise to nothing.

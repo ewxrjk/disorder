@@ -135,6 +135,7 @@ static const struct action {
   /** @brief Action handler */
   void (*handler)(void);
 } actions[] = {
+#if 0
   { "confirm", act_confirm },
   { "disable", act_disable },
   { "edituser", act_edituser },
@@ -145,7 +146,9 @@ static const struct action {
   { "move", act_move },
   { "pause", act_pause },
   { "play", act_play },
+#endif
   { "playing", act_playing },
+#if 0
   { "prefs", act_prefs },
   { "random-disable", act_random_disable },
   { "random-enable", act_random_enable },
@@ -155,6 +158,7 @@ static const struct action {
   { "resume", act_resume },
   { "scratch", act_scratch },
   { "volume", act_volume },
+#endif
 };
 
 /** @brief Expand a template
