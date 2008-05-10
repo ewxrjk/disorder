@@ -28,97 +28,10 @@
 #include "client.h"
 #include "cgi.h"
 #include "macros-disorder.h"
-
-/** @brief Client to use for DisOrder-specific expansions
- *
- * The caller should arrange for this to be created before any of
- * these expansions are used (if it cannot connect then it's safe to
- * leave it as NULL).
- */
-disorder_client *client;
+#include "lookups.h"
 
 /** @brief For error template */
 char *error_string;
-
-/** @brief Cached data */
-static unsigned flags;
-
-#define DC_QUEUE 0x0001
-#define DC_PLAYING 0x0002
-#define DC_RECENT 0x0004
-#define DC_VOLUME 0x0008
-#define DC_DIRS 0x0010
-#define DC_FILES 0x0020
-#define DC_NEW 0x0040
-#define DC_RIGHTS 0x0080
-
-static struct queue_entry *queue;
-static struct queue_entry *playing;
-static struct queue_entry *recent;
-
-static int volume_left;
-static int volume_right;
-
-static char **files;
-static int nfiles;
-
-static char **dirs;
-static int ndirs;
-
-static char **new;
-static int nnew;
-
-static rights_type rights;
-
-/** @brief Fetch cachable data */
-static void lookup(unsigned want) {
-  unsigned need = want ^ (flags & want);
-  struct queue_entry *r, *rnext;
-  const char *dir, *re;
-  char *rights;
-
-  if(!client || !need)
-    return;
-  if(need & DC_QUEUE)
-    disorder_queue(client, &queue);
-  if(need & DC_PLAYING)
-    disorder_playing(client, &playing);
-  if(need & DC_NEW)
-    disorder_new_tracks(client, &new, &nnew, 0);
-  if(need & DC_RECENT) {
-    /* we need to reverse the order of the list */
-    disorder_recent(client, &r);
-    while(r) {
-      rnext = r->next;
-      r->next = recent;
-      recent = r;
-      r = rnext;
-    }
-  }
-  if(need & DC_VOLUME)
-    disorder_get_volume(client,
-                        &volume_left, &volume_right);
-  if(need & (DC_FILES|DC_DIRS)) {
-    if(!(dir = cgi_get("directory")))
-      dir = "";
-    re = cgi_get("regexp");
-    if(need & DC_DIRS)
-      if(disorder_directories(client, dir, re,
-                              &dirs, &ndirs))
-        ndirs = 0;
-    if(need & DC_FILES)
-      if(disorder_files(client, dir, re,
-                        &files, &nfiles))
-        nfiles = 0;
-  }
-  if(need & DC_RIGHTS) {
-    rights = RIGHT_READ;	/* fail-safe */
-    if(!disorder_userinfo(client, disorder_user(client),
-                          "rights", &rights))
-      parse_rights(rights, &rights, 1);
-  }
-  flags |= need;
-}
 
 /** @brief Locate a track by ID */
 static struct queue_entry *findtrack(const char *id) {

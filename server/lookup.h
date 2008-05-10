@@ -17,16 +17,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file server/macros-disorder.h
- * @brief DisOrder-specific expansions
+/** @file server/lookup.h
+ * @brief Server lookup code for CGI
  */
 
-#ifndef MACROS_DISORDER_H
-#define MACROS_DISORDER_H
+#ifndef LOOKUP_H
+#define LOOKUP_H
 
 extern disorder_client *client;
-extern char *error_string;
-void register_disorder_expansions(void);
 
 #define DC_QUEUE 0x0001
 #define DC_PLAYING 0x0002
@@ -36,26 +34,31 @@ void register_disorder_expansions(void);
 #define DC_FILES 0x0020
 #define DC_NEW 0x0040
 #define DC_RIGHTS 0x0080
+#define DC_ENABLED 0x0100
+#define DC_RANDOM_ENABLED 0x0200
 
-static struct queue_entry *queue;
-static struct queue_entry *playing;
-static struct queue_entry *recent;
+extern struct queue_entry *queue;
+extern struct queue_entry *playing;
+extern struct queue_entry *recent;
 
-static int volume_left;
-static int volume_right;
+extern int volume_left;
+extern int volume_right;
 
-static char **files;
-static int nfiles;
+extern char **files;
+extern int nfiles;
 
-static char **dirs;
-static int ndirs;
+extern char **dirs;
+extern int ndirs;
 
-static char **new;
-static int nnew;
+extern char **new;
+extern int nnew;
 
-static rights_type rights;
+extern rights_type rights;
 
-#endif /* MACROS_DISORDER_H */
+extern int enabled;
+extern int random_enabled;
+
+#endif /* LOOKUP_H */
 
 /*
 Local Variables:

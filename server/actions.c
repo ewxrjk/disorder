@@ -21,8 +21,58 @@
 #include <config.h>
 #include "types.h"
 
+#include "actions.h"
+#include "lookups.h"
+
 /** @brief Login cookie */
 char *login_cookie;
+
+/* 'playing' and 'manage' just add a Refresh: header */
+static void act_playing(void) {
+  long refresh = config->refresh;
+  long length;
+  time_t now, fin;
+  char *url;
+
+  lookups(DC_PLAYING|DC_QUEUE|DC_ENABLED|DC_RANDOM_ENABLED);
+  if(playing
+     && playing->state == playing_started /* i.e. not paused */
+     && !disorder_length(client, playing->track, &length)
+     && length
+     && playing->sofar >= 0) {
+    /* Try to put the next refresh at the start of the next track. */
+    time(&now);
+    fin = now + length - playing->sofar + config->gap;
+    if(now + refresh > fin)
+      refresh = fin - now;
+  }
+  if(queue && queue->state == playing_isscratch) {
+    /* next track is a scratch, don't leave more than the inter-track gap */
+    if(refresh > config->gap)
+      refresh = config->gap;
+  }
+  if(!playing
+     && ((queue
+          && queue->state != playing_random)
+         || random_enabled)
+     && enabled) {
+    /* no track playing but playing is enabled and there is something coming
+     * up, must be in a gap */
+    if(refresh > config->gap)
+      refresh = config->gap;
+  }
+  if((action = cgi_get("action")))
+    url = cgi_makeurl(config->url, "action", action, (char *)0);
+  else
+    url = config->url;
+  if(printf("Content-Type: text/html\n"
+            "Refresh: %ld;url=%s\n"
+            /* TODO cookie */
+            "\n",
+            refresh, url) < 0)
+    fatal(errno, "error writing to stdout");
+  disorder_cgi_expand(action ? action : "playing");
+}
 
 /** @brief Table of actions */
 static const struct action {
@@ -37,7 +87,7 @@ static const struct action {
   { "enable", act_enable },
   { "login", act_login },
   { "logout", act_logout },
-  { "manage", act_manage },
+  { "manage", act_playing },
   { "move", act_move },
   { "pause", act_pause },
   { "play", act_play },
@@ -95,9 +145,14 @@ void disorder_cgi_action(const char *action) {
   if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)
     /* Its a known action */
     actions[n].handler();
-  else
+  else {
     /* Just expand the template */
+    if(printf("Content-Type: text/html\n"
+              /* TODO cookie */
+              "\n") < 0)
+      fatal(errno, "error writing to stdout");
     disorder_cgi_expand(action);
+  }
 }
 
 /** @brief Generate an error page */
