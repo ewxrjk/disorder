@@ -21,34 +21,7 @@
  * @brief DisOrder CGI
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <locale.h>
-#include <string.h>
-#include <stdarg.h>
-
-#include "client.h"
-#include "sink.h"
-#include "hash.h"
-#include "mem.h"
-#include "log.h"
-#include "configuration.h"
-#include "disorder.h"
-#include "api-client.h"
-#include "mime.h"
-#include "printf.h"
-#include "url.h"
-#include "macros.h"
-#include "macros-disorder.h"
-#include "cgi.h"
-#include "actions.h"
-#include "defs.h"
+#include "disorder-cgi.h"
 
 /** @brief Return true if @p a is better than @p b
  *
@@ -123,13 +96,13 @@ int main(int argc, char **argv) {
 	  best_cookie = n;
       }
       if(best_cookie != -1)
-	login_cookie = cd.cookies[best_cookie].value;
+	dcgi_cookie = cd.cookies[best_cookie].value;
     } else
       error(0, "could not parse cookie field '%s'", cookie_env);
   }
   /* Register expansions */
   mx_register_builtin();
-  register_disorder_expansions();
+  dcgi_expansions();
   /* Update search path.  We look in the config directory first and the data
    * directory second, so that the latter overrides the former. */
   mx_search_path(pkgconfdir);
@@ -139,9 +112,9 @@ int main(int argc, char **argv) {
     fatal(errno, "error writing to stdout");
   /* Create the initial connection, trying the cookie if we found a suitable
    * one. */
-  disorder_cgi_login();
+  dcgi_login();
   /* The main program... */
-  disorder_cgi_action(NULL);
+  dcgi_action(NULL);
   /* In practice if a write fails that probably means the web server went away,
    * but we log it anyway. */
   if(fclose(stdout) < 0)

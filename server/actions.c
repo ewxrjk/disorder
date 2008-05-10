@@ -17,72 +17,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file server/actions.c
+ * @brief DisOrder web actions
+ *
+ * Actions are anything that the web interface does beyond passive template
+ * expansion and inspection of state recieved from the server.  This means
+ * playing tracks, editing prefs etc but also setting extra headers e.g. to
+ * auto-refresh the playing list.
+ */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <time.h>
-#include <ctype.h>
-#include <stddef.h>
-
-#include "hash.h"
-#include "table.h"
-#include "client.h"
-#include "rights.h"
-#include "mem.h"
-#include "sink.h"
-#include "vector.h"
-#include "printf.h"
-#include "actions.h"
-#include "lookup.h"
-#include "url.h"
-#include "configuration.h"
-#include "cgi.h"
-#include "log.h"
-#include "queue.h"
-#include "macros.h"
-#include "macros-disorder.h"
-
-/** @brief Login cookie */
-char *login_cookie;
-
-/** @brief Return a Cookie: header */
-static char *cookie(void) {
-  struct dynstr d[1];
-  struct url u;
-  char *s;
-
-  memset(&u, 0, sizeof u);
-  dynstr_init(d);
-  parse_url(config->url, &u);
-  if(login_cookie) {
-    dynstr_append_string(d, "disorder=");
-    dynstr_append_string(d, login_cookie);
-  } else {
-    /* Force browser to discard cookie */
-    dynstr_append_string(d, "disorder=none;Max-Age=0");
-  }
-  if(u.path) {
-    /* The default domain matches the request host, so we need not override
-     * that.  But the default path only goes up to the rightmost /, which would
-     * cause the browser to expose the cookie to other CGI programs on the same
-     * web server. */
-    dynstr_append_string(d, ";Version=1;Path=");
-    /* Formally we are supposed to quote the path, since it invariably has a
-     * slash in it.  However Safari does not parse quoted paths correctly, so
-     * this won't work.  Fortunately nothing else seems to care about proper
-     * quoting of paths, so in practice we get with it.  (See also
-     * parse_cookie() where we are liberal about cookie paths on the way back
-     * in.) */
-    dynstr_append_string(d, u.path);
-  }
-  dynstr_terminate(d);
-  byte_xasprintf(&s, "Set-Cookie: %s", d->vec);
-  return s;
-}
+#include "disorder-cgi.h"
 
 /** @brief Redirect to some other action or URL */
 static void redirect(const char *url) {
@@ -99,7 +43,7 @@ static void redirect(const char *url) {
   }
   if(printf("Location: %s\n"
             "%s\n"
-            "\n", url, cookie()) < 0)
+            "\n", url, dcgi_cookie_header()) < 0)
     fatal(errno, "error writing to stdout");
 }
 
@@ -111,28 +55,28 @@ static void act_playing(void) {
   char *url;
   const char *action;
 
-  lookup(DC_PLAYING|DC_QUEUE|DC_ENABLED|DC_RANDOM_ENABLED);
-  if(playing
-     && playing->state == playing_started /* i.e. not paused */
-     && !disorder_length(client, playing->track, &length)
+  dcgi_lookup(DCGI_PLAYING|DCGI_QUEUE|DCGI_ENABLED|DCGI_RANDOM_ENABLED);
+  if(dcgi_playing
+     && dcgi_playing->state == playing_started /* i.e. not paused */
+     && !disorder_length(dcgi_client, dcgi_playing->track, &length)
      && length
-     && playing->sofar >= 0) {
+     && dcgi_playing->sofar >= 0) {
     /* Try to put the next refresh at the start of the next track. */
     time(&now);
-    fin = now + length - playing->sofar + config->gap;
+    fin = now + length - dcgi_playing->sofar + config->gap;
     if(now + refresh > fin)
       refresh = fin - now;
   }
-  if(queue && queue->state == playing_isscratch) {
+  if(dcgi_queue && dcgi_queue->state == playing_isscratch) {
     /* next track is a scratch, don't leave more than the inter-track gap */
     if(refresh > config->gap)
       refresh = config->gap;
   }
-  if(!playing
-     && ((queue
-          && queue->state != playing_random)
-         || random_enabled)
-     && enabled) {
+  if(!dcgi_playing
+     && ((dcgi_queue
+          && dcgi_queue->state != playing_random)
+         || dcgi_random_enabled)
+     && dcgi_enabled) {
     /* no track playing but playing is enabled and there is something coming
      * up, must be in a gap */
     if(refresh > config->gap)
@@ -146,9 +90,33 @@ static void act_playing(void) {
             "Refresh: %ld;url=%s\n"
             "%s\n"
             "\n",
-            refresh, url, cookie()) < 0)
+            refresh, url, dcgi_cookie_header()) < 0)
     fatal(errno, "error writing to stdout");
-  disorder_cgi_expand(action ? action : "playing");
+  dcgi_expand(action ? action : "playing");
+}
+
+static void act_disable(void) {
+  if(dcgi_client)
+    disorder_disable(dcgi_client);
+  redirect(0);
+}
+
+static void act_enable(void) {
+  if(dcgi_client)
+    disorder_enable(dcgi_client);
+  redirect(0);
+}
+
+static void act_random_disable(void) {
+  if(dcgi_client)
+    disorder_random_disable(dcgi_client);
+  redirect(0);
+}
+
+static void act_random_enable(void) {
+  if(dcgi_client)
+    disorder_random_enable(dcgi_client);
+  redirect(0);
 }
 
 /** @brief Table of actions */
@@ -158,36 +126,18 @@ static const struct action {
   /** @brief Action handler */
   void (*handler)(void);
 } actions[] = {
-#if 0
-  { "confirm", act_confirm },
   { "disable", act_disable },
-  { "edituser", act_edituser },
   { "enable", act_enable },
-  { "login", act_login },
-  { "logout", act_logout },
   { "manage", act_playing },
-  { "move", act_move },
-  { "pause", act_pause },
-  { "play", act_play },
-#endif
   { "playing", act_playing },
-#if 0
-  { "prefs", act_prefs },
   { "random-disable", act_random_disable },
   { "random-enable", act_random_enable },
-  { "register", act_register },
-  { "reminder", act_reminder },
-  { "remove", act_remove },
-  { "resume", act_resume },
-  { "scratch", act_scratch },
-  { "volume", act_volume },
-#endif
 };
 
 /** @brief Expand a template
  * @param name Base name of template, or NULL to consult CGI args
  */
-void disorder_cgi_expand(const char *name) {
+void dcgi_expand(const char *name) {
   const char *p;
   
   /* For unknown actions check that they aren't evil */
@@ -206,7 +156,7 @@ void disorder_cgi_expand(const char *name) {
  *
  * If no recognized action is specified then 'playing' is assumed.
  */
-void disorder_cgi_action(const char *action) {
+void dcgi_action(const char *action) {
   int n;
 
   /* Consult CGI args if caller had no view */
@@ -231,34 +181,20 @@ void disorder_cgi_action(const char *action) {
     /* Just expand the template */
     if(printf("Content-Type: text/html\n"
               "%s\n"
-              "\n", cookie()) < 0)
+              "\n", dcgi_cookie_header()) < 0)
       fatal(errno, "error writing to stdout");
-    disorder_cgi_expand(action);
+    dcgi_expand(action);
   }
 }
 
 /** @brief Generate an error page */
-void disorder_cgi_error(const char *msg, ...) {
+void dcgi_error(const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);
-  byte_xvasprintf(&error_string, msg, ap);
+  byte_xvasprintf(&dcgi_error_string, msg, ap);
   va_end(ap);
-  disorder_cgi_expand("error");
-}
-
-/** @brief Log in as the current user or guest if none */
-void disorder_cgi_login(void) {
-  /* Junk old data */
-  lookup_reset();
-  /* Reconnect */
-  if(disorder_connect_cookie(client, login_cookie)) {
-    disorder_cgi_error("Cannot connect to server");
-    exit(0);
-  }
-  /* If there was a cookie but it went bad, we forget it */
-  if(login_cookie && !strcmp(disorder_user(client), "guest"))
-    login_cookie = 0;
+  dcgi_expand("error");
 }
 
 /*

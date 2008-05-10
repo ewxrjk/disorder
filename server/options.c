@@ -19,25 +19,12 @@
  */
 /** @file server/options.c
  * @brief CGI options
+ *
+ * Options represent an additional configuration system private to the
+ * CGI program.
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <stddef.h>
-#include <errno.h>
-#include <string.h>
-
-#include "mem.h"
-#include "hash.h"
-#include "macros.h"
-#include "options.h"
-#include "split.h"
-#include "table.h"
-#include "log.h"
-#include "inputline.h"
-#include "printf.h"
+#include "disorder-cgi.h"
 
 struct column {
   int ncolumns;
