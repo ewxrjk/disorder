@@ -1,25 +1,3 @@
-/*
- * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
- */
-
-#include <config.h>
-#include "types.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -59,39 +37,11 @@
 #include "sendmail.h"
 #include "base64.h"
 
-char *login_cookie;
-
-static void expand(cgi_sink *output,
-		   const char *template,
-		   dcgi_state *ds);
-static void expandstring(cgi_sink *output,
-			 const char *string,
-			 dcgi_state *ds);
-
 struct entry {
   const char *path;
   const char *sort;
   const char *display;
 };
-
-static const char nonce_base64_table[] =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/*";
-
-static const char *nonce(void) {
-  static uint32_t count;
-
-  struct ndata {
-    uint16_t count;
-    uint16_t pid;
-    uint32_t when;
-  } nd;
-
-  nd.count = count++;
-  nd.pid = (uint32_t)getpid();
-  nd.when = (uint32_t)time(0);
-  return generic_to_base64((void *)&nd, sizeof nd,
-			   nonce_base64_table);
-}
 
 static int compare_entry(const void *a, const void *b) {
   const struct entry *ea = a, *eb = b;
@@ -639,31 +589,6 @@ static void act_reminder(cgi_sink *output,
   expand_template(ds, output, "login");  
 }
 
-static const struct action {
-  const char *name;
-  void (*handler)(cgi_sink *output, dcgi_state *ds);
-} actions[] = {
-  { "confirm", act_confirm },
-  { "disable", act_disable },
-  { "edituser", act_edituser },
-  { "enable", act_enable },
-  { "login", act_login },
-  { "logout", act_logout },
-  { "move", act_move },
-  { "pause", act_pause },
-  { "play", act_play },
-  { "playing", act_playing },
-  { "prefs", act_prefs },
-  { "random-disable", act_random_disable },
-  { "random-enable", act_random_enable },
-  { "register", act_register },
-  { "reminder", act_reminder },
-  { "remove", act_remove },
-  { "resume", act_resume },
-  { "scratch", act_scratch },
-  { "volume", act_volume },
-};
-
 /* expansions *****************************************************************/
 
 static void exp_label(int attribute((unused)) nargs,
@@ -1004,144 +929,6 @@ static void exp_image(int attribute((unused)) nargs,
     cgi_output(output, "%s/%s", cgi_label("url.static"), imagestem);
   else
     cgi_output(output, "/disorder/%s", imagestem);
-}
-
-static const struct cgi_expansion expansions[] = {
-  { "#", 0, INT_MAX, EXP_MAGIC, exp_comment },
-  { "action", 0, 0, 0, exp_action },
-  { "and", 0, INT_MAX, EXP_MAGIC, exp_and },
-  { "arg", 1, 1, 0, exp_arg },
-  { "basename", 0, 1, 0, exp_basename },
-  { "choose", 2, 2, EXP_MAGIC, exp_choose },
-  { "define", 3, 3, EXP_MAGIC, exp_define },
-  { "dirname", 0, 1, 0, exp_dirname },
-  { "enabled", 0, 0, 0, exp_enabled },
-  { "eq", 2, 2, 0, exp_eq },
-  { "file", 0, 0, 0, exp_file },
-  { "files", 1, 1, EXP_MAGIC, exp_files },
-  { "fullname", 0, 0, 0, exp_fullname },
-  { "id", 0, 0, 0, exp_id },
-  { "if", 2, 3, EXP_MAGIC, exp_if },
-  { "image", 1, 1, 0, exp_image },
-  { "include", 1, 1, 0, exp_include },
-  { "index", 0, 0, 0, exp_index },
-  { "isdirectories", 0, 0, 0, exp_isdirectories },
-  { "isfiles", 0, 0, 0, exp_isfiles },
-  { "isfirst", 0, 0, 0, exp_isfirst },
-  { "islast", 0, 0, 0, exp_islast },
-  { "isnew", 0, 0, 0, exp_isnew },
-  { "isplaying", 0, 0, 0, exp_isplaying },
-  { "isqueue", 0, 0, 0, exp_isqueue },
-  { "isrecent", 0, 0, 0, exp_isrecent },
-  { "label", 1, 1, 0, exp_label },
-  { "length", 0, 0, 0, exp_length },
-  { "movable", 0, 0, 0, exp_movable },
-  { "navigate", 2, 2, EXP_MAGIC, exp_navigate },
-  { "ne", 2, 2, 0, exp_ne },
-  { "new", 1, 1, EXP_MAGIC, exp_new },
-  { "nfiles", 0, 0, 0, exp_nfiles },
-  { "nonce", 0, 0, 0, exp_nonce },
-  { "not", 1, 1, 0, exp_not },
-  { "or", 0, INT_MAX, EXP_MAGIC, exp_or },
-  { "parity", 0, 0, 0, exp_parity },
-  { "part", 1, 3, 0, exp_part },
-  { "paused", 0, 0, 0, exp_paused },
-  { "playing", 1, 1, EXP_MAGIC, exp_playing },
-  { "pref", 2, 2, 0, exp_pref },
-  { "prefname", 0, 0, 0, exp_prefname },
-  { "prefs", 2, 2, EXP_MAGIC, exp_prefs },
-  { "prefvalue", 0, 0, 0, exp_prefvalue },
-  { "queue", 1, 1, EXP_MAGIC, exp_queue },
-  { "random-enabled", 0, 0, 0, exp_random_enabled },
-  { "recent", 1, 1, EXP_MAGIC, exp_recent },
-  { "removable", 0, 0, 0, exp_removable },
-  { "resolve", 1, 1, 0, exp_resolve },
-  { "right", 1, 3, EXP_MAGIC, exp_right },
-  { "scratchable", 0, 0, 0, exp_scratchable },
-  { "search", 2, 3, EXP_MAGIC, exp_search },
-  { "server-version", 0, 0, 0, exp_server_version },
-  { "shell", 1, 1, 0, exp_shell },
-  { "state", 0, 0, 0, exp_state },
-  { "stats", 0, 0, 0, exp_stats },
-  { "thisurl", 0, 0, 0, exp_thisurl },
-  { "track", 0, 0, 0, exp_track },
-  { "trackstate", 1, 1, 0, exp_trackstate },
-  { "transform", 2, 3, 0, exp_transform },
-  { "url", 0, 0, 0, exp_url },
-  { "urlquote", 1, 1, 0, exp_urlquote },
-  { "user", 0, 0, 0, exp_user },
-  { "userinfo", 1, 1, 0, exp_userinfo },
-  { "version", 0, 0, 0, exp_version },
-  { "volume", 1, 1, 0, exp_volume },
-  { "when", 0, 0, 0, exp_when },
-  { "who", 0, 0, 0, exp_who }
-};
-
-static void expand(cgi_sink *output,
-		   const char *template,
-		   dcgi_state *ds) {
-  cgi_expand(template,
-	     expansions, sizeof expansions / sizeof *expansions,
-	     output,
-	     ds);
-}
-
-static void expandstring(cgi_sink *output,
-			 const char *string,
-			 dcgi_state *ds) {
-  cgi_expand_string("",
-		    string,
-		    expansions, sizeof expansions / sizeof *expansions,
-		    output,
-		    ds);
-}
-
-static void perform_action(cgi_sink *output, dcgi_state *ds,
-			   const char *action) {
-  int n;
-
-  /* We don't ever want anything to be cached */
-  cgi_header(output->sink, "Cache-Control", "no-cache");
-  if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)
-    actions[n].handler(output, ds);
-  else
-    expand_template(ds, output, action);
-}
-
-void disorder_cgi(cgi_sink *output, dcgi_state *ds) {
-  const char *action = cgi_get("action");
-
-  if(!action) {
-    /* We allow URLs which are just confirm=... in order to keep confirmation
-     * URLs, which are user-facing, as short as possible. */
-    if(cgi_get("c"))
-      action = "confirm";
-    else
-      action = "playing";
-  }
-  perform_action(output, ds, action);
-}
-
-void disorder_cgi_error(cgi_sink *output, dcgi_state *ds,
-			const char *msg) {
-  cgi_set_option("error", msg);
-  perform_action(output, ds, "error");
-}
-
-/** @brief Log in as the current user or guest if none */
-void disorder_cgi_login(dcgi_state *ds, cgi_sink *output) {
-  /* Create a new connection */
-  ds->g->client = disorder_new(0);
-  /* Forget everything we knew */
-  ds->g->flags = 0;
-  /* Reconnect */
-  if(disorder_connect_cookie(ds->g->client, login_cookie)) {
-    disorder_cgi_error(output, ds, "connect");
-    exit(0);
-  }
-  /* If there was a cookie but it went bad, we forget it */
-  if(login_cookie && !strcmp(disorder_user(ds->g->client), "guest"))
-    login_cookie = 0;
 }
 
 /*

@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2008 Richard Kettlewell
@@ -25,6 +26,7 @@
 #define MACROS_DISORDER_H
 
 extern disorder_client *client;
+extern char *error_string;
 void register_disorder_expansions(void);
 
 #endif /* MACROS_DISORDER_H */

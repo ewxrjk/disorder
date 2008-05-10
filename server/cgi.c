@@ -55,37 +55,6 @@
 #include "unicode.h"
 #include "hash.h"
 
-struct kvp *cgi_args;
-
-/* options */
-struct column {
-  struct column *next;
-  char *name;
-  int ncolumns;
-  char **columns;
-};
-
-/* macros */
-struct cgi_macro {
-  int nargs;
-  char **args;
-  const char *value;
-};
-
-#define RELIST(x) struct re *x, **x##_tail = &x
-
-static int have_read_options;
-static struct kvp *labels;
-static struct column *columns;
-
-static void include_options(const char *name);
-static void cgi_expand_parsed(const char *name,
-			      struct cgi_element *head,
-			      const struct cgi_expansion *expansions,
-			      size_t nexpansions,
-			      cgi_1sink *output,
-			      void *u);
-
 void cgi_header(struct sink *output, const char *name, const char *value) {
   sink_printf(output, "%s: %s\r\n", name, value);
 }

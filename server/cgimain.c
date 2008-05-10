@@ -110,10 +110,7 @@ int main(int argc, char **argv) {
     config->url = infer_url();
   memset(&g, 0, sizeof g);
   memset(&s, 0, sizeof s);
-  s.g = &g;
-  g.client = disorder_get_client();
-  output.quote = 1;
-  output.sink = sink_stdio("stdout", stdout);
+  output = sink_stdio("stdout", stdout);
   /* See if there's a cookie */
   cookie_env = getenv("HTTP_COOKIE");
   if(cookie_env) {
@@ -142,6 +139,8 @@ int main(int argc, char **argv) {
    * directory second, so that the latter overrides the former. */
   mx_search_path(pkgconfdir);
   mx_search_path(pkgdatadir);
+  /* Never cache anythging */
+  cgi_header(output->sink, "Cache-Control", "no-cache");
   /* Create the initial connection, trying the cookie if we found a suitable
    * one. */
   disorder_cgi_login(&s, &output);

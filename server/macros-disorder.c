@@ -37,6 +37,9 @@
  */
 disorder_client *client;
 
+/** @brief For error template */
+char *error_string;
+
 /** @brief Cached data */
 static unsigned flags;
 
@@ -142,7 +145,7 @@ static const char *make_index(int i) {
   return s;
 }
 
-/* @server-version@
+/* @server-version
  *
  * Expands to the server's version string, or a (safe to use) error
  * value if the server is unavailable or broken.
@@ -161,7 +164,7 @@ static int exp_server_version(int attribute((unused)) nargs,
   return sink_write(output, cgi_sgmlquote(v)) < 0 ? -1 : 0;
 }
 
-/* @version@
+/* @version
  *
  * Expands to the local version string.
  */
@@ -173,7 +176,7 @@ static int exp_version(int attribute((unused)) nargs,
 		    cgi_sgmlquote(disorder_short_version_string)) < 0 ? -1 : 0;
 }
 
-/* @url@
+/* @url
  *
  * Expands to the base URL of the web interface.
  */
@@ -185,7 +188,7 @@ static int exp_url(int attribute((unused)) nargs,
 		    cgi_sgmlquote(config->url)) < 0 ? -1 : 0;
 }
 
-/* @arg{NAME}@
+/* @arg{NAME}
  *
  * Expands to the CGI argument NAME, or the empty string if there is
  * no such argument.
@@ -202,7 +205,7 @@ static int exp_arg(int attribute((unused)) nargs,
     return 0;
 }
 
-/* @user@
+/* @user
  *
  * Expands to the logged-in username (which might be "guest"), or to
  * the empty string if not connected.
@@ -351,7 +354,7 @@ static int exp_length(int attribute((unused)) nargs,
   return sink_write(output, "&nbsp;") < 0 ? -1 : 0;
 }
 
-/* @removable{ID}@
+/* @removable{ID}
  *
  * Expands to "true" if track ID is removable (or scratchable, if it is the
  * playing track) and "false" otherwise.
@@ -371,7 +374,7 @@ static int exp_removable(int attribute((unused)) nargs,
                             (rights, disorder_user(client), q));
 }
 
-/* @movable{ID}@
+/* @movable{ID}
  *
  * Expands to "true" if track ID is movable and "false" otherwise.
  */
@@ -512,7 +515,7 @@ static int exp_new(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @volume{CHANNEL}@
+/* @volume{CHANNEL}
  *
  * Expands to the volume in a given channel.  CHANNEL must be "left" or
  * "right".
@@ -527,7 +530,7 @@ static int exp_volume(int attribute((unused)) nargs,
                             ? volume_left : volume_right) < 0 ? -1 : 0;
 }
 
-/* @isplaying@
+/* @isplaying
  *
  * Expands to "true" if there is a playing track, otherwise "false".
  */
@@ -539,7 +542,7 @@ static int exp_isplaying(int attribute((unused)) nargs,
   return mx_bool_result(output, !!playing);
 }
 
-/* @isqueue@
+/* @isqueue
  *
  * Expands to "true" if there the queue is nonempty, otherwise "false".
  */
@@ -564,7 +567,7 @@ static int exp_isrecent(int attribute((unused)) nargs,
   return mx_bool_result(output, !!recent);
 }
 
-/* @isnew@
+/* @isnew
  *
  * Expands to "true" if there the newly added track list is nonempty, otherwise
  * "false".
@@ -577,7 +580,7 @@ static int exp_isnew(int attribute((unused)) nargs,
   return mx_bool_result(output, !!nnew);
 }
 
-/* @pref{TRACK}{KEY}@
+/* @pref{TRACK}{KEY}
  *
  * Expands to a track preference.
  */
@@ -591,7 +594,7 @@ static int exp_pref(int attribute((unused)) nargs,
     return sink_write(output, cgi_sgmlquote(value)) < 0 ? -1 : 0;
 }
 
-/* @prefs{TRACK}{TEMPLATE}@
+/* @prefs{TRACK}{TEMPLATE}
  *
  * For each track preference of track TRACK, expands TEMPLATE with the
  * following expansions:
@@ -629,7 +632,7 @@ static int exp_prefs(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @transform{TRACK}{TYPE}{CONTEXT}@
+/* @transform{TRACK}{TYPE}{CONTEXT}
  *
  * Transforms a track name (if TYPE is "track") or directory name (if type is
  * "dir").  CONTEXT should be the context, if it is left out then "display" is
@@ -659,7 +662,7 @@ static int exp_enabled(int attribute((unused)) nargs,
   return mx_bool_result(output, enabled);
 }
 
-/* @random-enabled@
+/* @random-enabled
  *
  * Expands to "true" if random play is enabled, otherwise "false".
  */
@@ -674,7 +677,7 @@ static int exp_enabled(int attribute((unused)) nargs,
   return mx_bool_result(output, enabled);
 }
 
-/* @trackstate{TRACK}@
+/* @trackstate{TRACK
  *
  * Expands to "playing" if TRACK is currently playing, or "queue" if it is in
  * the queue, otherwise to nothing.
@@ -700,7 +703,7 @@ static int exp_trackstate(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @thisurl@
+/* @thisurl
  *
  * Expands to an UNQUOTED URL which points back to the current page.  (NB it
  * might not be byte for byte identical - for instance, CGI arguments might be
@@ -713,7 +716,7 @@ static int exp_thisurl(int attribute((unused)) nargs,
   return cgi_thisurl(config->url);
 }
 
-/* @resolve{TRACK}@
+/* @resolve{TRACK}
  *
  * Expands to an UNQUOTED name for the TRACK that is not an alias, or to
  * nothing if it is not a valid track.
@@ -729,7 +732,7 @@ static int exp_resolve(int attribute((unused)) nargs,
   return 0;
 }
 
-/* @paused@
+/* @paused
  *
  * Expands to "true" if the playing track is paused, to "false" if it is
  * playing (or if there is no playing track at all).
@@ -793,7 +796,7 @@ static int exp_right(int nargs,
   return 0;
 }
 
-/* @userinfo{PROPERTY}@
+/* @userinfo{PROPERTY}
  *
  * Expands to the named property of the current user.
  */
@@ -808,10 +811,24 @@ static int exp_userinfo(int attribute((unused)) nargs,
   return 0;
 }
 
+/* @error
+ *
+ * Expands to the latest error string.
+ */
+static int exp_error(int attribute((unused)) nargs,
+                     char attribute((unused)) **args,
+                     struct sink *output,
+                     void attribute((unused)) *u) {
+  return sink_write(output, cgi_sgmlquote(error_string)) < 0 ? -1 : 0;
+}
+
+/* @userinfo{PROPERTY}@
+ *
 /** @brief Register DisOrder-specific expansions */
 void register_disorder_expansions(void) {
   mx_register(exp_arg, 1, 1, "arg");
   mx_register(exp_enabled, 0, 0, "enabled");
+  mx_register(exp_error, 0, 0, "error");
   mx_register(exp_isnew, 0, 0, "isnew");
   mx_register(exp_isplaying, 0, 0, "isplaying");
   mx_register(exp_isqueue, 0, 0, "isplaying");
@@ -842,6 +859,16 @@ void register_disorder_expansions(void) {
   mx_register_magic(exp_prefs, 2, 2, "prefs");
   mx_register_magic(exp_queue, 1, 1, "queue");
   mx_register_magic(exp_recent, 1, 1, "recent");
+}
+
+void disorder_macros_reset(void) {
+  /* Junk the old connection if there is one */
+  if(client)
+    disorder_close(client);
+  /* Create a new connection */
+  client = disorder_new(0);
+  /* Forget everything we knew */
+  flags = 0;
 }
 
 /*
