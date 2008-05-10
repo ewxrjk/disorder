@@ -25,6 +25,9 @@
 #include "types.h"
 
 #include <stdio.h>
+#include <stddef.h>
+#include <errno.h>
+#include <string.h>
 
 #include "mem.h"
 #include "hash.h"
@@ -32,14 +35,24 @@
 #include "options.h"
 #include "split.h"
 #include "table.h"
+#include "log.h"
+#include "inputline.h"
+#include "printf.h"
 
 struct column {
   int ncolumns;
   char **columns;
 };
 
+struct read_options_state {
+  const char *name;
+  int line;
+};
+
 static hash *labels;
 static hash *columns;
+
+static void option__readfile(const char *name);
 
 static void option__label(int attribute((unused)) nvec,
 			 char **vec) {
@@ -65,9 +78,9 @@ static struct option {
   int minargs, maxargs;
   void (*handler)(int nvec, char **vec);
 } options[] = {
-  { "columns", 1, INT_MAX, option_columns },
-  { "include", 1, 1, option_include },
-  { "label", 2, 2, option_label },
+  { "columns", 1, INT_MAX, option__columns },
+  { "include", 1, 1, option__include },
+  { "label", 2, 2, option__label },
 };
 
 static void option__split_error(const char *msg,
@@ -79,11 +92,9 @@ static void option__split_error(const char *msg,
 
 static void option__readfile(const char *name) {
   int n, i;
-  int fd;
   FILE *fp;
   char **vec, *buffer;
   struct read_options_state cs;
-  const char *path;
 
   if(!(cs.name = mx_find(name)))
     return;

@@ -28,7 +28,7 @@ struct sink;
 
 void cgi_init(void);
 const char *cgi_get(const char *name);
-void cgi_set(const char *name, const char *value)
+void cgi_set(const char *name, const char *value);
 char *cgi_sgmlquote(const char *src);
 void cgi_attr(struct sink *output, const char *name, const char *value);
 void cgi_opentag(struct sink *output, const char *name, ...);

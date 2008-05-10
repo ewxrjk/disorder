@@ -35,7 +35,7 @@
 
 #include "client.h"
 #include "sink.h"
-#include "server-cgi.h"
+#include "hash.h"
 #include "mem.h"
 #include "log.h"
 #include "configuration.h"
@@ -43,11 +43,12 @@
 #include "api-client.h"
 #include "mime.h"
 #include "printf.h"
-#include "dcgi.h"
 #include "url.h"
-
 #include "macros.h"
 #include "macros-disorder.h"
+#include "cgi.h"
+#include "actions.h"
+#include "defs.h"
 
 /** @brief Return true if @p a is better than @p b
  *
@@ -77,9 +78,6 @@ static int better_cookie(const struct cookie *a, const struct cookie *b) {
 
 int main(int argc, char **argv) {
   const char *cookie_env, *conf;
-  dcgi_global g;
-  dcgi_state s;
-  cgi_sink output;
   int n, best_cookie;
   struct cookiedata cd;
 
@@ -95,7 +93,7 @@ int main(int argc, char **argv) {
     printf("<p>Sorry, PATH_INFO not supported.</p>\n");
     exit(0);
   }
-  cgi_parse();
+  cgi_init();
   /* We allow various things to be overridden from the environment.  This is
    * intended for debugging and is not a documented feature. */
   if((conf = getenv("DISORDER_CONFIG")))
@@ -108,9 +106,6 @@ int main(int argc, char **argv) {
    * necessary but it shouldn't be necessary in ordinary installations. */
   if(!config->url)
     config->url = infer_url();
-  memset(&g, 0, sizeof g);
-  memset(&s, 0, sizeof s);
-  output = sink_stdio("stdout", stdout);
   /* See if there's a cookie */
   cookie_env = getenv("HTTP_COOKIE");
   if(cookie_env) {
@@ -140,12 +135,13 @@ int main(int argc, char **argv) {
   mx_search_path(pkgconfdir);
   mx_search_path(pkgdatadir);
   /* Never cache anythging */
-  cgi_header(output->sink, "Cache-Control", "no-cache");
+  if(printf("Cache-Control: no-cache\n") < 0)
+    fatal(errno, "error writing to stdout");
   /* Create the initial connection, trying the cookie if we found a suitable
    * one. */
-  disorder_cgi_login(&s, &output);
+  disorder_cgi_login();
   /* The main program... */
-  disorder_cgi(&output, &s);
+  disorder_cgi_action(NULL);
   /* In practice if a write fails that probably means the web server went away,
    * but we log it anyway. */
   if(fclose(stdout) < 0)

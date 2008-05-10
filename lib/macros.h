@@ -125,6 +125,7 @@ const struct mx_node *mx_rewritel(const struct mx_node *m,
 
 int mx_str2bool(const char *s);
 const char *mx_bool2str(int n);
+int mx_bool_result(struct sink *output, int result);
 
 #endif /* MACROS_H */
 

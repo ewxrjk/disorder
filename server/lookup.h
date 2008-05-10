@@ -58,6 +58,9 @@ extern rights_type rights;
 extern int enabled;
 extern int random_enabled;
 
+void lookup(unsigned want);
+void lookup_reset(void);
+
 #endif /* LOOKUP_H */
 
 /*

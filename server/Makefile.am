@@ -100,9 +100,9 @@ disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_cgi_SOURCES=dcgi.c dcgi.h			\
-	api.c api-client.c api-client.h			\
-	cgi.c server-cgi.h cgimain.c exports.c
+disorder_cgi_SOURCES=macros-disorder.c macros-disorder.h lookup.c	\
+	lookup.h options.c options.h actions.c actions.h api.c		\
+	api-client.c api-client.h cgimain.c exports.c
 disorder_cgi_LDADD=../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
 disorder_cgi_LDFLAGS=-export-dynamic

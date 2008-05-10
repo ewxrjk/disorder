@@ -24,8 +24,13 @@
 #include <config.h>
 #include "types.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#include "queue.h"
 #include "sink.h"
 #include "client.h"
+#include "rights.h"
 #include "lookup.h"
 #include "cgi.h"
 
@@ -62,11 +67,11 @@ int enabled;
 int random_enabled;
 
 /** @brief Fetch cachable data */
-static void lookup(unsigned want) {
+void lookup(unsigned want) {
   unsigned need = want ^ (flags & want);
   struct queue_entry *r, *rnext;
   const char *dir, *re;
-  char *rights;
+  char *rights_string;
 
   if(!client || !need)
     return;
@@ -106,8 +111,8 @@ static void lookup(unsigned want) {
   if(need & DC_RIGHTS) {
     rights = RIGHT_READ;	/* fail-safe */
     if(!disorder_userinfo(client, disorder_user(client),
-                          "rights", &rights))
-      parse_rights(rights, &rights, 1);
+                          "rights", &rights_string))
+      parse_rights(rights_string, &rights, 1);
   }
   if(need & DC_ENABLED)
     disorder_enabled(client, &enabled);
@@ -116,6 +121,17 @@ static void lookup(unsigned want) {
   if(need & DC_RANDOM_ENABLED)
   flags |= need;
 }
+
+void lookup_reset(void) {
+  /* Junk the old connection if there is one */
+  if(client)
+    disorder_close(client);
+  /* Create a new connection */
+  client = disorder_new(0);
+  /* Forget everything we knew */
+  flags = 0;
+}
+
 
 /*
 Local Variables:

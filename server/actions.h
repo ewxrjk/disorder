@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2004-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,18 +17,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file server/macros-disorder.h
- * @brief DisOrder-specific expansions
- */
+#ifndef ACTIONS_H
+#define ACTIONS_H
 
-#ifndef MACROS_DISORDER_H
-#define MACROS_DISORDER_H
+extern char *login_cookie;
 
-extern disorder_client *client;
-extern char *error_string;
-void register_disorder_expansions(void);
+void disorder_cgi_expand(const char *name);
+void disorder_cgi_action(const char *action);
+void disorder_cgi_error(const char *msg, ...);
+void disorder_cgi_login(void);
 
-#endif /* MACROS_DISORDER_H */
+#endif /* ACTIONS_H */
 
 /*
 Local Variables:

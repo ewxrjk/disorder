@@ -24,11 +24,25 @@
 #include <config.h>
 #include "types.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <time.h>
+
+#include "kvp.h"
+#include "queue.h"
+#include "rights.h"
 #include "sink.h"
 #include "client.h"
 #include "cgi.h"
+#include "hash.h"
+#include "macros.h"
 #include "macros-disorder.h"
-#include "lookups.h"
+#include "lookup.h"
+#include "printf.h"
+#include "defs.h"
+#include "configuration.h"
+#include "trackname.h"
 
 /** @brief For error template */
 char *error_string;
@@ -37,17 +51,18 @@ char *error_string;
 static struct queue_entry *findtrack(const char *id) {
   struct queue_entry *q;
 
-  lookups(DC_PLAYING);
+  lookup(DC_PLAYING);
   if(playing && !strcmp(playing->id, id))
     return playing;
-  lookups(DC_QUEUE);
+  lookup(DC_QUEUE);
   for(q = queue; q; q = q->next)
     if(!strcmp(q->id, id))
       return q;
-  lookups(DC_RECENT);
+  lookup(DC_RECENT);
   for(q = recent; q; q = q->next)
     if(!strcmp(q->id, id))
       return q;
+  return NULL;
 }
 
 /** @brief Return @p i as a string */
@@ -74,7 +89,7 @@ static int exp_server_version(int attribute((unused)) nargs,
       v = "(cannot get version)";
   } else
     v = "(server not running)";
-  return sink_write(output, cgi_sgmlquote(v)) < 0 ? -1 : 0;
+  return sink_writes(output, cgi_sgmlquote(v)) < 0 ? -1 : 0;
 }
 
 /* @version
@@ -85,8 +100,8 @@ static int exp_version(int attribute((unused)) nargs,
 		       char attribute((unused)) **args,
 		       struct sink *output,
 		       void attribute((unused)) *u) {
-  return sink_write(output,
-		    cgi_sgmlquote(disorder_short_version_string)) < 0 ? -1 : 0;
+  return sink_writes(output,
+                     cgi_sgmlquote(disorder_short_version_string)) < 0 ? -1 : 0;
 }
 
 /* @url
@@ -97,8 +112,8 @@ static int exp_url(int attribute((unused)) nargs,
 		   char attribute((unused)) **args,
 		   struct sink *output,
 		   void attribute((unused)) *u) {
-  return sink_write(output,
-		    cgi_sgmlquote(config->url)) < 0 ? -1 : 0;
+  return sink_writes(output,
+                     cgi_sgmlquote(config->url)) < 0 ? -1 : 0;
 }
 
 /* @arg{NAME}
@@ -112,8 +127,8 @@ static int exp_arg(int attribute((unused)) nargs,
 		   void attribute((unused)) *u) {
   const char *s = cgi_get(args[0]);
   if(s)
-    return sink_write(output,
-		      cgi_sgmlquote(s)) < 0 ? -1 : 0;
+    return sink_writes(output,
+                       cgi_sgmlquote(s)) < 0 ? -1 : 0;
   else
     return 0;
 }
@@ -127,10 +142,10 @@ static int exp_user(int attribute((unused)) nargs,
 		    char attribute((unused)) **args,
 		    struct sink *output,
 		    void attribute((unused)) *u) {
-  const char *u;
+  const char *user;
   
-  if(client && (u = disorder_user(client)))
-    return sink_write(output, cgi_sgmlquote(u)) < 0 ? -1 : 0;
+  if(client && (user = disorder_user(client)))
+    return sink_writes(output, cgi_sgmlquote(user)) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -163,10 +178,11 @@ static int exp_part(int nargs,
       return 0;
   }
   if(client
-     && !disorder_get(client, &s, track,
-                      !strcmp(context, "short") ? "display" : context,
-                      part))
-    return sink_write(output, cgi_sgmlquote(s)) < 0 ? -1 : 0;
+     && !disorder_part(client, &s,
+                       track,
+                       !strcmp(context, "short") ? "display" : context,
+                       part))
+    return sink_writes(output, cgi_sgmlquote(s)) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -179,7 +195,7 @@ static int exp_quote(int attribute((unused)) nargs,
                      char **args,
                      struct sink *output,
                      void attribute((unused)) *u) {
-  return sink_write(output, cgi_sgmlquote(args[0])) < 0 ? -1 : 0;
+  return sink_writes(output, cgi_sgmlquote(args[0])) < 0 ? -1 : 0;
 }
 
 /* @who{ID}
@@ -194,7 +210,7 @@ static int exp_who(int attribute((unused)) nargs,
   struct queue_entry *q = findtrack(args[0]);
 
   if(q && q->submitter)
-    return sink_write(output, cgi_sgmlquote(q->submitter)) < 0 ? -1 : 0;
+    return sink_writes(output, cgi_sgmlquote(q->submitter)) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -232,7 +248,7 @@ static int exp_when(int attribute((unused)) nargs,
     if(w)
       return sink_printf(output, "%d:%02d", w->tm_hour, w->tm_min) < 0 ? -1 : 0;
   }
-  return sink_write(output, "&nbsp;") < 0 ? -1 : 0;
+  return sink_writes(output, "&nbsp;") < 0 ? -1 : 0;
 }
 
 /* @length{ID|TRACK}
@@ -256,7 +272,7 @@ static int exp_length(int attribute((unused)) nargs,
     /* Track identified by queue ID */
     if(!(q = findtrack(args[0])))
       return 0;
-    if(q->state == play_start || q->state == playing_paused)
+    if(q->state == playing_started || q->state == playing_paused)
       if(sink_printf(output, "%ld:%02ld/", q->sofar / 60, q->sofar % 60) < 0)
         return -1;
     name = q->track;
@@ -264,7 +280,7 @@ static int exp_length(int attribute((unused)) nargs,
   if(client && disorder_length(client, name, &length))
     return sink_printf(output, "%ld:%02ld",
                        length / 60, length % 60) < 0 ? -1 : 0;
-  return sink_write(output, "&nbsp;") < 0 ? -1 : 0;
+  return sink_writes(output, "&nbsp;") < 0 ? -1 : 0;
 }
 
 /* @removable{ID}
@@ -319,16 +335,17 @@ static int exp_movable(int attribute((unused)) nargs,
 static int exp_playing(int nargs,
                        const struct mx_node **args,
                        struct sink *output,
-                       void attribute((unused)) *u) {
+                       void *u) {
   lookup(DC_PLAYING);
   if(!playing)
     return 0;
   if(!nargs)
-    return sink_write(output, playing->id) < 0 ? -1 : 0;
-  return mx_rewritel(args[0],
-                     "id", playing->id,
-                     "track", playing->track,
-                     (char *)0);
+    return sink_writes(output, playing->id) < 0 ? -1 : 0;
+  return mx_expand(mx_rewritel(args[0],
+                               "id", playing->id,
+                               "track", playing->track,
+                               (char *)0),
+                   output, u);
 }
 
 /* @queue{TEMPLATE}
@@ -344,20 +361,21 @@ static int exp_playing(int nargs,
 static int exp_queue(int attribute((unused)) nargs,
                      const struct mx_node **args,
                      struct sink *output,
-                     void attribute((unused)) *u) {
+                     void *u) {
   struct queue_entry *q;
   int rc, i;
   
   lookup(DC_QUEUE);
   for(q = queue, i = 0; q; q = q->next, ++i)
-    if((rc = mx_rewritel(args[0],
-                         "id", q->id,
-                         "track", q->track,
-                         "index", make_index(i),
-                         "parity", i % 2 ? "odd" : "even",
-                         "first", q == queue ? "true" : "false",
-                         "last", q->next ? "false" : "true",
-                         (char *)0)))
+    if((rc = mx_expand(mx_rewritel(args[0],
+                                   "id", q->id,
+                                   "track", q->track,
+                                   "index", make_index(i),
+                                   "parity", i % 2 ? "odd" : "even",
+                                   "first", q == queue ? "true" : "false",
+                                   "last", q->next ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
       return rc;
   return 0;
 }
@@ -376,20 +394,21 @@ static int exp_queue(int attribute((unused)) nargs,
 static int exp_recent(int attribute((unused)) nargs,
                       const struct mx_node **args,
                       struct sink *output,
-                      void attribute((unused)) *u) {
+                      void *u) {
   struct queue_entry *q;
   int rc, i;
   
   lookup(DC_RECENT);
   for(q = recent, i = 0; q; q = q->next, ++i)
-    if((rc = mx_rewritel(args[0],
-                         "id", q->id,
-                         "track", q->track,
-                         "index", make_index(i),
-                         "parity", i % 2 ? "odd" : "even",
-                         "first", q == recent ? "true" : "false",
-                         "last", q->next ? "false" : "true",
-                         (char *)0)))
+    if((rc = mx_expand(mx_rewritel(args[0],
+                                   "id", q->id,
+                                   "track", q->track,
+                                   "index", make_index(i),
+                                   "parity", i % 2 ? "odd" : "even",
+                                   "first", q == recent ? "true" : "false",
+                                   "last", q->next ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
       return rc;
   return 0;
 }
@@ -410,20 +429,20 @@ static int exp_recent(int attribute((unused)) nargs,
 static int exp_new(int attribute((unused)) nargs,
                    const struct mx_node **args,
                    struct sink *output,
-                   void attribute((unused)) *u) {
-  struct queue_entry *q;
+                   void *u) {
   int rc, i;
   
   lookup(DC_NEW);
   /* TODO perhaps we should generate an ID value for tracks in the new list */
   for(i = 0; i < nnew; ++i)
-    if((rc = mx_rewritel(args[0],
-                         "track", new[i],
-                         "index", make_index(i),
-                         "parity", i % 2 ? "odd" : "even",
-                         "first", i == 0 ? "true" : "false",
-                         "last", i == nnew - 1 ? "false" : "true",
-                         (char *)0)))
+    if((rc = mx_expand(mx_rewritel(args[0],
+                                   "track", new[i],
+                                   "index", make_index(i),
+                                   "parity", i % 2 ? "odd" : "even",
+                                   "first", i == 0 ? "true" : "false",
+                                   "last", i == nnew - 1 ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
       return rc;
   return 0;
 }
@@ -438,9 +457,9 @@ static int exp_volume(int attribute((unused)) nargs,
                       struct sink *output,
                       void attribute((unused)) *u) {
   lookup(DC_VOLUME);
-  return sink_write(output, "%d",
-                    !strcmp(args[0], "left")
-                            ? volume_left : volume_right) < 0 ? -1 : 0;
+  return sink_printf(output, "%d",
+                     !strcmp(args[0], "left")
+                         ? volume_left : volume_right) < 0 ? -1 : 0;
 }
 
 /* @isplaying
@@ -504,7 +523,8 @@ static int exp_pref(int attribute((unused)) nargs,
   char *value;
 
   if(client && !disorder_get(client, args[0], args[1], &value))
-    return sink_write(output, cgi_sgmlquote(value)) < 0 ? -1 : 0;
+    return sink_writes(output, cgi_sgmlquote(value)) < 0 ? -1 : 0;
+  return 0;
 }
 
 /* @prefs{TRACK}{TEMPLATE}
@@ -523,7 +543,7 @@ static int exp_pref(int attribute((unused)) nargs,
 static int exp_prefs(int attribute((unused)) nargs,
                      const struct mx_node **args,
                      struct sink *output,
-                     void attribute((unused)) *u) {
+                     void *u) {
   int rc, i;
   struct kvp *k, *head;
   char *track;
@@ -533,14 +553,15 @@ static int exp_prefs(int attribute((unused)) nargs,
   if(!client || disorder_prefs(client, track, &head))
     return 0;
   for(k = head, i = 0; k; k = k->next, ++i)
-    if((rc = mx_rewritel(args[1],
-                         "index", make_index(i),
-                         "parity", i % 2 ? "odd" : "even",
-                         "name", k->name,
-                         "value", k->value,
-                         "first", k == head ? "true" : "false",
-                         "last", k->next ? "false" : "true",
-                         (char *)0)))
+    if((rc = mx_expand(mx_rewritel(args[1],
+                                   "index", make_index(i),
+                                   "parity", i % 2 ? "odd" : "even",
+                                   "name", k->name,
+                                   "value", k->value,
+                                   "first", k == head ? "true" : "false",
+                                   "last", k->next ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
       return rc;
   return 0;
 }
@@ -556,8 +577,8 @@ static int exp_transform(int nargs,
                          struct sink *output,
                          void attribute((unused)) *u) {
   const char *t = trackname_transform(args[1], args[0],
-                                      (nargs > 2 ? args[2] : "display")));
-  return sink_write(output, cgi_sgmlquote(t)) < 0 ? -1 : 0;
+                                      (nargs > 2 ? args[2] : "display"));
+  return sink_writes(output, cgi_sgmlquote(t)) < 0 ? -1 : 0;
 }
 
 /* @enabled@
@@ -579,10 +600,10 @@ static int exp_enabled(int attribute((unused)) nargs,
  *
  * Expands to "true" if random play is enabled, otherwise "false".
  */
-static int exp_enabled(int attribute((unused)) nargs,
-                       char attribute((unused)) **args,
-                       struct sink *output,
-                       void attribute((unused)) *u) {
+static int exp_random_enabled(int attribute((unused)) nargs,
+                              char attribute((unused)) **args,
+                              struct sink *output,
+                              void attribute((unused)) *u) {
   int enabled = 0;
 
   if(client)
@@ -608,11 +629,11 @@ static int exp_trackstate(int attribute((unused)) nargs,
     return 0;
   lookup(DC_PLAYING);
   if(playing && !strcmp(track, playing->track))
-    return sink_write(output, "playing") < 0 ? -1 : 0;
+    return sink_writes(output, "playing") < 0 ? -1 : 0;
   lookup(DC_QUEUE);
   for(q = queue; q; q = q->next)
     if(!strcmp(track, q->track))
-      return sink_write(output, "queued") < 0 ? -1 : 0;
+      return sink_writes(output, "queued") < 0 ? -1 : 0;
   return 0;
 }
 
@@ -626,7 +647,7 @@ static int exp_thisurl(int attribute((unused)) nargs,
                        char attribute((unused)) **args,
                        struct sink *output,
                        void attribute((unused)) *u) {
-  return cgi_thisurl(config->url);
+  return sink_writes(output, cgi_thisurl(config->url)) < 0 ? -1 : 0;
 }
 
 /* @resolve{TRACK}
@@ -641,7 +662,7 @@ static int exp_resolve(int attribute((unused)) nargs,
   char *r;
 
   if(client && !disorder_resolve(client, &r, args[0]))
-    return sink_write(output, r) < 0 ? -1 : 0;
+    return sink_writes(output, r) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -669,7 +690,7 @@ static int exp_state(int attribute((unused)) nargs,
   struct queue_entry *q = findtrack(args[0]);
 
   if(q)
-    return sink_write(output, playing_states[q->state]) < 0 ? -1 : 0;
+    return sink_writes(output, playing_states[q->state]) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -687,14 +708,15 @@ static int exp_state(int attribute((unused)) nargs,
 static int exp_right(int nargs,
                      const struct mx_node **args,
                      struct sink *output,
-                     void attribute((unused)) *u) {
+                     void *u) {
   char *right;
   rights_type r;
+  int rc;
 
   if(!client)
     return 0;
   lookup(DC_RIGHTS);
-  if((rc = mx_expandstr(args[0], &rightname, u, "argument #0 (RIGHT)")))
+  if((rc = mx_expandstr(args[0], &right, u, "argument #0 (RIGHT)")))
     return rc;
   if(parse_rights(right, &r, 1/*report*/))
     return 0;
@@ -703,9 +725,9 @@ static int exp_right(int nargs,
     return mx_bool_result(output, !!(r & rights));
   /* Multiple argument form */
   if(r & rights)
-    return mx_expandl(args[1], (char *)0);
+    return mx_expand(args[1], output, u);
   if(nargs == 3)
-    return mx_expandl(args[2], (char *)0);
+    return mx_expand(args[2], output, u);
   return 0;
 }
 
@@ -720,7 +742,7 @@ static int exp_userinfo(int attribute((unused)) nargs,
   char *v;
 
   if(client && !disorder_userinfo(client, disorder_user(client), args[0], &v))
-    return sink_write(output, v) < 0 ? -1 : 0;
+    return sink_writes(output, v) < 0 ? -1 : 0;
   return 0;
 }
 
@@ -732,56 +754,45 @@ static int exp_error(int attribute((unused)) nargs,
                      char attribute((unused)) **args,
                      struct sink *output,
                      void attribute((unused)) *u) {
-  return sink_write(output, cgi_sgmlquote(error_string)) < 0 ? -1 : 0;
+  return sink_writes(output, cgi_sgmlquote(error_string)) < 0 ? -1 : 0;
 }
 
-/* @userinfo{PROPERTY}@
- *
 /** @brief Register DisOrder-specific expansions */
 void register_disorder_expansions(void) {
-  mx_register(exp_arg, 1, 1, "arg");
-  mx_register(exp_enabled, 0, 0, "enabled");
-  mx_register(exp_error, 0, 0, "error");
-  mx_register(exp_isnew, 0, 0, "isnew");
-  mx_register(exp_isplaying, 0, 0, "isplaying");
-  mx_register(exp_isqueue, 0, 0, "isplaying");
-  mx_register(exp_isrecent, 0, 0, "isrecent");
-  mx_register(exp_length, 1, 1, "length");
-  mx_register(exp_movable, 1, 1, "movable");
-  mx_register(exp_part, 2, 3, "part");
-  mx_register(exp_pref, 2, 2, "pref");
-  mx_register(exp_quote, 1, 1, "quote");
-  mx_register(exp_random_enabled, 0, 0, "random-enabled");
-  mx_register(exp_removable, 1, 1, "removable");
-  mx_register(exp_resolve, 1, 1, "resolve");
-  mx_register(exp_right, 1, 3, "right");
-  mx_register(exp_server_version, 0, 0, "server-version");
-  mx_register(exp_state, 1, 1, "state");
-  mx_register(exp_thisurl, 0, 0, "thisurl");
-  mx_register(exp_trackstate, 1, 1, "trackstate");
-  mx_register(exp_transform, 2, 3, "transform");
-  mx_register(exp_url, 0, 0, "url");
-  mx_register(exp_user, 0, 0, "user");
-  mx_register(exp_userinfo, 1, 1, "userinfo");
-  mx_register(exp_version, 0, 0, "version");
-  mx_register(exp_volume, 1, 1, "volume");
-  mx_register(exp_when, 1, 1, "when");
-  mx_register(exp_who, 1, 1, "who");
-  mx_register_magic(exp_new, 1, 1, "new");
-  mx_register_magic(exp_playing, 0, 1, "playing");
-  mx_register_magic(exp_prefs, 2, 2, "prefs");
-  mx_register_magic(exp_queue, 1, 1, "queue");
-  mx_register_magic(exp_recent, 1, 1, "recent");
-}
-
-void disorder_macros_reset(void) {
-  /* Junk the old connection if there is one */
-  if(client)
-    disorder_close(client);
-  /* Create a new connection */
-  client = disorder_new(0);
-  /* Forget everything we knew */
-  flags = 0;
+  mx_register("arg", 1, 1, exp_arg);
+  mx_register("enabled", 0, 0, exp_enabled);
+  mx_register("error", 0, 0, exp_error);
+  mx_register("isnew", 0, 0, exp_isnew);
+  mx_register("isplaying", 0, 0, exp_isplaying);
+  mx_register("isplaying", 0, 0, exp_isqueue);
+  mx_register("isrecent", 0, 0, exp_isrecent);
+  mx_register("length", 1, 1, exp_length);
+  mx_register("movable", 1, 1, exp_movable);
+  mx_register("part", 2, 3, exp_part);
+  mx_register("paused", 0, 0, exp_paused);
+  mx_register("pref", 2, 2, exp_pref);
+  mx_register("quote", 1, 1, exp_quote);
+  mx_register("random-enabled", 0, 0, exp_random_enabled);
+  mx_register("removable", 1, 1, exp_removable);
+  mx_register("resolve", 1, 1, exp_resolve);
+  mx_register("server-version", 0, 0, exp_server_version);
+  mx_register("state", 1, 1, exp_state);
+  mx_register("thisurl", 0, 0, exp_thisurl);
+  mx_register("trackstate", 1, 1, exp_trackstate);
+  mx_register("transform", 2, 3, exp_transform);
+  mx_register("url", 0, 0, exp_url);
+  mx_register("user", 0, 0, exp_user);
+  mx_register("userinfo", 1, 1, exp_userinfo);
+  mx_register("version", 0, 0, exp_version);
+  mx_register("volume", 1, 1, exp_volume);
+  mx_register("when", 1, 1, exp_when);
+  mx_register("who", 1, 1, exp_who);
+  mx_register_magic("new", 1, 1, exp_new);
+  mx_register_magic("playing", 0, 1, exp_playing);
+  mx_register_magic("prefs", 2, 2, exp_prefs);
+  mx_register_magic("queue", 1, 1, exp_queue);
+  mx_register_magic("recent", 1, 1, exp_recent);
+  mx_register_magic("right", 1, 3, exp_right);
 }
 
 /*

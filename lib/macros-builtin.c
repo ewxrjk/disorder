@@ -61,7 +61,7 @@ const char *mx_bool2str(int n) {
 }
 
 /** @brief Write a boolean result */
-static int mx_bool_result(struct sink *output, int result) {
+int mx_bool_result(struct sink *output, int result) {
   if(sink_writes(output, mx_bool2str(result)) < 0)
     return -1;
   else

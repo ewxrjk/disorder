@@ -21,8 +21,30 @@
 #include <config.h>
 #include "types.h"
 
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <time.h>
+#include <ctype.h>
+#include <stddef.h>
+
+#include "hash.h"
+#include "table.h"
+#include "client.h"
+#include "rights.h"
+#include "mem.h"
+#include "sink.h"
+#include "vector.h"
+#include "printf.h"
 #include "actions.h"
-#include "lookups.h"
+#include "lookup.h"
+#include "url.h"
+#include "configuration.h"
+#include "cgi.h"
+#include "log.h"
+#include "queue.h"
+#include "macros.h"
+#include "macros-disorder.h"
 
 /** @brief Login cookie */
 char *login_cookie;
@@ -66,7 +88,7 @@ static char *cookie(void) {
 static void redirect(const char *url) {
   /* By default use the 'back' argument */
   if(!url)
-    url = cgi_get("back")
+    url = cgi_get("back");
   if(url) {
     if(!strncmp(url, "http", 4))
       /* If the target is not a full URL assume it's the action */
@@ -87,8 +109,9 @@ static void act_playing(void) {
   long length;
   time_t now, fin;
   char *url;
+  const char *action;
 
-  lookups(DC_PLAYING|DC_QUEUE|DC_ENABLED|DC_RANDOM_ENABLED);
+  lookup(DC_PLAYING|DC_QUEUE|DC_ENABLED|DC_RANDOM_ENABLED);
   if(playing
      && playing->state == playing_started /* i.e. not paused */
      && !disorder_length(client, playing->track, &length)
@@ -171,9 +194,9 @@ void disorder_cgi_expand(const char *name) {
   for(p = name; *p && isalnum((unsigned char)*p); ++p)
     ;
   if(*p)
-    fatal(0, "invalid action name '%s'", action);
-  byte_xasprintf((char **)&p, "%s.tmpl", action);
-  if(mx_expand_file(p, sink_stdio(stdout), 0) == -1
+    fatal(0, "invalid action name '%s'", name);
+  byte_xasprintf((char **)&p, "%s.tmpl", name);
+  if(mx_expand_file(p, sink_stdio("stdout", stdout), 0) == -1
      || fflush(stdout) < 0)
     fatal(errno, "error writing to stdout");
 }
@@ -185,7 +208,6 @@ void disorder_cgi_expand(const char *name) {
  */
 void disorder_cgi_action(const char *action) {
   int n;
-  char *s;
 
   /* Consult CGI args if caller had no view */
   if(!action)
@@ -226,16 +248,16 @@ void disorder_cgi_error(const char *msg, ...) {
 }
 
 /** @brief Log in as the current user or guest if none */
-void disorder_cgi_login(dcgi_state *ds, struct sink *output) {
+void disorder_cgi_login(void) {
   /* Junk old data */
-  disorder_macros_reset();
+  lookup_reset();
   /* Reconnect */
   if(disorder_connect_cookie(client, login_cookie)) {
     disorder_cgi_error("Cannot connect to server");
     exit(0);
   }
   /* If there was a cookie but it went bad, we forget it */
-  if(login_cookie && !strcmp(disorder_user(>client), "guest"))
+  if(login_cookie && !strcmp(disorder_user(client), "guest"))
     login_cookie = 0;
 }
 
