@@ -28,6 +28,9 @@
 /** @brief Cached data */
 static unsigned flags;
 
+/** @brief Map of hashes to queud data */
+static hash *queuemap;
+
 struct queue_entry *dcgi_queue;
 struct queue_entry *dcgi_playing;
 struct queue_entry *dcgi_recent;
@@ -43,6 +46,13 @@ rights_type dcgi_rights;
 int dcgi_enabled;
 int dcgi_random_enabled;
 
+static void queuemap_add(struct queue_entry *q) {
+  if(!queuemap)
+    queuemap = hash_new(sizeof (struct queue_entry *));
+  for(; q; q = q->next)
+    hash_add(queuemap, q->id, &q, HASH_INSERT_OR_REPLACE);
+}
+
 /** @brief Fetch cachable data */
 void dcgi_lookup(unsigned want) {
   unsigned need = want ^ (flags & want);
@@ -54,10 +64,14 @@ void dcgi_lookup(unsigned want) {
 
   if(!dcgi_client || !need)
     return;
-  if(need & DCGI_QUEUE)
+  if(need & DCGI_QUEUE) {
     disorder_queue(dcgi_client, &dcgi_queue);
-  if(need & DCGI_PLAYING)
+    queuemap_add(dcgi_queue);
+  }
+  if(need & DCGI_PLAYING) {
     disorder_playing(dcgi_client, &dcgi_playing);
+    queuemap_add(dcgi_playing);
+  }
   if(need & DCGI_NEW)
     disorder_new_tracks(dcgi_client, &dcgi_new, &dcgi_nnew, 0);
   if(need & DCGI_RECENT) {
@@ -69,6 +83,7 @@ void dcgi_lookup(unsigned want) {
       dcgi_recent = r;
       r = rnext;
     }
+    queuemap_add(dcgi_recent);
   }
   if(need & DCGI_VOLUME)
     disorder_get_volume(dcgi_client,
@@ -102,9 +117,28 @@ void dcgi_lookup(unsigned want) {
   flags |= need;
 }
 
+/** @brief Locate a track by ID */
+struct queue_entry *dcgi_findtrack(const char *id) {
+  struct queue_entry *q, **qq;
+
+  if(queuemap && (qq = hash_find(id)))
+    return *q;
+  dcgi_lookup(DCGI_PLAYING);
+  if(queuemap && (qq = hash_find(id)))
+    return *q;
+  dcgi_lookup(DCGI_QUEUE);
+  if(queuemap && (qq = hash_find(id)))
+    return *q;
+  dcgi_lookup(DCGI_RECENT);
+  if(queuemap && (qq = hash_find(id)))
+    return *q;
+  return NULL;
+}
+
 void dcgi_lookup_reset(void) {
   /* Forget everything we knew */
   flags = 0;
+  queuemap = 0;
   dcgi_recent = 0;
   dcgi_queue = 0;
   dcgi_playing = 0;

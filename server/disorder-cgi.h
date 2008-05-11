@@ -70,6 +70,7 @@ void dcgi_expansions(void);
 char *dcgi_cookie_header(void);
 void dcgi_login(void);
 void dcgi_get_cookie(void);
+struct queue_entry *dcgi_findtrack(const char *id);
 
 void option_set(const char *name, const char *value);
 const char *option_label(const char *key);

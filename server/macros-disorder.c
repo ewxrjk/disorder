@@ -26,24 +26,6 @@
 /** @brief For error template */
 char *dcgi_error_string;
 
-/** @brief Locate a track by ID */
-static struct queue_entry *findtrack(const char *id) {
-  struct queue_entry *q;
-
-  dcgi_lookup(DCGI_PLAYING);
-  if(dcgi_playing && !strcmp(dcgi_playing->id, id))
-    return dcgi_playing;
-  dcgi_lookup(DCGI_QUEUE);
-  for(q = dcgi_queue; q; q = q->next)
-    if(!strcmp(q->id, id))
-      return q;
-  dcgi_lookup(DCGI_RECENT);
-  for(q = dcgi_recent; q; q = q->next)
-    if(!strcmp(q->id, id))
-      return q;
-  return NULL;
-}
-
 /** @brief Return @p i as a string */
 static const char *make_index(int i) {
   char *s;
@@ -150,7 +132,7 @@ static int exp_part(int nargs,
   char *s;
 
   if(track[0] != '/') {
-    struct queue_entry *q = findtrack(track);
+    struct queue_entry *q = dcgi_findtrack(track);
 
     if(q)
       track = q->track;
@@ -187,7 +169,7 @@ static int exp_who(int attribute((unused)) nargs,
                    char **args,
                    struct sink *output,
                    void attribute((unused)) *u) {
-  struct queue_entry *q = findtrack(args[0]);
+  struct queue_entry *q = dcgi_findtrack(args[0]);
 
   if(q && q->submitter)
     return sink_writes(output, cgi_sgmlquote(q->submitter)) < 0 ? -1 : 0;
@@ -203,7 +185,7 @@ static int exp_when(int attribute((unused)) nargs,
                    char **args,
                    struct sink *output,
                     void attribute((unused)) *u) {
-  struct queue_entry *q = findtrack(args[0]);
+  struct queue_entry *q = dcgi_findtrack(args[0]);
   const struct tm *w = 0;
 
   if(q) {
@@ -250,7 +232,7 @@ static int exp_length(int attribute((unused)) nargs,
     name = args[0];
   else {
     /* Track identified by queue ID */
-    if(!(q = findtrack(args[0])))
+    if(!(q = dcgi_findtrack(args[0])))
       return 0;
     if(q->state == playing_started || q->state == playing_paused)
       if(sink_printf(output, "%ld:%02ld/", q->sofar / 60, q->sofar % 60) < 0)
@@ -272,7 +254,7 @@ static int exp_removable(int attribute((unused)) nargs,
                          char **args,
                          struct sink *output,
                          void attribute((unused)) *u) {
-  struct queue_entry *q = findtrack(args[0]);
+  struct queue_entry *q = dcgi_findtrack(args[0]);
   /* TODO would be better to reject recent */
 
   if(!q || !dcgi_client)
@@ -291,7 +273,7 @@ static int exp_movable(int attribute((unused)) nargs,
                        char **args,
                        struct sink *output,
                        void attribute((unused)) *u) {
-  struct queue_entry *q = findtrack(args[0]);
+  struct queue_entry *q = dcgi_findtrack(args[0]);
   /* TODO would be better to recent playing/recent */
 
   if(!q || !dcgi_client)
@@ -668,7 +650,7 @@ static int exp_state(int attribute((unused)) nargs,
                      char **args,
                      struct sink *output,
                      void attribute((unused)) *u) {
-  struct queue_entry *q = findtrack(args[0]);
+  struct queue_entry *q = dcgi_findtrack(args[0]);
 
   if(q)
     return sink_writes(output, playing_states[q->state]) < 0 ? -1 : 0;

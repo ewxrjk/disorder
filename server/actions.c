@@ -119,6 +119,37 @@ static void act_random_enable(void) {
   redirect(0);
 }
 
+static void act_remove(void) {
+  const char *id;
+  struct queue_entry *q;
+
+  if(dcgi_client) {
+    if(!(id = cgi_get("id")))
+      error(0, "missing 'id' argument");
+    else if(!(q = dcgi_findtrack(id)))
+      error(0, "unknown queue id %s", id);
+    else switch(q->state) {
+    case playing_isscratch:
+    case playing_failed:
+    case playing_no_player:
+    case playing_ok:
+    case playing_quitting:
+    case playing_scratched:
+      error(0, "does not make sense to scratch %s", id);
+      break;
+    case playing_paused:                /* started but paused */
+    case playing_started:               /* started to play */
+      disorder_scratch(dcgi_client, id);
+      break;
+    case playing_random:                /* unplayed randomly chosen track */
+    case playing_unplayed:              /* haven't played this track yet */
+      disorder_remove(dcgi_client, id);
+      break;
+    }
+  }
+  redirect(0);
+}
+
 /** @brief Table of actions */
 static const struct action {
   /** @brief Action name */
@@ -132,6 +163,7 @@ static const struct action {
   { "playing", act_playing },
   { "random-disable", act_random_disable },
   { "random-enable", act_random_enable },
+  { "remove", act_remove },
 };
 
 /** @brief Expand a template

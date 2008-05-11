@@ -18,9 +18,61 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 USA
 
-@define {ifmanage} {yes} {no}
-        {@if {@eq {@arg{action}}{manage}}
-             {@yes}
-             {@no}}
+@# Expand to @yes for the Manage page and @no for the playing page
+@define {ifmanage} {yes no}
+	  {@if {@eq {@arg{action}}{manage}}
+	       {@yes}
+	       {@no}}
 
-}@@@
+@# Expand to &back=manage or to nothing
+@define {back} {}
+        {@ifmanage{&amp;back=manage}{}}
+
+@# Expand to the time that @id will be played
+@define {mwhen} {what id}
+        {@when{@id}</td>}
+
+@# Expand to the 'who' field for @id
+@define {mwho} {what id}
+        {@if{@eq{@who{@id}}{}}
+            {@if{@eq{@state{@id}}{random}}
+                {@label{@what.randomtrack}}
+                 {&nbsp;}}
+            {@who{@id}}}
+
+@# Expand to the artist for @track
+@define {martist} {what track}
+        {@right{play}
+               {<a class=directory
+                   href="@url?action=choose&amp;directory=@urlquote{@dirname{@dirname{@track}}}"
+                   title="@label{@what.artistverbose}">@part{@track}{short}{artist}</a>}
+               {<span class=directory
+                      title="@part{@track}{artist}@">@part{@track}{short}{artist}</span>}}
+
+@# Expand to the album for @track
+@define {malbum} {what track}
+        {@right{play}
+               {<a class=directory
+                   href="@url?action=choose&amp;directory=@urlquote{@dirname{@track}}"
+                   title="@label{@what.albumverbose}">@part{@track}{short}{album}</a>}
+               {<span class=directory
+                      title="@part{@track}{album}@">@part{@track}{short}{album}</span>}}
+
+@# Expand to the title for @track
+@define {mtitle} {what track}
+        {<span title="@part{@track}{title}">@part{@track}{short}{title}</span>}
+
+@# Expand to the remove/scratch entry for @id
+@define {mremove} {what id}
+        {@if{@removable{@id}}
+            {<a class=imgbutton
+                href="@url?action=remove&#38;id=@id@back">
+               <img class=button src="@image{remove}"
+                    title="@label{@what.removeverbose}"
+                    alt="@label{@what.scratch}">
+             </a>}
+            {<img class=button src="@image{noremove}"
+                  title="@label{@what.removeverbose}"
+                  alt="@label{@what.scratch}">}}
+
+}@#

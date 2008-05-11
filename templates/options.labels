@@ -15,12 +15,12 @@ label	playing.randomtrack	&nbsp;
 label	queue.randomtrack	random
 
 # Short and long text for scratch (remove playing track) button
-label	playing.scratch		Scratch
-label	playing.scratchverbose	"stop playing this track"
+label	playing.remove		Scratch
+label	playing.removeverbose	"stop playing this track"
 
 # Short and long text for remove queued track button
-label	playing.remove		Remove
-label	playing.removeverbose	"remove track from queue"
+label	queue.remove		Remove
+label	queue.removeverbose	"remove track from queue"
 
 # Text for banner above currently playing track
 label	playing.now		"Now playing"
@@ -239,8 +239,8 @@ label	heading.length		Length
 # Role images.  See the documentation for @images:NAME@.
 label   images.enabled          tick.png
 label   images.disabled         cross.png
-label   images.scratch          cross.png
-label   images.noscratch        nocross.png
+label   images.remove           cross.png
+label   images.noremove         nocross.png
 label   images.noup             noup.png
 label   images.upall            upup.png
 label   images.noupall          noupup.png
