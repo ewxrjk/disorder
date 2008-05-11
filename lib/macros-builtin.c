@@ -418,6 +418,17 @@ static int exp_dirname(int attribute((unused)) nargs,
   return sink_writes(output, d_dirname(args[0])) < 0 ? -1 : 0;
 }
 
+/* @q{STRING}
+ *
+ * Expands to STRING.
+ */
+static int exp_q(int attribute((unused)) nargs,
+                 char **args,
+                 struct sink attribute((unused)) *output,
+                 void attribute((unused)) *u) {
+  return sink_writes(output, args[0]) < 0 ? -1 : 0;
+}
+
 /** @brief Register built-in expansions */
 void mx_register_builtin(void) {
   mx_register("basename", 1, 1, exp_basename);
@@ -429,6 +440,7 @@ void mx_register_builtin(void) {
   mx_register("not", 1, 1, exp_not);
   mx_register("shell", 1, 1, exp_shell);
   mx_register("urlquote", 1, 1, exp_urlquote);
+  mx_register("q", 1, 1, exp_q);
   mx_register_magic("#", 0, INT_MAX, exp_comment);
   mx_register_magic("and", 0, INT_MAX, exp_and);
   mx_register_magic("define", 3, 3, exp_define);

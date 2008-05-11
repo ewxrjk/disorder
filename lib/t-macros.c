@@ -219,6 +219,9 @@ static void test_macros(void) {
               "foo & something", 0);
   check_macro("basename1", "@basename{xyzzy/plugh}", "plugh", 0);
   check_macro("basename2", "@basename{xyzzy/a<b}", "a<b", 0);
+
+  check_macro("q1", "@q{wibble}", "wibble", 0);
+  check_macro("q2", "@q{wibble}wobble", "wibblewobble", 0);
   
   /* Macro definitions ------------------------------------------------------ */
 
