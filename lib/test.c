@@ -20,9 +20,12 @@
 /** @file lib/test.c @brief Library tests */
 
 #include "test.h"
+#include "version.h"
+#include <getopt.h>
 
 long long tests, errors;
 int fail_first;
+int verbose;
 
 void count_error(void) {
   ++errors;
@@ -34,7 +37,7 @@ const char *format(const char *s) {
   struct dynstr d;
   int c;
   char buf[10];
-  
+
   dynstr_init(&d);
   while((c = (unsigned char)*s++)) {
     if(c >= ' ' && c <= '~')
@@ -52,7 +55,7 @@ const char *format_utf32(const uint32_t *s) {
   struct dynstr d;
   uint32_t c;
   char buf[64];
-  
+
   dynstr_init(&d);
   while((c = *s++)) {
     sprintf(buf, " %04lX", (long)c);
@@ -89,6 +92,46 @@ const char *do_printf(const char *fmt, ...) {
     return 0;
   return s;
 }
+
+static const struct option options[] = {
+  { "verbose", no_argument, 0, 'v' },
+  { "fail-first", no_argument, 0, 'F' },
+  { "help", no_argument, 0, 'h' },
+  { "version", no_argument, 0, 'V' },
+};
+
+/* display usage message and terminate */
+static void help(void) {
+  xprintf("Usage:\n"
+	  "  %s [OPTIONS]\n"
+	  "Options:\n"
+	  "  --help, -h               Display usage message\n"
+	  "  --version, -V            Display version number\n"
+          "  --verbose, -v            Verbose output\n"
+          "  --fail-first, -F         Stop on first failure\n",
+          progname);
+  xfclose(stdout);
+  exit(0);
+}
+
+void test_init(int argc, char **argv) {
+  int n;
+
+  set_progname(argv);
+  mem_init();
+  while((n = getopt_long(argc, argv, "vFhV", options, 0)) >= 0) {
+    switch(n) {
+    case 'v': verbose = 1; break;
+    case 'F': fail_first = 1; break;
+    case 'h': help();
+    case 'V': version(progname);
+    default: exit(1);
+    }
+  }
+  if(getenv("FAIL_FIRST"))
+    fail_first = 1;
+}
+
 
 /*
 Local Variables:

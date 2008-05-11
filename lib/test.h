@@ -72,6 +72,7 @@
 
 extern long long tests, errors;
 extern int fail_first;
+extern int verbose;
 
 /** @brief Checks that @p expr is nonzero */
 #define insist(expr) do {				\
@@ -130,13 +131,13 @@ const char *format(const char *s);
 const char *format_utf32(const uint32_t *s);
 uint32_t *ucs4parse(const char *s);
 const char *do_printf(const char *fmt, ...);
+void test_init(int argc, char **argv);
 
 #define TEST(name)                                                      \
-   int main(void) {                                                     \
-    mem_init();                                                         \
-    fail_first = !!getenv("FAIL_FIRST");                                \
+  int main(int argc, char **argv) {                                     \
+    test_init(argc, argv);                                              \
     test_##name();                                                      \
-    if(errors)                                                          \
+    if(errors || verbose)                                               \
       fprintf(stderr, "test_"#name": %lld errors out of %lld tests\n",  \
               errors, tests);                                           \
     return !!errors;                                                    \

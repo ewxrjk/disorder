@@ -48,6 +48,7 @@
 #include "split.h"
 #include "printf.h"
 #include "vector.h"
+#include "filepart.h"
 
 static struct vector include_path;
 
@@ -395,13 +396,32 @@ static int exp_define(int attribute((unused)) nargs,
   return 0;
 }
 
+/* @basename{PATH}
+ *
+ * Expands to the UNQUOTED basename of PATH.
+ */
+static int exp_basename(int attribute((unused)) nargs,
+                        char **args,
+                        struct sink attribute((unused)) *output,
+                        void attribute((unused)) *u) {
+  return sink_writes(output, d_basename(args[0])) < 0 ? -1 : 0;
+}
+
+/* @dirname{PATH}
+ *
+ * Expands to the UNQUOTED directory name of PATH.
+ */
+static int exp_dirname(int attribute((unused)) nargs,
+                       char **args,
+                       struct sink attribute((unused)) *output,
+                       void attribute((unused)) *u) {
+  return sink_writes(output, d_dirname(args[0])) < 0 ? -1 : 0;
+}
+
 /** @brief Register built-in expansions */
 void mx_register_builtin(void) {
-  mx_register_magic("#", 0, INT_MAX, exp_comment);
-  mx_register_magic("and", 0, INT_MAX, exp_and);
-  mx_register_magic("define", 3, 3, exp_define);
-  mx_register_magic("if", 2, 3, exp_if);
-  mx_register_magic("or", 0, INT_MAX, exp_or);
+  mx_register("basename", 1, 1, exp_basename);
+  mx_register("dirname", 1, 1, exp_dirname);
   mx_register("discard", 0, INT_MAX, exp_discard);
   mx_register("eq", 0, INT_MAX, exp_eq);
   mx_register("include", 1, 1, exp_include);
@@ -409,6 +429,11 @@ void mx_register_builtin(void) {
   mx_register("not", 1, 1, exp_not);
   mx_register("shell", 1, 1, exp_shell);
   mx_register("urlquote", 1, 1, exp_urlquote);
+  mx_register_magic("#", 0, INT_MAX, exp_comment);
+  mx_register_magic("and", 0, INT_MAX, exp_and);
+  mx_register_magic("define", 3, 3, exp_define);
+  mx_register_magic("if", 2, 3, exp_if);
+  mx_register_magic("or", 0, INT_MAX, exp_or);
 }
 
 /** @brief Add a directory to the search path

@@ -24,6 +24,8 @@
 #ifndef FILEPART_H
 #define FILEPART_H
 
+char *d_basename(const char *path);
+
 char *d_dirname(const char *path);
 /* return the directory name part of @path@ */
 

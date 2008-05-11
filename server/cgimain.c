@@ -47,7 +47,8 @@ int main(int argc, char **argv) {
     configfile = xstrdup(conf);
   if(getenv("DISORDER_DEBUG"))
     debugging = 1;
-  if(config_read(0))
+  /* Read configuration */
+  if(config_read(0/*!server*/))
     exit(EXIT_FAILURE);
   /* Figure out our URL.  This can still be overridden from the config file if
    * necessary but it shouldn't be necessary in ordinary installations. */
@@ -68,7 +69,7 @@ int main(int argc, char **argv) {
   /* Create the initial connection, trying the cookie if we found a suitable
    * one. */
   dcgi_login();
-  /* The main program... */
+  /* Do whatever the user wanted */
   dcgi_action(NULL);
   /* In practice if a write fails that probably means the web server went away,
    * but we log it anyway. */

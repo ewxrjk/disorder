@@ -213,6 +213,12 @@ static void test_macros(void) {
   fprintf(stderr, ">>> expect error message about 'if':\n");
   check_macro("badex3", "<@if{1}{2}{3}{4}{5}>",
               "<[['if' too many args]]>", 0);
+
+  check_macro("dirname1", "@dirname{foo/bar}", "foo", 0);
+  check_macro("dirname2", "@dirname{foo & something/bar}",
+              "foo & something", 0);
+  check_macro("basename1", "@basename{xyzzy/plugh}", "plugh", 0);
+  check_macro("basename2", "@basename{xyzzy/a<b}", "a<b", 0);
   
   /* Macro definitions ------------------------------------------------------ */
 

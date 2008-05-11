@@ -92,7 +92,7 @@ static void act_playing(void) {
             "\n",
             refresh, url, dcgi_cookie_header()) < 0)
     fatal(errno, "error writing to stdout");
-  dcgi_expand(action ? action : "playing");
+  dcgi_expand("playing");
 }
 
 static void act_disable(void) {

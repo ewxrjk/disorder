@@ -20,20 +20,47 @@
  */
 #include "test.h"
 
+#define check_filepart(PATH, DIR, BASE) do {            \
+  char *d = d_dirname(PATH), *b = d_basename(PATH);     \
+                                                        \
+  if(strcmp(d, DIR)) {                                  \
+    fprintf(stderr, "%s:%d: d_dirname failed:\n"        \
+            "    path: %s\n"                            \
+            "     got: %s\n"                            \
+            "expected: %s\n",                           \
+            __FILE__, __LINE__,                         \
+            PATH, d, DIR);                              \
+    count_error();                                      \
+  }                                                     \
+  if(strcmp(b, BASE)) {                                 \
+    fprintf(stderr, "%s:%d: d_basename failed:\n"       \
+            "    path: %s\n"                            \
+            "     got: %s\n"                            \
+            "expected: %s\n",                           \
+            __FILE__, __LINE__,                         \
+            PATH, d, DIR);                              \
+    count_error();                                      \
+  }                                                     \
+} while(0)
+
 static void test_filepart(void) {
-  check_string(d_dirname("/"), "/");
-  check_string(d_dirname("////"), "/");
-  check_string(d_dirname("/spong"), "/");
-  check_string(d_dirname("////spong"), "/");
-  check_string(d_dirname("/foo/bar"), "/foo");
-  check_string(d_dirname("////foo/////bar"), "////foo");
-  check_string(d_dirname("./bar"), ".");
-  check_string(d_dirname(".//bar"), ".");
-  check_string(d_dirname("."), ".");
-  check_string(d_dirname(".."), ".");
-  check_string(d_dirname("../blat"), "..");
-  check_string(d_dirname("..//blat"), "..");
-  check_string(d_dirname("wibble"), ".");
+  check_filepart("", "", "");
+  check_filepart("/", "/", "/");
+  check_filepart("////", "/", "/");
+  check_filepart("/spong", "/", "spong");
+  check_filepart("/spong/", "/", "spong");
+  check_filepart("/spong//", "/", "spong");
+  check_filepart("////spong", "/", "spong");
+  check_filepart("/foo/bar", "/foo", "bar");
+  check_filepart("/foo/bar/", "/foo", "bar");
+  check_filepart("////foo/////bar", "////foo", "bar");
+  check_filepart("./bar", ".", "bar");
+  check_filepart(".//bar", ".", "bar");
+  check_filepart(".", ".", ".");
+  check_filepart("..", ".", "..");
+  check_filepart("../blat", "..", "blat");
+  check_filepart("..//blat", "..", "blat");
+  check_filepart("wibble", ".", "wibble");
   check_string(extension("foo.c"), ".c");
   check_string(extension(".c"), ".c");
   check_string(extension("."), ".");

@@ -105,6 +105,7 @@ static int exp_arg(int attribute((unused)) nargs,
 		   struct sink *output,
 		   void attribute((unused)) *u) {
   const char *s = cgi_get(args[0]);
+
   if(s)
     return sink_writes(output,
                        cgi_sgmlquote(s)) < 0 ? -1 : 0;
