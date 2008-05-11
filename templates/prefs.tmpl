@@ -20,11 +20,10 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:prefs.title@</title>
+@stdhead{prefs}
  </head>
  <body>
-@include{topbar}@
+@stdmenu{prefs}
    <h1>@label:prefs.title@</h1>
 
    <form class=prefs action="@url@" method=POST
@@ -75,15 +74,16 @@ USA
     </p>
    </form>
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

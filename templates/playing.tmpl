@@ -48,17 +48,25 @@ USA
                  {<img class=button width=@width height=@height
                        src="@image{no@dir}">}}
 
-  @include{macros.tmpl}
+  @# Expand to @yes for the Manage page and @no for the playing page
+  @define {ifmanage} {yes no}
+	    {@if {@eq {@arg{action}}{manage}}
+		 {@yes}
+		 {@no}}
+
+  @# Expand to &back=manage or to nothing
+  @define {back} {}
+	  {@ifmanage{&amp;back=manage}{}}
 }@#
 <html>
  <head>
-@include{stdhead.tmpl}@#
+@quiethead
   <title>@if{@isplaying}
             {@playing{@part{@id}{title}}}
             {@label{playing.title}}</title>
  </head>
  <body>
-@include{topbar.tmpl}
+@stdmenu{@ifmanage{manage}{playing}}
    <h1>@label{playing.title}</h1>
 
 @# Extra control buttons for the management page
@@ -163,7 +171,7 @@ USA
    </table>
 }
 
-@include{topbarend.tmpl}@#
+@credits
  </body>
 </html>
 @discard{
@@ -172,5 +180,6 @@ mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
 End:
-}@
+}@#

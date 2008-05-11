@@ -132,7 +132,7 @@ void dcgi_login(void) {
   dcgi_client = disorder_new(0);
   /* Reconnect */
   if(disorder_connect_cookie(dcgi_client, dcgi_cookie)) {
-    dcgi_error("Cannot connect to server");
+    dcgi_error("connect");
     exit(0);
   }
   /* If there was a cookie but it went bad, we forget it */

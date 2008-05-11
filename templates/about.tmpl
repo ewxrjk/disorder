@@ -20,60 +20,55 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:about.title@</title>
+@stdhead{about}
  </head>
  <body>
-@include{topbar}@
-   <p><a
-	 title="Visit DisOrder web site"
-	 href="http://www.greenend.org.uk/rjk/disorder/">
-       <img
-	  src="@image:logo@"
-	  alt="About DisOrder"
-	  style="border-style:none"></a></p>
-   <h2>Copyright</h2>
+@stdmenu{about}
 
-   <p><a
-    title="DisOrder web site"
-   href="http://www.greenend.org.uk/rjk/disorder/">DisOrder
-   version @version@</a> - select and play digital
-   audio files</p>
+  <p><a title="Visit DisOrder web site"
+  href="http://www.greenend.org.uk/rjk/disorder/"> <img src="@image{logo}"
+  alt="About DisOrder" style="border-style:none"></a></p>
 
-   <p>Copyright &copy; 2003-2008 <a href="http://www.greenend.org.uk/rjk/">Richard Kettlewell</a><br>
-   Portions copyright &copy; 2007 <a href="http://www.chiark.greenend.org.uk/~ryounger/">Ross Younger</a><br>
-   Portions copyright &copy; 2007 Mark Wooding</p>
+  <h2>Copyright</h2>
 
-   <p>Portions extracted from
-   <a href="http://mpg321.sourceforge.net/">MPG321</a>,
-   Copyright &copy; 2001 Joe Drew,
-   Copyright &copy; 2000-2001 Robert Leslie</p>
+  <p><a title="DisOrder web site"
+  ref="http://www.greenend.org.uk/rjk/disorder/">DisOrder version @version</a>
+  - software Jukebox</p>
 
-   <p>This program is free software; you can redistribute it and/or
-   modify it under the terms of the <a
-   href="http://www.gnu.org/copyleft/gpl.html">GNU General Public License</a> as
-   published by the Free Software Foundation; either version 2 of the
-   License, or (at your option) any later version.</p>
+  <p>Copyright &copy; 2003-2008 <a
+  href="http://www.greenend.org.uk/rjk/">Richard Kettlewell</a><br> Portions
+  copyright &copy; 2007 <a
+  href="http://www.chiark.greenend.org.uk/~ryounger/">Ross Younger</a><br>
+  Portions copyright &copy; 2007, 2008 Mark Wooding</p>
 
-   <p>This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   General Public License for more details.</p>
+  <p>Portions extracted from <a
+  href="http://mpg321.sourceforge.net/">MPG321</a>, Copyright &copy; 2001 Joe
+  Drew, Copyright &copy; 2000-2001 Robert Leslie</p>
 
-   <p>You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-   USA</p>
+  <p>This program is free software; you can redistribute it and/or modify it
+  under the terms of the <a href="http://www.gnu.org/copyleft/gpl.html">GNU
+  General Public License</a> as published by the Free Software Foundation;
+  either version 2 of the License, or (at your option) any later version.</p>
 
-@include{topbarend}@
+  <p>This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.</p>
+
+  <p>You should have received a copy of the GNU General Public License along
+  with this program; if not, write to the Free Software Foundation, Inc., 59
+  Temple Place, Suite 330, Boston, MA 02111-1307 USA</p>
+
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

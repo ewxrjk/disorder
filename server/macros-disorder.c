@@ -734,7 +734,7 @@ static int exp_error(int attribute((unused)) nargs,
                      char attribute((unused)) **args,
                      struct sink *output,
                      void attribute((unused)) *u) {
-  return sink_writes(output, cgi_sgmlquote(dcgi_error_string)) < 0 ? -1 : 0;
+  return sink_writes(output, dcgi_error_string) < 0 ? -1 : 0;
 }
 
 /* @image{NAME}

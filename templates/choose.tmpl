@@ -20,11 +20,10 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:choose.title@</title>
+@stdhead{choose}
  </head>
  <body>
-@include{topbar}@
+@stdmenu{choose}
    <h1>@label:choose.title@</h1>
   
   @#{always have the first-letter bar, if choosealpha enabled}@
@@ -146,15 +145,16 @@ USA
    </div></div>
    }@
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

@@ -20,11 +20,10 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:new.title@</title>
+@stdhead{new}
  </head>
  <body>
-@include{topbar}@
+@stdmenu{new}
   <h1>@label:new.title@</h1>
 
 @#{only display the table if there is something to put in it}@
@@ -70,15 +69,16 @@ USA
   </table>
 }@
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

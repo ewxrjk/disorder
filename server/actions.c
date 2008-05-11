@@ -171,7 +171,9 @@ static const struct action {
  */
 void dcgi_expand(const char *name) {
   const char *p;
-  
+
+  /* Parse macros first */
+  mx_expand_file("macros.tmpl", sink_discard(), 0);
   /* For unknown actions check that they aren't evil */
   for(p = name; *p && isalnum((unsigned char)*p); ++p)
     ;
@@ -220,12 +222,8 @@ void dcgi_action(const char *action) {
 }
 
 /** @brief Generate an error page */
-void dcgi_error(const char *msg, ...) {
-  va_list ap;
-
-  va_start(ap, msg);
-  byte_xvasprintf(&dcgi_error_string, msg, ap);
-  va_end(ap);
+void dcgi_error(const char *key) {
+  dcgi_error_string = xstrdup(key);
   dcgi_expand("error");
 }
 

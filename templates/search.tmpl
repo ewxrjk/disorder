@@ -20,11 +20,10 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:search.title@</title>
+@stdhead{search}
  </head>
  <body>
-@include{topbar}@
+@stdmenu{search}
    <h1>@label:search.title@</h1>
 
    <form class=search action="@url@" method=POST
@@ -63,15 +62,16 @@ USA
     }@
    </div>
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

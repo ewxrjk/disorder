@@ -62,7 +62,7 @@ extern char *dcgi_error_string;
 
 void dcgi_expand(const char *name);
 void dcgi_action(const char *action);
-void dcgi_error(const char *msg, ...);
+void dcgi_error(const char *key);
 void dcgi_login(void);
 void dcgi_lookup(unsigned want);
 void dcgi_lookup_reset(void);

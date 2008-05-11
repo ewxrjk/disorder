@@ -20,28 +20,25 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:error.title@</title>
+@stdhead{error}
  </head>
  <body>
-@include{topbar}@
-   <h1>@label:error.title@</h1>
+@stdmenu{error}
+   <h1>@label{error.title}</h1>
     
   <div class=error>
-    <p class=error>@label{error.@label:error@}@</p>
-
-    <p class=error>@label:error.generic@</p>
+    <p class=error>@label{error.@error}</p>
+    <p class=error>@label{error.generic}</p>
   </div>
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
 End:
--->
+}@#
