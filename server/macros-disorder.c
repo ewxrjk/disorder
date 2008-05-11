@@ -737,11 +737,52 @@ static int exp_error(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(dcgi_error_string)) < 0 ? -1 : 0;
 }
 
+/* @image{NAME}
+ *
+ * Expands to the URL of the image called NAME.
+ *
+ * Firstly if there is a label called images.NAME then the image stem will be
+ * the value of that label.  Otherwise the stem will be NAME.png.
+ *
+ * If the label url.static exists then it will give the base URL for images.
+ * Otherwise the base url will be /disorder/.
+ */
+static int exp_image(int attribute((unused)) nargs,
+                     char **args,
+                     struct sink *output,
+                     void attribute((unused)) *u) {
+  const char *url, *stem;
+  char *labelname;
+
+  /* Compute the stem */
+  byte_xasprintf(&labelname, "images.%s", args[0]);
+  if(option_label_exists(labelname))
+    stem = option_label(labelname);
+  else
+    byte_xasprintf((char **)&stem, "%s.png", args[0]);
+  /* If the stem looks like it's reasonalby complete, use that */
+  if(stem[0] == '/'
+     || !strncmp(stem, "http:", 5)
+     || !strncmp(stem, "https:", 6))
+    url = stem;
+  else {
+    /* Compute the URL */
+    if(option_label_exists("url.static"))
+      byte_xasprintf((char **)&url, "%s/%s",
+                     option_label("url.static"), stem);
+    else
+      /* Default base is /disorder */
+      byte_xasprintf((char **)&url, "/disorder/%s", stem);
+  }
+  return sink_writes(output, cgi_sgmlquote(url)) < 0 ? -1 : 0;
+}
+
 /** @brief Register DisOrder-specific expansions */
 void dcgi_expansions(void) {
   mx_register("arg", 1, 1, exp_arg);
   mx_register("enabled", 0, 0, exp_enabled);
   mx_register("error", 0, 0, exp_error);
+  mx_register("image", 1, 1, exp_image);
   mx_register("isnew", 0, 0, exp_isnew);
   mx_register("isplaying", 0, 0, exp_isplaying);
   mx_register("isplaying", 0, 0, exp_isqueue);

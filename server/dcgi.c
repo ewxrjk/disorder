@@ -755,36 +755,6 @@ static void exp_fullname(int attribute((unused)) nargs,
   cgi_output(output, "%.*s", ds->nav_len, ds->nav_path);
 }
 
-static void exp_basename(int nargs,
-			 char **args,
-			 cgi_sink *output,
-			 void *u) {
-  dcgi_state *ds = u;
-  const char *s;
-  
-  if(nargs) {
-    if((s = strrchr(args[0], '/'))) ++s;
-    else s = args[0];
-    cgi_output(output, "%s", s);
-  } else
-    cgi_output(output, "%.*s", ds->nav_len - ds->nav_dirlen - 1,
-	       ds->nav_path + ds->nav_dirlen + 1);
-}
-
-static void exp_dirname(int nargs,
-			char **args,
-			cgi_sink *output,
-			void *u) {
-  dcgi_state *ds = u;
-  const char *s;
-  
-  if(nargs) {
-    if((s = strrchr(args[0], '/')))
-      cgi_output(output, "%.*s", (int)(s - args[0]), args[0]);
-  } else
-    cgi_output(output, "%.*s", ds->nav_dirlen, ds->nav_path);
-}
-
 static void exp_files(int attribute((unused)) nargs,
 		      char **args,
 		      cgi_sink *output,
@@ -834,26 +804,6 @@ static void exp_nfiles(int attribute((unused)) nargs,
     cgi_output(output, "%s", files_arg);
   else
     cgi_output(output, "1");
-}
-
-static void exp_image(int attribute((unused)) nargs,
-		      char **args,
-		      cgi_sink *output,
-		      void attribute((unused)) *u) {
-  char *labelname;
-  const char *imagestem;
-
-  byte_xasprintf(&labelname, "images.%s", args[0]);
-  if(cgi_label_exists(labelname))
-    imagestem = cgi_label(labelname);
-  else if(strchr(args[0], '.'))
-    imagestem = args[0];
-  else
-    byte_xasprintf((char **)&imagestem, "%s.png", args[0]);
-  if(cgi_label_exists("url.static"))
-    cgi_output(output, "%s/%s", cgi_label("url.static"), imagestem);
-  else
-    cgi_output(output, "/disorder/%s", imagestem);
 }
 
 /*

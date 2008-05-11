@@ -41,10 +41,12 @@ USA
                  {<a class=imgbutton
 		     href="@url?action=volume&#38;delta=@sign@label{volume.resolution}@back">
 		    <img class=button src="@image{@dir}"
+                         width=@width height=@height
 			 alt="@label{volume.@dir}"
 			 title="@label{volume.@q{@dir}verbose}">
 		  </a>}
-                 {<img class=button src="@image{no@dir}">}}
+                 {<img class=button width=@width height=@height
+                       src="@image{no@dir}">}}
 
   @include{macros.tmpl}
 }@#

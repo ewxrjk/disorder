@@ -119,19 +119,19 @@ void dcgi_lookup(unsigned want) {
 
 /** @brief Locate a track by ID */
 struct queue_entry *dcgi_findtrack(const char *id) {
-  struct queue_entry *q, **qq;
+  struct queue_entry **qq;
 
-  if(queuemap && (qq = hash_find(id)))
-    return *q;
+  if(queuemap && (qq = hash_find(queuemap, id)))
+    return *qq;
   dcgi_lookup(DCGI_PLAYING);
-  if(queuemap && (qq = hash_find(id)))
-    return *q;
+  if(queuemap && (qq = hash_find(queuemap, id)))
+    return *qq;
   dcgi_lookup(DCGI_QUEUE);
-  if(queuemap && (qq = hash_find(id)))
-    return *q;
+  if(queuemap && (qq = hash_find(queuemap, id)))
+    return *qq;
   dcgi_lookup(DCGI_RECENT);
-  if(queuemap && (qq = hash_find(id)))
-    return *q;
+  if(queuemap && (qq = hash_find(queuemap, id)))
+    return *qq;
   return NULL;
 }
 

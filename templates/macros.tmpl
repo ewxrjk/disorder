@@ -84,10 +84,12 @@ USA
             {<a class=imgbutton
                 href="@url?action=remove&#38;id=@id@back">
                <img class=button src="@image{remove}"
+                    width=@width height=@height
                     title="@label{@what.removeverbose}"
                     alt="@label{@what.scratch}">
              </a>}
             {<img class=button src="@image{noremove}"
+                  width=@width height=@height
                   title="@label{@what.removeverbose}"
                   alt="@label{@what.scratch}">}}
 
@@ -101,10 +103,12 @@ USA
             {<a class=imgbutton
                 href="@url?action=move&#38;id=@id&#38;delta=@delta@back">
                <img class=button src="@image{@dir}"
+                    width=@width height=@height
                     title="@label{playing.@q{@dir}verbose}"
                     alt="@label{playing.@dir}">
              </a>}
             {<img class=button src="@image{no@dir}"
-                    title="@label{playing.@q{@dir}verbose}"
-                    alt="@label{playing.@dir}">}}
+                  width=@width height=@height
+                  title="@label{playing.@q{@dir}verbose}"
+                  alt="@label{playing.@dir}">}}
 }@#
