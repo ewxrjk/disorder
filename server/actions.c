@@ -161,8 +161,8 @@ static const struct action {
   { "enable", act_enable },
   { "manage", act_playing },
   { "playing", act_playing },
-  { "random-disable", act_random_disable },
-  { "random-enable", act_random_enable },
+  { "randomdisable", act_random_disable },
+  { "randomenable", act_random_enable },
   { "remove", act_remove },
 };
 

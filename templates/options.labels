@@ -16,11 +16,11 @@ label	queue.randomtrack	random
 
 # Short and long text for scratch (remove playing track) button
 label	playing.remove		Scratch
-label	playing.removeverbose	"stop playing this track"
+label	playing.removeverbose	"Stop playing this track"
 
 # Short and long text for remove queued track button
 label	queue.remove		Remove
-label	queue.removeverbose	"remove track from queue"
+label	queue.removeverbose	"Remove track from queue"
 
 # Text for banner above currently playing track
 label	playing.now		"Now playing"
@@ -33,19 +33,19 @@ label	playing.up		Up
 label	playing.down		Down
 label	playing.upall		Head
 label	playing.downall		Tail
-label	playing.upverbose	"move track earlier in queue"
-label	playing.downverbose	"move track later in queue"
-label	playing.upallverbose	"move track to head of queue"
-label	playing.downallverbose	"move track to end of queue"
+label	playing.upverbose	"Move track earlier in queue"
+label	playing.downverbose	"Move track later in queue"
+label	playing.upallverbose	"Move track to head of queue"
+label	playing.downallverbose	"Move track to end of queue"
 
 # Short and long text for play control buttons
 label	playing.random		"Random play"
 label	playing.playing		"Playing"
 label	playing.pause           Pause
-label	playing.randomdisableverbose	"disable random play"
-label	playing.randomenableverbose	"enable random play"
-label	playing.playingdisableverbose	"disable playing"
-label	playing.playingenableverbose	"enable playing"
+label	playing.randomdisableverbose	"Disable random play"
+label	playing.randomenableverbose	"Enable random play"
+label	playing.playingdisableverbose	"Disable playing"
+label	playing.playingenableverbose	"Enable playing"
 label	playing.pauseverbose    "Pause the current track"
 label	playing.resumeverbose   "Resume play"
 
@@ -63,17 +63,17 @@ label	volume.left		""
 label	volume.right		""
 
 # Short and long text for volume down/up buttons
-label	volume.reduce		Down
-label	volume.increase		Up
-label	volume.reduceverbose	"reduce volume"
-label	volume.increaseverbose	"increase volume"
+label	volume.down		Down
+label	volume.up		Up
+label	volume.downverbose	"Reduce volume"
+label	volume.upverbose	"Increase volume"
 
 # Amount to increase/reduce volume by
 label	volume.resolution	4
 
 # Long text for linsk to album/artist
-label	playing.artistverbose	"more tracks by this artist"
-label	playing.albumverbose	"more tracks from this album"
+label	playing.artistverbose	"More tracks by this artist"
+label	playing.albumverbose	"More tracks from this album"
 
 # <TITLE> for recently played page
 label	recent.title		"Recently Played"
@@ -212,16 +212,16 @@ label	sidebar.help		Help
 label	sidebar.manage		Manage
 
 # Long (i.e. TITLE=) text for sidebar links
-label	sidebar.playingverbose	"current and queued tracks"
-label	sidebar.chooseverbose	"choose tracks"
-label	sidebar.searchverbose	"word search among track names"
-label	sidebar.recentverbose	"recently played tracks"
-label	sidebar.newverbose	"newly added tracks"
-label	sidebar.aboutverbose	"about DisOrder"
-label	sidebar.volumeverbose	"volume control"
-label	sidebar.loginverbose	"log in to DisOrder"
-label	sidebar.helpverbose	"basic user guide"
-label	sidebar.manageverbose	"queue management and volume control"
+label	sidebar.playingverbose	"Current and queued tracks"
+label	sidebar.chooseverbose	"Choose tracks"
+label	sidebar.searchverbose	"Word search among track names"
+label	sidebar.recentverbose	"Recently played tracks"
+label	sidebar.newverbose	"Newly added tracks"
+label	sidebar.aboutverbose	"About DisOrder"
+label	sidebar.volumeverbose	"Volume control"
+label	sidebar.loginverbose	"Log in to DisOrder"
+label	sidebar.helpverbose	"Basic user guide"
+label	sidebar.manageverbose	"Queue management and volume control"
 
 # This should be 'choose' or 'choosealpha'.  If 'choose' then all artists
 # appear on the same page, otherwise they are broken up by initial letter

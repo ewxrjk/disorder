@@ -1,7 +1,7 @@
 @discard{
 
 This file is part of DisOrder.
-Copyright (C) 2004-2008 Richard Kettlewell
+Copyright (C) 2008 Richard Kettlewell
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,6 +18,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 USA
 
+@# Standard width and height of an image
+@define {width} {} {16}
+@define {height} {} {16}
+
 @# Expand to @yes for the Manage page and @no for the playing page
 @define {ifmanage} {yes no}
 	  {@if {@eq {@arg{action}}{manage}}
@@ -29,10 +33,14 @@ USA
         {@ifmanage{&amp;back=manage}{}}
 
 @# Expand to the time that @id will be played
+@#  @what is the section
+@#  @id is the track ID
 @define {mwhen} {what id}
         {@when{@id}</td>}
 
 @# Expand to the 'who' field for @id
+@#  @what is the section
+@#  @id is the track ID
 @define {mwho} {what id}
         {@if{@eq{@who{@id}}{}}
             {@if{@eq{@state{@id}}{random}}
@@ -41,6 +49,8 @@ USA
             {@who{@id}}}
 
 @# Expand to the artist for @track
+@#  @what is the section
+@#  @track is the track name
 @define {martist} {what track}
         {@right{play}
                {<a class=directory
@@ -50,6 +60,8 @@ USA
                       title="@part{@track}{artist}@">@part{@track}{short}{artist}</span>}}
 
 @# Expand to the album for @track
+@#  @what is the section
+@#  @track is the track name
 @define {malbum} {what track}
         {@right{play}
                {<a class=directory
@@ -59,10 +71,14 @@ USA
                       title="@part{@track}{album}@">@part{@track}{short}{album}</span>}}
 
 @# Expand to the title for @track
+@#  @what is the section
+@#  @track is the track name
 @define {mtitle} {what track}
         {<span title="@part{@track}{title}">@part{@track}{short}{title}</span>}
 
 @# Expand to the remove/scratch entry for @id
+@#  @what is the section
+@#  @id is the track ID
 @define {mremove} {what id}
         {@if{@removable{@id}}
             {<a class=imgbutton
@@ -76,6 +92,7 @@ USA
                   alt="@label{@what.scratch}">}}
 
 @# Expand to a move button
+@#  @id is the track ID
 @#  @dir should be a direction: up, upall, down or downall
 @#  @delta should be the distance, +ve for up and -ve for down
 @# This macro calls @movable to check that the move is possible.
