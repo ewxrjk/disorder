@@ -75,4 +75,19 @@ USA
                   title="@label{@what.removeverbose}"
                   alt="@label{@what.scratch}">}}
 
+@# Expand to a move button
+@#  @dir should be a direction: up, upall, down or downall
+@#  @delta should be the distance, +ve for up and -ve for down
+@# This macro calls @movable to check that the move is possible.
+@define {mmove} {id dir delta}
+        {@if{@movable{@id}{@delta}}
+            {<a class=imgbutton
+                href="@url?action=move&#38;id=@id&#38;delta=@delta@back">
+               <img class=button src="@image{@dir}"
+                    title="@label{playing.@q{@dir}verbose}"
+                    alt="@label{playing.@dir}">
+             </a>}
+            {<img class=button src="@image{no@dir}"
+                    title="@label{playing.@q{@dir}verbose}"
+                    alt="@label{playing.@dir}">}}
 }@#

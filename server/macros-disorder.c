@@ -265,11 +265,16 @@ static int exp_removable(int attribute((unused)) nargs,
                             (dcgi_rights, disorder_user(dcgi_client), q));
 }
 
-/* @movable{ID}
+/* @movable{ID}{DIR}
  *
  * Expands to "true" if track ID is movable and "false" otherwise.
+ *
+ * DIR (which is optional) should be a non-zero integer.  If it is negative
+ * then the intended move is down (later in the queue), if it is positive then
+ * the intended move is up (earlier in the queue).  The first track is not
+ * movable up and the last track not movable down.
  */
-static int exp_movable(int attribute((unused)) nargs,
+static int exp_movable(int  nargs,
                        char **args,
                        struct sink *output,
                        void attribute((unused)) *u) {
@@ -278,9 +283,19 @@ static int exp_movable(int attribute((unused)) nargs,
 
   if(!q || !dcgi_client)
     return mx_bool_result(output, 0);
+  if(nargs > 1) {
+    const long dir = atoi(args[1]);
+
+    if(dir > 0 && q == dcgi_queue)
+      return mx_bool_result(output, 0);
+    if(dir < 0 && q->next == 0) 
+      return mx_bool_result(output, 0);
+  }
   dcgi_lookup(DCGI_RIGHTS);
   return mx_bool_result(output,
-                        right_movable(dcgi_rights, disorder_user(dcgi_client), q));
+                        right_movable(dcgi_rights,
+                                      disorder_user(dcgi_client),
+                                      q));
 }
 
 /* @playing{TEMPLATE}

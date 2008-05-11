@@ -36,60 +36,61 @@ USA
    @ifmanage{
    <div class=mgmt>
    <p class=mgmt>
-    @if{@paused}{
+   @if{@paused}{
 @# Paused
-      <a class=button
-      href="@url?action=resume@back"
+    <a class=button
+       href="@url?action=resume@back"
        title="@label{playing.resumeverbose}">@label{playing.pause}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{enabled}">
-    }{
+    </a>
+    <img width=16 height=16 class=imgbutton src="@image{enabled}">
+   }{
 @# Not paused
-      <a class=button
-      href="@url?action=pause@back"
-       title="@label{playing.pauseverbose}">@label{playing.pause}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{disabled}">
-    }
-    @if{@random-enabled}{
+     <a class=button
+        href="@url?action=pause@back"
+        title="@label{playing.pauseverbose}">@label{playing.pause}</a>
+     </a>
+     <img width=16 height=16 class=imgbutton src="@image{disabled}">
+   }
+   @if{@random-enabled}{
 @# Random play enabled
-      <a class=button
-      href="@url?action=random-disable@back"
-       title="@label{playing.randomdisableverbose}">@label{playing.random}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{enabled}">
-    }{
+     <a class=button
+        href="@url?action=random-disable@back"
+        title="@label{playing.randomdisableverbose}">@label{playing.random}</a>
+     </a>
+     <img width=16 height=16 class=imgbutton src="@image{enabled}">
+   }{
 @# Random play disabled
-      <a class=button
-      href="@url?action=random-enable@back"
+    <a class=button
+       href="@url?action=random-enable@back"
        title="@label{playing.randomenableverbose}">@label{playing.random}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{disabled}">
-    }
-    @if{@enabled}{
+    </a>
+    <img width=16 height=16 class=imgbutton src="@image{disabled}">
+   }
+   @if{@enabled}{
 @# Play enabled
-      <a class=button
-      href="@url?action=disable@back"
-       title="@label{playing.disableverbose}">@label{playing.playing}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{enabled}">
-    }{
+     <a class=button
+        href="@url?action=disable@back"
+        title="@label{playing.disableverbose}">@label{playing.playing}</a>
+     </a>
+     <img width=16 height=16 class=imgbutton src="@image{enabled}">
+   }{
 @# Play disabled
-      <a class=button
-      href="@url?action=enable@back"
-       title="@label{playing.enableverbose}">@label{playing.playing}</a>
-      </a>
-      <img width=16 height=16 class=imgbutton src="@image{disabled}">
-    }
+     <a class=button
+        href="@url?action=enable@back"
+        title="@label{playing.enableverbose}">@label{playing.playing}</a>
+     </a>
+     <img width=16 height=16 class=imgbutton src="@image{disabled}">
+   }
 @# Volume form
-    <form class=volume action="@url" method=POST
-     enctype="multipart/form-data" accept-charset=utf-8>
-    <span class=volume>
+   <form class=volume method=POST
+         action="@url"
+         enctype="multipart/form-data" accept-charset=utf-8>
+   <span class=volume>
      @label{playing.volume}
 @# Volume up button
      @right{volume}{
        <a class=imgbutton
-        href="@url?action=volume&#38;delta=-@label{volume.resolution}@back">
+          href="@url?action=volume&#38;delta=-@label{volume.resolution}@back">
          <img class=button src="@image{down}"
               alt="@label{volume.reduce}"
               title="@label{volume.reduceverbose}">
@@ -98,14 +99,17 @@ USA
        <img class=button src="@image{nodown}">
      }
 @# Volume value widgets
-     @label{volume.left} <input size=3 name=left type=text value="@volume:left@">
-     @label{volume.right} <input size=3 name=right type=text value="@volume:right@">
+     @label{volume.left} <input size=3 name=left
+                                type=text value="@volume:left@">
+     @label{volume.right} <input size=3 name=right type
+                                 text value="@volume:right@">
      <input name=back type=hidden value="@thisurl@?back=manage">
 @# Volume set button
      @right{volume}{
        <button class=search name=submit type=submit>
-         @label{volume.set}
-       </button><input name=action type=hidden value=volume>
+          @label{volume.set}
+       </button>
+       <input name=action type=hidden value=volume>
      }
 @# Volume down button
      @right{volume}{
@@ -137,101 +141,55 @@ USA
       <th class=length>@label{heading.length}</th>
       <th class=button>&nbsp;</th>
       @ifmanage{
-      <th class=imgbutton>&nbsp;</th>
-      <th class=imgbutton>&nbsp;</th>
-      <th class=imgbutton>&nbsp;</th>
-      <th class=imgbutton>&nbsp;</th>
+	<th class=imgbutton>&nbsp;</th>
+	<th class=imgbutton>&nbsp;</th>
+	<th class=imgbutton>&nbsp;</th>
+	<th class=imgbutton>&nbsp;</th>
       }{}
      </tr>
+     @if{@isplaying}{
+       <tr class=nowplaying>
+	<td colspan=@ifmanage{11}{7}>@label{playing.now}</td>
+       </tr>
+     }
      @playing{
-     <tr class=nowplaying>
-      <td colspan=@ifmanage{11}{7}>@label{playing.now}</td>
-     </tr>
-     <tr class=playing>
-      <td class=when>@mwhen{playing}{@id}</td>
-      <td class=who>@mwho{playing}{@id}</td>
-      <td class=artist>@martist{playing}{@track}</td>
-      <td class=album>@malbum{playing}{@track}</td>
-      <td class=title>@mtitle{playing}{@track}</td>
-      <td class=length>@length{@id}</td>
-      <td class=imgbutton>@mremove{playing}{@id}</td>
-      @ifmanage{
-      <td class=imgbutton>&nbsp;</td>
-      <td class=imgbutton>&nbsp;</td>
-      <td class=imgbutton>&nbsp;</td>
-      <td class=imgbutton>&nbsp;</td>
-      }{}
-     </tr>
+       <tr class=playing>
+	<td class=when>@mwhen{playing}{@id}</td>
+	<td class=who>@mwho{playing}{@id}</td>
+	<td class=artist>@martist{playing}{@track}</td>
+	<td class=album>@malbum{playing}{@track}</td>
+	<td class=title>@mtitle{playing}{@track}</td>
+	<td class=length>@length{@id}</td>
+	<td class=imgbutton>@mremove{playing}{@id}</td>
+	@ifmanage{
+	  <td class=imgbutton>&nbsp;</td>
+	  <td class=imgbutton>&nbsp;</td>
+	  <td class=imgbutton>&nbsp;</td>
+	  <td class=imgbutton>&nbsp;</td>
+	}{}
+       </tr>
      }
      @if{@isqueue@}{
-     <tr class=next>
-      <td colspan=@ifmanage{11}{7}@>@label{playing.next}</td>
-     </tr>
+       <tr class=next>
+	<td colspan=@ifmanage{11}{7}@>@label{playing.next}</td>
+       </tr>
      }
      @queue{
-     <tr class=@parity@>
-      <td class=when>@mwhen{queue}{@id}</td>
-      <td class=who>@mwho{queue}{@id}</td>
-      <td class=artist>@martist{queue}{@track}</td>
-      <td class=album>@malbum{queue}{@track}</td>
-      <td class=title>@mtitle{queue}{@track}</td>
-      <td class=length>@length</td>
-      <td class=imgbutton>@mremove{queue}{@id}</td>
-
-      @if{@eq{@arg{action}}{manage}}{
-      @if{@or{@isfirst@}
-             {@not{@movable@}@}@}{
-     <!-- cannot move up -->
-     <td class=imgbutton>
-      <img
-       class=button src="@image{noupall}"
-       title="@label{playing.upallverbose}" alt="">
-     <td class=imgbutton>
-      <img
-       class=button src="@image{noup}"
-       title="@label{playing.upverbose}" alt="">
-         }{
-     <!-- can move up -->
-     <td class=imgbutton>
-      <a class=imgbutton
-        href="@url?action=move&#38;id=@id@&#38;delta=2147483647@back"><img
-       class=button src="@image{upall}"
-       title="@label{playing.upallverbose}"
-       alt="@label{playing.upall}"></a>
-     <td class=imgbutton>
-     <a class=imgbutton
-        href="@url?action=move&#38;id=@id@&#38;delta=1@back"><img
-       class=button src="@image{up}"
-       title="@label{playing.upverbose}" alt="@label{playing.up}"></a>
-         }
-
-      @if{@or{@islast@}
-             {@not{@movable@}@}@}{
-     <!-- cannot move down -->
-     <td class=imgbutton>
-      <img
-       class=button src="@image{nodownall}"
-       title="@label{playing.downallverbose}" alt="">
-     <td class=imgbutton>
-      <img
-       class=button src="@image{nodown}"
-       title="@label{playing.downverbose}" alt="">
-         }{
-     <!-- can move down -->
-     <td class=imgbutton>
-      <a class=imgbutton
-        href="@url?action=move&#38;id=@id@&#38;delta=-2147483647@back"><img
-       class=button src="@image{downall}"
-       title="@label{playing.downallverbose}"
-       alt="@label{playing.downall}"></a>
-     <td class=imgbutton>
-     <a class=imgbutton
-        href="@url?action=move&#38;id=@id@&#38;delta=-1@back"><img
-       class=button src="@image{down}"
-       title="@label{playing.downverbose}" alt="@label{playing.down}"></a>
-         }
-      }
-     </tr>
+       <tr class=@parity@>
+	<td class=when>@mwhen{queue}{@id}</td>
+	<td class=who>@mwho{queue}{@id}</td>
+	<td class=artist>@martist{queue}{@track}</td>
+	<td class=album>@malbum{queue}{@track}</td>
+	<td class=title>@mtitle{queue}{@track}</td>
+	<td class=length>@length</td>
+	<td class=imgbutton>@mremove{queue}{@id}</td>
+	@ifmanage{
+	  <td class=imgbutton>@mmove{@id}{upall}{2147483647}</td>
+	  <td class=imgbutton>@mmove{@id}{up}{1}</td>
+	  <td class=imgbutton>@mmove{@id}{down}{-1}</td>
+	  <td class=imgbutton>@mmove{@id}{downall}{-2147483647}</td>
+	}
+       </tr>
      }
    </table>
 }
