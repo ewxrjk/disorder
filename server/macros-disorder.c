@@ -301,8 +301,8 @@ static int exp_movable(int  nargs,
 /* @playing{TEMPLATE}
  *
  * Expands to TEMPLATE, with:
- * - @id@ expanded to the queue ID of the playing track
- * - @track@ expanded to its UNQUOTED name
+ * - @id expanded to the queue ID of the playing track
+ * - @track expanded to its UNQUOTED name
  *
  * If no track is playing expands to nothing.
  *
@@ -328,12 +328,12 @@ static int exp_playing(int nargs,
 /* @queue{TEMPLATE}
  *
  * For each track in the queue, expands TEMPLATE with the following expansions:
- * - @id@ to the queue ID of the track
- * - @track@ to the UNQUOTED track name
- * - @index@ to the track number from 0
- * - @parity@ to "even" or "odd" alternately
- * - @first@ to "true" on the first track and "false" otherwise
- * - @last@ to "true" on the last track and "false" otherwise
+ * - @id to the queue ID of the track
+ * - @track to the UNQUOTED track name
+ * - @index to the track number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first track and "false" otherwise
+ * - @last to "true" on the last track and "false" otherwise
  */
 static int exp_queue(int attribute((unused)) nargs,
                      const struct mx_node **args,
@@ -361,12 +361,12 @@ static int exp_queue(int attribute((unused)) nargs,
  *
  * For each track in the recently played list, expands TEMPLATE with the
  * following expansions:
- * - @id@ to the queue ID of the track
- * - @track@  to the UNQUOTED track name
- * - @index@ to the track number from 0
- * - @parity@ to "even" or "odd" alternately
- * - @first@ to "true" on the first track and "false" otherwise
- * - @last@ to "true" on the last track and "false" otherwise
+ * - @id to the queue ID of the track
+ * - @track  to the UNQUOTED track name
+ * - @index to the track number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first track and "false" otherwise
+ * - @last to "true" on the last track and "false" otherwise
  */
 static int exp_recent(int attribute((unused)) nargs,
                       const struct mx_node **args,
@@ -394,14 +394,14 @@ static int exp_recent(int attribute((unused)) nargs,
  *
  * For each track in the newly added list, expands TEMPLATE wit the following
  * expansions:
- * - @track@ to the UNQUOTED track name
- * - @index@ to the track number from 0
- * - @parity@ to "even" or "odd" alternately
- * - @first@ to "true" on the first track and "false" otherwise
- * - @last@ to "true" on the last track and "false" otherwise
+ * - @track to the UNQUOTED track name
+ * - @index to the track number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first track and "false" otherwise
+ * - @last to "true" on the last track and "false" otherwise
  *
- * Note that unlike @playing@, @queue@ and @recent@ which are otherwise
- * superficially similar, there is no @id@ sub-expansion here.
+ * Note that unlike @playing, @queue and @recent which are otherwise
+ * superficially similar, there is no @id sub-expansion here.
  */
 static int exp_new(int attribute((unused)) nargs,
                    const struct mx_node **args,
@@ -508,14 +508,14 @@ static int exp_pref(int attribute((unused)) nargs,
  *
  * For each track preference of track TRACK, expands TEMPLATE with the
  * following expansions:
- * - @name@ to the UNQUOTED preference name
- * - @index@ to the preference number from 0
- * - @value@ to the UNQUOTED preference value
- * - @parity@ to "even" or "odd" alternately
- * - @first@ to "true" on the first preference and "false" otherwise
- * - @last@ to "true" on the last preference and "false" otherwise
+ * - @name to the UNQUOTED preference name
+ * - @index to the preference number from 0
+ * - @value to the UNQUOTED preference value
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first preference and "false" otherwise
+ * - @last to "true" on the last preference and "false" otherwise
  *
- * Use @quote@ to quote preference names and values where necessary; see below.
+ * Use @quote to quote preference names and values where necessary; see below.
  */
 static int exp_prefs(int attribute((unused)) nargs,
                      const struct mx_node **args,
@@ -777,6 +777,118 @@ static int exp_image(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(url)) < 0 ? -1 : 0;
 }
 
+/** @brief Entry in a list of tracks or directories */
+struct entry {
+  /** @brief Track name */
+  const char *track;
+  /** @brief Sort key */
+  const char *sort;
+  /** @brief Display key */
+  const char *display;
+};
+
+/** @brief Compare two @ref entry objects */
+static int compare_entry(const void *a, const void *b) {
+  const struct entry *ea = a, *eb = b;
+
+  return compare_tracks(ea->sort, eb->sort,
+			ea->display, eb->display,
+			ea->track, eb->track);
+}
+
+/** @brief Implementation of exp_tracks() and exp_dirs() */
+static int exp__files_dirs(int nargs,
+                           const struct mx_node **args,
+                           struct sink *output,
+                           void *u,
+                           const char *type,
+                           int (*fn)(disorder_client *client,
+                                     const char *name,
+                                     const char *re,
+                                     char ***vecp,
+                                     int *nvecp)) {
+  char **tracks, *dir, *re;
+  int n, ntracks, rc;
+  const struct mx_node *m;
+  struct entry *e;
+
+  if((rc = mx_expandstr(args[0], &dir, u, "argument #0 (DIR)")))
+    return rc;
+  if(nargs == 3)  {
+    if((rc = mx_expandstr(args[1], &re, u, "argument #1 (RE)")))
+      return rc;
+    m = args[2];
+  } else {
+    re = 0;
+    m = args[1];
+  }
+  if(!dcgi_client)
+    return 0;
+  /* Get the list */
+  if(fn(dcgi_client, dir, re, &tracks, &ntracks))
+    return 0;
+  /* Sort it.  NB trackname_transform() does not go to the server. */
+  e = xcalloc(ntracks, sizeof *e);
+  for(n = 0; n < ntracks; ++n) {
+    e->track = tracks[n];
+    e[n].track = tracks[n];
+    e[n].sort = trackname_transform(type, tracks[n], "sort");
+    e[n].display = trackname_transform(type, tracks[n], "display");
+  }
+  qsort(e, ntracks, sizeof (struct entry), compare_entry);
+  /* Expand the subsiduary templates */
+  for(n = 0; n < ntracks; ++n)
+    if((rc = mx_expand(mx_rewritel(m,
+                                   "index", make_index(n),
+                                   "parity", n % 2 ? "odd" : "even",
+                                   "track", tracks[n],
+                                   "first", n == 0 ? "true" : "false",
+                                   "last", n + 1 == ntracks ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
+      return rc;
+  return 0;
+
+}
+
+/** @tracks{DIR}{RE}{TEMPLATE}
+ *
+ * For each track below DIR, expands TEMPLATE with the
+ * following expansions:
+ * - @track to the UNQUOTED track name
+ * - @index to the track number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first track and "false" otherwise
+ * - @last to "true" on the last track and "false" otherwise
+ *
+ * RE is optional and if present is the regexp to match against.
+ */
+static int exp_tracks(int nargs,
+                      const struct mx_node **args,
+                      struct sink *output,
+                      void *u) {
+  return exp__files_dirs(nargs, args, output, u, "track", disorder_files);
+}
+
+/** @dirs{DIR}{RE}{TEMPLATE}
+ *
+ * For each directory below DIR, expands TEMPLATE with the
+ * following expansions:
+ * - @track to the UNQUOTED directory name
+ * - @index to the directory number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first directory and "false" otherwise
+ * - @last to "true" on the last directory and "false" otherwise
+ *
+ * RE is optional and if present is the regexp to match against.
+ */
+static int exp_dirs(int nargs,
+                    const struct mx_node **args,
+                    struct sink *output,
+                    void *u) {
+  return exp__files_dirs(nargs, args, output, u, "dir", disorder_directories);
+}
+
 /** @brief Register DisOrder-specific expansions */
 void dcgi_expansions(void) {
   mx_register("arg", 1, 1, exp_arg);
@@ -808,12 +920,14 @@ void dcgi_expansions(void) {
   mx_register("volume", 1, 1, exp_volume);
   mx_register("when", 1, 1, exp_when);
   mx_register("who", 1, 1, exp_who);
+  mx_register_magic("dirs", 2, 3, exp_dirs);
   mx_register_magic("new", 1, 1, exp_new);
   mx_register_magic("playing", 0, 1, exp_playing);
   mx_register_magic("prefs", 2, 2, exp_prefs);
   mx_register_magic("queue", 1, 1, exp_queue);
   mx_register_magic("recent", 1, 1, exp_recent);
   mx_register_magic("right", 1, 3, exp_right);
+  mx_register_magic("tracks", 2, 3, exp_tracks);
 }
 
 /*
