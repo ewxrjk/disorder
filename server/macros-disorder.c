@@ -79,8 +79,8 @@ static int exp_url(int attribute((unused)) nargs,
 
 /* @arg{NAME}
  *
- * Expands to the CGI argument NAME, or the empty string if there is
- * no such argument.
+ * Expands to the UNQUOTED form of CGI argument NAME, or the empty string if
+ * there is no such argument.  Use @argq for a quick way to quote the argument.
  */
 static int exp_arg(int attribute((unused)) nargs,
 		   char **args,
@@ -89,8 +89,24 @@ static int exp_arg(int attribute((unused)) nargs,
   const char *s = cgi_get(args[0]);
 
   if(s)
-    return sink_writes(output,
-                       cgi_sgmlquote(s)) < 0 ? -1 : 0;
+    return sink_writes(output, s) < 0 ? -1 : 0;
+  else
+    return 0;
+}
+
+/* @argq{NAME}
+ *
+ * Expands to the (quoted) form of CGI argument NAME, or the empty string if
+ * there is no such argument.  Use @arg for the unquoted argument.
+ */
+static int exp_argq(int attribute((unused)) nargs,
+                    char **args,
+                    struct sink *output,
+                    void attribute((unused)) *u) {
+  const char *s = cgi_get(args[0]);
+
+  if(s)
+    return sink_writes(output, cgi_sgmlquote(s)) < 0 ? -1 : 0;
   else
     return 0;
 }
@@ -651,7 +667,7 @@ static int exp_resolve(int attribute((unused)) nargs,
 static int exp_paused(int attribute((unused)) nargs,
                       char attribute((unused)) **args,
                       struct sink *output,
-                      void attribute((unused)) *u) {
+                     void attribute((unused)) *u) {
   dcgi_lookup(DCGI_PLAYING);
   return mx_bool_result(output, (dcgi_playing
                                  && dcgi_playing->state == playing_paused));
@@ -836,7 +852,8 @@ static int exp__files_dirs(int nargs,
     e[n].display = trackname_transform(type, tracks[n], "display");
   }
   qsort(e, ntracks, sizeof (struct entry), compare_entry);
-  /* Expand the subsiduary templates */
+  /* Expand the subsiduary templates.  We chuck in @sort and @display because
+   * it is particularly easy to do so. */
   for(n = 0; n < ntracks; ++n)
     if((rc = mx_expand(mx_rewritel(m,
                                    "index", make_index(n),
@@ -844,6 +861,8 @@ static int exp__files_dirs(int nargs,
                                    "track", tracks[n],
                                    "first", n == 0 ? "true" : "false",
                                    "last", n + 1 == ntracks ? "false" : "true",
+                                   "sort", e[n].sort,
+                                   "display", e[n].display,
                                    (char *)0),
                        output, u)))
       return rc;
@@ -860,6 +879,8 @@ static int exp__files_dirs(int nargs,
  * - @parity to "even" or "odd" alternately
  * - @first to "true" on the first track and "false" otherwise
  * - @last to "true" on the last track and "false" otherwise
+ * - @sort to the sort key for this track
+ * - @display to the UNQUOTED display string for this track
  *
  * RE is optional and if present is the regexp to match against.
  */
@@ -879,6 +900,8 @@ static int exp_tracks(int nargs,
  * - @parity to "even" or "odd" alternately
  * - @first to "true" on the first directory and "false" otherwise
  * - @last to "true" on the last directory and "false" otherwise
+ * - @sort to the sort key for this directory
+ * - @display to the UNQUOTED display string for this directory
  *
  * RE is optional and if present is the regexp to match against.
  */
@@ -892,6 +915,7 @@ static int exp_dirs(int nargs,
 /** @brief Register DisOrder-specific expansions */
 void dcgi_expansions(void) {
   mx_register("arg", 1, 1, exp_arg);
+  mx_register("argq", 1, 1, exp_argq);
   mx_register("enabled", 0, 0, exp_enabled);
   mx_register("error", 0, 0, exp_error);
   mx_register("image", 1, 1, exp_image);
