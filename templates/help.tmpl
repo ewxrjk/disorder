@@ -169,9 +169,43 @@ USA
    <div class=helpsection>
 
     <p>This screen allows you to choose a track to be played, by navigating
-     through the directory structure of the tracks filesystem.  The following
-     buttons appear:</p>
+     through the directory structure of the tracks filesystem.
 
+  @if{@eq{@label{menu.choosewhich}}{choosealpha}}
+     {
+
+     <p>At the top of the page is a list of first letters.  Click on
+     any of these takes you to a list of directories starting with
+     that letter.</p>
+
+     <p>Below this is a search form.  You can enter one or more
+     keywords here and select @label{search.search} and get a list of
+     tracks containing all those keywords.  It is possible to limit
+     search results to tracks with a particular tag, by using
+     <b>tag:</b><i>TAG</i> among the search terms.  Select
+     @label{search.clear} to clear the search results.</p>
+
+     <p>Initially the rest of the page is empty.  However when you
+     have selected an initial letter, you will see a list of the
+     matching directories and files.  Select a directory to enter it,
+     or a file to play it.
+     
+     } 
+     {
+
+     <p>At the top of the page is a search form.  You can enter one or
+     more keywords here and select @label{search.search} and get a
+     list of tracks containing all those keywords.  It is possible to
+     limit search results to tracks with a particular tag, by using
+     <b>tag:</b><i>TAG</i> among the search terms.</p>
+
+     <p>Below this appears a list of top-level files and directories.
+     Select a directory to enter it, or a file to play it.</p>
+     
+     }
+
+     <p>The following icons will also appear:</p>
+     
     <table class=helpbuttons>
      <tbody>
       <tr>
@@ -189,12 +223,12 @@ USA
       </tr>
      </tbody>
     </table>
-
-    <p>This screen has two forms: <a
-    href="@url?action=choose">choose</a>, which give
-    you all the top-level directories at once, and <a
-    href="@url?action=choosealpha">choosealpha</a>,
-    which breaks them down by initial letter.</p>
+     
+    <p>NB.  Some keywords, known as &ldquo;stopwords&rdquo;, are
+    excluded from the search, and will never match.  See the <span
+    class=configuration>stopword</span> option in <a
+    href="@url?action=disorder_config.5">disorder_config(5)</a> for
+    further details about this.</p>
 
     <p>This screen will may not be available if you are not logged in
     or if your user has limited rights.</p>
@@ -226,31 +260,6 @@ USA
     <p>By default, any track can be picked for random play.  The check
     box at the bottom can be used to selectivel enable or disable it
     for individual tracks.</p>
-
-   </div>
-
-   <h2 class=helptitle>Search</h2>
-
-   
-   <div class=helpsection>
-
-     TODO  search is folded into choose now
-
-     <p>This screen allows you to search for keywords in track names.  If you
-    specify more than one keyword then only tracks containing all of them are
-    listed.  Results are grouped by artist, album and title.</p>
-
-    <p>It is possible to limit results to tracks with a particular
-    tag, by using <b>tag:</b><i>TAG</i> among the search terms.</p>
-
-    <p>Some keywords, known as &ldquo;stopwords&rdquo;, are excluded
-    from the search, and will never match.  See the <span
-    class=configuration>stopword</span> option in <a
-    href="@url?action=disorder_config.5">disorder_config(5)</a> for
-    further details about this.</p>
-
-    <p>This screen will may not be available if you are not logged in
-    or if your user has limited rights.</p>
 
    </div>
 
