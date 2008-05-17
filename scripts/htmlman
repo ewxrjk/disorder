@@ -43,13 +43,13 @@ title=$(basename $1)
 echo "<html>"
 echo " <head>"
 if $stdhead; then
-  echo "@quiethead"
+  echo "@quiethead@#"
 fi
 echo "  <title>$title</title>"
 echo " </head>"
 echo " <body>"
 if $stdhead; then
-  echo "@stdmenu{}"
+  echo "@stdmenu{}@#"
 fi
 printf "   <pre class=manpage>"
 # this is kind of painful using only BREs

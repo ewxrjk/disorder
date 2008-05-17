@@ -166,6 +166,27 @@ static const struct action {
   { "remove", act_remove },
 };
 
+/** @brief Check that an action name is valid
+ * @param name Action
+ * @return 1 if valid, 0 if not
+ */
+static int dcgi_valid_action(const char *name) {
+  int c;
+
+  /* First character must be letter or digit (this also requires there to _be_
+   * a first character) */
+  if(!isalnum((unsigned char)*name))
+    return 0;
+  /* Only letters, digits, '.' and '-' allowed */
+  while((c = (unsigned char)*name++)) {
+    if(!(isalnum(c)
+         || c == '.'
+         || c == '_'))
+      return 0;
+  }
+  return 1;
+}
+
 /** @brief Expand a template
  * @param name Base name of template, or NULL to consult CGI args
  */
@@ -176,9 +197,7 @@ void dcgi_expand(const char *name) {
   if((found = mx_find("macros.tmpl")))
     mx_expand_file(found, sink_discard(), 0);
   /* For unknown actions check that they aren't evil */
-  for(p = name; *p && isalnum((unsigned char)*p); ++p)
-    ;
-  if(*p)
+  if(!dcgi_valid_action(name))
     fatal(0, "invalid action name '%s'", name);
   byte_xasprintf((char **)&p, "%s.tmpl", name);
   if(!(found = mx_find(p)))

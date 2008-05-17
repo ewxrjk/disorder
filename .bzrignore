@@ -174,3 +174,4 @@ lib/t-words
 lib/t-wstat
 lib/t-macros
 lib/t-cgi
+doc/*.tmpl
