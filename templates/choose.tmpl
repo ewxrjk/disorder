@@ -104,10 +104,33 @@ USA
    @if{@ne{@arg{query}}{}}
       {
 @# There's a search query
-        @search{@arg{query}}{
-          <p>TODO @quote{@track}</p>
-        }
-      }
+  <table class=search>
+    <tr class=headings>
+     <th class=artist>@label{heading.artist}</th>
+     <th class=album>@label{heading.album}</th>
+     <th class=title>@label{heading.title}</th>
+     <th class=length>@label{heading.length}</th>
+@right{prefs}{
+     <th class=button>&nbsp;</th>}
+    </tr>
+    @search{@arg{query}}{
+    <tr class=@parity>
+     <td class=artist>@martist{search}{@track}</td>
+     <td class=album>@malbum{search}{@track}</td>
+     <td class=title>@mtitle{search}{@track}</td>
+     <td class=length>@length{@id}</td>
+     @right{prefs}{
+     <td class=imgbutton>
+      <a class=imgbutton
+         href="@url?action=prefs&#38;0_file=@urlquote{@track}">
+       <img class=button src="@image{edit}"
+            title="@label{choose.prefsverbose}"
+            alt="@label{choose.prefs}">
+      </a>
+     </td>
+    </tr>}
+    }
+  </table>}
       {
 @# No search query
 
