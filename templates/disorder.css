@@ -60,19 +60,19 @@ table {
 
 /* playing, recent and new classes correspond to the tables in playing.html,
  * recent.html and new.html */
-table.playing, table.recent, table.new {
+table.playing, table.recent, table.new, table.search {
   width: 100%  		     	/* use full screen width */
 }
 
-table.playing th, table.recent th, table.new th {
+table.playing th, table.recent th, table.new th, table.search th {
   text-align: left		/* titles should be left-aligned */
 }
 
-table.playing td, table.recent td, table.new td {
+table.playing td, table.recent td, table.new td, table.search td {
   vertical-align: middle        /* centre cell contents vertically */
 }
 
-table.playing a, table.recent a, table.new a {
+table.playing a, table.recent a, table.new a, table.search a {
   color: black
 }
 

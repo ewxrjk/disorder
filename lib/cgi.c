@@ -350,13 +350,11 @@ char *cgi_thisurl(const char *url) {
 
   dynstr_init(d);
   dynstr_append_string(d, url);
-  if(*keys) {
-    dynstr_append(d, '?');
-    for(n = 0; keys[n]; ++n) {
-      dynstr_append_string(d, urlencodestring(keys[n]));
-      dynstr_append(d, '=');
-      dynstr_append_string(d, cgi_get(keys[n]));
-    }
+  for(n = 0; keys[n]; ++n) {
+    dynstr_append(d, n ? '&' : '?');
+    dynstr_append_string(d, urlencodestring(keys[n]));
+    dynstr_append(d, '=');
+    dynstr_append_string(d, cgi_get(keys[n]));
   }
   dynstr_terminate(d);
   return d->vec;

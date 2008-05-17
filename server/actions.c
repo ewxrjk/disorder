@@ -34,7 +34,7 @@ static void redirect(const char *url) {
   if(!url)
     url = cgi_get("back");
   if(url) {
-    if(!strncmp(url, "http", 4))
+    if(strncmp(url, "http", 4))
       /* If the target is not a full URL assume it's the action */
       url = cgi_makeurl(config->url, "action", url, (char *)0);
   } else {
@@ -86,13 +86,10 @@ static void act_playing(void) {
     url = cgi_makeurl(config->url, "action", action, (char *)0);
   else
     url = config->url;
-  if(printf("Content-Type: text/html\n"
-            "Refresh: %ld;url=%s\n"
-            "%s\n"
-            "\n",
-            refresh, url, dcgi_cookie_header()) < 0)
+  if(printf("Refresh: %ld;url=%s\n",
+            refresh, url) < 0)
     fatal(errno, "error writing to stdout");
-  dcgi_expand("playing");
+  dcgi_expand("playing", 1);
 }
 
 static void act_disable(void) {
@@ -237,6 +234,253 @@ static void act_volume(void) {
   redirect(0);
 }
 
+/** @brief Expand the login template with @b @@error set to @p error
+ * @param error Error keyword
+ */
+static void login_error(const char *error) {
+  dcgi_error_string = error;
+  dcgi_expand("login", 1);
+}
+
+/** @brief Log in
+ * @param username Login name
+ * @param password Password
+ * @return 0 on success, non-0 on error
+ *
+ * On error, calls login_error() to expand the login template.
+ */
+static int login_as(const char *username, const char *password) {
+  disorder_client *c;
+
+  if(dcgi_cookie && dcgi_client)
+    disorder_revoke(dcgi_client);
+  /* We'll need a new connection as we are going to stop being guest */
+  c = disorder_new(0);
+  if(disorder_connect_user(c, username, password)) {
+    login_error("loginfailed");
+    return -1;
+  }
+  /* Generate a cookie so we can log in again later */
+  if(disorder_make_cookie(c, &dcgi_cookie)) {
+    login_error("cookiefailed");
+    return -1;
+  }
+  /* Use the new connection henceforth */
+  dcgi_client = c;
+  dcgi_lookup_reset();
+  return 0;                             /* OK */
+}
+
+static void act_login(void) {
+  const char *username, *password;
+
+  /* We try all this even if not connected since the subsequent connection may
+   * succeed. */
+  
+  username = cgi_get("username");
+  password = cgi_get("password");
+  if(!username
+     || !password
+     || !strcmp(username, "guest")/*bodge to avoid guest cookies*/) {
+    /* We're just visiting the login page, not performing an action at all. */
+    dcgi_expand("login", 1);
+    return;
+  }
+  if(!login_as(username, password)) {
+    /* Report the succesful login */
+    dcgi_status_string = "loginok";
+    dcgi_expand("login", 1);
+  }
+}
+
+static void act_logout(void) {
+  if(dcgi_client) {
+    /* Ask the server to revoke the cookie */
+    if(!disorder_revoke(dcgi_client))
+      dcgi_status_string = "logoutok";
+    else
+      dcgi_error_string = "revokefailed";
+  } else {
+    /* We can't guarantee a logout if we can't connect to the server to revoke
+     * the cookie, so we report an error.  We'll still ask the browser to
+     * forget the cookie though. */
+    dcgi_error_string = "connect";
+  }
+  /* Attempt to reconnect without the cookie */
+  dcgi_cookie = 0;
+  dcgi_login();
+  /* Back to login page, hopefuly forcing the browser to forget the cookie. */
+  dcgi_expand("login", 1);
+}
+
+static void act_register(void) {
+  const char *username, *password, *password2, *email;
+  char *confirm, *content_type;
+  const char *text, *encoding, *charset;
+
+  /* If we're not connected then this is a hopeless exercise */
+  if(!dcgi_client) {
+    login_error("connect");
+    return;
+  }
+
+  /* Collect arguments */
+  username = cgi_get("username");
+  password = cgi_get("password1");
+  password2 = cgi_get("password2");
+  email = cgi_get("email");
+
+  /* Verify arguments */
+  if(!username || !*username) {
+    login_error("nousername");
+    return;
+  }
+  if(!password || !*password) {
+    login_error("nopassword");
+    return;
+  }
+  if(!password2 || !*password2 || strcmp(password, password2)) {
+    login_error("passwordmismatch");
+    return;
+  }
+  if(!email || !*email) {
+    login_error("noemail");
+    return;
+  }
+  /* We could well do better address validation but for now we'll just do the
+   * minimum */
+  if(!strchr(email, '@')) {
+    login_error("bademail");
+    return;
+  }
+  if(disorder_register(dcgi_client, username, password, email, &confirm)) {
+    login_error("cannotregister");
+    return;
+  }
+  /* Send the user a mail */
+  /* TODO templatize this */
+  byte_xasprintf((char **)&text,
+		 "Welcome to DisOrder.  To active your login, please visit this URL:\n"
+		 "\n"
+		 "%s?c=%s\n", config->url, urlencodestring(confirm));
+  if(!(text = mime_encode_text(text, &charset, &encoding)))
+    fatal(0, "cannot encode email");
+  byte_xasprintf(&content_type, "text/plain;charset=%s",
+		 quote822(charset, 0));
+  sendmail("", config->mail_sender, email, "Welcome to DisOrder",
+	   encoding, content_type, text); /* TODO error checking  */
+  /* We'll go back to the login page with a suitable message */
+  dcgi_status_string = "registered";
+  dcgi_expand("login", 1);
+}
+
+static void act_confirm(void) {
+  const char *confirmation;
+
+  /* If we're not connected then this is a hopeless exercise */
+  if(!dcgi_client) {
+    login_error("connect");
+    return;
+  }
+
+  if(!(confirmation = cgi_get("c"))) {
+    login_error("noconfirm");
+    return;
+  }
+  /* Confirm our registration */
+  if(disorder_confirm(dcgi_client, confirmation)) {
+    login_error("badconfirm");
+    return;
+  }
+  /* Get a cookie */
+  if(disorder_make_cookie(dcgi_client, &dcgi_cookie)) {
+    login_error("cookiefailed");
+    return;
+  }
+  /* Junk cached data */
+  dcgi_lookup_reset();
+  /* Report success */
+  dcgi_status_string = "confirmed";
+  dcgi_expand("login", 1);
+}
+
+static void act_edituser(void) {
+  const char *email = cgi_get("email"), *password = cgi_get("changepassword1");
+  const char *password2 = cgi_get("changepassword2");
+  int newpassword = 0;
+
+  /* If we're not connected then this is a hopeless exercise */
+  if(!dcgi_client) {
+    login_error("connect");
+    return;
+  }
+
+  /* Verify input */
+
+  /* If either password or password2 is set we insist they match.  If they
+   * don't we report an error. */
+  if((password && *password) || (password2 && *password2)) {
+    if(!password || !password2 || strcmp(password, password2)) {
+      login_error("passwordmismatch");
+      return;
+    }
+  } else
+    password = password2 = 0;
+  if(email && !strchr(email, '@')) {
+    login_error("bademail");
+    return;
+  }
+
+  /* Commit changes */
+  if(email) {
+    if(disorder_edituser(dcgi_client, disorder_user(dcgi_client),
+			 "email", email)) {
+      login_error("badedit");
+      return;
+    }
+  }
+  if(password) {
+    if(disorder_edituser(dcgi_client, disorder_user(dcgi_client),
+			 "password", password)) {
+      login_error("badedit");
+      return;
+    }
+    newpassword = 1;
+  }
+
+  if(newpassword) {
+    /* If we changed the password, the cookie is now invalid, so we must log
+     * back in. */
+    if(login_as(disorder_user(dcgi_client), password))
+      return;
+  }
+  /* Report success */
+  dcgi_status_string = "edited";
+  dcgi_expand("login", 1);
+}
+
+static void act_reminder(void) {
+  const char *const username = cgi_get("username");
+
+  /* If we're not connected then this is a hopeless exercise */
+  if(!dcgi_client) {
+    login_error("connect");
+    return;
+  }
+
+  if(!username || !*username) {
+    login_error("nousername");
+    return;
+  }
+  if(disorder_reminder(dcgi_client, username)) {
+    login_error("reminderfailed");
+    return;
+  }
+  /* Report success */
+  dcgi_status_string = "reminded";
+  dcgi_expand("login", 1);
+}
+
 /** @brief Table of actions */
 static const struct action {
   /** @brief Action name */
@@ -244,8 +488,12 @@ static const struct action {
   /** @brief Action handler */
   void (*handler)(void);
 } actions[] = {
+  { "confirm", act_confirm },
   { "disable", act_disable },
+  { "edituser", act_edituser },
   { "enable", act_enable },
+  { "login", act_login },
+  { "logout", act_logout },
   { "manage", act_playing },
   { "move", act_move },
   { "pause", act_pause },
@@ -253,6 +501,8 @@ static const struct action {
   { "playing", act_playing },
   { "randomdisable", act_random_disable },
   { "randomenable", act_random_enable },
+  { "register", act_register },
+  { "reminder", act_reminder },
   { "remove", act_remove },
   { "resume", act_resume },
   { "volume", act_volume },
@@ -281,8 +531,9 @@ static int dcgi_valid_action(const char *name) {
 
 /** @brief Expand a template
  * @param name Base name of template, or NULL to consult CGI args
+ * @param header True to write header
  */
-void dcgi_expand(const char *name) {
+void dcgi_expand(const char *name, int header) {
   const char *p, *found;
 
   /* Parse macros first */
@@ -294,6 +545,12 @@ void dcgi_expand(const char *name) {
   byte_xasprintf((char **)&p, "%s.tmpl", name);
   if(!(found = mx_find(p)))
     fatal(errno, "cannot find %s", p);
+  if(header) {
+    if(printf("Content-Type: text/html\n"
+              "%s\n"
+              "\n", dcgi_cookie_header()) < 0)
+      fatal(errno, "error writing to stdout");
+  }
   if(mx_expand_file(found, sink_stdio("stdout", stdout), 0) == -1
      || fflush(stdout) < 0)
     fatal(errno, "error writing to stdout");
@@ -327,18 +584,14 @@ void dcgi_action(const char *action) {
     actions[n].handler();
   else {
     /* Just expand the template */
-    if(printf("Content-Type: text/html\n"
-              "%s\n"
-              "\n", dcgi_cookie_header()) < 0)
-      fatal(errno, "error writing to stdout");
-    dcgi_expand(action);
+    dcgi_expand(action, 1/*header*/);
   }
 }
 
 /** @brief Generate an error page */
 void dcgi_error(const char *key) {
   dcgi_error_string = xstrdup(key);
-  dcgi_expand("error");
+  dcgi_expand("error", 1);
 }
 
 /*

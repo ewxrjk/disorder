@@ -24,7 +24,7 @@ USA
  </head>
  <body>
 @stdmenu{choose}
-   <h1>@label:choose.title@</h1>
+   <h1>@label{choose.title}</h1>
   
   @if{@eq{@label{menu.choosewhich}}{choosealpha}}
      {
@@ -97,7 +97,7 @@ USA
        <button class=search name=submit type=submit>
          @label{search.search}
        </button>
-       <input name=action type=hidden value=search>
+       <input name=action type=hidden value=choose>
      </p>
    </form>
 
@@ -117,8 +117,8 @@ USA
     <tr class=@parity>
      <td class=artist>@martist{search}{@track}</td>
      <td class=album>@malbum{search}{@track}</td>
-     <td class=title>@mtitle{search}{@track}</td>
-     <td class=length>@length{@id}</td>
+     <td class=title>@mtitleplay{search}{@track}</td>
+     <td class=length>@length{@track}</td>
      @right{prefs}{
      <td class=imgbutton>
       <a class=imgbutton
@@ -152,16 +152,16 @@ USA
 
    <div class=files>
     <div class=filesdirectories>
-     @dirs{@arg{dir}}{@arg{re}}{
+     @tracks{@arg{dir}}{@arg{re}}{
       <p class=entry>
 @define{sometracks}{template}{@template}@#
-       @rights{prefs}{
+       @right{prefs}{
         <a class=imgprefs
            href="@url?action=prefs&#38;0_file=@urlquote{@resolve{@track}}">
          <img class=button
               src="@image{edit}"
-              title="@label:choose.prefsverbose@"
-              alt="@label:choose.prefs@">
+              title="@label{choose.prefsverbose}"
+              alt="@label{choose.prefs}">
         </a>
        }@#
        <a href="@url?action=play&#38;file=@urlquote{@track}&#38;back=@urlquote{@thisurl}"
@@ -180,8 +180,8 @@ USA
            href="@url?action=prefs&#38;dir=@urlquote{@arg{dir}}">
          <img class=button
               src="@image{edit}"
-              title="@label:choose.allprefsverbose@"
-              alt="@label:choose.allprefs@">
+              title="@label{choose.allprefsverbose}"
+              alt="@label{choose.allprefs}">
         </a>}
         <a class=button
            href="@url?action=play&#38;dir=@urlquote{@arg{dir}}"&#38;back=@urlquote{@thisurl}">

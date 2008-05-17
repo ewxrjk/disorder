@@ -55,10 +55,12 @@
 #include "inputline.h"
 #include "split.h"
 #include "mime.h"
+#include "sendmail.h"
 
 extern disorder_client *dcgi_client;
 extern char *dcgi_cookie;
-extern char *dcgi_error_string;
+extern const char *dcgi_error_string;
+extern const char *dcgi_status_string;
 
 /** @brief Entry in a list of tracks or directories */
 struct dcgi_entry {
@@ -73,7 +75,7 @@ struct dcgi_entry {
 /** @brief Compare two @ref entry objects */
 int dcgi_compare_entry(const void *a, const void *b);
 
-void dcgi_expand(const char *name);
+void dcgi_expand(const char *name, int header);
 void dcgi_action(const char *action);
 void dcgi_error(const char *key);
 void dcgi_login(void);

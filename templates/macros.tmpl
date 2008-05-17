@@ -110,8 +110,8 @@ and then redefines macros as desired.
 @define {martist} {what track}
         {@right{play}
                {<a class=directory
-                   href="@url?action=choose&amp;directory=@urlquote{@dirname{@dirname{@track}}}"
-                   title="@label{@what.artistverbose}">@part{@track}{artist}{short}</a>}
+                   href="@url?action=choose&amp;dir=@urlquote{@dirname{@dirname{@track}}}"
+                   title="@label{playing.artistverbose}">@part{@track}{artist}{short}</a>}
                {<span class=directory
                       title="@part{@track}{artist}">@part{@track}{artist}{short}</span>}}
 
@@ -121,8 +121,8 @@ and then redefines macros as desired.
 @define {malbum} {what track}
         {@right{play}
                {<a class=directory
-                   href="@url?action=choose&amp;directory=@urlquote{@dirname{@track}}"
-                   title="@label{@what.albumverbose}">@part{@track}{album}{short}</a>}
+                   href="@url?action=choose&amp;dir=@urlquote{@dirname{@track}}"
+                   title="@label{playing.albumverbose}">@part{@track}{album}{short}</a>}
                {<span class=directory
                       title="@part{@track}{album}">@part{@track}{album}{short}</span>}}
 
@@ -131,6 +131,12 @@ and then redefines macros as desired.
 @#  @track is the track name
 @define {mtitle} {what track}
         {<span title="@part{@track}{title}">@part{@track}{title}{short}</span>}
+
+@# As @mtitle but make a link to play the track
+@#  @what is the section
+@#  @track is the track name
+@define {mtitleplay} {what track}
+        {<a title="@part{@track}{title}" href="@url?action=play&#38;file=@urlquote{@track}&#38;back=@urlquote{@thisurl}">@part{@track}{title}{short}</a>}
 
 @# Expand to the remove/scratch entry for @id
 @#  @what is the section

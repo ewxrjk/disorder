@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
@@ -24,10 +25,10 @@
 #include "disorder-cgi.h"
 
 /** @brief For error template */
-char *dcgi_error_string;
+const char *dcgi_error_string;
 
 /** @brief For login template */
-char *dcgi_status_string;
+const char *dcgi_status_string;
 
 /** @brief Return @p i as a string */
 static const char *make_index(int i) {

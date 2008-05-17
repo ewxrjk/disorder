@@ -71,7 +71,7 @@ label	volume.upverbose	"Increase volume"
 # Amount to increase/reduce volume by
 label	volume.resolution	4
 
-# Long text for linsk to album/artist
+# Long text for links to album/artist
 label	playing.artistverbose	"More tracks by this artist"
 label	playing.albumverbose	"More tracks from this album"
 
@@ -184,6 +184,7 @@ label	error.connect		"Cannot connect to server."
 # Error messages for login.html
 label	error.loginfailed	"Incorrect username and/or password."
 label	error.cookiefailed	"Cannot create login cookie."
+label	error.revokefailed	"Cannot revoke login cookie."
 label	error.nousername	"No username specified."
 label	error.nopassword	"No password specified."
 label	error.passwordmismatch	"Passwords do not match."
