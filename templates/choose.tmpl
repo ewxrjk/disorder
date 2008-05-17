@@ -30,59 +30,59 @@ USA
      {
    <p class=choosealpha>
     <a title="Directories starting with 'a'"
-    href="@url?action=choose&#38;regexp=^(the )?a">A</a> |
+    href="@url?action=choose&#38;re=^(the )?a">A</a> |
     <a title="Directories starting with 'b'"
-    href="@url?action=choose&#38;regexp=^(the )?b">B</a> |
+    href="@url?action=choose&#38;re=^(the )?b">B</a> |
     <a title="Directories starting with 'c'"
-    href="@url?action=choose&#38;regexp=^(the )?c">C</a> |
+    href="@url?action=choose&#38;re=^(the )?c">C</a> |
     <a title="Directories starting with 'd'"
-    href="@url?action=choose&#38;regexp=^(the )?d">D</a> |
+    href="@url?action=choose&#38;re=^(the )?d">D</a> |
     <a title="Directories starting with 'e'"
-    href="@url?action=choose&#38;regexp=^(the )?e">E</a> |
+    href="@url?action=choose&#38;re=^(the )?e">E</a> |
     <a title="Directories starting with 'f'"
-    href="@url?action=choose&#38;regexp=^(the )?f">F</a> |
+    href="@url?action=choose&#38;re=^(the )?f">F</a> |
     <a title="Directories starting with 'g'"
-    href="@url?action=choose&#38;regexp=^(the )?g">G</a> |
+    href="@url?action=choose&#38;re=^(the )?g">G</a> |
     <a title="Directories starting with 'h'"
-    href="@url?action=choose&#38;regexp=^(the )?h">H</a> |
+    href="@url?action=choose&#38;re=^(the )?h">H</a> |
     <a title="Directories starting with 'i'"
-    href="@url?action=choose&#38;regexp=^(the )?i">I</a> |
+    href="@url?action=choose&#38;re=^(the )?i">I</a> |
     <a title="Directories starting with 'j'"
-    href="@url?action=choose&#38;regexp=^(the )?j">J</a> |
+    href="@url?action=choose&#38;re=^(the )?j">J</a> |
     <a title="Directories starting with 'k'"
-    href="@url?action=choose&#38;regexp=^(the )?k">K</a> |
+    href="@url?action=choose&#38;re=^(the )?k">K</a> |
     <a title="Directories starting with 'l'"
-    href="@url?action=choose&#38;regexp=^(the )?l">L</a> |
+    href="@url?action=choose&#38;re=^(the )?l">L</a> |
     <a title="Directories starting with 'm'"
-    href="@url?action=choose&#38;regexp=^(the )?m">M</a> |
+    href="@url?action=choose&#38;re=^(the )?m">M</a> |
     <a title="Directories starting with 'n'"
-    href="@url?action=choose&#38;regexp=^(the )?n">N</a> |
+    href="@url?action=choose&#38;re=^(the )?n">N</a> |
     <a title="Directories starting with 'o'"
-    href="@url?action=choose&#38;regexp=^(the )?o">O</a> |
+    href="@url?action=choose&#38;re=^(the )?o">O</a> |
     <a title="Directories starting with 'p'"
-    href="@url?action=choose&#38;regexp=^(the )?p">P</a> |
+    href="@url?action=choose&#38;re=^(the )?p">P</a> |
     <a title="Directories starting with 'q'"
-    href="@url?action=choose&#38;regexp=^(the )?q">Q</a> |
+    href="@url?action=choose&#38;re=^(the )?q">Q</a> |
     <a title="Directories starting with 'r'"
-    href="@url?action=choose&#38;regexp=^(the )?r">R</a> |
+    href="@url?action=choose&#38;re=^(the )?r">R</a> |
     <a title="Directories starting with 's'"
-    href="@url?action=choose&#38;regexp=^(the )?s">S</a> |
+    href="@url?action=choose&#38;re=^(the )?s">S</a> |
     <a title="Directories starting with 't'"
-    href="@url?action=choose&#38;regexp=^(?!the [^t])t">T</a> |
+    href="@url?action=choose&#38;re=^(?!the [^t])t">T</a> |
     <a title="Directories starting with 'u'"
-    href="@url?action=choose&#38;regexp=^(the )?u">U</a> |
+    href="@url?action=choose&#38;re=^(the )?u">U</a> |
     <a title="Directories starting with 'v'"
-    href="@url?action=choose&#38;regexp=^(the )?v">V</a> |
+    href="@url?action=choose&#38;re=^(the )?v">V</a> |
     <a title="Directories starting with 'w'"
-    href="@url?action=choose&#38;regexp=^(the )?w">W</a> |
+    href="@url?action=choose&#38;re=^(the )?w">W</a> |
     <a title="Directories starting with 'x'"
-    href="@url?action=choose&#38;regexp=^(the )?x">X</a> |
+    href="@url?action=choose&#38;re=^(the )?x">X</a> |
     <a title="Directories starting with 'y'"
-    href="@url?action=choose&#38;regexp=^(the )?y">Y</a> |
+    href="@url?action=choose&#38;re=^(the )?y">Y</a> |
     <a title="Directories starting with 'z'"
-    href="@url?action=choose&#38;regexp=^(the )?z">Z</a> |
+    href="@url?action=choose&#38;re=^(the )?z">Z</a> |
     <a title="Directories starting with anything else"
-    href="@url?action=choose&#38;regexp=^[^a-z]">*</a>
+    href="@url?action=choose&#38;re=^[^a-z]">*</a>
    </p>
 }
 
@@ -98,12 +98,15 @@ USA
          @label{search.search}
        </button>
        <input name=action type=hidden value=choose>
+       <a class=button
+          href="@url?action=choose">
+         @label{search.clear}
+       </a>
      </p>
    </form>
 
    @if{@ne{@arg{query}}{}}
-      {
-@# There's a search query
+      {@# There's a search query
   <table class=search>
     <tr class=headings>
      <th class=artist>@label{heading.artist}</th>
@@ -131,11 +134,32 @@ USA
     </tr>}
     }
   </table>}
-      {
-@# No search query
+      {@# No search query
+
+@# We have the following possible cases:
+@#  choose.which  dir       re       result
+@#  choose        ""        -        Ask for top level
+@#  choose        ""        present  Ask for top level with re applied
+@#  choose        present   -        Ask for dir
+@#  choose        present   re       Ask for dir with re applied
+@#  choosealpha   ""        -        Nothing
+@#  choosealpha   ""        present  Ask for top level with re applied
+@#  choosealpha   present   -        Ask for dir
+@#  choosealpha   present   re       Ask for dir with re applied
+@#
+@# So in fact the only oddity is choosealpha + no dir + no re.
+@#
+@# NB we don't really bother distinguishing between re being empty or absent,
+@# and the server deliberately cooperates in this.
 
 @# TODO navigation...
 
+@#  <p>dir=[@arg{dir}]<br>re=[@arg{re}]<br>which=@label{choose.which}</p>
+
+  @if{@or{@ne{@label{menu.choosewhich}}{choosealpha}}
+         {@ne{@arg{dir}}{}}
+         {@ne{@arg{re}}{}}}
+     {@#
    <div class=directories>
     <div class=filesdirectories>
      @dirs{@arg{dir}}{@arg{re}}{
@@ -184,13 +208,13 @@ USA
               alt="@label{choose.allprefs}">
         </a>}
         <a class=button
-           href="@url?action=play&#38;dir=@urlquote{@arg{dir}}"&#38;back=@urlquote{@thisurl}">
+           href="@url?action=play&#38;dir=@urlquote{@arg{dir}}&#38;back=@urlquote{@thisurl}">
          @label{choose.playall}
         </a>
       </p>}
     </div>
    </div>
-
+   }
    }
 
 @credits

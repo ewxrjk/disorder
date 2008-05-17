@@ -110,8 +110,9 @@ label	choose.play		"Add track to queue"
 # <TITLE> for search page
 label	search.title		Search
 
-# Text for search button
+# Text for search buttons
 label	search.search		Search
+label   search.clear            Clear
 
 # <TITLE> for about page
 label	about.title		"About DisOrder"
