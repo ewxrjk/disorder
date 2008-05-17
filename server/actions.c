@@ -119,6 +119,18 @@ static void act_random_enable(void) {
   redirect(0);
 }
 
+static void act_pause(void) {
+  if(dcgi_client)
+    disorder_pause(dcgi_client);
+  redirect(0);
+}
+
+static void act_resume(void) {
+  if(dcgi_client)
+    disorder_resume(dcgi_client);
+  redirect(0);
+}
+
 static void act_remove(void) {
   const char *id;
   struct queue_entry *q;
@@ -150,6 +162,81 @@ static void act_remove(void) {
   redirect(0);
 }
 
+static void act_move(void) {
+  const char *id, *delta;
+  struct queue_entry *q;
+
+  if(dcgi_client) {
+    if(!(id = cgi_get("id")))
+      error(0, "missing 'id' argument");
+    else if(!(delta = cgi_get("delta")))
+      error(0, "missing 'delta' argument");
+    else if(!(q = dcgi_findtrack(id)))
+      error(0, "unknown queue id %s", id);
+    else switch(q->state) {
+    case playing_random:                /* unplayed randomly chosen track */
+    case playing_unplayed:              /* haven't played this track yet */
+      disorder_move(dcgi_client, id, atol(delta));
+      break;
+    default:
+      error(0, "does not make sense to scratch %s", id);
+      break;
+    }
+  }
+  redirect(0);
+}
+
+static void act_play(void) {
+  const char *track, *dir;
+  char **tracks;
+  int ntracks, n;
+  struct dcgi_entry *e;
+  
+  if(dcgi_client) {
+    if((track = cgi_get("file"))) {
+      disorder_play(dcgi_client, track);
+    } else if((dir = cgi_get("dir"))) {
+      if(disorder_files(dcgi_client, dir, 0, &tracks, &ntracks))
+        ntracks = 0;
+      e = xmalloc(ntracks * sizeof (struct dcgi_entry));
+      for(n = 0; n < ntracks; ++n) {
+        e[n].track = tracks[n];
+        e[n].sort = trackname_transform("track", tracks[n], "sort");
+        e[n].display = trackname_transform("track", tracks[n], "display");
+      }
+      qsort(e, ntracks, sizeof (struct dcgi_entry), dcgi_compare_entry);
+      for(n = 0; n < ntracks; ++n)
+        disorder_play(dcgi_client, e[n].track);
+    }
+  }
+  redirect(0);
+}
+
+static int clamp(int n, int min, int max) {
+  if(n < min)
+    return min;
+  if(n > max)
+    return max;
+  return n;
+}
+
+static void act_volume(void) {
+  const char *l, *r, *d;
+  int nd;
+
+  if(dcgi_client) {
+    if((d = cgi_get("delta"))) {
+      dcgi_lookup(DCGI_VOLUME);
+      nd = clamp(atoi(d), -255, 255);
+      disorder_set_volume(dcgi_client,
+                          clamp(dcgi_volume_left + nd, 0, 255),
+                          clamp(dcgi_volume_right + nd, 0, 255));
+    } else if((l = cgi_get("left")) && (r = cgi_get("right")))
+      disorder_set_volume(dcgi_client, atoi(l), atoi(r));
+  }
+  redirect(0);
+}
+
 /** @brief Table of actions */
 static const struct action {
   /** @brief Action name */
@@ -160,10 +247,15 @@ static const struct action {
   { "disable", act_disable },
   { "enable", act_enable },
   { "manage", act_playing },
+  { "move", act_move },
+  { "pause", act_pause },
+  { "play", act_play },
   { "playing", act_playing },
   { "randomdisable", act_random_disable },
   { "randomenable", act_random_enable },
   { "remove", act_remove },
+  { "resume", act_resume },
+  { "volume", act_volume },
 };
 
 /** @brief Check that an action name is valid

@@ -57,9 +57,6 @@ static void queuemap_add(struct queue_entry *q) {
 void dcgi_lookup(unsigned want) {
   unsigned need = want ^ (flags & want);
   struct queue_entry *r, *rnext;
-#if 0
-  const char *dir, *re;
-#endif
   char *rs;
 
   if(!dcgi_client || !need)
@@ -88,22 +85,6 @@ void dcgi_lookup(unsigned want) {
   if(need & DCGI_VOLUME)
     disorder_get_volume(dcgi_client,
                         &dcgi_volume_left, &dcgi_volume_right);
-#if 0
-  /* DCGI_FILES and DCGI_DIRS are looking obsolete now */
-  if(need & (DCGI_FILES|DCGI_DIRS)) {
-    if(!(dir = cgi_get("directory")))
-      dir = "";
-    re = cgi_get("regexp");
-    if(need & DCGI_DIRS)
-      if(disorder_directories(dcgi_client, dir, re,
-                              &dirs, &ndirs))
-        ndirs = 0;
-    if(need & DCGI_FILES)
-      if(disorder_files(dcgi_client, dir, re,
-                        &files, &nfiles))
-        nfiles = 0;
-  }
-#endif
   if(need & DCGI_RIGHTS) {
     dcgi_rights = RIGHT_READ;	/* fail-safe */
     if(!disorder_userinfo(dcgi_client, disorder_user(dcgi_client),

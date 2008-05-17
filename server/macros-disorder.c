@@ -810,19 +810,9 @@ static int exp_image(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(url)) < 0 ? -1 : 0;
 }
 
-/** @brief Entry in a list of tracks or directories */
-struct entry {
-  /** @brief Track name */
-  const char *track;
-  /** @brief Sort key */
-  const char *sort;
-  /** @brief Display key */
-  const char *display;
-};
-
 /** @brief Compare two @ref entry objects */
-static int compare_entry(const void *a, const void *b) {
-  const struct entry *ea = a, *eb = b;
+int dcgi_compare_entry(const void *a, const void *b) {
+  const struct dcgi_entry *ea = a, *eb = b;
 
   return compare_tracks(ea->sort, eb->sort,
 			ea->display, eb->display,
@@ -843,7 +833,7 @@ static int exp__files_dirs(int nargs,
   char **tracks, *dir, *re;
   int n, ntracks, rc;
   const struct mx_node *m;
-  struct entry *e;
+  struct dcgi_entry *e;
 
   if((rc = mx_expandstr(args[0], &dir, u, "argument #0 (DIR)")))
     return rc;
@@ -868,7 +858,7 @@ static int exp__files_dirs(int nargs,
     e[n].sort = trackname_transform(type, tracks[n], "sort");
     e[n].display = trackname_transform(type, tracks[n], "display");
   }
-  qsort(e, ntracks, sizeof (struct entry), compare_entry);
+  qsort(e, ntracks, sizeof (struct dcgi_entry), dcgi_compare_entry);
   /* Expand the subsiduary templates.  We chuck in @sort and @display because
    * it is particularly easy to do so. */
   for(n = 0; n < ntracks; ++n)

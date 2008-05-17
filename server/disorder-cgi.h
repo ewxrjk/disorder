@@ -60,6 +60,19 @@ extern disorder_client *dcgi_client;
 extern char *dcgi_cookie;
 extern char *dcgi_error_string;
 
+/** @brief Entry in a list of tracks or directories */
+struct dcgi_entry {
+  /** @brief Track name */
+  const char *track;
+  /** @brief Sort key */
+  const char *sort;
+  /** @brief Display key */
+  const char *display;
+};
+
+/** @brief Compare two @ref entry objects */
+int dcgi_compare_entry(const void *a, const void *b);
+
 void dcgi_expand(const char *name);
 void dcgi_action(const char *action);
 void dcgi_error(const char *key);
@@ -81,10 +94,6 @@ char **option_columns(const char *name, int *ncolumns);
 #define DCGI_PLAYING 0x0002
 #define DCGI_RECENT 0x0004
 #define DCGI_VOLUME 0x0008
-#if 0
-#define DCGI_DIRS 0x0010
-#define DCGI_FILES 0x0020
-#endif
 #define DCGI_NEW 0x0040
 #define DCGI_RIGHTS 0x0080
 #define DCGI_ENABLED 0x0100
