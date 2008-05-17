@@ -86,6 +86,31 @@ USA
    </p>
 }
 
+@# Always have a search form
+   <form class=search
+         action="@url"
+         method=POST
+         enctype="multipart/form-data" accept-charset=utf-8>
+     <p class=search>Enter search terms:
+       <input class=query name=query type=text value="@argq{query}"
+              size=50>
+       <button class=search name=submit type=submit>
+         @label{search.search}
+       </button>
+       <input name=action type=hidden value=search>
+     </p>
+   </form>
+
+   @if{@ne{@arg{query}}{}}
+      {
+@# There's a search query
+        @search{@arg{query}}{
+          <p>TODO @quote{@track}</p>
+        }
+      }
+      {
+@# No search query
+
 @# TODO navigation...
 
    <div class=directories>
@@ -110,10 +135,10 @@ USA
        @rights{prefs}{
         <a class=imgprefs
            href="@url?action=prefs&#38;0_file=@urlquote{@resolve{@track}}">
-	 <img class=button
-	      src="@image{edit}"
-	      title="@label:choose.prefsverbose@"
-	      alt="@label:choose.prefs@">
+         <img class=button
+              src="@image{edit}"
+              title="@label:choose.prefsverbose@"
+              alt="@label:choose.prefs@">
         </a>
        }@#
        <a href="@url?action=play&#38;file=@urlquote{@track}&#38;back=@urlquote{@thisurl}"
@@ -142,6 +167,8 @@ USA
       </p>}
     </div>
    </div>
+
+   }
 
 @credits
  </body>

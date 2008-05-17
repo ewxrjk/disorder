@@ -912,6 +912,31 @@ static int exp_dirs(int nargs,
   return exp__files_dirs(nargs, args, output, u, "dir", disorder_directories);
 }
 
+static int exp__search_shim(disorder_client *c, const char *terms,
+                            const char attribute((unused)) *re,
+                            char ***vecp, int *nvecp) {
+  return disorder_search(c, terms, vecp, nvecp);
+}
+
+/** @search{KEYWORDS}{TEMPLATE}
+ *
+ * For each track matching KEYWORDS, expands TEMPLATE with the
+ * following expansions:
+ * - @track to the UNQUOTED directory name
+ * - @index to the directory number from 0
+ * - @parity to "even" or "odd" alternately
+ * - @first to "true" on the first directory and "false" otherwise
+ * - @last to "true" on the last directory and "false" otherwise
+ * - @sort to the sort key for this track
+ * - @display to the UNQUOTED display string for this track
+ */
+static int exp_search(int nargs,
+                    const struct mx_node **args,
+                    struct sink *output,
+                    void *u) {
+  return exp__files_dirs(nargs, args, output, u, "track", exp__search_shim);
+}
+
 /** @brief Register DisOrder-specific expansions */
 void dcgi_expansions(void) {
   mx_register("arg", 1, 1, exp_arg);
@@ -951,6 +976,7 @@ void dcgi_expansions(void) {
   mx_register_magic("queue", 1, 1, exp_queue);
   mx_register_magic("recent", 1, 1, exp_recent);
   mx_register_magic("right", 1, 3, exp_right);
+  mx_register_magic("search", 2, 2, exp_search);
   mx_register_magic("tracks", 2, 3, exp_tracks);
 }
 
