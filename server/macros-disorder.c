@@ -26,6 +26,9 @@
 /** @brief For error template */
 char *dcgi_error_string;
 
+/** @brief For login template */
+char *dcgi_status_string;
+
 /** @brief Return @p i as a string */
 static const char *make_index(int i) {
   char *s;
@@ -755,7 +758,20 @@ static int exp_error(int attribute((unused)) nargs,
                      char attribute((unused)) **args,
                      struct sink *output,
                      void attribute((unused)) *u) {
-  return sink_writes(output, dcgi_error_string) < 0 ? -1 : 0;
+  return sink_writes(output, dcgi_error_string ? dcgi_error_string : "")
+              < 0 ? -1 : 0;
+}
+
+/* @error
+ *
+ * Expands to the latest status string.
+ */
+static int exp_status(int attribute((unused)) nargs,
+                      char attribute((unused)) **args,
+                      struct sink *output,
+                      void attribute((unused)) *u) {
+  return sink_writes(output, dcgi_status_string ? dcgi_status_string : "")
+              < 0 ? -1 : 0;
 }
 
 /* @image{NAME}
@@ -972,6 +988,7 @@ void dcgi_expansions(void) {
   mx_register("resolve", 1, 1, exp_resolve);
   mx_register("server-version", 0, 0, exp_server_version);
   mx_register("state", 1, 1, exp_state);
+  mx_register("status", 0, 0, exp_status);
   mx_register("thisurl", 0, 0, exp_thisurl);
   mx_register("trackstate", 1, 1, exp_trackstate);
   mx_register("transform", 2, 3, exp_transform);

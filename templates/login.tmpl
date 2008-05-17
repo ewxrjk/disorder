@@ -24,40 +24,38 @@ USA
  </head>
  <body>
 @stdmenu{login}
-   <h1>@label:login.title@</h1>
+   <h1>@label{login.title}</h1>
 
-   @if{@ne{@label:error@}{error}@}{
-   @#{error reporting from some earlier operation}@
-   <div class=error>
-     <p class=error>@label{error.@label:error@}@</p>
-   </div>
-   }@
+@if{@ne{@error}{}}
+   {@# Error reporting from some earlier operation
+     <div class=error>
+       <p class=error>@label{error.@error}</p>
+     </div>}
 
-   @if{@ne{@label:status@}{status}@}{
-   @#{some action succeeded}@
-   <div class=loginstatus>
-     <p>@label{login.@label:status@}@</p>
-   </div>
-   }@
+@if{@ne{@status}{}}
+   {@# Some action succeeded
+     <div class=loginstatus>
+       <p>@label{login.@status}</p>
+     </div>}
 
-   @if{@eq{@user@}{guest}@}{
-   @#{guest user, allow login and registration}@
+@if{@eq{@user}{guest}}
+   {@# Guest user, allow login and registration
    <h2>Existing users</h2>
 
    <p>If you have a username, use this form to log in.</p>
 
-   <form class=login action="@url@" method=POST
+   <form class=login action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <table class=login>
        <tr>
-         <td>@label:login.username@</td>
+         <td>@label{login.username}</td>
          <td>
            <input class=username name=username type=text size=32
-	          value="@arg:username@">
+	          value="@argq{username}">
          </td>
        </tr>
        <tr>
-         <td>@label:login.password@</td>
+         <td>@label{login.password}</td>
          <td>
            <input class=password name=password type=password value=""
                   size=32>
@@ -66,13 +64,13 @@ USA
        <tr>
          <td colspan=2>
            <button class=login name=button type=submit>
-             @label:login.login@
+             @label{login.login}
            </button>
          </td>
        </tr>
      </table>
      <input name=action type=hidden value=login>
-     <input name=back type=hidden value="@arg:back@">
+     <input name=back type=hidden value="@argq{back}">
    </form>
 
    <p>If you've forgotten your password, use this form to request an
@@ -80,20 +78,20 @@ USA
    your email address, and if a reminder has been sent too recently
    then it won't be possible to send one.</p>
 
-   <form class=reminder action="@url@" method=POST
+   <form class=reminder action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <table class=login>
        <tr>
-         <td>@label:login.username@</td>
+         <td>@label{login.username}</td>
          <td>
            <input class=username name=username type=text size=32
-	          value="@arg:username@">
+	          value="@argq{username}">
          </td>
        </tr>
        <tr>
          <td colspan=2>
            <button class=login name=button type=submit>
-             @label:login.reminder@
+             @label{login.reminder}
            </button>
          </td>
        </tr>
@@ -109,61 +107,60 @@ USA
    which you must visit to activate your login before you can use
    it.<p>
 
-   <form class=register action="@url@" method=POST
+   <form class=register action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <table class=register>
        <tr>
-         <td>@label:login.username@</td>
+         <td>@label{login.username}</td>
          <td>
            <input class=username name=username type=text size=32
 	          value="">
          </td>
-         <td class=extra>@label:login.registerusernameextra@</td>
+         <td class=extra>@label{login.registerusernameextra}</td>
        </tr>
        <tr>
-         <td>@label:login.email@</td>
+         <td>@label{login.email}</td>
          <td>
            <input class=email name=email type=text size=32
                   value="">
          </td>
-         <td class=extra>@label:login.registeremailextra@</td>
+         <td class=extra>@label{login.registeremailextra}</td>
        </tr>
        <tr>
-         <td>@label:login.password1@</td>
+         <td>@label{login.password1}</td>
          <td>
            <input class=password name=password1 type=password size=32
 	          value="">
          </td>
-         <td class=extra>@label:login.registerpassword1extra@</td>
+         <td class=extra>@label{login.registerpassword1extra}</td>
        </tr>
        <tr>
-         <td>@label:login.password2@</td>
+         <td>@label{login.password2}</td>
          <td>
            <input class=password name=password2 type=password size=32
 	          value="">
          </td>
-         <td class=extra>@label:login.registerpassword2extra@</td>
+         <td class=extra>@label{login.registerpassword2extra}</td>
        </tr>
        <tr>
          <td colspan=3>
            <button class=register name=button>
-             @label:login.register@
+             @label{login.register}
            </button>
          </td>
        </tr>
      </table>
      <input name=action type=hidden value=register>
-   </form>}@
-   }{
-   @#{not the guest user, allow change of details and logout}@
+   </form>}
+   }{@# not the guest user, allow change of details and logout
 
-   <h2>Logged in as @user@</h2>
+   <h2>Logged in as @user</h2>
 
-   <form class=logout action="@url@" method=POST
+   <form class=logout action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <div class=logout>
        <button class=logout name=submit type=submit>
-         @label:login.logout@
+         @label{login.logout}
        </button>
      </div>
      <input name=action type=hidden value=logout>
@@ -171,37 +168,37 @@ USA
 
    <p>Use this form to change your email address and/or password.</p>
 
-   <form class=edituser action="@url@" method=POST
+   <form class=edituser action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <table class=edituser>
        <tr>
-         <td>@label:login.email@</td>
+         <td>@label{login.email}</td>
          <td>
            <input class=email name=email type=text size=32
-	          value="@userinfo:email@">
+	          value="@userinfo{email}">
          </td>
-         <td class=extra>@label:login.edituseremailextra@</td>
+         <td class=extra>@label{login.edituseremailextra}</td>
        </tr>
        <tr>
-         <td>@label:login.newpassword@</td>
+         <td>@label{login.newpassword}</td>
          <td>
            <input class=password name=changepassword1 type=password size=32
 	          value="">
          </td>
-         <td class=extra>@label:login.edituserpassword1extra@</td>
+         <td class=extra>@label{login.edituserpassword1extra}</td>
        </tr>
        <tr>
-         <td>@label:login.newpassword@</td>
+         <td>@label{login.newpassword}</td>
          <td>
            <input class=password name=changepassword2 type=password size=32
 	          value="">
          </td>
-         <td class=extra>@label:login.edituserpassword2extra@</td>
+         <td class=extra>@label{login.edituserpassword2extra}</td>
        </tr>
        <tr>
          <td colspan=3>
            <button class=edituser name=submit type=submit>
-             @label:login.edituser@
+             @label{login.edituser}
            </button>
          </td>
        </tr>
@@ -209,7 +206,7 @@ USA
      <input name=action type=hidden value=edituser>
    </form>
 
-   }@
+   }
 
 @credits
  </body>
