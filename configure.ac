@@ -576,7 +576,6 @@ AH_BOTTOM([#ifdef __GNUC__
 #endif])
 
 AC_CONFIG_FILES([Makefile
-		 templates/Makefile
 		 images/Makefile
 		 scripts/Makefile
 		 lib/Makefile
@@ -584,6 +583,7 @@ AC_CONFIG_FILES([Makefile
 		 clients/Makefile
 		 disobedience/Makefile
 		 doc/Makefile
+		 templates/Makefile
 		 plugins/Makefile
 		 driver/Makefile
 		 debian/Makefile

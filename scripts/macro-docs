@@ -27,6 +27,7 @@ while(defined($_ = <>)) {
 }
 
 # Generate docs in name order
+my $indented = 0;
 for my $m (sort keys %macros) {
   my @docs = @{$macros{$m}};
   my $heading = shift @docs;
@@ -40,17 +41,38 @@ for my $m (sort keys %macros) {
   print ".TP\n";
   print ".B $heading\n";
   for my $d (@docs) {
+    if($d =~ /^-\s*([^:]+):\s+(.*)/) {
+      if(!$indented) {
+	print ".RS\n";
+	$indented = 1;
+      }
+      print ".TP 8\n";
+      print ".B $1\n";
+      $d = $2;
+    }
     if($d =~ /^- /) {
       $d = $';
+      if(!$indented) {
+	print ".RS\n";
+	$indented = 1;
+      }
       print ".TP\n";
       print ".B .\n";
     }
     if($d eq '') {
-      print ".PP\n";
+      if($indented) {
+	print ".RE\n";
+	$indented = 0;
+      }
+      print ".IP\n";
     } else {
       # Keep sentence-ending full stops at end of line
       $d =~ s/\.  /\.\n/g;
       print "$d\n";
     }
+  }
+  if($indented) {
+    print ".RE\n";
+    $indented = 0;
   }
 }

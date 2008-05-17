@@ -324,9 +324,10 @@ static int exp_movable(int  nargs,
 
 /* @playing{TEMPLATE}
  *
- * Expands to TEMPLATE, with:
- * - @id expanded to the queue ID of the playing track
- * - @track expanded to its UNQUOTED name
+ * Expands to TEMPLATE, with the following expansions:
+ * - @id: the queue ID of the playing track
+ * - @track: the playing track's
+ UNQUOTED name
  *
  * If no track is playing expands to nothing.
  *
@@ -352,12 +353,12 @@ static int exp_playing(int nargs,
 /* @queue{TEMPLATE}
  *
  * For each track in the queue, expands TEMPLATE with the following expansions:
- * - @id to the queue ID of the track
- * - @track to the UNQUOTED track name
- * - @index to the track number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first track and "false" otherwise
- * - @last to "true" on the last track and "false" otherwise
+ * - @id: the queue ID of the track
+ * - @track: the UNQUOTED track name
+ * - @index: the track number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first track and "false" otherwise
+ * - @last: "true" on the last track and "false" otherwise
  */
 static int exp_queue(int attribute((unused)) nargs,
                      const struct mx_node **args,
@@ -385,12 +386,12 @@ static int exp_queue(int attribute((unused)) nargs,
  *
  * For each track in the recently played list, expands TEMPLATE with the
  * following expansions:
- * - @id to the queue ID of the track
- * - @track  to the UNQUOTED track name
- * - @index to the track number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first track and "false" otherwise
- * - @last to "true" on the last track and "false" otherwise
+ * - @id: the queue ID of the track
+ * - @track: the UNQUOTED track name
+ * - @index: the track number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first track and "false" otherwise
+ * - @last: "true" on the last track and "false" otherwise
  */
 static int exp_recent(int attribute((unused)) nargs,
                       const struct mx_node **args,
@@ -418,11 +419,11 @@ static int exp_recent(int attribute((unused)) nargs,
  *
  * For each track in the newly added list, expands TEMPLATE wit the following
  * expansions:
- * - @track to the UNQUOTED track name
- * - @index to the track number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first track and "false" otherwise
- * - @last to "true" on the last track and "false" otherwise
+ * - @track: the UNQUOTED track name
+ * - @index: the track number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first track and "false" otherwise
+ * - @last: "true" on the last track and "false" otherwise
  *
  * Note that unlike @playing, @queue and @recent which are otherwise
  * superficially similar, there is no @id sub-expansion here.
@@ -532,12 +533,12 @@ static int exp_pref(int attribute((unused)) nargs,
  *
  * For each track preference of track TRACK, expands TEMPLATE with the
  * following expansions:
- * - @name to the UNQUOTED preference name
- * - @index to the preference number from 0
- * - @value to the UNQUOTED preference value
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first preference and "false" otherwise
- * - @last to "true" on the last preference and "false" otherwise
+ * - @name: the UNQUOTED preference name
+ * - @index: the preference number from 0
+ * - @value: the UNQUOTED preference value
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first preference and "false" otherwise
+ * - @last: "true" on the last preference and "false" otherwise
  *
  * Use @quote to quote preference names and values where necessary; see below.
  */
@@ -762,7 +763,7 @@ static int exp_error(int attribute((unused)) nargs,
               < 0 ? -1 : 0;
 }
 
-/* @error
+/* @status
  *
  * Expands to the latest status string.
  */
@@ -895,13 +896,13 @@ static int exp__files_dirs(int nargs,
  *
  * For each track below DIR, expands TEMPLATE with the
  * following expansions:
- * - @track to the UNQUOTED track name
- * - @index to the track number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first track and "false" otherwise
- * - @last to "true" on the last track and "false" otherwise
- * - @sort to the sort key for this track
- * - @display to the UNQUOTED display string for this track
+ * - @track: the UNQUOTED track name
+ * - @index: the track number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first track and "false" otherwise
+ * - @last: "true" on the last track and "false" otherwise
+ * - @sort: the sort key for this track
+ * - @display: the UNQUOTED display string for this track
  *
  * RE is optional and if present is the regexp to match against.
  */
@@ -916,13 +917,13 @@ static int exp_tracks(int nargs,
  *
  * For each directory below DIR, expands TEMPLATE with the
  * following expansions:
- * - @track to the UNQUOTED directory name
- * - @index to the directory number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first directory and "false" otherwise
- * - @last to "true" on the last directory and "false" otherwise
- * - @sort to the sort key for this directory
- * - @display to the UNQUOTED display string for this directory
+ * - @track: the UNQUOTED directory name
+ * - @index: the directory number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first directory and "false" otherwise
+ * - @last: "true" on the last directory and "false" otherwise
+ * - @sort: the sort key for this directory
+ * - @display: the UNQUOTED display string for this directory
  *
  * RE is optional and if present is the regexp to match against.
  */
@@ -943,13 +944,13 @@ static int exp__search_shim(disorder_client *c, const char *terms,
  *
  * For each track matching KEYWORDS, expands TEMPLATE with the
  * following expansions:
- * - @track to the UNQUOTED directory name
- * - @index to the directory number from 0
- * - @parity to "even" or "odd" alternately
- * - @first to "true" on the first directory and "false" otherwise
- * - @last to "true" on the last directory and "false" otherwise
- * - @sort to the sort key for this track
- * - @display to the UNQUOTED display string for this track
+ * - @track: the UNQUOTED directory name
+ * - @index: the directory number from 0
+ * - @parity: "even" or "odd" alternately
+ * - @first: "true" on the first directory and "false" otherwise
+ * - @last: "true" on the last directory and "false" otherwise
+ * - @sort: the sort key for this track
+ * - @display: the UNQUOTED display string for this track
  */
 static int exp_search(int nargs,
                       const struct mx_node **args,

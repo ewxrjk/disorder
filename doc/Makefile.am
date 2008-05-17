@@ -20,6 +20,12 @@
 
 noinst_DATA=$(HTMLMAN)
 pkgdata_DATA=$(TMPLMAN)
+man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
+	disorder_protocol.5 disorder-deadlock.8 \
+	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8 \
+	disorder-playrtp.1 disorder-normalize.8 disorder-decode.8 \
+	disorder-stats.8 disorder-dbupgrade.8 disorder_templates.5
+noinst_MANS=tkdisorder.1
 
 SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
@@ -27,14 +33,6 @@ SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-decode.8 disorder-stats.8 disorder-dbupgrade.8
 
 include ${top_srcdir}/scripts/sedfiles.make
-
-man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
-	disorder_protocol.5 disorder-deadlock.8 \
-	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-speaker.8 \
-	disorder-playrtp.1 disorder-normalize.8 disorder-decode.8 \
-	disorder-stats.8 disorder-dbupgrade.8
-
-noinst_MANS=tkdisorder.1
 
 HTMLMAN=$(foreach man,$(man_MANS),$(man).html)
 $(HTMLMAN) : %.html : % $(top_srcdir)/scripts/htmlman
@@ -49,6 +47,18 @@ $(TMPLMAN) : %.tmpl : % $(top_srcdir)/scripts/htmlman
 	$(top_srcdir)/scripts/htmlman -stdhead $< >$@.new
 	chmod 444 $@.new
 	mv -f $@.new $@
+
+disorder_templates.5: disorder_templates.5.head disorder_templates.5.tail \
+		$(top_srcdir)/lib/macros-builtin.c \
+		$(top_srcdir)/server/macros-disorder.c \
+		$(top_srcdir)/scripts/macro-docs
+	rm -f disorder_templates.5.new
+	cat disorder_templates.5.head >> disorder_templates.5.new
+	$(top_srcdir)/scripts/macro-docs >> disorder_templates.5.new \
+		$(top_srcdir)/lib/macros-builtin.c \
+		$(top_srcdir)/server/macros-disorder.c 
+	cat disorder_templates.5.tail >> disorder_templates.5.new
+	mv disorder_templates.5.new disorder_templates.5
 
 EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder.3 disorder-dump.8.in disorder_protocol.5.in \

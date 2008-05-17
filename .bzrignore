@@ -175,3 +175,7 @@ lib/t-wstat
 lib/t-macros
 lib/t-cgi
 doc/*.tmpl
+doc/disorder_templates.5
+oc/disorder_templates.5.html
+doc/disorder_templates.5
+doc/disorder_templates.5.html

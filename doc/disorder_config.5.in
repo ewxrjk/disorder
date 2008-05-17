@@ -831,29 +831,26 @@ write to the output file descriptor fails.
 This is a workaround for buggy players such as \fBogg123\fR that ignore
 write errors.
 .SH "WEB TEMPLATES"
-When \fBdisorder.cgi\fR wants to generate a page for an action it searches the
-directories specified with \fBtemplates\fR for a matching file.
-It is suggested that you leave the distributed templates unchanged and put
-any customisations in an earlier entry in the template path.
+When \fBdisorder.cgi\fR wants to generate a page for action ACTION, it looks
+for ACTION.tmpl first in pkgconfdir and then in pkgdatadir.  Customization can
+be achieved by copy the desired templates to pkgconfdir and editing.  (Leave
+the ones in pkgdatadir alone, they will be overwritten on upgrade.)
 .PP
 The supplied templates are:
 .TP
-.B about.html
+.B about.tmpl
 Display information about DisOrder.
 .TP
-.B choose.html
+.B choose.tmpl
 Navigates through the track database to choose a track to play.
-The \fBdir\fR argument gives the directory to look in; if it is missing
-then the root directory is used.
 .TP
-.B choosealpha.html
-Provides a front end to \fBchoose.html\fR which allows subsets of the top level
-directories to be selected by initial letter.
+.B login.tmpl
+The login page.
 .TP
-.B new.html
+.B new.tmpl
 Lists newly added tracks.
 .TP
-.B playing.html
+.B playing.tmpl
 The "front page", which usually shows the currently playing tracks and
 the queue.
 Gets an HTTP \fBRefresh\fR header.
@@ -864,443 +861,16 @@ There is some logic in \fBdisorder.cgi\fR to ensure that \fBmgmt=true\fR
 is preserved across refreshes and redirects back into itself, but
 URLs embedded in web pages must include it explicitly.
 .TP
-.B prefs.html
+.B prefs.tmpl
 Views preferences.
 If the \fBfile\fR, \fBname\fR and \fBvalue\fR arguments are
 all set then that preference is modified; if \fBfile\fR and \fBname\fR are set
 but not \fBvalue\fR then the preference is deleted.
 .TP
-.B recent.html
+.B recent.tmpl
 Lists recently played tracks.
-.TP
-.B search.html
-Presents search results.
-.TP
-.B volume.html
-Primitive volume control.
 .PP
-Additionally, other standard files are included by these:
-.TP
-.B credits.html
-Included at the end of the main content \fB<DIV>\fR element.
-.TP
-.B topbar.html
-Included at the start of the \fB<BODY>\fR element.
-.TP
-.B topbarend.html
-Included at the end of the \fB<BODY>\fR element.
-.TP
-.B stdhead.html
-Included in the \fB<HEAD>\fR element.
-.TP
-.B stylesheet.html
-Contains the default DisOrder stylesheet.
-You can override this by editing the CSS or by replacing it all with
-a \fB<LINK>\fR to an external stylesheet.
-.PP
-Templates are ASCII files containing HTML documents, with an expansion
-syntax to enable data supplied by the implementation to be inserted.
-.PP
-If you want to use characters outside the ASCII range, use either the
-appropriate HTML entity, e.g. \fB&eacute;\fR, or an SGML numeric
-character reference, e.g. \fB&#253;\fR.
-Use \fB&#64;\fR to insert a literal \fB@\fR without falling foul of
-the expansion syntax.
-.SS "Expansion Syntax"
-An expansion starts with an at ("@") symbol and takes the form of an expansion
-name followed by zero or more arguments.
-.PP
-Arguments can be quoted by curly brackets ("{" and "}") or separated
-by colons (":").
-Both kinds may be mixed in a single expansion, though doing so seems
-likely to cause confusion.
-The descriptions below contain suggested forms for each expansion.
-.PP
-An expansion is terminated by another "@" symbol, but this is optional in the
-specific case that the last argument is quoted by curly brackets and it is
-followed by whitespace and then some character that is not "{" (since that
-could be interpreted as a further argument).
-.PP
-Leading and trailing whitespace in unquoted arguments is ignored, as is
-whitespace (including newlines) following a close bracket ("}").
-.PP
-Arguments are recursively expanded before being interpreted, except for
-\fITEMPLATE\fR arguments.
-These are expanded (possibly more than once) to produce the final expansion.
-(More than once means the same argument being expanded more than once
-for different tracks or whatever, not the result of the first
-expansion itself being re-expanded.)
-.PP
-Strings constructed by expansions (i.e. not literally copied from the template
-text) are SGML-quoted: any character which does not stand for itself in #PCDATA
-or a quoted attribute value is replaced by the appropriate numeric character
-reference.
-.PP
-The exception to this is that such strings are \fInot\fR quoted when they are
-generated in the expansion of a parameter.
-.PP
-In the descriptions below, the current track means the one set by
-\fB@playing@\fR, \fB@recent@\fR or \fB@queue@\fR, not the one that is playing.
-If none of these expansions are in force then there is no current track.
-\fIBOOL\fR should always be either \fBtrue\fR or \fBfalse\fR.
-.SS "Expansions"
-The following expansion keywords are defined:
-.TP
-.B @#{\fICOMMENT\fB}@
-Ignored.
-.TP
-.B @action@
-The current action.
-This reports
-.B manage
-if the action is really
-.B playing
-but
-.B mgmt=true
-was set.
-.TP
-.B @and{\fIBOOL\fB}{\fIBOOL\fB}\fR...\fB@
-If there are no arguments, or all the arguments are \fBtrue\fB, then expands to
-\fBtrue\fR, otherwise to \fBfalse\fR.
-.TP
-.B @arg:\fINAME\fB@
-Expands to the value of CGI argument \fINAME\fR.
-.TP
-.B @basename@
-The basename of the current directory component, in \fB@navigate@\fR.
-.TP
-.B @basename{\fIPATH\fB}@
-The base name part of \fIPATH\fR.
-.TP
-.B @choose{\fIWHAT\fB}{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR repeatedly for each file or directory under
-\fB@arg:directory@\fR.
-\fIWHAT\fR should be either \fBfile\fR or \fBdirectory\fR.
-Use \fB@file@\fR to get the display name or filename of the file or
-directory.
-Usually used in \fBchoose.html\fR.
-.TP
-.B @dirname@
-The directory of the current directory component, in \fB@navigate@\fR.
-.TP
-.B @dirname{\fIPATH\fB}@
-The directory part of \fIPATH\fR.
-.TP
-.B @enabled@
-Expands to \fBtrue\fR if play is currently enabled, otherwise to \fBfalse\fR.
-.TP
-.B @eq{\fIA\fB}{\fIB\fB}
-Expands to \fBtrue\fR if \fIA\fR and \fIB\fR are identical, otherwise to
-\fBfalse\fR.
-.TP
-.B @file@
-Expands to the filename of the current file or directory, inside the template
-argument to \fBchoose\fR.
-.TP
-.B @files{\fITEMPLATE\fB}
-Expands \fITEMPLATE\fR once for each file indicated by the \fBdirectory\fR CGI
-arg if it is present, or otherwise for the list of files counted by \fBfiles\fR
-with names \fB0_file\fR, \fB1_file\fR etc.
-.TP
-.B @fullname@
-The full path of the current directory component, in \fB@navigate@\fR.
-.TP
-.B @id@
-The ID of the current track.
-.TP
-.B @if{\fIBOOL\fB}{\fITRUEPART\fB}{\fIFALSEPART\fB}@
-If \fIBOOL\fR expands to \fBtrue\fR then expands to \fITRUEPART\fR, otherwise
-to \fIFALSEPART\fR (which may be omitted).
-.TP
-.B @image:\fINAME\fB@
-Expands to the (possibly relative) URL for image \fINAME\fR.
-.IP
-If there is a label \fBimages.\fINAME\fR then that will be the image base name.
-Otherwise the image base name is \fINAME\fB.png\fR or just \fINAME\fR if it
-alraedy has an extension.
-Thus labels may be defined to give images role names.
-.IP
-If there is a label \fBurl.static\fR then that is the base URL for images.
-If it is not defined then \fB/disorder\fR is used as a default.
-.TP
-.B @include:\fIPATH\fB@
-Include the named file as if it were a template file.
-If \fIPATH\fR starts with a \fB/\fR then it is used as-is;
-otherwise, ".html" is appended and the template path is searched.
-.TP
-.B @index@
-Expands to the index of the current file in \fB@queue@\fR, \fB@recent@\fR or
-\fB@files@\fR.
-.TP
-.B @isdirectories@
-Expands to \fBtrue\fR if there are any directories in \fB@arg:directory@\fR,
-otherwise to \fBfalse\fR.
-.TP
-.B @isfiles@
-Expands to \fBtrue\fR if there are any files in \fB@arg:directory@\fR,
-otherwise to \fBfalse\fR.
-.TP
-.B @isfirst@
-Expands to \fBtrue\fR if this is the first repetition of a \fITEMPLATE\fR
-argument in a loop (\fB@queue\fR or similar), otherwise to \fBfalse\fR.
-.TP
-.B @islast@
-Expands to \fBtrue\fR if this is the last repetition of a \fITEMPLATE\fR in a
-loop, otherwise to \fBfalse\fR.
-.TP
-.B @isnew@
-Expands to \fBtrue\fR if the newly added tracks list has any tracks in it,
-otherwise to \fBfalse\fR.
-.TP
-.B @isplaying@
-Expands to \fBtrue\fR if a track is playing, otherwise to \fBfalse\fR.
-.TP
-.B @isqueue@
-Expands to \fBtrue\fR if there are any tracks in the queue, otherwise to
-\fBfalse\fR.
-.TP
-.B @isrecent@
-Expands to \fBtrue\fR if the recently played list has any tracks in it,
-otherwise to \fBfalse\fR.
-.TP
-.B @label:\fINAME\fR\fB@
-Expands to the value of label \fINAME\fR.
-See the shipped \fIoptions.labels\fR file for full documentation of the
-labels used by the standard templates.
-.TP
-.B @length@
-Expands to the length of the current track.
-.TP
-.B @movable@
-Expands to \fBtrue\fR if the current track is movable, otherwise to
-\fBfalse\fR.
-.TP
-.B @navigate{\fIDIRECTORY\fB}{\fITEMPLATE\fB}
-Expands \fITEMPLATE\fR for each component of \fIDIRECTORY\fR in turn.
-Use \fB@dirname\fR and \fB@basename@\fR to get the components of the path to
-each component.
-Usually used in \fBchoose.html\fR.
-.TP
-.B @ne{\fIA\fB}{\fIB\fB}
-Expands to \fBtrue\fR if \fIA\fR and \fIB\fR differ, otherwise to \fBfalse\fR.
-.TP
-.B @new{\fITEMPLATE\fB}
-Expands \fITEMPLATE\fR for each track in the newly added tracks list, starting
-with the most recent.
-Used in \fBnew.html\fR.
-.TP
-.B @nfiles@
-Expands to the number of files from \fB@files\fR (above).
-.TP
-.B @nonce@
-Expands to a string including the time and process ID, intended to be
-unique across invocations.
-.TP
-.B @not{\fIBOOL\fB}@
-Expands to \fBfalse\fR if \fIBOOL\fR is \fBtrue\fR, otherwise to
-\fBfalse\fR.
-.TP
-.B @or{\fIBOOL\fB}{\fIBOOL\fB}\fR...\fB@
-If at least one argument is \fBtrue\fB, then expands to \fBtrue\fR, otherwise
-to \fBfalse\fR.
-.TP
-.B @parity@
-Expands to \fBeven\fR or \fBodd\fR depending on whether the current track is at
-an even or odd position in \fB@queue@\fR, \fB@recent@\fR or \fB@files@\fR.
-.TP
-.B @part{\fICONTEXT\fB}{\fIPART\fB}@
-Expands to track name part \fIPART\fR using context \fICONTEXT\fR for the
-current track.
-The context may be omitted and defaults to \fBdisplay\fR.
-.IP
-The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
-the \fBshort_display\fR limit.
-.TP
-.B @part{\fICONTEXT\fB}{\fIPART\fB}{\fITRACK\fB}@
-Expands to track name part \fIPART\fR using context \fICONTEXT\fR for
-\fITRACK\fR.
-In this usage the context may not be omitted.
-.IP
-The special context \fBshort\fR is equivalent to \fBdisplay\fR but limited to
-the \fBshort_display\fR limit.
-.TP
-.B @paused@
-Expands to \fBtrue\fR if the current track is paused, else \fBfalse\fR.
-.TP
-.B @playing{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR using the playing track as the current track.
-.TP
-.B @pref{\fITRACK\fB}{\fIKEY\fB}@
-Expand to the track preference, or the empty string if it is not set.
-.TP
-.B @prefname@
-Expands to the name of the current preference, in the template
-argument of \fB@prefs@\fR.
-.TP
-.B @prefs{\fIFILE\fB}{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR repeatedly, for each preference of track
-\fIFILE\fR.
-Use \fB@prefname@\fR and \fB@prefvalue@\fR to get the name and value.
-.TP
-.B @prefvalue@
-Expands to the value of the current preference, in the template
-argument of \fB@prefs@\fR.
-.TP
-.B @queue{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR repeatedly using the each track on the queue in turn as
-the current track.
-The track at the head of the queue comes first.
-.TP
-.B @random\-enabled@
-Expands to \fBtrue\fR if random play is currently enabled, otherwise to
-\fBfalse\fR.
-.TP
-.B @recent{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR repeatedly using the each recently played track in turn
-as the current track.
-The most recently played track comes first.
-.TP
-.B @removable@
-Expands to \fBtrue\fR if the current track is removable, otherwise to
-\fBfalse\fR.
-.TP
-.B @resolve{\fITRACK\fB}@
-Resolve aliases for \fITRACK\fR and expands to the result.
-.TP
-.B @right{\fIRIGHT\fB}@
-Exapnds to \fBtrue\fR if the user has right \fIRIGHT\fR, otherwise to
-\fBfalse\fR.
-.TP
-.B @right{\fIRIGHT\fB}{\fITRUEPART\fB}{\fIFALSEPART\fB}@
-Expands to \fITRUEPART\fR if the user right \fIRIGHT\fR, otherwise to
-\fIFALSEPART\fR (which may be omitted).
-.TP
-.B @scratchable@
-Expands to \fBtrue\fR if the currently playing track is scratchable, otherwise
-to \fBfalse\fR.
-.TP
-.B @search{\fIPART\fB}\fR[\fB{\fICONTEXT\fB}\fR]\fB{\fITEMPLATE\fB}@
-Expands \fITEMPLATE\fR once for each group of search results that have
-a common value of track part \fIPART\fR.
-The groups are sorted by the value of the part.
-.IP
-.B @part@
-and
-.B @file@
-within the template will apply to one of the tracks in the group.
-.IP
-If \fICONTEXT\fR is specified it should be either \fBsort\fR or \fBdisplay\fR,
-and determines the context for \fIPART\fR.
-The default is \fBsort\fR.
-Usually you want \fBdisplay\fR for everything except the title and
-\fBsort\fR for the title.
-If you use \fBsort\fR for artist and album then you are likely to get
-strange effects.
-.TP
-.B @server\-version@
-Expands to the server's version string.
-.TP
-.B @shell{\fICOMMAND\fB}@
-Expands to the output of \fICOMMAND\fR executed via the shell.
-\fBsh\fR is searched for using \fBPATH\fR.
-If the command fails then this is logged but otherwise ignored.
-.TP
-.B @state@
-In \fB@queue@\fR and \fB@recent@\fR, expands to the state of the current
-track.
-Otherwise the empty string.
-Known states are:
-.RS
-.TP 12
-.B failed
-The player terminated with nonzero status, but not because the track was
-scratched.
-.TP
-.B isscratch
-A scratch, in the queue.
-.TP
-.B no_player
-No player could be found.
-.TP
-.B ok
-Played successfully.
-.TP
-.B random
-A randomly chosen track, in the queue.
-.TP
-.B scratched
-This track was scratched.
-.TP
-.B unplayed
-An explicitly queued track, in the queue.
-.RE
-.IP
-Some additional states only apply to playing tracks, so will never be seen in
-the queue or recently-played list:
-.RS
-.TP 12
-.B paused
-The track has been paused.
-.TP
-.B quitting
-Interrupted because the server is shutting down.
-.TP
-.B started
-This track is currently playing.
-.RE
-.TP
-.B @stats@
-Expands to the server statistics.
-.TP
-.B @thisurl@
-Expands to the URL of the current page.
-Typically used in
-.B back
-arguments.
-If there is a
-.B nonce
-argument then it is changed to a fresh value.
-.TP
-.B @track@
-The current track.
-.TP
-.B @trackstate{\fIPATH\fB}@
-Expands to the current track state: \fBplaying\fR if the track is actually
-playing now, \fBqueued\fR if it is queued or the empty string otherwise.
-.TP
-.B @transform{\fIPATH\fB}{\fITYPE\fB}{\fICONTEXT\fB}@
-Transform a path according to \fBtransform\fR (see above).
-\fIPATH\fR should be a raw filename (of a track or directory).
-\fITYPE\fR should be the transform type (e.g. \fItrack\fR or \fIdir\fR).
-\fICONTEXT\fR should be the context, and can be omitted (the default
-is \fBdisplay\fR).
-.TP
-.B @url@
-Expands to the canonical URL as defined in \fIpkgconfdir/config\fR.
-.TP
-.B @urlquote{\fISTRING\fB}@
-URL-quote \fISTRING\fR.
-.TP
-.B @user@
-The current username.
-This will be "guest" if nobody is logged in.
-.TP
-.B @userinfo{\fIPROPERTY\fB}@
-Look up a property of the logged-in user.
-.TP
-.B @version@
-Expands to \fBdisorder.cgi\fR's version string.
-.TP
-.B @volume:\fISPEAKER\fB@
-The volume on the left or right speaker.
-\fISPEAKER\fR must be \fBleft\fR or \fBright\fR.
-.TP
-.B @when@
-When the current track was played (or when it is expected to be played, if it
-has not been played yet)
-.TP
-.B @who@
-Who submitted the current track.
+See \fBdisorder_templates\fR(5) for the syntax of template files.
 .SH "WEB OPTIONS"
 This is a file called \fIoptions\fR, searched for in the same manner
 as templates.
@@ -1355,31 +925,6 @@ Otherwise the whole name is used as the value.
 .PP
 Labels are no longer documented here, see the shipped \fIoptions.labels\fR file
 instead.
-.SH "REGEXP SUBSTITUTION RULES"
-Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
-The only option used is \fBPCRE_UTF8\fR.
-Remember that the configuration file syntax means you have to
-escape backslashes and quotes inside quoted strings.
-.PP
-In a \fISUBST\fR string the following sequences are interpreted
-specially:
-.TP
-.B $1 \fR... \fB$9
-These expand to the first to ninth bracketed subexpression.
-.TP
-.B $&
-This expands to the matched part of the subject string.
-.TP
-.B $$
-This expands to a single \fB$\fR symbol.
-.PP
-All other pairs starting with \fB$\fR are undefined (and might be used
-for something else in the future, so don't rely on the current
-behaviour.)
-.PP
-If \fBi\fR is present in \fIREFLAGS\fR then the match is case-independent.
-If \fBg\fR is present then all matches are replaced, otherwise only the first
-match is replaced.
 .SH "ACTIONS"
 What the web interface actually does is terminated by the \fBaction\fR CGI
 argument.
@@ -1474,6 +1019,31 @@ the alias may change, leading to the URL going stale.
 This action is generated automatically when an error occurs connecting to the
 server.
 The \fBerror\fR label is set to an indication of what the error is.
+.SH "REGEXP SUBSTITUTION RULES"
+Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
+The only option used is \fBPCRE_UTF8\fR.
+Remember that the configuration file syntax means you have to
+escape backslashes and quotes inside quoted strings.
+.PP
+In a \fISUBST\fR string the following sequences are interpreted
+specially:
+.TP
+.B $1 \fR... \fB$9
+These expand to the first to ninth bracketed subexpression.
+.TP
+.B $&
+This expands to the matched part of the subject string.
+.TP
+.B $$
+This expands to a single \fB$\fR symbol.
+.PP
+All other pairs starting with \fB$\fR are undefined (and might be used
+for something else in the future, so don't rely on the current
+behaviour.)
+.PP
+If \fBi\fR is present in \fIREFLAGS\fR then the match is case-independent.
+If \fBg\fR is present then all matches are replaced, otherwise only the first
+match is replaced.
 .SH "TRACK NAME PARTS"
 The traditional track name parts are \fBartist\fR, \fBalbum\fR and \fBtitle\fR,
 with the obvious intended meaning.
@@ -1484,7 +1054,7 @@ name and \fBext\fR which is the filename extension, including the initial dot
 (or the empty string if there is not extension).
 .SH "SEE ALSO"
 \fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder\-dump\fR(8),
-\fBpcrepattern\fR(3)
+\fBpcrepattern\fR(3), \fBdisorder_templates\fR(5)
 .\" Local Variables:
 .\" mode:nroff
 .\" fill-column:79
