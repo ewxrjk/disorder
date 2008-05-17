@@ -214,7 +214,7 @@ const struct mx_node *mx_parse(const char *filename,
     case '(': cbracket = ')'; break;
     case '[': cbracket = ']'; break;
     case '{': cbracket = '}'; break;
-    default: obracket = -1; break;      /* no arguments */
+    default: cbracket = obracket = -1; break;      /* no arguments */
     }
     mx_node_vector_init(v);
     if(obracket >= 0) {
