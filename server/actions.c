@@ -170,17 +170,20 @@ static const struct action {
  * @param name Base name of template, or NULL to consult CGI args
  */
 void dcgi_expand(const char *name) {
-  const char *p;
+  const char *p, *found;
 
   /* Parse macros first */
-  mx_expand_file("macros.tmpl", sink_discard(), 0);
+  if((found = mx_find("macros.tmpl")))
+    mx_expand_file(found, sink_discard(), 0);
   /* For unknown actions check that they aren't evil */
   for(p = name; *p && isalnum((unsigned char)*p); ++p)
     ;
   if(*p)
     fatal(0, "invalid action name '%s'", name);
   byte_xasprintf((char **)&p, "%s.tmpl", name);
-  if(mx_expand_file(p, sink_stdio("stdout", stdout), 0) == -1
+  if(!(found = mx_find(p)))
+    fatal(errno, "cannot find %s", p);
+  if(mx_expand_file(found, sink_stdio("stdout", stdout), 0) == -1
      || fflush(stdout) < 0)
     fatal(errno, "error writing to stdout");
 }

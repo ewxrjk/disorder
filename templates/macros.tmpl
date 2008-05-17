@@ -40,22 +40,23 @@ and then redefines macros as desired.
 
 @# Non-displaying <head> text
 @define {quiethead} {}
-        {<link rel=stylesheet
-      type="text/css"
-      href="@label{url.static}/disorder.css">}
+        {  <link rel=stylesheet
+        type="text/css"
+        href="@label{url.static}/disorder.css">}
 
 @# Standard menu
 @#   @current is the name of the current page, e.g. choosealpha, login
 @define {stdmenu} {current}
-        {<p class=menubar>
+        {  <p class=menubar>
 @menuitem{@current}{playing}{true}
+@menuitem{@current}{recent}{true}
 @menuitem{@current}{choose}{@right{play}}
 @menuitem{@current}{manage}{true}
 @menuitem{@current}{login}{true}
 @menuitem{@current}{help}{true}
 @menuitem{@current}{about}{true}
-</p>
-<hr>
+   </p>
+   <hr>
 }
 
 @# Menu entry
@@ -67,16 +68,15 @@ and then redefines macros as desired.
 @#  
 @define {menuitem} {current name available}  
         {@if{@available}
-            {  <a @if{@eq{@current}{@name}}
-                     {class=activemenu}
-                     {class=inactivemenu}
-                  @if{@eq{name}{playing}}
-                     {href="@url"}
-                     {href="@url?action=@name"}
-                  title="@label{menu.@q{@name}verbose}"
-                 @label{menu.@name}</a>}
-            {  <span class=invaldmenu title="@label{menu.@q{@name}verbose}">
-    @label{menu.@name}</span>}}
+            {   <a @if{@eq{@current}{@name}}
+   	              {class=activemenu}
+		      {class=inactivemenu}
+@if{@eq{name}{playing}}
+   {      href="@url"}
+   {      href="@url?action=@name"}
+      title="@label{menu.@q{@name}verbose}">@label{menu.@name}</a>}
+            {   <span class=invalidmenu 
+         title="@label{menu.@q{@name}verbose}">@label{menu.@name}</span>}}
 
 
 @# Standard footer text
@@ -111,9 +111,9 @@ and then redefines macros as desired.
         {@right{play}
                {<a class=directory
                    href="@url?action=choose&amp;directory=@urlquote{@dirname{@dirname{@track}}}"
-                   title="@label{@what.artistverbose}">@part{@track}{short}{artist}</a>}
+                   title="@label{@what.artistverbose}">@part{@track}{artist}{short}</a>}
                {<span class=directory
-                      title="@part{@track}{artist}@">@part{@track}{short}{artist}</span>}}
+                      title="@part{@track}{artist}">@part{@track}{artist}{short}</span>}}
 
 @# Expand to the album for @track
 @#  @what is the section
@@ -122,15 +122,15 @@ and then redefines macros as desired.
         {@right{play}
                {<a class=directory
                    href="@url?action=choose&amp;directory=@urlquote{@dirname{@track}}"
-                   title="@label{@what.albumverbose}">@part{@track}{short}{album}</a>}
+                   title="@label{@what.albumverbose}">@part{@track}{album}{short}</a>}
                {<span class=directory
-                      title="@part{@track}{album}@">@part{@track}{short}{album}</span>}}
+                      title="@part{@track}{album}">@part{@track}{album}{short}</span>}}
 
 @# Expand to the title for @track
 @#  @what is the section
 @#  @track is the track name
 @define {mtitle} {what track}
-        {<span title="@part{@track}{title}">@part{@track}{short}{title}</span>}
+        {<span title="@part{@track}{title}">@part{@track}{title}{short}</span>}
 
 @# Expand to the remove/scratch entry for @id
 @#  @what is the section

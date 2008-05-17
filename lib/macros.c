@@ -202,8 +202,12 @@ const struct mx_node *mx_parse(const char *filename,
      * consist of alnums and '-'.  We don't permit whitespace between the '@'
      * and the name. */
     dynstr_init(d);
-    if(input == end || !isalnum((unsigned char)*input))
-      fatal(0, "%s:%d: invalid expansion", filename, e->line);
+    if(input == end)
+      fatal(0, "%s:%d: invalid expansion syntax (truncated)",
+            filename, e->line);
+    if(!isalnum((unsigned char)*input))
+      fatal(0, "%s:%d: invalid expansion syntax (unexpected %#x)",
+            filename, e->line, (unsigned char)*input);
     while(input < end && (isalnum((unsigned char)*input) || *input == '-'))
       dynstr_append(d, *input++);
     dynstr_terminate(d);
@@ -611,7 +615,7 @@ const struct mx_node *mx_rewritel(const struct mx_node *m,
  */
 const struct mx_node *mx_rewrite(const struct mx_node *definition,
                                  hash *h) {
-  const struct mx_node *head = 0, **tailp = &head, *argvalue, *m, *mm;
+  const struct mx_node *head = 0, **tailp = &head, *argvalue, *m, *mm, **ap;
   struct mx_node *nm;
   int n;
   
@@ -626,7 +630,7 @@ const struct mx_node *mx_rewrite(const struct mx_node *definition,
       break;
     case MX_EXPANSION:
       if(m->nargs == 0
-         && (argvalue = *(const struct mx_node **)hash_find(h, m->name))) {
+         && (ap = hash_find(h, m->name))) {
         /* This expansion has no arguments and its name matches one of the
          * macro arguments.  (Even if it's a valid expansion name we override
          * it.)  We insert its value at this point.  We do NOT recursively
@@ -636,6 +640,7 @@ const struct mx_node *mx_rewrite(const struct mx_node *definition,
          * We need to recreate the list structure but a shallow copy will
          * suffice here.
          */
+        argvalue = *ap;
         for(mm = argvalue; mm; mm = mm->next) {
           nm = xmalloc(sizeof *nm);
           *nm = *mm;

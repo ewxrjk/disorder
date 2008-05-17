@@ -155,6 +155,11 @@ static int exp_part(int nargs,
     else
       return 0;
   }
+  fprintf(stderr, "track=[%s] part=[%s] context=[%s] dcgi_client=[%p]\n",
+          track,
+          part,
+          !strcmp(context, "short") ? "display" : context,
+          dcgi_client);
   if(dcgi_client
      && !disorder_part(dcgi_client, &s,
                        track,
@@ -931,10 +936,17 @@ static int exp__search_shim(disorder_client *c, const char *terms,
  * - @display to the UNQUOTED display string for this track
  */
 static int exp_search(int nargs,
-                    const struct mx_node **args,
-                    struct sink *output,
-                    void *u) {
+                      const struct mx_node **args,
+                      struct sink *output,
+                      void *u) {
   return exp__files_dirs(nargs, args, output, u, "track", exp__search_shim);
+}
+
+static int exp_label(int attribute((unused)) nargs,
+                     char **args,
+                     struct sink *output,
+                     void attribute((unused)) *u) {
+  return sink_writes(output, option_label(args[0])) < 0 ? -1 : 0;
 }
 
 /** @brief Register DisOrder-specific expansions */
@@ -946,10 +958,11 @@ void dcgi_expansions(void) {
   mx_register("image", 1, 1, exp_image);
   mx_register("isnew", 0, 0, exp_isnew);
   mx_register("isplaying", 0, 0, exp_isplaying);
-  mx_register("isplaying", 0, 0, exp_isqueue);
+  mx_register("isqueue", 0, 0, exp_isqueue);
   mx_register("isrecent", 0, 0, exp_isrecent);
+  mx_register("label",  1, 1, exp_label);
   mx_register("length", 1, 1, exp_length);
-  mx_register("movable", 1, 1, exp_movable);
+  mx_register("movable", 1, 2, exp_movable);
   mx_register("part", 2, 3, exp_part);
   mx_register("paused", 0, 0, exp_paused);
   mx_register("pref", 2, 2, exp_pref);

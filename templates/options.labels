@@ -198,35 +198,35 @@ label	error.reminderfailed	"Cannot send a reminder."
 # Text appended to all error pages
 label	error.generic		""
 
-# Displayed text for links in the sidebar (or other menu)
-label	sidebar.playing		Playing
-label	sidebar.choose		Choose
-label	sidebar.random		Random
-label	sidebar.search		Search
-label	sidebar.recent		Recent
-label	sidebar.new		New
-label	sidebar.about		About
-label	sidebar.volume		Volume
-label	sidebar.login		Login
-label	sidebar.help		Help
-label	sidebar.manage		Manage
+# Displayed text for links in the menu
+label	menu.playing		Playing
+label	menu.choose		Choose
+label	menu.random		Random
+label	menu.search		Search
+label	menu.recent		Recent
+label	menu.new		New
+label	menu.about		About
+label	menu.volume		Volume
+label	menu.login		Login
+label	menu.help		Help
+label	menu.manage		Manage
 
-# Long (i.e. TITLE=) text for sidebar links
-label	sidebar.playingverbose	"Current and queued tracks"
-label	sidebar.chooseverbose	"Choose tracks"
-label	sidebar.searchverbose	"Word search among track names"
-label	sidebar.recentverbose	"Recently played tracks"
-label	sidebar.newverbose	"Newly added tracks"
-label	sidebar.aboutverbose	"About DisOrder"
-label	sidebar.volumeverbose	"Volume control"
-label	sidebar.loginverbose	"Log in to DisOrder"
-label	sidebar.helpverbose	"Basic user guide"
-label	sidebar.manageverbose	"Queue management and volume control"
+# Long (i.e. TITLE=) text for menu links
+label	menu.playingverbose	"Current and queued tracks"
+label	menu.chooseverbose	"Choose tracks"
+label	menu.searchverbose	"Word search among track names"
+label	menu.recentverbose	"Recently played tracks"
+label	menu.newverbose	"Newly added tracks"
+label	menu.aboutverbose	"About DisOrder"
+label	menu.volumeverbose	"Volume control"
+label	menu.loginverbose	"Log in to DisOrder"
+label	menu.helpverbose	"Basic user guide"
+label	menu.manageverbose	"Queue management and volume control"
 
 # This should be 'choose' or 'choosealpha'.  If 'choose' then all artists
 # appear on the same page, otherwise they are broken up by initial letter
 # (which can be more convenient if you have huge numbers).
-label	sidebar.choosewhich	choose
+label	menu.choosewhich	choose
 
 # Column headings for tables of tracks (playing, queue, recent)
 label	heading.when		When
@@ -246,3 +246,6 @@ label   images.upall            upup.png
 label   images.noupall          noupup.png
 label   images.downall          downdown.png
 label   images.nodownall        nodowndown.png
+
+# Where to find images etc
+label   url.static              /disorder

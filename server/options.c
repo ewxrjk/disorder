@@ -153,24 +153,26 @@ void option_set(const char *name, const char *value) {
  */
 const char *option_label(const char *key) {
   const char *label;
+  char **lptr;
 
   option__init();
-  if(!(label = *(char **)hash_find(labels, key))) {
-    /* No label found */
-    if(!strncmp(key, "images.", 7)) {
-      static const char *url_static;
-      /* images.X defaults to <url.static>X.png */
-
-      if(!url_static)
-	url_static = option_label("url.static");
-      byte_xasprintf((char **)&label, "%s%s.png", url_static, key + 7);
-    } else if((label = strrchr(key, '.')))
-      /* X.Y defaults to Y */
-      ++label;
-    else
-      /* otherwise default to label name */
-      label = key;
-  }
+  lptr = hash_find(labels, key);
+  if(lptr)
+    return *lptr;
+  /* No label found */
+  if(!strncmp(key, "images.", 7)) {
+    static const char *url_static;
+    /* images.X defaults to <url.static>X.png */
+    
+    if(!url_static)
+      url_static = option_label("url.static");
+    byte_xasprintf((char **)&label, "%s%s.png", url_static, key + 7);
+  } else if((label = strrchr(key, '.')))
+    /* X.Y defaults to Y */
+    ++label;
+  else
+    /* otherwise default to label name */
+    label = key;
   return label;
 }
 
