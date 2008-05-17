@@ -24,50 +24,41 @@ USA
  </head>
  <body>
 @stdmenu{recent}
-  <h1>@label:recent.title@</h1>
+  <h1>@label{recent.title}</h1>
 
-@#{only display the table if there is something to put in it}@
-@if{@isrecent@}{
+@# Only display the table if there is something to put in it
+@if{@isrecent}{
   <table class=recent>
     <tr class=headings>
-     <th class=when>@label:heading.when@</th>
-     <th class=who>@label:heading.who@</th>
-     <th class=artist>@label:heading.artist@</th>
-     <th class=album>@label:heading.album@</th>
-     <th class=title>@label:heading.title@</th>
-     <th class=length>@label:heading.length@</th>
-@right{prefs}{
-     <th class=button>&nbsp;</th>}@
+     <th class=when>@label{heading.when}</th>
+     <th class=who>@label{heading.who}</th>
+     <th class=artist>@label{heading.artist}</th>
+     <th class=album>@label{heading.album}</th>
+     <th class=title>@label{heading.title}</th>
+     <th class=length>@label{heading.length}</th>
+     @right{prefs}{<th class=button>&nbsp;</th>}
     </tr>
     @recent{
-    <tr class=@parity@>
-     <td class=when>@when@</td>
-     <td class=who>@who@</td>
-     <td class=artist>@right{play}{<a class=directory
-       title="@part{artist}@"
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@dirname{@part:path@}@}@}@"
-       >@part{short}{artist}@</a>}{<span class=directory
-       title="@part{artist}@"
-       >@part{short}{artist}@</span>}@</td>
-     <td class=album>@right{play}{<a class=directory
-       title="@part{album}@"
-       href="@url@?action=choose&amp;directory=@urlquote{@dirname{@part:path@}@}@"
-       >@part{short}{album}@</a>}{<span class=directory
-       title="@part{album}@"
-       >@part{short}{album}@</span>}@</td>
-     <td class=title><span
-       title="@part{title}@">@part{short}{title}@</span></td>
-     <td class=length>@length@</td>
-@right{prefs}{
-     <td class=imgbutton><a class=imgbutton
-      href="@url@?action=prefs&#38;0_file=@urlquote{@file@}@"><img
-       class=button src="@image:edit@"
-       title="@label:choose.prefsverbose@"
-       alt="@label:choose.prefs@"></a></td>
-    </tr>}@
-    }@
+    <tr class=@parity>
+     <td class=when>@mwhen{recent}{@id}</td>
+     <td class=who>@mwho{recent}{@id}</td>
+     <td class=artist>@martist{recent}{@track}</td>
+     <td class=album>@malbum{recent}{@track}</td>
+     <td class=title>@mtitle{recent}{@track}</td>
+     <td class=length>@length{@id}</td>
+     @right{prefs}{
+     <td class=imgbutton>
+      <a class=imgbutton
+         href="@url?action=prefs&#38;0_file=@urlquote{@track}">
+       <img class=button src="@image{edit}"
+            title="@label{choose.prefsverbose}"
+            alt="@label{choose.prefs}">
+      </a>
+     </td>
+    </tr>}
+    }
   </table>
-}@
+}
 
 @credits
  </body>
