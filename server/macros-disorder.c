@@ -158,11 +158,6 @@ static int exp_part(int nargs,
     else
       return 0;
   }
-  fprintf(stderr, "track=[%s] part=[%s] context=[%s] dcgi_client=[%p]\n",
-          track,
-          part,
-          !strcmp(context, "short") ? "display" : context,
-          dcgi_client);
   if(dcgi_client
      && !disorder_part(dcgi_client, &s,
                        track,

@@ -27,18 +27,19 @@ An expansion starts with an at ("@") symbol and takes the form of an expansion
 name followed by zero or more arguments.
 .PP
 Expansion names may contain letters, digits or "-" (and must start with a
-letter or digit).  No spacing is allowed between the "@" and the expansion
-name.
+letter or digit).
+No spacing is allowed between the "@" and the expansion name.
 .PP
-Each argument is bracketed.  Any of "(" and ")", "[" and "]" or "{" and "}" may
-be used but all arguments for a given expansion must use the same bracket pair.
+Each argument is bracketed
+Any of "(" and ")", "[" and "]" or "{" and "}" may be used but all arguments
+for a given expansion must use the same bracket pair.
 .PP
 Arguments may be separated from one another and the expansion name by
-whitespace (including newlines and even completely blank lines).  The parser
-always reads as many arguments as are available, even if that is more than the
-expansion name can accept (so if an expansion is to be followed by an open
-bracket of the same kind it uses, you must use the \fB@_\fR separator; see
-below).
+whitespace (including newlines and even completely blank lines).
+The parser always reads as many arguments as are available, even if that is
+more than the expansion name can accept (so if an expansion is to be followed
+by an open bracket of the same kind it uses, you must use the \fB@_\fR
+separator; see below).
 .PP
 Arguments are expanded within themselves following the same rules, with a few
 exceptions discussed below.
@@ -50,13 +51,15 @@ This expands to a single "@" sign.
 .TP
 .B @#
 This expands to nothing, and moreover removes the rest of the line it appears
-on and its trailing newline.  It is intended to be used as a comment market but
-can also be used to eliminate newlines introduced merely to keep lines short.
+on and its trailing newline.
+It is intended to be used as a comment market but can also be used to eliminate
+newlines introduced merely to keep lines short.
 .TP
 .B @_
 This expands to nothing (but does not have the line-eating behaviour of
-\fB@#\fR).  It is intended to be used to mark the end of an expansion where
-that would otherwise be ambiguous.
+\fB@#\fR).
+It is intended to be used to mark the end of an expansion where that would
+otherwise be ambiguous.
 .SS "Macros"
 It is possible to define new expansions using the \fB@define\fR expansion.  For
 example,
@@ -66,23 +69,25 @@ example,
 .fi
 .PP
 defines an expansion called \fB@reverse\fR which expands to its two arguments
-in reversed order.  The input \fB@reverse{this}{that}\fR would therefore expand
-to "that this".
+in reversed order.
+The input \fB@reverse{this}{that}\fR would therefore expand to "that this".
 .SS "Sub-Expansions"
-Many expansions expand their argument with additional expansions defined.  For
-example, the \fB@playing\fR expansion expands its argument with the extra
+Many expansions expand their argument with additional expansions defined.
+For example, the \fB@playing\fR expansion expands its argument with the extra
 expansion \fB@id\fR defined as the ID of the playing track.
 .PP
-The scope of these sub-expansions is purely lexical.  Therefore if you invoke a
-macro or include another template file, if the sub-expansions appear within it
-they will not be expanded.
+The scope of these sub-expansions is purely lexical.
+Therefore if you invoke a macro or include another template file, if the
+sub-expansions appear within it they will not be expanded.
 .PP
 In the case of a macro you can work around this by passing the value as an
-argument.  Included files do not have arguments, so in this case you must
-rewrite the inclusion as a macro.
+argument.
+Included files do not have arguments, so in this case you must rewrite the
+inclusion as a macro.
 .SS macros.tmpl
 Before any page is expanded, the CGI will process \fBmacros.tmpl\fR (and
-discard any output).  This defines a collection of commonly used macros.
+discard any output).
+This defines a collection of commonly used macros.
 .SH EXPANSIONS
 This section lists the supported expansions.
 .\" Local Variables:

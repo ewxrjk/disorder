@@ -16,6 +16,18 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 .\" USA
 .\"
+.SH "NOTES"
+.SS "Character Encoding"
+The CGI does not (currently) declare any character encoding.
+This could be changed quite easily but in practice is not a pressing necessity.
+.PP
+The recommended approach is to treat the templates as ASCII files and if
+non-ASCII characters are required, use HTML entities to represent them.
+.PP
+For example, to represent the copyright sign, use \fB&copy;\fR or \fB&#xA9;\fR.
+.PP
+If you know the decimal or hex unicode value for a character then you can use
+\fB&#NNN;\fR or \fB&#xHHHH;\fR respectively.
 .SH "SEE ALSO"
 .BR disorder_config (5)
 .\" Local Variables:

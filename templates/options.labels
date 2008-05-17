@@ -236,7 +236,7 @@ label	heading.album		Album
 label	heading.title		Title
 label	heading.length		Length
 
-# Role images.  See the documentation for @images:NAME@.
+# Role images.  See the documentation for @image{NAME}.
 label   images.enabled          tick.png
 label   images.disabled         cross.png
 label   images.remove           cross.png
