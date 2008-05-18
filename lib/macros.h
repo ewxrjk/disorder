@@ -106,7 +106,7 @@ int mx_register_macro(const char *name,
 
 void mx_register_builtin(void);
 void mx_search_path(const char *s);
-char *mx_find(const char *name);
+char *mx_find(const char *name, int report);
 
 int mx_expand_file(const char *path,
                    struct sink *output,

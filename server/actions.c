@@ -731,13 +731,15 @@ void dcgi_expand(const char *name, int header) {
   const char *p, *found;
 
   /* Parse macros first */
-  if((found = mx_find("macros.tmpl")))
+  if((found = mx_find("macros.tmpl", 1/*report*/)))
+    mx_expand_file(found, sink_discard(), 0);
+  if((found = mx_find("user.tmpl", 0/*report*/)))
     mx_expand_file(found, sink_discard(), 0);
   /* For unknown actions check that they aren't evil */
   if(!dcgi_valid_action(name))
     fatal(0, "invalid action name '%s'", name);
   byte_xasprintf((char **)&p, "%s.tmpl", name);
-  if(!(found = mx_find(p)))
+  if(!(found = mx_find(p, 0/*report*/)))
     fatal(errno, "cannot find %s", p);
   if(header) {
     if(printf("Content-Type: text/html\n"

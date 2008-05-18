@@ -71,13 +71,14 @@ int mx_bool_result(struct sink *output, int result) {
 }
 
 /** @brief Search the include path */
-char *mx_find(const char *name) {
+char *mx_find(const char *name, int report) {
   char *path;
   int n;
   
   if(name[0] == '/') {
     if(access(name, O_RDONLY) < 0) {
-      error(errno, "cannot read %s", name);
+      if(report)
+        error(errno, "cannot read %s", name);
       return 0;
     }
     path = xstrdup(name);
@@ -89,7 +90,8 @@ char *mx_find(const char *name) {
         break;
     }
     if(n >= include_path.nvec) {
-      error(0, "cannot find '%s' in search path", name);
+      if(report)
+        error(0, "cannot find '%s' in search path", name);
       return 0;
     }
   }
@@ -123,7 +125,7 @@ static int exp_include(int attribute((unused)) nargs,
   char buffer[4096];
   struct stat sb;
 
-  if(!(path = mx_find(args[0]))) {
+  if(!(path = mx_find(args[0], 1/*report*/))) {
     if(sink_printf(output, "[[cannot find '%s']]", args[0]) < 0)
       return 0;
     return 0;

@@ -84,15 +84,31 @@ In the case of a macro you can work around this by passing the value as an
 argument.
 Included files do not have arguments, so in this case you must rewrite the
 inclusion as a macro.
-.SS macros.tmpl
-Before any page is expanded, the CGI will process \fBmacros.tmpl\fR (and
-discard any output).
-This defines a collection of commonly used macros.
 .SS "Search Path"
-Template files a first searched for in \fIpkgconfdir\fR and then in
+All template files are first searched for in \fIpkgconfdir\fR and then in
 \fIpkgdatadir\fR.
+.SS "macros.tmpl and user.tmpl"
+Before any template is expanded, the CGI will process \fBmacros.tmpl\fR and
+discard any output.
+This defines a collection of commonly used macros.
+.PP
+Following this the CGI will process \fBuser.tmpl\fR, again discarding output.
+This can be used to override the common macros without editing the installed
+version of \fBmacros.tmpl\fR, or to define new ones.
+.PP
+It is not an error if \fBuser.tmpl\fR does not exist.
+.SS "Character Encoding"
+The CGI does not (currently) declare any character encoding.
+This could be changed quite easily but in practice is not a pressing necessity.
+.PP
+The recommended approach is to treat the templates as ASCII files and if
+non-ASCII characters are required, use HTML entities to represent them.
+.PP
+For example, to represent the copyright sign, use \fB&copy;\fR or \fB&#xA9;\fR.
+.PP
+If you know the decimal or hex unicode value for a character then you can use
+\fB&#NNN;\fR or \fB&#xHHHH;\fR respectively.
 .SH EXPANSIONS
-This section lists the supported expansions.
 .\" Local Variables:
 .\" mode:nroff
 .\" fill-column:79

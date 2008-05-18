@@ -83,7 +83,7 @@ static void option__readfile(const char *name) {
   char **vec, *buffer;
   struct read_options_state cs;
 
-  if(!(cs.name = mx_find(name)))
+  if(!(cs.name = mx_find(name, 1/*report*/)))
     return;
   if(!(fp = fopen(cs.name, "r")))
     fatal(errno, "error opening %s", cs.name);
