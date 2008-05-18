@@ -16,6 +16,19 @@ This has been completely rewritten to support new features:
      time before a played track can be picked at random.  The default is
      8 hours (which matches the earlier behaviour).
 
+*** Web Interface
+
+This has been largely rewritten.  The most immediate benefits are:
+   - the search page is integrated into the choose page, and includes
+     links to parent directories
+   - if you try to do something you have insufficient rights for,
+     instead of getting an error page or nothing happening, you are
+     redirected to the login page
+
+Customizers should find their lives easier: the syntax is less onerous,
+it is possible to define macros to avoid repetition, and the
+documentation is less monolithic.
+
 ** Disobedience
 
 There is now a new user management window.  From here you can add and
@@ -28,6 +41,14 @@ remote_userman to 'yes'.
 
 scripts/setup now honors command line options, and can set up network
 play as well as the local default sound device.
+
+** Bugs Fixed
+
+ #2 Search results should link to directories
+#10 Non-uniform track selection
+#16 Cookie expiry causes user to be silently logged out and not
+    subsequently redirected to login page
+#20 Broken aliasing rules
 
 * Changes up to version 3.0.2
 
