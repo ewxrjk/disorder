@@ -88,6 +88,9 @@ inclusion as a macro.
 Before any page is expanded, the CGI will process \fBmacros.tmpl\fR (and
 discard any output).
 This defines a collection of commonly used macros.
+.SS "Search Path"
+Template files a first searched for in \fIpkgconfdir\fR and then in
+\fIpkgdatadir\fR.
 .SH EXPANSIONS
 This section lists the supported expansions.
 .\" Local Variables:

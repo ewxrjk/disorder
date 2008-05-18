@@ -30,8 +30,8 @@ If no action is set, then the default is \fBplaying\fR, unless the argument
 \fBc\fR is present, in which case it is \fBconfirm\fR.
 This is a hack to keep confirmation URLs short.
 .SS Redirection
-For actions in the list, if it is not specified what template they expand, they
-redirect according to the value of the \fBback\fR argument.
+Actions in the list below that do not documented what template they expand
+issue an HTTP redirect according to the value of the \fBback\fR argument.
 There are three possibilities:
 .TP
 .BR 1 )

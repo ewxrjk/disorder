@@ -32,7 +32,8 @@ SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
 	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-playrtp.1 \
 	disorder-decode.8 disorder-stats.8 disorder-dbupgrade.8 \
-	disorder_options.5 disorder.cgi.8
+	disorder_options.5 disorder.cgi.8 disorder_templates.5 \
+	disorder_actions.5
 
 include ${top_srcdir}/scripts/sedfiles.make
 
@@ -50,7 +51,7 @@ $(TMPLMAN) : %.tmpl : % $(top_srcdir)/scripts/htmlman
 	chmod 444 $@.new
 	mv -f $@.new $@
 
-disorder_templates.5: disorder_templates.5.head disorder_templates.5.tail \
+disorder_templates.5.in: disorder_templates.5.head disorder_templates.5.tail \
 		$(top_srcdir)/lib/macros-builtin.c \
 		$(top_srcdir)/server/macros-disorder.c \
 		$(top_srcdir)/scripts/macro-docs
@@ -60,9 +61,9 @@ disorder_templates.5: disorder_templates.5.head disorder_templates.5.tail \
 		$(top_srcdir)/lib/macros-builtin.c \
 		$(top_srcdir)/server/macros-disorder.c 
 	cat ${srcdir}/disorder_templates.5.tail >> disorder_templates.5.new
-	mv disorder_templates.5.new disorder_templates.5
+	mv disorder_templates.5.new disorder_templates.5.in
 
-disorder_actions.5: disorder_actions.5.head disorder_actions.5.tail \
+disorder_actions.5.in: disorder_actions.5.head disorder_actions.5.tail \
 		$(top_srcdir)/lib/macros-builtin.c \
 		$(top_srcdir)/server/actions.c \
 		$(top_srcdir)/scripts/macro-docs
@@ -71,7 +72,7 @@ disorder_actions.5: disorder_actions.5.head disorder_actions.5.tail \
 	$(top_srcdir)/scripts/macro-docs >> disorder_actions.5.new \
 		$(top_srcdir)/server/actions.c 
 	cat ${srcdir}/disorder_actions.5.tail >> disorder_actions.5.new
-	mv disorder_actions.5.new disorder_actions.5
+	mv disorder_actions.5.new disorder_actions.5.in
 
 EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder.3 disorder-dump.8.in disorder_protocol.5.in \
