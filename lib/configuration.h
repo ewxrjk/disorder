@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
@@ -285,6 +286,12 @@ struct config {
 
   /** @brief Whether to allow user management over TCP */
   int remote_userman;
+
+  /** @brief Maximum age of biased-up tracks */
+  long new_bias_age;
+
+  /** @brief Maximum bias */
+  long new_bias;
   
   /* derived values: */
   int nparts;				/* number of distinct name parts */

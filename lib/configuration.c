@@ -946,6 +946,8 @@ static const struct conf conf[] = {
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
+  { C(new_bias),         &type_integer,          validate_positive },
+  { C(new_bias_age),     &type_integer,          validate_positive },
   { C(new_max),          &type_integer,          validate_positive },
   { C2(nice, nice_rescan), &type_integer,        validate_non_negative },
   { C(nice_rescan),      &type_integer,          validate_non_negative },
@@ -1195,6 +1197,8 @@ static struct config *config_default(void) {
   c->smtp_server = xstrdup("127.0.0.1");
   c->new_max = 100;
   c->reminder_interval = 600;		/* 10m */
+  c->new_bias_age = 7 * 86400;		/* 1 week */
+  c->new_bias = 9000000;		/* 100 times the base weight */
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);

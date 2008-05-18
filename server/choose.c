@@ -57,6 +57,8 @@
 #include "queue.h"
 #include "server-queue.h"
 
+#define BASE_WEIGHT 90000
+
 static DB_TXN *global_tid;
 
 static const struct option options[] = {
@@ -121,7 +123,7 @@ static unsigned long compute_weight(const char *track,
                                     struct kvp *prefs) {
   const char *s;
   char **track_tags;
-  time_t last, now;
+  time_t last, now = time(0);
 
   /* Reject tracks not in any collection (race between edit config and
    * rescan) */
@@ -142,7 +144,6 @@ static unsigned long compute_weight(const char *track,
   /* Reject tracks played within the last 8 hours */
   if((s = kvp_get(prefs, "played_time"))) {
     last = atoll(s);
-    now = time(0);
     if(now < last + config->replay_min)
       return 0;
   }
@@ -172,8 +173,20 @@ static unsigned long compute_weight(const char *track,
     if((errno == 0 || errno == ERANGE) && n >= 0)
       return n;
   }
+
+  /* Bias up tracks that were recently added */
+  if((s = kvp_get(data, "_noticed"))) {
+    const time_t noticed = atoll(s);
+
+    if(noticed + config->new_bias_age < now)
+      /* Currently we just step up the weight of tracks that are in range.  A
+       * more sophisticated approach would be to linearly decay from new_bias
+       * down to BASE_WEIGHT over the course of the new_bias_age interval
+       * starting when the track is added. */
+      return config->new_bias;
+  }
   
-  return 90000;
+  return BASE_WEIGHT;
 }
 
 static unsigned char random_buffer[4096];

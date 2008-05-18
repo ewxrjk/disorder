@@ -15,6 +15,8 @@ This has been completely rewritten to support new features:
    - there is a new configuration item replay_min defining the minimum
      time before a played track can be picked at random.  The default is
      8 hours (which matches the earlier behaviour).
+   - recently added tracks are biased up; see new_bias and new_bias_age
+     in disorder_config(5).
 
 *** Web Interface
 
@@ -46,6 +48,7 @@ play as well as the local default sound device.
 
  #2 Search results should link to directories
 #10 Non-uniform track selection
+#11 Bias random selection to newly added tracks
 #16 Cookie expiry causes user to be silently logged out and not
     subsequently redirected to login page
 #20 Broken aliasing rules

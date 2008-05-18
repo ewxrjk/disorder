@@ -487,6 +487,15 @@ namepart artist "/([^/]+)/[^/]+/[^/]+$"                    $1 *
 namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .fi
 .TP
+.B new_bias \fIWEIGHT\fR
+The weight for new tracks.
+The default is 900000, i.e. recently added tracks are a hundred times as likely
+to be picked as normal.
+.TP
+.B new_bias_age \fISECONDS\fR
+The maximum age of tracks that \fBnew_bias\fR applies to, in seconds.
+The default is one week.
+.TP
 .B new_max \fIMAX\fR
 The maximum number of tracks to list when reporting newly noticed tracks.
 The default is 100.
