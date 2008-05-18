@@ -878,7 +878,7 @@ static int exp__files_dirs(int nargs,
 
 }
 
-/** @tracks{DIR}{RE}{TEMPLATE}
+/* @tracks{DIR}{RE}{TEMPLATE}
  *
  * For each track below DIR, expands TEMPLATE with the
  * following expansions:
@@ -899,7 +899,7 @@ static int exp_tracks(int nargs,
   return exp__files_dirs(nargs, args, output, u, "track", disorder_files);
 }
 
-/** @dirs{DIR}{RE}{TEMPLATE}
+/* @dirs{DIR}{RE}{TEMPLATE}
  *
  * For each directory below DIR, expands TEMPLATE with the
  * following expansions:
@@ -926,7 +926,7 @@ static int exp__search_shim(disorder_client *c, const char *terms,
   return disorder_search(c, terms, vecp, nvecp);
 }
 
-/** @search{KEYWORDS}{TEMPLATE}
+/* @search{KEYWORDS}{TEMPLATE}
  *
  * For each track matching KEYWORDS, expands TEMPLATE with the
  * following expansions:
@@ -945,6 +945,11 @@ static int exp_search(int nargs,
   return exp__files_dirs(nargs, args, output, u, "track", exp__search_shim);
 }
 
+/* @label{NAME}
+ *
+ * Expands to label NAME from options.labels.  Undefined lables expand to the
+ * last dot-separated component, e.g. X.Y.Z to Z.
+ */
 static int exp_label(int attribute((unused)) nargs,
                      char **args,
                      struct sink *output,
@@ -952,6 +957,48 @@ static int exp_label(int attribute((unused)) nargs,
   return sink_writes(output, option_label(args[0])) < 0 ? -1 : 0;
 }
 
+/* @breadcrumbs{DIR}{TEMPLATE}
+ *
+ * Expands TEMPLATE for each directory in the path up to DIR, excluding the root
+ * but including DIR itself, with the following expansions:
+ * - @dir: the directory
+ * - @last: "true" if this is the last directory, otherwise "false"
+ *
+ * DIR must be an absolute path.
+ */
+static int exp_breadcrumbs(int attribute((unused)) nargs,
+                           const struct mx_node **args,
+                           struct sink *output,
+                           void attribute((unused)) *u) {
+  int rc;
+  char *dir, *parent, *ptr;
+  
+  if((rc = mx_expandstr(args[0], &dir, u, "argument #0 (DIR)")))
+    return rc;
+  /* Reject relative paths */
+  if(dir[0] != '/') {
+    error(0, "breadcrumbs: '%s' is a relative path", dir);
+    return 0;
+  }
+  /* Skip the root */
+  ptr = dir + 1;
+  while(*ptr) {
+    /* Find the end of this directory */
+    while(*ptr && *ptr != '/')
+      ++ptr;
+    parent = xstrndup(dir, ptr - dir);
+    if((rc = mx_expand(mx_rewritel(args[1],
+                                   "dir", parent,
+                                   "last", *ptr ? "false" : "true",
+                                   (char *)0),
+                       output, u)))
+      return rc;
+    if(*ptr)
+      ++ptr;
+  }
+  return 0;
+}
+  
 /** @brief Register DisOrder-specific expansions */
 void dcgi_expansions(void) {
   mx_register("arg", 1, 1, exp_arg);
@@ -986,6 +1033,7 @@ void dcgi_expansions(void) {
   mx_register("volume", 1, 1, exp_volume);
   mx_register("when", 1, 1, exp_when);
   mx_register("who", 1, 1, exp_who);
+  mx_register_magic("breadcrumbs", 2, 2, exp_breadcrumbs);
   mx_register_magic("dirs", 2, 3, exp_dirs);
   mx_register_magic("new", 1, 1, exp_new);
   mx_register_magic("playing", 0, 1, exp_playing);

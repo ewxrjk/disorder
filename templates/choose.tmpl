@@ -152,7 +152,11 @@ USA
 @# NB we don't really bother distinguishing between re being empty or absent,
 @# and the server deliberately cooperates in this.
 
-@# TODO navigation...
+   @if{@ne{@arg{dir}}{}}{
+   <p class=directoryname>@#
+@breadcrumbs{@arg{dir}} 
+            {/<a href="@url?action=choose&#38;dir=@urlquote{@dir}">@#
+@basename{@dir}</a>}:</p>}
 
 @#  <p>dir=[@arg{dir}]<br>re=[@arg{re}]<br>which=@label{choose.which}</p>
 
