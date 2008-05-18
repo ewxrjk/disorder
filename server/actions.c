@@ -33,7 +33,7 @@ static void redirect(const char *url) {
   /* By default use the 'back' argument */
   if(!url)
     url = cgi_get("back");
-  if(url) {
+  if(url && *url) {
     if(strncmp(url, "http", 4))
       /* If the target is not a full URL assume it's the action */
       url = cgi_makeurl(config->url, "action", url, (char *)0);
