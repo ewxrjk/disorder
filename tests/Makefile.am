@@ -27,7 +27,7 @@ disorder_udplog_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 
 TESTS=cookie.py dbversion.py dump.py files.py play.py queue.py	\
-	recode.py search.py user-upgrade.py user.py
+	recode.py search.py user-upgrade.py user.py aliases.py
 
 TESTS_ENVIRONMENT=${PYTHON} -u
 
