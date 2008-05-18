@@ -479,12 +479,12 @@ class client:
     """
     self._simple("reconfigure")
 
-  def rescan(self):
+  def rescan(self, *flags):
     """Rescan one or more collections.
 
     Only trusted users can perform this operation.
     """
-    self._simple("rescan")
+    self._simple("rescan", *flags)
 
   def version(self):
     """Return the server's version number."""

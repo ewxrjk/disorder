@@ -255,9 +255,21 @@ Requires one of the \fBremove mine\fR, \fBremove random\fR or
 \fBremove any\fR rights depending on how the
 track came to be added to the queue.
 .TP
-.B rescan
+.B rescan \fR[\fBwait\fR] \fR[\fBfresh\fR]
 Rescan all roots for new or obsolete tracks.
 Requires the \fBrescan\fR right.
+.IP
+If the \fBwait\fR flag is present then the response is delayed until the rescan
+completes.
+Otherwise the response arrives immediately.
+This is primarily intended for testing.
+.IP
+If the \fBfresh\fR flag is present a rescan is already underway then a second
+rescan will be started when it completes.
+The default behavior is to piggyback on the existing rescan.
+.IP
+NB that \fBfresh\fR is currently disabled in the server source, so using this
+flag will just provoke an error.
 .TP
 .B resolve \fITRACK\fR
 Resolve a track name, i.e. if this is an alias then return the real track name.

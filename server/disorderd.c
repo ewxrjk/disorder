@@ -160,7 +160,7 @@ static void create_periodic(ev_source *ev_,
 }
 
 static void periodic_rescan(ev_source *ev_) {
-  trackdb_rescan(ev_, 1/*check*/);
+  trackdb_rescan(ev_, 1/*check*/, 0, 0);
 }
 
 static void periodic_database_gc(ev_source attribute((unused)) *ev_) {

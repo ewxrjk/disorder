@@ -124,6 +124,8 @@ struct conn {
   rights_type rights;
   /** @brief Next connection */
   struct conn *next;
+  /** @brief True if pending rescan had 'wait' set */
+  int rescan_wait;
 };
 
 /** @brief Linked list of connections */
@@ -355,13 +357,107 @@ static int c_reconfigure(struct conn *c,
   return 1;				/* completed */
 }
 
+static void finished_rescan(void *ru) {
+  struct conn *const c = ru;
+
+  sink_writes(ev_writer_sink(c->w), "250 rescan completed\n");
+  /* Turn this connection back on */
+  ev_reader_enable(c->r);
+}
+
+static void start_fresh_rescan(void *ru) {
+  struct conn *const c = ru;
+
+  if(trackdb_rescan_underway()) {
+    /* Some other waiter beat us to it.  However in this case we're happy to
+     * piggyback; the requirement is that a new rescan be started, not that it
+     * was _our_ rescan. */
+    if(c->rescan_wait) {
+      /* We block until the rescan completes */
+      trackdb_add_rescanned(finished_rescan, c);
+    } else {
+      /* We report that the new rescan has started */
+      sink_writes(ev_writer_sink(c->w), "250 rescan initiated\n");
+      /* Turn this connection back on */
+      ev_reader_enable(c->r);
+    }
+  } else {
+    /* We are the first connection to get a callback so we must start a
+     * rescan. */
+    if(c->rescan_wait) {
+      /* We want to block until the new rescan completes */
+      trackdb_rescan(c->ev, 1/*check*/, finished_rescan, c);
+    } else {
+      /* We can report back immediately */
+      trackdb_rescan(c->ev, 1/*check*/, 0, 0);
+      sink_writes(ev_writer_sink(c->w), "250 rescan initiated\n");
+      /* Turn this connection back on */
+      ev_reader_enable(c->r);
+    }
+  }
+}
+
 static int c_rescan(struct conn *c,
-		    char attribute((unused)) **vec,
-		    int attribute((unused)) nvec) {
-  info("S%x rescan by %s", c->tag, c->who);
-  trackdb_rescan(c->ev, 1/*check*/);
-  sink_writes(ev_writer_sink(c->w), "250 initiated rescan\n");
-  return 1;				/* completed */
+		    char **vec,
+		    int nvec) {
+  int wait = 0, fresh = 0, n;
+
+  /* Parse flags */
+  for(n = 0; n < nvec; ++n) {
+    if(!strcmp(vec[n], "wait"))
+      wait = 1;				/* wait for rescan to complete */
+#if 0
+    /* Currently disabled because untested (and hard to test). */
+    else if(!strcmp(vec[n], "fresh"))
+      fresh = 1;			/* don't piggyback underway rescan */
+#endif
+    else {
+      sink_writes(ev_writer_sink(c->w), "550 unknown flag\n");
+      return 1;				/* completed */
+    }
+  }
+  /* Report what was requested */
+  info("S%x rescan by %s (%s %s)", c->tag, c->who,
+       wait ? "wait" : "",
+       fresh ? "fresh" : "");
+  if(trackdb_rescan_underway()) {
+    if(fresh) {
+      /* We want a fresh rescan but there is already one underway.  Arrange a
+       * callback when it completes and then set off a new one. */
+      c->rescan_wait = wait;
+      trackdb_add_rescanned(start_fresh_rescan, c);
+      if(wait)
+	return 0;
+      else {
+	sink_writes(ev_writer_sink(c->w), "250 rescan queued\n");
+	return 1;
+      }
+    } else {
+      /* There's a rescan underway, and it's acceptable to piggyback on it */
+      if(wait) {
+	/* We want to block until completion. */
+	trackdb_add_rescanned(finished_rescan, c);
+	return 0;
+      } else {
+	/* We don't want to block.  So we just report that things are in
+	 * hand. */
+	sink_writes(ev_writer_sink(c->w), "250 rescan already underway\n");
+	return 1;
+      }
+    }
+  } else {
+    /* No rescan is underway.  fresh is therefore irrelevant. */
+    if(wait) {
+      /* We want to block until completion */
+      trackdb_rescan(c->ev, 1/*check*/, finished_rescan, c);
+      return 0;
+    } else {
+      /* We don't want to block. */
+      trackdb_rescan(c->ev, 1/*check*/, 0, 0);
+      sink_writes(ev_writer_sink(c->w), "250 rescan initiated\n");
+      return 1;				/* completed */
+    }
+  }
 }
 
 static int c_version(struct conn *c,
@@ -1465,7 +1561,7 @@ static const struct command {
   { "register",       3, 3,       c_register,       RIGHT_REGISTER|RIGHT__LOCAL },
   { "reminder",       1, 1,       c_reminder,       RIGHT__LOCAL },
   { "remove",         1, 1,       c_remove,         RIGHT_REMOVE__MASK },
-  { "rescan",         0, 0,       c_rescan,         RIGHT_RESCAN },
+  { "rescan",         0, INT_MAX, c_rescan,         RIGHT_RESCAN },
   { "resolve",        1, 1,       c_resolve,        RIGHT_READ },
   { "resume",         0, 0,       c_resume,         RIGHT_PAUSE },
   { "revoke",         0, 0,       c_revoke,         RIGHT_READ },

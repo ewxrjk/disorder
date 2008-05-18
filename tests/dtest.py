@@ -271,16 +271,10 @@ def create_user(username="fred", password="fredpass"):
              "--user", "root", "edituser", username, "rights", "all"])
 
 def rescan(c=None):
-    class rescan_monitor(disorder.monitor):
-        def rescanned(self):
-            return False
+    print " initiating rescan"
     if c is None:
         c = disorder.client()
-    m = rescan_monitor()
-    print " initiating rescan"
-    c.rescan()
-    print " waiting for rescan to complete"
-    m.run()
+    c.rescan('wait')
     print " rescan completed"
 
 def stop_daemon():

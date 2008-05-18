@@ -136,7 +136,9 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks);
 /* return a list of tracks containing all of the words given.  If you
  * ask for only stopwords you get no tracks. */
 
-void trackdb_rescan(struct ev_source *ev, int recheck);
+void trackdb_rescan(struct ev_source *ev, int recheck,
+                    void (*rescanned)(void *ru),
+                    void *ru);
 /* Start a rescan, if one is not running already */
 
 int trackdb_rescan_cancel(void);
@@ -177,6 +179,9 @@ typedef void random_callback(struct ev_source *ev,
                              const char *track);
 int trackdb_request_random(struct ev_source *ev,
                            random_callback *callback);
+void trackdb_add_rescanned(void (*rescanned)(void *ru),
+                           void *ru);
+int trackdb_rescan_underway(void);
 
 #endif /* TRACKDB_H */
 

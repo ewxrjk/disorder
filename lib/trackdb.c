@@ -2097,6 +2097,28 @@ int trackdb_scan(const char *root,
 
 /* trackdb_rescan ************************************************************/
 
+/** @brief Node in the list of rescan-complete callbacks */
+struct rescanned_node {
+  struct rescanned_node *next;
+  void (*rescanned)(void *ru);
+  void *ru;
+};
+
+/** @brief List of rescan-complete callbacks */
+static struct rescanned_node *rescanned_list;
+
+/** @brief Add a rescan completion callback */
+void trackdb_add_rescanned(void (*rescanned)(void *ru),
+                           void *ru) {
+  if(rescanned) {
+    struct rescanned_node *n = xmalloc(sizeof *n);
+    n->next = rescanned_list;
+    n->rescanned = rescanned;
+    n->ru = ru;
+    rescanned_list = n;
+  }
+}
+
 /* called when the rescanner terminates */
 static int reap_rescan(ev_source attribute((unused)) *ev,
                        pid_t pid,
@@ -2111,23 +2133,37 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
   /* Our cache of file lookups is out of date now */
   cache_clean(&cache_files_type);
   eventlog("rescanned", (char *)0);
+  /* Call rescanned callbacks */
+  while(rescanned_list) {
+    void (*rescanned)(void *u) = rescanned_list->rescanned;
+    void *ru = rescanned_list->ru;
+
+    rescanned_list = rescanned_list->next;
+    rescanned(ru);
+  }
   return 0;
 }
 
 /** @brief Initiate a rescan
  * @param ev Event loop or 0 to block
  * @param recheck 1 to recheck lengths, 0 to suppress check
+ * @param rescanned Called on completion (if not NULL)
+ * @param u Passed to @p rescanned
  */
-void trackdb_rescan(ev_source *ev, int recheck) {
+void trackdb_rescan(ev_source *ev, int recheck,
+                    void (*rescanned)(void *ru),
+                    void *ru) {
   int w;
 
   if(rescan_pid != -1) {
+    trackdb_add_rescanned(rescanned, ru);
     error(0, "rescan already underway");
     return;
   }
   rescan_pid = subprogram(ev, -1, RESCAN,
                           recheck ? "--check" : "--no-check",
                           (char *)0);
+  trackdb_add_rescanned(rescanned, ru);
   if(ev) {
     ev_child(ev, rescan_pid, 0, reap_rescan, 0);
     D(("started rescanner"));
@@ -2145,6 +2181,11 @@ int trackdb_rescan_cancel(void) {
     fatal(errno, "error killing rescanner");
   rescan_pid = -1;
   return 1;
+}
+
+/** @brief Return true if a rescan is underway */
+int trackdb_rescan_underway(void) {
+  return rescan_pid != -1;
 }
 
 /* global prefs **************************************************************/
