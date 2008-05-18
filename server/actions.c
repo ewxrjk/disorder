@@ -289,7 +289,11 @@ static void act_login(void) {
   if(!login_as(username, password)) {
     /* Report the succesful login */
     dcgi_status_string = "loginok";
-    dcgi_expand("login", 1);
+    /* Redirect back to where we came from, if necessary */
+    if(cgi_get("back"))
+      redirect(0);
+    else
+      dcgi_expand("login", 1);
   }
 }
 
@@ -651,8 +655,12 @@ void dcgi_action(const char *action) {
       /* Some right or other is required */
       dcgi_lookup(DCGI_RIGHTS);
       if(!(actions[n].rights & dcgi_rights)) {
+        const char *back = cgi_thisurl(config->url);
         /* Failed operations jump you to the login screen with an error
-         * message */
+         * message.  On success, the user comes back to the page they were
+         * after. */
+        cgi_clear();
+        cgi_set("back", back);
         login_error("noright");
         return;
       }

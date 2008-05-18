@@ -213,6 +213,11 @@ void cgi_set(const char *name, const char *value) {
   hash_add(cgi_args, name, &value, HASH_INSERT_OR_REPLACE);
 }
 
+/** @brief Clear CGI arguments */
+void cgi_clear(void) {
+  cgi_args = hash_new(sizeof (char *));
+}
+
 /** @brief Add SGML-style quoting
  * @param src String to quote (UTF-8)
  * @return Quoted string
@@ -354,7 +359,7 @@ char *cgi_thisurl(const char *url) {
     dynstr_append(d, n ? '&' : '?');
     dynstr_append_string(d, urlencodestring(keys[n]));
     dynstr_append(d, '=');
-    dynstr_append_string(d, cgi_get(keys[n]));
+    dynstr_append_string(d, urlencodestring(cgi_get(keys[n])));
   }
   dynstr_terminate(d);
   return d->vec;

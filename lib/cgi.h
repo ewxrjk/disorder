@@ -35,6 +35,7 @@ void cgi_opentag(struct sink *output, const char *name, ...);
 void cgi_closetag(struct sink *output, const char *name);
 char *cgi_makeurl(const char *url, ...);
 char *cgi_thisurl(const char *url);
+void cgi_clear(void);
 
 #endif
 
