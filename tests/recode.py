@@ -1,4 +1,4 @@
-#! /usr/bin/env python -u
+#! /usr/bin/env python
 #
 # This file is part of DisOrder.
 # Copyright (C) 2008 Richard Kettlewell

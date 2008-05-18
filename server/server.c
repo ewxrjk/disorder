@@ -614,9 +614,13 @@ static int c_allfiles(struct conn *c,
 static int c_get(struct conn *c,
 		 char **vec,
 		 int attribute((unused)) nvec) {
-  const char *v;
+  const char *v, *track;
 
-  if(vec[1][0] != '_' && (v = trackdb_get(vec[0], vec[1])))
+  if(!(track = trackdb_resolve(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+    return 1;
+  }
+  if(vec[1][0] != '_' && (v = trackdb_get(track, vec[1])))
     sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(v));
   else
     sink_writes(ev_writer_sink(c->w), "555 not found\n");
@@ -642,7 +646,13 @@ static int c_length(struct conn *c,
 static int c_set(struct conn *c,
 		 char **vec,
 		 int attribute((unused)) nvec) {
-  if(vec[1][0] != '_' && !trackdb_set(vec[0], vec[1], vec[2]))
+  const char *track;
+
+  if(!(track = trackdb_resolve(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+    return 1;
+  }
+  if(vec[1][0] != '_' && !trackdb_set(track, vec[1], vec[2]))
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   else
     sink_writes(ev_writer_sink(c->w), "550 not found\n");
@@ -653,8 +663,13 @@ static int c_prefs(struct conn *c,
 		   char **vec,
 		   int attribute((unused)) nvec) {
   struct kvp *k;
+  const char *track;
 
-  k = trackdb_get_all(vec[0]);
+  if(!(track = trackdb_resolve(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+    return 1;
+  }
+  k = trackdb_get_all(track);
   sink_writes(ev_writer_sink(c->w), "253 prefs follow\n");
   for(; k; k = k->next)
     if(k->name[0] != '_')		/* omit internal values */
@@ -667,6 +682,7 @@ static int c_prefs(struct conn *c,
 static int c_exists(struct conn *c,
 		    char **vec,
 		    int attribute((unused)) nvec) {
+  /* trackdb_exists() does its own alias checking */
   sink_printf(ev_writer_sink(c->w), "252 %s\n", noyes[trackdb_exists(vec[0])]);
   return 1;
 }
@@ -931,8 +947,14 @@ static int c_moveafter(struct conn *c,
 static int c_part(struct conn *c,
 		  char **vec,
 		  int attribute((unused)) nvec) {
+  const char *track;
+
+  if(!(track = trackdb_resolve(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+    return 1;
+  }
   sink_printf(ev_writer_sink(c->w), "252 %s\n",
-	      quoteutf8(trackdb_getpart(vec[0], vec[1], vec[2])));
+	      quoteutf8(trackdb_getpart(track, vec[1], vec[2])));
   return 1;
 }
 

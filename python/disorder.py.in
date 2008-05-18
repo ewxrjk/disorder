@@ -62,8 +62,8 @@ _userconf = True
 
 # various regexps we'll use
 _ws = re.compile(r"^[ \t\n\r]+")
-_squote = re.compile("'(([^\\\\']|\\\\[\\\\\"'n])+)'")
-_dquote = re.compile("\"(([^\\\\\"]|\\\\[\\\\\"'n])+)\"")
+_squote = re.compile("'(([^\\\\']|\\\\[\\\\\"'n])*)'")
+_dquote = re.compile("\"(([^\\\\\"]|\\\\[\\\\\"'n])*)\"")
 _unquoted = re.compile("[^\"' \\t\\n\\r][^ \t\n\r]*")
 
 _response = re.compile("([0-9]{3}) ?(.*)")
