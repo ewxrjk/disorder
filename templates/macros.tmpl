@@ -69,8 +69,8 @@ and then redefines macros as desired.
 @define {menuitem} {current name available}  
         {@if{@available}
             {   <a @if{@eq{@current}{@name}}
-   	              {class=activemenu}
-		      {class=inactivemenu}
+                      {class=activemenu}
+                      {class=inactivemenu}
 @if{@eq{name}{playing}}
    {      href="@url"}
    {      href="@url?action=@name"}
@@ -136,7 +136,7 @@ and then redefines macros as desired.
 @#  @what is the section
 @#  @track is the track name
 @define {mtitleplay} {what track}
-        {<a title="@part{@track}{title}" href="@url?action=play&#38;file=@urlquote{@track}&#38;back=@urlquote{@thisurl}">@part{@track}{title}{short}</a>}
+        {<a title="@part{@track}{title}" href="@url?action=play&#38;track=@urlquote{@track}&#38;back=@urlquote{@thisurl}">@part{@track}{title}{short}</a>}
 
 @# Expand to the remove/scratch entry for @id
 @#  @what is the section
@@ -173,6 +173,75 @@ and then redefines macros as desired.
                   width=@width height=@height
                   title="@label{playing.@q{@dir}verbose}"
                   alt="@label{playing.@dir}">}}
+
+@# Size of input box for preferences forms
+@define{prefsize}{}{40}
+
+@# Expand to the weight of a track.  This macro knows the default weight,
+@# and does two lookups, which is rather inelegant.
+@#  @track is the track name.
+@define{weight}{track}{@if{@eq{@pref{@track}{weight}}{}} 
+                          {90000}
+                          {@pref{@track}{weight}}}
+
+@# Expand to preference form section for a track
+@#  @index is the track number
+@#  @track is the track name
+@define {mprefs} {index track}
+        {
+   <p class="prefs_head">Preferences for <span class="prefs_track">@quote{@resolve{@track}}</span>:</p>
+   <input type=hidden name="@index@__track" value="@quote{@resolve{@track}}">
+   <table class=prefs>
+    <tr class=headings>
+     <th class="prefs_name">@label{prefs.name}</th>
+     <th class="prefs_value">@label{prefs.value}</th>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{heading.title}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__title"
+             value="@part{@track}{title}{display}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{heading.album}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__album"
+             value="@part{@track}{album}{display}">
+     </td>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{heading.artist}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__artist"
+             value="@part{@track}{artist}{display}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{prefs.tags}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__tags"
+             value="@pref{@track}{tags}">
+     </td>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{prefs.weight}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__weight"
+             value="@weight{@track}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{prefs.random}</td>
+     <td class="prefs_value">
+      <input type=checkbox value=true
+             name="@index@__random" 
+             @if{@ne{@pref{@track}{pick_at_random}}{0}}
+                {checked}>
+      </td>
+    </tr>
+   </table>
+}
 
 Local variables:
 mode:sgml

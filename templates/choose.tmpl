@@ -125,7 +125,7 @@ USA
      @right{prefs}{
      <td class=imgbutton>
       <a class=imgbutton
-         href="@url?action=prefs&#38;0_file=@urlquote{@track}">
+         href="@url?action=prefs&#38;track=@urlquote{@track}">
        <img class=button src="@image{edit}"
             title="@label{choose.prefsverbose}"
             alt="@label{choose.prefs}">
@@ -181,14 +181,14 @@ USA
 @define{sometracks}{template}{@template}@#
        @right{prefs}{
         <a class=imgprefs
-           href="@url?action=prefs&#38;0_file=@urlquote{@resolve{@track}}">
+           href="@url?action=prefs&#38;track=@urlquote{@resolve{@track}}">
          <img class=button
               src="@image{edit}"
               title="@label{choose.prefsverbose}"
               alt="@label{choose.prefs}">
         </a>
        }@#
-       <a href="@url?action=play&#38;file=@urlquote{@track}&#38;back=@urlquote{@thisurl}"
+       <a href="@url?action=play&#38;track=@urlquote{@track}&#38;back=@urlquote{@thisurl}"
           title="@label{choose.play}">
         @display
        </a>

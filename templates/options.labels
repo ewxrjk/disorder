@@ -196,6 +196,7 @@ label	error.noconfirm		"Missing confirmation string."
 label	error.badconfirm	"Invalid confirmation string."
 label	error.badedit		"Cannot edit user details."
 label	error.reminderfailed	"Cannot send a reminder."
+label   error.noright           "Access denied."
 
 # Text appended to all error pages
 label	error.generic		""

@@ -190,7 +190,7 @@ static void act_play(void) {
   struct dcgi_entry *e;
   
   if(dcgi_client) {
-    if((track = cgi_get("file"))) {
+    if((track = cgi_get("track"))) {
       disorder_play(dcgi_client, track);
     } else if((dir = cgi_get("dir"))) {
       if(disorder_files(dcgi_client, dir, 0, &tracks, &ntracks))
@@ -481,31 +481,98 @@ static void act_reminder(void) {
   dcgi_expand("login", 1);
 }
 
+/** @brief Get the numbered version of an argument
+ * @param argname Base argument name
+ * @param numfile File number
+ * @return cgi_get(NUMFILE_ARGNAME)
+ */
+static const char *numbered_arg(const char *argname, int numfile) {
+  char *fullname;
+
+  byte_xasprintf(&fullname, "%d_%s", numfile, argname);
+  return cgi_get(fullname);
+}
+
+/** @brief Set preferences for file @p numfile
+ * @return 0 on success, -1 if there is no such track number
+ *
+ * The old @b nfiles parameter has been abolished, we just keep look for more
+ * files until we run out.
+ */
+static int process_prefs(int numfile) {
+  const char *file, *name, *value, *part, *parts, *context;
+  char **partslist;
+
+  if(!(file = numbered_arg("track", numfile)))
+    return -1;
+  if(!(parts = cgi_get("parts")))
+    parts = "artist album title";
+  if(!(context = cgi_get("context")))
+    context = "display";
+  partslist = split(parts, 0, 0, 0, 0);
+  while((part = *partslist++)) {
+    if(!(value = numbered_arg(part, numfile)))
+      continue;
+    byte_xasprintf((char **)&name, "trackname_%s_%s", context, part);
+    disorder_set(dcgi_client, file, name, value);
+  }
+  if((value = numbered_arg("random", numfile)))
+    disorder_unset(dcgi_client, file, "pick_at_random");
+  else
+    disorder_set(dcgi_client, file, "pick_at_random", "0");
+  if((value = numbered_arg("tags", numfile))) {
+    if(!*value)
+      disorder_unset(dcgi_client, file, "tags");
+    else
+      disorder_set(dcgi_client, file, "tags", value);
+  }
+  if((value = numbered_arg("weight", numfile))) {
+    if(!*value)
+      disorder_unset(dcgi_client, file, "weight");
+    else
+      disorder_set(dcgi_client, file, "weight", value);
+  }
+  return 0;
+}
+
+static void act_set(void) {
+  int numfile;
+
+  if(dcgi_client) {
+    for(numfile = 0; !process_prefs(numfile); ++numfile)
+      ;
+  }
+  redirect(0);
+}
+
 /** @brief Table of actions */
 static const struct action {
   /** @brief Action name */
   const char *name;
   /** @brief Action handler */
   void (*handler)(void);
+  /** @brief Union of suitable rights */
+  rights_type rights;
 } actions[] = {
-  { "confirm", act_confirm },
-  { "disable", act_disable },
-  { "edituser", act_edituser },
-  { "enable", act_enable },
-  { "login", act_login },
-  { "logout", act_logout },
-  { "manage", act_playing },
-  { "move", act_move },
-  { "pause", act_pause },
-  { "play", act_play },
-  { "playing", act_playing },
-  { "randomdisable", act_random_disable },
-  { "randomenable", act_random_enable },
-  { "register", act_register },
-  { "reminder", act_reminder },
-  { "remove", act_remove },
-  { "resume", act_resume },
-  { "volume", act_volume },
+  { "confirm", act_confirm, 0 },
+  { "disable", act_disable, RIGHT_GLOBAL_PREFS },
+  { "edituser", act_edituser, 0 },
+  { "enable", act_enable, RIGHT_GLOBAL_PREFS },
+  { "login", act_login, 0 },
+  { "logout", act_logout, 0 },
+  { "manage", act_playing, 0 },
+  { "move", act_move, RIGHT_MOVE__MASK },
+  { "pause", act_pause, RIGHT_PAUSE },
+  { "play", act_play, RIGHT_PLAY },
+  { "playing", act_playing, 0 },
+  { "randomdisable", act_random_disable, RIGHT_GLOBAL_PREFS },
+  { "randomenable", act_random_enable, RIGHT_GLOBAL_PREFS },
+  { "register", act_register, 0 },
+  { "reminder", act_reminder, 0 },
+  { "remove", act_remove, RIGHT_MOVE__MASK|RIGHT_SCRATCH__MASK },
+  { "resume", act_resume, RIGHT_PAUSE },
+  { "set", act_set, RIGHT_PREFS },
+  { "volume", act_volume, RIGHT_VOLUME },
 };
 
 /** @brief Check that an action name is valid
@@ -579,10 +646,20 @@ void dcgi_action(const char *action) {
     /* Make sure 'action' is always set */
     cgi_set("action", action);
   }
-  if((n = TABLE_FIND(actions, struct action, name, action)) >= 0)
-    /* Its a known action */
+  if((n = TABLE_FIND(actions, struct action, name, action)) >= 0) {
+    if(actions[n].rights) {
+      /* Some right or other is required */
+      dcgi_lookup(DCGI_RIGHTS);
+      if(!(actions[n].rights & dcgi_rights)) {
+        /* Failed operations jump you to the login screen with an error
+         * message */
+        login_error("noright");
+        return;
+      }
+    }
+    /* It's a known action */
     actions[n].handler();
-  else {
+  } else {
     /* Just expand the template */
     dcgi_expand(action, 1/*header*/);
   }

@@ -24,55 +24,26 @@ USA
  </head>
  <body>
 @stdmenu{prefs}
-   <h1>@label:prefs.title@</h1>
+  <h1>@label{prefs.title}</h1>
 
-   <form class=prefs action="@url@" method=POST
-         enctype="multipart/form-data" accept-charset=utf-8>
-    <input type=hidden name="files" value="@nfiles@">
-    <input type=hidden name=parts value="artist album title">
-   @files{
-   <p class="prefs_head">Preferences for <span class="prefs_track">@arg{@index@_file}@</span></p>
-    <input type=hidden name="@index@_file" value="@arg{@index@_file}@">
-    <table class=prefs>
-      <tr class="headings">
-       <th class="prefs_name">@label:prefs.name@</th>
-       <th class="prefs_value">@label:prefs.value@</th>
-      </tr>
-      <tr class=even>
-       <td class="prefs_name">@label:heading.title@</td>
-       <td class="prefs_value"><input size=40 type=text name="@index@_title" value="@part{@arg{@index@_file}display}{title}{display}"></td>
-      </tr>
-      <tr class=odd>
-       <td class="prefs_name">@label:heading.album@</td>
-       <td class="prefs_value"><input size=40 type=text name="@index@_album" value="@part{display}{album}{@arg{@index@_file}@}@"></td>
-      </tr>
-      <tr class=even>
-       <td class="prefs_name">@label:heading.artist@</td>
-       <td class="prefs_value"><input size=40 type=text name="@index@_artist" value="@part{display}{artist}{@arg{@index@_file}@}@"></td>
-      </tr>
-      <tr class=odd>
-       <td class="prefs_name">@label:prefs.tags@</td>
-       <td class="prefs_value"><input size=40 type=text name="@index@_tags" value="@pref{@arg{@index@_file}@}{tags}@"></td>
-      </tr>
-      <tr class=even>
-       <td class="prefs_name">@label:prefs.weight@</td>
-       <td class="prefs_value"><input size=40 type=text name="@index@_weight" value="@pref{@arg{@index@_file}@}{weight}@"></td>
-      </tr>
-      <tr class=odd>
-       <td class="prefs_name">@label:prefs.random@</td>
-       <td class="prefs_value"><input type=checkbox
-	 name="@index@_random" value=true
-	@if{@ne{@pref{@arg{@index@_file}@}{pick_at_random}@}{0}@}{ checked}{}@></td>
-    </table>
-   }@
-    
-    <p>
-     <button type=submit name=submit>
-      @label:prefs.set@
-     </button>
-     <input name=action type=hidden value=prefs>
-    </p>
-   </form>
+  <form class=prefs method=POST
+        action="@url"
+        enctype="multipart/form-data"
+        accept-charset="utf-8">
+   <input type=hidden name=parts value="artist album title">
+   <input type=hidden name=context value="display">
+   <input name=action type=hidden value=set>
+   <input name=back type=hidden value="@quote{@thisurl}">
+   @if{@eq{@arg{dir}}{}}
+      {@mprefs{0}{@arg{track}}}
+      {@tracks{@arg{dir}}
+              {@mprefs{@index}{@track}}}
+   <p>
+    <button type=submit name=submit>
+     @label{prefs.set}
+    </button>
+   </p>
+  </form>
 
 @credits
  </body>
