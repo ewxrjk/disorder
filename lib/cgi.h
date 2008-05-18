@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder
- * Copyright (C) 2005, 2007 Richard Kettlewell
+ * This file is part of DisOrder.
+ * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,25 +17,27 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file lib/filepart.h
- * @brief Filename parsing
+/** @file lib/cgi.h
+ * @brief CGI tools
  */
 
-#ifndef FILEPART_H
-#define FILEPART_H
+#ifndef CGI_H
+#define CGI_H
 
-char *d_basename(const char *path);
+struct sink;
 
-char *d_dirname(const char *path);
-/* return the directory name part of @path@ */
+void cgi_init(void);
+const char *cgi_get(const char *name);
+void cgi_set(const char *name, const char *value);
+char *cgi_sgmlquote(const char *src);
+void cgi_attr(struct sink *output, const char *name, const char *value);
+void cgi_opentag(struct sink *output, const char *name, ...);
+void cgi_closetag(struct sink *output, const char *name);
+char *cgi_makeurl(const char *url, ...);
+char *cgi_thisurl(const char *url);
+void cgi_clear(void);
 
-const char *strip_extension(const char *path);
-/* return a filename with the extension stripped */
-
-const char *extension(const char *path);
-/* return just the extension, or "" */
-
-#endif /* FILEPART_H */
+#endif
 
 /*
 Local Variables:

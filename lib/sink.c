@@ -131,6 +131,22 @@ struct sink *sink_dynstr(struct dynstr *output) {
   return (struct sink *)s;
 }
 
+/* discard sink **************************************************************/
+
+static int sink_discard_write(struct sink attribute((unused)) *s,
+			      const void attribute((unused)) *buffer,
+			      int nbytes) {
+  return nbytes;
+}
+
+/** @brief Return a sink which discards all output */
+struct sink *sink_discard(void) {
+  struct sink *s = xmalloc(sizeof *s);
+
+  s->write = sink_discard_write;
+  return s;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

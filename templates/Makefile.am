@@ -18,11 +18,10 @@
 # USA
 #
 
-pkgdata_DATA=about.html choose.html credits.html playing.html recent.html \
-	     stdhead.html stylesheet.html search.html about.html volume.html \
-	     prefs.html help.html choosealpha.html topbar.html \
-	     topbarend.html error.html new.html login.html \
-	     options options.labels \
+pkgdata_DATA=about.tmpl choose.tmpl playing.tmpl recent.tmpl		\
+	     about.tmpl prefs.tmpl help.tmpl error.tmpl			\
+	     new.tmpl login.tmpl macros.tmpl				\
+	     options options.labels					\
 	     options.columns
 static_DATA=disorder.css
 staticdir=${pkgdatadir}/static

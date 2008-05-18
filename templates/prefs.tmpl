@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <!--
 This file is part of DisOrder.
-Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+Copyright (C) 2004-2008 Richard Kettlewell
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,28 +20,41 @@ USA
 -->
 <html>
  <head>
-@include:stdhead@
-  <title>@label:error.title@</title>
+@stdhead{prefs}
  </head>
  <body>
-@include{topbar}@
-   <h1>@label:error.title@</h1>
-    
-  <div class=error>
-    <p class=error>@label{error.@label:error@}@</p>
+@stdmenu{prefs}
+  <h1>@label{prefs.title}</h1>
 
-    <p class=error>@label:error.generic@</p>
-  </div>
+  <form class=prefs method=POST
+        action="@url"
+        enctype="multipart/form-data"
+        accept-charset="utf-8">
+   <input type=hidden name=parts value="artist album title">
+   <input type=hidden name=context value="display">
+   <input name=action type=hidden value=set>
+   <input name=back type=hidden value="@quote{@thisurl}">
+   @if{@eq{@arg{dir}}{}}
+      {@mprefs{0}{@arg{track}}}
+      {@tracks{@arg{dir}}
+              {@mprefs{@index}{@track}}}
+   <p>
+    <button type=submit name=submit>
+     @label{prefs.set}
+    </button>
+   </p>
+  </form>
 
-@include{topbarend}@
+@credits
  </body>
 </html>
-@@
-<!--
+@discard{
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
 sgml-indent-step:1
 sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
 End:
--->
+}@#

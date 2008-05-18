@@ -417,7 +417,7 @@ if test $ac_cv_type_long_long = yes; then
     AC_DEFINE([DECLARES_ATOLL],[1],[define if <stdlib.h> declares atoll])
   fi
 fi
-AC_CHECK_FUNCS([ioctl nl_langinfo strsignal],[:],[
+AC_CHECK_FUNCS([ioctl nl_langinfo strsignal setenv unsetenv],[:],[
   missing_functions="$missing_functions $ac_func"
 ])
 # fsync will do if fdatasync not available
@@ -576,7 +576,6 @@ AH_BOTTOM([#ifdef __GNUC__
 #endif])
 
 AC_CONFIG_FILES([Makefile
-		 templates/Makefile
 		 images/Makefile
 		 scripts/Makefile
 		 lib/Makefile
@@ -584,6 +583,7 @@ AC_CONFIG_FILES([Makefile
 		 clients/Makefile
 		 disobedience/Makefile
 		 doc/Makefile
+		 templates/Makefile
 		 plugins/Makefile
 		 driver/Makefile
 		 debian/Makefile

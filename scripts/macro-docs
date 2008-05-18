@@ -1,0 +1,78 @@
+#! /usr/bin/perl -w
+use strict;
+
+my %macros = ();
+my $name;
+my $docs;
+while(defined($_ = <>)) {
+  chomp;
+  if(!defined $name and m,^/\*! (\@?([a-z\-]+).*),) {
+    $name = $2;
+    my $heading = $1;
+    $docs = [$heading];
+    $macros{$name} = $docs;
+    next;
+  }
+  if(defined $name) {
+    # Identify and strip trailing */
+    my $last = m,\*/ *$,;
+    s,\*/ *$,,;
+    # Strip trailing spaces
+    s,\s*$,,;
+    # Strip leading comment indicator and spaces
+    s,^ *\* *,,;
+    push(@$docs, $_);
+    undef $name if $last;
+  }
+}
+
+# Generate docs in name order
+my $indented = 0;
+for my $m (sort keys %macros) {
+  my @docs = @{$macros{$m}};
+  my $heading = shift @docs;
+  # Strip leading and trailing blanks
+  while(@docs > 0 and $docs[0] eq '') {
+    shift @docs;
+  }
+  while(@docs > 0 and $docs[$#docs] eq '') {
+    pop @docs;
+  }
+  print ".TP\n";
+  print ".B $heading\n";
+  for my $d (@docs) {
+    if($d =~ /^-\s*([^:]+):\s+(.*)/) {
+      if(!$indented) {
+	print ".RS\n";
+	$indented = 1;
+      }
+      print ".TP 8\n";
+      print ".B $1\n";
+      $d = $2;
+    }
+    if($d =~ /^- /) {
+      $d = $';
+      if(!$indented) {
+	print ".RS\n";
+	$indented = 1;
+      }
+      print ".TP\n";
+      print ".B .\n";
+    }
+    if($d eq '') {
+      if($indented) {
+	print ".RE\n";
+	$indented = 0;
+      }
+      print ".IP\n";
+    } else {
+      # Keep sentence-ending full stops at end of line
+      $d =~ s/\.  /\.\n/g;
+      print "$d\n";
+    }
+  }
+  if($indented) {
+    print ".RE\n";
+    $indented = 0;
+  }
+}

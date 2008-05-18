@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+-->
+<html>
+ <head>
+@stdhead{recent}
+ </head>
+ <body>
+@stdmenu{recent}
+  <h1>@label{recent.title}</h1>
+
+@# Only display the table if there is something to put in it
+@if{@isrecent}{
+  <table class=recent>
+    <tr class=headings>
+     <th class=when>@label{heading.when}</th>
+     <th class=who>@label{heading.who}</th>
+     <th class=artist>@label{heading.artist}</th>
+     <th class=album>@label{heading.album}</th>
+     <th class=title>@label{heading.title}</th>
+     <th class=length>@label{heading.length}</th>
+     @right{prefs}{<th class=button>&nbsp;</th>}
+    </tr>
+    @recent{
+    <tr class=@parity>
+     <td class=when>@mwhen{recent}{@id}</td>
+     <td class=who>@mwho{recent}{@id}</td>
+     <td class=artist>@martist{recent}{@track}</td>
+     <td class=album>@malbum{recent}{@track}</td>
+     <td class=title>@mtitle{recent}{@track}</td>
+     <td class=length>@length{@id}</td>
+     @right{prefs}{
+     <td class=imgbutton>
+      <a class=imgbutton
+         href="@url?action=prefs&#38;track=@urlquote{@track}">
+       <img class=button src="@image{edit}"
+            title="@label{choose.prefsverbose}"
+            alt="@label{choose.prefs}">
+      </a>
+     </td>
+    </tr>}
+    }
+  </table>
+}
+
+@credits
+ </body>
+</html>
+@discard{
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
+End:
+}@#

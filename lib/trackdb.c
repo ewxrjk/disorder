@@ -1387,6 +1387,60 @@ void trackdb_stats_subprocess(ev_source *ev,
   ev_reader_new(ev, p[0], stats_read, stats_error, d, "disorder-stats reader");
 }
 
+/** @brief Parse a track name part preference
+ * @param name Preference name
+ * @param partp Where to store part name
+ * @param contextp Where to store context name
+ * @return 0 on success, non-0 if parse fails
+ */
+static int trackdb__parse_namepref(const char *name,
+                                   char **partp,
+                                   char **contextp) {
+  char *c;
+  static const char prefix[] = "trackname_";
+  
+  if(strncmp(name, prefix, strlen(prefix)))
+    return -1;                          /* not trackname_* at all */
+  name += strlen(prefix);
+  /* There had better be a _ between context and part */
+  c = strchr(name, '_');
+  if(!c)
+    return -1;
+  /* Context is first in the pref name even though most APIs have the part
+   * first.  Confusing; sorry. */
+  *contextp = xstrndup(name, c - name);
+  ++c;
+  /* There had better NOT be a second _ */
+  if(strchr(c, '_'))
+    return -1;
+  *partp = xstrdup(c);
+  return 0;
+}
+
+/** @brief Compute the default value for a track preference
+ * @param track Track name
+ * @param name Preference name
+ * @return Default value or 0 if none/not known
+ */
+static const char *trackdb__default(const char *track, const char *name) {
+  char *context, *part;
+  
+  if(!trackdb__parse_namepref(name, &part, &context)) {
+    /* We can work out the default for a trackname_ pref */
+    return trackname_part(track, context, part);
+  } else if(!strcmp(name, "weight")) {
+    /* We know the default weight */
+    return "90000";
+  } else if(!strcmp(name, "pick_at_random")) {
+    /* By default everything is eligible for picking at random */
+    return "1";
+  } else if(!strcmp(name, "tags")) {
+    /* By default everything no track has any tags */
+    return "";
+  }
+  return 0;
+}
+
 /* set a pref (remove if value=0) */
 int trackdb_set(const char *track,
                 const char *name,
@@ -1395,9 +1449,15 @@ int trackdb_set(const char *track,
   DB_TXN *tid;
   int err, cmp;
   char *oldalias, *newalias, **oldtags = 0, **newtags;
+  const char *def;
 
+  /* If the value matches the default then unset instead, to keep the database
+   * tidy.  Older versions did not have this feature so your database may yet
+   * have some default values stored in it. */
   if(value) {
-    /* TODO: if value matches default then set value=0 */
+    def = trackdb__default(track, name);
+    if(def && !strcmp(value, def))
+      value = 0;
   }
 
   for(;;) {

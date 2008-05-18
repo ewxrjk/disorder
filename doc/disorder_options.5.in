@@ -1,0 +1,81 @@
+.\"
+.\" Copyright (C) 2008 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder_options 5
+.SH NAME
+pkgconfdir/options - DisOrder CGI actions
+.SH DESCRIPTION
+The DisOrder CGI reads much extra configuration information from
+\fIpkgconfdir/options\fR.
+The general syntax is the same as the main configuration file (see
+\fBdisorder_config\fR(5)).
+.SH DIRECTIVES
+Valid directives are:
+.TP
+.B columns \fINAME\fR \fIHEADING\fR...
+Defines the columns used in \fB@playing@\fR and \fB@recent@\fB.
+\fINAME\fR must be either \fBplaying\fR, \fBrecent\fR or \fBsearch\fR.
+\fIHEADING\fR...  is a list of heading names.
+If a column is defined more than once then the last definitions is used.
+.IP
+The heading names \fBbutton\fR, \fBlength\fR, \fBwhen\fR and \fBwho\fR
+are built in.
+.TP
+.B include \fIPATH\fR
+Includes another file.
+If \fIPATH\fR starts with a \fB/\fR then it is taken as is, otherwise
+it is searched for in \fIpkgconfdir\fR and \fIpkgdatadir\fR.
+.TP
+.B label \fINAME\fR \fIVALUE\fR
+Define a label.
+If a label is defined more than once then the last definition is used.
+.SH LABELS
+Some labels are defined inside \fBdisorder.cgi\fR and others by the
+default templates.
+You can define your own labels and use them inside a template.
+.PP
+When an undefined label is expanded, if it has a dot in its name then
+the part after the final dot is used as its value.
+Otherwise the whole name is used as the value.
+.PP
+Labels are not individually documented here, see the shipped
+\fIoptions.labels\fR file instead.
+.SH "OPTION FILES"
+The shipped \fIoptions\fR file includes four standard options files.
+In order, they are:
+.TP
+.I options.labels
+The default labels file.
+You wouldn't normally edit this directly - instead supply your own commands
+in \fIoptions.user\fR.
+Have a look at the shipped version of the file for documentation of
+labels used by the standard templates.
+.TP
+.I options.user
+A user options file.
+Here you should put any overrides for the default labels and any
+extra labels required by your modified templates.
+.SH "SEE ALSO"
+.BR disorder_config (5),
+.BR disorder_templates (5),
+.BR disorder_actions (5),
+.BR disorder.cgi (8)
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:

@@ -1,0 +1,116 @@
+.\"
+.\" Copyright (C) 2008 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder_templates 5
+.SH NAME
+disorder_templates - DisOrder template file syntax
+.SH DESCRIPTION
+DisOrder template files are text files containing HTML documents, with an
+expansion syntax to enable data supplied by the implementation to be inserted.
+.SS "Expansion Syntax"
+An expansion starts with an at ("@") symbol and takes the form of an expansion
+name followed by zero or more arguments.
+.PP
+Expansion names may contain letters, digits or "-" (and must start with a
+letter or digit).
+No spacing is allowed between the "@" and the expansion name.
+.PP
+Each argument is bracketed
+Any of "(" and ")", "[" and "]" or "{" and "}" may be used but all arguments
+for a given expansion must use the same bracket pair.
+.PP
+Arguments may be separated from one another and the expansion name by
+whitespace (including newlines and even completely blank lines).
+The parser always reads as many arguments as are available, even if that is
+more than the expansion name can accept (so if an expansion is to be followed
+by an open bracket of the same kind it uses, you must use the \fB@_\fR
+separator; see below).
+.PP
+Arguments are expanded within themselves following the same rules, with a few
+exceptions discussed below.
+.SS "Special Symbols"
+A few sequences are special:
+.TP
+.B @@
+This expands to a single "@" sign.
+.TP
+.B @#
+This expands to nothing, and moreover removes the rest of the line it appears
+on and its trailing newline.
+It is intended to be used as a comment market but can also be used to eliminate
+newlines introduced merely to keep lines short.
+.TP
+.B @_
+This expands to nothing (but does not have the line-eating behaviour of
+\fB@#\fR).
+It is intended to be used to mark the end of an expansion where that would
+otherwise be ambiguous.
+.SS "Macros"
+It is possible to define new expansions using the \fB@define\fR expansion.  For
+example,
+.PP
+.nf
+@define{reverse}{a b}{@b @a}
+.fi
+.PP
+defines an expansion called \fB@reverse\fR which expands to its two arguments
+in reversed order.
+The input \fB@reverse{this}{that}\fR would therefore expand to "that this".
+.SS "Sub-Expansions"
+Many expansions expand their argument with additional expansions defined.
+For example, the \fB@playing\fR expansion expands its argument with the extra
+expansion \fB@id\fR defined as the ID of the playing track.
+.PP
+The scope of these sub-expansions is purely lexical.
+Therefore if you invoke a macro or include another template file, if the
+sub-expansions appear within it they will not be expanded.
+.PP
+In the case of a macro you can work around this by passing the value as an
+argument.
+Included files do not have arguments, so in this case you must rewrite the
+inclusion as a macro.
+.SS "Search Path"
+All template files are first searched for in \fIpkgconfdir\fR and then in
+\fIpkgdatadir\fR.
+.SS "macros.tmpl and user.tmpl"
+Before any template is expanded, the CGI will process \fBmacros.tmpl\fR and
+discard any output.
+This defines a collection of commonly used macros.
+.PP
+Following this the CGI will process \fBuser.tmpl\fR, again discarding output.
+This can be used to override the common macros without editing the installed
+version of \fBmacros.tmpl\fR, or to define new ones.
+.PP
+It is not an error if \fBuser.tmpl\fR does not exist.
+.SS "Character Encoding"
+The CGI does not (currently) declare any character encoding.
+This could be changed quite easily but in practice is not a pressing necessity.
+.PP
+The recommended approach is to treat the templates as ASCII files and if
+non-ASCII characters are required, use HTML entities to represent them.
+.PP
+For example, to represent the copyright sign, use \fB&copy;\fR or \fB&#xA9;\fR.
+.PP
+If you know the decimal or hex unicode value for a character then you can use
+\fB&#NNN;\fR or \fB&#xHHHH;\fR respectively.
+.SH EXPANSIONS
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
+

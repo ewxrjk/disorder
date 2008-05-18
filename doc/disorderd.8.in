@@ -165,7 +165,8 @@ This prevents multiple instances of DisOrder running simultaneously.
 Current locale.
 See \fBlocale\fR(7).
 .SH "SEE ALSO"
-\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder\-dump\fR(8)
+\fBdisorder\fR(1), \fBdisorder_config\fR(5), \fBdisorder\-dump\fR(8),
+\fBdisorder.cgi\fR(8)
 .\" Local Variables:
 .\" mode:nroff
 .\" End:

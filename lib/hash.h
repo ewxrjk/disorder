@@ -22,6 +22,7 @@
 #define HASH_H
 
 typedef struct hash hash;
+struct kvp;
 
 hash *hash_new(size_t valuesize);
 /* Create a new hash */

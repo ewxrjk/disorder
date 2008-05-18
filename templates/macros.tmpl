@@ -1,0 +1,254 @@
+This file is part of DisOrder.
+Copyright (C) 2008 Richard Kettlewell
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+USA
+
+
+------------------------------------------------------------------------
+Standard macros
+
+
+This file is read before any other template.  Its output is discarded
+but side effects (definitions of macros) are retained.  To override it,
+create /etc/disorder/macros.tmpl that includes this file by absolute path
+and then redefines macros as desired.
+------------------------------------------------------------------------
+
+
+@# Standard width and height of an image
+@define {width} {} {16}
+@define {height} {} {16}
+
+@# Standard <head> text
+@#  @name is the name of this page, for the <title> element
+@define {stdhead} {name}
+        {@quiethead
+<title>@label{@name.title}</title>}
+
+@# Non-displaying <head> text
+@define {quiethead} {}
+        {  <link rel=stylesheet
+        type="text/css"
+        href="@label{url.static}/disorder.css">}
+
+@# Standard menu
+@#   @current is the name of the current page, e.g. choosealpha, login
+@define {stdmenu} {current}
+        {  <p class=menubar>
+@menuitem{@current}{playing}{true}
+@menuitem{@current}{recent}{true}
+@menuitem{@current}{choose}{@right{play}}
+@menuitem{@current}{manage}{true}
+@menuitem{@current}{new}{true}
+@menuitem{@current}{login}{true}
+@menuitem{@current}{help}{true}
+@menuitem{@current}{about}{true}
+   </p>
+   <hr>
+}
+
+@# Menu entry
+@#  Used by @stdmenu
+@#  @current is the name of the current page (not necessarily the action that
+@#           got there!)
+@#  @name is the name of the menu item
+@#  @available is true if the menu item is available, else false
+@#  
+@define {menuitem} {current name available}  
+        {@if{@available}
+            {   <a @if{@eq{@current}{@name}}
+                      {class=activemenu}
+                      {class=inactivemenu}
+@if{@eq{name}{playing}}
+   {      href="@url"}
+   {      href="@url?action=@name"}
+      title="@label{menu.@q{@name}verbose}">@label{menu.@name}</a>}
+            {   <span class=invalidmenu 
+         title="@label{menu.@q{@name}verbose}">@label{menu.@name}</span>}}
+
+
+@# Standard footer text
+@define {credits} {}
+        {<p class=credits>
+  <a href="http://www.greenend.org.uk/rjk/disorder/"
+     title="DisOrder web site">DisOrder
+     version @version</a>
+  &copy; 2003-2008 Richard Kettlewell et al
+</p>}
+
+@# Expand to the time that @id will be played
+@#  @what is the section
+@#  @id is the track ID
+@define {mwhen} {what id}
+        {@when{@id}</td>}
+
+@# Expand to the 'who' field for @id
+@#  @what is the section
+@#  @id is the track ID
+@define {mwho} {what id}
+        {@if{@eq{@who{@id}}{}}
+            {@if{@eq{@state{@id}}{random}}
+                {@label{@what.randomtrack}}
+                 {&nbsp;}}
+            {@who{@id}}}
+
+@# Expand to the artist for @track
+@#  @what is the section
+@#  @track is the track name
+@define {martist} {what track}
+        {@right{play}
+               {<a class=directory
+                   href="@url?action=choose&amp;dir=@urlquote{@dirname{@dirname{@track}}}"
+                   title="@label{playing.artistverbose}">@part{@track}{artist}{short}</a>}
+               {<span class=directory
+                      title="@part{@track}{artist}">@part{@track}{artist}{short}</span>}}
+
+@# Expand to the album for @track
+@#  @what is the section
+@#  @track is the track name
+@define {malbum} {what track}
+        {@right{play}
+               {<a class=directory
+                   href="@url?action=choose&amp;dir=@urlquote{@dirname{@track}}"
+                   title="@label{playing.albumverbose}">@part{@track}{album}{short}</a>}
+               {<span class=directory
+                      title="@part{@track}{album}">@part{@track}{album}{short}</span>}}
+
+@# Expand to the title for @track
+@#  @what is the section
+@#  @track is the track name
+@define {mtitle} {what track}
+        {<span title="@part{@track}{title}">@part{@track}{title}{short}</span>}
+
+@# As @mtitle but make a link to play the track
+@#  @what is the section
+@#  @track is the track name
+@define {mtitleplay} {what track}
+        {<a title="@part{@track}{title}" href="@url?action=play&#38;track=@urlquote{@track}&#38;back=@urlquote{@thisurl}">@part{@track}{title}{short}</a>}
+
+@# Expand to the remove/scratch entry for @id
+@#  @what is the section
+@#  @id is the track ID
+@define {mremove} {what id}
+        {@if{@removable{@id}}
+            {<a class=imgbutton
+                href="@url?action=remove&#38;id=@id@back">
+               <img class=button src="@image{remove}"
+                    width=@width height=@height
+                    title="@label{@what.removeverbose}"
+                    alt="@label{@what.scratch}">
+             </a>}
+            {<img class=button src="@image{noremove}"
+                  width=@width height=@height
+                  title="@label{@what.removeverbose}"
+                  alt="@label{@what.scratch}">}}
+
+@# Expand to a move button
+@#  @id is the track ID
+@#  @dir should be a direction: up, upall, down or downall
+@#  @delta should be the distance, +ve for up and -ve for down
+@# This macro calls @movable to check that the move is possible.
+@define {mmove} {id dir delta}
+        {@if{@movable{@id}{@delta}}
+            {<a class=imgbutton
+                href="@url?action=move&#38;id=@id&#38;delta=@delta@back">
+               <img class=button src="@image{@dir}"
+                    width=@width height=@height
+                    title="@label{playing.@q{@dir}verbose}"
+                    alt="@label{playing.@dir}">
+             </a>}
+            {<img class=button src="@image{no@dir}"
+                  width=@width height=@height
+                  title="@label{playing.@q{@dir}verbose}"
+                  alt="@label{playing.@dir}">}}
+
+@# Size of input box for preferences forms
+@define{prefsize}{}{40}
+
+@# Expand to the weight of a track.  This macro knows the default weight,
+@# and does two lookups, which is rather inelegant.
+@#  @track is the track name.
+@define{weight}{track}{@if{@eq{@pref{@track}{weight}}{}} 
+                          {90000}
+                          {@pref{@track}{weight}}}
+
+@# Expand to preference form section for a track
+@#  @index is the track number
+@#  @track is the track name
+@define {mprefs} {index track}
+        {
+   <p class="prefs_head">Preferences for <span class="prefs_track">@quote{@resolve{@track}}</span>:</p>
+   <input type=hidden name="@index@__track" value="@quote{@resolve{@track}}">
+   <table class=prefs>
+    <tr class=headings>
+     <th class="prefs_name">@label{prefs.name}</th>
+     <th class="prefs_value">@label{prefs.value}</th>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{heading.title}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__title"
+             value="@part{@track}{title}{display}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{heading.album}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__album"
+             value="@part{@track}{album}{display}">
+     </td>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{heading.artist}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__artist"
+             value="@part{@track}{artist}{display}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{prefs.tags}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__tags"
+             value="@pref{@track}{tags}">
+     </td>
+    </tr>
+    <tr class=even>
+     <td class="prefs_name">@label{prefs.weight}</td>
+     <td class="prefs_value">
+      <input size=@prefsize type=text name="@index@__weight"
+             value="@weight{@track}">
+     </td>
+    </tr>
+    <tr class=odd>
+     <td class="prefs_name">@label{prefs.random}</td>
+     <td class="prefs_value">
+      <input type=checkbox value=true
+             name="@index@__random" 
+             @if{@ne{@pref{@track}{pick_at_random}}{0}}
+                {checked}>
+      </td>
+    </tr>
+   </table>
+}
+
+Local variables:
+mode:sgml
+sgml-always-quote-attributes:nil
+sgml-indent-step:1
+sgml-indent-data:t
+indent-tabs-mode:nil
+fill-column:79
+End:

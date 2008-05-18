@@ -50,6 +50,9 @@ struct sink *sink_stdio(const char *name, FILE *fp);
 struct sink *sink_dynstr(struct dynstr *output);
 /* return a sink which appends to @output@. */
 
+struct sink *sink_discard(void);
+/* reutrn a sink which junks everything */
+
 int sink_vprintf(struct sink *s, const char *fmt, va_list ap);
 int sink_printf(struct sink *s, const char *fmt, ...)
   attribute((format (printf, 2, 3)));

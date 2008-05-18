@@ -381,15 +381,19 @@ int mime_multipart(const char *s,
   int ret;
 
   /* We must start with a boundary string */
-  if(!isboundary(s, boundary, bl))
+  if(!isboundary(s, boundary, bl)) {
+    error(0, "mime_multipart: first line is not the boundary string");
     return -1;
+  }
   /* Keep going until we hit a final boundary */
   while(!isfinal(s, boundary, bl)) {
     s = strstr(s, "\r\n") + 2;
     start = s;
     while(!isboundary(s, boundary, bl)) {
-      if(!(e = strstr(s, "\r\n")))
+      if(!(e = strstr(s, "\r\n"))) {
+	error(0, "mime_multipart: line does not end CRLF");
 	return -1;
+      }
       s = e + 2;
     }
     if((ret = callback(xstrndup(start,

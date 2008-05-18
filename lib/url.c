@@ -44,6 +44,10 @@ char *infer_url(void) {
   const char *scheme = "http", *server, *script, *e, *request_uri;
   char *url;
   int port;
+
+  /* mod_ssl sets HTTPS=on if the scheme is https */
+  if((e = getenv("HTTPS")) && !strcmp(e, "on"))
+    scheme = "https";
   
   /* Figure out the server.  'MUST' be set and we don't cope if it
    * is not. */

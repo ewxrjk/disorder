@@ -1,0 +1,57 @@
+.\"
+.\" Copyright (C) 2008 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder_actions 5
+.SH NAME
+disorder_actions - DisOrder CGI actions
+.SH DESCRIPTION
+The primary CGI parameter to the DisOrder web interface is \fBaction\fR.
+This determines which of a set of actions from the list below it carries out.
+.PP
+For any action \fIACTION\fR not in the list, the CGI expands the template
+\fIACTION\fB.tmpl\fR.
+.PP
+If no action is set, then the default is \fBplaying\fR, unless the argument
+\fBc\fR is present, in which case it is \fBconfirm\fR.
+This is a hack to keep confirmation URLs short.
+.SS Redirection
+Actions in the list below that do not documented what template they expand
+issue an HTTP redirect according to the value of the \fBback\fR argument.
+There are three possibilities:
+.TP
+.BR 1 )
+\fBback\fR is a URL.
+The browser is redirected to that URL.
+.TP
+.BR 2 )
+\fBback\fR is an action name.
+The browser is redirected to a URL which uses that action.
+.TP
+.BR 3 )
+\fBback\fR is not set.
+The browser is redirected to the front page.
+.PP
+If an action needs more rights than the logged-in user has then they are
+redirected to \fBlogin\fR with \fBback\fR set to retry the action they wanted.
+.PP
+Certain errors cause a redirection to \fBerror\fR with \fB@error\fR set.
+.SH ACTIONS
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:

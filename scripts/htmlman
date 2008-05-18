@@ -43,13 +43,13 @@ title=$(basename $1)
 echo "<html>"
 echo " <head>"
 if $stdhead; then
-  echo "@include{stdhead}@"
+  echo "@quiethead@#"
 fi
 echo "  <title>$title</title>"
 echo " </head>"
 echo " <body>"
 if $stdhead; then
-  echo "@include{topbar}@"
+  echo "@stdmenu{}@#"
 fi
 printf "   <pre class=manpage>"
 # this is kind of painful using only BREs
@@ -67,7 +67,7 @@ nroff -Tascii -man "$1" | ${GNUSED} \
                        s!</\([bi]\)><\1>!!g'
 echo "</pre>"
 if $stdhead; then
-  echo "@include{topbarend}@"
+  echo "@credits"
 fi
 echo " </body>"
 echo "</html>"

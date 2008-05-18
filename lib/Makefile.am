@@ -21,7 +21,8 @@
 TESTS=t-addr t-basen t-bits t-cache t-casefold t-cookies \
 		t-filepart t-hash t-heap t-hex t-kvp t-mime t-printf \
 		t-regsub t-selection t-signame t-sink t-split t-syscalls \
-		t-trackname t-unicode t-url t-utf8 t-vector t-words t-wstat
+		t-trackname t-unicode t-url t-utf8 t-vector t-words t-wstat \
+		t-macros t-cgi
 
 noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
@@ -41,6 +42,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	base64.c base64.h				\
 	bits.c bits.h					\
 	cache.c cache.h					\
+	cgi.c cgi.h					\
 	client.c client.h				\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
@@ -59,6 +61,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	kvp.c kvp.h					\
 	log.c log.h log-impl.h				\
 	logfd.c logfd.h					\
+	macros.c macros-builtin.c macros.h		\
 	mem.c mem.h mem-impl.h				\
 	mime.h mime.c					\
 	mixer.c mixer.h mixer-oss.c mixer-alsa.c	\
@@ -140,6 +143,10 @@ t_casefold_SOURCES=t-casefold.c test.c test.h
 t_casefold_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_casefold_DEPENDENCIES=libdisorder.a
 
+t_cgi_SOURCES=t-cgi.c test.c test.h
+t_cgi_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
+t_cgi_DEPENDENCIES=libdisorder.a
+
 t_cookies_SOURCES=t-cookies.c test.c test.h
 t_cookies_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_cookies_DEPENDENCIES=libdisorder.a
@@ -163,6 +170,10 @@ t_hex_DEPENDENCIES=libdisorder.a
 t_kvp_SOURCES=t-kvp.c test.c test.h
 t_kvp_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_kvp_DEPENDENCIES=libdisorder.a
+
+t_macros_SOURCES=t-macros.c test.c test.h
+t_macros_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
+t_macros_DEPENDENCIES=libdisorder.a
 
 t_mime_SOURCES=t-mime.c test.c test.h
 t_mime_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
@@ -239,4 +250,4 @@ rebuild-unicode:
 
 CLEANFILES=definitions.h definitions.h.new
 
-EXTRA_DIST=trackdb.c trackdb-stub.c
+EXTRA_DIST=trackdb.c trackdb-stub.c t-macros-1.tmpl t-macros-2
