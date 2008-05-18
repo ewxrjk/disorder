@@ -149,7 +149,7 @@ static int exp_part(int nargs,
 		    void attribute((unused)) *u) {
   const char *track = args[0], *part = args[1];
   const char *context = nargs > 2 ? args[2] : "display";
-  char *s;
+  const char *s;
 
   if(track[0] != '/') {
     struct queue_entry *q = dcgi_findtrack(track);
@@ -160,11 +160,14 @@ static int exp_part(int nargs,
       return 0;
   }
   if(dcgi_client
-     && !disorder_part(dcgi_client, &s,
+     && !disorder_part(dcgi_client, (char **)&s,
                        track,
                        !strcmp(context, "short") ? "display" : context,
-                       part))
+                       part)) {
+    if(!strcmp(context, "short"))
+      s = truncate_for_display(s, config->short_display);
     return sink_writes(output, cgi_sgmlquote(s)) < 0 ? -1 : 0;
+  }
   return 0;
 }
 

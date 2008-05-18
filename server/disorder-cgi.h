@@ -56,6 +56,7 @@
 #include "split.h"
 #include "mime.h"
 #include "sendmail.h"
+#include "charset.h"
 
 extern disorder_client *dcgi_client;
 extern char *dcgi_cookie;
