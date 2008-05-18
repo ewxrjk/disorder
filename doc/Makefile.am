@@ -53,11 +53,11 @@ disorder_templates.5: disorder_templates.5.head disorder_templates.5.tail \
 		$(top_srcdir)/server/macros-disorder.c \
 		$(top_srcdir)/scripts/macro-docs
 	rm -f disorder_templates.5.new
-	cat disorder_templates.5.head >> disorder_templates.5.new
+	cat ${srcdir}/disorder_templates.5.head >> disorder_templates.5.new
 	$(top_srcdir)/scripts/macro-docs >> disorder_templates.5.new \
 		$(top_srcdir)/lib/macros-builtin.c \
 		$(top_srcdir)/server/macros-disorder.c 
-	cat disorder_templates.5.tail >> disorder_templates.5.new
+	cat ${srcdir}/disorder_templates.5.tail >> disorder_templates.5.new
 	mv disorder_templates.5.new disorder_templates.5
 
 EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \

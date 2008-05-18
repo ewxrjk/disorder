@@ -235,10 +235,10 @@ static void act_volume(void) {
 }
 
 /** @brief Expand the login template with @b @@error set to @p error
- * @param error Error keyword
+ * @param e Error keyword
  */
-static void login_error(const char *error) {
-  dcgi_error_string = error;
+static void login_error(const char *e) {
+  dcgi_error_string = e;
   dcgi_expand("login", 1);
 }
 
