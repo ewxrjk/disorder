@@ -145,6 +145,8 @@ This model will be changed in a future version.)
 Access control to the web interface is (currently) separate from DisOrder's own
 access control (HTTP authentication is required) but uses the same user
 namespace.
+.PP
+See \fBdisorder.cgi\fR(8) for more information.
 .SS "Searching And Tags"
 Search strings contain a list of search terms separated by spaces.
 A search term can either be a single word or a tag, prefixed with "tag:".
@@ -830,195 +832,6 @@ If this is set to a nonzero value then the driver will call \fB_exit\fR(2) if a
 write to the output file descriptor fails.
 This is a workaround for buggy players such as \fBogg123\fR that ignore
 write errors.
-.SH "WEB TEMPLATES"
-When \fBdisorder.cgi\fR wants to generate a page for action ACTION, it looks
-for ACTION.tmpl first in pkgconfdir and then in pkgdatadir.  Customization can
-be achieved by copy the desired templates to pkgconfdir and editing.  (Leave
-the ones in pkgdatadir alone, they will be overwritten on upgrade.)
-.PP
-The supplied templates are:
-.TP
-.B about.tmpl
-Display information about DisOrder.
-.TP
-.B choose.tmpl
-Navigates through the track database to choose a track to play.
-.TP
-.B login.tmpl
-The login page.
-.TP
-.B new.tmpl
-Lists newly added tracks.
-.TP
-.B playing.tmpl
-The "front page", which usually shows the currently playing tracks and
-the queue.
-Gets an HTTP \fBRefresh\fR header.
-.IP
-If the \fBmgmt\fR CGI argument is set to \fBtrue\fR then we include extra
-buttons for moving tracks up and down in the queue.
-There is some logic in \fBdisorder.cgi\fR to ensure that \fBmgmt=true\fR
-is preserved across refreshes and redirects back into itself, but
-URLs embedded in web pages must include it explicitly.
-.TP
-.B prefs.tmpl
-Views preferences.
-If the \fBfile\fR, \fBname\fR and \fBvalue\fR arguments are
-all set then that preference is modified; if \fBfile\fR and \fBname\fR are set
-but not \fBvalue\fR then the preference is deleted.
-.TP
-.B recent.tmpl
-Lists recently played tracks.
-.PP
-See \fBdisorder_templates\fR(5) for the syntax of template files.
-.SH "WEB OPTIONS"
-This is a file called \fIoptions\fR, searched for in the same manner
-as templates.
-It includes numerous options for the control of the web interface.
-The general syntax is the same as the main configuration
-file, except that it should be encoded using UTF-8 (though this might
-change to the current locale's character encoding; stick to ASCII to
-be safe).
-.PP
-The shipped \fIoptions\fR file includes four standard options files.
-In order, they are:
-.TP
-.I options.labels
-The default labels file.
-You wouldn't normally edit this directly - instead supply your own commands
-in \fIoptions.user\fR.
-Have a look at the shipped version of the file for documentation of
-labels used by the standard templates.
-.TP
-.I options.user
-A user options file.
-Here you should put any overrides for the default labels and any
-extra labels required by your modified templates.
-.PP
-Valid directives are:
-.TP
-.B columns \fINAME\fR \fIHEADING\fR...
-Defines the columns used in \fB@playing@\fR and \fB@recent@\fB.
-\fINAME\fR must be either \fBplaying\fR, \fBrecent\fR or \fBsearch\fR.
-\fIHEADING\fR...  is a list of heading names.
-If a column is defined more than once then the last definitions is used.
-.IP
-The heading names \fBbutton\fR, \fBlength\fR, \fBwhen\fR and \fBwho\fR
-are built in.
-.TP
-.B include \fIPATH\fR
-Includes another file.
-If \fIPATH\fR starts with a \fB/\fR then it is taken as is, otherwise
-it is searched for in the template path.
-.TP
-.B label \fINAME\fR \fIVALUE\fR
-Define a label.
-If a label is defined more than once then the last definition is used.
-.SS Labels
-Some labels are defined inside \fBdisorder.cgi\fR and others by the
-default templates.
-You can define your own labels and use them inside a template.
-.PP
-When an undefined label is expanded, if it has a dot in its name then
-the part after the final dot is used as its value.
-Otherwise the whole name is used as the value.
-.PP
-Labels are no longer documented here, see the shipped \fIoptions.labels\fR file
-instead.
-.SH "ACTIONS"
-What the web interface actually does is terminated by the \fBaction\fR CGI
-argument.
-The values listed below are supported.
-.PP
-Except as specified, all actions redirect back to the \fBplaying.html\fR
-template unless the \fBback\fR argument is present, in which case the URL it
-gives is used instead.
-.PP
-Redirection to \fBplaying.html\fR preserves \fBmgmt=true\fR if it is present.
-.TP 8
-.B "move"
-Move track \fBid\fR by offset \fBdelta\fR.
-.TP
-.B "play"
-Play track \fBfile\fR, or if that is missing then play all the tracks in
-\fBdirectory\fR.
-.TP
-.B "playing"
-Don't change any state, but instead compute a suitable refresh time and include
-that in an HTTP header.
-Expands the \fBplaying.html\fR template rather than redirecting.
-.IP
-This is the default if \fBaction\fR is missing.
-.TP
-.B "random\-disable"
-Disables random play.
-.TP
-.B "random\-enable"
-Enables random play.
-.TP
-.B "disable"
-Disables play completely.
-.TP
-.B "enable"
-Enables play.
-.TP
-.B "pause"
-Pauses the current track.
-.TP
-.B "remove"
-Remove track \fBid\fR.
-.TP
-.B "resume"
-Resumes play after a pause.
-.TP
-.B "scratch"
-Scratch the playing track.
-If \fBid\fR is present it must match the playing track.
-.TP
-.B "volume"
-Change the volume by \fBdelta\fR, or if that is missing then set it to the
-values of \fBleft\fR and \fBright\fR.
-Expands to the \fBvolume.html\fR template rather than redirecting.
-.TP
-.B "prefs"
-Adjust preferences from the \fBprefs.html\fR template (which it then expands
-rather than redirecting).
-.IP
-If
-.B parts
-is set then the cooked interface is assumed.
-The value of
-.B parts
-is used to determine which trackname preferences are set.
-By default the
-.B display
-context is adjusted but this can be overridden with the
-.B context
-argument.
-Also the
-.B random
-argument is checked; if it is set then random play is enabled for that track,
-otherwise it is disabled.
-.IP
-Otherwise if the
-.B name
-and
-.B value
-arguments are set then they are used to set a single preference.
-.IP
-Otherwise if just the
-.B name
-argument is set then that preference is deleted.
-.IP
-It is recommended that links to the \fBprefs\fR action use \fB@resolve@\fR to
-enure that the real track name is always used.
-Otherwise if the preferences page is used to adjust a trackname_ preference,
-the alias may change, leading to the URL going stale.
-.TP
-.B "error"
-This action is generated automatically when an error occurs connecting to the
-server.
-The \fBerror\fR label is set to an indication of what the error is.
 .SH "REGEXP SUBSTITUTION RULES"
 Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
 The only option used is \fBPCRE_UTF8\fR.
@@ -1054,7 +867,8 @@ name and \fBext\fR which is the filename extension, including the initial dot
 (or the empty string if there is not extension).
 .SH "SEE ALSO"
 \fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder\-dump\fR(8),
-\fBpcrepattern\fR(3), \fBdisorder_templates\fR(5)
+\fBpcrepattern\fR(3), \fBdisorder_templates\fR(5), \fBdisorder_actions\fR(5),
+\fBdisorder.cgi\fR(8)
 .\" Local Variables:
 .\" mode:nroff
 .\" fill-column:79

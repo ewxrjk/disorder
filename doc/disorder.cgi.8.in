@@ -1,0 +1,51 @@
+.\"
+.\" Copyright (C) 2008 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder.cgi 8
+.SH NAME
+disorder.cgi - DisOrder web interface
+.SH DESCRIPTION
+.B disorder.cgi
+is the web interface for DisOrder.  It runs as a CGI executable under
+(for example) Apache.
+.PP
+By default it will connect as the "guest" user.  This implies that
+\fBdisorder setup-guest\fR must have been run on the server for the
+CGI to work effectively, though it should be possible to manage
+without.
+.PP
+See \fBdisorder_actions\fR(5) for a description of what the CGI does.
+.PP
+See \fBdisorder_options\fR(5) for CGI-specific configuration and
+\dBdisorder_config\fR(5) for general configuration.
+.PP
+See \fBdisorder_templates\fR(5) for the template language used.
+.SH "WHERE IS IT?"
+The DisOrder makefiles don't know where to install the CGI, or indeed
+whether you wanted it installed, so they do not install it at all.
+You must copy it into the right location according to your web
+server's configuration.
+.SH "SEE ALSO"
+.BR disorder_config (5),
+.BR disorder_options (5),
+.BR disorder_templates (5),
+.BR disorder_actions (5)
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:

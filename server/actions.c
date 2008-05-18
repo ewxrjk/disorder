@@ -47,7 +47,20 @@ static void redirect(const char *url) {
     fatal(errno, "error writing to stdout");
 }
 
-/* 'playing' and 'manage' just add a Refresh: header */
+/*! playing
+ *
+ * Expands \fIplaying.tmpl\fR as if there was no special 'playing' action, but
+ * adds a Refresh: field to the HTTP header.  The maximum refresh interval is
+ * defined by \fBrefresh\fR (see \fBdisorder_config\fR(5)) but may be less if
+ * the end of the track is near.
+ */
+/*! manage
+ *
+ * Expands \fIplaying.tmpl\fR (NB not \fImanage.tmpl\fR) as if there was no
+ * special 'playing' action, and adds a Refresh: field to the HTTP header.  The
+ * maximum refresh interval is defined by \Bfrefresh\fR (see
+ * \fBdisorder_config\fR(5)) but may be less if the end of the track is near.
+ */
 static void act_playing(void) {
   long refresh = config->refresh;
   long length;
@@ -92,42 +105,71 @@ static void act_playing(void) {
   dcgi_expand("playing", 1);
 }
 
+/*! disable
+ *
+ * Disables play.
+ */
 static void act_disable(void) {
   if(dcgi_client)
     disorder_disable(dcgi_client);
   redirect(0);
 }
 
+/*! enable
+ *
+ * Enables play.
+ */
 static void act_enable(void) {
   if(dcgi_client)
     disorder_enable(dcgi_client);
   redirect(0);
 }
 
+/*! random-disable
+ *
+ * Disables random play.
+ */
 static void act_random_disable(void) {
   if(dcgi_client)
     disorder_random_disable(dcgi_client);
   redirect(0);
 }
 
+/*! random-enable
+ *
+ * Enables random play.
+ */
 static void act_random_enable(void) {
   if(dcgi_client)
     disorder_random_enable(dcgi_client);
   redirect(0);
 }
 
+/*! pause
+ *
+ * Pauses the current track (if there is one and it's not paused already).
+ */
 static void act_pause(void) {
   if(dcgi_client)
     disorder_pause(dcgi_client);
   redirect(0);
 }
 
+/*! resume
+ *
+ * Resumes the current track (if there is one and it's paused).
+ */
 static void act_resume(void) {
   if(dcgi_client)
     disorder_resume(dcgi_client);
   redirect(0);
 }
 
+/*! remove
+ *
+ * Removes the track given by the \fBid\fR argument.  If this is the currently
+ * playing track then it is scratched.
+ */
 static void act_remove(void) {
   const char *id;
   struct queue_entry *q;
@@ -159,6 +201,12 @@ static void act_remove(void) {
   redirect(0);
 }
 
+/*! move
+ *
+ * Moves the track given by the \fBid\fR argument the distance given by the
+ * \fBdelta\fR argument.  If this is positive the track is moved earlier in the
+ * queue and if negative, later.
+ */
 static void act_move(void) {
   const char *id, *delta;
   struct queue_entry *q;
@@ -183,6 +231,11 @@ static void act_move(void) {
   redirect(0);
 }
 
+/*! play
+ *
+ * Play the track given by the \fBtrack\fR argument, or if that is not set all
+ * the tracks in the directory given by the \fBdir\fR argument.
+ */
 static void act_play(void) {
   const char *track, *dir;
   char **tracks;
@@ -217,6 +270,14 @@ static int clamp(int n, int min, int max) {
   return n;
 }
 
+/*! volume
+ *
+ * If the \fBdelta\fR argument is set: adjust both channels by that amount (up
+ * if positive, down if negative).
+ *
+ * Otherwise if \fBleft\fR and \fBright\fR are set, set the channels
+ * independently to those values.
+ */
 static void act_volume(void) {
   const char *l, *r, *d;
   int nd;
@@ -271,6 +332,15 @@ static int login_as(const char *username, const char *password) {
   return 0;                             /* OK */
 }
 
+/*! login
+ *
+ * If \fBusername\fR and \fBpassword\fR are set (and the username isn't
+ * "guest") then attempt to log in using those credentials.  On success,
+ * redirects to the \fBback\fR argument if that is set, or just expands
+ * \fIlogin.tmpl\fI otherwise, with \fB@status\fR set to \fBloginok\fR.
+ *
+ * If they aren't set then just expands \fIlogin.tmpl\fI.
+ */
 static void act_login(void) {
   const char *username, *password;
 
@@ -297,6 +367,11 @@ static void act_login(void) {
   }
 }
 
+/*! logout
+ *
+ * Logs out the current user and expands \fIlogin.tmpl\fR with \fBstatus\fR or
+ * \fB@error\fR set according to the result.
+ */
 static void act_logout(void) {
   if(dcgi_client) {
     /* Ask the server to revoke the cookie */
@@ -317,6 +392,12 @@ static void act_logout(void) {
   dcgi_expand("login", 1);
 }
 
+/*! register
+ *
+ * Register a new user using \fBusername\fR, \fBpassword1\fR, \fBpassword2\fR
+ * and \fBemail\fR and expands \fIlogin.tmpl\fR with \fBstatus\fR or
+ * \fB@error\fR set according to the result.
+ */
 static void act_register(void) {
   const char *username, *password, *password2, *email;
   char *confirm, *content_type;
@@ -378,6 +459,12 @@ static void act_register(void) {
   dcgi_expand("login", 1);
 }
 
+/*! confirm
+ *
+ * Confirm a user registration using the nonce supplied in \fBc\fR and expands
+ * \fIlogin.tmpl\fR with \fBstatus\fR or \fB@error\fR set according to the
+ * result.
+ */
 static void act_confirm(void) {
   const char *confirmation;
 
@@ -408,6 +495,12 @@ static void act_confirm(void) {
   dcgi_expand("login", 1);
 }
 
+/*! edituser
+ *
+ * Edit user details using \fBusername\fR, \fBchangepassword1\fR,
+ * \fBchangepassword2\fR and \fBemail\fR and expands \fIlogin.tmpl\fR with
+ * \fBstatus\fR or \fB@error\fR set according to the result.
+ */
 static void act_edituser(void) {
   const char *email = cgi_get("email"), *password = cgi_get("changepassword1");
   const char *password2 = cgi_get("changepassword2");
@@ -463,6 +556,12 @@ static void act_edituser(void) {
   dcgi_expand("login", 1);
 }
 
+/*! reminder
+ *
+ * Issue an email password reminder to \fBusername\fR and expands
+ * \fIlogin.tmpl\fR with \fBstatus\fR or \fB@error\fR set according to the
+ * result.
+ */
 static void act_reminder(void) {
   const char *const username = cgi_get("username");
 
@@ -539,6 +638,30 @@ static int process_prefs(int numfile) {
   return 0;
 }
 
+/*! prefs
+ *
+ * Set preferences on a number of tracks.
+ *
+ * The tracks to modify are specified in arguments \fB0_track\fR, \fB1_track\fR
+ * etc.  The number sequence must be contiguous and start from 0.
+ *
+ * For each track \fIINDEX\fB_track\fR:
+ * - \fIINDEX\fB_\fIPART\fR is used to set the trackname preference for
+ * that part.  (See \fBparts\fR below.)
+ * - \fIINDEX\fB_\fIrandom\fR if present enables random play for this track
+ * or disables it if absent.
+ * - \fIINDEX\fB_\fItags\fR sets the list of tags for this track.
+ * - \fIINDEX\fB_\fIweight\fR sets the weight for this track.
+ *
+ * \fBparts\fR can be set to the track name parts to modify.  The default is
+ * "artist album title".
+ *
+ * \fBcontext\fR can be set to the context to modify.  The default is
+ * "display".
+ *
+ * If the server detects a preference being set to its default, it removes the
+ * preference, thus keeping the database tidy.
+ */
 static void act_set(void) {
   int numfile;
 
