@@ -56,6 +56,7 @@
 #include "trackname.h"
 #include "queue.h"
 #include "server-queue.h"
+#include "random.h"
 
 #define BASE_WEIGHT 90000
 
@@ -189,35 +190,6 @@ static unsigned long compute_weight(const char *track,
   return BASE_WEIGHT;
 }
 
-static unsigned char random_buffer[4096];
-static size_t random_left;
-
-/** @brief Fill [buf, buf+n) with random bytes */
-static void random_bytes(unsigned char *buf, size_t n) {
-  while(n > 0) {
-    if(random_left > 0) {
-      const size_t this_time = n > random_left ? random_left : n;
-
-      memcpy(buf, random_buffer + random_left - this_time, this_time);
-      n -= this_time;
-      random_left -= this_time;
-    } else {
-      static int fd = -1;
-      int r;
-
-      if(fd < 0) {
-        if((fd = open("/dev/urandom", O_RDONLY)) < 0)
-          fatal(errno, "opening /dev/urandom");
-      }
-      if((r = read(fd, random_buffer, sizeof random_buffer)) < 0)
-        fatal(errno, "reading /dev/urandom");
-      if((size_t)r < sizeof random_buffer)
-        fatal(0, "short read from /dev/urandom");
-      random_left = sizeof random_buffer;
-    }
-  }
-}
-
 /** @brief Pick a random integer uniformly from [0, limit) */
 static unsigned long long pick_weight(unsigned long long limit) {
   unsigned char buf[(sizeof(unsigned long long) * CHAR_BIT + 7)/8], m;
@@ -262,7 +234,7 @@ static unsigned long long pick_weight(unsigned long long limit) {
 
   do {
     /* Actually get some random data. */
-    random_bytes(buf, nby);
+    random_get(buf, nby);
 
     /* Clobber the top byte.  */
     buf[0] &= m;

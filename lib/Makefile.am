@@ -18,7 +18,7 @@
 # USA
 #
 
-TESTS=t-addr t-basen t-bits t-cache t-casefold t-cookies \
+TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-cookies \
 		t-filepart t-hash t-heap t-hex t-kvp t-mime t-printf \
 		t-regsub t-selection t-signame t-sink t-split t-syscalls \
 		t-trackname t-unicode t-url t-utf8 t-vector t-words t-wstat \
@@ -37,6 +37,7 @@ endif
 libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
 	alsabg.c alsabg.h				\
+	arcfour.c arcfour.h				\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
 	base64.c base64.h				\
@@ -69,6 +70,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	printf.c printf.h				\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\
+	random.c random.h				\
 	regsub.c regsub.h				\
 	rights.c queue-rights.c rights.h		\
 	rtp.h						\
@@ -126,6 +128,10 @@ defs.lo: definitions.h versionstring.h
 t_addr_SOURCES=t-addr.c test.c test.h
 t_addr_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_addr_DEPENDENCIES=libdisorder.a
+
+t_arcfour_SOURCES=t-arcfour.c test.c test.h
+t_arcfour_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
+t_arcfour_DEPENDENCIES=libdisorder.a
 
 t_basen_SOURCES=t-basen.c test.c test.h
 t_basen_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
