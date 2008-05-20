@@ -115,20 +115,22 @@ const char *truncate_for_display(const char *s, long max) {
   uint32_t *s32;
   size_t l32, cut;
   utf32_iterator it;
+  long graphemes;
 
   /* Convert to UTF-32 for processing */
   if(!(s32 = utf8_to_utf32(s, strlen(s), &l32)))
     return 0;
   it = utf32_iterator_new(s32, l32);
   cut = l32;
-  while(max && utf32_iterator_where(it) < l32) {
+  graphemes = 0;                        /* # of graphemes left of it */
+  while(graphemes <= max && utf32_iterator_where(it) < l32) {
+    if(graphemes == max - 1)
+      cut = utf32_iterator_where(it);
     utf32_iterator_advance(it, 1);
     if(utf32_iterator_grapheme_boundary(it))
-      --max;
-    if(max == 1)
-      cut = utf32_iterator_where(it);
+      ++graphemes;
   }
-  if(max == 0) {                        /* we need to cut */
+  if(graphemes > max) {                 /* we need to cut */
     s32[cut] = 0x2026;                  /* HORIZONTAL ELLIPSIS */
     l32 = cut + 1;
     s = utf32_to_utf8(s32, l32, 0);
