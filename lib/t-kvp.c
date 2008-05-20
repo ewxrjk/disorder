@@ -57,6 +57,9 @@ static void test_kvp(void) {
   insist(n == strlen("bar=foo&zog=%25"));
   check_string(urlencodestring("abc% +\n"),
                "abc%25%20%2b%0a");
+  check_integer(urldecode(sink_error(), "bar=foo", 7), -1);
+  check_integer(urlencode(sink_error(), "wibble", 7), -1);
+  check_integer(urlencode(sink_error(), " ", 1), -1);
 }
 
 TEST(kvp);

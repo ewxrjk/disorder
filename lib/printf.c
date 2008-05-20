@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,8 @@ static int do_write(struct state *s,
 #endif
     return -1;
   }
-  if(s->output->write(s->output, buffer, nbytes) < 0) return -1;
+  if(s->output->write(s->output, buffer, nbytes) < 0)
+    return -1;
   s->bytes += nbytes;
   return 0;
 }
@@ -113,9 +114,11 @@ static int do_pad(struct state *s, int ch, unsigned n) {
   t = n / 32;
   n %= 32;
   while(t-- > 0)
-    if(do_write(s, padding, 32) < 0) return -1;
+    if(do_write(s, padding, 32) < 0)
+      return -1;
   if(n > 0)
-    if(do_write(s, padding, n) < 0) return -1;
+    if(do_write(s, padding, n) < 0)
+      return -1;
   return 0;
 }
 
@@ -128,7 +131,8 @@ static int get_integer(int *intp, const char *ptr) {
 
   errno = 0;
   n = strtol(ptr, &e, 10);
-  if(errno || n > INT_MAX || n < INT_MIN || e == ptr) return -1;
+  if(errno || n > INT_MAX || n < INT_MIN || e == ptr)
+    return -1;
   *intp = n;
   return e - ptr;
 }
@@ -163,12 +167,14 @@ static int check_string(const struct conversion *c) {
 }
 
 static int check_pointer(const struct conversion *c) {
-  if(c->length) return -1;
+  if(c->length)
+    return -1;
   return 0;
 }
 
 static int check_percent(const struct conversion *c) {
-  if(c->flags || c->width || c->precision || c->length) return -1;
+  if(c->flags || c->width || c->precision || c->length)
+    return -1;
   return 0;
 }
 
@@ -235,7 +241,8 @@ static int output_integer(struct state *s, struct conversion *c) {
   if(!(c->flags & f_precision))
     c->precision = 1;
   /* enforce sign */
-  if((c->flags & f_sign) && !sign) sign = '+';
+  if((c->flags & f_sign) && !sign)
+    sign = '+';
   /* compute the digits */
   iszero = (u == 0);
   dp = sizeof digits;
@@ -284,23 +291,38 @@ static int output_integer(struct state *s, struct conversion *c) {
    * '-' beats '0'.
    */
   if(c->flags & f_left) {
-    if(sign && do_write(s, &sign, 1)) return -1;
-    if(xform && do_write(s, c->specifier->xform, xform)) return -1;
-    if(prec && do_pad(s, '0', prec) < 0) return -1;
-    if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
+    if(sign && do_write(s, &sign, 1))
+      return -1;
+    if(xform && do_write(s, c->specifier->xform, xform))
+      return -1;
+    if(prec && do_pad(s, '0', prec) < 0)
+      return -1;
+    if(ndigits && do_write(s, digits + dp, ndigits))
+      return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
   } else if(c->flags & f_zero) {
-    if(sign && do_write(s, &sign, 1)) return -1;
-    if(xform && do_write(s, c->specifier->xform, xform)) return -1;
-    if(pad && do_pad(s, '0', pad) < 0) return -1;
-    if(prec && do_pad(s, '0', prec) < 0) return -1;
-    if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
+    if(sign && do_write(s, &sign, 1))
+      return -1;
+    if(xform && do_write(s, c->specifier->xform, xform))
+      return -1;
+    if(pad && do_pad(s, '0', pad) < 0)
+      return -1;
+    if(prec && do_pad(s, '0', prec) < 0)
+      return -1;
+    if(ndigits && do_write(s, digits + dp, ndigits))
+      return -1;
   } else {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
-    if(sign && do_write(s, &sign, 1)) return -1;
-    if(xform && do_write(s, c->specifier->xform, xform)) return -1;
-    if(prec && do_pad(s, '0', prec) < 0) return -1;
-    if(ndigits && do_write(s, digits + dp, ndigits)) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
+    if(sign && do_write(s, &sign, 1))
+      return -1;
+    if(xform && do_write(s, c->specifier->xform, xform))
+      return -1;
+    if(prec && do_pad(s, '0', prec) < 0)
+      return -1;
+    if(ndigits && do_write(s, digits + dp, ndigits))
+      return -1;
   }
   return 0;
 }
@@ -323,11 +345,15 @@ static int output_string(struct state *s, struct conversion *c) {
   } else
     pad = 0;
   if(c->flags & f_left) {
-    if(do_write(s, str, len) < 0) return -1;
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
+    if(do_write(s, str, len) < 0)
+      return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
   } else {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
-    if(do_write(s, str, len) < 0) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
+    if(do_write(s, str, len) < 0)
+      return -1;
   }
   return 0;
   
@@ -344,11 +370,15 @@ static int output_char(struct state *s, struct conversion *c) {
   } else
     pad = 0;
   if(c->flags & f_left) {
-    if(do_write(s, &ch, 1) < 0) return -1;
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
+    if(do_write(s, &ch, 1) < 0)
+      return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
   } else {
-    if(pad && do_pad(s, ' ', pad) < 0) return -1;
-    if(do_write(s, &ch, 1) < 0) return -1;
+    if(pad && do_pad(s, ' ', pad) < 0)
+      return -1;
+    if(do_write(s, &ch, 1) < 0)
+      return -1;
   }
   return 0;
 }
@@ -397,7 +427,8 @@ static int parse_conversion(struct conversion *c, const char *ptr) {
   }
   /* minimum field width */
   if(*ptr >= '0' && *ptr <= '9') {
-    if((n = get_integer(&c->width, ptr)) < 0) return -1;
+    if((n = get_integer(&c->width, ptr)) < 0)
+      return -1;
     ptr += n;
     c->flags |= f_width;
   } else if(*ptr == '*') {
@@ -409,7 +440,8 @@ static int parse_conversion(struct conversion *c, const char *ptr) {
   if(*ptr == '.') {
     ++ptr;
     if(*ptr >= '0' && *ptr <= '9') {
-      if((n = get_integer(&c->precision, ptr)) < 0) return -1;
+      if((n = get_integer(&c->precision, ptr)) < 0)
+	return -1;
       ptr += n;
     } else if(*ptr == '*') {
       ++ptr;
@@ -421,12 +453,20 @@ static int parse_conversion(struct conversion *c, const char *ptr) {
   /* length modifier */
   switch(ch = *ptr++) {
   case 'h':
-    if((ch = *ptr++) == 'h') { c->length = l_char; ch = *ptr++; }
-    else c->length = l_short;
+    if((ch = *ptr++) == 'h') {
+      c->length = l_char;
+      ch = *ptr++;
+    }
+    else
+      c->length = l_short;
     break;
   case 'l':
-    if((ch = *ptr++) == 'l') { c->length = l_longlong; ch = *ptr++; }
-    else c->length = l_long;
+    if((ch = *ptr++) == 'l') {
+      c->length = l_longlong;
+      ch = *ptr++;
+    }
+    else
+      c->length = l_long;
     break;
   case 'q': c->length = l_longlong; ch = *ptr++; break;
   case 'j': c->length = l_intmax_t; ch = *ptr++; break;
@@ -438,10 +478,14 @@ static int parse_conversion(struct conversion *c, const char *ptr) {
   l = 0;
   r = sizeof specifiers / sizeof *specifiers;
   while(l <= r && (specifiers[m = (l + r) / 2].ch != ch))
-    if(ch < specifiers[m].ch) r = m - 1;
-    else l = m + 1;
-  if(specifiers[m].ch != ch) return -1;
-  if(specifiers[m].check(c)) return -1;
+    if(ch < specifiers[m].ch)
+      r = m - 1;
+    else
+      l = m + 1;
+  if(specifiers[m].ch != ch)
+    return -1;
+  if(specifiers[m].check(c))
+    return -1;
   c->specifier = &specifiers[m];
   return ptr - start;
 }
@@ -465,12 +509,14 @@ int byte_vsinkprintf(struct sink *output,
     for(ptr = fmt; *fmt && *fmt != '%'; ++fmt)
       ;
     if((n = fmt - ptr))
-      if(do_write(&s, ptr, n) < 0) goto error;
+      if(do_write(&s, ptr, n) < 0)
+	goto error;
     if(!*fmt)
       break;
     ++fmt;
     /* parse conversion */
-    if((n = parse_conversion(&c, fmt)) < 0) goto error;
+    if((n = parse_conversion(&c, fmt)) < 0)
+      goto error;
     fmt += n;
     /* fill in width and precision */
     if((c.flags & f_width) && c.width == -1)
@@ -482,13 +528,24 @@ int byte_vsinkprintf(struct sink *output,
       if((c.precision = va_arg(s.ap, int)) < 0)
 	c.flags ^= f_precision;
     /* generate the output */
-    if(c.specifier->output(&s, &c) < 0) goto error;
+    if(c.specifier->output(&s, &c) < 0)
+      goto error;
   }
   va_end(s.ap);
   return s.bytes;
 error:
   va_end(s.ap);
   return -1;
+}
+
+int byte_sinkprintf(struct sink *output, const char *fmt, ...) {
+  int n;
+  va_list ap;
+
+  va_start(ap, fmt);
+  n = byte_vsinkprintf(output, fmt, ap);
+  va_end(ap);
+  return n;
 }
 
 /*

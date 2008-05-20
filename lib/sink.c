@@ -147,6 +147,22 @@ struct sink *sink_discard(void) {
   return s;
 }
 
+/* error sink **************************************************************/
+
+static int sink_error_write(struct sink attribute((unused)) *s,
+			    const void attribute((unused)) *buffer,
+			    int attribute((unused)) nbytes) {
+  return -1;
+}
+
+/** @brief Return a sink which discards all output */
+struct sink *sink_error(void) {
+  struct sink *s = xmalloc(sizeof *s);
+
+  s->write = sink_error_write;
+  return s;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

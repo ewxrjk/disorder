@@ -25,6 +25,7 @@ struct sink;
 int byte_vsinkprintf(struct sink *output,
 		     const char *fmt,
 		     va_list ap);
+int byte_sinkprintf(struct sink *output, const char *fmt, ...);
 /* partial printf implementation that takes ASCII format strings but
  * arbitrary byte strings as args to %s and friends.  Lots of bits are
  * missing! */

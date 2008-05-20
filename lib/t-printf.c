@@ -19,6 +19,11 @@
  */
 #include "test.h"
 
+/* launder a string constant to stop gcc warnings */
+static const char *L(const char *s) {
+  return s;
+}
+
 static void test_printf(void) {
   char c;
   short s;
@@ -34,6 +39,8 @@ static void test_printf(void) {
   
   check_string(do_printf("%d", 999), "999");
   check_string(do_printf("%d", -999), "-999");
+  check_string(do_printf("%+d", 999), "+999");
+  check_string(do_printf("%+d", -999), "-999");
   check_string(do_printf("%i", 999), "999");
   check_string(do_printf("%i", -999), "-999");
   check_string(do_printf("%u", 999), "999");
@@ -129,6 +136,44 @@ static void test_printf(void) {
   insist(fgets(buffer, sizeof buffer, fp) == buffer);
   check_string(buffer, "    wibble\n");
   fclose(fp);
+  check_integer(byte_snprintf(buffer, sizeof buffer,
+                              "%18446744073709551616d", 10), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer,
+                              "%.18446744073709551616d", 10), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%hs"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%qs"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%js"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%zs"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%ts"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%Ls"), ""), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%hp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%lp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%qp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%jp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%zp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%tp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%Lp"), (void *)0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%h%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%l%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%q%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%j%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%z%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%t%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%L%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, "%2147483647s%2147483647s", "", ""), -1);
+  check_integer(byte_sinkprintf(sink_error(), ""), 0);
+  check_integer(byte_sinkprintf(sink_error(), "%5s", ""), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%d", 0), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%d", 1), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%2d", 0), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%d", -1), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%#x", 10), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%-d", 0), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%-d", 1), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%-2d", 0), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%-d", -1), -1);
+  check_integer(byte_sinkprintf(sink_error(), "%-#x", 10), -1);
+
 }
 
 TEST(printf);

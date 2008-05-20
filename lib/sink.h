@@ -51,7 +51,10 @@ struct sink *sink_dynstr(struct dynstr *output);
 /* return a sink which appends to @output@. */
 
 struct sink *sink_discard(void);
-/* reutrn a sink which junks everything */
+/* return a sink which junks everything */
+
+struct sink *sink_error(void);
+/* return a sink which fails all writes */
 
 int sink_vprintf(struct sink *s, const char *fmt, va_list ap);
 int sink_printf(struct sink *s, const char *fmt, ...)
