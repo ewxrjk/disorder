@@ -46,6 +46,27 @@ static void test_url(void) {
   insist(parse_url("http://www.example.com:100000/", &p) == -1);
   insist(parse_url("http://www.example.com:1000000000000/", &p) == -1);
   insist(parse_url("http://www.example.com/example%2zpath", &p) == -1);
+
+  setenv("SERVER_NAME", "www.anjou.terraraq.org.uk", 1);
+  setenv("SERVER_PORT", "80", 1);
+  setenv("SCRIPT_NAME", "/~richard/env.cgi", 1);
+  check_string(infer_url(),
+               "http://www.anjou.terraraq.org.uk/~richard/env.cgi");
+  setenv("HTTPS", "on", 1);
+  check_string(infer_url(),
+               "https://www.anjou.terraraq.org.uk/~richard/env.cgi");
+  setenv("QUERY_STRING", "foo", 1);
+  check_string(infer_url(),
+               "https://www.anjou.terraraq.org.uk/~richard/env.cgi");
+  setenv("REQUEST_URI", "/~richard/env%2ecgi", 1);
+  check_string(infer_url(),
+               "https://www.anjou.terraraq.org.uk/~richard/env%2ecgi");
+  setenv("REQUEST_URI", "/~richard/env%2ecgi?foo", 1);
+  check_string(infer_url(),
+               "https://www.anjou.terraraq.org.uk/~richard/env%2ecgi");
+  setenv("SERVER_PORT", "8080", 1);
+  check_string(infer_url(),
+               "https://www.anjou.terraraq.org.uk:8080/~richard/env%2ecgi");
 }
 
 TEST(url);
