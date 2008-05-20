@@ -19,6 +19,20 @@
  */
 #include "test.h"
 
+static int count;
+
+static int test_hash_callback(const char attribute((unused)) *key,
+                              void attribute((unused)) *value,
+                              void attribute((unused)) *u) {
+  if(u)
+    insist(count < 100);
+  ++count;
+  if(u)
+    return count >= 100 ? 99 : 0;
+  else
+    return 0;
+}
+
 static void test_hash(void) {
   hash *h;
   int i, *ip;
@@ -28,6 +42,14 @@ static void test_hash(void) {
   for(i = 0; i < 10000; ++i)
     insist(hash_add(h, do_printf("%d", i), &i, HASH_INSERT) == 0);
   check_integer(hash_count(h), 10000);
+  i = hash_foreach(h, test_hash_callback, NULL);
+  check_integer(i, 0);
+  check_integer(count, 10000);
+  count = 0;
+  i = hash_foreach(h, test_hash_callback, h);
+  check_integer(i, 99);
+  check_integer(count, 100);
+  
   for(i = 0; i < 10000; ++i) {
     insist((ip = hash_find(h, do_printf("%d", i))) != 0);
     check_integer(*ip, i);
