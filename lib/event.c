@@ -47,6 +47,8 @@
 #include "printf.h"
 #include "sink.h"
 #include "vector.h"
+#include "timeval.h"
+#include "heap.h"
 
 /** @brief A timeout */
 struct timeout {
@@ -54,8 +56,17 @@ struct timeout {
   struct timeval when;
   ev_timeout_callback *callback;
   void *u;
-  int resolve;
+  int active;
 };
+
+/** @brief Comparison function for timeouts */
+static int timeout_lt(const struct timeout *a,
+		      const struct timeout *b) {
+  return tvlt(&a->when, &b->when);
+}
+
+HEAP_TYPE(timeout_heap, struct timeout *, timeout_lt);
+HEAP_DEFINE(timeout_heap, struct timeout *, timeout_lt);
 
 /** @brief A file descriptor in one mode */
 struct fd {
@@ -106,11 +117,8 @@ struct ev_source {
   /** @brief File descriptors, per mode */
   struct fdmode mode[ev_nmodes];
 
-  /** @brief Sorted linked list of timeouts
-   *
-   * We could use @ref HEAP_TYPE now, but there aren't many timeouts.
-   */
-  struct timeout *timeouts;
+  /** @brief Heap of timeouts */
+  struct timeout_heap timeouts[1];
 
   /** @brief Array of handled signals */
   struct signal signals[NSIG];
@@ -146,27 +154,6 @@ static const char *modenames[] = { "read", "write", "except" };
 
 /* utilities ******************************************************************/
 
-/** @brief Great-than comparison for timevals
- *
- * Ought to be in @file lib/timeval.h
- */
-static inline int gt(const struct timeval *a, const struct timeval *b) {
-  if(a->tv_sec > b->tv_sec)
-    return 1;
-  if(a->tv_sec == b->tv_sec
-     && a->tv_usec > b->tv_usec)
-    return 1;
-  return 0;
-}
-
-/** @brief Greater-than-or-equal comparison for timevals
- *
- * Ought to be in @ref lib/timeval.h
- */
-static inline int ge(const struct timeval *a, const struct timeval *b) {
-  return !gt(b, a);
-}
-
 /* creation *******************************************************************/
 
 /** @brief Create a new event loop */
@@ -179,6 +166,7 @@ ev_source *ev_new(void) {
     FD_ZERO(&ev->mode[n].enabled);
   ev->sigpipe[0] = ev->sigpipe[1] = -1;
   sigemptyset(&ev->sigmask);
+  timeout_heap_init(ev->timeouts);
   return ev;
 }
 
@@ -194,7 +182,7 @@ int ev_run(ev_source *ev) {
     int n, mode;
     int ret;
     int maxfd;
-    struct timeout *t, **tt;
+    struct timeout *timeouts, *t, **tt;
     struct stat sb;
 
     xgettimeofday(&now, 0);
@@ -202,23 +190,30 @@ int ev_run(ev_source *ev) {
      * while we're handling them (otherwise we'd have to break out of infinite
      * loops, preferrably without starving better-behaved subsystems).  Hence
      * the slightly complicated two-phase approach here. */
-    for(t = ev->timeouts;
-	t && ge(&now, &t->when);
-	t = t->next) {
-      t->resolve = 1;
+    /* First we read those timeouts that have triggered out of the heap.  We
+     * keep them in the same order they came out of the heap in. */
+    tt = &timeouts;
+    while(timeout_heap_count(ev->timeouts)
+	  && tvle(&timeout_heap_first(ev->timeouts)->when, &now)) {
+      /* This timeout has reached its trigger time; provided it has not been
+       * cancelled we add it to the timeouts list. */
+      t = timeout_heap_remove(ev->timeouts);
+      if(t->active) {
+	*tt = t;
+	tt = &t->next;
+      }
+    }
+    *tt = 0;
+    /* Now we can run the callbacks for those timeouts.  They might add further
+     * timeouts that are already in the past but they won't trigger until the
+     * next time round the event loop. */
+    for(t = timeouts; t; t = t->next) {
       D(("calling timeout for %ld.%ld callback %p %p",
 	 (long)t->when.tv_sec, (long)t->when.tv_usec,
 	 (void *)t->callback, t->u));
       ret = t->callback(ev, &now, t->u);
       if(ret)
 	return ret;
-    }
-    tt = &ev->timeouts;
-    while((t = *tt)) {
-      if(t->resolve)
-	*tt = t->next;
-      else
-	tt = &t->next;
     }
     maxfd = 0;
     for(mode = 0; mode < ev_nmodes; ++mode) {
@@ -228,10 +223,11 @@ int ev_run(ev_source *ev) {
     }
     xsigprocmask(SIG_UNBLOCK, &ev->sigmask, 0);
     do {
-      if(ev->timeouts) {
+      if(timeout_heap_count(ev->timeouts)) {
+	t = timeout_heap_first(ev->timeouts);
 	xgettimeofday(&now, 0);
-	delta.tv_sec = ev->timeouts->when.tv_sec - now.tv_sec;
-	delta.tv_usec = ev->timeouts->when.tv_usec - now.tv_usec;
+	delta.tv_sec = t->when.tv_sec - now.tv_sec;
+	delta.tv_usec = t->when.tv_usec - now.tv_usec;
 	if(delta.tv_usec < 0) {
 	  delta.tv_usec += 1000000;
 	  --delta.tv_sec;
@@ -473,7 +469,7 @@ int ev_timeout(ev_source *ev,
 	       const struct timeval *when,
 	       ev_timeout_callback *callback,
 	       void *u) {
-  struct timeout *t, *p, **pp;
+  struct timeout *t;
 
   D(("registering timeout at %ld.%ld callback %p %p",
      when ? (long)when->tv_sec : 0, when ? (long)when->tv_usec : 0,
@@ -483,11 +479,8 @@ int ev_timeout(ev_source *ev,
     t->when = *when;
   t->callback = callback;
   t->u = u;
-  pp = &ev->timeouts;
-  while((p = *pp) && gt(&t->when, &p->when))
-    pp = &p->next;
-  t->next = p;
-  *pp = t;
+  t->active = 1;
+  timeout_heap_insert(ev->timeouts, t);
   if(handlep)
     *handlep = t;
   return 0;
@@ -500,19 +493,13 @@ int ev_timeout(ev_source *ev,
  *
  * If @p handle is 0 then this is a no-op.
  */
-int ev_timeout_cancel(ev_source *ev,
+int ev_timeout_cancel(ev_source attribute((unused)) *ev,
 		      ev_timeout_handle handle) {
-  struct timeout *t = handle, *p, **pp;
+  struct timeout *t = handle;
 
-  if(!t)
-    return 0;
-  for(pp = &ev->timeouts; (p = *pp) && p != t; pp = &p->next)
-    ;
-  if(p) {
-    *pp = p->next;
-    return 0;
-  } else
-    return -1;
+  if(t)
+    t->active = 0;
+  return 0;
 }
 
 /* signals ********************************************************************/

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,37 @@ static inline int64_t tvsub_us(const struct timeval a,
                                const struct timeval b) {
   return (((uint64_t)a.tv_sec * 1000000 + a.tv_usec)
           - ((uint64_t)b.tv_sec * 1000000 + b.tv_usec));
+}
+
+/** @brief Great-than comparison for timevals */
+static inline int tvgt(const struct timeval *a, const struct timeval *b) {
+  if(a->tv_sec > b->tv_sec)
+    return 1;
+  if(a->tv_sec == b->tv_sec
+     && a->tv_usec > b->tv_usec)
+    return 1;
+  return 0;
+}
+
+/** @brief Less-than
+    comparison for timevals */
+static inline int tvlt(const struct timeval *a, const struct timeval *b) {
+  if(a->tv_sec < b->tv_sec)
+    return 1;
+  if(a->tv_sec == b->tv_sec
+     && a->tv_usec < b->tv_usec)
+    return 1;
+  return 0;
+}
+
+/** @brief Greater-than-or-equal comparison for timevals */
+static inline int tvge(const struct timeval *a, const struct timeval *b) {
+  return !tvlt(a, b);
+}
+
+/** @brief Less-than-or-equal comparison for timevals */
+static inline int tvle(const struct timeval *a, const struct timeval *b) {
+  return !tvgt(a, b);
 }
 
 #endif /* TIMEVAL_H */
