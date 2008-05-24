@@ -191,8 +191,19 @@ Each line contains the ID, a timestamp, 'N' or 'J' for normal or junk priority,
 the user, the action and action-specific data.
 .TP
 .B schedule-play \fIWHEN PRIORITY TRACK\fI
-Play \fITRACK\fR at time \fIWHEN\fR (which must currently be a raw \fBtime_t\fR
-value).
+Play \fITRACK\fR at time \fIWHEN\fR.
+Various time/date formats are supported depending on locale but the following
+three will always work:
+.RS
+.RS
+.TP
+.B "YYYY-MM-DD HH:MM:SS"
+.TP
+.B "HH:MM:SS"
+.TP
+.B "HH:MM"
+.RE
+.RE
 .IP
 \fIPRIORITY\fR should be \fBjunk\fR or \fBnormal\fR.
 This determines how the event is handled if it becomes due when the server is

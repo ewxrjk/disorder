@@ -82,7 +82,8 @@ def test():
                    "--config", disorder._configfile,
                    "--no-per-user-config",
                    "schedule-play",
-                   str(now + 4),
+                   time.strftime("%Y-%m-%d %H:%M:%S",
+                                 time.localtime(now + 4)),
                    "normal",
                    track])
     print " disorder schedule-list output:"
@@ -110,7 +111,8 @@ def test():
                    "--config", disorder._configfile,
                    "--no-per-user-config",
                    "schedule-set-global",
-                   str(now + 4),
+                   time.strftime("%Y-%m-%d %H:%M:%S",
+                                 time.localtime(now + 4)),
                    "normal",
                    "random-play",
                    "yes"])

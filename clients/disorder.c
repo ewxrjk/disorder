@@ -54,6 +54,7 @@
 #include "authorize.h"
 #include "vector.h"
 #include "version.h"
+#include "dateparse.h"
 
 static disorder_client *client;
 
@@ -545,7 +546,7 @@ static void cf_schedule_del(char **argv) {
 
 static void cf_schedule_play(char **argv) {
   if(disorder_schedule_add(getclient(),
-			   atoll(argv[0]),
+			   dateparse(argv[0]),
 			   argv[1],
 			   "play",
 			   argv[2]))
@@ -554,7 +555,7 @@ static void cf_schedule_play(char **argv) {
 
 static void cf_schedule_set_global(char **argv) {
   if(disorder_schedule_add(getclient(),
-			   atoll(argv[0]),
+			   dateparse(argv[0]),
 			   argv[1],
 			   "set-global",
 			   argv[2],
@@ -564,7 +565,7 @@ static void cf_schedule_set_global(char **argv) {
 
 static void cf_schedule_unset_global(char **argv) {
   if(disorder_schedule_add(getclient(),
-			   atoll(argv[0]),
+			   dateparse(argv[0]),
 			   argv[1],
 			   "set-global",
 			   argv[2],
@@ -726,6 +727,7 @@ int main(int argc, char **argv) {
   pcre_malloc = xmalloc;
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_TIME, "")) fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();

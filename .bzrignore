@@ -190,3 +190,4 @@ doc/disorder_templates.5.in
 lib/t-arcfour
 lib/t-charset
 lib/t-event
+lib/t-dateparse
