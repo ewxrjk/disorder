@@ -1289,12 +1289,16 @@ int disorder_schedule_add(disorder_client *c,
   snprintf(when_str, sizeof when_str, "%lld", (long long)when);
   va_start(ap, action);
   if(!strcmp(action, "play"))
-    rc = disorder_simple(c, 0, when_str, priority,
-			 action, va_arg(ap, char *));
-  else if(!strcmp(action, "set-global"))
-    rc = disorder_simple(c, 0, when_str, priority,
-			 action, va_arg(ap, char *), va_arg(ap, char *));
-  else
+    rc = disorder_simple(c, 0, "schedule-add", when_str, priority,
+			 action, va_arg(ap, char *),
+			 (char *)0);
+  else if(!strcmp(action, "set-global")) {
+    const char *key = va_arg(ap, char *);
+    const char *value = va_arg(ap, char *);
+    rc = disorder_simple(c, 0,"schedule-add",  when_str, priority,
+			 action, key, value,
+			 (char *)0);
+  } else
     fatal(0, "unknown action '%s'", action);
   va_end(ap);
   return rc;

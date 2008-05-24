@@ -50,6 +50,7 @@ def test():
     assert waited < 10, "checking track played within a reasonable period"
     assert waited > 2, "checking track didn't play immediately"
     assert p["track"] == track, "checking right track played"
+    assert c.schedule_list() == [], "checking schedule is empty"
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
@@ -70,6 +71,96 @@ def test():
         p = c.playing()
     assert waited < 10, "checking a track played within a reasonable period"
     assert waited > 2, "checking a track didn't play immediately"
+    print " disabling random play"
+    c.random_disable()
+    print " waiting for nothing to be playing"
+    while c.playing() is not None:
+        time.sleep(1)
+    print " scheduling track to play later via command line"
+    now = int(time.time())
+    dtest.command(["disorder",
+                   "--config", disorder._configfile,
+                   "--no-per-user-config",
+                   "schedule-play",
+                   str(now + 4),
+                   "normal",
+                   track])
+    print " disorder schedule-list output:"
+    print string.join(dtest.command(["disorder",
+                                     "--config", disorder._configfile,
+                                     "--no-per-user-config",
+                                     "schedule-list"]), ""),
+    print " waiting for it to play"
+    waited = 0
+    p = c.playing()
+    while p is None and waited < 10:
+        time.sleep(1)
+        waited += 1
+        p = c.playing()
+    assert waited < 10, "checking track played within a reasonable period"
+    assert waited > 2, "checking track didn't play immediately"
+    assert p["track"] == track, "checking right track played"
+    assert c.schedule_list() == [], "checking schedule is empty"
+    print " waiting for nothing to be playing"
+    while c.playing() is not None:
+        time.sleep(1)
+    print " scheduling an enable-random for later via command line"
+    now = int(time.time())
+    dtest.command(["disorder",
+                   "--config", disorder._configfile,
+                   "--no-per-user-config",
+                   "schedule-set-global",
+                   str(now + 4),
+                   "normal",
+                   "random-play",
+                   "yes"])
+    print " disorder schedule-list output:"
+    print string.join(dtest.command(["disorder",
+                                     "--config", disorder._configfile,
+                                     "--no-per-user-config",
+                                     "schedule-list"]), ""),
+    print " waiting for it to take effect"
+    waited = 0
+    p = c.playing()
+    while p is None and waited < 10:
+        time.sleep(1)
+        waited += 1
+        p = c.playing()
+    assert waited < 10, "checking a track played within a reasonable period"
+    assert waited > 2, "checking a track didn't play immediately"
+    print " disabling random play"
+    c.random_disable()
+    print " waiting for nothing to be playing"
+    while c.playing() is not None:
+        time.sleep(1)
+    print " scheduling a track for the future"
+    now = int(time.time())
+    c.schedule_add(now + 4, "normal", "play", track)
+    print " schedule via python:"
+    s = c.schedule_list()
+    for event in s:
+        e = c.schedule_get(event)
+        print "item %s: %s" % (event, e)
+    print " deleting item %s" % s[0]
+    c.schedule_del(s[0])
+    print " checking it's really gone"
+    s = c.schedule_list()
+    assert s == [], "checking schedule is empty"
+    waited = 0
+    p = c.playing()
+    while p is None and waited < 10:
+        time.sleep(1)
+        waited += 1
+        p = c.playing()
+    assert p is None, "checking deleted scheduled event did not run"
+    print " checking you can't schedule events for the past"
+    try:
+        now = int(time.time())
+        c.schedule_add(now - 4, "normal", "play", track)
+        assert False, "checking schedule_add failed"
+    except disorder.operationError:
+      pass                              # good
+        
 
 if __name__ == '__main__':
     dtest.run()
