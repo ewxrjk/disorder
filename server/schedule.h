@@ -22,8 +22,8 @@
 #define SCHEDULE_H
 
 void schedule_init(ev_source *ev);
-char *schedule_add(ev_source *ev,
-		   struct kvp *actiondata);
+const char *schedule_add(ev_source *ev,
+			 struct kvp *actiondata);
 int schedule_del(const char *id);
 struct kvp *schedule_get(const char *id);
 char **schedule_list(int *neventsp);

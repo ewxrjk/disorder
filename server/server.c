@@ -1567,7 +1567,7 @@ static int c_schedule_add(struct conn *c,
 			  char **vec,
 			  int nvec) {
   struct kvp *actiondata = 0;
-  char *id;
+  const char *id;
 
   /* Standard fields */
   kvp_set(&actiondata, "who", c->who);

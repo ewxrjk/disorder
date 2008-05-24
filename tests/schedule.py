@@ -31,6 +31,7 @@ def test():
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
+        print "  ."
     now = int(time.time())
     track = "%s/Joe Bloggs/First Album/05:Fifth track.ogg" % dtest.tracks
     print " scheduling a track for the future"
@@ -45,6 +46,7 @@ def test():
     p = c.playing()
     while p is None and waited < 10:
         time.sleep(1)
+        print "  ."
         waited += 1
         p = c.playing()
     assert waited < 10, "checking track played within a reasonable period"
@@ -54,6 +56,7 @@ def test():
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
+        print "  ."
     print " scheduling an enable-random for the future"
     now = int(time.time())
     c.schedule_add(now + 4, "normal", "set-global", "random-play", "yes")
@@ -67,6 +70,7 @@ def test():
     p = c.playing()
     while p is None and waited < 10:
         time.sleep(1)
+        print "  ."
         waited += 1
         p = c.playing()
     assert waited < 10, "checking a track played within a reasonable period"
@@ -76,6 +80,7 @@ def test():
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
+        print "  ."
     print " scheduling track to play later via command line"
     now = int(time.time())
     dtest.command(["disorder",
@@ -96,6 +101,7 @@ def test():
     p = c.playing()
     while p is None and waited < 10:
         time.sleep(1)
+        print "  ."
         waited += 1
         p = c.playing()
     assert waited < 10, "checking track played within a reasonable period"
@@ -105,6 +111,7 @@ def test():
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
+        print "  ."
     print " scheduling an enable-random for later via command line"
     now = int(time.time())
     dtest.command(["disorder",
@@ -126,6 +133,7 @@ def test():
     p = c.playing()
     while p is None and waited < 10:
         time.sleep(1)
+        print "  ."
         waited += 1
         p = c.playing()
     assert waited < 10, "checking a track played within a reasonable period"
@@ -135,6 +143,7 @@ def test():
     print " waiting for nothing to be playing"
     while c.playing() is not None:
         time.sleep(1)
+        print "  ."
     print " scheduling a track for the future"
     now = int(time.time())
     c.schedule_add(now + 4, "normal", "play", track)
@@ -152,6 +161,7 @@ def test():
     p = c.playing()
     while p is None and waited < 10:
         time.sleep(1)
+        print "  ."
         waited += 1
         p = c.playing()
     assert p is None, "checking deleted scheduled event did not run"

@@ -83,7 +83,7 @@ char *random_id(void) {
   char id[128];
 
   random_get(words, sizeof words);
-  basen(words, 4, id, sizeof id, 62);
+  basen(words, sizeof words / sizeof *words, id, sizeof id, 62);
   return xstrdup(id);
 }
 

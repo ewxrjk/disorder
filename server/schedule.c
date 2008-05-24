@@ -249,8 +249,6 @@ void schedule_init(ev_source *ev) {
 /** @brief Create a scheduled event
  * @param ev Event loop
  * @param actiondata Action data
- *
- * The caller should set the timeout themselves.
  */
 static int schedule_add_tid(const char *id,
 			    struct kvp *actiondata,
@@ -262,7 +260,8 @@ static int schedule_add_tid(const char *id,
   k.data = (void *)id;
   k.size = strlen(id);
   switch(err = trackdb_scheduledb->put(trackdb_scheduledb, tid, &k,
-                                       encode_data(&d, actiondata), 0)) {
+                                       encode_data(&d, actiondata),
+				       DB_NOOVERWRITE)) {
   case 0:
     break;
   case DB_LOCK_DEADLOCK:
@@ -285,10 +284,10 @@ static int schedule_add_tid(const char *id,
  * is not allowed to perform them or if they are scheduled for a time
  * in the past.
  */
-char *schedule_add(ev_source *ev,
-		   struct kvp *actiondata) {
+const char *schedule_add(ev_source *ev,
+			 struct kvp *actiondata) {
   int e, n;
-  char *id;
+  const char *id;
   struct timeval when;
 
   /* TODO: handle recurring events */
@@ -314,7 +313,7 @@ char *schedule_add(ev_source *ev,
     id = random_id();
     WITH_TRANSACTION(schedule_add_tid(id, actiondata, tid));
   } while(e == DB_KEYEXIST);
-  ev_timeout(ev, 0/*handlep*/, &when, schedule_trigger, id);
+  ev_timeout(ev, 0/*handlep*/, &when, schedule_trigger, (void *)id);
   return id;
 }
 
