@@ -172,7 +172,22 @@ def test():
         assert False, "checking schedule_add failed"
     except disorder.operationError:
       pass                              # good
-        
+    print " checking scheduled events survive restarts"
+    c.schedule_add(now + 4, "normal", "play", track)
+    dtest.stop_daemon()
+    dtest.start_daemon()
+    c = disorder.client()
+    print " waiting for track to play"
+    waited = 0
+    p = c.playing()
+    while p is None and waited < 10:
+        time.sleep(1)
+        print "  ."
+        waited += 1
+        p = c.playing()
+    assert waited < 10, "checking track played within a reasonable period"
+    assert p["track"] == track, "checking right track played"
+    assert c.schedule_list() == [], "checking schedule is empty"
 
 if __name__ == '__main__':
     dtest.run()
