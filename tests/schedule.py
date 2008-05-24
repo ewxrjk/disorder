@@ -175,6 +175,13 @@ def test():
     print " checking scheduled events survive restarts"
     c.schedule_add(now + 4, "normal", "play", track)
     dtest.stop_daemon()
+    print " dumping database"
+    dump = "%s/dumpfile" % dtest.testroot
+    print dtest.command(["disorder-dump", "--config", disorder._configfile,
+                         "--dump", dump])
+    print "restoring database"
+    print dtest.command(["disorder-dump", "--config", disorder._configfile,
+                         "--undump", dump])
     dtest.start_daemon()
     c = disorder.client()
     print " waiting for track to play"

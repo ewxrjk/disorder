@@ -152,6 +152,24 @@ static void do_dump(FILE *fp, const char *tag,
     }
     if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
     cursor = 0;
+
+    /* dump the schedule */
+    cursor = trackdb_opencursor(trackdb_scheduledb, tid);
+    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                        DB_FIRST);
+    while(err == 0) {
+      if(fputc('W', fp) < 0
+         || urlencode(s, k.data, k.size)
+         || fputc('\n', fp) < 0
+         || urlencode(s, d.data, d.size)
+         || fputc('\n', fp) < 0)
+        fatal(errno, "error writing to %s", tag);
+      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                          DB_NEXT);
+    }
+    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
+    cursor = 0;
+    
     
     if(tracksdb) {
       cursor = trackdb_opencursor(trackdb_tracksdb, tid);
@@ -298,6 +316,7 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   if((err = truncdb(tid, trackdb_searchdb))) return err;
   if((err = truncdb(tid, trackdb_tagsdb))) return err;
   if((err = truncdb(tid, trackdb_usersdb))) return err;
+  if((err = truncdb(tid, trackdb_scheduledb))) return err;
   c = getc(fp);
   while(!ferror(fp) && !feof(fp)) {
     switch(c) {
@@ -311,6 +330,7 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
     case 'P':
     case 'G':
     case 'U':
+    case 'W':
       switch(c) {
       case 'P':
 	which_db = trackdb_prefsdb;
@@ -324,13 +344,17 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
 	which_db = trackdb_usersdb;
 	which_name = "users.db";
 	break;
+      case 'W':				/* for 'when' */
+	which_db = trackdb_scheduledb;
+	which_name = "scheduledb.db";
+	break;
       default:
 	abort();
       }
       if(undump_dbt(fp, tag, prepare_data(&k))
          || undump_dbt(fp, tag, prepare_data(&d)))
         break;
-      switch(err = trackdb_prefsdb->put(which_db, tid, &k, &d, 0)) {
+      switch(err = which_db->put(which_db, tid, &k, &d, 0)) {
       case 0:
         break;
       case DB_LOCK_DEADLOCK:
