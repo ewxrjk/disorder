@@ -23,6 +23,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#define _GNU_SOURCE 1		/* to expose strptime */
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +53,7 @@ static int check_mday (int year, int mon, int mday);
      8  invalid input specification Example: February 31 or a time is
         specified that can not be represented in a time_t (representing
 	the time in seconds since 00:00:00 UTC, January 1, 1970) */
-int xgetdate_err;
+/*int xgetdate_err;*/
 
 
 /* Returns the first weekday WDAY of month MON in the year YEAR.  */
@@ -208,7 +209,7 @@ xgetdate_r (const char *string, struct tm *tp,
 }
 
 
-
+#if 0
 struct tm *
   xgetdate (const char *string, const char *const *template)
 {
@@ -218,9 +219,10 @@ struct tm *
 
   if (errval != 0)
     {
-      getdate_err = errval;
+      xgetdate_err = errval;
       return NULL;
     }
 
   return &tmbuf;
 }
+#endif

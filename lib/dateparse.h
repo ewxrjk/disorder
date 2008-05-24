@@ -23,8 +23,10 @@
  */
 
 time_t dateparse(const char *s);
+#if 0
 struct tm *xgetdate(const char *string,
 		    const char *const *template);
+#endif
 int xgetdate_r(const char *string,
 	       struct tm *tp,
 	       const char *const *template);

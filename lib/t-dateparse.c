@@ -22,16 +22,16 @@
 #include "dateparse.h"
 
 static void check_date(time_t when,
-		       const char *format,
+		       const char *fmt,
 		       struct tm *(*convert)(const time_t *)) {
   char buffer[128];
   time_t parsed;
 
-  strftime(buffer, sizeof buffer, format, convert(&when));
+  strftime(buffer, sizeof buffer, fmt, convert(&when));
   parsed = dateparse(buffer);
   check_integer(parsed, when);
   if(parsed != when)
-    fprintf(stderr, "format=%s formatted=%s\n", format, buffer);
+    fprintf(stderr, "format=%s formatted=%s\n", fmt, buffer);
 }
 
 static void test_dateparse(void) {
