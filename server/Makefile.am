@@ -32,6 +32,7 @@ disorderd_SOURCES=disorderd.c				\
 	server.c server.h     				\
 	server-queue.c server-queue.h			\
 	state.c state.h					\
+	schedule.c					\
 	exports.c 					\
 	../lib/memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \

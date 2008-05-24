@@ -34,6 +34,8 @@
 #include "random.h"
 #include "log.h"
 #include "arcfour.h"
+#include "basen.h"
+#include "mem.h"
 
 static int random_count;
 static int random_fd = -1;
@@ -63,7 +65,7 @@ static void random__rekey(void) {
  * @param ptr Where to put random bytes
  * @param bytes How many random bytes to generate
  */
-void random_get(uint8_t *ptr, size_t bytes) {
+void random_get(void *ptr, size_t bytes) {
   if(random_count == 0)
     random__rekey();
   /* Encrypting 0s == just returning the keystream */
@@ -73,6 +75,16 @@ void random_get(uint8_t *ptr, size_t bytes) {
     random_count = 0;
   else
     random_count -= bytes;
+}
+
+/** @brief Return a random ID string */
+char *random_id(void) {
+  unsigned long words[2];
+  char id[128];
+
+  random_get(words, sizeof words);
+  basen(words, 4, id, sizeof id, 62);
+  return xstrdup(id);
 }
 
 /*

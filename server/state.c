@@ -46,6 +46,7 @@
 #include "server.h"
 #include "printf.h"
 #include "addr.h"
+#include "schedule.h"
 
 static const char *current_unix;
 static int current_unix_fd;
@@ -155,6 +156,8 @@ int reconfigure(ev_source *ev, int reload) {
     trackdb_open(TRACKDB_CAN_UPGRADE);
   if(need_another_rescan)
     trackdb_rescan(ev, 1/*check*/, 0, 0);
+  /* Arrange timeouts for schedule actions */
+  schedule_init(ev);
   if(!ret) {
     queue_read();
     recent_read();

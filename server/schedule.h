@@ -18,17 +18,17 @@
  * USA
  */
 
-/** @file lib/random.h
- * @brief Random number generator
- *
- */
-#ifndef RANDOM_H
-#define RANDOM_H
+#ifndef SCHEDULE_H
+#define SCHEDULE_H
 
-void random_get(void *ptr, size_t bytes);
-char *random_id(void);
+void schedule_init(ev_source *ev);
+char *schedule_add(ev_source *ev,
+		   struct kvp *actiondata);
+int schedule_del(const char *id);
+struct kvp *schedule_get(const char *id);
+char **schedule_list(int *neventsp);
 
-#endif /* RANDOM_H */
+#endif /* SCHEDULE_H */
 
 /*
 Local Variables:

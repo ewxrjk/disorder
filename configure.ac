@@ -1,4 +1,3 @@
-
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
@@ -45,6 +44,7 @@ AC_SET_MAKE
 if test "x$GCC" = xyes; then
   gcc_werror=-Werror
 else
+  AC_MSG_ERROR([GNU C is required to build this program])
   gcc_werror=""
 fi
 
