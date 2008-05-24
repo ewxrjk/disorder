@@ -22,12 +22,10 @@
 
 #include <time.h>
 
-static ev_source *ev;
-
 static int run1, run2, run3;
 static ev_timeout_handle t1, t2, t3;
 
-static int callback1(ev_source attribute((unused)) *ev,
+static int callback1(ev_source *ev,
 		     const struct timeval attribute((unused)) *now,
 		     void attribute((unused)) *u) {
   run1 = 1;
@@ -51,6 +49,7 @@ static int callback3(ev_source attribute((unused)) *ev,
 
 static void test_event(void) {
   struct timeval w;
+  ev_source *ev;
 
   ev = ev_new();
   w.tv_sec = time(0) + 2;
