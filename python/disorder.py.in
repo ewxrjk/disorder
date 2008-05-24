@@ -905,7 +905,7 @@ class client:
 
   def schedule_add(self, when, priority, action, *rest):
     """Add a scheduled event"""
-    self._simple("schedule-add", when, priorty, action, *rest)
+    self._simple("schedule-add", str(when), priority, action, *rest)
 
   ########################################################################
   # I/O infrastructure
