@@ -468,6 +468,110 @@ static void cf_setup_guest(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+struct scheduled_event {
+  time_t when;
+  struct kvp *actiondata;
+  char *id;
+};
+
+static int compare_event(const void *av, const void *bv) {
+  struct scheduled_event *a = (void *)av, *b = (void *)bv;
+
+  /* Primary sort key is the trigger time */
+  if(a->when < b->when)
+    return -1;
+  else if(a->when > b->when)
+    return 1;
+  /* For events that go off at the same time just sort by ID */
+  return strcmp(a->id, b->id);
+}
+
+static void cf_schedule_list(char attribute((unused)) **argv) {
+  char **ids;
+  int nids, n;
+  struct scheduled_event *events;
+  char tb[128];
+  const char *action, *key, *value, *priority;
+  int prichar;
+
+  /* Get all known events */
+  if(disorder_schedule_list(getclient(), &ids, &nids))
+    exit(EXIT_FAILURE);
+  events = xcalloc(nids, sizeof *events);
+  for(n = 0; n < nids; ++n) {
+    events[n].id = ids[n];
+    if(disorder_schedule_get(getclient(), ids[n], &events[n].actiondata))
+      exit(EXIT_FAILURE);
+    events[n].when = atoll(kvp_get(events[n].actiondata, "when"));
+  }
+  /* Sort by trigger time */
+  qsort(events, nids, sizeof *events, compare_event);
+  /* Display them */
+  for(n = 0; n < nids; ++n) {
+    strftime(tb, sizeof tb, "%Y-%m-%d %H:%M:%S %Z", localtime(&events[n].when));
+    action = kvp_get(events[n].actiondata, "action");
+    priority = kvp_get(events[n].actiondata, "priority");
+    if(!strcmp(priority, "junk"))
+      prichar = 'J';
+    else if(!strcmp(priority, "normal"))
+      prichar = 'N';
+    else
+      prichar = '?';
+    xprintf("%11s %-25s %c %-8s %s",
+	    events[n].id, tb, prichar, kvp_get(events[n].actiondata, "who"),
+	    action);
+    if(!strcmp(action, "play"))
+      xprintf(" %s",
+	      nullcheck(utf82mb(kvp_get(events[n].actiondata, "track"))));
+    else if(!strcmp(action, "set-global")) {
+      key = kvp_get(events[n].actiondata, "key");
+      value = kvp_get(events[n].actiondata, "value");
+      if(value)
+	xprintf(" %s=%s",
+		nullcheck(utf82mb(key)),
+		nullcheck(utf82mb(value)));
+      else
+	xprintf(" %s unset",
+		nullcheck(utf82mb(key)));
+    }
+    xprintf("\n");
+  }
+}
+
+static void cf_schedule_del(char **argv) {
+  if(disorder_schedule_del(getclient(), argv[0]))
+    exit(EXIT_FAILURE);
+}
+
+static void cf_schedule_play(char **argv) {
+  if(disorder_schedule_add(getclient(),
+			   atoll(argv[0]),
+			   argv[1],
+			   "play",
+			   argv[2]))
+    exit(EXIT_FAILURE);
+}
+
+static void cf_schedule_set_global(char **argv) {
+  if(disorder_schedule_add(getclient(),
+			   atoll(argv[0]),
+			   argv[1],
+			   "set-global",
+			   argv[2],
+			   argv[3]))
+    exit(EXIT_FAILURE);
+}
+
+static void cf_schedule_unset_global(char **argv) {
+  if(disorder_schedule_add(getclient(),
+			   atoll(argv[0]),
+			   argv[1],
+			   "set-global",
+			   argv[2],
+			   (char *)0))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -480,7 +584,7 @@ static const struct command {
   { "allfiles",       1, 2, cf_allfiles, isarg_regexp, "DIR [~REGEXP]",
                       "List all files and directories in DIR" },
   { "authorize",      1, 2, cf_authorize, isarg_rights, "USERNAME [RIGHTS]",
-                      "Authorize user USERNAME to connect to the server" },
+                      "Authorize user USERNAME to connect" },
   { "deluser",        1, 1, cf_deluser, 0, "USERNAME",
                       "Delete user USERNAME" },
   { "dirs",           1, 2, cf_dirs, isarg_regexp, "DIR [~REGEXP]",
@@ -542,6 +646,16 @@ static const struct command {
                       "Resume after a pause" },
   { "rtp-address",    0, 0, cf_rtp_address, 0, "",
                       "Report server's broadcast address" },
+  { "schedule-del",   1, 1, cf_schedule_del, 0, "EVENT",
+                      "Delete a scheduled event" },
+  { "schedule-list",  0, 0, cf_schedule_list, 0, "",
+                      "List scheduled events" },
+  { "schedule-play",  3, 3, cf_schedule_play, 0, "WHEN PRI TRACK",
+                      "Play TRACK later" },
+  { "schedule-set-global", 4, 4, cf_schedule_set_global, 0, "WHEN PRI NAME VAL",
+                      "Set a global preference later" },
+  { "schedule-unset-global", 3, 3, cf_schedule_unset_global, 0, "WHEN PRI NAME",
+                      "Unset a global preference later" },
   { "scratch",        0, 0, cf_scratch, 0, "",
                       "Scratch the currently playing track" },
   { "scratch-id",     1, 1, cf_scratch, 0, "ID",

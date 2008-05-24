@@ -363,6 +363,7 @@ char **schedule_list(int *neventsp) {
   int e;
   struct vector v[1];
 
+  vector_init(v);
   WITH_TRANSACTION(trackdb_listkeys(trackdb_scheduledb, v, tid));
   if(neventsp)
     *neventsp = v->nvec;

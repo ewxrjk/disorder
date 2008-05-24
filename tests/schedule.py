@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,disorder,time
+import dtest,disorder,time,string
 
 def test():
     """Exercise schedule support"""
@@ -35,6 +35,11 @@ def test():
     track = "%s/Joe Bloggs/First Album/05:Fifth track.ogg" % dtest.tracks
     print " scheduling a track for the future"
     c.schedule_add(now + 4, "normal", "play", track)
+    print " disorder schedule-list output:"
+    print string.join(dtest.command(["disorder",
+                                     "--config", disorder._configfile,
+                                     "--no-per-user-config",
+                                     "schedule-list"]), ""),
     print " waiting for it to play"
     waited = 0
     p = c.playing()
@@ -51,6 +56,11 @@ def test():
     print " scheduling an enable-random for the future"
     now = int(time.time())
     c.schedule_add(now + 4, "normal", "set-global", "random-play", "yes")
+    print " disorder schedule-list output:"
+    print string.join(dtest.command(["disorder",
+                                     "--config", disorder._configfile,
+                                     "--no-per-user-config",
+                                     "schedule-list"]), ""),
     print " waiting for it to take effect"
     waited = 0
     p = c.playing()
