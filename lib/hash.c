@@ -18,10 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
+#include "common.h"
 
 #include "hash.h"
 #include "mem.h"

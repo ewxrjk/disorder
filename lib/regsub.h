@@ -21,6 +21,8 @@
 #ifndef REGSUB_H
 #define REGSUB_H
 
+#include <pcre.h>
+
 #define REGSUB_GLOBAL 		0x0001	/* global replace */
 #define REGSUB_MUST_MATCH	0x0002	/* return 0 if no match */
 #define REGSUB_CASE_INDEPENDENT	0x0004	/* case independent */

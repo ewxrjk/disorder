@@ -23,8 +23,6 @@
 #ifndef IFREQ_H
 #define IFREQ_H
 
-struct ifreq;
-
 /** @brief Return true if two socket addresses match */
 int sockaddr_equal(const struct sockaddr *a, const struct sockaddr *b);
 

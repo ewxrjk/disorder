@@ -18,10 +18,8 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
 #include <pcre.h>
 
 #include "regsub.h"

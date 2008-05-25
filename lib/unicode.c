@@ -39,11 +39,7 @@
  * - @ref utf8
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <stdio.h>		/* TODO */
+#include "common.h"
 
 #include "mem.h"
 #include "vector.h"

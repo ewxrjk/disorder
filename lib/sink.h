@@ -24,6 +24,8 @@
 #ifndef SINK_H
 #define SINK_H
 
+#include <stdarg.h>
+
 struct dynstr;
 
 /** @brief Sink type

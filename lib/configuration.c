@@ -22,12 +22,8 @@
  * @brief Configuration file support
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>

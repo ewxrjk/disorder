@@ -22,6 +22,8 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
+#include "mem.h"
+
 /** @brief Dynamic array template
  * @param NAME type name
  * @param ETYPE element type

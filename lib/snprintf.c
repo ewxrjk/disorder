@@ -21,11 +21,8 @@
 #define NO_MEMORY_ALLOCATION
 /* because used from log.c */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stddef.h>
 

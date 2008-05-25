@@ -21,11 +21,9 @@
  * @brief Convert wait status to text
  */
 
-#include <config.h>
+#include "common.h"
 
 #include <sys/wait.h>
-#include <stdio.h>
-#include <string.h>
 #include <signal.h>
 
 #include "mem.h"

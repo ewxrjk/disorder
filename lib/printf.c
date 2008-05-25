@@ -21,14 +21,10 @@
 #define NO_MEMORY_ALLOCATION
 /* because byte_snprintf used from log.c */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <stddef.h>
 
 #include "printf.h"

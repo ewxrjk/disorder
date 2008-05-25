@@ -439,8 +439,7 @@ print STDERR "Generating unidata.c...\n";
 open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
 
 out("/* Automatically generated file, see scripts/make-unidata */\n",
-    "#include <config.h>\n",
-    "#include \"types.h\"\n",
+    "#include \"common.h\"\n",
     "#include \"unidata.h\"\n");
 
 # Short aliases to keep .c file small

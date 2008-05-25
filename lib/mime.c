@@ -21,13 +21,9 @@
  * @brief Support for MIME and allied protocols
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
 #include <ctype.h>
-
-#include <stdio.h>
 
 #include "mem.h"
 #include "mime.h"

@@ -20,11 +20,9 @@
 /** @file server/speaker-alsa.c
  * @brief Support for @ref BACKEND_ALSA */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_ALSA_ASOUNDLIB_H
-
-#include "types.h"
 
 #include <unistd.h>
 #include <poll.h>

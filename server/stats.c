@@ -18,25 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <locale.h>
-#include <stdio.h>
-#include <errno.h>
-#include <pcre.h>
-#include <getopt.h>
-#include <syslog.h>
-#include <unistd.h>
-
-#include "defs.h"
-#include "mem.h"
-#include "log.h"
-#include "syscalls.h"
-#include "configuration.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },

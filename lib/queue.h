@@ -21,6 +21,9 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+#include <time.h>
+
+
 enum playing_state {
   playing_failed,			/* failed to play */
   playing_isscratch,			/* this is a scratch track */
@@ -61,6 +64,9 @@ struct queue_entry {
   /* For Disobedience */
   struct queuelike *ql;			/* owning queue */
 };
+
+void queue_insert_entry(struct queue_entry *b, struct queue_entry *n);
+void queue_delete_entry(struct queue_entry *node);
 
 int queue_unmarshall(struct queue_entry *q, const char *s,
 		     void (*error_handler)(const char *, void *),

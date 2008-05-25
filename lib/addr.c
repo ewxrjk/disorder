@@ -20,21 +20,16 @@
 /** @file lib/addr.c
  * @brief Socket address support */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
 
 #include "log.h"
 #include "printf.h"
-#include "configuration.h"
 #include "addr.h"
 #include "mem.h"
 

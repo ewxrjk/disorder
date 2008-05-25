@@ -21,12 +21,7 @@
  * @brief Filename parsing
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <assert.h>
-#include <stdio.h>
+#include "common.h"
 
 #include "filepart.h"
 #include "mem.h"

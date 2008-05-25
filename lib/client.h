@@ -27,6 +27,8 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include <time.h>
+
 /** @brief Client data */
 typedef struct disorder_client disorder_client;
 

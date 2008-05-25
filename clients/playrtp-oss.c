@@ -22,19 +22,16 @@
  * @brief RTP player - OSS and empeg support
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-#include "types.h"
 
 #include <poll.h>
 #include <sys/ioctl.h>
 #if !EMPEG_HOST
 #include <sys/soundcard.h>
 #endif
-#include <assert.h>
 #include <pthread.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>

@@ -25,24 +25,7 @@
  * and eliminate the dependency on sox.
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <getopt.h>
-#include <locale.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-#include "syscalls.h"
-#include "log.h"
-#include "configuration.h"
-#include "speaker-protocol.h"
-#include "defs.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },

@@ -17,47 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <getopt.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/socket.h>
-#include <time.h>
-#include <locale.h>
-#include <syslog.h>
-#include <sys/time.h>
-#include <pcre.h>
-#include <fcntl.h>
-#include <gcrypt.h>
-
-#include "daemonize.h"
-#include "event.h"
-#include "log.h"
-#include "configuration.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "queue.h"
-#include "mem.h"
-#include "play.h"
-#include "server.h"
-#include "state.h"
-#include "syscalls.h"
-#include "defs.h"
-#include "user.h"
-#include "mixer.h"
-#include "eventlog.h"
-#include "printf.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static ev_source *ev;
 

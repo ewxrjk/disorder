@@ -18,13 +18,10 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <pcre.h>
 #include <fnmatch.h>
-#include <string.h>
-#include <assert.h>
 
 #include "trackname.h"
 #include "log.h"

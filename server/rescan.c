@@ -18,41 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <db.h>
-#include <locale.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <pcre.h>
-#include <fnmatch.h>
-#include <sys/wait.h>
-#include <string.h>
-#include <syslog.h>
-#include <time.h>
-
-#include "configuration.h"
-#include "syscalls.h"
-#include "log.h"
-#include "defs.h"
-#include "mem.h"
-#include "plugin.h"
-#include "inputline.h"
-#include "charset.h"
-#include "wstat.h"
-#include "kvp.h"
-#include "printf.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "trackdb-int.h"
-#include "trackname.h"
-#include "unicode.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static DB_TXN *global_tid;
 

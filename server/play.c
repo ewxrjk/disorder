@@ -18,44 +18,8 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <errno.h>
-#include <fnmatch.h>
-#include <time.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <stdio.h>
-#include <pcre.h>
+#include "disorder-server.h"
 #include <ao/ao.h>
-#include <sys/wait.h>
-#include <sys/un.h>
-
-#include "event.h"
-#include "log.h"
-#include "mem.h"
-#include "configuration.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "play.h"
-#include "plugin.h"
-#include "wstat.h"
-#include "eventlog.h"
-#include "logfd.h"
-#include "syscalls.h"
-#include "speaker-protocol.h"
-#include "disorder.h"
-#include "signame.h"
-#include "hash.h"
 
 #define SPEAKER "disorder-speaker"
 

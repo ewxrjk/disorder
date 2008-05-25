@@ -24,6 +24,8 @@
 #ifndef COOKIES_H
 #define COOKIES_H
 
+#include "rights.h"
+
 char *make_cookie(const char *user);
 char *verify_cookie(const char *cookie, rights_type *rights);
 void revoke_cookie(const char *cookie);

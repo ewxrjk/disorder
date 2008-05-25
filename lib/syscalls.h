@@ -29,9 +29,6 @@ struct timezone;
 
 #include <sys/socket.h>
 #include <signal.h>
-#include <stdio.h>
-
-#include "types.h"
 
 pid_t xfork(void);
 void xclose_guts(const char *, int, int);

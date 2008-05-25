@@ -1,6 +1,5 @@
 /* Automatically generated file, see scripts/make-unidata */
-#include <config.h>
-#include "types.h"
+#include "common.h"
 #include "unidata.h"
 #define Cc unicode_General_Category_Cc
 #define Cf unicode_General_Category_Cf

@@ -81,28 +81,7 @@
  *
  * TODO: add disorder-dump support
  */
-
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <db.h>
-#include <time.h>
-#include <stddef.h>
-
-#include "trackdb.h"
-#include "trackdb-int.h"
-#include "schedule.h"
-#include "table.h"
-#include "kvp.h"
-#include "log.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "state.h"
-#include "play.h"
-#include "mem.h"
-#include "random.h"
-#include "vector.h"
+#include "disorder-server.h"
 
 static int schedule_trigger(ev_source *ev,
 			    const struct timeval *now,

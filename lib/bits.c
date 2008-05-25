@@ -22,8 +22,7 @@
  * @brief Bit operations
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <math.h>
 

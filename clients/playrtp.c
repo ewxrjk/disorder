@@ -49,12 +49,9 @@
  * - it is safe to read uint32_t values without a lock protecting them
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -62,8 +59,6 @@
 #include <pthread.h>
 #include <locale.h>
 #include <sys/uio.h>
-#include <string.h>
-#include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <sys/time.h>

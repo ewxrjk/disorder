@@ -18,35 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <getopt.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <pcre.h>
-#include <unistd.h>
-#include <db.h>
-#include <fcntl.h>
-
-#include "configuration.h"
-#include "syscalls.h"
-#include "log.h"
-#include "client.h"
-#include "sink.h"
-#include "mem.h"
-#include "defs.h"
-#include "printf.h"
-#include "kvp.h"
-#include "vector.h"
-#include "inputline.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "trackdb-int.h"
-#include "charset.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },

@@ -21,11 +21,9 @@
  * @brief Background-thread interface to ALSA
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_ALSA_ASOUNDLIB_H
-#include "types.h"
-
 #include <alsa/asoundlib.h>
 #include <pthread.h>
 

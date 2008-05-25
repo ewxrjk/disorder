@@ -21,10 +21,7 @@
  * @brief Various rights-checking operations
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
+#include "common.h"
 
 #include "queue.h"
 #include "rights.h"

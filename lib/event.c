@@ -21,7 +21,7 @@
  * @brief DisOrder event loop
  */
 
-#include <config.h>
+#include "common.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -31,15 +31,11 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <assert.h>
 #include <signal.h>
 #include <errno.h>
-#include <string.h>
-#include <limits.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
-#include <stdio.h>
 #include "event.h"
 #include "mem.h"
 #include "log.h"

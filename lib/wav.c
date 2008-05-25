@@ -103,13 +103,11 @@
  * orderings of different channels.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <string.h>
 
 #include "log.h"
 #include "wav.h"

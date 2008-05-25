@@ -21,6 +21,8 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+#include <stddef.h>
+
 #define TABLE_FIND(TABLE, FIELD, NAME)			\
   table_find((void *)TABLE,				\
 	     offsetof(typeof((TABLE)[0]), FIELD),	\

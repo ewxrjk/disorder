@@ -23,13 +23,11 @@
  *
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>
 
 #include "random.h"
 #include "log.h"

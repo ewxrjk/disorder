@@ -21,8 +21,7 @@
  * @brief Mixer support
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include "configuration.h"
 #include "mixer.h"

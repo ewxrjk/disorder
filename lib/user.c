@@ -21,8 +21,7 @@
  * @brief Jukebox user management
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

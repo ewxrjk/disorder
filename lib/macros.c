@@ -22,13 +22,9 @@
  * @brief Macro expansion
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
 #include <ctype.h>
-#include <assert.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>

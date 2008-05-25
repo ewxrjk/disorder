@@ -21,20 +21,10 @@
  * @brief General-purpose decoder for use by speaker process
  */
 
-#include <config.h>
-#include "types.h"
+#include "disorder-server.h"
 
-#include <getopt.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <locale.h>
-#include <assert.h>
-#include <fnmatch.h>
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
-#include <string.h>
 
 /* libFLAC has had an API change and stupidly taken away the old API */
 #if HAVE_FLAC_FILE_DECODER_H
@@ -45,12 +35,8 @@
 #define FLAC__FileDecoderState FLAC__StreamDecoderState
 #endif
 
-#include "log.h"
-#include "syscalls.h"
-#include "defs.h"
 #include "wav.h"
 #include "speaker-protocol.h"
-#include "version.h"
 
 /** @brief Encoding lookup table type */
 struct decoder {

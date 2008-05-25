@@ -25,13 +25,9 @@
  * generated from the comments at the head of each function.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
-#include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>

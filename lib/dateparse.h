@@ -17,10 +17,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
 /** @file lib/dateparse.h
  * @brief Date parsing
  */
+
+#ifndef DATEPARSE_H
+#define DATEPARSE_H
+
+#include <time.h>
 
 time_t dateparse(const char *s);
 #if 0
@@ -30,6 +34,8 @@ struct tm *xgetdate(const char *string,
 int xgetdate_r(const char *string,
 	       struct tm *tp,
 	       const char *const *template);
+
+#endif /* DATEPARSE_H */
 
 /*
 Local Variables:

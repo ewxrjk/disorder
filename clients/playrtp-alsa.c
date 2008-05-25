@@ -25,14 +25,12 @@
  * wrapping OSS the whole of playrtp could probably be greatly simplified.
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_ALSA_ASOUNDLIB_H 
-#include "types.h"
 
 #include <poll.h>
 #include <alsa/asoundlib.h>
-#include <assert.h>
 #include <pthread.h>
 #include <arpa/inet.h>
 

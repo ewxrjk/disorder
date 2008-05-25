@@ -18,21 +18,9 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "disorder-server.h"
 
 #include <dlfcn.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-
-#include "plugin.h"
-#include "configuration.h"
-#include "log.h"
-#include "mem.h"
-#include "defs.h"
-#include "disorder.h"
-#include "printf.h"
 
 /* generic plugin support *****************************************************/
 

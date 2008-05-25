@@ -21,18 +21,13 @@
  * @brief Cookie support
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <time.h>
 #include <gcrypt.h>
 #include <pcre.h>
 
-#include "rights.h"
 #include "cookies.h"
 #include "hash.h"
 #include "mem.h"
@@ -41,7 +36,6 @@
 #include "base64.h"
 #include "configuration.h"
 #include "kvp.h"
-#include "rights.h"
 #include "trackdb.h"
 
 /** @brief Hash function used in signing HMAC */

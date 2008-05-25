@@ -25,10 +25,10 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
+#include <pcre.h>
+
 #include "speaker-protocol.h"
 #include "rights.h"
-
-struct real_pcre;
 
 /* Configuration is kept in a @struct config@; the live configuration
  * is always pointed to by @config@.  Values in @config@ are UTF-8 encoded.
@@ -70,7 +70,7 @@ struct collectionlist {
 
 struct namepart {
   char *part;				/* part */
-  struct real_pcre *re;			/* regexp */
+  pcre *re;				/* regexp */
   char *replace;			/* replacement string */
   char *context;			/* context glob */
   unsigned reflags;			/* regexp flags */
@@ -85,7 +85,7 @@ struct transform {
   char *type;				/* track or dir */
   char *context;			/* sort or choose */
   char *replace;			/* substitution string */
-  struct real_pcre *re;			/* compiled re */
+  pcre *re;				/* compiled re */
   unsigned flags;			/* regexp flags */
 };
 

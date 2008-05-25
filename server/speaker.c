@@ -50,19 +50,14 @@
  * 2-byte samples.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <locale.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <errno.h>
 #include <ao/ao.h>
-#include <string.h>
-#include <assert.h>
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <time.h>

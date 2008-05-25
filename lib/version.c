@@ -18,11 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <stdlib.h>
+#include "common.h"
 
 #include "syscalls.h"
 #include "version.h"

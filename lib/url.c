@@ -21,13 +21,9 @@
  * @brief URL support functions
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
-#include <string.h>
 
 #include "mem.h"
 #include "log.h"

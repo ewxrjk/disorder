@@ -18,23 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pcre.h>
-
-#include "log.h"
-#include "mem.h"
-#include "disorder.h"
-#include "event.h"
-#include "rights.h"
-#include "trackdb.h"
+#include "disorder-server.h"
 
 int disorder_track_exists(const char *track)  {
   return trackdb_exists(track);

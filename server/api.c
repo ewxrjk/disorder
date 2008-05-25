@@ -18,18 +18,7 @@
  * USA
  */
 
-#include <config.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <syslog.h>
-
-#include "log.h"
-#include "mem.h"
-#include "disorder.h"
-#include "printf.h"
+#include "disorder-server.h"
 
 /* shared implementation of vararg functions */
 #include "log-impl.h"

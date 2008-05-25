@@ -21,18 +21,7 @@
  * @brief Go into background
  */
 
-#include <config.h>
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
-#include <sys/wait.h>
-#include <syslog.h>
-
-#include "daemonize.h"
-#include "syscalls.h"
-#include "log.h"
+#include "disorder-server.h"
 
 /** @brief Go into background
  * @param tag Message tag, or NULL

@@ -21,12 +21,9 @@
  * @brief RTP player - Core Audio support
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
-#include "types.h"
-
-#include <assert.h>
 #include <pthread.h>
 #include <CoreAudio/AudioHardware.h>
 

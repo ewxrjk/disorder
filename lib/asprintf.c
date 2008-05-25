@@ -19,11 +19,8 @@
  */
 /** @file lib/asprintf.c @brief printf() workalikes */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <errno.h>

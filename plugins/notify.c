@@ -18,11 +18,9 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 

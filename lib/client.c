@@ -24,19 +24,15 @@
  * implementation.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
-#include <string.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <netdb.h>
-#include <stdlib.h>
 #include <pcre.h>
 
 #include "log.h"

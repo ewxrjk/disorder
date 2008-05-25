@@ -24,17 +24,12 @@
  * nonetheless).
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_SYS_SOUNDCARD_H
 
-#include "types.h"
-
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <stddef.h>
 #include <sys/ioctl.h>

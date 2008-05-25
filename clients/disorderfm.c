@@ -18,8 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <getopt.h>
 #include <unistd.h>
@@ -29,7 +28,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <langinfo.h>
-#include <string.h>
 #include <fnmatch.h>
 
 #include "syscalls.h"

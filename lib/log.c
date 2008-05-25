@@ -35,11 +35,8 @@
 #define NO_MEMORY_ALLOCATION
 /* because the memory allocation functions report errors */
 
-#include <config.h>
+#include "common.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <syslog.h>
 #include <sys/time.h>

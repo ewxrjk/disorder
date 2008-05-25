@@ -18,22 +18,17 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <stdio.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <string.h>
 #include <locale.h>
 #include <time.h>
 #include <stddef.h>
 #include <unistd.h>
-#include <assert.h>
 #include <pcre.h>
 #include <ctype.h>
 
@@ -48,7 +43,6 @@
 #include "kvp.h"
 #include "split.h"
 #include "sink.h"
-#include "plugin.h"
 #include "mem.h"
 #include "defs.h"
 #include "authorize.h"

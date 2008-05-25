@@ -20,6 +20,8 @@
 #ifndef PRINTF_H
 #define PRINTF_H
 
+#include <stdarg.h>
+
 struct sink;
 
 int byte_vsinkprintf(struct sink *output,

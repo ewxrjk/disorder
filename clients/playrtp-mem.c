@@ -21,12 +21,9 @@
  * @brief RTP player memory management
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <pthread.h>
-#include <assert.h>
-#include <string.h>
 
 #include "mem.h"
 #include "vector.h"

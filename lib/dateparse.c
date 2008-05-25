@@ -22,8 +22,7 @@
  * @brief Date parsing
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <time.h>
 

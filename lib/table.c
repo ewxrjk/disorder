@@ -18,9 +18,7 @@
  * USA
  */
 
-#include <config.h>
-
-#include <string.h>
+#include "common.h"
 
 #include "table.h"
 

@@ -20,8 +20,7 @@
 /** @file server/speaker-network.c
  * @brief Support for @ref BACKEND_NETWORK */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <unistd.h>
 #include <poll.h>
@@ -29,7 +28,6 @@
 #include <gcrypt.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
-#include <assert.h>
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <errno.h>

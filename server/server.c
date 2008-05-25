@@ -18,60 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <pwd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <gcrypt.h>
-#include <stddef.h>
-#include <time.h>
-#include <limits.h>
-#include <pcre.h>
-#include <netdb.h>
-#include <netinet/in.h>
-
-#include "event.h"
-#include "server.h"
-#include "syscalls.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "play.h"
-#include "log.h"
-#include "mem.h"
-#include "state.h"
-#include "charset.h"
-#include "split.h"
-#include "configuration.h"
-#include "hex.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "table.h"
-#include "kvp.h"
-#include "mixer.h"
-#include "sink.h"
-#include "authhash.h"
-#include "plugin.h"
-#include "printf.h"
-#include "trackname.h"
-#include "eventlog.h"
-#include "defs.h"
-#include "cache.h"
-#include "unicode.h"
-#include "cookies.h"
-#include "base64.h"
-#include "hash.h"
-#include "mime.h"
-#include "sendmail.h"
-#include "wstat.h"
-#include "schedule.h"
+#include "disorder-server.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16

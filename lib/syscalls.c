@@ -18,7 +18,7 @@
  * USA
  */
 
-#include <config.h>
+#include "common.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -27,8 +27,6 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "syscalls.h"
 #include "log.h"

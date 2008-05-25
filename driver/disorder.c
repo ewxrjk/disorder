@@ -24,11 +24,8 @@
  * disorder-normalize to convert to the confnigured target format.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <poll.h>

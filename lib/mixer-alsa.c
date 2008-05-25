@@ -29,17 +29,12 @@
  * (as I don't one).
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_ALSA_ASOUNDLIB_H
 
-#include "types.h"
-
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <stddef.h>
 #include <ctype.h>

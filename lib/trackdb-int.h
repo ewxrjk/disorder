@@ -21,6 +21,8 @@
 #ifndef TRACKDB_INT_H
 #define TRACKDB_INT_H
 
+#include <db.h>
+
 #include "kvp.h"
 
 struct vector;                          /* forward declaration */

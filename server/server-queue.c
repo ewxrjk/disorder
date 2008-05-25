@@ -17,28 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
-#include <time.h>
-
-#include "mem.h"
-#include "log.h"
-#include "split.h"
-#include "printf.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "eventlog.h"
-#include "plugin.h"
-#include "random.h"
-#include "configuration.h"
-#include "inputline.h"
-#include "disorder.h"
+#include "disorder-server.h"
 
 /* the head of the queue is played next, so normally we add to the tail */
 struct queue_entry qhead = { &qhead, &qhead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -47,21 +26,7 @@ struct queue_entry qhead = { &qhead, &qhead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
  * played */
 struct queue_entry phead = { &phead, &phead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static long pcount;
-
-/* add new entry @n@ to a doubly linked list just after @b@ */
-static void l_add(struct queue_entry *b, struct queue_entry *n) {
-  n->prev = b;
-  n->next = b->next;
-  n->next->prev = n;
-  n->prev->next = n;
-}
-
-/* remove an entry from a doubly-linked list */
-static void l_remove(struct queue_entry *node) {
-  node->next->prev = node->prev;
-  node->prev->next = node->next;
-}
+long pcount;
 
 void queue_fix_sofar(struct queue_entry *q) {
   long sofar;
@@ -110,7 +75,7 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
        && (!q->track
 	   || !q->when))
       fatal(0, "incomplete queue entry in %s", path);
-    l_add(head->prev, q);
+    queue_insert_entry(head->prev, q);
   }
   if(ferror(fp)) fatal(errno, "error reading %s", path);
   fclose(fp);
@@ -155,154 +120,6 @@ void recent_write(void) {
   queue_do_write(&phead, config_get_file("recent"));
 }
 
-static int id_in_use(const char *id) {
-  struct queue_entry *q;
-
-  for(q = qhead.next; q != &qhead; q = q->next)
-    if(!strcmp(id, q->id))
-      return 1;
-  return 0;
-}
-
-static void queue_id(struct queue_entry *q) {
-  const char *id;
-
-  id = random_id();
-  while(id_in_use(id))
-    id = random_id();
-  q->id = id;
-}
-
-struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where) {
-  struct queue_entry *q, *beforeme;
-
-  q = xmalloc(sizeof *q);
-  q->track = xstrdup(track);
-  q->submitter = submitter ? xstrdup(submitter) : 0;
-  q->state = playing_unplayed;
-  queue_id(q);
-  time(&q->when);
-  switch(where) {
-  case WHERE_START:
-    l_add(&qhead, q);
-    break;
-  case WHERE_END:
-    l_add(qhead.prev, q);
-    break;
-  case WHERE_BEFORE_RANDOM:
-    /* We want to find the point in the queue before the block of random tracks
-     * at the end. */
-    beforeme = &qhead;
-    while(beforeme->prev != &qhead
-	  && beforeme->prev->state == playing_random)
-      beforeme = beforeme->prev;
-    l_add(beforeme->prev, q);
-    break;
-  }
-  /* submitter will be a null pointer for a scratch */
-  if(submitter)
-    notify_queue(track, submitter);
-  eventlog_raw("queue", queue_marshall(q), (const char *)0);
-  return q;
-}
-
-int queue_move(struct queue_entry *q, int delta, const char *who) {
-  int moved = 0;
-  char buffer[20];
-
-  /* not the most efficient approach but hopefuly relatively comprehensible:
-   * the idea is that for each step we determine which nodes are affected, and
-   * fill in all the links starting at the 'prev' end and moving towards the
-   * 'next' end. */
-  
-  while(delta > 0 && q->prev != &qhead) {
-    struct queue_entry *n, *p, *pp;
-
-    n = q->next;
-    p = q->prev;
-    pp = p->prev;
-    pp->next = q;
-    q->prev = pp;
-    q->next = p;
-    p->prev = q;
-    p->next = n;
-    n->prev = p;
-    --delta;
-    ++moved;
-  }
-
-  while(delta < 0 && q->next != &qhead) {
-    struct queue_entry *n, *p, *nn;
-
-    p = q->prev;
-    n = q->next;
-    nn = n->next;
-    p->next = n;
-    n->prev = p;
-    n->next = q;
-    q->prev = n;
-    q->next = nn;
-    nn->prev = q;
-    ++delta;
-    --moved;
-  }
-
-  if(moved) {
-    info("user %s moved %s", who, q->id);
-    notify_queue_move(q->track, who);
-    sprintf(buffer, "%d", moved);
-    eventlog("moved", who, (char *)0);
-  }
-  
-  return delta;
-}
-
-static int find_in_list(struct queue_entry *needle,
-			int nqs, struct queue_entry **qs) {
-  int n;
-
-  for(n = 0; n < nqs; ++n)
-    if(qs[n] == needle)
-      return 1;
-  return 0;
-}
-
-void queue_moveafter(struct queue_entry *target,
-		     int nqs, struct queue_entry **qs,
-		     const char *who) {
-  struct queue_entry *q;
-  int n;
-
-  /* Normalize */
-  if(!target)
-    target = &qhead;
-  else
-    while(find_in_list(target, nqs, qs))
-      target = target->prev;
-  /* Do the move */
-  for(n = 0; n < nqs; ++n) {
-    q = qs[n];
-    l_remove(q);
-    l_add(target, q);
-    target = q;
-    /* Log the individual tracks */
-    info("user %s moved %s", who, q->id);
-    notify_queue_move(q->track, who);
-  }
-  /* Report that the queue changed to the event log */
-  eventlog("moved", who, (char *)0);
-}
-
-void queue_remove(struct queue_entry *which, const char *who) {
-  if(who) {
-    info("user %s removed %s", who, which->id);
-    notify_queue_move(which->track, who);
-  }
-  eventlog("removed", which->id, who, (const char *)0);
-  l_remove(which);
-}
-
 struct queue_entry *queue_find(const char *key) {
   struct queue_entry *q;
 
@@ -311,19 +128,6 @@ struct queue_entry *queue_find(const char *key) {
       q = q->next)
     ;
   return q != &qhead ? q : 0;
-}
-
-void queue_played(struct queue_entry *q) {
-  while(pcount && pcount >= config->history) {
-    eventlog("recent_removed", phead.next->id, (char *)0);
-    l_remove(phead.next);
-    pcount--;
-  }
-  if(config->history) {
-    eventlog_raw("recent_added", queue_marshall(q), (char *)0);
-    l_add(phead.prev, q);
-    ++pcount;
-  }
 }
 
 /*

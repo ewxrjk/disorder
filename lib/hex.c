@@ -19,11 +19,7 @@
  */
 /** @file lib/hex.c @brief Hexadecimal encoding and decoding */
 
-#include <config.h>
-#include "types.h"
-
-#include <stdio.h>
-#include <string.h>
+#include "common.h"
 
 #include "hex.h"
 #include "mem.h"

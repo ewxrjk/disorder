@@ -24,13 +24,9 @@
 #ifndef DISOBEDIENCE_H
 #define DISOBEDIENCE_H
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
 #include <time.h>
-#include <string.h>
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>

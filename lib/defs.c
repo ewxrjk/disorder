@@ -23,8 +23,7 @@
  * (see fix_path()), not so that the path can be ignored.
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include "defs.h"
 #include "definitions.h"

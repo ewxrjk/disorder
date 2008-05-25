@@ -24,12 +24,9 @@
 #ifndef DISORDER_CGI_H
 #define DISORDER_CGI_H
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 #include <time.h>
 #include <errno.h>
 #include <ctype.h>

@@ -18,8 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <signal.h>
 #include <stddef.h>

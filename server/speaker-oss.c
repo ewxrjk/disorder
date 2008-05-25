@@ -21,15 +21,12 @@
 /** @file server/speaker-oss.c
  * @brief Support for @ref BACKEND_OSS */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_SYS_SOUNDCARD_H
 
-#include "types.h"
-
 #include <unistd.h>
 #include <poll.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>

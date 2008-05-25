@@ -25,8 +25,6 @@
 #ifndef BITS_H
 #define BITS_H
 
-#include <string.h>                     /* for fls() */
-
 #if HAVE_FLS
 static inline int leftmost_bit(uint32_t n) {
   return fls(n) - 1;

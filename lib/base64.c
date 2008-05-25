@@ -21,12 +21,7 @@
  * @brief Support for MIME base64
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-
-#include <stdio.h>
+#include "common.h"
 
 #include "mem.h"
 #include "base64.h"

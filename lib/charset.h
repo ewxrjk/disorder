@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
@@ -19,6 +20,8 @@
  */
 #ifndef CHARSET_H
 #define CHARSET_H
+
+#include "log.h"
 
 struct dynstr;
 

@@ -1,10 +1,9 @@
 /* Grotty program to print out the bytes making up filenames in some
  * directory */
 
-#include "config.h"
+#include "common.h"
 
 #include <dirent.h>
-#include <stdio.h>
 #include <ctype.h>
 
 int main(int attribute((unused)) argc, char **argv) {

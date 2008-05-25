@@ -17,30 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
-#include <getopt.h>
-#include <db.h>
-#include <locale.h>
-#include <errno.h>
-#include <syslog.h>
-#include <pcre.h>
-#include <unistd.h>
-
-#include "syscalls.h"
-#include "log.h"
-#include "defs.h"
-#include "kvp.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "trackdb-int.h"
-#include "mem.h"
-#include "configuration.h"
-#include "unicode.h"
-#include "version.h"
+#include "disorder-server.h"
 
 static DB_TXN *global_tid;
 
@@ -138,9 +115,9 @@ static int scan_core(const char *name, DB *db,
  * Everything happens inside the @p global_tid tranasction.  @p callback
  * should return 0 or DB_LOCK_DEADLOCK.
  */
-static void scan(const char *name, DB *db,
-                 int (*callback)(const char *name, DB *db, DBC *c,
-                                 DBT *k, DBT *d)) {
+static void scandb(const char *name, DB *db,
+                   int (*callback)(const char *name, DB *db, DBC *c,
+                                   DBT *k, DBT *d)) {
   info("scanning %s", name);
   for(;;) {
     global_tid = trackdb_begin_transaction();
@@ -312,16 +289,16 @@ static void upgrade(void) {
   /* Normalize keys and values as required.  We will also remove aliases as
    * they will be regenerated when we re-noticed the tracks. */
   info("renormalizing keys");
-  scan("tracks.db", trackdb_tracksdb, remove_aliases_normalize_keys);
-  scan("prefs.db", trackdb_prefsdb, normalize_keys);
-  scan("global.db", trackdb_globaldb, normalize_keys);
-  scan("noticed.db", trackdb_noticeddb, normalize_values);
+  scandb("tracks.db", trackdb_tracksdb, remove_aliases_normalize_keys);
+  scandb("prefs.db", trackdb_prefsdb, normalize_keys);
+  scandb("global.db", trackdb_globaldb, normalize_keys);
+  scandb("noticed.db", trackdb_noticeddb, normalize_values);
   /* search.db and tags.db we will rebuild */
   info("regenerating search database and aliases");
   truncate_database("search.db", trackdb_searchdb);
   truncate_database("tags.db", trackdb_tagsdb);
   /* Regenerate the search database and aliases */
-  scan("tracks.db", trackdb_tracksdb, renotice);
+  scandb("tracks.db", trackdb_tracksdb, renotice);
   /* Finally update the database version */
   snprintf(buf, sizeof buf, "%ld", config->dbversion);
   trackdb_set_global("_dbversion", buf, 0);

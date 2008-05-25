@@ -19,12 +19,10 @@
  */
 /** @file lib/authhash.c @brief The authorization hash */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <stddef.h>
 #include <gcrypt.h>
-#include <assert.h>
 
 #include "hex.h"
 #include "log.h"

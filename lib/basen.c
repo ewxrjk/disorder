@@ -24,10 +24,7 @@
  * words.  The words themselves use the native byte order.
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <string.h>
+#include "common.h"
 
 #include "basen.h"
 

@@ -18,10 +18,8 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/socket.h>

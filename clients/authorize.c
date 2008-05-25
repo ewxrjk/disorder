@@ -18,8 +18,7 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <pwd.h>
 #include <gcrypt.h>
@@ -27,7 +26,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <stdio.h>
 
 #include "client.h"
 #include "authorize.h"

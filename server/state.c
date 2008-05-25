@@ -18,35 +18,7 @@
  * USA
  */
 
-#include <config.h>
-
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <locale.h>
-#include <stdio.h>
-#include <pcre.h>
-#include <netdb.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-
-#include "event.h"
-#include "play.h"
-#include "rights.h"
-#include "trackdb.h"
-#include "state.h"
-#include "configuration.h"
-#include "log.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "server.h"
-#include "printf.h"
-#include "addr.h"
-#include "schedule.h"
+#include "disorder-server.h"
 
 static const char *current_unix;
 static int current_unix_fd;

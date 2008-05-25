@@ -23,15 +23,11 @@
  * This file is getting in desparate need of splitting up...
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
-#include <stdio.h>
 #include <db.h>
 #include <sys/socket.h>
 #include <pcre.h>
-#include <assert.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stddef.h>

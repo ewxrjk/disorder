@@ -21,17 +21,12 @@
  * @brief Memory management
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #if GC
 #include <gc.h>
 #endif
 #include <errno.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
 
 #include "mem.h"
 #include "log.h"

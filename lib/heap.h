@@ -22,6 +22,8 @@
 #ifndef HEAP_H
 #define HEAP_H
 
+#include "vector.h"
+
 /** @brief Binary heap template.
  * @param NAME name of type to define
  * @param ETYPE element type

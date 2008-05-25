@@ -18,11 +18,9 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <stddef.h>
-#include <string.h>
 
 #include "mem.h"
 #include "log.h"

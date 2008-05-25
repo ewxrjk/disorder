@@ -24,6 +24,8 @@
 #ifndef SELECTION_H
 #define SELECTION_H
 
+#include "hash.h"
+
 /* Represent a selection using a hash */
 
 hash *selection_new(void);

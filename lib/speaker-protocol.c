@@ -21,11 +21,9 @@
  * @brief Speaker/server protocol support
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <sys/socket.h>
-#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stddef.h>

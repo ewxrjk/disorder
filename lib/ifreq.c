@@ -21,15 +21,13 @@
  * @brief Network interface support
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <errno.h>
-#include <string.h>
 
 #include "ifreq.h"
 #include "mem.h"

@@ -19,11 +19,9 @@
  */
 /** @file lib/charset.c @brief Character set conversion */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <iconv.h>
-#include <string.h>
 #include <errno.h>
 #include <langinfo.h>
 

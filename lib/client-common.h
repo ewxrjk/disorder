@@ -21,6 +21,9 @@
 #ifndef CLIENT_COMMON_H
 #define CLIENT_COMMON_H
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 socklen_t find_server(struct sockaddr **sap, char **namep);
 
 #endif /* CLIENT_COMMON_H */

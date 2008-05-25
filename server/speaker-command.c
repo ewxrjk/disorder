@@ -21,8 +21,7 @@
 /** @file server/speaker-command.c
  * @brief Support for @ref BACKEND_COMMAND */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <unistd.h>
 #include <poll.h>

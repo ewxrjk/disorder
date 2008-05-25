@@ -26,37 +26,7 @@
  * deadlock - it just exits and expects the server to try again.
  */
 
-#include <config.h>
-#include "types.h"
-
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <db.h>
-#include <locale.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <pcre.h>
-#include <string.h>
-#include <fcntl.h>
-#include <syslog.h>
-#include <time.h>
-
-#include "configuration.h"
-#include "log.h"
-#include "defs.h"
-#include "mem.h"
-#include "kvp.h"
-#include "syscalls.h"
-#include "printf.h"
-#include "trackdb.h"
-#include "trackdb-int.h"
-#include "version.h"
-#include "trackname.h"
-#include "queue.h"
-#include "server-queue.h"
-#include "random.h"
+#include "disorder-server.h"
 
 #define BASE_WEIGHT 90000
 

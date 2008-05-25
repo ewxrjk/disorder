@@ -178,7 +178,7 @@ fi
 subdirs="${subdirs} clients doc examples debian"
 
 if test $want_server = yes; then
-  subdirs="${subdirs} server plugins driver templates sounds images"
+  subdirs="${subdirs} server cgi plugins driver templates sounds images"
 fi
 if test $want_gtk = yes; then
   subdirs="${subdirs} disobedience"
@@ -589,6 +589,7 @@ AC_CONFIG_FILES([Makefile
 		 scripts/Makefile
 		 lib/Makefile
 		 server/Makefile
+		 cgi/Makefile
 		 clients/Makefile
 		 disobedience/Makefile
 		 doc/Makefile

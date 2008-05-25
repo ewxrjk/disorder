@@ -18,14 +18,10 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <sys/select.h>
-#include <stdio.h>
-#include <assert.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <time.h>
 
 #include "queue.h"

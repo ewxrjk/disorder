@@ -21,12 +21,9 @@
  * @brief Line input
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdio.h>
 #include <errno.h>
-#include <string.h>
 
 #include "log.h"
 #include "mem.h"

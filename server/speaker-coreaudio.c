@@ -32,11 +32,9 @@
  * @todo support @ref config::device
  */
 
-#include <config.h>
+#include "common.h"
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
-
-#include "types.h"
 
 #include <poll.h>
 #include <sys/socket.h>

@@ -21,8 +21,7 @@
  * @brief Select management for Disobedience
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include "mem.h"
 #include "hash.h"

@@ -77,7 +77,7 @@ server/disorder-deadlock
 server/disorder-dump
 server/disorder-rescan
 server/disorder-speaker
-server/disorder.cgi
+cgi/disorder.cgi
 server/disorderd
 server/trackname
 sounds/Makefile
@@ -192,3 +192,4 @@ libtests/t-charset
 libtests/t-event
 libtests/t-dateparse
 libtests/Makefile
+cgi/Makefile

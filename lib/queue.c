@@ -18,11 +18,8 @@
  * USA
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
 #include <stddef.h>
 
@@ -48,6 +45,20 @@ const char *playing_states[] = {
 };
 
 #define VALUE(q, offset, type) *(type *)((char *)q + offset)
+
+/* add new entry @n@ to a doubly linked list just after @b@ */
+void queue_insert_entry(struct queue_entry *b, struct queue_entry *n) {
+  n->prev = b;
+  n->next = b->next;
+  n->next->prev = n;
+  n->prev->next = n;
+}
+
+/* remove an entry from a doubly-linked list */
+void queue_delete_entry(struct queue_entry *node) {
+  node->next->prev = node->prev;
+  node->prev->next = node->next;
+}
 
 static int unmarshall_long(char *data, struct queue_entry *q,
 			   size_t offset,

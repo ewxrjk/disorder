@@ -17,9 +17,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file lib/common.h
+ * @brief Common includes and definitions
+ */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef COMMON_H
+#define COMMON_H
+
+#include <config.h>
 
 #if HAVE_INTTYPES_H
 # include <inttypes.h>
@@ -29,6 +34,9 @@
 
 /* had better be before atol/atoll redefinition */
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
 
 #if HAVE_LONG_LONG
 typedef long long long_long;
@@ -104,7 +112,7 @@ typedef unsigned char uint32_t;
 # endif
 #endif
 
-#endif /* TYPES_H */
+#endif /* COMMENT_H */
 
 /*
 Local Variables:

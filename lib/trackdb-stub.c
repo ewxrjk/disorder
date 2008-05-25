@@ -23,8 +23,7 @@
  * Stubs for non-server builds
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
 #include <pcre.h>
 

@@ -21,15 +21,10 @@
  * @brief CGI tools
  */
 
-#include <config.h>
-#include "types.h"
+#include "common.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdio.h>
 
 #include "cgi.h"
 #include "mem.h"

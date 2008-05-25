@@ -21,20 +21,13 @@
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
 	      disorder-stats disorder-dbupgrade disorder-choose
-noinst_PROGRAMS=disorder.cgi trackname
+noinst_PROGRAMS=trackname
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorderd_SOURCES=disorderd.c				\
-	api.c api-server.c				\
-	daemonize.c daemonize.h				\
-	play.c play.h 					\
-	server.c server.h     				\
-	server-queue.c server-queue.h			\
-	state.c state.h					\
-	schedule.c					\
-	exports.c 					\
-	../lib/memgc.c
+disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
+	server.c server-queue.c queue-ops.c state.c plugin.c		\
+	schedule.c exports.c ../lib/memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO)
@@ -66,20 +59,14 @@ disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_rescan_SOURCES=rescan.c                        \
-	api.c api-server.c				\
-	exports.c			                \
+disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
 	../lib/memgc.c
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_choose_SOURCES=choose.c                        \
-	server-queue.c server-queue.h			\
-        api.c api-server.c                              \
-        exports.c					\
-	../lib/memgc.c
+disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c
 disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBGCRYPT)
 disorder_choose_LDFLAGS=-export-dynamic
@@ -100,15 +87,6 @@ disorder_dbupgrade_SOURCES=dbupgrade.c ../lib/memgc.c
 disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
-
-disorder_cgi_SOURCES=macros-disorder.c macros-disorder.h lookup.c	\
-	lookup.h options.c options.h actions.c actions.h login.c	\
-	login.h api.c							\
-	api-client.c api-client.h cgimain.c exports.c
-disorder_cgi_LDADD=../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
-disorder_cgi_LDFLAGS=-export-dynamic
-disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
 
 trackname_SOURCES=trackname.c
 trackname_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
@@ -156,7 +134,5 @@ check-decode: disorder-decode disorder-normalize
 	ls -l *.raw
 	cmp decoded.raw oggdec.raw
 	rm -f scratch.wav config decoded.raw oggdec.raw
-
-cgi.o: ../lib/definitions.h
 
 EXTRA_DIST=README.dbversions
