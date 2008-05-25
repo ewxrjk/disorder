@@ -95,7 +95,7 @@ static void option__readfile(const char *name) {
       continue;
     if(!n)
       continue;
-    if((i = TABLE_FIND(options, struct option, name, vec[0])) == -1) {
+    if((i = TABLE_FIND(options, name, vec[0])) == -1) {
       error(0, "%s:%d: unknown option '%s'", cs.name, cs.line, vec[0]);
       continue;
     }

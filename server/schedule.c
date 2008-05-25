@@ -454,7 +454,7 @@ static int schedule_lookup(const char *id,
   int n;
 
   /* Look up the action */
-  n = TABLE_FIND(schedule_actions, typeof(schedule_actions[0]), name, action);
+  n = TABLE_FIND(schedule_actions, name, action);
   if(n < 0) {
     error(0, "scheduled event %s: unrecognized action '%s'", id, action);
     return -1;

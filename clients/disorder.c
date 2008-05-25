@@ -755,7 +755,7 @@ int main(int argc, char **argv) {
   optind = 1;				/* for subsequent getopt calls */
   /* accumulate command args */
   while(n < argc) {
-    if((i = TABLE_FIND(commands, struct command, name, argv[n])) < 0)
+    if((i = TABLE_FIND(commands, name, argv[n])) < 0)
       fatal(0, "unknown command '%s'", argv[n]);
     if(n + commands[i].min >= argc)
       fatal(0, "missing arguments to '%s'", argv[n]);

@@ -775,7 +775,7 @@ void dcgi_action(const char *action) {
     /* Make sure 'action' is always set */
     cgi_set("action", action);
   }
-  if((n = TABLE_FIND(actions, struct action, name, action)) >= 0) {
+  if((n = TABLE_FIND(actions, name, action)) >= 0) {
     if(actions[n].rights) {
       /* Some right or other is required */
       dcgi_lookup(DCGI_RIGHTS);

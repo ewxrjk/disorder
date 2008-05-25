@@ -1404,7 +1404,7 @@ static void logline(disorder_eclient *c, const char *line) {
     return;
   }
   /* TODO: do something with the time */
-  n = TABLE_FIND(logentry_handlers, struct logentry_handler, name, vec[1]);
+  n = TABLE_FIND(logentry_handlers, name, vec[1]);
   if(n < 0) return;                     /* probably a future command */
   vec += 2;
   nvec -= 2;

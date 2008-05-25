@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -109,7 +109,7 @@ GdkPixbuf *find_image(const char *name) {
   int n;
 
   if(!(pb = (GdkPixbuf *)cache_get(&image_cache_type, name))) {
-    if((n = TABLE_FIND(images, struct image, name, name)) >= 0) {
+    if((n = TABLE_FIND(images, name, name)) >= 0) {
       /* Use the built-in copy */
       if(!(pb = gdk_pixbuf_new_from_inline(-1, images[n].data, FALSE, &err))) {
         error(0, "%s", err->message);

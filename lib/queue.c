@@ -177,7 +177,7 @@ int queue_unmarshall_vec(struct queue_entry *q, int nvec, char **vec,
   }
   while(*vec) {
     D(("key %s value %s", vec[0], vec[1]));
-    if((n = TABLE_FIND(fields, struct field, name, *vec)) < 0) {
+    if((n = TABLE_FIND(fields, name, *vec)) < 0) {
       error_handler("unknown key in queue data", u);
       return -1;
     } else {

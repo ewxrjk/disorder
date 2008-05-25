@@ -311,7 +311,7 @@ static int set_restrict(const struct config_state *cs,
   };
 
   for(n = 0; n < nvec; ++n) {
-    if((i = TABLE_FIND(restrictions, struct restriction, name, vec[n])) < 0) {
+    if((i = TABLE_FIND(restrictions, name, vec[n])) < 0) {
       error(0, "%s:%d: invalid restriction '%s'",
 	    cs->path, cs->line, vec[n]);
       return -1;
@@ -986,7 +986,7 @@ static const struct conf conf[] = {
 static const struct conf *find(const char *key) {
   int n;
 
-  if((n = TABLE_FIND(conf, struct conf, name, key)) < 0)
+  if((n = TABLE_FIND(conf, name, key)) < 0)
     return 0;
   return &conf[n];
 }

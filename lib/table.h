@@ -21,13 +21,13 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#define TABLE_FIND(TABLE, TYPE, FIELD, NAME)	\
-  table_find((void *)TABLE,		       	\
-	     offsetof(TYPE, FIELD),		\
-	     sizeof (TYPE),			\
-	     sizeof TABLE / sizeof (TYPE),	\
+#define TABLE_FIND(TABLE, FIELD, NAME)			\
+  table_find((void *)TABLE,				\
+	     offsetof(typeof((TABLE)[0]), FIELD),	\
+	     sizeof ((TABLE)[0]),			\
+	     sizeof TABLE / sizeof ((TABLE)[0]),	\
 	     NAME)
-/* Search TYPE TABLE[] for an element where TABLE[N].FIELD matches NAME
+/* Search TABLE[] for an element where TABLE[N].FIELD matches NAME
  * Returns the index N on success or -1 if not found
  * The table must be lexically sorted on FIELD
  */

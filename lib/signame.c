@@ -138,7 +138,7 @@ static const struct sigtable {
 int find_signal(const char *s) {
   int n;
 
-  if((n = TABLE_FIND(signals, struct sigtable, name, s)) < 0)
+  if((n = TABLE_FIND(signals, name, s)) < 0)
     return -1;
   return signals[n].signal;
 }

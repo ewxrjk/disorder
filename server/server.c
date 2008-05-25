@@ -1711,7 +1711,7 @@ static int command(struct conn *c, char *line) {
     sink_writes(ev_writer_sink(c->w), "500 do what?\n");
     return 1;
   }
-  if((n = TABLE_FIND(commands, struct command, name, vec[0])) < 0)
+  if((n = TABLE_FIND(commands, name, vec[0])) < 0)
     sink_writes(ev_writer_sink(c->w), "500 unknown command\n");
   else {
     if(commands[n].rights
