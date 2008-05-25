@@ -22,8 +22,8 @@ pkgconfdir/config - DisOrder jukebox configuration
 .SH DESCRIPTION
 The purpose of DisOrder is to organize and play digital audio files, under the
 control of multiple users.
-\fIpkgconfdir/config\fR is the primary configuration file but this
-man page currently documents all of its various configuration files.
+\fIpkgconfdir/config\fR is the primary configuration file; the web interface
+uses a number of others (see \fBdisorder.cgi\fR(8)).
 .SS Tracks
 DisOrder can be configured with multiple collections of tracks, indexing them
 by their filename, and picking players on the basis of filename patterns (for
@@ -134,17 +134,6 @@ the network layer.
 The web interface is controlled by a collection of template files, one for each
 kind of page, and a collection of option files.
 These are split up and separate from the main configuration file to
-make it more convenient to override specific bits.
-.PP
-The web interface connects to the DisOrder server like any other user, though
-it is given a special privilege to "become" any other user.
-(Thus, any process with the same UID as the web interface is very
-powerful as far as DisOrder goes.
-This model will be changed in a future version.)
-.PP
-Access control to the web interface is (currently) separate from DisOrder's own
-access control (HTTP authentication is required) but uses the same user
-namespace.
 .PP
 See \fBdisorder.cgi\fR(8) for more information.
 .SS "Searching And Tags"
@@ -710,11 +699,22 @@ cleared.
 Specifies the user to run as.
 Only makes sense if invoked as root (or the target user).
 .SS "Client Configuration"
+These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
+or
+\fIpkgconfdir/config.\fRUSERNAME.
 .TP
 .B connect \fIHOST SERVICE\fR
 Connect to the address specified by \fIHOST\fR and port specified by
 \fISERVICE\fR.
+.TP
+.B password \fIPASSWORD\fR
+Specify password.
+.TP
+.B username \fIUSERNAME\fR
+Specify username.
+The default is taken from the environment variable \fBLOGNAME\fR.
 .SS "Web Interface Configuration"
+.\" TODO this section is misnamed really...
 .TP
 .B mail_sender \fIADDRESS\fR
 The email address that appears in the From: field of any mail messages sent by
@@ -733,16 +733,6 @@ Default 30.
 .B smtp_server \fIHOSTNAME\fR
 The hostname (or address) of the SMTP server to use for sending mail.
 The default is 127.0.0.1.
-.TP
-.B templates \fIPATH\fR ...
-Specifies the directory containing templates used by the web
-interface.
-If a template appears in more than one template directory
-then the one in the earliest directory specified is chosen.
-.IP
-See below for further details.
-.IP
-If \fBtemplates\fR is used without arguments then the template path is cleared.
 .TP
 .B transform \fITYPE\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how names are sorted and displayed in track choice displays.
@@ -782,17 +772,6 @@ longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
-.SS "Authentication Configuration"
-These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
-or
-\fIpkgconfdir/config.\fRUSERNAME.
-.TP
-.B password \fIPASSWORD\fR
-Specify password.
-.TP
-.B username \fIUSERNAME\fR
-Specify username.
-The default is taken from the environment variable \fBLOGNAME\fR.
 .SH "GLOBAL PREFERENCES"
 These are the values set with \fBset\-global\fR.
 .TP
