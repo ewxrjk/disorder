@@ -2209,7 +2209,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
   eventlog("rescanned", (char *)0);
   /* Call rescanned callbacks */
   while(rescanned_list) {
-    void (*rescanned)(void *u) = rescanned_list->rescanned;
+    void (*rescanned)(void *u_) = rescanned_list->rescanned;
     void *ru = rescanned_list->ru;
 
     rescanned_list = rescanned_list->next;
