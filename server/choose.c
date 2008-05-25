@@ -196,7 +196,7 @@ static unsigned long long pick_weight(unsigned long long limit) {
   unsigned long long t, r, slop;
   int i, nby, nbi;
 
-  //info("pick_weight: limit = %llu", limit);
+  D(("pick_weight: limit = %#016llx", limit));
 
   /* First, decide how many bits of output we actually need; do bytes first
    * (they're quicker) and then bits.
@@ -213,7 +213,7 @@ static unsigned long long pick_weight(unsigned long long limit) {
   if (t >> 2) { t >>= 2; nbi += 2; }
   if (t >> 1) { t >>= 1; nbi += 1; }
   nbi++;
-  //info("nby = %d; nbi = %d", nby, nbi);
+  D(("nby = %d; nbi = %d", nby, nbi));
 
   /* Main randomness collection loop.  We read a number of bytes from the
    * randomness source, and glue them together into an integer (dropping
@@ -227,10 +227,10 @@ static unsigned long long pick_weight(unsigned long long limit) {
    * limit > 0; if r < slop then we try again, otherwise r - slop is our
    * winner.
    */
-  slop = (2 << (nbi - 1)) - limit;
+  slop = ((unsigned long long)2 << (nbi - 1)) - limit;
   m = nbi & 7 ? (1 << (nbi & 7)) - 1 : 0xff;
-  //info("slop = %llu", slop);
-  //info("m = 0x%02x", m);
+  D(("slop = %#016llx", slop));
+  D(("m = 0x%02x", m));
 
   do {
     /* Actually get some random data. */
@@ -242,9 +242,10 @@ static unsigned long long pick_weight(unsigned long long limit) {
     /* Turn it into an integer.  */
     for (r = 0, i = 0; i < nby; i++)
       r = (r << 8) | buf[i];
-    //info("r = %llu", r);
+    D(("r = %#016llx", r));
   } while (r < slop);
 
+  D(("  result=%#016llx", r - slop));
   return r - slop;
 }
 
@@ -279,6 +280,7 @@ static int collect_tracks_callback(const char *track,
    * choose thing i, for 0 <= i < n - 1, is w_i/c_{n-1} (induction
    * hypothesis); undoing the conditioning gives the desired result.
    */
+  D(("consider %s", track));
   if(weight) {
     total_weight += weight;
     if (pick_weight(total_weight) < weight)
@@ -330,7 +332,7 @@ int main(int argc, char **argv) {
   trackdb_commit_transaction(global_tid);
   trackdb_close();
   trackdb_deinit();
-  //info("ntracks=%ld total_weight=%lld", ntracks, total_weight);
+  D(("ntracks=%ld total_weight=%lld", ntracks, total_weight));
   if(!total_weight)
     fatal(0, "no tracks match random choice criteria");
   if(!winning)
