@@ -47,7 +47,8 @@ and then redefines macros as desired.
 @# Standard menu
 @#   @current is the name of the current page, e.g. choosealpha, login
 @define {stdmenu} {current}
-        {  <p class=menubar>
+        {  <div class=top>
+   <p class=menubar>
 @menuitem{@current}{playing}{true}
 @menuitem{@current}{recent}{true}
 @menuitem{@current}{choose}{@right{play}}
@@ -57,7 +58,16 @@ and then redefines macros as desired.
 @menuitem{@current}{help}{true}
 @menuitem{@current}{about}{true}
    </p>
-   <hr>
+   <div class=logo>
+    <a href="http://www.greenend.org.uk/rjk/disorder/">
+     <img src="@image{logosmall}"
+          style="border-style:none"
+          alt="DisOrder"
+          title="Quack quack!  Visit the DisOrder website">
+    </a>
+   </div>
+  <div style="clear:both"></div>
+  </div>
 }
 
 @# Menu entry
@@ -69,15 +79,15 @@ and then redefines macros as desired.
 @#  
 @define {menuitem} {current name available}  
         {@if{@available}
-            {   <a @if{@eq{@current}{@name}}
-                      {class=activemenu}
-                      {class=inactivemenu}
+            {    <a @if{@eq{@current}{@name}}
+                       {class=activemenu}
+                       {class=inactivemenu}
 @if{@eq{name}{playing}}
-   {      href="@url"}
-   {      href="@url?action=@name"}
-      title="@label{menu.@q{@name}verbose}">@label{menu.@name}</a>}
-            {   <span class=invalidmenu 
-         title="@label{menu.@q{@name}verbose}">@label{menu.@name}</span>}}
+   {       href="@url"}
+   {       href="@url?action=@name"}
+       title="@label{menu.@q{@name}verbose}">@label{menu.@name}</a>}
+            {    <span class=invalidmenu 
+          title="@label{menu.@q{@name}verbose}">@label{menu.@name}</span>}}
 
 
 @# Standard footer text

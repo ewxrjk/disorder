@@ -241,8 +241,21 @@ form.search {
 
 /* menu bar *******************************************************************/
 
+div.top {
+  background-color: #e0e0e0;
+  border: 1px solid black
+}
+
+div.logo {
+  float:right;
+  margin-top:4px;
+  margin-right:4px
+}
+
 /* p.menubar is the menu bar at the top */
 p.menubar {
+  float:left;
+  margin-left: 4px;
   word-spacing: 1em		/* Space out menu items */
 }
 
@@ -297,6 +310,20 @@ table.prefs input {
   font-family: monospace
 }
 
+/* text with sectiosn *******************************************************/
+
+/* h2.sectiontitle is used for subsection headings */
+h2.sectiontitle {
+  background-color: #e0ffe0;	/* Black on pastel green */
+  color: black;
+  padding: 0.2em
+}
+
+/* There is a div.section for each subsection */
+div.section {
+  margin-left: 1em
+}
+
 /* help **********************************************************************/
 
 /* table.helpbuttons is used for various tables of buttons */
@@ -307,18 +334,6 @@ table.helpbuttons td {
 table.helpbuttons {
   margin-left: 2em;
   margin-right: 2em
-}
-
-/* h2.helptitle is used for help subsection headings */
-h2.helptitle {
-  background-color: #e0ffe0;	/* Black on pastel green */
-  color: black;
-  padding: 0.2em
-}
-
-/* There is a div.helpsection for each subsection */
-div.helpsection {
-  margin-left: 1em
 }
 
 /* span.configuration marks configuration directives */
