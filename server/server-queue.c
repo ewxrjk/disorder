@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #include "server-queue.h"
 #include "eventlog.h"
 #include "plugin.h"
-#include "basen.h"
+#include "random.h"
 #include "configuration.h"
 #include "inputline.h"
 #include "disorder.h"
@@ -155,16 +155,22 @@ void recent_write(void) {
   queue_do_write(&phead, config_get_file("recent"));
 }
 
-static void queue_id(struct queue_entry *q) {
-  static unsigned long serial;
-  unsigned long a[3];
-  char buffer[128];
+static int id_in_use(const char *id) {
+  struct queue_entry *q;
 
-  a[0] = serial++ & 0xFFFFFFFFUL;
-  a[1] = time(0) & 0xFFFFFFFFUL;
-  a[2] = getpid() & 0xFFFFFFFFUL;
-  basen(a, 3, buffer, sizeof buffer, 62);
-  q->id = xstrdup(buffer);
+  for(q = qhead.next; q != &qhead; q = q->next)
+    if(!strcmp(id, q->id))
+      return 1;
+  return 0;
+}
+
+static void queue_id(struct queue_entry *q) {
+  const char *id;
+
+  id = random_id();
+  while(id_in_use(id))
+    id = random_id();
+  q->id = id;
 }
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
