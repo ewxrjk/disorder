@@ -1,6 +1,6 @@
 #! /bin/bash
 #
-# Copyright (C) 2004-2008x Richard Kettlewell
+# Copyright (C) 2004-2008 Richard Kettlewell
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,5 +24,5 @@ set -x
 make "$@"
 #make check
 really make "$@" install
-really install -m 755 server/disorder.cgi /home/jukebox/public_html/index.cgi
+really install -m 755 cgi/disorder.cgi /home/jukebox/public_html/index.cgi
 really ldconfig

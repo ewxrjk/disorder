@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file server/disorder-cgi.h
+/** @file cgi/disorder-cgi.h
  * @brief Shared header for DisOrder CGI program
  */
 

@@ -536,7 +536,7 @@ if [ -z "$CGIBIN" ]; then
   echo "Cannot find your web server's cgi-bin directory"
 else
   echo "Installing CGI in $CGIBIN"
-  install -m 555 server/disorder.cgi $CGIBIN/disorder
+  install -m 555 cgi/disorder.cgi $CGIBIN/disorder
 fi
 
 if $server_running; then

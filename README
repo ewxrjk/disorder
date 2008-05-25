@@ -235,7 +235,7 @@ You need to configure a number of things to make this work:
 4. Install disorder.cgi in an appropriate location.  Remember to make it
    executable.  Example:
 
-     install -m 755 server/disorder.cgi /usr/lib/cgi-bin/disorder
+     install -m 755 cgi/disorder.cgi /usr/lib/cgi-bin/disorder
 
 5. Try it out.  You should be able to perform read-only operations straight
    away, and after visiting the 'Login' page to authenticate, perform other
