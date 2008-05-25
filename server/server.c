@@ -348,16 +348,16 @@ static void start_fresh_rescan(void *ru) {
 static int c_rescan(struct conn *c,
 		    char **vec,
 		    int nvec) {
-  int wait = 0, fresh = 0, n;
+  int flag_wait = 0, flag_fresh = 0, n;
 
   /* Parse flags */
   for(n = 0; n < nvec; ++n) {
     if(!strcmp(vec[n], "wait"))
-      wait = 1;				/* wait for rescan to complete */
+      flag_wait = 1;			/* wait for rescan to complete */
 #if 0
     /* Currently disabled because untested (and hard to test). */
     else if(!strcmp(vec[n], "fresh"))
-      fresh = 1;			/* don't piggyback underway rescan */
+      flag_fresh = 1;			/* don't piggyback underway rescan */
 #endif
     else {
       sink_writes(ev_writer_sink(c->w), "550 unknown flag\n");
@@ -366,15 +366,15 @@ static int c_rescan(struct conn *c,
   }
   /* Report what was requested */
   info("S%x rescan by %s (%s %s)", c->tag, c->who,
-       wait ? "wait" : "",
-       fresh ? "fresh" : "");
+       flag_wait ? "wait" : "",
+       flag_fresh ? "fresh" : "");
   if(trackdb_rescan_underway()) {
-    if(fresh) {
+    if(flag_fresh) {
       /* We want a fresh rescan but there is already one underway.  Arrange a
        * callback when it completes and then set off a new one. */
-      c->rescan_wait = wait;
+      c->rescan_wait = flag_wait;
       trackdb_add_rescanned(start_fresh_rescan, c);
-      if(wait)
+      if(flag_wait)
 	return 0;
       else {
 	sink_writes(ev_writer_sink(c->w), "250 rescan queued\n");
@@ -382,7 +382,7 @@ static int c_rescan(struct conn *c,
       }
     } else {
       /* There's a rescan underway, and it's acceptable to piggyback on it */
-      if(wait) {
+      if(flag_wait) {
 	/* We want to block until completion. */
 	trackdb_add_rescanned(finished_rescan, c);
 	return 0;
@@ -395,7 +395,7 @@ static int c_rescan(struct conn *c,
     }
   } else {
     /* No rescan is underway.  fresh is therefore irrelevant. */
-    if(wait) {
+    if(flag_wait) {
       /* We want to block until completion */
       trackdb_rescan(c->ev, 1/*check*/, finished_rescan, c);
       return 0;
