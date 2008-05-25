@@ -19,10 +19,10 @@
 #
 
 TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
-	t-cookies t-event t-filepart t-hash t-heap t-hex t-kvp t-mime	\
-	t-printf t-regsub t-selection t-signame t-sink t-split		\
-	t-syscalls t-trackname t-unicode t-url t-utf8 t-vector t-words	\
-	t-wstat t-macros t-cgi
+	t-cookies t-dateparse t-event t-filepart t-hash t-heap t-hex	\
+	t-kvp t-mime t-printf t-regsub t-selection t-signame t-sink	\
+	t-split t-syscalls t-trackname t-unicode t-url t-utf8 t-vector	\
+	t-words t-wstat t-macros t-cgi
 
 noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
@@ -48,6 +48,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
 	cookies.c cookies.h				\
+	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
 	event.c event.h 				\
@@ -160,6 +161,10 @@ t_cgi_DEPENDENCIES=libdisorder.a
 t_cookies_SOURCES=t-cookies.c test.c test.h
 t_cookies_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 t_cookies_DEPENDENCIES=libdisorder.a
+
+t_dateparse_SOURCES=t-dateparse.c test.c test.h
+t_dateparse_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
+t_dateparse_DEPENDENCIES=libdisorder.a
 
 t_event_SOURCES=t-event.c test.c test.h
 t_event_LDADD=libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)

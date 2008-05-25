@@ -116,6 +116,15 @@ int disorder_make_cookie(disorder_client *c, char **cookiep);
 const char *disorder_last(disorder_client *c);
 int disorder_revoke(disorder_client *c);
 int disorder_reminder(disorder_client *c, const char *user);
+int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp);
+int disorder_schedule_del(disorder_client *c, const char *id);
+int disorder_schedule_get(disorder_client *c, const char *id,
+			  struct kvp **actiondatap);
+int disorder_schedule_add(disorder_client *c,
+			  time_t when,
+			  const char *priority,
+			  const char *action,
+			  ...);
 
 #endif /* CLIENT_H */
 

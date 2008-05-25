@@ -58,6 +58,7 @@
 #include "client-common.h"
 #include "rights.h"
 #include "trackdb.h"
+#include "kvp.h"
 
 /** @brief Client handle contents */
 struct disorder_client {
@@ -1213,6 +1214,94 @@ int disorder_revoke(disorder_client *c) {
  */
 int disorder_reminder(disorder_client *c, const char *user) {
   return disorder_simple(c, 0, "reminder", user, (char *)0);
+}
+
+/** @brief List scheduled events
+ * @param c Client
+ * @param idsp Where to put list of event IDs
+ * @param nidsp Where to put count of event IDs, or NULL
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp) {
+  return disorder_simple_list(c, idsp, nidsp, "schedule-list", (char *)0);
+}
+
+/** @brief Delete a scheduled event
+ * @param c Client
+ * @param id Event ID to delete
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_del(disorder_client *c, const char *id) {
+  return disorder_simple(c, 0, "schedule-del", id, (char *)0);
+}
+
+/** @brief Get details of a scheduled event
+ * @param c Client
+ * @param id Event ID
+ * @param actiondatap Where to put details
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_get(disorder_client *c, const char *id,
+			  struct kvp **actiondatap) {
+  char **lines, **bits;
+  int rc, nbits;
+
+  *actiondatap = 0;
+  if((rc = disorder_simple_list(c, &lines, NULL,
+				"schedule-get", id, (char *)0)))
+    return rc;
+  while(*lines) {
+    if(!(bits = split(*lines++, &nbits, SPLIT_QUOTES, 0, 0))) {
+      error(0, "invalid schedule-get reply: cannot split line");
+      return -1;
+    }
+    if(nbits != 2) {
+      error(0, "invalid schedule-get reply: wrong number of fields");
+      return -1;
+    }
+    kvp_set(actiondatap, bits[0], bits[1]);
+  }
+  return 0;
+}
+
+/** @brief Add a scheduled event
+ * @param c Client
+ * @param when When to trigger the event
+ * @param priority Event priority ("normal" or "junk")
+ * @param action What action to perform
+ * @param ... Action-specific arguments
+ * @return 0 on success, non-0 on error
+ *
+ * For action @c "play" the next argument is the track.
+ *
+ * For action @c "set-global" next argument is the global preference name
+ * and the final argument the value to set it to, or (char *)0 to unset it.
+ */
+int disorder_schedule_add(disorder_client *c,
+			  time_t when,
+			  const char *priority,
+			  const char *action,
+			  ...) {
+  va_list ap;
+  char when_str[64];
+  int rc;
+
+  snprintf(when_str, sizeof when_str, "%lld", (long long)when);
+  va_start(ap, action);
+  if(!strcmp(action, "play"))
+    rc = disorder_simple(c, 0, "schedule-add", when_str, priority,
+			 action, va_arg(ap, char *),
+			 (char *)0);
+  else if(!strcmp(action, "set-global")) {
+    const char *key = va_arg(ap, char *);
+    const char *value = va_arg(ap, char *);
+    rc = disorder_simple(c, 0,"schedule-add",  when_str, priority,
+			 action, key, value,
+			 (char *)0);
+  } else
+    fatal(0, "unknown action '%s'", action);
+  va_end(ap);
+  return rc;
 }
 
 /*

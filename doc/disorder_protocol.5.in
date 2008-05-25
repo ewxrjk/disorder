@@ -294,6 +294,61 @@ Requires one of the \fBscratch mine\fR, \fBscratch random\fR or
 \fBscratch any\fR rights depending on how the track came to be
 added to the queue.
 .TP
+.B schedule-add \fIWHEN\fR \fIPRIORITY\fR \fIACTION\fR ...
+Schedule an event for the future.
+.IP
+.I WHEN
+is the time when it should happen, as \fBtime_t\fR value.
+It must refer to a time in the future.
+.IP
+.I PRIORITY
+is the event priority.
+This can be \fBnormal\fR, in which case the event will be run at startup if its
+time has past, or \fBjunk\fR in which case it will be discarded if it is found
+to be in the past at startup.
+The meaning of other values is not defined.
+.IP
+.I ACTION
+is the action to perform.
+The choice of action determines the meaning of the remaining arguments.
+Possible actions are:
+.RS
+.TP
+.B play
+Play a track.
+The next argument is the track name.
+Requires the \fBplay\fR right.
+.TP
+.B set-global
+Set a global preference.
+The next argument is the preference name and the final argument is the value to
+set it to (omit it to unset it).
+Requires the \fBglobal prefs\fR right.
+.RE
+.IP
+You need the right at the point you create the event.
+It is not possible to create scheduled events in expectation of a future change
+in rights.
+.TP
+.B schedule-del \fIEVENT\fR
+Deletes a scheduled event.
+Users can always delete their own scheduled events; with the \fBadmin\fR
+right you can delete any event.
+.TP
+.B schedule-get \fIEVENT\fR
+Sends the details of scheduled event \fIEVENT\fR in a response body.
+Each line is a pair of strings quoted in the usual way, the first being the key
+ane the second the value.
+No particular order is used.
+.IP
+Scheduled events are considered public information.
+Right \fBread\fR is sufficient to see details of all events.
+.TP
+.B schedule-list
+Sends the event IDs of all scheduled events in a response body, in no
+particular order.
+Use \fBschedule-get\fR to get the details of each event.
+.TP
 .B search \fITERMS\fR
 Search for tracks matching the search terms.
 The results are put in a response body, one to a line.

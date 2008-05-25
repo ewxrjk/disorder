@@ -23,7 +23,10 @@
 #ifndef TRACKDB_H
 #define TRACKDB_H
 
-struct ev_source;
+#include <pcre.h>
+
+#include "event.h"
+#include "rights.h"
 
 extern const struct cache_type cache_files_type;
 extern unsigned long cache_files_hits, cache_files_misses;

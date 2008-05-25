@@ -21,6 +21,8 @@
 #ifndef TRACKDB_INT_H
 #define TRACKDB_INT_H
 
+#include "kvp.h"
+
 struct vector;                          /* forward declaration */
 
 extern DB_ENV *trackdb_env;
@@ -32,6 +34,7 @@ extern DB *trackdb_tagsdb;
 extern DB *trackdb_noticeddb;
 extern DB *trackdb_globaldb;
 extern DB *trackdb_usersdb;
+extern DB *trackdb_scheduledb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */

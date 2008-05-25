@@ -145,6 +145,17 @@ DB *trackdb_globaldb;                   /* global preferences */
  */
 DB *trackdb_noticeddb;                   /* when track noticed */
 
+/** @brief The schedule database
+ *
+ * - Keys are ID strings, generated at random
+ * - Values are encoded key-value pairs
+ * - There can be more than one value per key
+ * - Data cannot be reconstructed
+ *
+ * See @ref server/schedule.c for further information.
+ */
+DB *trackdb_scheduledb;
+
 /** @brief The user database
  * - Keys are usernames
  * - Values are encoded key-value pairs
@@ -460,6 +471,7 @@ void trackdb_open(int flags) {
   trackdb_globaldb = open_db("global.db", 0, DB_HASH, dbflags, 0666);
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, dbflags, 0666);
+  trackdb_scheduledb = open_db("schedule.db", 0, DB_HASH, dbflags, 0666);
   if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
@@ -490,6 +502,8 @@ void trackdb_close(void) {
     fatal(0, "error closing global.db: %s", db_strerror(err));
   if((err = trackdb_noticeddb->close(trackdb_noticeddb, 0)))
     fatal(0, "error closing noticed.db: %s", db_strerror(err));
+  if((err = trackdb_scheduledb->close(trackdb_scheduledb, 0)))
+    fatal(0, "error closing schedule.db: %s", db_strerror(err));
   if((err = trackdb_usersdb->close(trackdb_usersdb, 0)))
     fatal(0, "error closing users.db: %s", db_strerror(err));
   trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;

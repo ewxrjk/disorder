@@ -18,17 +18,18 @@
  * USA
  */
 
-/** @file lib/random.h
- * @brief Random number generator
- *
+/** @file lib/dateparse.h
+ * @brief Date parsing
  */
-#ifndef RANDOM_H
-#define RANDOM_H
 
-void random_get(void *ptr, size_t bytes);
-char *random_id(void);
-
-#endif /* RANDOM_H */
+time_t dateparse(const char *s);
+#if 0
+struct tm *xgetdate(const char *string,
+		    const char *const *template);
+#endif
+int xgetdate_r(const char *string,
+	       struct tm *tp,
+	       const char *const *template);
 
 /*
 Local Variables:

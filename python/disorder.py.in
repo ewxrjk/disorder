@@ -883,6 +883,30 @@ class client:
     """Confirm a user registration"""
     res, details = self._simple("confirm", confirmation)
 
+  def schedule_list(self):
+    """Get a list of scheduled events """
+    self._simple("schedule-list")
+    return self._body()
+
+  def schedule_del(self, event):
+    """Delete a scheduled event"""
+    self._simple("schedule-del", event)
+
+  def schedule_get(self, event):
+    """Get the details for an event as a dict (returns None if event not found)"""
+    res, details = self._simple("schedule-get", event)
+    if res == 555:
+      return None
+    d = {}
+    for line in self._body():
+      bits = _split(line)
+      d[bits[0]] = bits[1]
+    return d
+
+  def schedule_add(self, when, priority, action, *rest):
+    """Add a scheduled event"""
+    self._simple("schedule-add", str(when), priority, action, *rest)
+
   ########################################################################
   # I/O infrastructure
 

@@ -71,6 +71,7 @@
 #include "mime.h"
 #include "sendmail.h"
 #include "wstat.h"
+#include "schedule.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
@@ -1506,6 +1507,105 @@ static int c_reminder(struct conn *c,
   return 0;
 }
 
+static int c_schedule_list(struct conn *c,
+			   char attribute((unused)) **vec,
+			   int attribute((unused)) nvec) {
+  char **ids = schedule_list(0);
+  sink_writes(ev_writer_sink(c->w), "253 ID list follows\n");
+  while(*ids)
+    sink_printf(ev_writer_sink(c->w), "%s\n", *ids++);
+  sink_writes(ev_writer_sink(c->w), ".\n");
+  return 1;				/* completed */
+}
+
+static int c_schedule_get(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  struct kvp *actiondata = schedule_get(vec[0]), *k;
+
+  if(!actiondata) {
+    sink_writes(ev_writer_sink(c->w), "555 No such event\n");
+    return 1;				/* completed */
+  }
+  /* Scheduled events are public information.  Anyone with RIGHT_READ can see
+   * them. */
+  sink_writes(ev_writer_sink(c->w), "253 Event information follows\n");
+  for(k = actiondata; k; k = k->next)
+    sink_printf(ev_writer_sink(c->w), " %s %s\n",
+		quoteutf8(k->name),  quoteutf8(k->value));
+  sink_writes(ev_writer_sink(c->w), ".\n");
+  return 1;				/* completed */
+}
+
+static int c_schedule_del(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  struct kvp *actiondata = schedule_get(vec[0]);
+
+  if(!actiondata) {
+    sink_writes(ev_writer_sink(c->w), "555 No such event\n");
+    return 1;				/* completed */
+  }
+  /* If you have admin rights you can delete anything.  If you don't then you
+   * can only delete your own scheduled events. */
+  if(!(c->rights & RIGHT_ADMIN)) {
+    const char *who = kvp_get(actiondata, "who");
+
+    if(!who || !c->who || strcmp(who, c->who)) {
+      sink_writes(ev_writer_sink(c->w), "551 Not authorized\n");
+      return 1;				/* completed */
+    }
+  }
+  if(schedule_del(vec[0]))
+    sink_writes(ev_writer_sink(c->w), "550 Could not delete scheduled event\n");
+  else
+    sink_writes(ev_writer_sink(c->w), "250 Deleted\n");
+  return 1;				/* completed */
+}
+
+static int c_schedule_add(struct conn *c,
+			  char **vec,
+			  int nvec) {
+  struct kvp *actiondata = 0;
+  const char *id;
+
+  /* Standard fields */
+  kvp_set(&actiondata, "who", c->who);
+  kvp_set(&actiondata, "when", vec[0]);
+  kvp_set(&actiondata, "priority", vec[1]);
+  kvp_set(&actiondata, "action", vec[2]);
+  /* Action-dependent fields */
+  if(!strcmp(vec[2], "play")) {
+    if(nvec != 4) {
+      sink_writes(ev_writer_sink(c->w), "550 Wrong number of arguments\n");
+      return 1;
+    }
+    if(!trackdb_exists(vec[3])) {
+      sink_writes(ev_writer_sink(c->w), "550 Track is not in database\n");
+      return 1;
+    }
+    kvp_set(&actiondata, "track", vec[3]);
+  } else if(!strcmp(vec[2], "set-global")) {
+    if(nvec < 4 || nvec > 5) {
+      sink_writes(ev_writer_sink(c->w), "550 Wrong number of arguments\n");
+      return 1;
+    }
+    kvp_set(&actiondata, "key", vec[3]);
+    if(nvec > 4)
+      kvp_set(&actiondata, "value", vec[4]);
+  } else {
+    sink_writes(ev_writer_sink(c->w), "550 Unknown action\n");
+    return 1;
+  }
+  /* schedule_add() checks user rights */
+  id = schedule_add(c->ev, actiondata);
+  if(!id)
+    sink_writes(ev_writer_sink(c->w), "550 Cannot add scheduled event\n");
+  else
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", id);
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1566,6 +1666,10 @@ static const struct command {
   { "resume",         0, 0,       c_resume,         RIGHT_PAUSE },
   { "revoke",         0, 0,       c_revoke,         RIGHT_READ },
   { "rtp-address",    0, 0,       c_rtp_address,    0 },
+  { "schedule-add",   3, INT_MAX, c_schedule_add,   RIGHT_READ },
+  { "schedule-del",   1, 1,       c_schedule_del,   RIGHT_READ },
+  { "schedule-get",   1, 1,       c_schedule_get,   RIGHT_READ },
+  { "schedule-list",  0, 0,       c_schedule_list,  RIGHT_READ },
   { "scratch",        0, 1,       c_scratch,        RIGHT_SCRATCH__MASK },
   { "search",         1, 1,       c_search,         RIGHT_READ },
   { "set",            3, 3,       c_set,            RIGHT_PREFS, },

@@ -5,6 +5,13 @@
 The 'gap' directive will no longer work.  It could be restored if there
 is real demand.
 
+*** Event Scheduling
+
+It is now possible to schedule events to occur in the future.  Currently
+the supported actions are playing a specific track, and changing a
+global preference (thus allowing e.g. random play to be turned on or
+off).  See the schedule-* commands described in disorder(1).
+
 *** Random Track Choice
 
 This has been completely rewritten to support new features:
@@ -47,6 +54,7 @@ play as well as the local default sound device.
 ** Bugs Fixed
 
  #2 Search results should link to directories
+ #6 Schedule tracks for a particular time
 #10 Non-uniform track selection
 #11 Bias random selection to newly added tracks
 #16 Cookie expiry causes user to be silently logged out and not

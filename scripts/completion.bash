@@ -32,7 +32,8 @@ complete -o default \
              search set set-volume shutdown stats unset version resolve
              part pause resume scratch-id get-global set-global unset-global
              tags new rtp-address adduser users edituser deluser userinfo
-             setup-guest
+             setup-guest schedule-del schedule-list
+             schedule-set-global schedule-unset-global schedule-play
              -h --help -H --help-commands --version -V --config -c
              --length --debug -d" \
 	 disorder

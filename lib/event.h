@@ -21,6 +21,8 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <sys/socket.h>
+
 typedef struct ev_source ev_source;
 
 struct rusage;
