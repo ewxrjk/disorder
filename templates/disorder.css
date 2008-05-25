@@ -256,7 +256,7 @@ div.logo {
 p.menubar {
   float:left;
   margin-left: 4px;
-  word-spacing: 1em		/* Space out menu items */
+  word-spacing: 0px
 }
 
 /* Subelements are A for usable menus or SPAN for unusable ones */
@@ -264,17 +264,22 @@ p.menubar a, p.menubar span {
   font-family: helvetica,sans-serif;
   font-weight: bold;
   font-size: 14pt;
-  text-decoration: none
+  text-decoration: none;
+  padding: 4px
 }
 
 /* a.activemenu is the current menu item */
 a.activemenu {
-  color: red;
+  background-color: black;
+  color: white;
+  padding: 4px
 }
 
 /* a.inactivemenu is a non-current but choosable menu item */
 a.inactivemenu {
-  color: black
+  color: black;
+  padding:4px;
+  margin: 0px
 }
 
 /* span.invaliemenu is a non-choosable menu item */
