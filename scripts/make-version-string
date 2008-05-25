@@ -25,13 +25,11 @@ if(exists $ENV{CC}) {
 }
 die "no version found\n" unless defined $version;
 output("%s (DisOrder) $version\n");
-output(" configure options: $options\n") if defined $options;
-output(" compiler: $cc\n") if defined $compiler;
-output(" version: $compiler\n") if defined $cc;
 output("Copyright (C) 2003-2008 Richard Kettlewell et al\n");
 output("License GPLv2+: GNU GPL version 2 or later:\n");
 output("        http://www.gnu.org/licenses/old-licenses/gpl-2.0.html\n");
 output("This is free software: you are free to change and redistribute it.\n");
 output("There is NO WARRANTY, to the extent permitted by law.\n");
+output("WARNING: -Werror not used in this build\n") if $cc !~ /-Werror/;
 
 close STDOUT or die "$0: stdout: $!\n";
