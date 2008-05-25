@@ -32,6 +32,7 @@ AC_CANONICAL_HOST
 # What we want to build
 want_gtk=yes
 want_python=yes
+want_tests=yes
 
 # APIs we want
 want_alsa=yes
@@ -60,6 +61,10 @@ AC_ARG_WITH([coreaudio],
 	    [AS_HELP_STRING([--without-coreaudio],
 			    [do not build with Core Audio support])],
 	    [want_coreaudio=$withval])
+AC_ARG_WITH([tests],
+	    [AS_HELP_STRING([--without-tests],
+			    [do not build test suit])],
+	    [want_tests=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -166,7 +171,11 @@ AC_ARG_WITH([python],
 			    [do not build Python support])],
 	    [want_python=$withval])
 
-subdirs="scripts lib clients doc examples debian"
+subdirs="scripts lib"
+if test $want_tests = yes; then
+  subdirs="${subdirs} libtests"
+fi
+subdirs="${subdirs} clients doc examples debian"
 
 if test $want_server = yes; then
   subdirs="${subdirs} server plugins driver templates sounds images"
@@ -177,7 +186,7 @@ if test $want_gtk = yes; then
     subdirs="${subdirs} images"
   fi
 fi
-if test $want_python = yes; then
+if test $want_tests = yes && test $want_python = yes; then
   AM_PATH_PYTHON([2.4])
   subdirs="${subdirs} python tests"
 fi
@@ -590,6 +599,7 @@ AC_CONFIG_FILES([Makefile
 		 sounds/Makefile
 		 python/Makefile
 		 examples/Makefile
+		 libtests/Makefile
 		 tests/Makefile])
 AC_OUTPUT
 
