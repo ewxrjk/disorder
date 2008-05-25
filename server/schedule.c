@@ -208,6 +208,7 @@ static int schedule_init_tid(ev_source *ev,
       if(priority && !strcmp(priority, "junk")) {
         /* Junk actions that are in the past are discarded during startup */
 	/* TODO recurring events should be handled differently here */
+        info("junk event %s is in the past, discarding", id);
 	if(cdel(cursor))
 	  goto deadlocked;
         /* Skip this time */

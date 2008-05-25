@@ -20,6 +20,31 @@
 #
 import dtest,disorder,time,string
 
+def now():
+    """Return the current time in whole seconds"""
+    return int(time.time())
+
+def next_playing(c):
+    print " waiting for track to play"
+    p = c.playing()
+    waited = 0
+    while p is None and waited < 10:
+        time.sleep(1)
+        print "  ."
+        p = c.playing()
+    assert waited < 10, "track played in a reasonable time"
+    return p
+
+def wait_idle(c):
+    print " waiting for nothing to be playing"
+    p = c.playing()
+    waited = 0
+    while p is not None and waited < 20:
+        time.sleep(1)
+        print "  ."
+        p = c.playing()
+    assert waited < 20, "idled in a reasonable time"
+
 def test():
     """Exercise schedule support"""
     dtest.start_daemon()
@@ -32,63 +57,39 @@ def test():
     while c.playing() is not None:
         time.sleep(1)
         print "  ."
-    now = int(time.time())
     track = "%s/Joe Bloggs/First Album/05:Fifth track.ogg" % dtest.tracks
     print " scheduling a track for the future"
-    c.schedule_add(now + 4, "normal", "play", track)
+    when = now() + 3
+    c.schedule_add(when, "normal", "play", track)
     print " disorder schedule-list output:"
     print string.join(dtest.command(["disorder",
                                      "--config", disorder._configfile,
                                      "--no-per-user-config",
                                      "schedule-list"]), ""),
-    print " waiting for it to play"
-    waited = 0
-    p = c.playing()
-    while p is None and waited < 10:
-        time.sleep(1)
-        print "  ."
-        waited += 1
-        p = c.playing()
-    assert waited < 10, "checking track played within a reasonable period"
-    assert waited > 2, "checking track didn't play immediately"
+    p = next_playing(c)
     assert p["track"] == track, "checking right track played"
+    assert int(p["when"]) >= when, "checking track played at right time"
     assert c.schedule_list() == [], "checking schedule is empty"
-    print " waiting for nothing to be playing"
-    while c.playing() is not None:
-        time.sleep(1)
-        print "  ."
+    wait_idle(c)
     print " scheduling an enable-random for the future"
-    now = int(time.time())
-    c.schedule_add(now + 4, "normal", "set-global", "random-play", "yes")
+    c.schedule_add(now() + 3, "junk", "set-global", "random-play", "yes")
     print " disorder schedule-list output:"
     print string.join(dtest.command(["disorder",
                                      "--config", disorder._configfile,
                                      "--no-per-user-config",
                                      "schedule-list"]), ""),
-    print " waiting for it to take effect"
-    waited = 0
-    p = c.playing()
-    while p is None and waited < 10:
-        time.sleep(1)
-        print "  ."
-        waited += 1
-        p = c.playing()
-    assert waited < 10, "checking a track played within a reasonable period"
-    assert waited > 2, "checking a track didn't play immediately"
+    next_playing(c)
     print " disabling random play"
     c.random_disable()
-    print " waiting for nothing to be playing"
-    while c.playing() is not None:
-        time.sleep(1)
-        print "  ."
+    wait_idle(c)
     print " scheduling track to play later via command line"
-    now = int(time.time())
+    when = now() + 3
     dtest.command(["disorder",
                    "--config", disorder._configfile,
                    "--no-per-user-config",
                    "schedule-play",
                    time.strftime("%Y-%m-%d %H:%M:%S",
-                                 time.localtime(now + 4)),
+                                 time.localtime(when)),
                    "normal",
                    track])
     print " disorder schedule-list output:"
@@ -96,30 +97,18 @@ def test():
                                      "--config", disorder._configfile,
                                      "--no-per-user-config",
                                      "schedule-list"]), ""),
-    print " waiting for it to play"
-    waited = 0
-    p = c.playing()
-    while p is None and waited < 10:
-        time.sleep(1)
-        print "  ."
-        waited += 1
-        p = c.playing()
-    assert waited < 10, "checking track played within a reasonable period"
-    assert waited > 2, "checking track didn't play immediately"
+    p = next_playing(c)
     assert p["track"] == track, "checking right track played"
+    assert p["when"] >= when, "checking track played at right time"
     assert c.schedule_list() == [], "checking schedule is empty"
-    print " waiting for nothing to be playing"
-    while c.playing() is not None:
-        time.sleep(1)
-        print "  ."
+    wait_idle(c)
     print " scheduling an enable-random for later via command line"
-    now = int(time.time())
     dtest.command(["disorder",
                    "--config", disorder._configfile,
                    "--no-per-user-config",
                    "schedule-set-global",
                    time.strftime("%Y-%m-%d %H:%M:%S",
-                                 time.localtime(now + 4)),
+                                 time.localtime(now() + 3)),
                    "normal",
                    "random-play",
                    "yes"])
@@ -128,16 +117,7 @@ def test():
                                      "--config", disorder._configfile,
                                      "--no-per-user-config",
                                      "schedule-list"]), ""),
-    print " waiting for it to take effect"
-    waited = 0
-    p = c.playing()
-    while p is None and waited < 10:
-        time.sleep(1)
-        print "  ."
-        waited += 1
-        p = c.playing()
-    assert waited < 10, "checking a track played within a reasonable period"
-    assert waited > 2, "checking a track didn't play immediately"
+    p = next_playing(c)
     print " disabling random play"
     c.random_disable()
     print " waiting for nothing to be playing"
@@ -145,8 +125,7 @@ def test():
         time.sleep(1)
         print "  ."
     print " scheduling a track for the future"
-    now = int(time.time())
-    c.schedule_add(now + 4, "normal", "play", track)
+    c.schedule_add(now() + 3, "normal", "play", track)
     print " schedule via python:"
     s = c.schedule_list()
     for event in s:
@@ -159,7 +138,7 @@ def test():
     assert s == [], "checking schedule is empty"
     waited = 0
     p = c.playing()
-    while p is None and waited < 10:
+    while p is None and waited < 5:
         time.sleep(1)
         print "  ."
         waited += 1
@@ -167,13 +146,13 @@ def test():
     assert p is None, "checking deleted scheduled event did not run"
     print " checking you can't schedule events for the past"
     try:
-        now = int(time.time())
-        c.schedule_add(now - 4, "normal", "play", track)
+        c.schedule_add(now() - 4, "normal", "play", track)
         assert False, "checking schedule_add failed"
     except disorder.operationError:
       pass                              # good
     print " checking scheduled events survive restarts"
-    c.schedule_add(now + 4, "normal", "play", track)
+    when = now() + 3
+    c.schedule_add(when, "normal", "play", track)
     dtest.stop_daemon()
     print " dumping database"
     dump = "%s/dumpfile" % dtest.testroot
@@ -184,17 +163,23 @@ def test():
                          "--undump", dump])
     dtest.start_daemon()
     c = disorder.client()
+    p = next_playing(c)
     print " waiting for track to play"
-    waited = 0
-    p = c.playing()
-    while p is None and waited < 10:
-        time.sleep(1)
-        print "  ."
-        waited += 1
-        p = c.playing()
-    assert waited < 10, "checking track played within a reasonable period"
     assert p["track"] == track, "checking right track played"
+    assert p["when"] >= when, "checking track played at right time"
     assert c.schedule_list() == [], "checking schedule is empty"
+    print " checking junk events do not survive restarts"
+    c.schedule_add(now() + 2, "junk", "play", track)
+    s = c.schedule_list()
+    print s
+    dtest.stop_daemon()
+    time.sleep(3)
+    dtest.start_daemon()
+    c = disorder.client()
+    print " checking schedule is empty"
+    s = c.schedule_list()
+    print s
+    assert s == [], "checking schedule is empty"
 
 if __name__ == '__main__':
     dtest.run()
