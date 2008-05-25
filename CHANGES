@@ -57,6 +57,7 @@ play as well as the local default sound device.
  #6 Schedule tracks for a particular time
 #10 Non-uniform track selection
 #11 Bias random selection to newly added tracks
+#13 Default encoding for debian setup scripts
 #16 Cookie expiry causes user to be silently logged out and not
     subsequently redirected to login page
 #20 Broken aliasing rules

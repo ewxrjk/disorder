@@ -22,6 +22,14 @@ set -e
 
 . /usr/share/debconf/confmodule
 
+# If we don't have any preconception about the local character encoding then
+# try to use the system one.
+db_get disorder/encoding || true
+if test "x$RET" = x; then
+  eval `locale -k charmap`
+  db_set disorder/encoding "$charmap"
+fi
+
 db_input high disorder/roots || true
 db_input high disorder/encoding || true
 db_input high disorder/port || true
