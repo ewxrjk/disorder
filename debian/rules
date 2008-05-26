@@ -100,11 +100,10 @@ pkg-disorder: build
 	$(MKDIR) debian/disorder/etc/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder \
 		debian/disorder/usr/bin/*
-	$(INSTALL_DATA) CHANGES README debian/README.Debian \
+	$(INSTALL_DATA) CHANGES.html README debian/README.Debian \
 		BUGS README.* \
 		debian/disorder/usr/share/doc/disorder/.
-	gzip -9f debian/disorder/usr/share/doc/disorder/CHANGES \
-		 debian/disorder/usr/share/doc/disorder/README \
+	gzip -9f debian/disorder/usr/share/doc/disorder/README \
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
 		 debian/disorder/usr/share/man/man*/*

@@ -18,7 +18,7 @@
 # USA
 #
 
-EXTRA_DIST=TODO CHANGES README.streams BUGS \
+EXTRA_DIST=TODO CHANGES.html README.streams BUGS \
 README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 

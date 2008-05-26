@@ -1,0 +1,297 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<title>DisOrder Change History</title>
+<style type="text/css">
+body {
+  color: black;
+  background-color: white;
+  font-family: times,serif;
+  font-weight: normal;
+  font-size: 12pt;
+  font-variant: normal
+}
+
+div.section {
+  margin-left:1em
+}
+
+h1 {
+  background-color: #e0ffe0;
+  font-family: helvetica,sans-serif;
+  padding: 0.2em
+}
+
+h2 {
+  background-color: #e0ffe0;
+  font-family: helvetica,sans-serif;
+  padding: 0.2em
+}
+
+h3 {
+  background-color: #f0f0f0;
+  font-family: helvetica,sans-serif;
+  padding: 0.2em
+}
+
+h4 {
+  font-family: helvetica,sans-serif
+}
+
+table.bugs {
+  width: 100%
+}
+
+table.bugs th {
+  text-align: left
+}
+
+span.command {
+  font-family: monospace
+}
+</style>
+</head>
+
+<body>
+<h1>DisOrder Change History</h1>
+
+<p>This file documents recent user-visible changes to DisOrder.</p>
+
+<h2>Changes up to version 3.1</h2>
+
+<div class=section>
+
+  <h3>Server</h3>
+
+<div class=section>
+  
+  <p>The <tt>gap</tt> directive will no longer work.  It could be
+  restored if there is real demand.</p>
+  
+  <h4>Event Scheduling</h4>
+
+<div class=section>
+
+  <p>It is now possible to schedule events to occur in the future.
+  Currently the supported actions are playing a specific track, and
+  changing a global preference (thus allowing e.g. random play to be
+  turned on or off).  See the <tt>schedule-*</tt>
+  commands described in disorder(1).</p>
+
+</div>
+
+<h4>Random Track Choice</h4>
+
+<div class=section>
+
+  <p>This has been completely rewritten to support new features:</p>
+
+  <ul>
+
+    <li>tracks in the recently-played list or in the queue are no longer
+    eligible for random choice.</li>
+
+    <li>there is a new <tt>weight</tt> track preference allowing for
+    non-uniform track selection.  See disorder(1) for details.</li>
+
+    <li>there is a new configuration item <tt>replay_min</tt> defining
+    the minimum time before a played track can be picked at random.
+    The default is 8 hours (which matches the earlier behaviour).</li>
+
+    <li>recently added tracks are biased up; see <tt>new_bias</tt> and
+    <tt>new_bias_age</tt> in disorder_config(5).</li>
+
+  </ul>
+
+</div>
+
+<h4>Web Interface</h4>
+
+<div class=section>
+
+  <p>This has been largely rewritten.  The most immediate benefits are:</p>
+
+  <ul>
+    
+    <li>the search page is integrated into the choose page, and
+    includes links to parent directories.</li>
+    
+    <li>if you try to do something you have insufficient rights for,
+    instead of getting an error page or nothing happening, you are
+    redirected to the login page.</li>
+
+  </ul>
+
+  <p>Customizers should find their lives easier: the syntax is less onerous, it
+  is possible to define macros to avoid repetition, and the documentation is
+  less monolithic (see disorder.cgi(8) as a starting point).</p>
+
+</div>
+
+</div>
+
+<h3>Disobedience</h3>
+
+<div class=section>
+
+  <p>There is now a new user management window.  From here you can add and
+  remove users or modify their settings.</p>
+
+  <p>Relatedly, the server will only allow remote user management if you set
+  <tt>remote_userman</tt> to <tt>yes</tt>.</p>
+
+</div>
+
+<h3>Miscellaneous</h3>
+
+<div class=section>
+
+  <p><tt>scripts/setup</tt> now honors command line options, and can
+  set up network play as well as the local default sound device.</p>
+
+</div>
+
+<h3>Bugs Fixed</h3>
+
+<div class=section>
+
+  <table class=bugs>
+    <tr>
+      <th>ID</th>
+      <th>Description</th>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=2">#2</a></td>
+      <td>Search results should link to directories</td>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=6">#6</a></td>
+      <td>Schedule tracks for a particular time</td>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=10">#10</a></td>
+      <td>Non-uniform track selection</td>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=11">#11</a></td>
+      <td>Bias random selection to newly added tracks</td>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=13">#13</a></td>
+      <td>Default encoding for debian setup scripts</td>
+    </tr>
+
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=16">#16</a></td>
+      <td>Cookie expiry causes user to be silently logged out and not
+      subsequently redirected to login page</td>
+    </tr>
+    
+    <tr>
+      <td><a href="http://code.google.com/p/disorder/issues/detail?id=20">#20</a></td>
+      <td>Broken aliasing rules</td>
+    </tr>
+    
+  </table>
+
+</div>
+
+</div>
+
+<h2>Changes up to version 3.0.2</h2>
+
+<div class=section>
+
+  <p>Builds <tt>--without-server</tt> should work again.</p>
+
+  <p>The web interface is a bit more liberal in the cookie value
+  syntax it will accept.</p>
+
+  <p>Clients fail more gracefully if no password is available.</p>
+
+</div>
+
+<h2>Changes up to version 3.0.1</h2>
+
+<div class=section>
+  
+  <p>Debian upgrades from 2.0.x should now work better.</p>
+  
+</div>
+
+<h2>Changes up to version 3.0</h2>
+
+<div class=section>
+  
+  <p><b>Important</b>!  See <a
+  href="README.upgrades">README.upgrades</a> when upgrading.</p>
+  
+  <h3>Platforms And Installation</h3>
+  
+<div class=section>
+  
+  <p>Mac OS X and FreeBSD are somewhat supported.  There is now a bash
+  script in <tt>scripts/setup</tt> which will automate the setup after
+  <tt>make install</tt>.</p>
+  
+</div>
+
+<h3>Server</h3>
+
+<div class=section>
+  
+  <p>Users are now stored in the database rather than a configuration
+  file.</p>
+  
+  <p>The server now has a built-in list of stopwords and players, so
+  only additions to these need be mentioned in the configuration file.</p>
+  
+  <p>The default inter-track gap is now 0s.</p>
+  
+  <p>How sound is played is now controlled via the new <tt>api</tt>
+  configuration command.  This also controls how the volume is set,
+  which now works with ALSA as well as OSS.</p>
+  
+  <p>A bug in the MP3 decoder was fixed (also in 2.0.4).</p>
+  
+</div>
+
+<h3>Web Interface</h3>
+
+<div class=section>
+  
+  <p>The web interface now uses cookies to remember user identity, and
+  allows online registration of new users.  Also it is no longer
+  necessary to manually specify the URL of the web interface (but you
+  can override it if you don't like the value it figures out).</p>
+  
+  <p>It is possible to allow users to register via the web interface.</p>
+  
+  <p>The web interface's browser support has been improved.  It has
+  been tested with Firefox 2, Safari 3, Konqueror 3, Internet Explorer
+  7 and Opera 9.</p>
+  
+</div>
+
+<h3>Disobedience</h3>
+
+<div class=section>
+
+  <p>A bug which would cause a crash if you attempt to rearrange the
+  queue while no track was playing has been fixed.  There is a new
+  'deselect all tracks' option, mirroring 'select all tracks.</p>
+  
+</div>
+
+</div>
+
+<!--
+Local Variables:
+fill-column:79
+End:
+-->
