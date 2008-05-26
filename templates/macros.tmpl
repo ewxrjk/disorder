@@ -56,19 +56,18 @@ and then redefines macros as desired.
 @menuitem{@current}{new}{true}
 @menuitem{@current}{login}{true}
 @menuitem{@current}{help}{true}
-@menuitem{@current}{about}{true}
    </p>
    <div class=logo>
-    <a href="http://www.greenend.org.uk/rjk/disorder/">
-     <img src="@image{logosmall}"
-          style="border-style:none"
-          alt="DisOrder"
-          title="Quack quack!  Visit the DisOrder website">
-    </a>
+@menuicon{@current}{about}{true}{logosmall}
    </div>
   <div style="clear:both"></div>
   </div>
 }
+
+@define {menuurl} {name}
+        {@if{@eq{name}{playing}}
+	    {@url}
+	    {@url?action=@name}}
 
 @# Menu entry
 @#  Used by @stdmenu
@@ -82,13 +81,37 @@ and then redefines macros as desired.
             {    <a @if{@eq{@current}{@name}}
                        {class=activemenu}
                        {class=inactivemenu}
-@if{@eq{name}{playing}}
-   {       href="@url"}
-   {       href="@url?action=@name"}
+       href="@menuurl{@name}"
        title="@label{menu.@q{@name}verbose}">@label{menu.@name}</a>}
             {    <span class=invalidmenu 
           title="@label{menu.@q{@name}verbose}">@label{menu.@name}</span>}}
 
+@# Icon-based menu entry (very similar to @menuitem)
+@#  Used by @stdmenu
+@#  @current is the name of the current page
+@#  @name is the name of the menu item
+@#  @available is true if the menu item is available, else false
+@#  @icon is the name of the icon
+@#  
+@define {menuicon} {current name available icon}  
+        {@if{@available}
+            {    <a class=menuicon
+       href="@menuurl{@name}">
+     <img @if{@eq{@current}{@name}}
+             {class=activemenu}
+             {class=inactivemenu}
+          title="@label{menu.@q{@name}verbose}"
+          alt="@label{menu.@name}"
+          src="@image{@icon}">
+    </a>}
+            {    <span class=menuicon>
+     <img @if{@eq{@current}{@name}}
+             {class=activemenu}
+             {class=inactivemenu}
+          title="@label{menu.@q{@name}verbose}"
+          alt="@label{menu.@name}"
+          src="@image{@icon@_inactive}">
+    </a>}}
 
 @# Standard footer text
 @define {credits} {}

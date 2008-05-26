@@ -269,17 +269,18 @@ p.menubar a, p.menubar span {
 }
 
 /* a.activemenu is the current menu item */
-a.activemenu {
-  background-color: black;
-  color: white;
-  padding: 4px
+img.activemenu, a.activemenu {
+  background-color: #d0d0d0;
+  color: black;
+  padding: 4px;
+  border: none
 }
 
 /* a.inactivemenu is a non-current but choosable menu item */
-a.inactivemenu {
+img.inactivemenu, a.inactivemenu {
   color: black;
   padding:4px;
-  margin: 0px
+  border:none 
 }
 
 /* span.invaliemenu is a non-choosable menu item */
