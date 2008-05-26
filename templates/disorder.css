@@ -262,8 +262,7 @@ p.menubar {
 /* Subelements are A for usable menus or SPAN for unusable ones */
 p.menubar a, p.menubar span {
   font-family: helvetica,sans-serif;
-  font-weight: bold;
-  font-size: 14pt;
+  font-size: 24px;
   text-decoration: none;
   padding: 4px
 }
