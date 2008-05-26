@@ -65,4 +65,6 @@ check-help: all
 	unset DISPLAY;./disobedience --version > /dev/null
 	unset DISPLAY;./disobedience --help > /dev/null
 
+CLEANFILES=disobedience.html images.h
+
 export GNUSED

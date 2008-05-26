@@ -27,14 +27,14 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
-	schedule.c exports.c ../lib/memgc.c
+	schedule.c exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_deadlock_SOURCES=deadlock.c
+disorder_deadlock_SOURCES=deadlock.c disorder-server.h
 disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
@@ -49,46 +49,46 @@ disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_decode_SOURCES=decode.c
+disorder_decode_SOURCES=decode.c disorder-server.h
 disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBMAD) $(LIBVORBISFILE) $(LIBFLAC)
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_normalize_SOURCES=normalize.c
+disorder_normalize_SOURCES=normalize.c disorder-server.h
 disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
-	../lib/memgc.c
+	../lib/memgc.c disorder-server.h
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c
+disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c	\
+			disorder-server.h
 disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBGCRYPT)
 disorder_choose_LDFLAGS=-export-dynamic
 disorder_choose_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_stats_SOURCES=stats.c
+disorder_stats_SOURCES=stats.c disorder-server.h
 disorder_stats_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_stats_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_dump_SOURCES=dump.c                           	\
-	../lib/memgc.c
+disorder_dump_SOURCES=dump.c disorder-server.h ../lib/memgc.c
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC) $(LIBGCRYPT)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
-disorder_dbupgrade_SOURCES=dbupgrade.c ../lib/memgc.c
+disorder_dbupgrade_SOURCES=dbupgrade.c ../lib/memgc.c disorder-server.h
 disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
 
-trackname_SOURCES=trackname.c
+trackname_SOURCES=trackname.c disorder-server.h
 trackname_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 trackname_DEPENDENCIES=../lib/libdisorder.a
 

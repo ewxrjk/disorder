@@ -22,9 +22,8 @@ noinst_PROGRAMS=disorder.cgi
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorder_cgi_SOURCES=macros-disorder.c macros-disorder.h lookup.c	\
-	lookup.h options.c options.h actions.c actions.h login.c	\
-	login.h cgimain.c
+disorder_cgi_SOURCES=macros-disorder.c lookup.c options.c actions.c	\
+	login.c cgimain.c disorder-cgi.h
 disorder_cgi_LDADD=../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
 disorder_cgi_LDFLAGS=-export-dynamic

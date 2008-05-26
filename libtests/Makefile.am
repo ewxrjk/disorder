@@ -69,3 +69,6 @@ make-coverage-reports:
 	${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
 
 EXTRA_DIST=t-macros-1.tmpl t-macros-2
+
+DISTCLEANFILES=GraphemeBreakTest.txt NormalizationTest.txt	\
+	       WordBreakTest.txt

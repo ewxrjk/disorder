@@ -74,7 +74,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	speaker-protocol.c speaker-protocol.h		\
 	split.c split.h					\
 	syscalls.c syscalls.h				\
-	types.h						\
+	common.h					\
 	table.c table.h					\
 	timeval.h					\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
@@ -125,6 +125,6 @@ rebuild-unicode:
 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
 	mv $@.new $@
 
-CLEANFILES=definitions.h definitions.h.new
+CLEANFILES=definitions.h definitions.h.new version-string versionstring.h
 
 EXTRA_DIST=trackdb.c trackdb-stub.c

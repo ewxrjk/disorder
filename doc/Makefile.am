@@ -84,6 +84,7 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder_actions.5.tail disorder_templates.5.tail \
 	   disorder_options.5.in disorder.cgi.8.in
 
-CLEANFILES=$(SEDFILES) $(HTMLMAN) $(TMPLMAN)
+CLEANFILES=$(SEDFILES) $(HTMLMAN) $(TMPLMAN) \
+	disorder_actions.5.in disorder_templates.5.in
 
 export GNUSED
