@@ -37,6 +37,7 @@
 #include <netinet/in.h>
 #include <sys/un.h>
 #include <pcre.h>
+#include <setjmp.h>
 
 #include "mem.h"
 #include "log.h"
@@ -121,12 +122,30 @@ extern int verbose;
   ++tests;                                                      \
 } while(0)
 
+#define check_fatal(WHAT) do {                                          \
+  void (*const save_exitfn)(int) attribute((noreturn)) = exitfn;        \
+                                                                        \
+  exitfn = test_exitfn;                                                 \
+  if(setjmp(fatal_env) == 0) {                                          \
+    fprintf(stderr, "Expect an error:\n ");                             \
+    (void)(WHAT);                                                       \
+    fprintf(stderr, "\n%s:%d: %s unexpectedly returned\n",              \
+                     __FILE__, __LINE__, #WHAT);                        \
+    count_error();                                                      \
+  }                                                                     \
+  ++tests;                                                              \
+  exitfn = save_exitfn;                                                 \
+} while(0)
+
 void count_error(void);
 const char *format(const char *s);
 const char *format_utf32(const uint32_t *s);
 uint32_t *ucs4parse(const char *s);
 const char *do_printf(const char *fmt, ...);
 void test_init(int argc, char **argv);
+
+extern jmp_buf fatal_env;
+void test_exitfn(int) attribute((noreturn));
 
 #define TEST(name)                                                      \
   int main(int argc, char **argv) {                                     \

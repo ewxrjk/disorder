@@ -48,6 +48,13 @@ static void test_dateparse(void) {
   check_date(now, "%H:%M:%S", localtime);
   /* This one needs a bodge: */
   check_date(now - now % 60, "%H:%M", localtime);
+  /* Reject invalid formats */
+  check_fatal(dateparse("12"));
+  check_fatal(dateparse("12:34:56:23"));
+  /* Reject invalid values */
+  check_fatal(dateparse("25:34"));
+  check_fatal(dateparse("23:61"));
+  check_fatal(dateparse("23:23:62"));
 }
 
 TEST(dateparse);

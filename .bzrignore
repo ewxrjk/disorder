@@ -193,3 +193,4 @@ libtests/t-event
 libtests/t-dateparse
 libtests/Makefile
 cgi/Makefile
+libtests/index.html

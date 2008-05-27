@@ -125,6 +125,7 @@ rebuild-unicode:
 	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
 	mv $@.new $@
 
-CLEANFILES=definitions.h definitions.h.new version-string versionstring.h
+CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
+	   *.gcda *.gcov *.gcno
 
 EXTRA_DIST=trackdb.c trackdb-stub.c

@@ -93,6 +93,13 @@ const char *do_printf(const char *fmt, ...) {
   return s;
 }
 
+jmp_buf fatal_env;
+
+void test_exitfn(int rc) {
+  assert(rc != 0);
+  longjmp(fatal_env, rc);
+}
+
 static const struct option options[] = {
   { "verbose", no_argument, 0, 'v' },
   { "fail-first", no_argument, 0, 'F' },
