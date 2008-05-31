@@ -74,6 +74,14 @@ disorder_actions.5.in: disorder_actions.5.head disorder_actions.5.tail \
 	cat ${srcdir}/disorder_actions.5.tail >> disorder_actions.5.new
 	mv disorder_actions.5.new disorder_actions.5.in
 
+if GROG
+check: $(man_MANS)
+	@set -e; for m in $(man_MANS); do \
+	  echo \`$(GROG) $$m\` -Tutf8 -wall \>/dev/null ;\
+	  echo `$(GROG) $$m` -Tutf8 -wall >/dev/null ;\
+	done
+endif
+
 EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder.3 disorder-dump.8.in disorder_protocol.5.in \
 	   tkdisorder.1 disorder-deadlock.8.in disorder-rescan.8.in \

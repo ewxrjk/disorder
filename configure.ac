@@ -212,6 +212,9 @@ if test "$GNUSED" = "not found"; then
 fi
 AC_SUBST([GNUSED])
 
+AC_CHECK_PROGS([GROG],[grog])
+AM_CONDITIONAL([GROG],[test "x$GROG" != xnone])
+
 missing_libraries=""
 missing_headers=""
 missing_functions=""
