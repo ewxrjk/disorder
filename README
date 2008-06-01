@@ -204,9 +204,15 @@ You need to configure a number of things to make this work:
 
      mail_sender webmaster@example.com
 
-   By default the web interface sends mail by connecting to the SMTP port of
-   127.0.0.1.  You can override this with the smtp_server directive, for
-   exampler:
+   By default the web interface sends mail via the system sendmail executable
+   (typically /usr/sbin/sendmail or /usr/lib/sendmail).  You can override this
+   with the sendmail directive, for example:
+
+     sendmail /usr/sbin/my-sendmail
+
+   The executable you choose must support the -bs option.  Alternatively you
+   can tell it to connect to an SMTP server via TCP, with the smtp_server
+   directive.  For example:
 
      smtp_server mail.example.com
 

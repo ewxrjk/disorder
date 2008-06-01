@@ -221,6 +221,8 @@ missing_functions=""
 
 AC_DEFINE(_GNU_SOURCE, 1, [required for e.g. strsignal])
 
+AC_PATH_PROG([SENDMAIL],[sendmail],[none],[$PATH:/usr/sbin:/usr/lib])
+
 # Macs might have libraries under fink's root
 AC_PATH_PROG([FINK],[fink],[none],[$PATH:/sw/bin])
 if test "x$FINK" != xnone; then

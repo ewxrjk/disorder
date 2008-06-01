@@ -30,6 +30,7 @@ extern const char pkgdatadir[];
 extern const char bindir[];
 extern const char sbindir[];
 extern const char finkbindir[];
+extern const char sendmail_binary[];
 
 #endif /* DEFS_H */
 

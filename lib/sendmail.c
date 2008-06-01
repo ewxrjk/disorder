@@ -37,6 +37,7 @@
 #include "hostname.h"
 #include "sendmail.h"
 #include "base64.h"
+#include "wstat.h"
 
 /** @brief Get a server response
  * @param tag Server name
@@ -206,6 +207,7 @@ int sendmail(const char *sender,
   char *tag;
   int fdin, fdout, rc;
   FILE *in, *out;
+  pid_t pid = -1;
    
   static const struct addrinfo pref = {
     .ai_flags = 0,
@@ -215,20 +217,45 @@ int sendmail(const char *sender,
   };
 
   /* Find the SMTP server */
-  a.n = 2;
-  a.s = s;
-  s[0] = config->smtp_server;
-  s[1] = (char *)"smtp";
-  if(!(ai = get_address(&a, &pref, &tag)))
-    return -1;
-  fdin = xsocket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-  if(connect(fdin, ai->ai_addr, ai->ai_addrlen) < 0) {
-    error(errno, "error connecting to %s", tag);
-    xclose(fdin);
-    return -1;
+  if(config->sendmail && config->sendmail[0]) {
+    int inpipe[2], outpipe[2];
+    
+    /* If it's a path name, use -bs mode.  Exim, Postfix and Sendmail all claim
+     * to support this.  */
+    xpipe(inpipe);                      /* sendmail's stdin */
+    xpipe(outpipe);                     /* sendmail's stdout */
+    if(!(pid = xfork())) {
+      exitfn = _exit;
+      signal(SIGPIPE, SIG_DFL);
+      xdup2(inpipe[0], 0);
+      xclose(inpipe[1]);
+      xclose(outpipe[0]);
+      xdup2(outpipe[1], 1);
+      execlp(config->sendmail,
+             config->sendmail, "-bs", (char *)0);
+      fatal(errno, "executing %s", config->sendmail);
+    }
+    xclose(inpipe[0]);
+    xclose(outpipe[1]);
+    fdin = outpipe[0];                  /* read from sendmail's stdout */
+    fdout = inpipe[1];                  /* write to sendmail's stdin */
+    tag = config->sendmail;
+  } else {
+    a.n = 2;
+    a.s = s;
+    s[0] = config->smtp_server;
+    s[1] = (char *)"smtp";
+    if(!(ai = get_address(&a, &pref, &tag)))
+      return -1;
+    fdin = xsocket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if(connect(fdin, ai->ai_addr, ai->ai_addrlen) < 0) {
+      error(errno, "error connecting to %s", tag);
+      xclose(fdin);
+      return -1;
+    }
+    if((fdout = dup(fdin)) < 0)
+      fatal(errno, "error calling dup2");
   }
-  if((fdout = dup(fdin)) < 0)
-    fatal(errno, "error calling dup2");
   if(!(in = fdopen(fdin, "rb")))
     fatal(errno, "error calling fdopen");
   if(!(out = fdopen(fdout, "wb")))
@@ -237,6 +264,19 @@ int sendmail(const char *sender,
 		  encoding, content_type, body);
   fclose(in);
   fclose(out);
+  if(pid != -1) {
+    int w;
+
+    while(waitpid(pid, &w, 0) < 0 && errno == EINTR)
+      ;
+    if(w < 0)
+      fatal(errno, "error calling waitpid");
+    if(w) {
+      error(0, "%s -bs: %s", config->sendmail, wstat(w));
+      if(!rc)
+        rc = -1;
+    }
+  }
   return rc;
 }
 

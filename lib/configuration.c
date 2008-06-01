@@ -962,6 +962,7 @@ static const struct conf conf[] = {
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
+  { C(sendmail),         &type_string,           validate_isabspath },
   { C(short_display),    &type_integer,          validate_positive },
   { C(signal),           &type_signal,           validate_any },
   { C(smtp_server),      &type_string,           validate_any },
@@ -1190,6 +1191,8 @@ static struct config *config_default(void) {
   c->dbversion = 2;
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
+  if(sendmail_binary[0] && strcmp(sendmail_binary, "none"))
+    c->sendmail = xstrdup(sendmail_binary);
   c->smtp_server = xstrdup("127.0.0.1");
   c->new_max = 100;
   c->reminder_interval = 600;		/* 10m */

@@ -49,6 +49,9 @@ const char bindir[] = BINDIR;
 /** @brief System binary directory */
 const char sbindir[] = SBINDIR;
 
+/** @brief System sendmail executable */
+const char sendmail_binary[] = SENDMAIL;
+
 /** @brief Fink binary directory
  *
  * Meaningless if not on a Mac.

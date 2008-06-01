@@ -725,6 +725,12 @@ This must be set if you have online registration enabled.
 Specifies the maximum refresh period in seconds.
 Default 15.
 .TP
+.B sendmail \fIPATH\fR
+The path to the Sendmail executable.
+This must support the \fB-bs\fR option (Postfix, Exim and Sendmail should all
+work).
+The default is the sendmail executable found at compile time.
+.TP
 .B short_display \fICHARACTERS\fR
 Defines the maximum number of characters to include in a \fBshort\fR name
 part.
@@ -733,6 +739,7 @@ Default 30.
 .B smtp_server \fIHOSTNAME\fR
 The hostname (or address) of the SMTP server to use for sending mail.
 The default is 127.0.0.1.
+If \fBsendmail\fR is set then that is used instead.
 .TP
 .B transform \fITYPE\fR \fIREGEXP\fR \fISUBST\fR [\fICONTEXT\fR [\fIREFLAGS\fR]]
 Determines how names are sorted and displayed in track choice displays.

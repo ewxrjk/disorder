@@ -272,6 +272,9 @@ struct config {
   /** @brief Default rights for a new user */
   char *default_rights;
 
+  /** @brief Path to sendmail executable */
+  char *sendmail;
+
   /** @brief SMTP server for sending mail */
   char *smtp_server;
 

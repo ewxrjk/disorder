@@ -25,6 +25,7 @@ $(SEDFILES) : % : %.in Makefile
 	    -e 's!pkgconfdir!${sysconfdir}/disorder!g;' \
 	    -e 's!pkgstatedir!${localstatedir}/disorder!g;' \
 	    -e 's!pkgdatadir!${pkgdatadir}!g;' \
+	    -e 's!SENDMAIL!${SENDMAIL}!g;' \
 	    -e 's!_version_!${VERSION}!g;' \
 	        < $< > $@.new
 	@if test -x $<; then \
