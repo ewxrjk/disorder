@@ -20,6 +20,7 @@
 
 #include "disorder-server.h"
 
+static time_t last_report;
 static DB_TXN *global_tid;
 
 static const struct option options[] = {
@@ -131,8 +132,10 @@ static void rescan_collection(const struct collection *c) {
     if(n < config->player.n) {
       nnew += !!trackdb_notice(track, path);
       ++ntracks;
-      if(ntracks % 1000 == 0)
+      if(ntracks % 100 == 0 && time(0) > last_report + 10) {
         info("rescanning %s, %ld tracks so far", c->root, ntracks);
+        time(&last_report);
+      }
     }
   }
   /* tidy up */
@@ -295,11 +298,12 @@ static void recheck_collection(const struct collection *c) {
       return;
     recheck_track(&cs, t);
     ++nrc;
-    if(nrc % 100 == 0) {
+    if(nrc % 100 == 0 && time(0) > last_report + 10) {
       if(c)
         info("rechecking %s, %ld tracks so far", c->root, nrc);
       else
         info("rechecking all tracks, %ld tracks so far", nrc);
+      time(&last_report);
     }
   }
   if(c)
