@@ -45,6 +45,10 @@ export INSTALL_DATA
 export INSTALL_SCRIPT
 export INSTALL_PROGRAM
 
+# We override sendmail to the value defined in policy, in case configure picks
+# up some other sendmail.
+SENDMAIL=/usr/sbin/sendmail
+
 LIBTOOL=./libtool
 FAKEROOT=fakeroot
 
@@ -62,7 +66,7 @@ build:
 	  echo ./config.status;\
 	  ./config.status;\
 	fi
-	$(MAKE)
+	$(MAKE) SENDMAIL=${SENDMAIL}
 
 pkg-disorder: build
 	rm -rf debian/disorder
