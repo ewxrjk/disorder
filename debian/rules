@@ -194,9 +194,8 @@ pkg-disorder-playrtp: build
 		debian/disorder-playrtp/usr/bin/*
 	$(INSTALL_DATA) debian/README.RTP \
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/README
-	$(INSTALL_DATA) CHANGES debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES
-	gzip -9f debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES \
-		 debian/disorder-playrtp/usr/share/man/man*/*
+	$(INSTALL_DATA) CHANGES.html debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES.html
+	gzip -9f debian/disorder-playrtp/usr/share/man/man*/*
 	dpkg-gencontrol -isp -pdisorder-playrtp -Pdebian/disorder-playrtp -Tdebian/substvars.disorder-playrtp
 	chown -R root:root debian/disorder-playrtp
 	chmod -R g-ws debian/disorder-playrtp
