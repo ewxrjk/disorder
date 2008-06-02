@@ -237,12 +237,6 @@ if [ "x$play" = xnetwork ]; then
   fi
 fi
 
-if [ -z "$smtp_server" ]; then
-  echo
-  echo "What host should DisOrder use as an SMTP server?"
-  read -r smtp_server
-fi
-
 if [ -z "$mail_sender" ]; then
   while :; do
     echo
@@ -264,7 +258,7 @@ if [ -z "$register" ]; then
     echo
     echo "Do you want to enable online registration?  (Enter 'y' or 'n')"
     read -r register
-    case $reguser in
+    case $register in
     y | n )
       break
       ;;
@@ -280,7 +274,9 @@ if [ $port = none ]; then
 else
   echo " TCP port to listen on: $port"
 fi
-echo " SMTP Server:           $smtp_server"
+if [ ! -z "$smtp_server" ]; then
+  echo " SMTP Server:           $smtp_server"
+fi
 echo " Sender address:        $mail_sender"
 echo " Online registration:   $register"
 if [ $play = network ]; then
@@ -315,7 +311,9 @@ fi
 if [ $play = network ]; then
   echo "broadcast $mcast_address $mcast_port" >> pkgconfdir/config.new
 fi
-echo "smtp_server $smtp_server" >> pkgconfdir/config.new
+if [ ! -z "$smtp_server" ]; then
+  echo "smtp_server $smtp_server" >> pkgconfdir/config.new
+fi
 echo "mail_sender $mail_sender" >> pkgconfdir/config.new
 
 echo
