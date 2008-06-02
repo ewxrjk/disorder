@@ -313,6 +313,7 @@ def run(module=None, report=True):
         if type(module) == str:
             module = __import__(module)
         name = module.__name__
+    print "--- %s ---" % name
     # Open the error log
     global errs
     logfile = "%s.log" % name

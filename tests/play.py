@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 #
-import dtest,time,disorder,re
+import dtest,time,disorder,re,sys
 
 def test():
     """Play some tracks"""
@@ -66,7 +66,9 @@ def test():
 
     print " testing scratches"
     retry = False
-    while True:
+    scratchlimit = 5
+    while scratchlimit > 0:
+        scratchlimit -= 1
         c.disable()
         print " starting a track"
         c.play(track)
@@ -95,6 +97,10 @@ def test():
             continue
         assert ts[0]['state'] == 'scratched', "checking track scratched"
         break
+    if scratchlimit == 0:
+        # TODO this is really not a great approach!
+        print " didn't complete in a reasonable time"
+        sys.exit(77)
     print " waiting for scratch to complete"
     p = c.recent()
     while p is not None:
