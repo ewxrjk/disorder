@@ -1,0 +1,33 @@
+#! /bin/bash
+#
+# Setup script for local test installs.
+#
+
+set -e
+
+if type gmake >/dev/null 2>&1; then
+  MAKE=gmake
+else
+  MAKE=make
+fi
+
+if type really >/dev/null 2>&1; then
+  REALLY=really
+else
+  REALLY=sudo
+fi
+
+echo --- build ---
+${MAKE}
+echo --- install ---
+${REALLY} ${MAKE} install
+echo --- teardown ---
+${REALLY} ./scripts/teardown || true
+echo --- setup ---
+${REALLY} ./scripts/setup --root /music \
+                          --encoding ISO-8859-1 \
+			  --port none \
+			  --email rjk@greenend.org.uk \
+			  --register y \
+			  --play local
+echo --- done ---
