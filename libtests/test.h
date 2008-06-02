@@ -68,6 +68,7 @@
 extern long long tests, errors;
 extern int fail_first;
 extern int verbose;
+extern int skipped;
 
 /** @brief Checks that @p expr is nonzero */
 #define insist(expr) do {				\
@@ -153,7 +154,11 @@ void test_exitfn(int) attribute((noreturn));
     if(errors || verbose)                                               \
       fprintf(stderr, "test_"#name": %lld errors out of %lld tests\n",  \
               errors, tests);                                           \
-    return !!errors;                                                    \
+    if(errors)                                                          \
+      return 1;                                                         \
+    if(skipped)                                                         \
+      return 77;                                                        \
+    return 0;                                                           \
   }                                                                     \
                                                                         \
   struct swallow_semicolon

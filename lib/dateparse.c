@@ -38,6 +38,9 @@
 static const char *const datemsk[] = {
   /* ISO format */
   "%Y-%m-%d %H:%M:%S",
+  /* Generic time, same day */
+  "%H:%M:%S",
+  "%H:%M",
   /* "%Y-%m-%d %H:%M:%S %Z" - no, not sensibly supported anywhere */
   /* Locale-specific date + time */
   "%c",
@@ -45,9 +48,6 @@ static const char *const datemsk[] = {
   /* Locale-specific time, same day */
   "%X",
   "%EX",
-  /* Generic time, same day */
-  "%H:%M",
-  "%H:%M:%S",
   NULL,
 };
 

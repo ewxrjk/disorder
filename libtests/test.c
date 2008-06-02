@@ -26,6 +26,7 @@
 long long tests, errors;
 int fail_first;
 int verbose;
+int skipped;
 
 void count_error(void) {
   ++errors;
