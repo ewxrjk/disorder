@@ -30,7 +30,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
-#include <sys/wait.h>
 #include <stddef.h>
 #include <sys/socket.h>
 #include <netdb.h>

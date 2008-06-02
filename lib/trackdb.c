@@ -35,7 +35,6 @@
 #include <sys/resource.h>
 #include <time.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <gcrypt.h>

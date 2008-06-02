@@ -24,6 +24,8 @@
 #ifndef WSTAT_H
 #define WSTAT_H
 
+#include <sys/wait.h>
+
 const char *wstat(int w);
 /* Format wait status @w@.  In extremis the return value might be a
  * pointer to a string literal.  The result should always be ASCII. */

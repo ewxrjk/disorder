@@ -23,7 +23,6 @@
 
 #include "common.h"
 
-#include <sys/wait.h>
 #include <signal.h>
 
 #include "mem.h"
