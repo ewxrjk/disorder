@@ -22,12 +22,12 @@ ${MAKE}
 echo --- install ---
 ${REALLY} ${MAKE} install
 echo --- teardown ---
-${REALLY} ./scripts/teardown || true
+${REALLY} bash scripts/teardown || true
 echo --- setup ---
-${REALLY} ./scripts/setup --root /music \
-                          --encoding ISO-8859-1 \
-			  --port none \
-			  --email rjk@greenend.org.uk \
-			  --register y \
-			  --play local
+${REALLY} bash scripts/setup --root /music \
+			     --encoding ISO-8859-1 \
+			     --port none \
+			     --email rjk@greenend.org.uk \
+			     --register y \
+			     --play local
 echo --- done ---
