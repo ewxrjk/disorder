@@ -262,7 +262,7 @@ static int exp_length(int attribute((unused)) nargs,
         return -1;
     name = q->track;
   }
-  if(dcgi_client && disorder_length(dcgi_client, name, &length))
+  if(dcgi_client && !disorder_length(dcgi_client, name, &length))
     return sink_printf(output, "%ld:%02ld",
                        length / 60, length % 60) < 0 ? -1 : 0;
   return sink_writes(output, "&nbsp;") < 0 ? -1 : 0;
