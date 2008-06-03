@@ -193,7 +193,8 @@ button,a.button {
   font-family: helvetica,sans-serif;
   font-weight: normal;
   font-variant: normal;
-  font-size: 12pt
+  font-size: 12pt;
+  overflow: visible             /* For IE's benefit */
 }
 
 a.button:active,button:active {
