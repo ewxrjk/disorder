@@ -96,8 +96,6 @@ create_config() {
   encoding="$RET"
   db_get disorder/port || true
   port="$RET"
-  db_get disorder/smtp_server || true
-  smtp_server="$RET"
   db_get disorder/mail_sender || true
   mail_sender="$RET"
   db_get disorder/interface || true
@@ -127,12 +125,6 @@ EOF
   for s in $scratches; do
     echo "scratch $s" >> /etc/disorder/conf.debconf.new
   done
-
-  if test "$mail_sender" != ""; then
-    echo "" >> /etc/disorder/conf.debconf.new
-    echo "# SMTP server" >> /etc/disorder/conf.debconf.new
-    echo "smtp_server $smtp_server" >> /etc/disorder/conf.debconf.new
-  fi
 
   if test "$mail_sender" != ""; then
     echo "" >> /etc/disorder/conf.debconf.new

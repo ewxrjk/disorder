@@ -34,7 +34,6 @@ db_input high disorder/roots || true
 db_input high disorder/encoding || true
 db_input high disorder/port || true
 db_input medium disorder/scratches || true
-db_input high disorder/smtp_server || true
 db_input high disorder/mail_sender || true
 db_input high disorder/interface || true
 db_go || true

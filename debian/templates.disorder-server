@@ -52,14 +52,6 @@ Type: string
 Description: Destination port for network sound transmission
  Sound data will be sent to this UDP port using the RTP protocol.
 
-Template: disorder/smtp_server
-Type: string
-Default: localhost
-Description: SMTP server for web interface
- The web interface requires an SMTP server in order to send messages to
- newly registered users, and to send password reminders.  Enter the hostname
- or IP address to use.
-
 Template: disorder/mail_sender
 Type: string
 Default: 
