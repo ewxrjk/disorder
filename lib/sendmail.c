@@ -271,11 +271,11 @@ int sendmail(const char *sender,
       ;
     if(w < 0)
       fatal(errno, "error calling waitpid");
-    if(w) {
-      error(0, "%s -bs: %s", config->sendmail, wstat(w));
-      if(!rc)
-        rc = -1;
-    }
+    if(w)
+      info("warning: %s -bs: %s", config->sendmail, wstat(w));
+    /* Not fatal - we determine success/failure from the SMTP conversation.
+     * Some MTAs exit nonzero if you don't QUIT, which is just stupidly
+     * picky. */
   }
   return rc;
 }
