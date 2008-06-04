@@ -94,11 +94,7 @@ USA
 	   <input size=3 name=right type=text value="@volume{right}">
 	   <input name=back type=hidden value="@quote{@thisurl}">
 	   @right{volume}{
-             <span class=button>
-	      <button class=volume name=submit type=submit>
-               @label{volume.set}
-	      </button>
-             </span>
+             @submit{@label{volume.set}}
 	     <input name=action type=hidden value=volume>
 	   }
 	   @vbutton{down}{-}

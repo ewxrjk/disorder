@@ -193,7 +193,7 @@ button {
 }
 
 /* Buttons and links that look like buttons share the same formatting */
-span.button, a.button {
+span.buttonouter, a.button {
   padding-top: 2px;
   border-width: 3px;
   border-color: #fefefe;	/* Off-white */

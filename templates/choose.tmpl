@@ -94,11 +94,7 @@ USA
      <p class=search>Enter search terms:
        <input class=query name=query type=text value="@argq{query}"
               size=50>
-       <span class=button>
-        <button class=search name=submit type=submit>
-          @label{search.search}
-        </button>
-       </span>
+       @submit{@label{search.search}}
        <input name=action type=hidden value=choose>
        <a class=button
           href="@url?action=choose">

@@ -277,6 +277,11 @@ and then redefines macros as desired.
    </table>
 }
 
+@# Expand to a submit button
+@#  @text is the text to put inside the button
+@define {submit} {text}
+        {<span class=buttonouter><button class=button name=submit type=submit><span class=buttoninner>@text</span></button></span>}
+
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil

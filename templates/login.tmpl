@@ -63,11 +63,7 @@ USA
        </tr>
        <tr>
          <td colspan=2>
-          <span class=button>
-           <button class=login name=button type=submit>
-             @label{login.login}
-           </button>
-          </span>
+          @submit{@label{login.login}}
          </td>
        </tr>
      </table>
@@ -92,11 +88,7 @@ USA
        </tr>
        <tr>
          <td colspan=2>
-          <span class=button>
-           <button class=login name=button type=submit>
-            @label{login.reminder}
-           </span>
-          </button>
+          @submit{@label{login.reminder}}
          </td>
        </tr>
      </table>
@@ -148,11 +140,7 @@ USA
        </tr>
        <tr>
          <td colspan=3>
-	   <span class=button>
-            <button class=register name=button type=submit>
-             @label{login.register}
-            </button>
-	   </span>
+	   @submit{@label{login.register}}
          </td>
        </tr>
      </table>
@@ -165,11 +153,7 @@ USA
    <form class=logout action="@url" method=POST
          enctype="multipart/form-data" accept-charset=utf-8>
      <div class=logout>
-       <span class=button>
-        <button class=logout name=submit type=submit>
-         @label{login.logout}
-        </button>
-       </span>
+       @submit{@label{login.logout}}
      </div>
      <input name=action type=hidden value=logout>
    </form>
@@ -205,11 +189,7 @@ USA
        </tr>
        <tr>
          <td colspan=3>
-	  <span class=button>
-           <button class=edituser name=submit type=submit>
-            @label{login.edituser}
-           </button>
-	  </span>
+	  @submit{@label{login.edituser}}
          </td>
        </tr>
      </table>
