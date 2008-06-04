@@ -181,9 +181,20 @@ div.filesdirectories p.all {
 
 /* buttons *******************************************************************/
 
+button {
+  border: 0px;
+  background-color: transparent;
+  padding: 0px;
+  cursor: pointer
+  font-family: helvetica,sans-serif;
+  font-weight: normal;
+  font-variant: normal;
+  font-size: 12pt;
+}
+
 /* Buttons and links that look like buttons share the same formatting */
-button,a.button {
-  padding: 1px;
+span.button, a.button {
+  padding-top: 2px;
   border-width: 3px;
   border-color: #fefefe;	/* Off-white */
   border-style: inset;
@@ -194,7 +205,12 @@ button,a.button {
   font-weight: normal;
   font-variant: normal;
   font-size: 12pt;
-  overflow: visible             /* For IE's benefit */
+  cursor: pointer
+}
+
+a.button {
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 a.button:active,button:active {
