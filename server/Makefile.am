@@ -119,6 +119,8 @@ check-help: all
 	./disorder-dbupgrade --version > /dev/null
 	./disorder-rescan --help > /dev/null
 	./disorder-rescan --version > /dev/null
+	./disorder-choose --help > /dev/null
+	./disorder-choose --version > /dev/null
 
 # My sox doesn't know MP3 or FLAC unfortunately
 check-decode: disorder-decode disorder-normalize
