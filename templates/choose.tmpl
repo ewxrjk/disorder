@@ -87,18 +87,20 @@ USA
 }
 
 @# Always have a search form
-   <form class=search
-         action="@url"
-         method=POST
-         enctype="multipart/form-data" accept-charset=utf-8>
-     <p class=search>Enter search terms:
-       <input class=query name=query type=text value="@argq{query}"
-              size=50>
-       @submit{@label{search.search}}
-       <input name=action type=hidden value=choose>
-       @actbutton{@label{search.clear}}{}{choose}
-     </p>
-   </form>
+   <div class=search>
+    <form class=search
+          action="@url"
+	  method=POST
+	  enctype="multipart/form-data" accept-charset=utf-8>
+      <p class=search>Enter search terms:
+	<input class=query name=query type=text value="@argq{query}"
+	       size=50>
+	@submit{@label{search.search}}
+	<input name=action type=hidden value=choose>
+      </p>
+    </form>
+@actbutton{@label{search.clear}}{}{choose}
+   </div>
 
    @if{@ne{@arg{query}}{}}
       {@# There's a search query

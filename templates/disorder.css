@@ -244,12 +244,12 @@ div.search_title a:active {
   color: red
 }
 
-form.search {
+div.search {
   border: 1px solid black;	/* Give the search box a border */
-  padding: 0.2em
+  padding: 0.2em;
 }
 
-form.search p {
+form.search, form.search p {
   display: inline
 }
 
