@@ -25,11 +25,9 @@ USA
   @#  @action should be the action to switch to the opposite state
   @#  @state should be the current state
   @define {onoff} {class action state}
-          {<a class=button
-              href="@url?action=@action@back"
-              title="@label{playing.@q{@action}verbose}">
-             @label{playing.@class}
-           </a>
+          {@actbutton{@label{playing.@class}}
+                     {@label{playing.@q{@action}verbose}}
+                     {@action}
            <img width=@width height=@height class=imgbutton
                 src="@image{@state}">}
 

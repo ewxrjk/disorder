@@ -282,6 +282,19 @@ and then redefines macros as desired.
 @define {submit} {text}
         {<span class=buttonouter><button class=button name=submit type=submit><span class=buttoninner>@text</span></button></span>}
 
+@# Expand to an action button
+@#  @text is the text to put inside the button
+@#  @long is the text to put in the caption
+@#  @action is the target action
+@define {actbutton} {text long action}
+        {<a class=button
+              href="@url?action=@action@back"
+              title="@long">@text</a>}
+
+@# Expands to &back=manage or to nothing depending on context;
+@# see playing.tmpl.
+@define {back} {} {}
+
 Local variables:
 mode:sgml
 sgml-always-quote-attributes:nil
