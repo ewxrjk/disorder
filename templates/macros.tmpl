@@ -24,7 +24,7 @@ Standard macros
 This file is read before any other template.  Its output is discarded
 but side effects (definitions of macros) are retained.  To override it,
 create /etc/disorder/macros.tmpl that includes this file by absolute path
-and then redefines macros as desired.
+and then redefine macros as desired.
 ------------------------------------------------------------------------
 
 
@@ -287,12 +287,11 @@ and then redefines macros as desired.
 @#  @long is the text to put in the caption
 @#  @action is the target action
 @define {actbutton} {text long action}
-        {<form method=GET class=button action="@url">
+        {<form method=POST class=button action="@url">
            <input type=hidden name=action value="@action">
            <input type=submit name=submit value="@text" title="@long">
 @formback@#
          </form>}
-@# TODO @back support
 
 @# Used for inserting back= elements
 @define {back} {} {}

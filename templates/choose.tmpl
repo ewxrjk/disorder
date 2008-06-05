@@ -208,10 +208,12 @@ USA
               title="@label{choose.allprefsverbose}"
               alt="@label{choose.allprefs}">
         </a>}
-        <a class=button
-           href="@url?action=play&#38;dir=@urlquote{@arg{dir}}&#38;back=@urlquote{@thisurl}">
-         @label{choose.playall}
-        </a>
+        <form method=POST class=action action="@url">
+         <input type=hidden name=action value=play>
+	 <input type=hidden name=dir value="@argq{dir}">
+	 <input type=hidden name=back value="@quote{@thisurl}">
+         <input type=submit name=submit	value="@label{choose.playall}">
+        </form>
       </p>}
     </div>
    </div>
