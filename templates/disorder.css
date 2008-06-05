@@ -219,31 +219,6 @@ img.button {
 
 /* searching *****************************************************************/
 
-span.search_artist {
-  font-weight: bold             /* Artist in bold */
-}
-
-div.search_album {
-  margin-left: 1em		/* Indent album one step */
-}
-
-div.search_title {
-  margin-left: 1em		/* Indent title two steps */
-}
-
-div.search_title p {
-  margin-top: 0; 		/* Titles are compressed relative to ... */
-  margin-bottom: 0              /* ...artists and albums */
-}
-
-div.search_title a {
-  color: black
-}
-
-div.search_title a:active {
-  color: red
-}
-
 div.search {
   border: 1px solid black;	/* Give the search box a border */
   padding: 0.2em;
