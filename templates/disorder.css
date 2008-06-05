@@ -181,19 +181,12 @@ div.filesdirectories p.all {
 
 /* buttons *******************************************************************/
 
-button {
-  border: 0px;
-  background-color: transparent;
-  padding: 0px;
-  cursor: pointer
-  font-family: helvetica,sans-serif;
-  font-weight: normal;
-  font-variant: normal;
-  font-size: 12pt;
+form.button {
+  display: inline
 }
 
 /* Buttons and links that look like buttons share the same formatting */
-span.buttonouter, a.button {
+a.button {
   padding-top: 2px;
   border-width: 3px;
   border-color: #fefefe;	/* Off-white */
@@ -254,6 +247,10 @@ div.search_title a:active {
 form.search {
   border: 1px solid black;	/* Give the search box a border */
   padding: 0.2em
+}
+
+form.search p {
+  display: inline
 }
 
 /* menu bar *******************************************************************/
