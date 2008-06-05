@@ -8,7 +8,7 @@ body {
   font-variant: normal
 }
 
-input {
+input,button {
   font-family: helvetica,sans-serif;
   font-weight: normal;
   font-size: 12pt;
