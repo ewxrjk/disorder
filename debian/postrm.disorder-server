@@ -20,14 +20,44 @@
 #
 set -e
 
+state=/var/lib/disorder
+
+# For --remove we only delete cachable stuff
+cleanup_remove() {
+  rm -f $state/lock
+  rm -f $state/socket
+  rm -f $state/speaker/socket
+  [ -d $state/speaker ] && rmdir $state/speaker || true
+  rm -f $state/log.*
+  rm -f $state/__db.*
+  rm -f $state/noticed.db
+  rm -f $state/search.db
+  rm -f $state/tags.db
+  rm -f $state/tracks.db
+}
+
+# For --purge we delete everything
+cleanup_purge() {
+  rm -f /etc/disorder/conf.debconf
+  rm -f $state/queue
+  rm -f $state/recent
+  rm -f $state/global.db
+  rm -f $state/prefs.db
+  rm -f $state/schedule.db
+  rm -f $state/users.db
+}
+
 case "$1" in
+remove )
+  cleanup_remove
+  ;;
 purge )
   if [ -e /usr/share/debconf/confmodule ]; then
     . /usr/share/debconf/confmodule
     db_purge
   fi
   update-rc.d disorder remove
-  rm -f /etc/disorder/conf.debconf
-  # TODO - should we delete none/some/all of the contents of /var/lib/disorder?
+  cleanup_remove
+  cleanup_purge
   ;;
 esac
