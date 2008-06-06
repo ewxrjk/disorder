@@ -370,6 +370,9 @@ There is no particular provision for multiple users of the same computer
 sharing a single \fBdisorder\-playrtp\fR process.
 This shouldn't be too much of a problem in practice but something could
 perhaps be done given demand.
+.PP
+Try to do remote user management when the server is configured to refuse this
+produces rather horrible error behavior.
 .SH FILES
 .TP
 .I ~/.disorder/HOSTNAME\-rtp
