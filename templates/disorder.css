@@ -175,7 +175,7 @@ div.filesdirectories a:active {
 }
 
 /* all files */
-div.filesdirectories p.all {
+div.filesdirectories div.allfiles {
   margin-left: 1em              /* indent play all button only one step */
 }
 
