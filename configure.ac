@@ -33,6 +33,8 @@ AC_CANONICAL_HOST
 want_gtk=yes
 want_python=yes
 want_tests=yes
+want_server=yes
+want_cgi=yes
 
 # APIs we want
 want_alsa=yes
@@ -75,14 +77,13 @@ case "$host" in
   AC_CHECK_LIB([gpg-error], [gpg_strerror])
   AC_CHECK_LIB([pthread], [pthread_create])
   want_server=no
+  want_cgi=no
  ;;
 *linux* | *Linux* )
   AC_MSG_RESULT([Linux])
-  want_server=yes
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
-  want_server=yes
   if test $want_coreaudio = yes; then
     COREAUDIO="-framework CoreAudio"
   fi
@@ -112,7 +113,6 @@ case "$host" in
   ;;
 *-freebsd* )
   AC_MSG_RESULT([FreeBSD])
-  want_server=yes
   # Ports install to /usr/local but the compiler stupidly doesn't look
   # there by default
   LDFLAGS="${LDFLAGS} -L/usr/local/lib"
@@ -134,7 +134,6 @@ case "$host" in
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
-  want_server=no
   ;;
 esac
 AC_SUBST([COREAUDIO])
@@ -162,6 +161,10 @@ AC_ARG_WITH([server],
 	    [AS_HELP_STRING([--without-server],
 			    [do not build server])],
 	    [want_server=$withval])
+AC_ARG_WITH([cgi],
+	    [AS_HELP_STRING([--without-cgi],
+			    [do not build CGI])],
+	    [want_cgi=$withval])
 AC_ARG_WITH([gtk],
 	    [AS_HELP_STRING([--without-gtk],
 			    [do not build GTK+ client])],
@@ -171,6 +174,33 @@ AC_ARG_WITH([python],
 			    [do not build Python support])],
 	    [want_python=$withval])
 
+if test $want_server = no; then
+  want_cgi=no
+fi
+
+if test $want_cgi = yes; then
+  if test -z "$cgidir"; then
+    AC_CACHE_CHECK([for CGI directory],[rjk_cv_cgidir],[
+      rjk_cv_cgidir="not found"
+      for dir in /usr/lib/cgi-bin \
+                 /Library/WebServer/CGI-Executables \
+                 /usr/local/lib/cgi-bin \
+                 /usr/local/www/cgi-bin \
+                 /usr/local/www/*/cgi-bin; do
+        if test -d "$dir"; then
+          rjk_cv_cgidir="$dir"
+          break
+        fi
+      done
+    ])
+    if test "$rjk_cv_cgidir" = "not found"; then
+      AC_MSG_ERROR([cannot identify CGI install directory.  Set cgidir on configure command line])
+    fi
+    cgidir="$rjk_cv_cgidir"
+  fi
+fi
+AC_ARG_VAR([cgidir], [location of cgi-bin directory, e.g. /usr/lib/cgi-bin])
+
 subdirs="scripts lib"
 if test $want_tests = yes; then
   subdirs="${subdirs} libtests"
@@ -178,7 +208,10 @@ fi
 subdirs="${subdirs} clients doc examples debian"
 
 if test $want_server = yes; then
-  subdirs="${subdirs} server cgi plugins driver templates sounds images"
+  subdirs="${subdirs} server plugins driver sounds"
+fi
+if test $want_cgi = yes; then
+  subdirs="${subdirs} cgi templates images"
 fi
 if test $want_gtk = yes; then
   subdirs="${subdirs} disobedience"
@@ -615,3 +648,7 @@ fi
 if test $want_python = no; then
   AC_MSG_WARN([cannot run the test suit without Python])
 fi
+
+# Local Variables:
+# indent-tabs-mode:nil
+# End:

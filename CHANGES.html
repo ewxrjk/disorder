@@ -129,6 +129,10 @@ span.command {
   <p>Mail is now sent via the system sendmail program, though it remains
   possible to use TCP to connect to an SMTP server.  See <tt>sendmail</tt> and
   <tt>smtp_server</tt> in disorder_config(5).</p>
+
+  <p>The makefiles will now install the CGI automatically.  If they cannot
+  figure out the location of the cgi-bin directory on your system, set
+  <tt>cgidir</tt> on the <tt>configure</tt> command line.</p>
   
 </div>
 
@@ -297,5 +301,6 @@ span.command {
 <!--
 Local Variables:
 fill-column:79
+indent-tabs-mode:nil
 End:
 -->

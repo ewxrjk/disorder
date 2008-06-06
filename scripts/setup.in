@@ -437,7 +437,6 @@ Mac )
   launchctl load /Library/LaunchDaemons
   echo "Starting DisOrder server"
   launchctl start uk.org.greenend.rjk.disorder
-  CGIBIN=/Library/WebServer/CGI-Executables
   DOCROOT=/Library/WebServer/Documents
   sever_running=true
   ;;
@@ -465,7 +464,6 @@ FreeBSD )
   esac
   web=$1
   echo "Found $web"
-  CGIBIN=$web/cgi-bin
   DOCROOT=$web/data
   server_running=true
   ;;
@@ -503,13 +501,6 @@ Linux )
       break
     fi
   done
-  echo "Looking for cgi-bin directory"
-  for d in /var/www/cgi-bin /usr/lib/cgi-bin; do
-    if [ -d $d ]; then
-      CGIBIN=$d
-      break
-    fi
-  done
   server_running=true
   ;;
 * )
@@ -527,14 +518,6 @@ else
   echo "Setting up link to CGI's dependencies in $DOCROOT"
   rm -f $DOCROOT/disorder
   ln -s pkgdatadir/static $DOCROOT/disorder
-fi
-
-echo
-if [ -z "$CGIBIN" ]; then
-  echo "Cannot find your web server's cgi-bin directory"
-else
-  echo "Installing CGI in $CGIBIN"
-  install -m 555 cgi/disorder.cgi $CGIBIN/disorder
 fi
 
 if $server_running; then

@@ -155,7 +155,7 @@ pkg-disorder-server: build
 		debian/disorder-server/etc/disorder/options
 	$(INSTALL_DATA) debian/etc.disorder.options.user \
 		debian/disorder-server/etc/disorder/options.user
-	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) cgi/disorder.cgi \
+	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) cgi/disorder \
 		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
 		debian/disorder-server/usr/lib/cgi-bin/disorder \

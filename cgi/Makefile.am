@@ -18,15 +18,13 @@
 # USA
 #
 
-noinst_PROGRAMS=disorder.cgi
+cgi_PROGRAMS=disorder
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorder_cgi_SOURCES=macros-disorder.c lookup.c options.c actions.c	\
+disorder_SOURCES=macros-disorder.c lookup.c options.c actions.c	\
 	login.c cgimain.c disorder-cgi.h
-disorder_cgi_LDADD=../lib/libdisorder.a \
+disorder_LDADD=../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
-disorder_cgi_LDFLAGS=-export-dynamic
-disorder_cgi_DEPENDENCIES=../lib/libdisorder.a
-
-cgi.o: ../lib/definitions.h
+disorder_LDFLAGS=-export-dynamic
+disorder_DEPENDENCIES=../lib/libdisorder.a

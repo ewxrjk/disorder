@@ -88,6 +88,11 @@ platform, please get in touch.
      --without-gtk          Don't build GTK+ client (Disobedience)
      --without-python       Don't build Python support
 
+   If configure cannot figure out where your CGI programs live, you must set
+   cgidir on the command line, e.g.:
+
+     ./configure cgidir=/whatever/cgi-bin
+
    See README.client for setting up a standalone client (or read the
    disobedience man page).
 
@@ -97,9 +102,6 @@ platform, please get in touch.
 2. Install it.  Most of the installation is done via the install target:
 
      make installdirs install
-
-   The CGI interface has to be installed separately; see under 'Web Interface'
-   below.
 
    NB steps 3 to 6 are covered by scripts/setup.  It should work on FreeBSD, OS
    X and Linux and could be adapted to other platforms.
@@ -238,20 +240,15 @@ You need to configure a number of things to make this work:
      cd /var/www
      ln -s /usr/local/share/disorder/static disorder
 
-4. Install disorder.cgi in an appropriate location.  Remember to make it
-   executable.  Example:
-
-     install -m 755 cgi/disorder.cgi /usr/lib/cgi-bin/disorder
-
-5. Try it out.  You should be able to perform read-only operations straight
+4. Try it out.  You should be able to perform read-only operations straight
    away, and after visiting the 'Login' page to authenticate, perform other
    operations like adding a track to the queue.
 
-6. If you run into problems, always look at the appropriate error log; the
+5. If you run into problems, always look at the appropriate error log; the
    message you see in your web browser will usually not be sufficient to
    diagnose the problem all by itself.
 
-7. If you have a huge number of top level directories, then you might find
+6. If you have a huge number of top level directories, then you might find
    that the 'Choose' page is unreasonably large.  If so add the following line
    to /etc/disorder/options.user:
      label sidebar.choosewhich choosealpha
