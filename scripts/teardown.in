@@ -31,8 +31,6 @@ FreeBSD )
   echo "* killing disorderd processes"
   s killall disorderd || true
   echo "* removing files"
-  s rm -f /usr/local/www/$APACHE/cgi-bin/disorder
-  s rm -f /usr/local/www/$APACHE/data/disorder
   s rm -f /etc/rc.d/disorder
   s rm -rf pkgstatedir
   s rm -rf pkgconfdir
@@ -45,8 +43,6 @@ Darwin )
   s launchctl stop uk.org.greenend.rjk.disorder || true
   s launchctl unload /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist || true
   echo "* removing files"
-  s rm -f /Library/WebServer/CGI-Executables/disorder
-  s rm -f /Library/WebServer/Documents/disorder
   s rm -f /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist
   s rm -rf pkgstatedir
   s rm -rf pkgconfdir
@@ -58,8 +54,6 @@ Linux )
   echo "* stopping server"
   s killall disorderd || true
   echo "* removing files"
-  s rm -f /usr/lib/cgi-bin/disorder /var/www/cgi-bin/disorder
-  s rm -f /var/www/disorder /var/www/html/disorder
   s rm -f /etc/init.d/disorder /etc/rc.d/init.d/disorder
   s rm -f /etc/rc*.d/*disorder /etc/rc.d/rc*.d/disorder
   s rm -rf pkgstatedir
