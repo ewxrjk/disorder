@@ -26,6 +26,9 @@ set -e
 add_jukebox_user() {
   adduser --quiet --system --group --shell /bin/sh --home /var/lib/disorder \
     --no-create-home jukebox
+  # If it happens that there's no audio group we don't fail; perhaps only
+  # network play was required.
+  adduser --quiet jukebox audio || true
 }
 
 configure_init_d() {
