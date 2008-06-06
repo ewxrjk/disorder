@@ -19,7 +19,7 @@
 #
 
 # Options to configure.  This can be overridden by the caller if necessary.
-CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man --with-browser=x-www-browser
+CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man --with-browser=x-www-browser cgidir=/usr/lib/cgi-bin
 
 # Set DEB_BUILD_OPTIONS=noopt to produce a non-optimized build.
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
