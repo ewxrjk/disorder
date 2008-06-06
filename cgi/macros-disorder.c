@@ -857,7 +857,6 @@ static int exp__files_dirs(int nargs,
   /* Sort it.  NB trackname_transform() does not go to the server. */
   e = xcalloc(ntracks, sizeof *e);
   for(n = 0; n < ntracks; ++n) {
-    e->track = tracks[n];
     e[n].track = tracks[n];
     e[n].sort = trackname_transform(type, tracks[n], "sort");
     e[n].display = trackname_transform(type, tracks[n], "display");
