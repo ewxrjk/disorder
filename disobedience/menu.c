@@ -117,19 +117,21 @@ static void settings(gpointer attribute((unused)) callback_data,
  * need not.
  */
 void menu_update(int page) {
-  GtkWidget *tab = gtk_notebook_get_nth_page
-    (GTK_NOTEBOOK(tabs),
-     page < 0 ? gtk_notebook_current_page(GTK_NOTEBOOK(tabs)) : page);
-  const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
+  if(tabs) {
+    GtkWidget *tab = gtk_notebook_get_nth_page
+      (GTK_NOTEBOOK(tabs),
+       page < 0 ? gtk_notebook_current_page(GTK_NOTEBOOK(tabs)) : page);
+    const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-  assert(t != 0);
-  gtk_widget_set_sensitive(properties_widget,
-                           (t->properties_sensitive(tab)
-                            && (disorder_eclient_state(client) & DISORDER_CONNECTED)));
-  gtk_widget_set_sensitive(selectall_widget,
-                           t->selectall_sensitive(tab));
-  gtk_widget_set_sensitive(selectnone_widget,
-                           t->selectnone_sensitive(tab));
+    assert(t != 0);
+    gtk_widget_set_sensitive(properties_widget,
+                             (t->properties_sensitive(tab)
+                              && (disorder_eclient_state(client) & DISORDER_CONNECTED)));
+    gtk_widget_set_sensitive(selectall_widget,
+                             t->selectall_sensitive(tab));
+    gtk_widget_set_sensitive(selectnone_widget,
+                             t->selectnone_sensitive(tab));
+  }
 }
    
 /** @brief Fetch version in order to display the about... popup */
