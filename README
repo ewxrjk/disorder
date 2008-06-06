@@ -88,10 +88,10 @@ platform, please get in touch.
      --without-gtk          Don't build GTK+ client (Disobedience)
      --without-python       Don't build Python support
 
-   If configure cannot figure out where your CGI programs live, you must set
-   cgidir on the command line, e.g.:
+   If configure cannot guess where your web server keeps its HTML documents and
+   CGI programs, you may have to tell it, for instance:
 
-     ./configure cgidir=/whatever/cgi-bin
+     ./configure cgidir=/whatever/cgi-bin httpdir=/whatever/htdocs
 
    See README.client for setting up a standalone client (or read the
    disobedience man page).
@@ -229,26 +229,15 @@ You need to configure a number of things to make this work:
 
      disorder setup-guest --no-online-registration
 
-3. Make sure that DisOrder can find its icons and stylesheet.  For example in
-   your web server configuration:
-
-     Alias /disorder/ /usr/local/share/disorder/static/
-
-   Alternatively you could use a symlink from the right location in your
-   document root, provided your web server is configured to follow them.
-
-     cd /var/www
-     ln -s /usr/local/share/disorder/static disorder
-
-4. Try it out.  You should be able to perform read-only operations straight
+3. Try it out.  You should be able to perform read-only operations straight
    away, and after visiting the 'Login' page to authenticate, perform other
    operations like adding a track to the queue.
 
-5. If you run into problems, always look at the appropriate error log; the
+4. If you run into problems, always look at the appropriate error log; the
    message you see in your web browser will usually not be sufficient to
    diagnose the problem all by itself.
 
-6. If you have a huge number of top level directories, then you might find
+5. If you have a huge number of top level directories, then you might find
    that the 'Choose' page is unreasonably large.  If so add the following line
    to /etc/disorder/options.user:
      label sidebar.choosewhich choosealpha

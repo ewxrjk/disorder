@@ -130,9 +130,10 @@ span.command {
   possible to use TCP to connect to an SMTP server.  See <tt>sendmail</tt> and
   <tt>smtp_server</tt> in disorder_config(5).</p>
 
-  <p>The makefiles will now install the CGI automatically.  If they cannot
-  figure out the location of the cgi-bin directory on your system, set
-  <tt>cgidir</tt> on the <tt>configure</tt> command line.</p>
+  <p>The web interface is now installed automatically.  If you don't want it,
+  use <tt>./configure --without-cgi</tt>.  If you want it in a non-default
+  location, or no location for it is detected, set <tt>cgidir</tt>
+  and <tt>httpdir</tt> on the <tt>./configure</tt> command line.</p>
   
 </div>
 

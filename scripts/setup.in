@@ -437,34 +437,13 @@ Mac )
   launchctl load /Library/LaunchDaemons
   echo "Starting DisOrder server"
   launchctl start uk.org.greenend.rjk.disorder
-  DOCROOT=/Library/WebServer/Documents
-  sever_running=true
+  server_running=true
   ;;
 FreeBSD )
   echo "Installing startup script into /etc/rc.d"
   install -m 555 examples/disorder.rc /etc/rc.d/disorder
   echo "Starting DisOrder server"
   /etc/rc.d/disorder start
-  echo "Identifying web server"
-  set /usr/local/www/*
-  case $# in
-  0 )
-    echo
-    echo "Could not find a web server"
-    exit 1
-    ;;
-  1 )
-    ;;
-  * )
-    echo
-    echo "Yikes!  There seems to be more than one web server here."
-    echo "Guessing that you want $1."
-    echo
-    ;;
-  esac
-  web=$1
-  echo "Found $web"
-  DOCROOT=$web/data
   server_running=true
   ;;
 Linux )
@@ -494,13 +473,6 @@ Linux )
     echo "Starting DisOrder server"
     $RC_D/init.d/disorder start
   fi
-  echo "Looking for web server document root"
-  for d in /var/www/html /var/www; do
-    if [ -d $d ]; then
-      DOCROOT=$d
-      break
-    fi
-  done
   server_running=true
   ;;
 * )
@@ -510,15 +482,6 @@ Linux )
   server_running=false
   ;;
 esac
-
-echo
-if [ -z "$DOCROOT" ]; then
-  echo "Cannot find your web server's document root"
-else
-  echo "Setting up link to CGI's dependencies in $DOCROOT"
-  rm -f $DOCROOT/disorder
-  ln -s pkgdatadir/static $DOCROOT/disorder
-fi
 
 if $server_running; then
   first=true

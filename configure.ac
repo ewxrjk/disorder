@@ -178,12 +178,61 @@ if test $want_server = no; then
   want_cgi=no
 fi
 
+#
+# OS          Document Root                  CGI directory
+# ==          =============                  =============
+# Debian      /var/www                       /usr/lib/cgi-bin
+# Ubuntu      /var/www                       /usr/lib/cgi-bin
+# Red Hat     /var/www/html                  /var/www/cgi-bin
+#      or:    /home/httpd/html/              /home/httpd/cgi-bin
+# Slackware   /var/www/htdocs                (unknown)
+# SuSE        /srv/www/html                  /srv/www/cgi-bin
+# Gentoo      /var/www/localhost/htdocs      /var/www/localhost/cgi-bin/
+# FreeBSD     /usr/local/www/data            /usr/local/www/cgi-bin
+#      or:    /usr/local/www/???/data        /usr/local/www/???/cgi-bin
+# OS X        /Library/WebServer/Documents   /Library/WebServer/CGI-Executables
+# Apache      /usr/local/apache/htdocs       (none)
+#
+# Sources:
+#   http://wiki.linuxquestions.org/wiki/Apache
+#   http://mapserver.gis.umn.edu/docs/howto/suse-linux
+#   http://www.yolinux.com/TUTORIALS/LinuxTutorialWebSiteConfig.html
+#   http://sources.gentoo.org/viewcvs.py/apache/trunk/dist/2.2/conf/vhosts.d/default_vhost.include?rev=198&view=log
+#   http://httpd.apache.org/docs/
+#
 if test $want_cgi = yes; then
+  if test -z "$httpdir"; then
+    AC_CACHE_CHECK([for httpd document root],[rjk_cv_httpdir],[
+      rjk_cv_httpdir="not found"
+      for dir in /var/www/html \
+                 /var/www/htdocs \
+                 /var/www/localhost/htdocs \
+                 /var/www \
+                 /home/httpd/html \
+                 /srv/www/html \
+                 /usr/local/www/data \
+                 /usr/local/www/*/data \
+                 /Library/WebServer/Documents \
+                 /usr/local/apache/htdocs; do
+        if test -d "$dir"; then
+          rjk_cv_httpdir="$dir"
+        fi
+      done
+    ])
+    if test "$rjk_cv_cgidir" = "not found"; then
+      AC_MSG_ERROR([cannot identify httpd documentroot.  Set httpdir on configure command line])
+    fi
+    httpdir="$rjk_cv_httpdir"
+  fi
   if test -z "$cgidir"; then
     AC_CACHE_CHECK([for CGI directory],[rjk_cv_cgidir],[
       rjk_cv_cgidir="not found"
       for dir in /usr/lib/cgi-bin \
                  /Library/WebServer/CGI-Executables \
+                 /srv/www/cgi-bin \
+                 /var/www/cgi-bin \
+                 /home/httpd/cgi-bin \
+                 /var/www/localhost/cgi-bin \
                  /usr/local/lib/cgi-bin \
                  /usr/local/www/cgi-bin \
                  /usr/local/www/*/cgi-bin; do
@@ -200,6 +249,11 @@ if test $want_cgi = yes; then
   fi
 fi
 AC_ARG_VAR([cgidir], [location of cgi-bin directory, e.g. /usr/lib/cgi-bin])
+AC_ARG_VAR([httpdir], [location of http document root, e.g. /var/www/htdocs])
+if test -z "$pkghttpdir"; then
+  pkghttpdir='$(httpdir)/disorder'
+fi
+AC_SUBST([pkghttpdir])
 
 subdirs="scripts lib"
 if test $want_tests = yes; then

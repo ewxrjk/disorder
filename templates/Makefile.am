@@ -23,7 +23,6 @@ pkgdata_DATA=about.tmpl choose.tmpl playing.tmpl recent.tmpl		\
 	     new.tmpl login.tmpl macros.tmpl				\
 	     options options.labels					\
 	     options.columns
-static_DATA=disorder.css
-staticdir=${pkgdatadir}/static
+pkghttp_DATA=disorder.css
 
-EXTRA_DIST=${pkgdata_DATA} $(static_DATA)
+EXTRA_DIST=${pkgdata_DATA} $(pkghttp_DATA)
