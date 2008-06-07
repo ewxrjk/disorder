@@ -1500,27 +1500,23 @@ GtkWidget *choose_widget(void) {
   /* Create the popup menus */
   NW(menu);
   track_menu = gtk_menu_new();
-  gtk_widget_set_style(track_menu, tool_style);
   g_signal_connect(track_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &track_menu);
   for(n = 0; track_menuitems[n].name; ++n) {
     NW(menu_item);
     track_menuitems[n].w = 
       gtk_menu_item_new_with_label(track_menuitems[n].name);
-    gtk_widget_set_style(track_menuitems[n].w, tool_style);
     gtk_menu_attach(GTK_MENU(track_menu), track_menuitems[n].w,
                     0, 1, n, n + 1);
   }
   NW(menu);
   dir_menu = gtk_menu_new();
-  gtk_widget_set_style(dir_menu, tool_style);
   g_signal_connect(dir_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &dir_menu);
   for(n = 0; dir_menuitems[n].name; ++n) {
     NW(menu_item);
     dir_menuitems[n].w = 
       gtk_menu_item_new_with_label(dir_menuitems[n].name);
-    gtk_widget_set_style(dir_menuitems[n].w, tool_style);
     gtk_menu_attach(GTK_MENU(dir_menu), dir_menuitems[n].w,
                     0, 1, n, n + 1);
   }
