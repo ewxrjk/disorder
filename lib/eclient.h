@@ -42,9 +42,13 @@ struct queue_entry;
  * These must all be valid.
  */
 typedef struct disorder_eclient_callbacks {
-  /** @brief Called when a communication error (e.g. connected refused) occurs.
+  /** @brief Called when a communication error occurs.
    * @param u from disorder_eclient_new()
    * @param msg error message
+   *
+   * This might be called at any time, and indicates a low-level error,
+   * e.g. connection refused by the server.  It does not mean that any requests
+   * made of the owning eclient will not be fulfilled at some point.
    */
   void (*comms_error)(void *u, const char *msg);
   
@@ -52,6 +56,11 @@ typedef struct disorder_eclient_callbacks {
    * @param u from disorder_eclient_new()
    * @param v from failed command, or NULL if during setup
    * @param msg error message
+   *
+   * This call is obsolete at least in its current form, in which it is used to
+   * report most errors from most requests.  Ultimately requests-specific
+   * errors will be reported in a request-specific way rather than via this
+   * generic callback.
    */
   void (*protocol_error)(void *u, void *v, int code, const char *msg);
 

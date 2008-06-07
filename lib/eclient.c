@@ -519,6 +519,7 @@ static void maybe_connected(disorder_eclient *c) {
 
 /* Authentication ************************************************************/
 
+/** @brief Called with the greeting from the server */
 static void authbanner_opcallback(disorder_eclient *c,
                                   struct operation *op) {
   size_t nonce_len;
@@ -577,6 +578,7 @@ static void authbanner_opcallback(disorder_eclient *c,
                 (char *)0);
 }
 
+/** @brief Called with the response to the @c user command */
 static void authuser_opcallback(disorder_eclient *c,
                                 struct operation *op) {
   char *r;
@@ -846,12 +848,14 @@ static void string_response_opcallback(disorder_eclient *c,
         if(rr && *rr)
           ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
         else
+          /* TODO don't use protocol_error here */
           protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
       } else
         ((disorder_eclient_string_response *)op->completed)(op->v,
                                                             c->line + 4);
     }
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -864,6 +868,7 @@ static void integer_response_opcallback(disorder_eclient *c,
       ((disorder_eclient_integer_response *)op->completed)
         (op->v, strtol(c->line + 4, 0, 10));
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op,  c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -875,6 +880,7 @@ static void no_response_opcallback(disorder_eclient *c,
     if(op->completed)
       ((disorder_eclient_no_response *)op->completed)(op->v);
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -883,6 +889,7 @@ static void eclient_queue_error(const char *msg,
                                 void *u) {
   struct operation *op = u;
 
+  /* TODO don't use protocol_error here */
   protocol_error(op->client, op, -1, "error parsing queue entry: %s", msg);
 }
 
@@ -908,6 +915,7 @@ static void queue_response_opcallback(disorder_eclient *c,
     if(op->completed)
       ((disorder_eclient_queue_response *)op->completed)(op->v, qh);
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 } 
 
@@ -928,12 +936,14 @@ static void playing_response_opcallback(disorder_eclient *c,
       q = 0;
       break;
     default:
+      /* TODO don't use protocol_error here */
       protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
       return;
     }
     if(op->completed)
       ((disorder_eclient_queue_response *)op->completed)(op->v, q);
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -947,6 +957,7 @@ static void list_response_opcallback(disorder_eclient *c,
                                                         c->vec.nvec,
                                                         c->vec.vec);
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -959,12 +970,14 @@ static void volume_response_opcallback(disorder_eclient *c,
   if(c->rc / 100 == 2) {
     if(op->completed) {
       if(sscanf(c->line + 4, "%d %d", &l, &r) != 2 || l < 0 || r < 0)
+        /* TODO don't use protocol_error here */
         protocol_error(c, op, -1, "%s: invalid volume response: %s",
                        c->ident, c->line);
       else
         ((disorder_eclient_volume_response *)op->completed)(op->v, l, r);
     }
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -1242,6 +1255,7 @@ static void rtp_response_opcallback(disorder_eclient *c,
       ((disorder_eclient_list_response *)op->completed)(op->v, nvec, vec);
     }
   } else
+    /* TODO don't use protocol_error here */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
 }
 
@@ -1380,6 +1394,7 @@ static void log_opcallback(disorder_eclient *c,
 /* error callback for log line parsing */
 static void logline_error(const char *msg, void *u) {
   disorder_eclient *c = u;
+  /* TODO don't use protocol_error here */
   protocol_error(c, c->ops, -1, "error parsing log line: %s", msg);
 }
 
@@ -1395,6 +1410,7 @@ static void logline(disorder_eclient *c, const char *line) {
                                          * reported */
   if(sscanf(vec[0], "%"SCNxMAX, &when) != 1) {
     /* probably the wrong side of a format change */
+    /* TODO don't use protocol_error here */
     protocol_error(c, c->ops, -1, "invalid log timestamp '%s'", vec[0]);
     return;
   }
