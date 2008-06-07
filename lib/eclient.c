@@ -834,29 +834,38 @@ static void stash_command(disorder_eclient *c,
 
 /* Command support ***********************************************************/
 
+static const char *errorstring(disorder_eclient *c) {
+  char *s;
+
+  byte_xasprintf(&s, "%s: %s: %d", c->ident, c->line, c->rc);
+  return s;
+}
+
 /* for commands with a quoted string response */ 
 static void string_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
+  disorder_eclient_string_response *completed
+    = (disorder_eclient_string_response *)op->completed;
+    
   D(("string_response_callback"));
   if(c->rc / 100 == 2 || c->rc == 555) {
     if(op->completed) {
       if(c->rc == 555)
-        ((disorder_eclient_string_response *)op->completed)(op->v, NULL);
+        completed(op->v, NULL, NULL);
       else if(c->protocol >= 2) {
         char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
         
         if(rr && *rr)
-          ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
+          completed(op->v, NULL, *rr);
         else
-          /* TODO don't use protocol_error here */
-          protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+          /* TODO error message a is bit lame but generally indicates a server
+           * bug rather than anything the user can address */
+          completed(op->v, "error parsing response", NULL);
       } else
-        ((disorder_eclient_string_response *)op->completed)(op->v,
-                                                            c->line + 4);
+        completed(op->v, NULL, c->line + 4);
     }
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), NULL);
 }
 
 /* for commands with a simple integer response */ 

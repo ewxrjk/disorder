@@ -520,15 +520,29 @@ static void users_delete(GtkButton attribute((unused)) *button,
   }
 }
 
-static void users_got_email(void attribute((unused)) *v, const char *value) {
+static void users_got_email(void attribute((unused)) *v,
+                            const char *error,
+                            const char *value) {
+  if(error)
+    popup_protocol_error(0, error);
   users_email = value;
 }
 
-static void users_got_rights(void attribute((unused)) *v, const char *value) {
+static void users_got_rights(void attribute((unused)) *v,
+                             const char *error,
+                             const char *value) {
+  if(error)
+    popup_protocol_error(0, error);
   users_rights = value;
 }
 
-static void users_got_password(void attribute((unused)) *v, const char *value) {
+static void users_got_password(void attribute((unused)) *v,
+                               const char *error,
+                               const char *value) {
+  if(error)
+    popup_protocol_error(0, error);
+  /* TODO if an error occurred gathering user info, we should react in some
+   * different way */
   users_password = value;
   users_makedetails(users_selected,
                     users_email,

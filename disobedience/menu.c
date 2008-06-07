@@ -30,7 +30,9 @@ static GtkWidget *properties_widget;
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
 
-static void about_popup_got_version(void *v, const char *value);
+static void about_popup_got_version(void *v,
+                                    const char *error,
+                                    const char *value);
 
 /** @brief Called when the quit option is activated
  *
@@ -156,12 +158,15 @@ static void manual_popup(gpointer attribute((unused)) callback_data,
 
 /** @brief Called when version arrives, displays about... popup */
 static void about_popup_got_version(void attribute((unused)) *v,
+                                    const char attribute((unused)) *error,
                                     const char *value) {
   GtkWidget *w;
   char *server_version_string;
   char *short_version_string;
   GtkWidget *hbox, *vbox, *title;
 
+  if(!value)
+    value = "[error]";
   byte_xasprintf(&server_version_string, "Server version %s", value);
   byte_xasprintf(&short_version_string, "Disobedience %s",
                  disorder_short_version_string);
@@ -224,11 +229,18 @@ void users_set_sensitive(int sensitive) {
 }
 
 /** @brief Called with current user's rights string */
-static void menu_got_rights(void attribute((unused)) *v, const char *value) {
+static void menu_got_rights(void attribute((unused)) *v,
+                            const char *error,
+                            const char *value) {
   rights_type r;
 
-  if(parse_rights(value, &r, 0))
+  if(error) {
+    popup_protocol_error(0, error);
     r = 0;
+  } else {
+    if(parse_rights(value, &r, 0))
+      r = 0;
+  }
   users_set_sensitive(!!(r & RIGHT_ADMIN));
 }
 

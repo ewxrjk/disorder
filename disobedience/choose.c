@@ -215,7 +215,7 @@ static struct choosenode *newnode(struct choosenode *parent,
 static void fill_root_node(struct choosenode *cn);
 static void fill_directory_node(struct choosenode *cn);
 static void got_files(void *v, int nvec, char **vec);
-static void got_resolved_file(void *v, const char *track);
+static void got_resolved_file(void *v, const char *error, const char *track);
 static void got_dirs(void *v, int nvec, char **vec);
 
 static void expand_node(struct choosenode *cn, int contingent);
@@ -429,14 +429,13 @@ static void got_files(void *v, int nvec, char **vec) {
   int n;
 
   D(("got_files %d files for %s %s", nvec, cn->path, cnflags(cn)));
-  /* Complicated by the need to resolve aliases.  We can save a bit of effort
-   * by re-using cbd though. */
+  /* Complicated by the need to resolve aliases. */
   cn->flags &= ~CN_GETTING_FILES;
   --gets_in_flight;
   if((cn->pending = nvec)) {
     cn->flags |= CN_RESOLVING_FILES;
     for(n = 0; n < nvec; ++n) {
-      disorder_eclient_resolve(client, got_resolved_file, vec[n], cbd);
+      disorder_eclient_resolve(client, got_resolved_file, vec[n], cn);
       ++gets_in_flight;
     }
   }
@@ -449,23 +448,26 @@ static void got_files(void *v, int nvec, char **vec) {
 }
 
 /** @brief Called with an alias resolved filename */
-static void got_resolved_file(void *v, const char *track) {
-  struct callbackdata *cbd = v;
-  struct choosenode *cn = cbd->u.choosenode, *file_cn;
+static void got_resolved_file(void *v, const char *error, const char *track) {
+  struct choosenode *const cn = v, *file_cn;
 
-  D(("resolved %s %s %d left", cn->path, cnflags(cn), cn->pending - 1));
-  /* TODO as below */
-  file_cn = newnode(cn, track,
-                    trackname_transform("track", track, "display"),
-                    trackname_transform("track", track, "sort"),
-                    0/*flags*/, 0/*fill*/);
-  --gets_in_flight;
-  /* Only bother updating when we've got the lot */
-  if(--cn->pending == 0) {
-    cn->flags &= ~CN_RESOLVING_FILES;
-    updated_node(cn, gets_in_flight == 0, "got_resolved_file");
-    if(!(cn->flags & CN_GETTING_ANY))
-      filled(cn);
+  if(error) {
+    popup_protocol_error(0, error);
+  } else {
+    D(("resolved %s %s %d left", cn->path, cnflags(cn), cn->pending - 1));
+    /* TODO as below */
+    file_cn = newnode(cn, track,
+                      trackname_transform("track", track, "display"),
+                      trackname_transform("track", track, "sort"),
+                      0/*flags*/, 0/*fill*/);
+    --gets_in_flight;
+    /* Only bother updating when we've got the lot */
+    if(--cn->pending == 0) {
+      cn->flags &= ~CN_RESOLVING_FILES;
+      updated_node(cn, gets_in_flight == 0, "got_resolved_file");
+      if(!(cn->flags & CN_GETTING_ANY))
+        filled(cn);
+    }
   }
 }
 

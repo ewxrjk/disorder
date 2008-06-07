@@ -43,7 +43,7 @@ static const char *get_edited_boolean(struct prefdata *f);
 static void set_edited_boolean(struct prefdata *f, const char *value);
 static void set_boolean(struct prefdata *f, const char *value);
 
-static void prefdata_completed(void *v, const char *value);
+static void prefdata_completed(void *v, const char *error, const char *value);
 static void prefdata_onerror(struct callbackdata *cbd,
                              int code,
                              const char *msg);
@@ -434,10 +434,13 @@ static void prefdata_onerror(struct callbackdata *cbd,
 }
 
 /* Got the value of a pref */
-static void prefdata_completed(void *v, const char *value) {
-  struct callbackdata *cbd = v;
-
-  prefdata_completed_common(cbd->u.f, value);
+static void prefdata_completed(void *v, const char *error, const char *value) {
+  if(error) {
+  } else {
+    struct callbackdata *cbd = v;
+    
+    prefdata_completed_common(cbd->u.f, value);
+  }
 }
 
 static void prefdata_completed_common(struct prefdata *f,

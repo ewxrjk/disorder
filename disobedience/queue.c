@@ -273,12 +273,13 @@ static void namepart_completed_or_failed(void) {
 }
 
 /** @brief Called when A namepart lookup has completed */
-static void namepart_completed(void *v, const char *value) {
-  struct callbackdata *cbd = v;
-
-  D(("namepart_completed"));
-  cache_put(&cachetype_string, cbd->u.key, value);
-  ++namepart_completions_deferred;
+static void namepart_completed(void *v, const char *error, const char *value) {
+  if(error) {
+    gtk_label_set_text(GTK_LABEL(report_label), error);
+  } else {
+    cache_put(&cachetype_string, v, value);
+    ++namepart_completions_deferred;
+  }
   namepart_completed_or_failed();
 }
 
@@ -310,14 +311,9 @@ static void namepart_fill(const char *track,
                           const char *context,
                           const char *part,
                           const char *key) {
-  struct callbackdata *cbd;
-
   ++namepart_lookups_outstanding;
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = namepart_protocol_error;
-  cbd->u.key = key;
   disorder_eclient_namepart(client, namepart_completed,
-                            track, context, part, cbd);
+                            track, context, part, (void *)key);
 }
 
 /** @brief Look up a namepart
