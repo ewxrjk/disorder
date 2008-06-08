@@ -405,12 +405,18 @@ static void update_nortp(const struct icon *icon) {
   update_icon(icon, visible, usable);
 }
 
+static void icon_action_completed(void attribute((unused)) *v,
+                                  const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 static void clicked_icon(GtkButton attribute((unused)) *button,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 
   if(!suppress_actions)  
-    icon->action(client, 0, 0);
+    icon->action(client, icon_action_completed, 0);
 }
 
 static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
@@ -418,7 +424,7 @@ static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
   const struct icon *icon = userdata;
 
   if(!suppress_actions)
-    icon->action(client, 0, 0);
+    icon->action(client, icon_action_completed, 0);
 }
 
 static void toggled_menu(GtkCheckMenuItem *menuitem,
@@ -436,7 +442,7 @@ static void toggled_menu(GtkCheckMenuItem *menuitem,
        && !!(icons[n].flags & ICON_INACTIVE) == !!menuitem->active)
       break;
   if(n < NICONS)
-    icons[n].action(client, 0, 0);
+    icons[n].action(client, icon_action_completed, 0);
 }
 
 /** @brief Called when the volume has been adjusted */

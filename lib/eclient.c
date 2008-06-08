@@ -884,13 +884,14 @@ static void integer_response_opcallback(disorder_eclient *c,
 /* for commands with no response */
 static void no_response_opcallback(disorder_eclient *c,
                                    struct operation *op) {
+  disorder_eclient_no_response *completed
+    = (disorder_eclient_no_response *)op->completed;
+
   D(("no_response_callback"));
-  if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_no_response *)op->completed)(op->v);
-  } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+  if(c->rc / 100 == 2)
+    completed(op->v, NULL);
+  else
+    completed(op->v, errorstring(c));
 }
 
 /* error callback for queue_unmarshall */

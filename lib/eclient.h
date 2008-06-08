@@ -147,8 +147,12 @@ struct sink;
  * It is always allowed for these to be null pointers if you don't care about
  * the result. */
 
-typedef void disorder_eclient_no_response(void *v);
-/* completion callback with no data */
+/** @brief Trivial completion callback
+ * @param v User data
+ * @param error Error string or NULL on succes
+ */
+typedef void disorder_eclient_no_response(void *v,
+                                          const char *error);
 
 /** @brief String result completion callback
  * @param v User data

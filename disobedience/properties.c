@@ -29,7 +29,7 @@ static void completed_namepart(struct prefdata *f);
 static const char *get_edited_namepart(struct prefdata *f);
 static void set_edited_namepart(struct prefdata *f, const char *value);
 static void set_namepart(struct prefdata *f, const char *value);
-static void set_namepart_completed(void *v);
+static void set_namepart_completed(void *v, const char *error);
 
 static void kickoff_string(struct prefdata *f);
 static void completed_string(struct prefdata *f);
@@ -324,24 +324,25 @@ static void set_edited_namepart(struct prefdata *f, const char *value) {
 
 static void set_namepart(struct prefdata *f, const char *value) {
   char *s;
-  struct callbackdata *cbd = xmalloc(sizeof *cbd);
 
-  cbd->u.f = f;
   byte_xasprintf(&s, "trackname_display_%s", f->p->part);
   /* We don't know what the default is so can never unset.  This is a bug
    * relative to the original design, which is supposed to only ever allow for
    * non-trivial namepart preferences.  I suppose the server could spot a
    * default being set and translate it into an unset. */
   disorder_eclient_set(client, set_namepart_completed, f->track, s, value,
-                       cbd);
+                       f);
 }
 
 /* Called when we've set a namepart */
-static void set_namepart_completed(void *v) {
-  struct callbackdata *cbd = v;
-  struct prefdata *f = cbd->u.f;
-
-  namepart_update(f->track, "display", f->p->part);
+static void set_namepart_completed(void *v, const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+  else {
+    struct prefdata *f = v;
+    
+    namepart_update(f->track, "display", f->p->part);
+  }
 }
 
 /* String preferences ------------------------------------------------------ */
@@ -366,15 +367,15 @@ static void set_edited_string(struct prefdata *f, const char *value) {
   gtk_entry_set_text(GTK_ENTRY(f->widget), value);
 }
 
+static void set_string_completed(void attribute((unused)) *v,
+                                 const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 static void set_string(struct prefdata *f, const char *value) {
-  if(strcmp(f->p->default_value, value))
-    /* Different from default, set it */
-    disorder_eclient_set(client, 0/*completed*/, f->track, f->p->part,
-                         value, 0/*v*/);
-  else
-    /* Same as default, just unset */
-    disorder_eclient_unset(client, 0/*completed*/, f->track, f->p->part,
-                           0/*v*/);
+  disorder_eclient_set(client, set_string_completed, f->track, f->p->part,
+                       value, 0/*v*/);
 }
 
 /* Boolean preferences ----------------------------------------------------- */
@@ -402,17 +403,14 @@ static void set_edited_boolean(struct prefdata *f, const char *value) {
                                strcmp(value, "0"));
 }
 
+#define set_boolean_completed set_string_completed
+
 static void set_boolean(struct prefdata *f, const char *value) {
   char *s;
 
   byte_xasprintf(&s, "trackname_display_%s", f->p->part);
-  if(strcmp(value, f->p->default_value))
-    disorder_eclient_set(client, 0/*completed*/, f->track, f->p->part, value,
-                         0/*v*/);
-  else
-    /* If default value then delete the pref */
-    disorder_eclient_unset(client, 0/*completed*/, f->track, f->p->part,
-                           0/*v*/);
+  disorder_eclient_set(client, set_boolean_completed,
+                       f->track, f->p->part, value, 0/*v*/);
 }
 
 /* Querying preferences ---------------------------------------------------- */

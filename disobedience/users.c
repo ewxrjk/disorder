@@ -380,42 +380,38 @@ static rights_type users_get_rights(void) {
   return r;
 }
 
-/** @brief Called when various things fail */
-static void users_op_failed(struct callbackdata attribute((unused)) *cbd,
-                            int attribute((unused)) code,
-                            const char *msg) {
-  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
+/** @brief Called when a user setting has been edited */
+static void users_edituser_completed(void attribute((unused)) *v,
+                                     const char *error) {
+  if(error)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
 }
 
 /** @brief Called when a new user has been created */
-static void users_adduser_completed(void *v) {
-  struct callbackdata *cbd = v;
+static void users_adduser_completed(void *v,
+                                    const char *error) {
+  if(error) {
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
+    mode(ADD);                          /* Let the user try again */
+  } else {
+    const struct kvp *const kvp = v;
+    const char *user = kvp_get(kvp, "user");
+    const char *email = kvp_get(kvp, "email"); /* maybe NULL */
 
-  /* Now the user is created we can go ahead and set the email address */
-  if(*cbd->u.edituser.email) {
-    struct callbackdata *ncbd = xmalloc(sizeof *cbd);
-    ncbd->onerror = users_op_failed;
-    disorder_eclient_edituser(client, NULL, cbd->u.edituser.user,
-                              "email", cbd->u.edituser.email, ncbd);
+    /* Now the user is created we can go ahead and set the email address */
+    if(email)
+      disorder_eclient_edituser(client, users_edituser_completed, user,
+                                "email", email, NULL);
+    /* Refresh the list of users */
+    disorder_eclient_users(client, users_got_list, 0);
+    /* We'll select the newly created user */
+    users_deferred_select = user;
   }
-  /* Refresh the list of users */
-  disorder_eclient_users(client, users_got_list, 0);
-  /* We'll select the newly created user */
-  users_deferred_select = cbd->u.edituser.user;
-}
-
-/** @brief Called if creating a new user fails */
-static void users_adduser_failed(struct callbackdata attribute((unused)) *cbd,
-                                 int attribute((unused)) code,
-                                 const char *msg) {
-  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
-  mode(ADD);                            /* Let the user try again */
 }
 
 /** @brief Called when the 'Apply' button is pressed */
 static void users_apply(GtkButton attribute((unused)) *button,
                         gpointer attribute((unused)) userdata) {
-  struct callbackdata *cbd;
   const char *password;
   const char *password2;
   const char *name;
@@ -447,15 +443,14 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
       return;
     }
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_adduser_failed;
-    cbd->u.edituser.user = name;
-    cbd->u.edituser.email = email;
-    disorder_eclient_adduser(client, users_adduser_completed,
+    disorder_eclient_adduser(client,
+                             users_adduser_completed,
                              name,
                              password,
                              rights_string(users_get_rights()),
-                             cbd);
+                             kvp_make("user", name,
+                                      "email", email,
+                                      (char *)0));
     /* We switch to no-op mode while creating the user */
     mode(NONE);
     break;
@@ -472,26 +467,30 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
       return;
     }
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_op_failed;
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "email", email, cbd);
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "password", password, cbd);
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "rights", rights_string(users_get_rights()), cbd);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "email", email, NULL);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "password", password, NULL);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "rights", rights_string(users_get_rights()), NULL);
     /* We remain in edit mode */
     break;
   }
 }
 
 /** @brief Called when a user has been deleted */
-static void users_deleted(void *v) {
-  const struct callbackdata *const cbd = v;
-  GtkTreeIter iter[1];
-
-  if(!users_find_user(cbd->u.user, iter))    /* Find the user... */
-    gtk_list_store_remove(users_list, iter); /* ...and remove them */
+static void users_delete_completed(void *v,
+                                   const char *error) {
+  if(error)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
+  else {
+    const struct kvp *const kvp = v;
+    const char *const user = kvp_get(kvp, "user");
+    GtkTreeIter iter[1];
+    
+    if(!users_find_user(user, iter))           /* Find the user... */
+      gtk_list_store_remove(users_list, iter); /* ...and remove them */
+  }
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -499,7 +498,6 @@ static void users_delete(GtkButton attribute((unused)) *button,
 			 gpointer attribute((unused)) userdata) {
   GtkWidget *yesno;
   int res;
-  struct callbackdata *cbd;
 
   if(!users_selected)
     return;
@@ -513,10 +511,9 @@ static void users_delete(GtkButton attribute((unused)) *button,
   res = gtk_dialog_run(GTK_DIALOG(yesno));
   gtk_widget_destroy(yesno);
   if(res == GTK_RESPONSE_YES) {
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_op_failed;
-    cbd->u.user = users_selected;
-    disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
+    disorder_eclient_deluser(client, users_delete_completed, users_selected,
+                             kvp_make("user", users_selected,
+                                      (char *)0));
   }
 }
 

@@ -1088,6 +1088,13 @@ static void clear_selection(struct choosenode *cn) {
 
 /* User actions ------------------------------------------------------------ */
 
+/** @brief Called when disorder_eclient_play completes */
+void play_completed(void attribute((unused)) *v,
+                    const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 /** @brief Clicked on something
  *
  * This implements playing, all the modifiers for selection, etc.
@@ -1162,7 +1169,7 @@ static void clicked_choosenode(GtkWidget attribute((unused)) *widget,
       clear_selection(root);
       set_selection(cn, 1);
       gtk_label_set_text(GTK_LABEL(report_label), "adding track to queue");
-      disorder_eclient_play(client, cn->path, 0, 0);
+      disorder_eclient_play(client, cn->path, play_completed, 0);
       last_click = 0;
     }
   } else if(event->type == GDK_BUTTON_PRESS
@@ -1238,7 +1245,7 @@ static void activate_track_play(GtkMenuItem attribute((unused)) *menuitem,
   
   gtk_label_set_text(GTK_LABEL(report_label), "adding track to queue");
   for(n = 0; tracks[n]; ++n)
-    disorder_eclient_play(client, tracks[n], 0, 0);
+    disorder_eclient_play(client, tracks[n], play_completed, 0);
 }
 
 /** @brief Called when the menu's properties option is activated */
@@ -1286,7 +1293,7 @@ static void play_dir(struct choosenode *cn,
   
   gtk_label_set_text(GTK_LABEL(report_label), "adding track to queue");
   for(n = 0; n < ntracks; ++n)
-    disorder_eclient_play(client, tracks[n], 0, 0);
+    disorder_eclient_play(client, tracks[n], play_completed, 0);
 }
 
 static void properties_dir(struct choosenode *cn,

@@ -45,6 +45,7 @@
 #include "configuration.h"
 #include "hash.h"
 #include "selection.h"
+#include "kvp.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -234,7 +235,6 @@ void namepart_update(const char *track,
                      const char *part);
 /* Called when a namepart might have changed */
 
-
 /* Choose */
 
 GtkWidget *choose_widget(void);
@@ -242,6 +242,9 @@ GtkWidget *choose_widget(void);
 
 void choose_update(void);
 /* Called when we think the choose tree might need updating */
+
+void play_completed(void *v,
+                    const char *error);
 
 /* Login details */
 

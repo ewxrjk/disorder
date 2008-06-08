@@ -325,7 +325,9 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
 }
 
 /** @brief Called when a NOP completes */
-static void nop_completed(void attribute((unused)) *v) {
+static void nop_completed(void attribute((unused)) *v,
+                          const char attribute((unused)) *error) {
+  /* TODO report the error somewhere */
   nop_in_flight = 0;
 }
 

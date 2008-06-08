@@ -774,6 +774,12 @@ static struct queue_entry *findentry(struct queuelike *ql,
   return q;
 }
 
+static void move_completed(void attribute((unused)) *v,
+                           const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 /** @brief Called when data is dropped */
 static gboolean queue_drag_drop(GtkWidget attribute((unused)) *widget,
                                 GdkDragContext *drag_context,
@@ -793,7 +799,7 @@ static gboolean queue_drag_drop(GtkWidget attribute((unused)) *widget,
     if(q != playing_track && selection_selected(ql->selection, q->id))
       vector_append(&vec, (char *)q->id);
   disorder_eclient_moveafter(client, id, vec.nvec, (const char **)vec.vec,
-                             0/*completed*/, 0/*v*/);
+                             move_completed, 0/*v*/);
   gtk_drag_finish(drag_context, TRUE, TRUE, when);
   /* Destroy dropzones */
   remove_drag_targets(ql);
@@ -1190,11 +1196,18 @@ static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
           && selection_selected(ql->selection, playing_track->id));
 }
 
+/** @brief Called when disorder_eclient_scratch completes */
+static void scratch_completed(void attribute((unused)) *v,
+                              const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 /** @brief Scratch the playing track */
 static void scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
                              gpointer attribute((unused)) user_data) {
   if(playing_track)
-    disorder_eclient_scratch(client, playing_track->id, 0, 0);
+    disorder_eclient_scratch(client, playing_track->id, scratch_completed, 0);
 }
 
 /** @brief Determine whether the remove option should be sensitive */
@@ -1209,6 +1222,12 @@ static int remove_sensitive(struct queuelike *ql,
               || count_selected_nonplaying(ql)));
 }
 
+static void remove_completed(void attribute((unused)) *v,
+                             const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
 /** @brief Remove selected track(s) */
 static void remove_activate(GtkMenuItem attribute((unused)) *menuitem,
                             gpointer user_data) {
@@ -1220,10 +1239,10 @@ static void remove_activate(GtkMenuItem attribute((unused)) *menuitem,
     /* Remove selected tracks */
     for(q = ql->q; q; q = q->next)
       if(selection_selected(ql->selection, q->id) && q != playing_track)
-        disorder_eclient_remove(client, q->id, 0, 0);
+        disorder_eclient_remove(client, q->id, move_completed, 0);
   } else if(q)
     /* Remove just the hovered track */
-    disorder_eclient_remove(client, q->id, 0, 0);
+    disorder_eclient_remove(client, q->id, remove_completed, 0);
 }
 
 /** @brief Determine whether the properties menu option should be sensitive */
@@ -1293,10 +1312,10 @@ static void play_activate(GtkMenuItem attribute((unused)) *menuitem,
     /* Play selected tracks */
     for(q = ql->q; q; q = q->next)
       if(selection_selected(ql->selection, q->id))
-        disorder_eclient_play(client, q->track, 0, 0);
+        disorder_eclient_play(client, q->track, play_completed, 0);
   } else if(q)
     /* Nothing is selected, so play the hovered track */
-    disorder_eclient_play(client, q->track, 0, 0);
+    disorder_eclient_play(client, q->track, play_completed, 0);
 }
 
 /* The queue --------------------------------------------------------------- */
