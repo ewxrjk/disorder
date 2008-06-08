@@ -22,7 +22,7 @@ noinst_PROGRAMS=disorder-udplog
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorder_udplog_SOURCES=udplog.c
+disorder_udplog_SOURCES=udplog.c ../lib/memgc.c
 disorder_udplog_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 
