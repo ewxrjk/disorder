@@ -49,7 +49,6 @@ static void alsa_init(void) {
 static void log_params(snd_pcm_hw_params_t *hwparams,
                        snd_pcm_sw_params_t *swparams) {
   snd_pcm_uframes_t f;
-  unsigned u;
 
   return;                               /* too verbose */
   if(hwparams) {
@@ -61,8 +60,12 @@ static void log_params(snd_pcm_hw_params_t *hwparams,
     snd_pcm_sw_params_get_silence_threshold(swparams, &f);
     info("sw silence_threshold=%lu", (unsigned long)f);
 #if HAVE_SND_PCM_SW_PARAMS_GET_SLEEP_MIN
-    snd_pcm_sw_params_get_sleep_min(swparams, &u);
-    info("sw sleep_min=%lu", (unsigned long)u);
+    {
+      unsigned u;
+
+      snd_pcm_sw_params_get_sleep_min(swparams, &u);
+      info("sw sleep_min=%lu", (unsigned long)u);
+    }
 #endif
     snd_pcm_sw_params_get_start_threshold(swparams, &f);
     info("sw start_threshold=%lu", (unsigned long)f);
