@@ -318,7 +318,7 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
        && (nl != volume_l || nr != volume_r)) {
       volume_l = nl;
       volume_r = nr;
-      volume_update();
+      event_raise("volume-changed", 0);
     }
   }
   return TRUE;

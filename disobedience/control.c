@@ -65,6 +65,10 @@ static void volume_adjusted(GtkAdjustment *a, gpointer user_data);
 static gchar *format_volume(GtkScale *scale, gdouble value);
 static gchar *format_balance(GtkScale *scale, gdouble value);
 
+static void volume_changed(const char *event,
+                           void *eventdata,
+                           void *callbackdata);
+
 /* Control bar ------------------------------------------------------------- */
 
 /** @brief Guard against feedback */
@@ -303,14 +307,17 @@ GtkWidget *control_widget(void) {
   g_signal_connect(G_OBJECT(balance_widget), "format-value",
                    G_CALLBACK(format_balance), 0);
   register_monitor(control_monitor, 0, -1UL);
+  event_register("volume-changed", volume_changed, 0);
   return hbox;
 }
 
 /** @brief Update the volume control when it changes */
-void volume_update(void) {
+static void volume_changed(const char attribute((unused)) *event,
+                           void attribute((unused)) *eventdata,
+                           void attribute((unused)) *callbackdata) {
   double l, r;
 
-  D(("volume_update"));
+  D(("volume_changed"));
   l = volume_l / 100.0;
   r = volume_r / 100.0;
   ++suppress_actions;

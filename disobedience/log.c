@@ -86,7 +86,7 @@ void all_update(void) {
   ++suppress_actions;
   event_raise("queue-changed", 0);
   event_raise("recent-changed", 0);
-  volume_update();
+  event_raise("volume-changed", 0);
   event_raise("added-changed", 0);
   --suppress_actions;
 }
@@ -194,7 +194,7 @@ static void log_volume(void attribute((unused)) *v,
     volume_l = l;
     volume_r = r;
     ++suppress_actions;
-    volume_update();
+    event_raise("volume-changed", 0);
     --suppress_actions;
   }
 }

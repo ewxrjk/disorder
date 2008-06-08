@@ -200,9 +200,6 @@ void users_set_sensitive(int sensitive);
 GtkWidget *control_widget(void);
 /* Make the controls widget */
 
-void volume_update(void);
-/* Called whenever we think the volume control has changed */
-
 void control_monitor(void *u);
 
 extern int suppress_actions;
