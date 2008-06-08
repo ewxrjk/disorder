@@ -913,7 +913,10 @@ static void eclient_queue_error(const char *msg,
 /* for commands that expect a queue dump */
 static void queue_response_opcallback(disorder_eclient *c,
                                       struct operation *op) {
+  disorder_eclient_queue_response *const completed
+    = (disorder_eclient_queue_response *)op->completed;
   int n;
+  int parse_failed = 0;
   struct queue_entry *q, *qh = 0, **qtail = &qh, *qlast = 0;
   
   D(("queue_response_callback"));
@@ -927,18 +930,24 @@ static void queue_response_opcallback(disorder_eclient *c,
         *qtail = q;
         qtail = &q->next;
         qlast = q;
-      }
+      } else
+        parse_failed = 1;
     }
-    if(op->completed)
-      ((disorder_eclient_queue_response *)op->completed)(op->v, qh);
+    /* Currently we pass the partial queue to the callback along with the
+     * error.  This might not be very useful in practice... */
+    if(parse_failed)
+      completed(op->v, "cannot parse result", qh);
+    else
+      completed(op->v, 0, qh);
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 } 
 
 /* for 'playing' */
 static void playing_response_opcallback(disorder_eclient *c,
                                         struct operation *op) {
+  disorder_eclient_queue_response *const completed
+    = (disorder_eclient_queue_response *)op->completed;
   struct queue_entry *q;
 
   D(("playing_response_callback"));
@@ -947,21 +956,19 @@ static void playing_response_opcallback(disorder_eclient *c,
     case 2:
       if(queue_unmarshall(q = xmalloc(sizeof *q), c->line + 4,
                           eclient_queue_error, c))
-        return;
+        completed(op->v, "cannot parse result", 0);
+      else
+        completed(op->v, 0, q);
       break;
     case 9:
-      q = 0;
+      completed(op->v, 0, 0);
       break;
     default:
-      /* TODO don't use protocol_error here */
-      protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
-      return;
+      completed(op->v, errorstring(c), 0);
+      break;
     }
-    if(op->completed)
-      ((disorder_eclient_queue_response *)op->completed)(op->v, q);
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 }
 
 /* for commands that expect a list of some sort */

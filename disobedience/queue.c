@@ -1041,32 +1041,40 @@ static void redisplay_queue(struct queuelike *ql) {
 }
 
 /** @brief Called with new queue/recent contents */ 
-static void queuelike_completed(void *v, struct queue_entry *q) {
-  struct callbackdata *cbd = v;
-  struct queuelike *ql = cbd->u.ql;
-
-  D(("queuelike_complete"));
-  /* Install the new queue */
-  update_queue(ql, ql->fixup ? ql->fixup(q) : q);
-  /* Update the display */
-  redisplay_queue(ql);
-  if(ql->notify)
-    ql->notify();
-  /* Update sensitivity of main menu items */
-  menu_update(-1);
+static void queuelike_completed(void *v,
+                                const char *error,
+                                struct queue_entry *q) {
+  if(error)
+    popup_protocol_error(0, error);
+  else {
+    struct queuelike *const ql = v;
+    
+    D(("queuelike_complete"));
+    /* Install the new queue */
+    update_queue(ql, ql->fixup ? ql->fixup(q) : q);
+    /* Update the display */
+    redisplay_queue(ql);
+    if(ql->notify)
+      ql->notify();
+    /* Update sensitivity of main menu items */
+    menu_update(-1);
+  }
 }
 
 /** @brief Called with a new currently playing track */
 static void playing_completed(void attribute((unused)) *v,
+                              const char *error,
                               struct queue_entry *q) {
-  struct callbackdata cbd;
-  D(("playing_completed"));
-  playing_track = q;
-  /* Record when we got the playing track data so we know how old the 'sofar'
-   * field is */
-  time(&last_playing);
-  cbd.u.ql = &ql_queue;
-  queuelike_completed(&cbd, actual_queue);
+  if(error)
+    popup_protocol_error(0, error);
+  else {
+    D(("playing_completed"));
+    playing_track = q;
+    /* Record when we got the playing track data so we know how old the 'sofar'
+     * field is */
+    time(&last_playing);
+    queuelike_completed(&ql_queue, 0, actual_queue);
+  }
 }
 
 /** @brief Called when the queue is scrolled */
@@ -1380,14 +1388,9 @@ GtkWidget *queue_widget(void) {
  * cmmand or because it is to be played) or moved within the queue
  */
 void queue_update(void) {
-  struct callbackdata *cbd;
-
   D(("queue_update"));
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_queue;
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
-  disorder_eclient_queue(client, queuelike_completed, cbd);
+  disorder_eclient_queue(client, queuelike_completed, &ql_queue);
 }
 
 /* Recently played tracks -------------------------------------------------- */
@@ -1433,14 +1436,9 @@ GtkWidget *recent_widget(void) {
  * Called whenever a track is added to it or removed from it.
  */
 void recent_update(void) {
-  struct callbackdata *cbd;
-
   D(("recent_update"));
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_recent;
   gtk_label_set_text(GTK_LABEL(report_label), "updating recently played list");
-  disorder_eclient_recent(client, queuelike_completed, cbd);
+  disorder_eclient_recent(client, queuelike_completed, &ql_recent);
 }
 
 /* Newly added tracks ------------------------------------------------------ */
@@ -1468,7 +1466,7 @@ GtkWidget *added_widget(void) {
  * disobedience/queue.c requires @ref queue_entry structures with a valid and
  * unique @c id field.  This function fakes it.
  */
-static void new_completed(void *v, int nvec, char **vec) {
+static void new_completed(void attribute((unused)) *v, int nvec, char **vec) {
   struct queue_entry *q, *qh, *qlast = 0, **qq = &qh;
   int n;
 
@@ -1482,13 +1480,13 @@ static void new_completed(void *v, int nvec, char **vec) {
     qlast = q;
   }
   *qq = 0;
-  queuelike_completed(v, qh);
+  queuelike_completed(&ql_added, 0, qh);
 }
 
 /** @brief Update the newly-added list */
 void added_update(void) {
   struct callbackdata *cbd;
-  D(("added_updae"));
+  D(("added_update"));
 
   cbd = xmalloc(sizeof *cbd);
   cbd->onerror = 0;
