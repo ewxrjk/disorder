@@ -230,7 +230,6 @@ static void redisplay_tree(const char *why);
 static struct displaydata display_tree(struct choosenode *cn, int x, int y);
 static void undisplay_tree(struct choosenode *cn);
 static void initiate_search(void);
-static void delete_widgets(struct choosenode *cn);
 static void expand_from(struct choosenode *cn);
 static struct choosenode *first_search_result(struct choosenode *cn);
 
@@ -827,17 +826,6 @@ static void prev_clicked(GtkButton attribute((unused)) *button,
 }
 
 /* Display functions ------------------------------------------------------- */
-
-/** @brief Delete all the widgets in the tree */
-static void delete_widgets(struct choosenode *cn) {
-  int n;
-
-  delete_cn_widgets(cn);
-  for(n = 0; n < cn->children.nvec; ++n)
-    delete_widgets(cn->children.vec[n]);
-  cn->flags &= ~(CN_DISPLAYED|CN_SELECTED);
-  files_selected = 0;
-}
 
 /** @brief Update the display */
 static void redisplay_tree(const char *why) {
