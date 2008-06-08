@@ -445,6 +445,17 @@ static void toggled_menu(GtkCheckMenuItem *menuitem,
     icons[n].action(client, icon_action_completed, 0);
 }
 
+/** @brief Called when a volume command completes */
+static void volume_completed(void attribute((unused)) *v,
+                             const char *error,
+                             int attribute((unused)) l,
+                             int attribute((unused)) r) {
+  if(error)
+    popup_protocol_error(0, error);
+  /* We don't set the UI's notion of the volume here, it is set from the log
+   * regardless of the reason it changed */
+}
+
 /** @brief Called when the volume has been adjusted */
 static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
                             gpointer attribute((unused)) user_data) {
@@ -465,8 +476,7 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
     int l = nearbyint(left(v, b) * 100), r = nearbyint(right(v, b) * 100);
     mixer_control(DEFAULT_BACKEND, &l, &r, 1);
   } else
-    /* We don't want a reply, we'll get the actual new volume from the log. */
-    disorder_eclient_volume(client, 0,
+    disorder_eclient_volume(client, volume_completed,
                             nearbyint(left(v, b) * 100),
                             nearbyint(right(v, b) * 100),
                             0);

@@ -144,8 +144,7 @@ struct kvp;
 struct sink;
 
 /* Completion callbacks.  These provide the result of operations to the caller.
- * It is always allowed for these to be null pointers if you don't care about
- * the result. */
+ * Unlike in earlier releases, these are not allowed to be NULL. */
 
 /** @brief Trivial completion callback
  * @param v User data
@@ -181,10 +180,21 @@ typedef void disorder_eclient_string_response(void *v,
 typedef void disorder_eclient_integer_response(void *v,
                                                const char *error,
                                                long value);
-/* completion callback with a integer result */
-
-typedef void disorder_eclient_volume_response(void *v, int l, int r);
-/* completion callback with a pair of integer results */
+/** @brief Volume completion callback
+ * @param v User data
+ * @param error Error string or NULL on success
+ * @param l Left channel volume
+ * @param r Right channel volume
+ *
+ * @p error will be NULL on success.  In this case @p l and @p r will be the
+ * result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p l and @p r are always
+ * 0.
+ */
+typedef void disorder_eclient_volume_response(void *v,
+                                              const char *error,
+                                              int l, int r);
 
 typedef void disorder_eclient_queue_response(void *v, struct queue_entry *q);
 /* completion callback for queue/recent listing */

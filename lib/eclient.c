@@ -981,21 +981,20 @@ static void list_response_opcallback(disorder_eclient *c,
 /* for volume */
 static void volume_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
+  disorder_eclient_volume_response *completed
+    = (disorder_eclient_volume_response *)op->completed;
   int l, r;
 
   D(("volume_response_callback"));
   if(c->rc / 100 == 2) {
     if(op->completed) {
       if(sscanf(c->line + 4, "%d %d", &l, &r) != 2 || l < 0 || r < 0)
-        /* TODO don't use protocol_error here */
-        protocol_error(c, op, -1, "%s: invalid volume response: %s",
-                       c->ident, c->line);
+        completed(op->v, "cannot parse volume response", 0, 0);
       else
-        ((disorder_eclient_volume_response *)op->completed)(op->v, l, r);
+        completed(op->v, 0, l, r);
     }
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 static int simple(disorder_eclient *c,
