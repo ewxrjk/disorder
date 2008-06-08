@@ -1466,34 +1466,38 @@ GtkWidget *added_widget(void) {
  * disobedience/queue.c requires @ref queue_entry structures with a valid and
  * unique @c id field.  This function fakes it.
  */
-static void new_completed(void attribute((unused)) *v, int nvec, char **vec) {
-  struct queue_entry *q, *qh, *qlast = 0, **qq = &qh;
-  int n;
-
-  for(n = 0; n < nvec; ++n) {
-    q = xmalloc(sizeof *q);
-    q->prev = qlast;
-    q->track = vec[n];
-    q->id = vec[n];
-    *qq = q;
-    qq = &q->next;
-    qlast = q;
+static void new_completed(void *v,
+                          const char *error,
+                          int nvec, char **vec) {
+  if(error)
+    popup_protocol_error(0, error);
+  else {
+    struct queuelist *ql = v;
+    /* Convert the vector result to a queue linked list */
+    struct queue_entry *q, *qh, *qlast = 0, **qq = &qh;
+    int n;
+    
+    for(n = 0; n < nvec; ++n) {
+      q = xmalloc(sizeof *q);
+      q->prev = qlast;
+      q->track = vec[n];
+      q->id = vec[n];
+      *qq = q;
+      qq = &q->next;
+      qlast = q;
+    }
+    *qq = 0;
+    queuelike_completed(ql, 0, qh);
   }
-  *qq = 0;
-  queuelike_completed(&ql_added, 0, qh);
 }
 
 /** @brief Update the newly-added list */
 void added_update(void) {
-  struct callbackdata *cbd;
   D(("added_update"));
 
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_added;
   gtk_label_set_text(GTK_LABEL(report_label),
                      "updating newly added track list");
-  disorder_eclient_new_tracks(client, new_completed, 0/*all*/, cbd);
+  disorder_eclient_new_tracks(client, new_completed, 0/*all*/, &ql_added);
 }
 
 /* Main menu plumbing ------------------------------------------------------ */

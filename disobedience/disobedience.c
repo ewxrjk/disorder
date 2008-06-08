@@ -352,35 +352,28 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
 
 /** @brief Called when a rtp-address command succeeds */
 static void got_rtp_address(void attribute((unused)) *v,
+                            const char *error,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
   ++suppress_actions;
   rtp_address_in_flight = 0;
-  rtp_supported = 1;
-  rtp_is_running = rtp_running();
-  control_monitor(0);
-  --suppress_actions;
-}
-
-/** @brief Called when a rtp-address command fails */
-static void no_rtp_address(struct callbackdata attribute((unused)) *cbd,
-                           int attribute((unused)) code,
-                           const char attribute((unused)) *msg) {
-  ++suppress_actions;
-  rtp_address_in_flight = 0;
-  rtp_supported = 0;
-  rtp_is_running = 0;
+  if(error) {
+    /* An error just means that we're not using network play */
+    rtp_supported = 0;
+    rtp_is_running = 0;
+  } else {
+    rtp_supported = 1;
+    rtp_is_running = rtp_running();
+    control_monitor(0);
+  }
   control_monitor(0);
   --suppress_actions;
 }
 
 /** @brief Called to check whether RTP play is available */
 static void check_rtp_address(void) {
-  if(!rtp_address_in_flight) {
-    struct callbackdata *const cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = no_rtp_address;
-    disorder_eclient_rtp_address(client, got_rtp_address, cbd);
-  }
+  if(!rtp_address_in_flight)
+    disorder_eclient_rtp_address(client, got_rtp_address, NULL);
 }
 
 /* main -------------------------------------------------------------------- */

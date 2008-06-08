@@ -214,9 +214,9 @@ static struct choosenode *newnode(struct choosenode *parent,
                                   void (*fill)(struct choosenode *));
 static void fill_root_node(struct choosenode *cn);
 static void fill_directory_node(struct choosenode *cn);
-static void got_files(void *v, int nvec, char **vec);
+static void got_files(void *v, const char *error, int nvec, char **vec);
 static void got_resolved_file(void *v, const char *error, const char *track);
-static void got_dirs(void *v, int nvec, char **vec);
+static void got_dirs(void *v, const char *error, int nvec, char **vec);
 
 static void expand_node(struct choosenode *cn, int contingent);
 static void contract_node(struct choosenode *cn);
@@ -358,20 +358,14 @@ static void filled(struct choosenode *cn) {
 
 /** @brief Fill the root */
 static void fill_root_node(struct choosenode *cn) {
-  struct callbackdata *cbd;
-
   D(("fill_root_node"));
   clear_children(cn);
   /* More de-duping possible here */
   if(cn->flags & CN_GETTING_ANY)
     return;
   gtk_label_set_text(GTK_LABEL(report_label), "getting files");
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_dirs(client, got_dirs, "", 0, cbd);
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_files(client, got_files, "", 0, cbd);
+  disorder_eclient_dirs(client, got_dirs, "", 0, cn);
+  disorder_eclient_files(client, got_files, "", 0, cn);
   cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
   gets_in_flight += 2;
 }
@@ -423,10 +417,14 @@ static void clear_children(struct choosenode *cn) {
 }
 
 /** @brief Called with a list of files just below some node */
-static void got_files(void *v, int nvec, char **vec) {
-  struct callbackdata *cbd = v;
-  struct choosenode *cn = cbd->u.choosenode;
+static void got_files(void *v, const char *error, int nvec, char **vec) {
+  struct choosenode *cn = v;
   int n;
+
+  if(error) {
+    popup_protocol_error(0, error);
+    return;
+  }
 
   D(("got_files %d files for %s %s", nvec, cn->path, cnflags(cn)));
   /* Complicated by the need to resolve aliases. */
@@ -472,10 +470,14 @@ static void got_resolved_file(void *v, const char *error, const char *track) {
 }
 
 /** @brief Called with a list of directories just below some node */
-static void got_dirs(void *v, int nvec, char **vec) {
-  struct callbackdata *cbd = v;
-  struct choosenode *cn = cbd->u.choosenode;
+static void got_dirs(void *v, const char *error, int nvec, char **vec) {
+  struct choosenode *cn = v;
   int n;
+  
+  if(error) {
+    popup_protocol_error(0, error);
+    return;
+  }
 
   D(("got_dirs %d dirs for %s %s", nvec, cn->path, cnflags(cn)));
   /* TODO this depends on local configuration for trackname_transform().
@@ -680,10 +682,16 @@ static struct choosenode *first_search_result(struct choosenode *cn) {
  * and also from initiate_seatch with an always empty list to indicate that
  * we're not searching for anything in particular. */
 static void search_completed(void attribute((unused)) *v,
+                             const char *error,
                              int nvec, char **vec) {
   int n;
   char *s;
 
+  if(error) {
+    popup_protocol_error(0, error);
+    return;
+  }
+  
   search_in_flight = 0;
   /* Contract any choosenodes that were only expanded to show search
    * results */
@@ -768,13 +776,13 @@ static void initiate_search(void) {
       /* The search terms are bad!  We treat this as if there were no search
        * terms at all.  Some kind of feedback would be handy. */
       fprintf(stderr, "bad terms [%s]\n", terms); /* TODO */
-      search_completed(0, 0, 0);
+      search_completed(0, 0, 0, 0);
     } else {
       search_in_flight = 1;
     }
   } else {
     /* No search terms - we want to see all tracks */
-    search_completed(0, 0, 0);
+    search_completed(0, 0, 0, 0);
   }
 }
 

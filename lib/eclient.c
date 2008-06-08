@@ -925,7 +925,7 @@ static void queue_response_opcallback(disorder_eclient *c,
     for(n = 0; n < c->vec.nvec; ++n) {
       q = xmalloc(sizeof *q);
       D(("queue_unmarshall %s", c->vec.vec[n]));
-      if(!queue_unmarshall(q, c->vec.vec[n], eclient_queue_error, op)) {
+      if(!queue_unmarshall(q, c->vec.vec[n], NULL, op)) {
         q->prev = qlast;
         *qtail = q;
         qtail = &q->next;
@@ -955,7 +955,7 @@ static void playing_response_opcallback(disorder_eclient *c,
     switch(c->rc % 10) {
     case 2:
       if(queue_unmarshall(q = xmalloc(sizeof *q), c->line + 4,
-                          eclient_queue_error, c))
+                          NULL, c))
         completed(op->v, "cannot parse result", 0);
       else
         completed(op->v, 0, q);
@@ -974,15 +974,14 @@ static void playing_response_opcallback(disorder_eclient *c,
 /* for commands that expect a list of some sort */
 static void list_response_opcallback(disorder_eclient *c,
                                      struct operation *op) {
+  disorder_eclient_list_response *const completed =
+    (disorder_eclient_list_response *)op->completed;
+
   D(("list_response_callback"));
-  if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_list_response *)op->completed)(op->v,
-                                                        c->vec.nvec,
-                                                        c->vec.vec);
-  } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+  if(c->rc / 100 == 2)
+    completed(op->v, NULL, c->vec.nvec, c->vec.vec);
+  else
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 /* for volume */
@@ -1269,17 +1268,19 @@ int disorder_eclient_new_tracks(disorder_eclient *c,
 
 static void rtp_response_opcallback(disorder_eclient *c,
                                     struct operation *op) {
+  disorder_eclient_list_response *const completed =
+    (disorder_eclient_list_response *)op->completed;
   D(("rtp_response_opcallback"));
   if(c->rc / 100 == 2) {
-    if(op->completed) {
-      int nvec;
-      char **vec = split(c->line + 4, &nvec, SPLIT_QUOTES, 0, 0);
+    int nvec;
+    char **vec = split(c->line + 4, &nvec, SPLIT_QUOTES, 0, 0);
 
-      ((disorder_eclient_list_response *)op->completed)(op->v, nvec, vec);
-    }
+    if(vec)
+      completed(op->v, NULL, nvec, vec);
+    else
+      completed(op->v, "error parsing response", 0, 0);
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 /** @brief Determine the RTP target address

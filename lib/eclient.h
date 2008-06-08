@@ -201,8 +201,8 @@ typedef void disorder_eclient_volume_response(void *v,
  * @param error Error string or NULL on success
  * @param q Head of queue data list
  *
- * @p error will be NULL on success.  In this case @p q be the (head of the)
- * result.
+ * @p error will be NULL on success.  In this case @p q will be the (head of
+ * the) result.
  *
  * @p error will be non-NULL on failure.  In this case @p q may be NULL but
  * MIGHT also be some subset of the queue.  For consistent behavior it should
@@ -212,8 +212,21 @@ typedef void disorder_eclient_queue_response(void *v,
                                              const char *error,
                                              struct queue_entry *q);
 
-typedef void disorder_eclient_list_response(void *v, int nvec, char **vec);
-/* completion callback for file listing etc */
+/** @brief List request completion callback
+ * @param v User data
+ * @param error Error string or NULL on success
+ * @param nvec Number of elements in response list
+ * @param vec Pointer to response list
+ *
+ * @p error will be NULL on success.  In this case @p nvec and @p vec will give
+ * the result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p nvec and @p vec will
+ * be 0 and NULL.
+ */
+typedef void disorder_eclient_list_response(void *v,
+                                            const char *error,
+                                            int nvec, char **vec);
 
 disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
                                        void *u);

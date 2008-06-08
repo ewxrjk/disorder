@@ -109,10 +109,16 @@ static int users_find_user(const char *user,
  *
  * If users_deferred_select is set then that user is selected.
  */
-static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
+static void users_got_list(void attribute((unused)) *v,
+                           const char *error,
+                           int nvec, char **vec) {
   int n;
   GtkTreeIter iter;
 
+  if(error) {
+    popup_protocol_error(0, error);
+    return;
+  }
   /* Present users in alphabetical order */
   qsort(vec, nvec, sizeof (char *), usercmp);
   /* Set the list contents */
