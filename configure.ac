@@ -20,9 +20,9 @@
 # USA
 #
 
-AC_INIT([disorder], [3.0+], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [4.0], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [3.0+])
+AM_INIT_AUTOMAKE(disorder, [4.0])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
