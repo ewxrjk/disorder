@@ -46,6 +46,13 @@ AC_PROG_CC
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
   gcc_werror=-Werror
+  case "$CC" in
+  *-std=* )
+    ;;
+  * )
+    CC="${CC} -std=gnu99"
+    ;;
+  esac
 else
   AC_MSG_ERROR([GNU C is required to build this program])
   gcc_werror=""
