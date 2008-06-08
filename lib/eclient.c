@@ -871,14 +871,21 @@ static void string_response_opcallback(disorder_eclient *c,
 /* for commands with a simple integer response */ 
 static void integer_response_opcallback(disorder_eclient *c,
                                         struct operation *op) {
+  disorder_eclient_integer_response *completed
+    = (disorder_eclient_integer_response *)op->completed;
+
   D(("string_response_callback"));
   if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_integer_response *)op->completed)
-        (op->v, strtol(c->line + 4, 0, 10));
+    long n;
+    int e;
+
+    e = xstrtol(&n, c->line + 4, 0, 10);
+    if(e)
+      completed(op->v, strerror(e), 0);
+    else
+      completed(op->v, 0, n);
   } else
-    /* TODO don't use protocol_error here */
-    protocol_error(c, op,  c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 }
 
 /* for commands with no response */

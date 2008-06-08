@@ -157,7 +157,7 @@ typedef void disorder_eclient_no_response(void *v,
 /** @brief String result completion callback
  * @param v User data
  * @param error Error string or NULL on succes
- * @param value or NULL if not found
+ * @param value Result or NULL
  *
  * @p error will be NULL on success.  In this case @p value will be the result
  * (which might be NULL for disorder_eclient_get(),
@@ -169,7 +169,18 @@ typedef void disorder_eclient_string_response(void *v,
                                               const char *error,
                                               const char *value);
 
-typedef void disorder_eclient_integer_response(void *v, long value);
+/** @brief String result completion callback
+ * @param v User data
+ * @param error Error string or NULL on succes
+ * @param value Result or 0
+ *
+ * @p error will be NULL on success.  In this case @p value will be the result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p value is always 0.
+ */
+typedef void disorder_eclient_integer_response(void *v,
+                                               const char *error,
+                                               long value);
 /* completion callback with a integer result */
 
 typedef void disorder_eclient_volume_response(void *v, int l, int r);

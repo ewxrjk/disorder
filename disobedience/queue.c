@@ -272,37 +272,33 @@ static void namepart_completed_or_failed(void) {
   }
 }
 
-/** @brief Called when A namepart lookup has completed */
+/** @brief Called when a namepart lookup has completed */
 static void namepart_completed(void *v, const char *error, const char *value) {
   if(error) {
     gtk_label_set_text(GTK_LABEL(report_label), error);
   } else {
-    cache_put(&cachetype_string, v, value);
+    const char *key = v;
+
+    cache_put(&cachetype_string, key, value);
     ++namepart_completions_deferred;
   }
   namepart_completed_or_failed();
 }
 
 /** @brief Called when a length lookup has completed */
-static void length_completed(void *v, long l) {
-  struct callbackdata *cbd = v;
-  long *value;
-
-  D(("namepart_completed"));
-  value = xmalloc(sizeof *value);
-  *value = l;
-  cache_put(&cachetype_integer, cbd->u.key, value);
-  ++namepart_completions_deferred;
-  namepart_completed_or_failed();
-}
-
-/** @brief Called when a length or namepart lookup has failed */
-static void namepart_protocol_error(
-  struct callbackdata attribute((unused)) *cbd,
-  int attribute((unused)) code,
-  const char *msg) {
-  D(("namepart_protocol_error"));
-  gtk_label_set_text(GTK_LABEL(report_label), msg);
+static void length_completed(void *v, const char *error, long l) {
+  if(error)
+    gtk_label_set_text(GTK_LABEL(report_label), error);
+  else {
+    const char *key = v;
+    long *value;
+    
+    D(("namepart_completed"));
+    value = xmalloc(sizeof *value);
+    *value = l;
+    cache_put(&cachetype_integer, key, value);
+    ++namepart_completions_deferred;
+  }
   namepart_completed_or_failed();
 }
 
@@ -360,7 +356,6 @@ void namepart_update(const char *track,
 static long getlength(const char *track) {
   char *key;
   const long *value;
-  struct callbackdata *cbd;
   static const long bogus = -1;
 
   D(("getlength %s", track));
@@ -370,10 +365,7 @@ static long getlength(const char *track) {
     D(("deferring..."));;
     cache_put(&cachetype_integer, key, value = &bogus);
     ++namepart_lookups_outstanding;
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = namepart_protocol_error;
-    cbd->u.key = key;
-    disorder_eclient_length(client, length_completed, track, cbd);
+    disorder_eclient_length(client, length_completed, track, key);
   }
   return *value;
 }
