@@ -1,8 +1,8 @@
-disorder (3.0.99.dev) unstable; urgency=low
+disorder (4.0) unstable; urgency=low
 
-  * Bodge version number
+  * Version 4.0
 
- -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 18 May 2008 21:30:14 +0100
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun,  8 Jun 2008 14:44:05 +0100
 
 disorder (3.0) unstable; urgency=low
 
