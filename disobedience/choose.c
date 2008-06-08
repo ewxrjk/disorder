@@ -501,8 +501,6 @@ static void got_dirs(void *v, const char *error, int nvec, char **vec) {
   
 /** @brief Fill a child node */
 static void fill_directory_node(struct choosenode *cn) {
-  struct callbackdata *cbd;
-
   D(("fill_directory_node %s", cn->path));
   /* TODO: caching */
   if(cn->flags & CN_GETTING_ANY)
@@ -510,12 +508,8 @@ static void fill_directory_node(struct choosenode *cn) {
   assert(report_label != 0);
   gtk_label_set_text(GTK_LABEL(report_label), "getting files");
   clear_children(cn);
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_dirs(client, got_dirs, cn->path, 0, cbd);
-  cbd = xmalloc(sizeof *cbd);
-  cbd->u.choosenode = cn;
-  disorder_eclient_files(client, got_files, cn->path, 0, cbd);
+  disorder_eclient_dirs(client, got_dirs, cn->path, 0, cn);
+  disorder_eclient_files(client, got_files, cn->path, 0, cn);
   cn->flags |= CN_GETTING_FILES|CN_GETTING_DIRS;
   gets_in_flight += 2;
 }
