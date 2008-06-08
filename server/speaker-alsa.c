@@ -60,14 +60,18 @@ static void log_params(snd_pcm_hw_params_t *hwparams,
     info("sw silence_size=%lu", (unsigned long)f);
     snd_pcm_sw_params_get_silence_threshold(swparams, &f);
     info("sw silence_threshold=%lu", (unsigned long)f);
+#if HAVE_SND_PCM_SW_PARAMS_GET_SLEEP_MIN
     snd_pcm_sw_params_get_sleep_min(swparams, &u);
     info("sw sleep_min=%lu", (unsigned long)u);
+#endif
     snd_pcm_sw_params_get_start_threshold(swparams, &f);
     info("sw start_threshold=%lu", (unsigned long)f);
     snd_pcm_sw_params_get_stop_threshold(swparams, &f);
     info("sw stop_threshold=%lu", (unsigned long)f);
+#if HAVE_SND_PCM_SW_PARAMS_GET_XFER_ALIGN
     snd_pcm_sw_params_get_xfer_align(swparams, &f);
     info("sw xfer_align=%lu", (unsigned long)f);
+#endif
   }
 }
 
