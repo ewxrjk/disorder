@@ -46,6 +46,7 @@
 #include "hash.h"
 #include "selection.h"
 #include "kvp.h"
+#include "eventdist.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -213,12 +214,6 @@ GtkWidget *recent_widget(void);
 GtkWidget *added_widget(void);
 /* Create widgets for displaying the queue, the recently played list and the
  * newly added tracks list */
-
-void queue_update(void);
-void recent_update(void);
-void added_update(void);
-/* Called whenever we think the queue, recent or newly-added list might have
- * changed */
 
 void queue_select_all(struct queuelike *ql);
 void queue_select_none(struct queuelike *ql);

@@ -84,10 +84,10 @@ static struct monitor *monitors;
 /** @brief Update everything */
 void all_update(void) {
   ++suppress_actions;
-  queue_update();
-  recent_update();
+  event_raise("queue-changed", 0);
+  event_raise("recent-changed", 0);
   volume_update();
-  added_update();
+  event_raise("added-changed", 0);
   --suppress_actions;
 }
 
@@ -120,7 +120,7 @@ static void log_failed(void attribute((unused)) *v,
 /** @brief Called when some track is moved within the queue */
 static void log_moved(void attribute((unused)) *v,
                       const char attribute((unused)) *user) {
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 static void log_playing(void attribute((unused)) *v,
@@ -131,13 +131,13 @@ static void log_playing(void attribute((unused)) *v,
 /** @brief Called when a track is added to the queue */
 static void log_queue(void attribute((unused)) *v,
                       struct queue_entry attribute((unused)) *q) {
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 /** @brief Called when a track is added to the recently-played list */
 static void log_recent_added(void attribute((unused)) *v,
                              struct queue_entry attribute((unused)) *q) {
-  recent_update();
+  event_raise("recent-changed", 0);
 }
 
 /** @brief Called when a track is removed from the recently-played list
@@ -153,8 +153,7 @@ static void log_recent_removed(void attribute((unused)) *v,
 static void log_removed(void attribute((unused)) *v,
                         const char attribute((unused)) *id,
                         const char attribute((unused)) *user) {
-
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 /** @brief Called when the current track is scratched */
@@ -202,7 +201,7 @@ static void log_volume(void attribute((unused)) *v,
 
 /** @brief Called when a rescan completes */
 static void log_rescanned(void attribute((unused)) *v) {
-  added_update();
+  event_raise("added-changed", 0);
 }
 
 /** @brief Add a monitor to the list

@@ -94,6 +94,15 @@ static GtkWidget *column_length(const struct queuelike *ql,
                                 const struct queue_entry *q,
                                 const char *data);
 static int draggable_row(const struct queue_entry *q);
+static void recent_changed(const char *event,
+                           void *eventdata,
+                           void *callbackdata);
+static void added_changed(const char *event,
+                          void *eventdata,
+                          void *callbackdata);
+static void queue_changed(const char *event,
+                          void *eventdata,
+                          void *callbackdata);
 
 static const struct tabtype tabtype_queue; /* forward */
 
@@ -1375,7 +1384,9 @@ GtkWidget *queue_widget(void) {
   g_timeout_add(1000/*ms*/, adjust_sofar, 0);
   /* Arrange a callback whenever the playing state changes */ 
   register_monitor(playing_update, 0, DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
-  register_reset(queue_update);
+  event_register("queue-changed",
+                 queue_changed,
+                 0);
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
@@ -1387,8 +1398,10 @@ GtkWidget *queue_widget(void) {
  * Called when a track is added to the queue, removed from the queue (by user
  * cmmand or because it is to be played) or moved within the queue
  */
-void queue_update(void) {
-  D(("queue_update"));
+void queue_changed(const char attribute((unused)) *event,
+                   void attribute((unused)) *eventdata,
+                   void attribute((unused)) *callbackdata) {
+  D(("queue_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
   disorder_eclient_queue(client, queuelike_completed, &ql_queue);
 }
@@ -1426,7 +1439,9 @@ static struct queue_menuitem recent_menu[] = {
 /** @brief Create the recently-played list */
 GtkWidget *recent_widget(void) {
   D(("recent_widget"));
-  register_reset(recent_update);
+  event_register("recent-changed",
+                 recent_changed,
+                 0);
   return queuelike(&ql_recent, fixup_recent, 0, recent_menu,
                    maincolumns, NMAINCOLUMNS);
 }
@@ -1435,8 +1450,10 @@ GtkWidget *recent_widget(void) {
  *
  * Called whenever a track is added to it or removed from it.
  */
-void recent_update(void) {
-  D(("recent_update"));
+static void recent_changed(const char attribute((unused)) *event,
+                           void attribute((unused)) *eventdata,
+                           void attribute((unused)) *callbackdata) {
+  D(("recent_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating recently played list");
   disorder_eclient_recent(client, queuelike_completed, &ql_recent);
 }
@@ -1455,7 +1472,7 @@ static struct queue_menuitem added_menu[] = {
 /** @brief Create the newly-added list */
 GtkWidget *added_widget(void) {
   D(("added_widget"));
-  register_reset(added_update);
+  event_register("added-changed", added_changed, 0);
   return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu,
                    addedcolumns, NADDEDCOLUMNS);
 }
@@ -1492,8 +1509,10 @@ static void new_completed(void *v,
 }
 
 /** @brief Update the newly-added list */
-void added_update(void) {
-  D(("added_update"));
+static void added_changed(const char attribute((unused)) *event,
+                          void attribute((unused)) *eventdata,
+                          void attribute((unused)) *callbackdata) {
+  D(("added_changed"));
 
   gtk_label_set_text(GTK_LABEL(report_label),
                      "updating newly added track list");
