@@ -1371,8 +1371,10 @@ static struct queue_menuitem queue_menu[] = {
  * We monitor pause/resume as well as whether the track is playing in order to
  * keep the time played so far up to date correctly.  See playing_completed().
  */
-static void playing_update(void attribute((unused)) *v) {
-  D(("playing_update"));
+static void playing_changed(const char attribute((unused)) *event,
+                            void attribute((unused)) *evendata,
+                            void attribute((unused)) *callbackdata) {
+  D(("playing_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
   disorder_eclient_playing(client, playing_completed, 0);
 }
@@ -1383,10 +1385,9 @@ GtkWidget *queue_widget(void) {
   /* Arrange periodic update of the so-far played field */
   g_timeout_add(1000/*ms*/, adjust_sofar, 0);
   /* Arrange a callback whenever the playing state changes */ 
-  register_monitor(playing_update, 0, DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
-  event_register("queue-changed",
-                 queue_changed,
-                 0);
+  event_register("playing-changed", playing_changed, 0);
+  event_register("pause-changed", playing_changed, 0);
+  event_register("queue-changed", queue_changed, 0);
   /* We pass choose_update() as our notify function since the choose screen
    * marks tracks that are playing/in the queue. */
   return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,

@@ -162,6 +162,18 @@ static void log_scratched(void attribute((unused)) *v,
                           const char attribute((unused)) *user) {
 }
 
+/** @brief Map from state bits to state change events */
+static const struct {
+  unsigned long bit;
+  const char *event;
+} state_events[] = {
+  { DISORDER_PLAYING_ENABLED, "enabled-changed" },
+  { DISORDER_RANDOM_ENABLED, "random-changed" },
+  { DISORDER_TRACK_PAUSED, "pause-changed" },
+  { DISORDER_PLAYING, "playing-changed" },
+};
+#define NSTATE_EVENTS (sizeof state_events / sizeof *state_events)
+
 /** @brief Called when a state change occurs */
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
@@ -179,6 +191,10 @@ static void log_state(void attribute((unused)) *v,
      disorder_eclient_interpret_state(state),
      disorder_eclient_interpret_state(changes)));
   last_state = state;
+  /* Notify interested parties what has changed */
+  for(unsigned n = 0; n < NSTATE_EVENTS; ++n)
+    if(changes & state_events[n].bit)
+      event_raise(state_events[n].event, 0);
   /* Tell anything that cares about the state change */
   for(m = monitors; m; m = m->next) {
     if(changes & m->mask)
