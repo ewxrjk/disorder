@@ -122,8 +122,6 @@ extern GtkItemFactory *mainmenufactory;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
-typedef void monitor_callback(void *u);
-
 /* Functions --------------------------------------------------------------- */
 
 disorder_eclient *gtkclient(void);
@@ -168,11 +166,6 @@ GtkWidget *create_buttons_box(struct button *buttons,
                               size_t nbuttons,
                               GtkWidget *box);
 
-void register_monitor(monitor_callback *callback,
-                      void *u,
-                      unsigned long mask);
-/* Register a state monitor */
-
 /** @brief Type signature for a reset callback */
 typedef void reset_callback(void);
 
@@ -199,8 +192,6 @@ void users_set_sensitive(int sensitive);
 
 GtkWidget *control_widget(void);
 /* Make the controls widget */
-
-void control_monitor(void *u);
 
 extern int suppress_actions;
 

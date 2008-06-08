@@ -216,11 +216,13 @@ static GtkWidget *volume_widget;
 static GtkWidget *balance_widget;
 
 /** @brief Called whenever last_state changes in any way */
-void control_monitor(void attribute((unused)) *u) {
+static void control_changed(const char attribute((unused)) *event,
+                            void attribute((unused)) *evendata,
+                            void attribute((unused)) *callbackdata) {
   int n;
   gboolean volume_supported;
 
-  D(("control_monitor"));
+  D(("control_changed"));
   for(n = 0; n < NICONS; ++n)
     icons[n].update(&icons[n]);
   /* Only display volume/balance controls if they will work */
@@ -306,7 +308,11 @@ GtkWidget *control_widget(void) {
                    G_CALLBACK(format_volume), 0);
   g_signal_connect(G_OBJECT(balance_widget), "format-value",
                    G_CALLBACK(format_balance), 0);
-  register_monitor(control_monitor, 0, -1UL);
+  event_register("enabled-changed", control_changed, 0);
+  event_register("random-changed", control_changed, 0);
+  event_register("pause-changed", control_changed, 0);
+  event_register("playing-changed", control_changed, 0);
+  event_register("rtp-changed", control_changed, 0);
   event_register("volume-changed", volume_changed, 0);
   return hbox;
 }

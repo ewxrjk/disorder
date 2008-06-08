@@ -342,10 +342,10 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
     disorder_eclient_nop(client, nop_completed, 0);
   }
   if(rtp_supported) {
-    const int old_state = rtp_is_running;
+    const int rtp_was_running = rtp_is_running;
     rtp_is_running = rtp_running();
-    if(old_state != rtp_is_running)
-      control_monitor(0);
+    if(rtp_was_running != rtp_is_running)
+      event_raise("rtp-changed", 0);
   }
   return TRUE;                          /* keep call me please */
 }
@@ -355,6 +355,8 @@ static void got_rtp_address(void attribute((unused)) *v,
                             const char *error,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
+  const int rtp_was_running = rtp_is_running;
+
   ++suppress_actions;
   rtp_address_in_flight = 0;
   if(error) {
@@ -364,9 +366,9 @@ static void got_rtp_address(void attribute((unused)) *v,
   } else {
     rtp_supported = 1;
     rtp_is_running = rtp_running();
-    control_monitor(0);
   }
-  control_monitor(0);
+  if(rtp_is_running != rtp_was_running)
+    event_raise("rtp-changed", 0);
   --suppress_actions;
 }
 

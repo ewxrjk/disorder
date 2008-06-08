@@ -60,27 +60,6 @@ const disorder_eclient_log_callbacks log_callbacks = {
   log_rescanned
 };
 
-/** @brief State monitor
- *
- * We keep a linked list of everything that is interested in state changes.
- */
-struct monitor {
-  /** @brief Next monitor */
-  struct monitor *next;
-
-  /** @brief State bits of interest */
-  unsigned long mask;
-
-  /** @brief Function to call if any of @c mask change */
-  monitor_callback *callback;
-
-  /** @brief User data for callback */
-  void *u;
-};
-
-/** @brief List of monitors */
-static struct monitor *monitors;
-
 /** @brief Update everything */
 void all_update(void) {
   ++suppress_actions;
@@ -96,8 +75,6 @@ void all_update(void) {
  * Depending on server and network state the TCP connection to the server may
  * go up or down many times during the lifetime of Disobedience.  This function
  * is called whenever it connects.
- *
- * The intent is to use the monitor logic to achieve this in future.
  */
 static void log_connected(void attribute((unused)) *v) {
   /* Don't know what we might have missed while disconnected so update
@@ -177,7 +154,6 @@ static const struct {
 /** @brief Called when a state change occurs */
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
-  const struct monitor *m;
   unsigned long changes = state ^ last_state;
   static int first = 1;
 
@@ -195,11 +171,6 @@ static void log_state(void attribute((unused)) *v,
   for(unsigned n = 0; n < NSTATE_EVENTS; ++n)
     if(changes & state_events[n].bit)
       event_raise(state_events[n].event, 0);
-  /* Tell anything that cares about the state change */
-  for(m = monitors; m; m = m->next) {
-    if(changes & m->mask)
-      m->callback(m->u);
-  }
   --suppress_actions;
 }
 
@@ -218,25 +189,6 @@ static void log_volume(void attribute((unused)) *v,
 /** @brief Called when a rescan completes */
 static void log_rescanned(void attribute((unused)) *v) {
   event_raise("added-changed", 0);
-}
-
-/** @brief Add a monitor to the list
- * @param callback Function to call
- * @param u User data to pass to @p callback
- * @param mask Mask of flags that @p callback cares about
- *
- * Pass @p mask as -1UL to match all flags.
- */
-void register_monitor(monitor_callback *callback,
-                      void *u,
-                      unsigned long mask) {
-  struct monitor *m = xmalloc(sizeof *m);
-
-  m->next = monitors;
-  m->mask = mask;
-  m->callback = callback;
-  m->u = u;
-  monitors = m;
 }
 
 /*
