@@ -91,7 +91,7 @@ platform, please get in touch.
    If configure cannot guess where your web server keeps its HTML documents and
    CGI programs, you may have to tell it, for instance:
 
-     ./configure cgidir=/whatever/cgi-bin httpdir=/whatever/htdocs
+     ./configure cgiexecdir=/whatever/cgi-bin httpdir=/whatever/htdocs
 
    See README.client for setting up a standalone client (or read the
    disobedience man page).
