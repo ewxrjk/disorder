@@ -14,6 +14,8 @@ Dependencies:
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
 		     libflac-dev
 
+     (Use the bzr from backports, the one in etch is obsolete.)
+
    * On FreeBSD you'll need at least these packages:
 	 autotools
 	 bash
@@ -138,10 +140,7 @@ Web Interface:
      keep it that way.  Clever use of CSS is OK provided it works well on the
      mainstream browsers.
 
-   * I know that the web template syntax is rather nasty.  Perhaps it will be
-     improved in a future version.
-
-   * Update templates/help.html for any changes you make.
+   * Update templates/help.tmpl for any changes you make.
 
 Disobedience:
 
@@ -188,12 +187,10 @@ Code And Patches:
      (But if your new feature only makes sense on a given platform then
      obviously its new dependencies don't need to be available elsewhere.)
 
-   * GCC is stated as a dependency.  In fact the code is mostly standard C,
-     with C99 initializers, long long and possibly the occasional // comment as
-     the main departures from C89.  Additional GCCisms will be accepted if it's
-     impractical to avoid them.  At least one active user is still using GCC
-     2.95, so extensions that only appear in later versions are to be avoided
-     for the time being.
+   * GCCisms such as typeof are used; the configure script asks for -std=gnu99
+     by default.  At least one active user is still using GCC 2.95, so
+     extensions that only appear in later versions are to be avoided for the
+     time being.
 
    * Please submit patches either using 'diff -u', or by publishing a bzr
      branch somewhere I can get at it.
