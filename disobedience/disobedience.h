@@ -211,6 +211,8 @@ void namepart_update(const char *track,
                      const char *part);
 /* Called when a namepart might have changed */
 
+extern struct queue_entry *playing_track;
+
 /* Choose */
 
 GtkWidget *choose_widget(void);

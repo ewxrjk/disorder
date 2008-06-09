@@ -225,7 +225,7 @@ static struct queuelike ql_queue; /**< @brief The main queue */
 static struct queuelike ql_recent; /*< @brief Recently-played tracks */
 static struct queuelike ql_added; /*< @brief Newly added tracks */
 static struct queue_entry *actual_queue; /**< @brief actual queue */
-static struct queue_entry *playing_track;     /**< @brief currenty playing */
+struct queue_entry *playing_track;       /**< @brief currently playing */
 static time_t last_playing = (time_t)-1; /**< @brief when last got playing */
 static int namepart_lookups_outstanding;
 static int  namepart_completions_deferred; /* # of completions not processed */
@@ -1203,8 +1203,7 @@ static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
   return (playing_track
           && (disorder_eclient_state(client) & DISORDER_CONNECTED)
           && selection_selected(ql->selection, playing_track->id)
-          && (last_rights & RIGHT_SCRATCH__MASK));
-  /* TODO: rights is more complicated than that */
+          && right_scratchable(last_rights, config->username, playing_track));
 }
 
 /** @brief Called when disorder_eclient_scratch completes */
@@ -1231,8 +1230,7 @@ static int remove_sensitive(struct queuelike *ql,
           && ((q
                && q != playing_track)
               || count_selected_nonplaying(ql))
-          && (last_rights & RIGHT_REMOVE__MASK));
-  /* TODO: rights is more complicated than that */
+          && right_removable(last_rights, config->username, q));
 }
 
 static void remove_completed(void attribute((unused)) *v,

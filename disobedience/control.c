@@ -144,8 +144,7 @@ static int pause_resume_sensitive(void) {
 
 static int scratch_sensitive(void) {
   return !!(last_state & DISORDER_PLAYING)
-    && (last_rights & RIGHT_SCRATCH__MASK);
-  /* TODO: it's more complicated than that... */
+    && right_scratchable(last_rights, config->username, playing_track);
 }
 
 static int random_sensitive(void) {
