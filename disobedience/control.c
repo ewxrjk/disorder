@@ -138,15 +138,26 @@ static int pause_resume_on(void) {
 }
 
 static int pause_resume_sensitive(void) {
-  return !!(last_state & DISORDER_PLAYING);
+  return !!(last_state & DISORDER_PLAYING)
+    && (last_rights & RIGHT_PAUSE);
 }
 
 static int scratch_sensitive(void) {
-  return !!(last_state & DISORDER_PLAYING);
+  return !!(last_state & DISORDER_PLAYING)
+    && (last_rights & RIGHT_SCRATCH__MASK);
+  /* TODO: it's more complicated than that... */
+}
+
+static int random_sensitive(void) {
+  return !!(last_rights & RIGHT_GLOBAL_PREFS);
 }
 
 static int random_enabled(void) {
   return !!(last_state & DISORDER_RANDOM_ENABLED);
+}
+
+static int playing_sensitive(void) {
+  return !!(last_rights & RIGHT_GLOBAL_PREFS);
 }
 
 static int playing_enabled(void) {
@@ -188,6 +199,7 @@ static struct icon icons[] = {
     tip_off: "Enable random play",
     menuitem: "<GdisorderMain>/Control/Random play",
     on: random_enabled,
+    sensitive: random_sensitive,
     action_go_on: disorder_eclient_random_enable,
     action_go_off: disorder_eclient_random_disable,
   },
@@ -197,6 +209,7 @@ static struct icon icons[] = {
     icon_off: "notes.png",
     tip_off: "Enable play",
     on: playing_enabled,
+    sensitive: playing_sensitive,
     action_go_on: disorder_eclient_enable,
     action_go_off: disorder_eclient_disable,
   },
@@ -328,6 +341,7 @@ GtkWidget *control_widget(void) {
   event_register("pause-changed", control_changed, 0);
   event_register("playing-changed", control_changed, 0);
   event_register("rtp-changed", control_changed, 0);
+  event_register("rights-changed", control_changed, 0);
   event_register("volume-changed", volume_changed, 0);
   return hbox;
 }

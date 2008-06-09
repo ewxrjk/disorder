@@ -78,6 +78,12 @@ static int nop_in_flight;
 /** @brief True if an rtp-address command is in flight */
 static int rtp_address_in_flight;
 
+/** @brief True if a rights lookup is in flight */
+static int rights_lookup_in_flight;
+
+/** @brief Current rights bitmap */
+rights_type last_rights;
+
 /** @brief Global tooltip group */
 GtkTooltips *tips;
 
@@ -270,9 +276,31 @@ static const GMemVTable glib_memvtable = {
 };
 #endif
 
+static void userinfo_rights_completed(void attribute((unused)) *v,
+                                      const char *error,
+                                      const char *value) {
+  rights_type r;
+
+  if(error) {
+    popup_protocol_error(0, error);
+    r = 0;
+  } else {
+    if(parse_rights(value, &r, 0))
+      r = 0;
+  }
+  /* If rights have changed, signal everything that cares */
+  if(r != last_rights) {
+    last_rights = r;
+    ++suppress_actions;
+    event_raise("rights-changed", 0);
+    --suppress_actions;
+  }
+  rights_lookup_in_flight = 0;
+}
+
 /** @brief Called occasionally */
 static gboolean periodic_slow(gpointer attribute((unused)) data) {
-  D(("periodic"));
+  D(("periodic_slow"));
   /* Expire cached data */
   cache_expire();
   /* Update everything to be sure that the connection to the server hasn't
@@ -285,6 +313,14 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
 #if MTRACK
   report_tags();
 #endif
+  /* Periodically check what our rights are */
+  if(!rights_lookup_in_flight) {
+    rights_lookup_in_flight = 1;
+    disorder_eclient_userinfo(client,
+                              userinfo_rights_completed,
+                              config->username, "rights",
+                              0);
+  }
   return TRUE;                          /* don't remove me */
 }
 
@@ -408,8 +444,10 @@ void logged_in(void) {
   disorder_eclient_close(logclient);
   rtp_supported = 0;
   event_raise("logged-in", 0);
-  /* Might be a new server so re-check */
+  /* Force the periodic checks */
   check_rtp_address();
+  periodic_slow(0);
+  periodic_fast(0);
 }
 
 int main(int argc, char **argv) {
@@ -450,7 +488,7 @@ int main(int argc, char **argv) {
      || !(logclient = gtkclient()))
     return 1;                           /* already reported an error */
   /* periodic operations (e.g. expiring the cache, checking local volume) */
-  g_timeout_add(600000/*milliseconds*/, periodic_slow, 0);
+  g_timeout_add(10000/*milliseconds*/, periodic_slow, 0);
   g_timeout_add(1000/*milliseconds*/, periodic_fast, 0);
   /* global tooltips */
   tips = gtk_tooltips_new();
@@ -466,8 +504,10 @@ int main(int argc, char **argv) {
                      0/*notify*/);
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
-  /* See if RTP play supported */
+  /* Initiate all the checks */
   check_rtp_address();
+  periodic_slow(0);
+  periodic_fast(0);
   suppress_actions = 0;
   /* If no password is set yet pop up a login box */
   if(!config->password)

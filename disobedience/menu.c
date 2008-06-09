@@ -228,29 +228,11 @@ void users_set_sensitive(int sensitive) {
   gtk_widget_set_sensitive(w, sensitive);
 }
 
-/** @brief Called with current user's rights string */
-static void menu_got_rights(void attribute((unused)) *v,
-                            const char *error,
-                            const char *value) {
-  rights_type r;
-
-  if(error) {
-    popup_protocol_error(0, error);
-    r = 0;
-  } else {
-    if(parse_rights(value, &r, 0))
-      r = 0;
-  }
-  users_set_sensitive(!!(r & RIGHT_ADMIN));
-}
-
-/** @brief Called after a fresh login */
-static void menu_logged_in(const char attribute((unused)) *event,
-                           void attribute((unused)) *eventdata,
-                           void attribute((unused)) *callbackdata) {
-  users_set_sensitive(0);               /* until we know better */
-  disorder_eclient_userinfo(client, menu_got_rights, config->username, "rights",
-                            0);
+/** @brief Called when our rights change */
+static void menu_rights_changed(const char attribute((unused)) *event,
+                                void attribute((unused)) *eventdata,
+                                void attribute((unused)) *callbackdata) {
+  users_set_sensitive(!!(last_rights & RIGHT_ADMIN));
 }
 
 /** @brief Create the menu bar widget */
@@ -421,8 +403,8 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
-  event_register("logged-in", menu_logged_in, 0);
-  menu_logged_in(0, 0, 0);
+  event_register("rights-changed", menu_rights_changed, 0);
+  users_set_sensitive(0);
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);

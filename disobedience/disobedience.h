@@ -111,6 +111,7 @@ extern GtkWidget *tabs;                 /* main tabs */
 extern disorder_eclient *client;        /* main client */
 
 extern unsigned long last_state;        /* last reported state */
+extern rights_type last_rights;         /* last reported rights bitmap */
 extern int playing;                     /* true if playing some track */
 extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
