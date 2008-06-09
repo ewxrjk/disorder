@@ -36,7 +36,6 @@ WT(vbox);
 
 struct icon;
 
-static void update_icon(const struct icon *icon);
 static void clicked_icon(GtkButton *, gpointer);
 static void clicked_menu(GtkMenuItem *, gpointer userdata);
 static void toggled_menu(GtkCheckMenuItem *, gpointer userdata);
@@ -57,6 +56,9 @@ static void volume_adjusted(GtkAdjustment *a, gpointer user_data);
 static gchar *format_volume(GtkScale *scale, gdouble value);
 static gchar *format_balance(GtkScale *scale, gdouble value);
 
+static void icon_changed(const char *event,
+                         void *evendata,
+                         void *callbackdata);
 static void volume_changed(const char *event,
                            void *eventdata,
                            void *callbackdata);
@@ -92,6 +94,9 @@ struct icon {
 
   /** @brief Associated menu item or NULL */
   const char *menuitem;
+
+  /** @brief Events that change this icon, separated by spaces */
+  const char *events;
 
   /** @brief @ref eclient.h function to call to go from off to on
    *
@@ -183,6 +188,7 @@ static struct icon icons[] = {
     sensitive: pause_resume_sensitive,
     action_go_on: disorder_eclient_resume,
     action_go_off: disorder_eclient_pause,
+    events: "pause-changed playing-changed rights-changed",
   },
   {
     icon_on: "cross.png",
@@ -190,6 +196,7 @@ static struct icon icons[] = {
     menuitem: "<GdisorderMain>/Control/Scratch",
     sensitive: scratch_sensitive,
     action_go_off: disorder_eclient_scratch_playing,
+    events: "playing-track-changed rights-changed",
   },
   {
     icon_on: "randomcross.png",
@@ -201,6 +208,7 @@ static struct icon icons[] = {
     sensitive: random_sensitive,
     action_go_on: disorder_eclient_random_enable,
     action_go_off: disorder_eclient_random_disable,
+    events: "random-changed rights-changed",
   },
   {
     icon_on: "notescross.png",
@@ -211,6 +219,7 @@ static struct icon icons[] = {
     sensitive: playing_sensitive,
     action_go_on: disorder_eclient_enable,
     action_go_off: disorder_eclient_disable,
+    events: "enabled-changed rights-changed",
   },
   {
     icon_on: "speakercross.png",
@@ -221,7 +230,8 @@ static struct icon icons[] = {
     on: rtp_enabled,
     sensitive: rtp_sensitive,
     action_go_on: enable_rtp,
-    action_go_off: disable_rtp
+    action_go_off: disable_rtp,
+    events: "rtp-changed",
   },
 };
 
@@ -232,30 +242,6 @@ static GtkAdjustment *volume_adj;
 static GtkAdjustment *balance_adj;
 static GtkWidget *volume_widget;
 static GtkWidget *balance_widget;
-
-/** @brief Called whenever last_state changes in any way
- *
- * TODO we should only update things that have changed.
- */
-static void control_changed(const char attribute((unused)) *event,
-                            void attribute((unused)) *evendata,
-                            void attribute((unused)) *callbackdata) {
-  int n;
-  gboolean volume_supported;
-
-  D(("control_changed"));
-  /* Update all the icons */
-  for(n = 0; n < NICONS; ++n)
-    update_icon(&icons[n]);
-  /* Only display volume/balance controls if they will work */
-  if(!rtp_supported
-     || (rtp_supported && mixer_supported(DEFAULT_BACKEND)))
-    volume_supported = TRUE;
-  else
-    volume_supported = FALSE;
-  (volume_supported ? gtk_widget_show : gtk_widget_hide)(volume_widget);
-  (volume_supported ? gtk_widget_show : gtk_widget_hide)(balance_widget);
-}
 
 /** @brief Create the control bar */
 GtkWidget *control_widget(void) {
@@ -298,6 +284,10 @@ GtkWidget *control_widget(void) {
         g_signal_connect(G_OBJECT(icons[n].item), "activate",
                          G_CALLBACK(clicked_menu), &icons[n]);
     }
+    /* Make sure the icon is updated when relevant things changed */
+    char **events = split(icons[n].events, 0, 0, 0, 0);
+    while(*events)
+      event_register(*events++, icon_changed, &icons[n]);
   }
   /* create the adjustments for the volume control */
   NW(adjustment);
@@ -335,13 +325,8 @@ GtkWidget *control_widget(void) {
                    G_CALLBACK(format_volume), 0);
   g_signal_connect(G_OBJECT(balance_widget), "format-value",
                    G_CALLBACK(format_balance), 0);
-  event_register("enabled-changed", control_changed, 0);
-  event_register("random-changed", control_changed, 0);
-  event_register("pause-changed", control_changed, 0);
-  event_register("playing-changed", control_changed, 0);
-  event_register("rtp-changed", control_changed, 0);
-  event_register("rights-changed", control_changed, 0);
   event_register("volume-changed", volume_changed, 0);
+  event_register("rtp-changed", volume_changed, 0);
   return hbox;
 }
 
@@ -350,20 +335,38 @@ static void volume_changed(const char attribute((unused)) *event,
                            void attribute((unused)) *eventdata,
                            void attribute((unused)) *callbackdata) {
   double l, r;
+  gboolean volume_supported;
 
   D(("volume_changed"));
-  l = volume_l / 100.0;
-  r = volume_r / 100.0;
   ++suppress_actions;
-  gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
-  gtk_adjustment_set_value(balance_adj, balance(l, r));
+  /* Only display volume/balance controls if they will work */
+  if(!rtp_supported
+     || (rtp_supported && mixer_supported(DEFAULT_BACKEND)))
+    volume_supported = TRUE;
+  else
+    volume_supported = FALSE;
+  /* TODO: if the server doesn't know how to set the volume [but isn't using
+   * network play] then we should have volume_supported = FALSE */
+  if(volume_supported) {
+    gtk_widget_show(volume_widget);
+    gtk_widget_show(balance_widget);
+    l = volume_l / 100.0;
+    r = volume_r / 100.0;
+    gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
+    gtk_adjustment_set_value(balance_adj, balance(l, r));
+  } else {
+    gtk_widget_hide(volume_widget);
+    gtk_widget_hide(balance_widget);
+  }
   --suppress_actions;
 }
 
 /** @brief Update the state of one of the control icons
- * @param icon Target icon
  */
-static void update_icon(const struct icon *icon) {
+static void icon_changed(const char attribute((unused)) *event,
+                         void attribute((unused)) *evendata,
+                         void *callbackdata) {
+  const struct icon *const icon = callbackdata;
   int on = icon->on ? icon->on() : 1;
   int sensitive = icon->sensitive ? icon->sensitive() : 1;
   GtkWidget *child, *newchild;

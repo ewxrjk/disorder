@@ -1083,6 +1083,8 @@ static void playing_completed(void attribute((unused)) *v,
      * field is */
     time(&last_playing);
     queuelike_completed(&ql_queue, 0, actual_queue);
+    /* Notify any interested parties */
+    event_raise("playing-track-changed", q);
   }
 }
 
