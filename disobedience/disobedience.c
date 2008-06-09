@@ -96,6 +96,8 @@ int rtp_supported;
 /** @brief True if RTP play is enabled */
 int rtp_is_running;
 
+static void check_rtp_address(void);
+
 /* Window creation --------------------------------------------------------- */
 
 /* Note that all the client operations kicked off from here will only complete
@@ -325,6 +327,8 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
                               config->username, "rights",
                               0);
   }
+  /* Recheck RTP status too */
+  check_rtp_address();
   return TRUE;                          /* don't remove me */
 }
 
@@ -449,7 +453,6 @@ void logged_in(void) {
   rtp_supported = 0;
   event_raise("logged-in", 0);
   /* Force the periodic checks */
-  check_rtp_address();
   periodic_slow(0);
   periodic_fast(0);
 }
@@ -509,7 +512,6 @@ int main(int argc, char **argv) {
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
   /* Initiate all the checks */
-  check_rtp_address();
   periodic_slow(0);
   periodic_fast(0);
   suppress_actions = 0;
