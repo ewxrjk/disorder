@@ -92,6 +92,7 @@ struct tabtype {
   void (*properties_activate)(GtkWidget *tab);
   void (*selectall_activate)(GtkWidget *tab);
   void (*selectnone_activate)(GtkWidget *tab);
+  void (*selected)(void);
 };
 
 /** @brief Button definitions */

@@ -784,6 +784,8 @@ static void initiate_search(void) {
 static void clearsearch_clicked(GtkButton attribute((unused)) *button,
                                 gpointer attribute((unused)) userdata) {
   gtk_entry_set_text(GTK_ENTRY(searchentry), "");
+  /* Put the input focus back */
+  gtk_widget_grab_focus(searchentry);
 }
 
 /** @brief Called when the 'next search result' button is clicked */
@@ -1417,6 +1419,11 @@ static void choose_selectall_activate(GtkWidget attribute((unused)) *w) {
 static void choose_selectnone_activate(GtkWidget attribute((unused)) *w) {
 }
 
+/** @brief Called when the choose tab is selected */
+static void choose_tab_selected(void) {
+  gtk_widget_grab_focus(searchentry);
+}
+
 /** @brief Main menu callbacks for Choose screen */
 static const struct tabtype tabtype_choose = {
   choose_properties_sensitive,
@@ -1425,6 +1432,7 @@ static const struct tabtype tabtype_choose = {
   choose_properties_activate,
   choose_selectall_activate,
   choose_selectnone_activate,
+  choose_tab_selected,
 };
 
 /* Public entry points ----------------------------------------------------- */

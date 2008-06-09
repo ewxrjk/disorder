@@ -1561,6 +1561,7 @@ static const struct tabtype tabtype_queue = {
   queue_properties_activate,
   queue_selectall_activate,
   queue_selectnone_activate,
+  0
 };
 
 /* Other entry points ------------------------------------------------------ */
