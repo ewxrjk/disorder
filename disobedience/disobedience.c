@@ -355,6 +355,7 @@ static void got_rtp_address(void attribute((unused)) *v,
                             const char *error,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
+  const int rtp_was_supported = rtp_supported;
   const int rtp_was_running = rtp_is_running;
 
   ++suppress_actions;
@@ -367,7 +368,8 @@ static void got_rtp_address(void attribute((unused)) *v,
     rtp_supported = 1;
     rtp_is_running = rtp_running();
   }
-  if(rtp_is_running != rtp_was_running)
+  if(rtp_supported != rtp_was_supported
+     || rtp_is_running != rtp_was_running)
     event_raise("rtp-changed", 0);
   --suppress_actions;
 }

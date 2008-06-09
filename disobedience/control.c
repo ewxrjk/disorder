@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,15 +36,7 @@ WT(vbox);
 
 struct icon;
 
-static void update_pause(const struct icon *);
-static void update_play(const struct icon *);
-static void update_scratch(const struct icon *);
-static void update_random_enable(const struct icon *);
-static void update_random_disable(const struct icon *);
-static void update_enable(const struct icon *);
-static void update_disable(const struct icon *);
-static void update_rtp(const struct icon *);
-static void update_nortp(const struct icon *);
+static void update_icon(const struct icon *icon);
 static void clicked_icon(GtkButton *, gpointer);
 static void clicked_menu(GtkMenuItem *, gpointer userdata);
 static void toggled_menu(GtkCheckMenuItem *, gpointer userdata);
@@ -76,134 +68,148 @@ int suppress_actions = 1;
 
 /** @brief Definition of an icon
  *
- * The design here is rather mad: rather than changing the image displayed by
- * icons according to their state, we flip the visibility of pairs of icons.
+ * We have two kinds of icon:
+ * - action icons, which just do something but don't have a state as such
+ * - toggle icons, which toggle between two states ("on" and "off").
+ *
+ * The scratch button is an action icon; currently all the others are toggle
+ * icons.
+ *
+ * (All icons can be sensitive or insensitive, separately to the above.)
  */
 struct icon {
-  /** @brief Filename for image */
-  const char *icon;
+  /** @brief Filename for 'on' image */
+  const char *icon_on;
 
-  /** @brief Text for tooltip */
-  const char *tip;
+  /** @brief Text for 'on' tooltip */
+  const char *tip_on;
+
+  /** @brief Filename for 'off' image or NULL for an action icon */
+  const char *icon_off;
+
+  /** @brief Text for 'off tooltip */
+  const char *tip_off;
 
   /** @brief Associated menu item or NULL */
   const char *menuitem;
 
-  /** @brief Called to update button when state may have changed */
-  void (*update)(const struct icon *i);
+  /** @brief @ref eclient.h function to call to go from off to on
+   *
+   * For action buttons, this should be NULL.
+   */
+  int (*action_go_on)(disorder_eclient *c,
+                      disorder_eclient_no_response *completed,
+                      void *v);
 
-  /** @brief @ref eclient.h function to call */
-  int (*action)(disorder_eclient *c,
-                disorder_eclient_no_response *completed,
-                void *v);
+  /** @brief @ref eclient.h function to call to go from on to off
+   *
+   * For action buttons, this action is used.
+   */
+  int (*action_go_off)(disorder_eclient *c,
+                       disorder_eclient_no_response *completed,
+                       void *v);
 
-  /** @brief Flag */
-  unsigned flags;
+  /** @brief Get button state
+   * @return 1 for on, 0 for off
+   */
+  int (*on)(void);
+
+  /** @brief Get button sensitivity
+   * @return 1 for sensitive, 0 for insensitive
+   *
+   * Can be NULL for always sensitive.
+   */
+  int (*sensitive)(void);
   
   /** @brief Pointer to button */
   GtkWidget *button;
 
   /** @brief Pointer to menu item */
   GtkWidget *item;
+
+  GtkWidget *image_on;
+  GtkWidget *image_off;
 };
 
-/** @brief This is the active half of a pair */
-#define ICON_ACTIVE 0x0001
+/* TODO: Add rights into the mix below */
 
-/** @brief This is the inactive half of a pair */
-#define ICON_INACTIVE 0x0002
+static int pause_resume_on(void) {
+  return !(last_state & DISORDER_TRACK_PAUSED);
+}
+
+static int pause_resume_sensitive(void) {
+  return !!(last_state & DISORDER_PLAYING);
+}
+
+static int scratch_sensitive(void) {
+  return !!(last_state & DISORDER_PLAYING);
+}
+
+static int random_enabled(void) {
+  return !!(last_state & DISORDER_RANDOM_ENABLED);
+}
+
+static int playing_enabled(void) {
+  return !!(last_state & DISORDER_PLAYING_ENABLED);
+}
+
+static int rtp_enabled(void) {
+  return rtp_is_running;
+}
+
+static int rtp_sensitive(void) {
+  return rtp_supported;
+}
 
 /** @brief Table of all icons */
 static struct icon icons[] = {
   {
-    "pause.png",                        /* icon */
-    "Pause playing track",              /* tip */
-    "<GdisorderMain>/Control/Playing",  /* menuitem */
-    update_pause,                       /* update */
-    disorder_eclient_pause,             /* action */
-    ICON_ACTIVE,                        /* flags */
-    0,                                  /* button */
-    0                                   /* item */
+    icon_on: "pause.png",
+    tip_on: "Pause playing track",
+    icon_off: "play.png",
+    tip_off: "Resume playing track",
+    menuitem: "<GdisorderMain>/Control/Playing",
+    on: pause_resume_on,
+    sensitive: pause_resume_sensitive,
+    action_go_on: disorder_eclient_resume,
+    action_go_off: disorder_eclient_pause,
   },
   {
-    "play.png",                         /* icon */
-    "Resume playing track",             /* tip */
-    "<GdisorderMain>/Control/Playing",  /* menuitem */
-    update_play,                        /* update */
-    disorder_eclient_resume,            /* action */
-    ICON_INACTIVE,                      /* flags */
-    0,                                  /* button */
-    0                                   /* item */
+    icon_on: "cross.png",
+    tip_on: "Cancel playing track",
+    menuitem: "<GdisorderMain>/Control/Scratch",
+    sensitive: scratch_sensitive,
+    action_go_off: disorder_eclient_scratch_playing,
   },
   {
-    "cross.png",                        /* icon */
-    "Cancel playing track",             /* tip */
-    "<GdisorderMain>/Control/Scratch",  /* menuitem */
-    update_scratch,                     /* update */
-    disorder_eclient_scratch_playing,   /* action */
-    0,                                  /* flags */
-    0,                                  /* button */
-    0                                   /* item */
+    icon_on: "randomcross.png",
+    tip_on: "Disable random play",
+    icon_off: "random.png",
+    tip_off: "Enable random play",
+    menuitem: "<GdisorderMain>/Control/Random play",
+    on: random_enabled,
+    action_go_on: disorder_eclient_random_enable,
+    action_go_off: disorder_eclient_random_disable,
   },
   {
-    "random.png",                       /* icon */
-    "Enable random play",               /* tip */
-    "<GdisorderMain>/Control/Random play", /* menuitem */
-    update_random_enable,               /* update */
-    disorder_eclient_random_enable,     /* action */
-    ICON_INACTIVE,                      /* flags */
-    0,                                  /* button */
-    0                                   /* item */
+    icon_on: "notescross.png",
+    tip_on: "Disable play",
+    icon_off: "notes.png",
+    tip_off: "Enable play",
+    on: playing_enabled,
+    action_go_on: disorder_eclient_enable,
+    action_go_off: disorder_eclient_disable,
   },
   {
-    "randomcross.png",                  /* icon */
-    "Disable random play",              /* tip */
-    "<GdisorderMain>/Control/Random play", /* menuitem */
-    update_random_disable,              /* update */
-    disorder_eclient_random_disable,    /* action */
-    ICON_ACTIVE,                        /* flags */
-    0,                                  /* button */
-    0                                   /* item */
-  },
-  {
-    "notes.png",                        /* icon */
-    "Enable play",                      /* tip */
-    0,                                  /* menuitem */
-    update_enable,                      /* update */
-    disorder_eclient_enable,            /* action */
-    ICON_INACTIVE,                      /* flags */
-    0,                                  /* button */
-    0                                   /* item */
-  },
-  {
-    "notescross.png",                   /* icon */
-    "Disable play",                     /* tip */
-    0,                                  /* menuitem */
-    update_disable,                     /* update */
-    disorder_eclient_disable,           /* action */
-    ICON_ACTIVE,                        /* flags */
-    0,                                  /* button */
-    0                                   /* item */
-  },
-  {
-    "speaker.png",                      /* icon */
-    "Play network stream",              /* tip */
-    "<GdisorderMain>/Control/Network player", /* menuitem */
-    update_rtp,                         /* update */
-    enable_rtp,                         /* action */
-    ICON_INACTIVE,                      /* flags */
-    0,                                  /* button */
-    0                                   /* item */
-  },
-  {
-    "speakercross.png",                 /* icon */
-    "Stop playing network stream",      /* tip */
-    "<GdisorderMain>/Control/Network player", /* menuitem */
-    update_nortp,                       /* update */
-    disable_rtp,                        /* action */
-    ICON_ACTIVE,                        /* flags */
-    0,                                  /* button */
-    0                                   /* item */
+    icon_on: "speakercross.png",
+    tip_on: "Stop playing network stream",
+    icon_off: "speaker.png",
+    tip_off: "Play network stream",
+    menuitem: "<GdisorderMain>/Control/Network player",
+    on: rtp_enabled,
+    sensitive: rtp_sensitive,
+    action_go_on: enable_rtp,
+    action_go_off: disable_rtp
   },
 };
 
@@ -215,7 +221,10 @@ static GtkAdjustment *balance_adj;
 static GtkWidget *volume_widget;
 static GtkWidget *balance_widget;
 
-/** @brief Called whenever last_state changes in any way */
+/** @brief Called whenever last_state changes in any way
+ *
+ * TODO we should only update things that have changed.
+ */
 static void control_changed(const char attribute((unused)) *event,
                             void attribute((unused)) *evendata,
                             void attribute((unused)) *callbackdata) {
@@ -223,8 +232,9 @@ static void control_changed(const char attribute((unused)) *event,
   gboolean volume_supported;
 
   D(("control_changed"));
+  /* Update all the icons */
   for(n = 0; n < NICONS; ++n)
-    icons[n].update(&icons[n]);
+    update_icon(&icons[n]);
   /* Only display volume/balance controls if they will work */
   if(!rtp_supported
      || (rtp_supported && mixer_supported(DEFAULT_BACKEND)))
@@ -244,8 +254,19 @@ GtkWidget *control_widget(void) {
   D(("control_widget"));
   assert(mainmenufactory);              /* ordering must be right */
   for(n = 0; n < NICONS; ++n) {
+    /* Create the button */
     NW(button);
-    icons[n].button = iconbutton(icons[n].icon, icons[n].tip);
+    icons[n].button = gtk_button_new();
+    gtk_widget_set_style(icons[n].button, tool_style);
+    icons[n].image_on = gtk_image_new_from_pixbuf(find_image(icons[n].icon_on));
+    gtk_widget_set_style(icons[n].image_on, tool_style);
+    g_object_ref(icons[n].image_on);
+    /* If it's a toggle icon, create the 'off' half too */
+    if(icons[n].icon_off) {
+      icons[n].image_off = gtk_image_new_from_pixbuf(find_image(icons[n].icon_off));
+      gtk_widget_set_style(icons[n].image_off, tool_style);
+      g_object_ref(icons[n].image_off);
+    }
     g_signal_connect(G_OBJECT(icons[n].button), "clicked",
                      G_CALLBACK(clicked_icon), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
@@ -255,21 +276,15 @@ GtkWidget *control_widget(void) {
     gtk_box_pack_start(GTK_BOX(vbox), icons[n].button, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
     if(icons[n].menuitem) {
+      /* Find the menu item */
       icons[n].item = gtk_item_factory_get_widget(mainmenufactory,
                                                   icons[n].menuitem);
-      switch(icons[n].flags & (ICON_ACTIVE|ICON_INACTIVE)) {
-      case ICON_ACTIVE:
+      if(icons[n].icon_off)
         g_signal_connect(G_OBJECT(icons[n].item), "toggled",
                          G_CALLBACK(toggled_menu), &icons[n]);
-        break;
-      case ICON_INACTIVE:
-        /* Don't connect two instances of the signal! */
-        break;
-      default:
+      else
         g_signal_connect(G_OBJECT(icons[n].item), "activate",
                          G_CALLBACK(clicked_menu), &icons[n]);
-        break;
-      }
     }
   }
   /* create the adjustments for the volume control */
@@ -334,88 +349,36 @@ static void volume_changed(const char attribute((unused)) *event,
 
 /** @brief Update the state of one of the control icons
  * @param icon Target icon
- * @param visible True if this version of the button should be visible
- * @param usable True if the button is currently usable
- *
- * Several of the icons, rather bizarrely, come in pairs: for instance exactly
- * one of the play and pause buttons is supposed to be visible at any given
- * moment.
- *
- * @p usable need not take into account server availability, that is done
- * automatically.
  */
-static void update_icon(const struct icon *icon,
-                        int visible, int usable) {
+static void update_icon(const struct icon *icon) {
+  int on = icon->on ? icon->on() : 1;
+  int sensitive = icon->sensitive ? icon->sensitive() : 1;
+  GtkWidget *child, *newchild;
+
+  ++suppress_actions;
   /* If the connection is down nothing is ever usable */
   if(!(last_state & DISORDER_CONNECTED))
-    usable = 0;
-  (visible ? gtk_widget_show : gtk_widget_hide)(icon->button);
-  /* Only both updating usability if the button is visible */
-  if(visible)
-    gtk_widget_set_sensitive(icon->button, usable);
-  if(icon->item) {
-    /* There's an associated menu item.  These are always visible, but may not
-     * be usable. */
-    if((icon->flags & (ICON_ACTIVE|ICON_INACTIVE)) == ICON_ACTIVE) {
-      /* The active half of a pair */
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item), visible);
-    }
-    gtk_widget_set_sensitive(icon->item, usable);
+    sensitive = 0;
+  /* Replace the child */
+  newchild = on ? icon->image_on : icon->image_off;
+  child = gtk_bin_get_child(GTK_BIN(icon->button));
+  if(child != newchild) {
+    if(child)
+      gtk_container_remove(GTK_CONTAINER(icon->button), child);
+    gtk_container_add(GTK_CONTAINER(icon->button), newchild);
+    gtk_widget_show(newchild);
   }
-}
-
-static void update_pause(const struct icon *icon) {
-  const int visible = !(last_state & DISORDER_TRACK_PAUSED);
-  const int usable = !!(last_state & DISORDER_PLAYING); /* TODO: might be a lie */
-  update_icon(icon, visible, usable);
-}
-
-static void update_play(const struct icon *icon) {
-  const int visible = !!(last_state & DISORDER_TRACK_PAUSED);
-  const int usable = !!(last_state & DISORDER_PLAYING);
-  update_icon(icon, visible, usable);
-}
-
-static void update_scratch(const struct icon *icon) {
-  const int visible = 1;
-  const int usable = !!(last_state & DISORDER_PLAYING);
-  update_icon(icon, visible, usable);
-}
-
-static void update_random_enable(const struct icon *icon) {
-  const int visible = !(last_state & DISORDER_RANDOM_ENABLED);
-  const int usable = 1;
-  update_icon(icon, visible, usable);
-}
-
-static void update_random_disable(const struct icon *icon) {
-  const int visible = !!(last_state & DISORDER_RANDOM_ENABLED);
-  const int usable = 1;
-  update_icon(icon, visible, usable);
-}
-
-static void update_enable(const struct icon *icon) {
-  const int visible = !(last_state & DISORDER_PLAYING_ENABLED);
-  const int usable = 1;
-  update_icon(icon, visible, usable);
-}
-
-static void update_disable(const struct icon *icon) {
-  const int visible = !!(last_state & DISORDER_PLAYING_ENABLED);
-  const int usable = 1;
-  update_icon(icon, visible, usable);
-}
-
-static void update_rtp(const struct icon *icon) {
-  const int visible = !rtp_is_running;
-  const int usable = rtp_supported;
-  update_icon(icon, visible, usable);
-}
-
-static void update_nortp(const struct icon *icon) {
-  const int visible = rtp_is_running;
-  const int usable = rtp_supported;
-  update_icon(icon, visible, usable);
+  if(icon->tip_on)
+    gtk_tooltips_set_tip(tips, icon->button,
+                           on ? icon->tip_on : icon->tip_off, "");
+  gtk_widget_set_sensitive(icon->button, sensitive);
+  /* Icons with an associated menu item */
+  if(icon->item) {
+    if(icon->icon_off)
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item), on);
+    gtk_widget_set_sensitive(icon->item, sensitive);
+  }
+  --suppress_actions;
 }
 
 static void icon_action_completed(void attribute((unused)) *v,
@@ -428,34 +391,22 @@ static void clicked_icon(GtkButton attribute((unused)) *button,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 
-  if(!suppress_actions)  
-    icon->action(client, icon_action_completed, 0);
+  if(suppress_actions)
+    return;
+  if(!icon->on || icon->on())
+    icon->action_go_off(client, icon_action_completed, 0);
+  else
+    icon->action_go_on(client, icon_action_completed, 0);
 }
 
 static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
-  const struct icon *icon = userdata;
-
-  if(!suppress_actions)
-    icon->action(client, icon_action_completed, 0);
+  clicked_icon(NULL, userdata);
 }
 
-static void toggled_menu(GtkCheckMenuItem *menuitem,
+static void toggled_menu(GtkCheckMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
-  const struct icon *icon = userdata;
-  size_t n;
-
-  if(suppress_actions)
-    return;
-  /* This is a bit fiddlier than the others, we need to find the action for the
-   * new state.  If the new state is active then we want the ICON_INACTIVE
-   * version and vica versa. */
-  for(n = 0; n < NICONS; ++n)
-    if(icons[n].item == icon->item
-       && !!(icons[n].flags & ICON_INACTIVE) == !!menuitem->active)
-      break;
-  if(n < NICONS)
-    icons[n].action(client, icon_action_completed, 0);
+  clicked_icon(NULL, userdata);
 }
 
 /** @brief Called when a volume command completes */
