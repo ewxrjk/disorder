@@ -244,8 +244,10 @@ static void menu_got_rights(void attribute((unused)) *v,
   users_set_sensitive(!!(r & RIGHT_ADMIN));
 }
 
-/** @brief Called when we need to reset state */
-static void menu_reset(void) {
+/** @brief Called after a fresh login */
+static void menu_logged_in(const char attribute((unused)) *event,
+                           void attribute((unused)) *eventdata,
+                           void attribute((unused)) *callbackdata) {
   users_set_sensitive(0);               /* until we know better */
   disorder_eclient_userinfo(client, menu_got_rights, config->username, "rights",
                             0);
@@ -419,8 +421,8 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
-  register_reset(menu_reset);
-  menu_reset();
+  event_register("logged-in", menu_logged_in, 0);
+  menu_logged_in(0, 0, 0);
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);

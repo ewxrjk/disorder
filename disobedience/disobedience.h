@@ -134,8 +134,6 @@ void popup_protocol_error(int code,
 void properties(int ntracks, const char **tracks);
 /* Pop up a properties window for a list of tracks */
 
-void properties_reset(void);
-
 GtkWidget *scroll_widget(GtkWidget *child);
 /* Wrap a widget up for scrolling */
 
@@ -166,13 +164,7 @@ GtkWidget *create_buttons_box(struct button *buttons,
                               size_t nbuttons,
                               GtkWidget *box);
 
-/** @brief Type signature for a reset callback */
-typedef void reset_callback(void);
-
-void register_reset(reset_callback *callback);
-/* Register a reset callback */
-
-void reset(void);
+void logged_in(void);
 
 void all_update(void);
 /* Update everything */

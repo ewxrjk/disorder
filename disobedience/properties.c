@@ -55,6 +55,10 @@ static void properties_ok(GtkButton *button, gpointer userdata);
 static void properties_apply(GtkButton *button, gpointer userdata);
 static void properties_cancel(GtkButton *button, gpointer userdata);
 
+static void properties_logged_in(const char *event,
+                                 void *eventdata,
+                                 void *callbackdata);
+
 /** @brief Data for a single preference */
 struct prefdata {
   const char *track;
@@ -157,6 +161,7 @@ static struct prefdata *prefdatas;      /* Current prefdatas */
 static GtkWidget *properties_window;
 static GtkWidget *properties_table;
 static struct progress_window *pw;
+static event_handle properties_event;
 
 static void propagate_clicked(GtkButton attribute((unused)) *button,
                               gpointer userdata) {
@@ -191,6 +196,7 @@ void properties(int ntracks, const char **tracks) {
     popup_msg(GTK_MESSAGE_ERROR, "Too many tracks selected");
     return;
   }
+  properties_event = event_register("logged-in", properties_logged_in, 0);
   /* Create a new properties window */
   properties_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_style(properties_window, tool_style);
@@ -489,13 +495,17 @@ static void properties_apply(GtkButton attribute((unused)) *button,
 static void properties_cancel(GtkButton attribute((unused)) *button,
                               gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(properties_window);
+  event_cancel(properties_event);
+  properties_event = 0;
 }
 
-/** @brief Called on client reset
+/** @brief Called when we've just logged in
  *
  * Destroys the current properties window.
  */
-void properties_reset(void) {
+static void properties_logged_in(const char attribute((unused)) *event,
+                                 void attribute((unused)) *eventdata,
+                                 void attribute((unused)) *callbackdata) {
   if(properties_window)
     gtk_widget_destroy(properties_window);
 }

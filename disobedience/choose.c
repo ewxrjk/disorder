@@ -1426,8 +1426,13 @@ static const struct tabtype tabtype_choose = {
 
 /* Public entry points ----------------------------------------------------- */
 
-/** @brief Called to entirely reset the choose screen */
-static void choose_reset(void) {
+/** @brief Called when we have just logged in
+ *
+ * Entirely resets the choose tab.
+ */
+static void choose_logged_in(const char attribute((unused)) *event,
+                             void attribute((unused)) *eventdata,
+                             void attribute((unused)) *callbackdata) {
   if(root)
     undisplay_tree(root);
   root = newnode(0/*parent*/, "<root>", "All files", "",
@@ -1506,8 +1511,8 @@ GtkWidget *choose_widget(void) {
   NW(layout);
   chooselayout = gtk_layout_new(0, 0);
   gtk_widget_set_style(chooselayout, layout_style);
-  choose_reset();
-  register_reset(choose_reset);
+  choose_logged_in(0, 0, 0);
+  event_register("logged-in", choose_logged_in, 0);
   /* Create the popup menus */
   NW(menu);
   track_menu = gtk_menu_new();

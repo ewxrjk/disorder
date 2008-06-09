@@ -153,7 +153,7 @@ static void login_ok(GtkButton attribute((unused)) *button,
   if(!disorder_connect(c)) {
     /* Success; save the config and start using it */
     login_save_config();
-    reset();
+    logged_in();
     /* Pop down login window */
     gtk_widget_destroy(login_window);
   } else {

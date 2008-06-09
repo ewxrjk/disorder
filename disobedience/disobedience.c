@@ -90,12 +90,6 @@ int rtp_supported;
 /** @brief True if RTP play is enabled */
 int rtp_is_running;
 
-/** @brief Linked list of functions to call when we reset login parameters */
-static struct reset_callback_node {
-  struct reset_callback_node *next;
-  reset_callback *callback;
-} *resets;
-
 /* Window creation --------------------------------------------------------- */
 
 /* Note that all the client operations kicked off from here will only complete
@@ -408,27 +402,14 @@ static void help(void) {
   exit(0);
 }
 
-/* reset state */
-void reset(void) {
-  struct reset_callback_node *r;
-
+void logged_in(void) {
   /* reset the clients */
   disorder_eclient_close(client);
   disorder_eclient_close(logclient);
   rtp_supported = 0;
-  for(r = resets; r; r = r->next)
-    r->callback();
+  event_raise("logged-in", 0);
   /* Might be a new server so re-check */
   check_rtp_address();
-}
-
-/** @brief Register a reset callback */
-void register_reset(reset_callback *callback) {
-  struct reset_callback_node *const r = xmalloc(sizeof *r);
-
-  r->next = resets;
-  r->callback = callback;
-  resets = r;
 }
 
 int main(int argc, char **argv) {
@@ -483,7 +464,6 @@ int main(int argc, char **argv) {
                      maybe_send_nop,
                      0/*data*/,
                      0/*notify*/);
-  register_reset(properties_reset);
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
   /* See if RTP play supported */
