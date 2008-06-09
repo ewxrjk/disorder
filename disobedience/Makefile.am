@@ -47,14 +47,15 @@ disobedience.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
 misc.o: images.h
 
 images.h: $(PNGS)
+	set -e;								\
 	exec > @$.new;							\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
 	  gdk-pixbuf-csource --raw --name=image_$$name $$png;		\
 	done;								\
 	echo "static const struct image images[] = {";			\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
 	  echo "  { \"$$name.png\", image_$$name },";			\
 	done;								\
 	echo "};"
