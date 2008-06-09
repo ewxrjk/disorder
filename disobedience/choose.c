@@ -1262,12 +1262,15 @@ static void activate_track_properties(GtkMenuItem attribute((unused)) *menuitem,
 /** @brief Determine whether the menu's play option should be sensitive */
 static gboolean sensitive_track_play(struct choosenode attribute((unused)) *cn) {
   return (!!files_selected
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
+          && (last_rights & RIGHT_PLAY));
 }
 
 /** @brief Determine whether the menu's properties option should be sensitive */
 static gboolean sensitive_track_properties(struct choosenode attribute((unused)) *cn) {
-  return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
+  return (!!files_selected
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
+          && (last_rights & RIGHT_PREFS));
 }
 
 /* Directory menu items ---------------------------------------------------- */

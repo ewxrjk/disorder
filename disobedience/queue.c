@@ -1202,7 +1202,9 @@ static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
   /* We can scratch if the playing track is selected */
   return (playing_track
           && (disorder_eclient_state(client) & DISORDER_CONNECTED)
-          && selection_selected(ql->selection, playing_track->id));
+          && selection_selected(ql->selection, playing_track->id)
+          && (last_rights & RIGHT_SCRATCH__MASK));
+  /* TODO: rights is more complicated than that */
 }
 
 /** @brief Called when disorder_eclient_scratch completes */
@@ -1228,7 +1230,9 @@ static int remove_sensitive(struct queuelike *ql,
   return ((disorder_eclient_state(client) & DISORDER_CONNECTED)
           && ((q
                && q != playing_track)
-              || count_selected_nonplaying(ql)));
+              || count_selected_nonplaying(ql))
+          && (last_rights & RIGHT_REMOVE__MASK));
+  /* TODO: rights is more complicated than that */
 }
 
 static void remove_completed(void attribute((unused)) *v,
@@ -1260,7 +1264,8 @@ static int properties_sensitive(struct queuelike *ql,
                                 struct queue_entry attribute((unused)) *q) {
   /* "Properties" is sensitive if at least something is selected */
   return (hash_count(ql->selection) > 0
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
+          && (last_rights & RIGHT_PREFS));
 }
 
 /** @brief Pop up properties for the selected tracks */
@@ -1307,7 +1312,8 @@ static int play_sensitive(struct queuelike *ql,
                           struct queue_entry attribute((unused)) *q) {
   /* "Play" is sensitive if at least something is selected */
   return (hash_count(ql->selection) > 0
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
+          && (last_rights & RIGHT_PLAY));
 }
 
 /** @brief Play the selected tracks */
@@ -1524,7 +1530,8 @@ static void added_changed(const char attribute((unused)) *event,
 
 static int queue_properties_sensitive(GtkWidget *w) {
   return (!!queue_count_selected(g_object_get_data(G_OBJECT(w), "queue"))
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
+          && (last_rights & RIGHT_PREFS));
 }
 
 static int queue_selectall_sensitive(GtkWidget *w) {
