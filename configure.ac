@@ -219,14 +219,18 @@ if test $want_cgi = yes; then
         fi
       done
     ])
-    if test "$rjk_cv_cgidir" = "not found"; then
+    if test "$rjk_cv_cgiexecdir" = "not found"; then
       AC_MSG_ERROR([cannot identify httpd documentroot.  Set httpdir on configure command line])
     fi
     httpdir="$rjk_cv_httpdir"
   fi
-  if test -z "$cgidir"; then
-    AC_CACHE_CHECK([for CGI directory],[rjk_cv_cgidir],[
-      rjk_cv_cgidir="not found"
+  if test ! -z "$cgidir"; then
+    # This is a bit harsh but should stop any disasters
+    AC_MSG_ERROR([cgidir has been renamed to cgiexecdir])
+  fi
+  if test -z "$cgiexecdir"; then
+    AC_CACHE_CHECK([for CGI directory],[rjk_cv_cgiexecdir],[
+      rjk_cv_cgiexecdir="not found"
       for dir in /usr/lib/cgi-bin \
                  /Library/WebServer/CGI-Executables \
                  /srv/www/cgi-bin \
@@ -237,18 +241,18 @@ if test $want_cgi = yes; then
                  /usr/local/www/cgi-bin \
                  /usr/local/www/*/cgi-bin; do
         if test -d "$dir"; then
-          rjk_cv_cgidir="$dir"
+          rjk_cv_cgiexecdir="$dir"
           break
         fi
       done
     ])
-    if test "$rjk_cv_cgidir" = "not found"; then
-      AC_MSG_ERROR([cannot identify CGI install directory.  Set cgidir on configure command line])
+    if test "$rjk_cv_cgiexecdir" = "not found"; then
+      AC_MSG_ERROR([cannot identify CGI install directory.  Set cgiexecdir on configure command line])
     fi
-    cgidir="$rjk_cv_cgidir"
+    cgiexecdir="$rjk_cv_cgiexecdir"
   fi
 fi
-AC_ARG_VAR([cgidir], [location of cgi-bin directory, e.g. /usr/lib/cgi-bin])
+AC_ARG_VAR([cgiexecdir], [location of cgi-bin directory, e.g. /usr/lib/cgi-bin])
 AC_ARG_VAR([httpdir], [location of http document root, e.g. /var/www/htdocs])
 if test -z "$pkghttpdir"; then
   pkghttpdir='$(httpdir)/disorder'
