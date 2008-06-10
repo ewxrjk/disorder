@@ -375,6 +375,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
 
   /* Create the view */
   ql->view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ql->store));
+  gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(ql->view), TRUE);
 
   /* Create cell renderers and label columns */
   for(int n = 0; n < ql->ncolumns; ++n) {
