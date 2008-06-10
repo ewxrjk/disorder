@@ -135,14 +135,24 @@ static void ql_configure_menu(struct queuelike *ql) {
 }
 
 /** @brief Called when a button is released over a queuelike */
-gboolean ql_button_release(GtkWidget attribute((unused)) *widget,
+gboolean ql_button_release(GtkWidget*widget,
                            GdkEventButton *event,
                            gpointer user_data) {
   struct queuelike *ql = user_data;
 
   if(event->type == GDK_BUTTON_PRESS
      && event->button == 3) {
-    /* Right button click.   */
+    /* Right button click. */
+    if(gtk_tree_selection_count_selected_rows(ql->selection) == 0) {
+      /* Nothing is selected, select whatever is under the pointer */
+      GtkTreePath *path;
+      if(gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(widget),
+                                       event->x, event->y,
+                                       &path,
+                                       NULL,
+                                       NULL, NULL)) 
+        gtk_tree_selection_select_path(ql->selection, path);
+    }
     ql_create_menu(ql);
     ql_configure_menu(ql);
     gtk_widget_show_all(ql->menu);
