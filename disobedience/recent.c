@@ -66,12 +66,12 @@ static void recent_init(void) {
 
 /** @brief Columns for the recently-played list */
 static const struct queue_column recent_columns[] = {
-  { "When",   column_when,     0,        1 },
+  { "When",   column_when,     0,        COL_RIGHT },
   { "Who",    column_who,      0,        0 },
-  { "Artist", column_namepart, "artist", 0 },
-  { "Album",  column_namepart, "album",  0 },
-  { "Title",  column_namepart, "title",  0 },
-  { "Length", column_length,   0,        1 }
+  { "Artist", column_namepart, "artist", COL_EXPAND|COL_ELLIPSIZE },
+  { "Album",  column_namepart, "album",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Title",  column_namepart, "title",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Length", column_length,   0,        COL_RIGHT }
 };
 
 /** @brief Pop-up menu for recently played list */

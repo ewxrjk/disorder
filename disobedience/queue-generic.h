@@ -32,9 +32,18 @@ struct queue_column {
   /** @brief Passed to value() */
   const char *data;
 
-  /** @brief TODO */
-  gfloat xalign;
+  /** @brief Flags word */
+  unsigned flags;
 };
+
+/** @brief Ellipsize column if too wide */
+#define COL_ELLIPSIZE 0x0001
+
+/** @brief Set expand property */
+#define COL_EXPAND 0x0002
+
+/** @brief Right-algin column */
+#define COL_RIGHT 0x0004
 
 /** @brief An item in the queue's popup menu */
 struct queue_menuitem {

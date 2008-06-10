@@ -380,11 +380,18 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   /* Create cell renderers and label columns */
   for(int n = 0; n < ql->ncolumns; ++n) {
     GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    if(ql->columns[n].flags & COL_ELLIPSIZE)
+      g_object_set(r, "ellipsize", PANGO_ELLIPSIZE_END, (char *)0);
+    if(ql->columns[n].flags & COL_RIGHT)
+      g_object_set(r, "xalign", (gfloat)1.0, (char *)0);
     GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
       (ql->columns[n].name,
        r,
        "text", n,
        (char *)0);
+    g_object_set(c, "resizable", TRUE, (char *)0);
+    if(ql->columns[n].flags & COL_EXPAND)
+      g_object_set(c, "expand", TRUE, (char *)0);
     gtk_tree_view_append_column(GTK_TREE_VIEW(ql->view), c);
   }
 
