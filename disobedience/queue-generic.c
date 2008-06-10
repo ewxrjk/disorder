@@ -57,7 +57,6 @@ static const struct cache_type cachetype_integer = { 3600 };
  */
 static void namepart_completed_or_failed(void) {
   --namepart_lookups_outstanding;
-  fprintf(stderr, "namepart_lookups_outstanding -> %d\n", namepart_lookups_outstanding);
   if(!namepart_lookups_outstanding) {
     /* There are no more lookups outstanding, so we update the display */
     for(unsigned n = 0; n < NQUEUELIKES; ++n)
@@ -397,7 +396,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   /* TODO tabtype */
   g_object_set_data(G_OBJECT(ql->view), "queue", ql);
   /* Catch button presses */
-  g_signal_connect(ql->view, "button-release-event",
+  g_signal_connect(ql->view, "button-press-event",
                    G_CALLBACK(ql_button_release), ql);
 
   /* TODO style? */
