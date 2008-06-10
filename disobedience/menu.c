@@ -125,6 +125,7 @@ void menu_update(int page) {
        page < 0 ? gtk_notebook_current_page(GTK_NOTEBOOK(tabs)) : page);
     const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
+    if(!t) return;                      /* TODO */
     assert(t != 0);
     gtk_widget_set_sensitive(properties_widget,
                              (t->properties_sensitive(tab)
