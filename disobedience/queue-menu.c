@@ -93,8 +93,7 @@ static void ql_remove_sensitive_callback(GtkTreeModel *model,
                                          GtkTreePath attribute((unused)) *path,
                                          GtkTreeIter *iter,
                                          gpointer data) {
-  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
-  struct queue_entry *q = ql_iter_to_q(ql, iter);
+  struct queue_entry *q = ql_iter_to_q(model, iter);
   const int removable = (q != playing_track
                          && right_removable(last_rights, config->username, q));
   int *const counts = data;
@@ -121,8 +120,7 @@ static void ql_remove_activate_callback(GtkTreeModel *model,
                                         GtkTreePath attribute((unused)) *path,
                                         GtkTreeIter *iter,
                                         gpointer attribute((unused)) data) {
-  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
-  struct queue_entry *q = ql_iter_to_q(ql, iter);
+  struct queue_entry *q = ql_iter_to_q(model, iter);
 
   disorder_eclient_remove(client, q->id, ql_remove_completed, q);
 }
@@ -151,8 +149,7 @@ static void ql_play_activate_callback(GtkTreeModel *model,
                                       GtkTreePath attribute((unused)) *path,
                                       GtkTreeIter *iter,
                                       gpointer attribute((unused)) data) {
-  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
-  struct queue_entry *q = ql_iter_to_q(ql, iter);
+  struct queue_entry *q = ql_iter_to_q(model, iter);
 
   disorder_eclient_play(client, q->track, ql_play_completed, q);
 }

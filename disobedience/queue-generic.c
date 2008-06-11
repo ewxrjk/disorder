@@ -251,67 +251,19 @@ const char *column_length(const struct queue_entry *q,
     return length;
 }
 
-/* Selection processing ---------------------------------------------------- */
-
-static void save_selection_callback(GtkTreeModel *model,
-                                    GtkTreePath attribute((unused)) *path,
-                                    GtkTreeIter *iter,
-                                    gpointer data) {
-  hash *h = data;
-  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
-
-  hash_add(h, ql_iter_to_q(ql, iter)->id, "", HASH_INSERT);
-}
-
-/** @brief Stash the selection of @c ql->view
- * @param ql Queuelike of interest
- * @return Hash representing current selection
- */
-static hash *save_selection(struct queuelike *ql) {
-  hash *h = hash_new(1);
-  gtk_tree_selection_selected_foreach(ql->selection,
-                                      save_selection_callback,
-                                      h);
-  return h;
-}
-
-/** @brief Called from restore_selection() */
-static int restore_selection_callback(const char *key,
-                                      void attribute((unused)) *value,
-                                      void *u) {
-  const struct queuelike *const ql = u;
-  GtkTreeIter iter[1];
-  const struct queue_entry *q;
-  
-  gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store), iter);
-  for(q = ql->q; q && strcmp(key, q->id); q = q->next)
-    gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
-  if(q) 
-    gtk_tree_selection_select_iter(ql->selection, iter);
-  /* There might be gaps if things have disappeared */
-  return 0;
-}
-
-/** @brief Restore selection of @c ql->view
- * @param ql Queuelike of interest
- * @param h Hash representing former selection
- */
-static void restore_selection(struct queuelike *ql, hash *h) {
-  hash_foreach(h, restore_selection_callback, ql);
-}
-
 /* List store maintenance -------------------------------------------------- */
 
 /** @brief Return the @ref queue_entry corresponding to @p iter
- * @param ql Owning queuelike
+ * @param model Model that owns @p iter
  * @param iter Tree iterator
  * @return ID string
  */
-struct queue_entry *ql_iter_to_q(struct queuelike *ql,
+struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
                                  GtkTreeIter *iter) {
+  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
   GValue v[1];
   memset(v, 0, sizeof v);
-  gtk_tree_model_get_value(GTK_TREE_MODEL(ql->store), iter, ql->ncolumns, v);
+  gtk_tree_model_get_value(model, iter, ql->ncolumns, v);
   assert(G_VALUE_TYPE(v) == G_TYPE_POINTER);
   struct queue_entry *const q = g_value_get_pointer(v);
   g_value_unset(v);
@@ -364,32 +316,188 @@ void ql_update_list_store(struct queuelike *ql) {
   }
 }
 
+struct newqueue_data {
+  struct queue_entry *old, *new;
+};
+
+static void record_queue_map(hash *h,
+                             const char *id,
+                             struct queue_entry *old,
+                             struct queue_entry *new) {
+  struct newqueue_data *nqd;
+
+  if(!(nqd = hash_find(h, id))) {
+    static const struct newqueue_data empty[1];
+    hash_add(h, id, empty, HASH_INSERT);
+    nqd = hash_find(h, id);
+  }
+  if(old)
+    nqd->old = old;
+  if(new)
+    nqd->new = new;
+}
+
+#if 0
+static void dump_queue(struct queue_entry *head, struct queue_entry *mark) {
+  for(struct queue_entry *q = head; q; q = q->next) {
+    if(q == mark)
+      fprintf(stderr, "!");
+    fprintf(stderr, "%s", q->id);
+    if(q->next)
+      fprintf(stderr, " ");
+  }
+  fprintf(stderr, "\n");
+}
+
+static void dump_rows(struct queuelike *ql) {
+  GtkTreeIter iter[1];
+  gboolean it = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store),
+                                              iter);
+  while(it) {
+    struct queue_entry *q = ql_iter_to_q(GTK_TREE_MODEL(ql->store), iter);
+    it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
+    fprintf(stderr, "%s", q->id);
+    if(it)
+      fprintf(stderr, " ");
+  }
+  fprintf(stderr, "\n");
+}
+#endif
+
 /** @brief Reset the list store
  * @param ql Queuelike to reset
+ * @param newq New queue contents/ordering
  *
- * Throws away all rows and starts again.  Used when new queue contents arrives
- * from the server.
+ * Updates the queue to match @p newq
  */
 void ql_new_queue(struct queuelike *ql,
                   struct queue_entry *newq) {
   D(("ql_new_queue"));
-  hash *h = save_selection(ql);
-  /* Clear out old contents */
-  gtk_list_store_clear(ql->store);
-  /* Put in new rows */
-  ql->q = newq;
-  for(struct queue_entry *q = ql->q; q; q = q->next) {
-    /* Tell every queue entry which queue owns it */
+  ++suppress_actions;
+
+  /* Tell every queue entry which queue owns it */
+  //fprintf(stderr, "%s: filling in q->ql\n", ql->name);
+  for(struct queue_entry *q = newq; q; q = q->next)
     q->ql = ql;
-    /* Add a row */
-    GtkTreeIter iter[1];
-    gtk_list_store_append(ql->store, iter);
-    /* Update the row contents */
-    ql_update_row(q, iter);
+
+  //fprintf(stderr, "%s: constructing h\n", ql->name);
+  /* Construct map from id to new and old structures */
+  hash *h = hash_new(sizeof(struct newqueue_data));
+  for(struct queue_entry *q = ql->q; q; q = q->next)
+    record_queue_map(h, q->id, q, NULL);
+  for(struct queue_entry *q = newq; q; q = q->next)
+    record_queue_map(h, q->id, NULL, q);
+
+  /* The easy bit: delete rows not present any more.  In the same pass we
+   * update the secret column containing the queue_entry pointer. */
+  //fprintf(stderr, "%s: deleting rows...\n", ql->name);
+  GtkTreeIter iter[1];
+  gboolean it = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store),
+                                              iter);
+  int inserted = 0, deleted = 0, kept = 0;
+  while(it) {
+    struct queue_entry *q = ql_iter_to_q(GTK_TREE_MODEL(ql->store), iter);
+    const struct newqueue_data *nqd = hash_find(h, q->id);
+    if(nqd->new) {
+      /* Tell this row that it belongs to the new version of the queue */
+      gtk_list_store_set(ql->store, iter, ql->ncolumns, nqd->new, -1);
+      it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
+      ++kept;
+    } else {
+      /* Delete this row (and move iter to the next one) */
+      //fprintf(stderr, " delete %s", q->id);
+      it = gtk_list_store_remove(ql->store, iter);
+      ++deleted;
+    }
   }
-  restore_selection(ql, h);
+
+  /* Now every row's secret column is right, but we might be missing new rows
+   * and they might be in the wrong order */
+
+  /* We're going to have to support arbitrary rearrangements, so we might as
+   * well add new elements at the end. */
+  //fprintf(stderr, "%s: adding rows...\n", ql->name);
+  struct queue_entry *after = 0;
+  for(struct queue_entry *q = newq; q; q = q->next) {
+    const struct newqueue_data *nqd = hash_find(h, q->id);
+    if(!nqd->old) {
+      GtkTreeIter iter[1];
+      if(after) {
+        /* Try to insert at the right sort of place */
+        GtkTreeIter where[1];
+        gboolean wit = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store),
+                                                     where);
+        while(wit && ql_iter_to_q(GTK_TREE_MODEL(ql->store), where) != after)
+          wit = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), where);
+        if(wit)
+          gtk_list_store_insert_after(ql->store, iter, where);
+        else
+          gtk_list_store_append(ql->store, iter);
+      } else
+        gtk_list_store_prepend(ql->store, iter);
+      gtk_list_store_set(ql->store, iter, ql->ncolumns, q, -1);
+      //fprintf(stderr, " add %s", q->id);
+      ++inserted;
+    }
+    after = newq;
+  }
+
+  /* Now exactly the right set of rows are present, and they have the right
+   * queue_entry pointers in their secret column, but they may be in the wrong
+   * order.
+   *
+   * The current code is simple but amounts to a bubble-sort - we might easily
+   * called gtk_tree_model_iter_next a couple of thousand times.
+   */
+  //fprintf(stderr, "%s: rearranging rows\n", ql->name);
+  //fprintf(stderr, "%s: queue state: ", ql->name);
+  //dump_queue(newq, 0);
+  //fprintf(stderr, "%s: row state: ", ql->name);
+  //dump_rows(ql);
+  it = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store),
+                                              iter);
+  struct queue_entry *rq = newq;        /* r for 'right, correct' */
+  int swaps = 0, searches = 0;
+  while(it) {
+    struct queue_entry *q = ql_iter_to_q(GTK_TREE_MODEL(ql->store), iter);
+    //fprintf(stderr, " rq = %p, q = %p\n", rq, q);
+    //fprintf(stderr, " rq->id = %s, q->id = %s\n", rq->id, q->id);
+
+    if(q != rq) {
+      //fprintf(stderr, "  mismatch\n");
+      GtkTreeIter next[1] = { *iter };
+      gboolean nit = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), next);
+      while(nit) {
+        struct queue_entry *nq = ql_iter_to_q(GTK_TREE_MODEL(ql->store), next);
+        //fprintf(stderr, "   candidate: %s\n", nq->id);
+        if(nq == rq)
+          break;
+        nit = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), next);
+        ++searches;
+      }
+      assert(nit);
+      //fprintf(stderr, "  found it\n");
+      gtk_list_store_swap(ql->store, iter, next);
+      *iter = *next;
+      //fprintf(stderr, "%s: new row state: ", ql->name);
+      //dump_rows(ql);
+      ++swaps;
+    }
+    /* ...and onto the next one */
+    it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
+    rq = rq->next;
+  }
+#if 0
+  fprintf(stderr, "%6s: %3d kept %3d inserted %3d deleted %3d swaps %4d searches\n", ql->name,
+          kept, inserted, deleted, swaps, searches);
+#endif
+  //fprintf(stderr, "done\n");
+  ql->q = newq;
+  /* Set the rest of the columns in new rows */
+  ql_update_list_store(ql);
   /* Update menu sensitivity */
   menu_update(-1);
+  --suppress_actions;
 }
 
 /** @brief Initialize a @ref queuelike */

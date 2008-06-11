@@ -30,10 +30,33 @@ struct queue_entry *playing_track;
 /** @brief When we last got the playing track */
 time_t last_playing;
 
+static void queue_completed(void *v,
+                            const char *error,
+                            struct queue_entry *q);
+static void playing_completed(void *v,
+                              const char *error,
+                              struct queue_entry *q);
+
 /** @brief Called when either the actual queue or the playing track change */
 static void queue_playing_changed(void) {
-  struct queue_entry *q = xmalloc(sizeof *q);
 
+  /* Check that the playing track isn't in the queue.  There's a race here due
+   * to the fact that we issue the two commands at slightly different times.
+   * If it goes wrong we re-issue and try again, so that we never offer up an
+   * inconsistent state. */
+  if(actual_playing_track) {
+    struct queue_entry *q;
+    for(q = actual_queue; q; q = q->next)
+      if(!strcmp(q->id, actual_playing_track->id))
+        break;
+    if(q) {
+      disorder_eclient_playing(client, playing_completed, 0);
+      disorder_eclient_queue(client, queue_completed, 0);
+      return;
+    }
+  }
+  
+  struct queue_entry *q = xmalloc(sizeof *q);
   if(actual_playing_track) {
     *q = *actual_playing_track;
     q->next = actual_queue;
@@ -147,7 +170,7 @@ struct queuelike ql_queue = {
   .columns = queue_columns,
   .ncolumns = sizeof queue_columns / sizeof *queue_columns,
   .menuitems = queue_menuitems,
-  .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems,
+  .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems
 };
 
 GtkWidget *queue_widget(void) {
