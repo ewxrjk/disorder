@@ -215,7 +215,7 @@ const char *column_who(const struct queue_entry *q,
 
 /** @brief Format one of the track name columns */
 const char *column_namepart(const struct queue_entry *q,
-                      const char *data) {
+                            const char *data) {
   D(("column_namepart"));
   return namepart(q->track, "display", data);
 }
@@ -253,19 +253,25 @@ const char *column_length(const struct queue_entry *q,
 
 /* Selection processing ---------------------------------------------------- */
 
+static void save_selection_callback(GtkTreeModel *model,
+                                    GtkTreePath attribute((unused)) *path,
+                                    GtkTreeIter *iter,
+                                    gpointer data) {
+  hash *h = data;
+  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
+
+  hash_add(h, ql_iter_to_q(ql, iter)->id, "", HASH_INSERT);
+}
+
 /** @brief Stash the selection of @c ql->view
  * @param ql Queuelike of interest
  * @return Hash representing current selection
  */
 static hash *save_selection(struct queuelike *ql) {
   hash *h = hash_new(1);
-  GtkTreeIter iter[1];
-  gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql->store), iter);
-  for(const struct queue_entry *q = ql->q; q; q = q->next) {
-    if(gtk_tree_selection_iter_is_selected(ql->selection, iter))
-      hash_add(h, q->id, "", HASH_INSERT);
-    gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
-  }
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      save_selection_callback,
+                                      h);
   return h;
 }
 
@@ -296,6 +302,22 @@ static void restore_selection(struct queuelike *ql, hash *h) {
 
 /* List store maintenance -------------------------------------------------- */
 
+/** @brief Return the @ref queue_entry corresponding to @p iter
+ * @param ql Owning queuelike
+ * @param iter Tree iterator
+ * @return ID string
+ */
+struct queue_entry *ql_iter_to_q(struct queuelike *ql,
+                                 GtkTreeIter *iter) {
+  GValue v[1];
+  memset(v, 0, sizeof v);
+  gtk_tree_model_get_value(GTK_TREE_MODEL(ql->store), iter, ql->ncolumns, v);
+  assert(G_VALUE_TYPE(v) == G_TYPE_POINTER);
+  struct queue_entry *const q = g_value_get_pointer(v);
+  g_value_unset(v);
+  return q;
+}
+
 /** @brief Update one row of a list store
  * @param q Queue entry
  * @param iter Iterator referring to row or NULL to work it out
@@ -322,6 +344,8 @@ void ql_update_row(struct queue_entry *q,
                        col, ql->columns[col].value(q,
                                                    ql->columns[col].data),
                        -1);
+  /* The hidden extra column is the queue entry */
+  gtk_list_store_set(ql->store, iter, ql->ncolumns, q, -1);
 }
 
 /** @brief Update the list store
@@ -371,11 +395,13 @@ void ql_new_queue(struct queuelike *ql,
 /** @brief Initialize a @ref queuelike */
 GtkWidget *init_queuelike(struct queuelike *ql) {
   D(("init_queuelike"));
-  /* Create the list store */
-  GType *types = xcalloc(ql->ncolumns, sizeof (GType));
+  /* Create the list store.  We add an extra column to hold the ID. */
+  GType *types = xcalloc(ql->ncolumns + 1, sizeof (GType));
   for(int n = 0; n < ql->ncolumns; ++n)
     types[n] = G_TYPE_STRING;
-  ql->store = gtk_list_store_newv(ql->ncolumns, types);
+  types[ql->ncolumns] = G_TYPE_POINTER;
+  ql->store = gtk_list_store_newv(ql->ncolumns + 1, types);
+  g_object_set_data(G_OBJECT(ql->store), "ql", (void *)ql);
 
   /* Create the view */
   ql->view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(ql->store));

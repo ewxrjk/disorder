@@ -82,14 +82,49 @@ void ql_scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Remove */
 
+static void remove_sensitive_callback(GtkTreeModel *model,
+                                      GtkTreePath attribute((unused)) *path,
+                                      GtkTreeIter *iter,
+                                      gpointer data) {
+  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
+  struct queue_entry *q = ql_iter_to_q(ql, iter);
+  const int removable = (q != playing_track
+                         && right_removable(last_rights, config->username, q));
+  int *const counts = data;
+  ++counts[removable];
+}
+
 int ql_remove_sensitive(struct queuelike *ql) {
-  return gtk_tree_selection_count_selected_rows(ql->selection) > 0;
-  /* TODO ... but not if only selected track is playing track */
+  int counts[2] = { 0, 0 };
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      remove_sensitive_callback,
+                                      counts);
+  /* Remove will work if we have at least some removable tracks selected, and
+   * no unremovable ones */
+  return counts[1] > 0 && counts[0] == 0;
+}
+
+static void remove_completed(void attribute((unused)) *v, const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
+static void remove_activate_callback(GtkTreeModel *model,
+                                     GtkTreePath attribute((unused)) *path,
+                                     GtkTreeIter *iter,
+                                     gpointer attribute((unused)) data) {
+  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
+  struct queue_entry *q = ql_iter_to_q(ql, iter);
+
+  disorder_eclient_remove(client, q->id, remove_completed, q);
 }
 
 void ql_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
-                        gpointer attribute((unused)) user_data) {
-  /* TODO */
+                        gpointer user_data) {
+  struct queuelike *ql = user_data;
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      remove_activate_callback,
+                                      0);
 }
 
 /* Play */

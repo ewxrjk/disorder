@@ -152,6 +152,8 @@ const char *column_namepart(const struct queue_entry *q,
 const char *column_length(const struct queue_entry *q,
                           const char *data);
 struct tabtype *ql_tabtype(struct queuelike *ql);
+struct queue_entry *ql_iter_to_q(struct queuelike *ql,
+                                 GtkTreeIter *iter);
 
 #endif /* QUEUE_GENERIC_H */
 
