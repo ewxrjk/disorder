@@ -26,14 +26,6 @@
 
 /* Forward declarations ---------------------------------------------------- */
 
-WT(adjustment);
-WT(hscale);
-WT(hbox);
-WT(button);
-WT(image);
-WT(label);
-WT(vbox);
-
 struct icon;
 
 static void clicked_icon(GtkButton *, gpointer);
@@ -248,12 +240,10 @@ GtkWidget *control_widget(void) {
   GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
   int n;
 
-  NW(hbox);
   D(("control_widget"));
   assert(mainmenufactory);              /* ordering must be right */
   for(n = 0; n < NICONS; ++n) {
     /* Create the button */
-    NW(button);
     icons[n].button = gtk_button_new();
     gtk_widget_set_style(icons[n].button, tool_style);
     icons[n].image_on = gtk_image_new_from_pixbuf(find_image(icons[n].icon_on));
@@ -269,7 +259,6 @@ GtkWidget *control_widget(void) {
                      G_CALLBACK(clicked_icon), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
      * taller things in the control bar */
-    NW(vbox);
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), icons[n].button, TRUE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
@@ -290,17 +279,13 @@ GtkWidget *control_widget(void) {
       event_register(*events++, icon_changed, &icons[n]);
   }
   /* create the adjustments for the volume control */
-  NW(adjustment);
   volume_adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, goesupto,
                                                  goesupto / 20, goesupto / 20,
                                                  0));
-  NW(adjustment);
   balance_adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, -1, 1,
                                                   0.2, 0.2, 0));
   /* the volume control */
-  NW(hscale);
   volume_widget = gtk_hscale_new(volume_adj);
-  NW(hscale);
   balance_widget = gtk_hscale_new(balance_adj);
   gtk_widget_set_style(volume_widget, tool_style);
   gtk_widget_set_style(balance_widget, tool_style);

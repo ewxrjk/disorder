@@ -195,94 +195,6 @@ static void make_toplevel_window(void) {
   gtk_widget_set_style(toplevel, tool_style);
 }
 
-#if MDEBUG
-static int widget_count, container_count;
-
-static void count_callback(GtkWidget *w,
-                           gpointer attribute((unused)) data) {
-  ++widget_count;
-  if(GTK_IS_CONTAINER(w)) {
-    ++container_count;
-    gtk_container_foreach(GTK_CONTAINER(w), count_callback, 0);
-  }
-}
-
-static void count_widgets(void) {
-  widget_count = 0;
-  container_count = 1;
-  if(toplevel)
-    gtk_container_foreach(GTK_CONTAINER(toplevel), count_callback, 0);
-  fprintf(stderr, "widget count: %8d  container count: %8d\n",
-          widget_count, container_count);
-}
-#endif
-
-#if MTRACK
-const char *mtag = "init";
-static hash *mtrack_hash;
-
-static int *mthfind(const char *tag) {
-  static const int zero = 0;
-  int *cp = hash_find(mtrack_hash, tag);
-  if(!cp) {
-    hash_add(mtrack_hash, tag, &zero, HASH_INSERT);
-    cp = hash_find(mtrack_hash, tag);
-  }
-  return cp;
-}
-
-static void *trap_malloc(size_t n) {
-  void *ptr = malloc(n + sizeof(char *));
-
-  *(const char **)ptr = mtag;
-  ++*mthfind(mtag);
-  return (char *)ptr + sizeof(char *);
-}
-
-static void trap_free(void *ptr) {
-  const char *tag;
-  if(!ptr)
-    return;
-  ptr = (char *)ptr - sizeof(char *);
-  tag = *(const char **)ptr;
-  --*mthfind(tag);
-  free(ptr);
-}
-
-static void *trap_realloc(void *ptr, size_t n) {
-  if(!ptr)
-    return trap_malloc(n);
-  if(!n) {
-    trap_free(ptr);
-    return 0;
-  }
-  ptr = (char *)ptr - sizeof(char *);
-  ptr = realloc(ptr, n + sizeof(char *));
-  *(const char **)ptr = mtag;
-  return (char *)ptr + sizeof(char *);
-}
-
-static int report_tags_callback(const char *key, void *value,
-                                void attribute((unused)) *u) {
-  fprintf(stderr, "%16s: %d\n", key, *(int *)value);
-  return 0;
-}
-
-static void report_tags(void) {
-  hash_foreach(mtrack_hash, report_tags_callback, 0);
-  fprintf(stderr, "\n");
-}
-
-static const GMemVTable glib_memvtable = {
-  trap_malloc,
-  trap_realloc,
-  trap_free,
-  0,
-  0,
-  0
-};
-#endif
-
 static void userinfo_rights_completed(void attribute((unused)) *v,
                                       const char *error,
                                       const char *value) {
@@ -313,13 +225,6 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
-#if MDEBUG
-  count_widgets();
-  fprintf(stderr, "cache size: %zu\n", cache_count());
-#endif
-#if MTRACK
-  report_tags();
-#endif
   /* Periodically check what our rights are */
   if(!rights_lookup_in_flight) {
     rights_lookup_in_flight = 1;
@@ -466,10 +371,6 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-#if MTRACK
-  mtrack_hash = hash_new(sizeof (int));
-  g_mem_set_vtable((GMemVTable *)&glib_memvtable);
-#endif
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
@@ -520,7 +421,6 @@ int main(int argc, char **argv) {
   if(!config->password)
     login_box();
   D(("enter main loop"));
-  MTAG("misc");
   g_main_loop_run(mainloop);
   return 0;
 }

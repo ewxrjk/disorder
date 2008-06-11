@@ -93,18 +93,6 @@ static struct {
 #define REPORT() ((void)0)
 #endif
 
-WT(label);
-WT(event_box);
-WT(menu);
-WT(menu_item);
-WT(layout);
-WT(vbox);
-WT(arrow);
-WT(hbox);
-WT(button);
-WT(image);
-WT(entry);
-
 /* Types */
 
 struct choosenode;
@@ -374,27 +362,22 @@ static void fill_root_node(struct choosenode *cn) {
 /** @brief Delete all the widgets owned by @p cn */
 static void delete_cn_widgets(struct choosenode *cn) {
   if(cn->arrow) {
-    DW(arrow);
     gtk_widget_destroy(cn->arrow);
     cn->arrow = 0;
   }
   if(cn->label) {
-    DW(label);
     gtk_widget_destroy(cn->label);
     cn->label = 0;
   }
   if(cn->marker) {
-    DW(image);
     gtk_widget_destroy(cn->marker);
     cn->marker = 0;
   }
   if(cn->hbox) {
-    DW(hbox);
     gtk_widget_destroy(cn->hbox);
     cn->hbox = 0;
   }
   if(cn->container) {
-    DW(event_box);
     gtk_widget_destroy(cn->container);
     cn->container = 0;
   }
@@ -867,11 +850,9 @@ static void redisplay_tree(const char *why) {
   files_selected = 0;
   files_visible = 0;
   /* Correct the layout and find out how much space it uses */
-  MTAG_PUSH("display_tree");
   searchnodes = nsearchresults ? xcalloc(nsearchresults, 
                                          sizeof (struct choosenode *)) : 0;
   d = display_tree(root, 0, 0);
-  MTAG_POP();
 
   BEGIN(gtkbits);
   /* We must set the total size or scrolling will not work (it wouldn't be hard
@@ -920,12 +901,9 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
    */
   if(!cn->container) {
     BEGIN(new_widgets);
-    MTAG_PUSH("make_widgets_1");
     /* Widgets need to be created */
-    NW(hbox);
     cn->hbox = gtk_hbox_new(FALSE, 1);
     if(cn->flags & CN_EXPANDABLE) {
-      NW(arrow);
       cn->arrow = gtk_arrow_new(cn->flags & CN_EXPANDED ? GTK_ARROW_DOWN
                                                         : GTK_ARROW_RIGHT,
                                 GTK_SHADOW_NONE);
@@ -933,22 +911,15 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     } else {
       cn->arrow = 0;
       if((pb = find_image("notes.png"))) {
-        NW(image);
         cn->marker = gtk_image_new_from_pixbuf(pb);
       }
     }
-    MTAG_POP();
-    MTAG_PUSH("make_widgets_2");
-    NW(label);
     cn->label = gtk_label_new(cn->display);
     if(cn->arrow)
       gtk_container_add(GTK_CONTAINER(cn->hbox), cn->arrow);
     gtk_container_add(GTK_CONTAINER(cn->hbox), cn->label);
     if(cn->marker)
       gtk_container_add(GTK_CONTAINER(cn->hbox), cn->marker);
-    MTAG_POP();
-    MTAG_PUSH("make_widgets_3");
-    NW(event_box);
     cn->container = gtk_event_box_new();
     gtk_container_add(GTK_CONTAINER(cn->container), cn->hbox);
     g_signal_connect(cn->container, "button-release-event", 
@@ -958,7 +929,6 @@ static struct displaydata display_tree(struct choosenode *cn, int x, int y) {
     g_object_ref(cn->container);
     /* Show everything by default */
     gtk_widget_show_all(cn->container);
-    MTAG_POP();
     END(new_widgets);
   }
   assert(cn->container);
@@ -1450,14 +1420,12 @@ GtkWidget *choose_widget(void) {
    */
   
   /* Text entry box for search terms */
-  NW(entry);
   searchentry = gtk_entry_new();
   gtk_widget_set_style(searchentry, tool_style);
   g_signal_connect(searchentry, "changed", G_CALLBACK(searchentry_changed), 0);
   gtk_tooltips_set_tip(tips, searchentry, "Enter search terms here; search is automatic", "");
 
   /* Cancel button to clear the search */
-  NW(button);
   clearsearch = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
   gtk_widget_set_style(clearsearch, tool_style);
   g_signal_connect(G_OBJECT(clearsearch), "clicked",
@@ -1478,7 +1446,6 @@ GtkWidget *choose_widget(void) {
   gtk_widget_set_sensitive(nextsearch, 0);
 
   /* hbox packs the search tools button together on a line */
-  NW(hbox);
   hbox = gtk_hbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
   gtk_box_pack_start(GTK_BOX(hbox), searchentry,
                      TRUE/*expand*/, TRUE/*fill*/, 0/*padding*/);
@@ -1491,29 +1458,24 @@ GtkWidget *choose_widget(void) {
   
   /* chooselayout contains the currently visible subset of the track
    * namespace */
-  NW(layout);
   chooselayout = gtk_layout_new(0, 0);
   gtk_widget_set_style(chooselayout, layout_style);
   choose_logged_in(0, 0, 0);
   event_register("logged-in", choose_logged_in, 0);
   /* Create the popup menus */
-  NW(menu);
   track_menu = gtk_menu_new();
   g_signal_connect(track_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &track_menu);
   for(n = 0; track_menuitems[n].name; ++n) {
-    NW(menu_item);
     track_menuitems[n].w = 
       gtk_menu_item_new_with_label(track_menuitems[n].name);
     gtk_menu_attach(GTK_MENU(track_menu), track_menuitems[n].w,
                     0, 1, n, n + 1);
   }
-  NW(menu);
   dir_menu = gtk_menu_new();
   g_signal_connect(dir_menu, "destroy", G_CALLBACK(gtk_widget_destroyed),
                    &dir_menu);
   for(n = 0; dir_menuitems[n].name; ++n) {
-    NW(menu_item);
     dir_menuitems[n].w = 
       gtk_menu_item_new_with_label(dir_menuitems[n].name);
     gtk_menu_attach(GTK_MENU(dir_menu), dir_menuitems[n].w,
@@ -1524,7 +1486,6 @@ GtkWidget *choose_widget(void) {
   vadjust = gtk_layout_get_vadjustment(GTK_LAYOUT(chooselayout));
 
   /* The scrollable layout and the search hbox go together in a vbox */
-  NW(vbox);
   vbox = gtk_vbox_new(FALSE/*homogenous*/, 1/*spacing*/);
   gtk_box_pack_start(GTK_BOX(vbox), hbox,
                      FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
