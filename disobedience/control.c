@@ -384,6 +384,11 @@ static void icon_changed(const char attribute((unused)) *event,
     gtk_container_add(GTK_CONTAINER(icon->button), newchild);
     gtk_widget_show(newchild);
   }
+  /* If you disable play or random play NOT via the icon (for instance, via the
+   * edit menu or via a completely separate command line invocation) then the
+   * icon shows up as insensitive.  Hover the mouse over it and the corrcet
+   * state is immediately displayed.  sensitive and GTK_WIDGET_SENSITIVE show
+   * it to be in the correct state, so I think this is may be a GTK+ bug. */
   if(icon->tip_on)
     gtk_tooltips_set_tip(tips, icon->button,
                            on ? icon->tip_on : icon->tip_off, "");
