@@ -419,7 +419,8 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
        r,
        "text", n,
        (char *)0);
-    g_object_set(c, "resizable", TRUE, (char *)0);
+    gtk_tree_view_column_set_resizable(c, TRUE);
+    gtk_tree_view_column_set_reorderable(c, TRUE);
     if(ql->columns[n].flags & COL_EXPAND)
       g_object_set(c, "expand", TRUE, (char *)0);
     gtk_tree_view_append_column(GTK_TREE_VIEW(ql->view), c);
