@@ -103,8 +103,9 @@ The balance slider indicates the current balance and can be used to adjust it.
 means the only the right speaker.
 .SS "Queue Tab"
 This displays the currently playing track and the queue.
-The currently playing track is at the top and has a green background.
-Queued tracks appear below it and have alternating red and white backgrounds.
+The currently playing track is at the top, and can be distinguished by
+the constantly updating timer.
+Queued tracks appear below it.
 .PP
 The left button can be use to select and deselect tracks.
 On its own it just selects the pointed track and deselects everything else.
@@ -114,6 +115,9 @@ With SHIFT it selects every track from the last click to the current position
 and deselects everything else.
 With both CTRL and SHIFT it selects everything from the last click to the
 current position without deselecting anything.
+.PP
+Tracks can be moved within the queue by dragging them to a new position with
+the left button.
 .PP
 The right button pops up a menu.
 This has the following options:
@@ -137,7 +141,8 @@ Remove the selected tracks from the queue.
 .SS "Recent Tab"
 This displays recently played tracks, the most recent at the top.
 .PP
-The left button functions as above.
+The left button functions as above, except that drag-and-drop rearrangement
+is not possible.
 The right button pops up a menu with the following options:
 .TP
 .B Properties
@@ -362,10 +367,6 @@ setting up with Disobedience, tools such as
 .BR disorder (1)
 should work as well.
 .SH BUGS
-Disobedience is newly introduced with DisOrder 2.0.
-There are bound to be bugs.
-Please send feedback.
-.PP
 There is no particular provision for multiple users of the same computer
 sharing a single \fBdisorder\-playrtp\fR process.
 This shouldn't be too much of a problem in practice but something could
@@ -373,6 +374,11 @@ perhaps be done given demand.
 .PP
 Try to do remote user management when the server is configured to refuse this
 produces rather horrible error behavior.
+.PP
+Only one track can be dragged at a time.
+.PP
+Resizing columns doesn't work very well.
+This is a GTK+ bug.
 .SH FILES
 .TP
 .I ~/.disorder/HOSTNAME\-rtp
