@@ -87,13 +87,14 @@ struct callbackdata {
  * have some callbacks to set them appropriately.
  */
 struct tabtype {
-  int (*properties_sensitive)(GtkWidget *tab);
-  int (*selectall_sensitive)(GtkWidget *tab);
-  int (*selectnone_sensitive)(GtkWidget *tab);
-  void (*properties_activate)(GtkWidget *tab);
-  void (*selectall_activate)(GtkWidget *tab);
-  void (*selectnone_activate)(GtkWidget *tab);
+  int (*properties_sensitive)(void *extra);
+  int (*selectall_sensitive)(void *extra);
+  int (*selectnone_sensitive)(void *extra);
+  void (*properties_activate)(void *extra);
+  void (*selectall_activate)(void *extra);
+  void (*selectnone_activate)(void *extra);
   void (*selected)(void);
+  void *extra;
 };
 
 /** @brief Button definitions */

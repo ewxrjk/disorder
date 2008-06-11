@@ -164,6 +164,48 @@ gboolean ql_button_release(GtkWidget*widget,
   return FALSE;
 }
 
+static int ql_tab_selectall_sensitive(void *extra) {
+  return ql_selectall_sensitive(extra);
+}
+  
+static void ql_tab_selectall_activate(void *extra) {
+  ql_selectall_activate(NULL, extra);
+}
+  
+static int ql_tab_selectnone_sensitive(void *extra) {
+  return ql_selectnone_sensitive(extra);
+}
+  
+static void ql_tab_selectnone_activate(void *extra) {
+  ql_selectnone_activate(NULL, extra);
+}
+  
+static int ql_tab_properties_sensitive(void *extra) {
+  return ql_properties_sensitive(extra);
+}
+  
+static void ql_tab_properties_activate(void *extra) {
+  ql_properties_activate(NULL, extra);
+}
+
+struct tabtype *ql_tabtype(struct queuelike *ql) {
+  static const struct tabtype ql_tabtype = {
+    ql_tab_properties_sensitive,
+    ql_tab_selectall_sensitive,
+    ql_tab_selectnone_sensitive,
+    ql_tab_properties_activate,
+    ql_tab_selectall_activate,
+    ql_tab_selectnone_activate,
+    0,
+    0
+  };
+
+  struct tabtype *t = xmalloc(sizeof *t);
+  *t = ql_tabtype;
+  t->extra = ql;
+  return t;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

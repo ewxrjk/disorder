@@ -58,7 +58,8 @@ static void select_all(gpointer attribute((unused)) callback_data,
     (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-  t->selectall_activate(tab);
+  if(t->selectall_activate)
+    t->selectall_activate(t->extra);
 }
 
 /** @brief Called when the select none option is activated
@@ -72,7 +73,8 @@ static void select_none(gpointer attribute((unused)) callback_data,
     (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-  t->selectnone_activate(tab);
+  if(t->selectnone_activate)
+    t->selectnone_activate(t->extra);
 }
 
 /** @brief Called when the track properties option is activated
@@ -86,7 +88,8 @@ static void properties_item(gpointer attribute((unused)) callback_data,
     (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-  t->properties_activate(tab);
+  if(t->properties_activate)
+    t->properties_activate(t->extra);
 }
 
 /** @brief Called when the login option is activated */
@@ -117,6 +120,8 @@ static void settings(gpointer attribute((unused)) callback_data,
  * Determines option sensitivity according to the current tab and adjusts the
  * widgets accordingly.  Knows about @ref DISORDER_CONNECTED so the callbacks
  * need not.
+ *
+ * TODO: base this on menu popup instead?
  */
 void menu_update(int page) {
   if(tabs) {
@@ -125,15 +130,17 @@ void menu_update(int page) {
        page < 0 ? gtk_notebook_current_page(GTK_NOTEBOOK(tabs)) : page);
     const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-    if(!t) return;                      /* TODO */
     assert(t != 0);
     gtk_widget_set_sensitive(properties_widget,
-                             (t->properties_sensitive(tab)
+                             (t->properties_sensitive
+                              && t->properties_sensitive(t->extra)
                               && (disorder_eclient_state(client) & DISORDER_CONNECTED)));
     gtk_widget_set_sensitive(selectall_widget,
-                             t->selectall_sensitive(tab));
+                             t->selectall_sensitive
+                             && t->selectall_sensitive(t->extra));
     gtk_widget_set_sensitive(selectnone_widget,
-                             t->selectnone_sensitive(tab));
+                             t->selectnone_sensitive
+                             && t->selectnone_sensitive(t->extra));
   }
 }
    

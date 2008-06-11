@@ -35,6 +35,11 @@
  * NB that while in the server the playing track is not in the queue, in
  * Disobedience, the playing does live in @c ql_queue.q, despite its different
  * status to everything else found in that list.
+ *
+ * To do:
+ * - drag and drop queue rearrangement
+ * - edit menu
+ * - display playing row in a different color?
  */
 #include "disobedience.h"
 #include "queue-generic.h"
@@ -399,10 +404,6 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   ql->selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(ql->view));
   gtk_tree_selection_set_mode(ql->selection, GTK_SELECTION_MULTIPLE);
 
-  /* Remember what the view belongs to */
-  //g_object_set_data(G_OBJECT(ql->view), "type", (void *)&tabtype_queue);
-  /* TODO tabtype */
-  g_object_set_data(G_OBJECT(ql->view), "queue", ql);
   /* Catch button presses */
   g_signal_connect(ql->view, "button-press-event",
                    G_CALLBACK(ql_button_release), ql);
@@ -412,7 +413,9 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
 
   ql->init();
 
-  return scroll_widget(ql->view);
+  GtkWidget *scrolled = scroll_widget(ql->view);
+  g_object_set_data(G_OBJECT(scrolled), "type", (void *)ql_tabtype(ql));
+  return scrolled;
 }
 
 /*

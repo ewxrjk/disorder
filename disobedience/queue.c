@@ -34,9 +34,14 @@ time_t last_playing;
 static void queue_playing_changed(void) {
   struct queue_entry *q = xmalloc(sizeof *q);
 
-  *q = *actual_playing_track;
-  q->next = actual_queue;
-  playing_track = q;
+  if(actual_playing_track) {
+    *q = *actual_playing_track;
+    q->next = actual_queue;
+    playing_track = q;
+  } else {
+    playing_track = NULL;
+    q = actual_queue;
+  }
   time(&last_playing);          /* for column_length() */
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
@@ -134,6 +139,7 @@ static struct queue_menuitem queue_menuitems[] = {
 };
 
 struct queuelike ql_queue = {
+  .name = "queue",
   .init = queue_init,
   .columns = queue_columns,
   .ncolumns = sizeof queue_columns / sizeof *queue_columns,

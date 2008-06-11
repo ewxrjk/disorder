@@ -82,6 +82,7 @@ static struct queue_menuitem recent_menuitems[] = {
 };
 
 struct queuelike ql_recent = {
+  .name = "recent",
   .init = recent_init,
   .columns = recent_columns,
   .ncolumns = sizeof recent_columns / sizeof *recent_columns,

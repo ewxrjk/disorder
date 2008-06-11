@@ -1,3 +1,4 @@
+
 /*
  * This file is part of DisOrder
  * Copyright (C) 2006-2008 Richard Kettlewell
@@ -1377,46 +1378,16 @@ static gboolean sensitive_dir_select(struct choosenode attribute((unused)) *cn) 
   return TRUE;
 }
 
-
-
 /* Main menu plumbing ------------------------------------------------------ */
 
 /** @brief Determine whether the edit menu's properties option should be sensitive */
-static int choose_properties_sensitive(GtkWidget attribute((unused)) *w) {
+static int choose_properties_sensitive(void attribute((unused)) *extra) {
   return !!files_selected && (disorder_eclient_state(client) & DISORDER_CONNECTED);
 }
 
-/** @brief Determine whether the edit menu's select all option should be sensitive
- *
- * TODO not implemented,  see also choose_selectall_activate()
- */
-static int choose_selectall_sensitive(GtkWidget attribute((unused)) *w) {
-  return FALSE;
-}
-
-/** @brief Determine whether the edit menu's select none option should be sensitive
- *
- * TODO not implemented,  see also choose_selectnone_activate()
- */
-static int choose_selectnone_sensitive(GtkWidget attribute((unused)) *w) {
-  return FALSE;
-}
-
 /** @brief Called when the edit menu's properties option is activated */
-static void choose_properties_activate(GtkWidget attribute((unused)) *w) {
+static void choose_properties_activate(void attribute((unused)) *extra) {
   activate_track_properties(0, 0);
-}
-
-/** @brief Called when the edit menu's select all option is activated
- *
- * TODO not implemented, see choose_selectall_sensitive() */
-static void choose_selectall_activate(GtkWidget attribute((unused)) *w) {
-}
-
-/** @brief Called when the edit menu's select none option is activated
- *
- * TODO not implemented, see choose_selectnone_sensitive() */
-static void choose_selectnone_activate(GtkWidget attribute((unused)) *w) {
 }
 
 /** @brief Called when the choose tab is selected */
@@ -1427,12 +1398,13 @@ static void choose_tab_selected(void) {
 /** @brief Main menu callbacks for Choose screen */
 static const struct tabtype tabtype_choose = {
   choose_properties_sensitive,
-  choose_selectall_sensitive,
-  choose_selectnone_sensitive,
+  NULL/*choose_selectall_sensitive*/,
+  NULL/*choose_selectnone_sensitive*/,
   choose_properties_activate,
-  choose_selectall_activate,
-  choose_selectnone_activate,
+  NULL/*choose_selectall_activate*/,
+  NULL/*choose_selectnone_activate*/,
   choose_tab_selected,
+  0
 };
 
 /* Public entry points ----------------------------------------------------- */

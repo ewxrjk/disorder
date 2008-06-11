@@ -72,6 +72,9 @@ struct queuelike {
 
   /* Things filled in by the caller: */
 
+  /** @brief Name for this tab */
+  const char *name;
+  
   /** @brief Initialization function */
   void (*init)(void);
 
@@ -148,6 +151,7 @@ const char *column_namepart(const struct queue_entry *q,
                             const char *data);
 const char *column_length(const struct queue_entry *q,
                           const char *data);
+struct tabtype *ql_tabtype(struct queuelike *ql);
 
 #endif /* QUEUE_GENERIC_H */
 

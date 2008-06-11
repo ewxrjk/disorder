@@ -125,7 +125,7 @@ static void tab_switched(GtkNotebook *notebook,
   menu_update(page_num);
   GtkWidget *const tab = gtk_notebook_get_nth_page(notebook, page_num);
   const struct tabtype *const t = g_object_get_data(G_OBJECT(tab), "type");
-  if(!t) return;                        /* TODO */
+  assert(t != 0);
   if(t->selected)
     t->selected();
 }

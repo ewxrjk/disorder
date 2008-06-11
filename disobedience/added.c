@@ -85,6 +85,7 @@ static struct queue_menuitem added_menuitems[] = {
 };
 
 struct queuelike ql_added = {
+  .name = "added",
   .init = added_init,
   .columns = added_columns,
   .ncolumns = sizeof added_columns / sizeof *added_columns,
