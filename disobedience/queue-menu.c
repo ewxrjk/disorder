@@ -258,10 +258,9 @@ struct tabtype *ql_tabtype(struct queuelike *ql) {
     0
   };
 
-  struct tabtype *t = xmalloc(sizeof *t);
-  *t = ql_tabtype;
-  t->extra = ql;
-  return t;
+  ql->tabtype = ql_tabtype;
+  ql->tabtype.extra = ql;
+  return &ql->tabtype;
 }
 
 /*

@@ -108,6 +108,9 @@ struct queuelike {
   
   /** @brief The popup menu */
   GtkWidget *menu;
+
+  /** @brief Menu callbacks */
+  struct tabtype tabtype;
 };
 
 extern struct queuelike ql_queue;
