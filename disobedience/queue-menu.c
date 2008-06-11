@@ -76,22 +76,23 @@ int ql_scratch_sensitive(struct queuelike attribute((unused)) *ql) {
     && right_scratchable(last_rights, config->username, playing_track);
 }
 
-static void scratch_completed(void attribute((unused)) *v, const char *error) {
+static void ql_scratch_completed(void attribute((unused)) *v,
+                                 const char *error) {
   if(error)
     popup_protocol_error(0, error);
 }
 
 void ql_scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
                          gpointer attribute((unused)) user_data) {
-  disorder_eclient_scratch_playing(client, scratch_completed, 0);
+  disorder_eclient_scratch_playing(client, ql_scratch_completed, 0);
 }
 
 /* Remove */
 
-static void remove_sensitive_callback(GtkTreeModel *model,
-                                      GtkTreePath attribute((unused)) *path,
-                                      GtkTreeIter *iter,
-                                      gpointer data) {
+static void ql_remove_sensitive_callback(GtkTreeModel *model,
+                                         GtkTreePath attribute((unused)) *path,
+                                         GtkTreeIter *iter,
+                                         gpointer data) {
   struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
   struct queue_entry *q = ql_iter_to_q(ql, iter);
   const int removable = (q != playing_track
@@ -103,47 +104,66 @@ static void remove_sensitive_callback(GtkTreeModel *model,
 int ql_remove_sensitive(struct queuelike *ql) {
   int counts[2] = { 0, 0 };
   gtk_tree_selection_selected_foreach(ql->selection,
-                                      remove_sensitive_callback,
+                                      ql_remove_sensitive_callback,
                                       counts);
   /* Remove will work if we have at least some removable tracks selected, and
    * no unremovable ones */
   return counts[1] > 0 && counts[0] == 0;
 }
 
-static void remove_completed(void attribute((unused)) *v, const char *error) {
+static void ql_remove_completed(void attribute((unused)) *v,
+                                const char *error) {
   if(error)
     popup_protocol_error(0, error);
 }
 
-static void remove_activate_callback(GtkTreeModel *model,
-                                     GtkTreePath attribute((unused)) *path,
-                                     GtkTreeIter *iter,
-                                     gpointer attribute((unused)) data) {
+static void ql_remove_activate_callback(GtkTreeModel *model,
+                                        GtkTreePath attribute((unused)) *path,
+                                        GtkTreeIter *iter,
+                                        gpointer attribute((unused)) data) {
   struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
   struct queue_entry *q = ql_iter_to_q(ql, iter);
 
-  disorder_eclient_remove(client, q->id, remove_completed, q);
+  disorder_eclient_remove(client, q->id, ql_remove_completed, q);
 }
 
 void ql_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
                         gpointer user_data) {
   struct queuelike *ql = user_data;
   gtk_tree_selection_selected_foreach(ql->selection,
-                                      remove_activate_callback,
+                                      ql_remove_activate_callback,
                                       0);
 }
 
 /* Play */
 
 int ql_play_sensitive(struct queuelike *ql) {
-  return gtk_tree_selection_count_selected_rows(ql->selection) > 0;
+  return (last_rights & RIGHT_PLAY)
+    && gtk_tree_selection_count_selected_rows(ql->selection) > 0;
+}
+
+static void ql_play_completed(void attribute((unused)) *v, const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
+static void ql_play_activate_callback(GtkTreeModel *model,
+                                      GtkTreePath attribute((unused)) *path,
+                                      GtkTreeIter *iter,
+                                      gpointer attribute((unused)) data) {
+  struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
+  struct queue_entry *q = ql_iter_to_q(ql, iter);
+
+  disorder_eclient_play(client, q->track, ql_play_completed, q);
 }
 
 void ql_play_activate(GtkMenuItem attribute((unused)) *menuitem,
-                         gpointer attribute((unused)) user_data) {
-  /* TODO */
+                         gpointer user_data) {
+  struct queuelike *ql = user_data;
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      ql_play_activate_callback,
+                                      0);
 }
-
 
 /** @brief Create @c ql->menu if it does not already exist */
 static void ql_create_menu(struct queuelike *ql) {
