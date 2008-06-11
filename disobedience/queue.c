@@ -112,8 +112,11 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
 static void queue_init(void) {
   /* Arrange a callback whenever the playing state changes */ 
   event_register("playing-changed", playing_changed, 0);
+  /* We reget both playing track and queue at pause/resume so that start times
+   * can be computed correctly */
   event_register("pause-changed", playing_changed, 0);
-  /* ...and when the queue changes */
+  event_register("pause-changed", queue_changed, 0);
+  /* Reget the queue whenever it changes */
   event_register("queue-changed", queue_changed, 0);
   /* ...and once a second anyway */
   g_timeout_add(1000/*ms*/, playing_periodic, 0);

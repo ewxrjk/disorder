@@ -37,8 +37,8 @@
  * status to everything else found in that list.
  *
  * To do:
+ * - random play icon sensitivity is wrong (onl) if changed from edit menu
  * - drag and drop queue rearrangement
- * - edit menu
  * - display playing row in a different color?
  */
 #include "disobedience.h"
