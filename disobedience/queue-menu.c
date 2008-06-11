@@ -72,12 +72,18 @@ void ql_properties_activate(GtkMenuItem attribute((unused)) *menuitem,
 /* Scratch */
 
 int ql_scratch_sensitive(struct queuelike attribute((unused)) *ql) {
-  return !!playing_track;
+  return !!(last_state & DISORDER_PLAYING)
+    && right_scratchable(last_rights, config->username, playing_track);
+}
+
+static void scratch_completed(void attribute((unused)) *v, const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
 }
 
 void ql_scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
                          gpointer attribute((unused)) user_data) {
-  /* TODO */
+  disorder_eclient_scratch_playing(client, scratch_completed, 0);
 }
 
 /* Remove */
