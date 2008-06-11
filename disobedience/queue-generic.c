@@ -37,7 +37,6 @@
  * status to everything else found in that list.
  *
  * To do:
- * - drag and drop queue rearrangement
  * - display playing row in a different color?
  */
 #include "disobedience.h"
@@ -543,7 +542,6 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                    G_CALLBACK(ql_button_release), ql);
 
   /* TODO style? */
-  /* TODO drag+drop */
 
   ql->init();
 
