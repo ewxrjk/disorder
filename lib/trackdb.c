@@ -1852,7 +1852,7 @@ static int do_list(struct vector *v, const char *dir,
   char *ptr;
   int err;
   size_t l, last_dir_len = 0;
-  char *last_dir = 0, *track, *alias;
+  char *last_dir = 0, *track;
   struct kvp *p;
 
   dl = strlen(dir);
@@ -1885,12 +1885,35 @@ static int do_list(struct vector *v, const char *dir,
         if((err = trackdb_getdata(trackdb_prefsdb,
                                   track, &p, tid)) == DB_LOCK_DEADLOCK)
           goto deadlocked;
+        /* There's an awkward question here...
+         *
+         * If a track shares a directory with its alias then we could
+         * do one of three things:
+         * - report both.  Looks ridiculuous in most UIs.
+         * - report just the alias.  Remarkably inconvenient to write
+         *   UI code for!
+         * - report just the real name.  Ugly if the UI doesn't prettify
+         *   names via the name parts.
+         */
+#if 1
+        /* If this file is an alias for a track in the same directory then we
+         * skip it */
+        struct kvp *t = kvp_urldecode(d.data, d.size);
+        const char *alias_target = kvp_get(t, "_alias_for");
+        if(!(alias_target
+             && !strcmp(d_dirname(alias_target),
+                        d_dirname(track))))
+	  if(track_matches(dl, k.data, k.size, re))
+	    vector_append(v, track);
+#else
 	/* if this file has an alias in the same directory then we skip it */
+           char *alias;
         if((err = compute_alias(&alias, track, p, tid)))
           goto deadlocked;
         if(!(alias && !strcmp(d_dirname(alias), d_dirname(track))))
 	  if(track_matches(dl, k.data, k.size, re))
 	    vector_append(v, track);
+#endif
       }
     }
     err = cursor->c_get(cursor, &k, &d, DB_NEXT);
