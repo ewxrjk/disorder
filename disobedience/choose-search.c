@@ -17,6 +17,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+/** @file disobedience/search.c
+ * @brief Search support
+ *
+ * TODO:
+ * - cleverer focus to implement typeahead find
+ * - don't steal ^A
+ * - make arrow buttons work
+ * - delay search initiation until keyboard goes quiet for a bit
+ *   (so that you don't get all the 'lo' tracks when you search for 'love')
+ */
 #include "disobedience.h"
 #include "choose.h"
 

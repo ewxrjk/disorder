@@ -35,7 +35,6 @@
  * TODO:
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
- * - searching!
  * - proper sorting
  */
 
