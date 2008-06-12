@@ -414,8 +414,6 @@ GtkWidget *menubar(GtkWidget *w) {
   
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");
-  fprintf(stderr, "edit is a %s\n",
-          GTK_OBJECT_TYPE_NAME(edit_widget));
   g_signal_connect(edit_widget, "show", G_CALLBACK(edit_menu_show), 0);
   
   event_register("rights-changed", menu_rights_changed, 0);

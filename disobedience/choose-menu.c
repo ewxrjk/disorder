@@ -52,13 +52,89 @@ static struct choosedata **choose_get_selected(int *nselected) {
   return v->vec;
 }
 
-static int choose_selectall_sensitive(void attribute((unused)) *extra) {
-  return TRUE;
+/** @brief Recursion step for choose_get_visible()
+ * @param parent A visible node, or NULL for the root
+ * @param cdv Visible nodes accumulated here
+ */
+static void choose_visible_recurse(GtkTreeIter *parent,
+                                   void (*callback)(GtkTreeIter *it,
+                                                    struct choosedata *cd,
+                                                    void *userdata),
+                                   void *userdata) {
+  struct choosedata *cd;
+  int expanded;
+  if(parent) {
+    cd = choose_iter_to_data(parent);
+    callback(parent, cd, userdata);
+    if(cd->type != CHOOSE_DIRECTORY)
+      /* Only directories can be expanded so we can avoid the more
+       * expensive test below */
+      return;
+    GtkTreePath *parent_path
+      = gtk_tree_model_get_path(GTK_TREE_MODEL(choose_store),
+                                parent);
+    expanded = gtk_tree_view_row_expanded(GTK_TREE_VIEW(choose_view),
+                                          parent_path);
+    gtk_tree_path_free(parent_path);
+  } else
+    expanded = 1;
+  /* See if parent is expanded */
+  if(expanded) {
+    /* Parent is expanded, visit all its children */
+    GtkTreeIter it[1];
+    gboolean itv = gtk_tree_model_iter_children(GTK_TREE_MODEL(choose_store),
+                                                it,
+                                                parent);
+    while(itv) {
+      choose_visible_recurse(it, callback, userdata);
+      itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
+    }
+  }
 }
-  
+
+static void choose_visible_visit(void (*callback)(GtkTreeIter *it,
+                                                  struct choosedata *cd,
+                                                  void *userdata),
+                                 void *userdata) {
+  choose_visible_recurse(NULL, callback, userdata);
+}
+
+static void count_choosedatas(struct choosedata **cds,
+                              int counts[2]) {
+  struct choosedata *cd;
+  counts[CHOOSE_FILE] = counts[CHOOSE_DIRECTORY] = 0;
+  while((cd = *cds++))
+    ++counts[cd->type];
+}
+
+
+static void choose_selectall_sensitive_callback
+    (GtkTreeIter attribute((unused)) *it,
+     struct choosedata *cd,
+     void *userdata) {
+  if(cd->type == CHOOSE_FILE)
+    ++*(int *)userdata;
+}
+
+static int choose_selectall_sensitive(void attribute((unused)) *extra) {
+  int files = 0;
+  choose_visible_visit(choose_selectall_sensitive_callback, &files);
+  return files > 0;
+}
+
+static void choose_selectall_activate_callback
+    (GtkTreeIter *it,
+     struct choosedata *cd,
+     void attribute((unused)) *userdata) {
+  if(cd->type == CHOOSE_FILE)
+    gtk_tree_selection_select_iter(choose_selection, it);
+  else
+    gtk_tree_selection_unselect_iter(choose_selection, it);
+}
+
 static void choose_selectall_activate(GtkMenuItem attribute((unused)) *item,
                                       gpointer attribute((unused)) userdata) {
-  gtk_tree_selection_select_all(choose_selection);
+  choose_visible_visit(choose_selectall_activate_callback, 0);
 }
   
 static int choose_selectnone_sensitive(void attribute((unused)) *extra) {
@@ -71,10 +147,8 @@ static void choose_selectnone_activate(GtkMenuItem attribute((unused)) *item,
 }
   
 static int choose_play_sensitive(void attribute((unused)) *extra) {
-  struct choosedata *cd, **cdp = choose_get_selected(NULL);
-  int counts[2] = { 0, 0 };
-  while((cd = *cdp++))
-    ++counts[cd->type];
+  int counts[2];
+  count_choosedatas(choose_get_selected(NULL), counts);
   return !counts[CHOOSE_DIRECTORY] && counts[CHOOSE_FILE];
 }
 

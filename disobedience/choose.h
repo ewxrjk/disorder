@@ -50,6 +50,7 @@ extern GtkTreeSelection *choose_selection;
 extern const struct tabtype choose_tabtype;
 
 struct choosedata *choose_iter_to_data(GtkTreeIter *iter);
+struct choosedata *choose_path_to_data(GtkTreePath *path);
 gboolean choose_button_event(GtkWidget *widget,
                              GdkEventButton *event,
                              gpointer user_data);

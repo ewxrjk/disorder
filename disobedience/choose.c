@@ -68,6 +68,14 @@ struct choosedata *choose_iter_to_data(GtkTreeIter *iter) {
   return cd;
 }
 
+struct choosedata *choose_path_to_data(GtkTreePath *path) {
+  GtkTreeIter it[1];
+  gboolean itv = gtk_tree_model_get_iter(GTK_TREE_MODEL(choose_store),
+                                         it, path);
+  assert(itv);
+  return choose_iter_to_data(it);
+}
+
 /** @brief Remove node @p it and all its children
  * @param Iterator, updated to point to next
  * @return True if iterator remains valid
