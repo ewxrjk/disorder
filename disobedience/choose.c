@@ -51,6 +51,12 @@ GtkWidget *choose_view;
 /** @brief The selection tree's selection */
 GtkTreeSelection *choose_selection;
 
+/** @brief Count of file listing operations in flight */
+static int choose_list_in_flight;
+
+/** @brief Count of files inserted in current batch of listing operations */
+static int choose_inserted;
+
 static char *choose_get_string(GtkTreeIter *iter, int column) {
   gchar *gs;
   gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
@@ -219,7 +225,7 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
   }
   /* Add nodes we don't have */
   int inserted = 0;
-  //fprintf(stderr, " inserting new %s nodes\n", choose_type_map[type]);
+  //fprintf(stderr, " inserting new %s nodes\n", isfile ? "track" : "dir");
   const char *typename = isfile ? "track" : "dir";
   for(int n = 0; n < nvec; ++n) {
     if(!found[n]) {
@@ -263,6 +269,18 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
     gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), parent_path, FALSE);
     gtk_tree_row_reference_free(parent_ref);
     gtk_tree_path_free(parent_path);
+  }
+  /* We only notify others that we've inserted tracks when there are no more
+   * insertions pending, so that they don't have to keep track of how many
+   * requests they've made.  */
+  choose_inserted += inserted;
+  if(--choose_list_in_flight == 0) {
+    /* Notify interested parties that we inserted some tracks, AFTER making
+     * sure that the row is properly expanded */
+    if(choose_inserted) {
+      event_raise("choose-inserted-tracks", parent_it);
+      choose_inserted = 0;
+    }
   }
 }
 
@@ -334,6 +352,7 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
                         gtk_tree_row_reference_new(GTK_TREE_MODEL(choose_store),
                                                    path));
   /* The row references are destroyed in the _completed handlers. */
+  choose_list_in_flight += 2;
 }
 
 /** @brief Create the choose tab */
