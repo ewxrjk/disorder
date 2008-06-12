@@ -30,6 +30,8 @@ enum {
   ISFILE_COLUMN,                /* TRUE for a track, FALSE for a directory */
   TRACK_COLUMN,                 /* Full track name, "" for placeholder */
   SORT_COLUMN,                  /* Sort key */
+  BG_COLUMN,                    /* Background color */
+  FG_COLUMN,                    /* Foreground color */
 
   CHOOSE_COLUMNS                /* column count */
 };
@@ -51,6 +53,8 @@ char *choose_get_sort(GtkTreeIter *iter);
 int choose_is_file(GtkTreeIter *iter);
 int choose_is_dir(GtkTreeIter *iter);
 int choose_is_placeholder(GtkTreeIter *iter);
+GtkWidget *choose_search_widget(void);
+int choose_is_search_result(const char *track);
 
 #endif /* CHOOSE_H */
 

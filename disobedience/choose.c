@@ -123,6 +123,16 @@ static gboolean choose_set_state_callback(GtkTreeModel attribute((unused)) *mode
                        LENGTH_COLUMN, length,
                        STATE_COLUMN, queued(track),
                        -1);
+    if(choose_is_search_result(track))
+      gtk_tree_store_set(choose_store, it,
+                         BG_COLUMN, "yellow",
+                         FG_COLUMN, "black",
+                         -1);
+    else
+      gtk_tree_store_set(choose_store, it,
+                         BG_COLUMN, (char *)0,
+                         FG_COLUMN, (char *)0,
+                         -1);
   }
   return FALSE;                         /* continue walking */
 }
@@ -335,6 +345,8 @@ GtkWidget *choose_widget(void) {
                                     G_TYPE_STRING,
                                     G_TYPE_BOOLEAN,
                                     G_TYPE_STRING,
+                                    G_TYPE_STRING,
+                                    G_TYPE_STRING,
                                     G_TYPE_STRING);
 
   /* Create the view */
@@ -349,6 +361,8 @@ GtkWidget *choose_widget(void) {
       ("Track",
        r,
        "text", NAME_COLUMN,
+       "background", BG_COLUMN,
+       "foreground", FG_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);
@@ -397,15 +411,24 @@ GtkWidget *choose_widget(void) {
 
   event_register("queue-list-changed", choose_set_state, 0);
   event_register("playing-track-changed", choose_set_state, 0);
+  event_register("search-results-changed", choose_set_state, 0);
   
   /* Fill the root */
   disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
   disorder_eclient_dirs(client, choose_dirs_completed, "", NULL, NULL); 
-  
+
   /* Make the widget scrollable */
   GtkWidget *scrolled = scroll_widget(choose_view);
-  g_object_set_data(G_OBJECT(scrolled), "type", (void *)&choose_tabtype);
-  return scrolled;
+
+  /* Pack vertically with the search widget */
+  GtkWidget *vbox = gtk_vbox_new(FALSE/*homogenous*/, 1/*spacing*/);
+  gtk_box_pack_start(GTK_BOX(vbox), scrolled,
+                     TRUE/*expand*/, TRUE/*fill*/, 0/*padding*/);
+  gtk_box_pack_end(GTK_BOX(vbox), choose_search_widget(),
+                   FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
+  
+  g_object_set_data(G_OBJECT(vbox), "type", (void *)&choose_tabtype);
+  return vbox;
 }
 
 /*
