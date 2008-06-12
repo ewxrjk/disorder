@@ -37,6 +37,7 @@ enum {
   STATE_COLUMN,
   NAME_COLUMN,
   LENGTH_COLUMN,
+  ISFILE_COLUMN,
   CHOOSEDATA_COLUMN
 };
 
@@ -56,6 +57,8 @@ struct choosedata *choose_path_to_data(GtkTreePath *path);
 gboolean choose_button_event(GtkWidget *widget,
                              GdkEventButton *event,
                              gpointer user_data);
+void choose_play_completed(void attribute((unused)) *v,
+                           const char *error);
 
 #endif /* CHOOSE_H */
 

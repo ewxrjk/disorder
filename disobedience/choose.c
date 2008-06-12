@@ -215,6 +215,7 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
                                                           vec[n],
                                                           "display"),
                          CHOOSEDATA_COLUMN, cd,
+                         ISFILE_COLUMN, type == CHOOSE_FILE,
                          -1);
       /* Update length and state; we expect this to kick off length lookups
        * rather than necessarily get the right value the first time round. */
@@ -266,6 +267,36 @@ static void choose_files_completed(void *v,
   choose_populate(v, nvec, vec, CHOOSE_FILE);
 }
 
+void choose_play_completed(void attribute((unused)) *v,
+                           const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
+}
+
+static void choose_state_toggled
+    (GtkCellRendererToggle attribute((unused)) *cell_renderer,
+     gchar *path_str,
+     gpointer attribute((unused)) user_data) {
+  GtkTreeIter it[1];
+  /* Identify the track */
+  gboolean itv =
+    gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(choose_store),
+                                        it,
+                                        path_str);
+  if(!itv)
+    return;
+  struct choosedata *cd = choose_iter_to_data(it);
+  if(!cd)
+    return;
+  if(cd->type != CHOOSE_FILE)
+    return;
+  if(queued(cd->track))
+    return;
+  disorder_eclient_play(client, xstrdup(cd->track),
+                        choose_play_completed, 0);
+  
+}
+
 static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
                                 GtkTreeIter *iter,
                                 GtkTreePath *path,
@@ -296,6 +327,7 @@ GtkWidget *choose_widget(void) {
                                     G_TYPE_BOOLEAN,
                                     G_TYPE_STRING,
                                     G_TYPE_STRING,
+                                    G_TYPE_BOOLEAN,
                                     G_TYPE_POINTER);
 
   /* Create the view */
@@ -325,6 +357,7 @@ GtkWidget *choose_widget(void) {
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);
+    g_object_set(r, "xalign", (gfloat)1.0, (char *)0);
     gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
   }
   {
@@ -333,11 +366,13 @@ GtkWidget *choose_widget(void) {
       ("Queued",
        r,
        "active", STATE_COLUMN,
+       "visible", ISFILE_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
-    /* TODO make checkbox clickable to queue the track */
+    g_signal_connect(r, "toggled",
+                     G_CALLBACK(choose_state_toggled), 0);
   }
   
   /* The selection should support multiple things being selected */

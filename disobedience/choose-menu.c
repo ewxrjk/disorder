@@ -151,12 +151,6 @@ static int choose_play_sensitive(void attribute((unused)) *extra) {
   count_choosedatas(choose_get_selected(NULL), counts);
   return !counts[CHOOSE_DIRECTORY] && counts[CHOOSE_FILE];
 }
-
-static void choose_play_completed(void attribute((unused)) *v,
-                                  const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
-}
   
 static void choose_play_activate(GtkMenuItem attribute((unused)) *item,
                                  gpointer attribute((unused)) userdata) {
