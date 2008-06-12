@@ -180,10 +180,6 @@ void all_update(void);
 
 GtkWidget *menubar(GtkWidget *w);
 /* Create the menu bar */
-     
-void menu_update(int page);
-/* Called whenever the main menu might need to change.  PAGE is the current
- * page if known or -1 otherwise. */
 
 void users_set_sensitive(int sensitive);
 

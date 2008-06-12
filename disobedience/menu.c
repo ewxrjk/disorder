@@ -115,19 +115,18 @@ static void settings(gpointer attribute((unused)) callback_data,
 }
 #endif
 
-/** @brief Update menu state
+/** @brief Called when edit menu is shown
  *
  * Determines option sensitivity according to the current tab and adjusts the
  * widgets accordingly.  Knows about @ref DISORDER_CONNECTED so the callbacks
  * need not.
- *
- * TODO: base this on menu popup instead?
  */
-void menu_update(int page) {
+static void edit_menu_show(GtkWidget attribute((unused)) *widget,
+                           gpointer attribute((unused)) user_data) {
   if(tabs) {
     GtkWidget *tab = gtk_notebook_get_nth_page
       (GTK_NOTEBOOK(tabs),
-       page < 0 ? gtk_notebook_current_page(GTK_NOTEBOOK(tabs)) : page);
+       gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
     const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
     assert(t != 0);
@@ -411,6 +410,14 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
+
+  
+  GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                       "<GdisorderMain>/Edit");
+  fprintf(stderr, "edit is a %s\n",
+          GTK_OBJECT_TYPE_NAME(edit_widget));
+  g_signal_connect(edit_widget, "show", G_CALLBACK(edit_menu_show), 0);
+  
   event_register("rights-changed", menu_rights_changed, 0);
   users_set_sensitive(0);
   m = gtk_item_factory_get_widget(mainmenufactory,

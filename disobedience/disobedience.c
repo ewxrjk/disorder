@@ -122,7 +122,6 @@ static void tab_switched(GtkNotebook *notebook,
                          GtkNotebookPage attribute((unused)) *page,
                          guint page_num,
                          gpointer attribute((unused)) user_data) {
-  menu_update(page_num);
   GtkWidget *const tab = gtk_notebook_get_nth_page(notebook, page_num);
   const struct tabtype *const t = g_object_get_data(G_OBJECT(tab), "type");
   assert(t != 0);

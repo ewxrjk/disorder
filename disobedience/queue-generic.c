@@ -495,8 +495,6 @@ void ql_new_queue(struct queuelike *ql,
   ql->q = newq;
   /* Set the rest of the columns in new rows */
   ql_update_list_store(ql);
-  /* Update menu sensitivity */
-  menu_update(-1);
   --suppress_actions;
 }
 
