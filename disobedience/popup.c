@@ -56,23 +56,28 @@ void popup(GtkWidget **menup,
                  event->button, event->time);
 }
 
-/** @brief Make sure that something is selected
+/** @brief Make sure the right thing is selected
  * @param widget Tree view
- * @param event Mouse event (the hovered row will be selected)
+ * @param event Mouse event
  */
 void ensure_selected(GtkTreeView *treeview,
                      GdkEventButton *event) {
   GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
-  if(gtk_tree_selection_count_selected_rows(selection) == 0) {
-    GtkTreePath *path;
-    if(gtk_tree_view_get_path_at_pos(treeview,
-                                     event->x, event->y,
-                                     &path,
-                                     NULL,
-                                     NULL, NULL)) 
-      gtk_tree_selection_select_path(selection, path);
-    gtk_tree_path_free(path);
+  /* Get the path of the hovered item */
+  GtkTreePath *path;
+  if(!gtk_tree_view_get_path_at_pos(treeview,
+                                    event->x, event->y,
+                                    &path,
+                                    NULL,
+                                    NULL, NULL))
+    return;                     /* If there isn't one, do nothing */
+  if(!gtk_tree_selection_path_is_selected(selection, path)) {
+    /* We're hovered over one thing but it's not the selected row.  This is
+     * very confusing for the poor old user so we select the hovered row. */
+    gtk_tree_selection_unselect_all(selection);
+    gtk_tree_selection_select_path(selection, path);
   }
+  gtk_tree_path_free(path);
 }
 
 /*
