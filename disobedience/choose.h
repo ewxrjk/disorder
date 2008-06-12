@@ -32,11 +32,13 @@ struct choosedata {
   gchar *sort;
 };
 
-/** @brief Track name column number */
-#define NAME_COLUMN 0
-
-/** @brief Hidden column number */
-#define CHOOSEDATA_COLUMN 1
+/** @brief Column numbers */
+enum {
+  STATE_COLUMN,
+  NAME_COLUMN,
+  LENGTH_COLUMN,
+  CHOOSEDATA_COLUMN
+};
 
 /** @brief @ref choosedata node is a file */
 #define CHOOSE_FILE 0

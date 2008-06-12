@@ -29,7 +29,7 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	recent.c added.c queue-generic.c queue-generic.h queue-menu.c	\
 	choose.c choose-menu.c popup.c misc.c control.c properties.c	\
 	menu.c log.c progress.c login.c rtp.c help.c ../lib/memgc.c	\
-	settings.c users.c
+	settings.c users.c lookup.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBDB)
 disobedience_LDFLAGS=$(GTK_LIBS)

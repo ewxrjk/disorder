@@ -208,12 +208,18 @@ void queue_properties(struct queuelike *ql);
 int queued(const char *track);
 /* Return nonzero iff TRACK is queued or playing */
 
+extern struct queue_entry *playing_track;
+
+/* Lookups */
+const char *namepart(const char *track,
+                     const char *context,
+                     const char *part);
+long namepart_length(const char *track);
+
 void namepart_update(const char *track,
                      const char *context,
                      const char *part);
 /* Called when a namepart might have changed */
-
-extern struct queue_entry *playing_track;
 
 /* Choose */
 

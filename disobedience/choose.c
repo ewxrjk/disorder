@@ -38,8 +38,6 @@
  * TODO:
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
- * - playing state
- * - display length of tracks
  */
 
 #include "disobedience.h"
@@ -94,6 +92,38 @@ static gboolean choose_remove_node(GtkTreeIter *it) {
     g_free(cd);
   }
   return gtk_tree_store_remove(choose_store, it);
+}
+
+/** @brief Update length and state fields */
+static gboolean choose_set_state_callback(GtkTreeModel attribute((unused)) *model,
+                                          GtkTreePath attribute((unused)) *path,
+                                          GtkTreeIter *it,
+                                          gpointer attribute((unused)) data) {
+  struct choosedata *cd = choose_iter_to_data(it);
+  if(!cd)
+    return FALSE;                       /* Skip placeholders*/
+  if(cd->type == CHOOSE_FILE) {
+    const long l = namepart_length(cd->track);
+    char length[64];
+    if(l > 0)
+      byte_snprintf(length, sizeof length, "%ld:%02ld", l / 60, l % 60);
+    else
+      length[0] = 0;
+    gtk_tree_store_set(choose_store, it,
+                       LENGTH_COLUMN, length,
+                       STATE_COLUMN, queued(cd->track),
+                       -1);
+  }
+  return FALSE;                         /* continue walking */
+}
+
+/** @brief Called when the queue or playing track change */
+static void choose_set_state(const char attribute((unused)) *event,
+                             void attribute((unused)) *eventdata,
+                             void attribute((unused)) *callbackdata) {
+  gtk_tree_model_foreach(GTK_TREE_MODEL(choose_store),
+                         choose_set_state_callback,
+                         NULL);
 }
 
 /** @brief (Re-)populate a node
@@ -186,6 +216,9 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
                                                           "display"),
                          CHOOSEDATA_COLUMN, cd,
                          -1);
+      /* Update length and state; we expect this to kick off length lookups
+       * rather than necessarily get the right value the first time round. */
+      choose_set_state_callback(0, 0, it, 0);
       ++inserted;
       /* If we inserted a directory, insert a placeholder too, so it appears to
        * have children; it will be deleted when we expand the directory. */
@@ -260,20 +293,52 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
 GtkWidget *choose_widget(void) {
   /* Create the tree store. */
   choose_store = gtk_tree_store_new(1 + CHOOSEDATA_COLUMN,
+                                    G_TYPE_BOOLEAN,
+                                    G_TYPE_STRING,
                                     G_TYPE_STRING,
                                     G_TYPE_POINTER);
 
   /* Create the view */
   choose_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(choose_store));
+  gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(choose_view), TRUE);
 
   /* Create cell renderers and columns */
-  GtkCellRenderer *r = gtk_cell_renderer_text_new();
-  GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
-    ("Track",
-     r,
-     "text", 0,
-     (char *)0);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
+  /* TODO use a table */
+  {
+    GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
+      ("Track",
+       r,
+       "text", NAME_COLUMN,
+       (char *)0);
+    gtk_tree_view_column_set_resizable(c, TRUE);
+    gtk_tree_view_column_set_reorderable(c, TRUE);
+    g_object_set(c, "expand", TRUE, (char *)0);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
+  }
+  {
+    GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
+      ("Length",
+       r,
+       "text", LENGTH_COLUMN,
+       (char *)0);
+    gtk_tree_view_column_set_resizable(c, TRUE);
+    gtk_tree_view_column_set_reorderable(c, TRUE);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
+  }
+  {
+    GtkCellRenderer *r = gtk_cell_renderer_toggle_new();
+    GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
+      ("Queued",
+       r,
+       "active", STATE_COLUMN,
+       (char *)0);
+    gtk_tree_view_column_set_resizable(c, TRUE);
+    gtk_tree_view_column_set_reorderable(c, TRUE);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
+    /* TODO make checkbox clickable to queue the track */
+  }
   
   /* The selection should support multiple things being selected */
   choose_selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(choose_view));
@@ -287,6 +352,9 @@ GtkWidget *choose_widget(void) {
   /* Catch row expansions so we can fill in placeholders */
   g_signal_connect(choose_view, "row-expanded",
                    G_CALLBACK(choose_row_expanded), 0);
+
+  event_register("queue-list-changed", choose_set_state, 0);
+  event_register("playing-track-changed", choose_set_state, 0);
   
   /* Fill the root */
   disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
