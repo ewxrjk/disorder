@@ -38,7 +38,6 @@
  * TODO:
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
- * - popup menu (partially implemented now)
  * - playing state
  * - display length of tracks
  */

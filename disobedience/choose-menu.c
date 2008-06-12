@@ -21,8 +21,36 @@
 #include "popup.h"
 #include "choose.h"
 
+VECTOR_TYPE(cdvector, struct choosedata *, xrealloc);
+
 /** @brief Popup menu */
 static GtkWidget *choose_menu;
+
+/** @brief Callback for choose_get_selected() */
+static void choose_gather_selected_callback(GtkTreeModel attribute((unused)) *model,
+                                            GtkTreePath attribute((unused)) *path,
+                                            GtkTreeIter *iter,
+                                            gpointer data) {
+  struct cdvector *v = data;
+  struct choosedata *cd = choose_iter_to_data(iter);
+
+  if(cd)
+    cdvector_append(v, cd);
+}
+
+/** @brief Get a list of all selected tracks and directories */
+static struct choosedata **choose_get_selected(int *nselected) {
+  struct cdvector v[1];
+
+  cdvector_init(v);
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_gather_selected_callback,
+                                      v);
+  cdvector_terminate(v);
+  if(nselected)
+    *nselected = v->nvec;
+  return v->vec;
+}
 
 static int choose_selectall_sensitive(void attribute((unused)) *extra) {
   return TRUE;
@@ -43,21 +71,41 @@ static void choose_selectnone_activate(GtkMenuItem attribute((unused)) *item,
 }
   
 static int choose_play_sensitive(void attribute((unused)) *extra) {
-  return FALSE;                 /* TODO */
+  struct choosedata *cd, **cdp = choose_get_selected(NULL);
+  int counts[2] = { 0, 0 };
+  while((cd = *cdp++))
+    ++counts[cd->type];
+  return !counts[CHOOSE_DIRECTORY] && counts[CHOOSE_FILE];
+}
+
+static void choose_play_completed(void attribute((unused)) *v,
+                                  const char *error) {
+  if(error)
+    popup_protocol_error(0, error);
 }
   
 static void choose_play_activate(GtkMenuItem attribute((unused)) *item,
                                  gpointer attribute((unused)) userdata) {
-  /* TODO */
+  struct choosedata *cd, **cdp = choose_get_selected(NULL);
+  while((cd = *cdp++)) {
+    if(cd->type == CHOOSE_FILE)
+      disorder_eclient_play(client, xstrdup(cd->track),
+                            choose_play_completed, 0);
+  }
 }
   
-static int choose_properties_sensitive(void attribute((unused)) *extra) {
-  return FALSE;                 /* TODO */
+static int choose_properties_sensitive(void *extra) {
+  return choose_play_sensitive(extra);
 }
   
 static void choose_properties_activate(GtkMenuItem attribute((unused)) *item,
                                        gpointer attribute((unused)) userdata) {
-  /* TODO */
+  struct choosedata *cd, **cdp = choose_get_selected(NULL);
+  struct vector v[1];
+  vector_init(v);
+  while((cd = *cdp++))
+    vector_append(v, xstrdup(cd->track));
+  properties(v->nvec, (const char **)v->vec);
 }
 
 /** @brief Pop-up menu for choose */
@@ -109,8 +157,8 @@ gboolean choose_button_event(GtkWidget attribute((unused)) *widget,
                              gpointer attribute((unused)) user_data) {
   if(event->type == GDK_BUTTON_RELEASE && event->button == 2) {
     /* Middle click release - play track */
-    //ensure_selected(choose_view, event);
-    /* TODO */
+    ensure_selected(GTK_TREE_VIEW(choose_view), event);
+    choose_play_activate(NULL, NULL);
   } else if(event->type == GDK_BUTTON_PRESS && event->button == 3) {
     /* Right click press - pop up the menu */
     ensure_selected(GTK_TREE_VIEW(choose_view), event);
