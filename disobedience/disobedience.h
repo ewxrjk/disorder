@@ -90,9 +90,12 @@ struct tabtype {
   int (*properties_sensitive)(void *extra);
   int (*selectall_sensitive)(void *extra);
   int (*selectnone_sensitive)(void *extra);
-  void (*properties_activate)(void *extra);
-  void (*selectall_activate)(void *extra);
-  void (*selectnone_activate)(void *extra);
+  void (*properties_activate)(GtkMenuItem *menuitem,
+                              gpointer user_data);
+  void (*selectall_activate)(GtkMenuItem *menuitem,
+                             gpointer user_data);
+  void (*selectnone_activate)(GtkMenuItem *menuitem,
+                              gpointer user_data);
   void (*selected)(void);
   void *extra;
 };

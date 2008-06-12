@@ -59,7 +59,7 @@ static void select_all(gpointer attribute((unused)) callback_data,
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
   if(t->selectall_activate)
-    t->selectall_activate(t->extra);
+    t->selectall_activate(NULL, t->extra);
 }
 
 /** @brief Called when the select none option is activated
@@ -74,7 +74,7 @@ static void select_none(gpointer attribute((unused)) callback_data,
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
   if(t->selectnone_activate)
-    t->selectnone_activate(t->extra);
+    t->selectnone_activate(NULL, t->extra);
 }
 
 /** @brief Called when the track properties option is activated
@@ -89,7 +89,7 @@ static void properties_item(gpointer attribute((unused)) callback_data,
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
   if(t->properties_activate)
-    t->properties_activate(t->extra);
+    t->properties_activate(NULL, t->extra);
 }
 
 /** @brief Called when the login option is activated */

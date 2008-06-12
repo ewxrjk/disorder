@@ -40,6 +40,7 @@
  * - display playing row in a different color?
  */
 #include "disobedience.h"
+#include "popup.h"
 #include "queue-generic.h"
 
 static struct queuelike *const queuelikes[] = {

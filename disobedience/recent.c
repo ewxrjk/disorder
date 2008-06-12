@@ -18,6 +18,7 @@
  * USA
  */
 #include "disobedience.h"
+#include "popup.h"
 #include "queue-generic.h"
 
 /** @brief Update the recently played list */
@@ -75,7 +76,7 @@ static const struct queue_column recent_columns[] = {
 };
 
 /** @brief Pop-up menu for recently played list */
-static struct queue_menuitem recent_menuitems[] = {
+static struct menuitem recent_menuitems[] = {
   { "Track properties", ql_properties_activate, ql_properties_sensitive,0, 0 },
   { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },

@@ -18,11 +18,13 @@
  * USA
  */
 #include "disobedience.h"
+#include "popup.h"
 #include "queue-generic.h"
 
 /* Select All */
 
-int ql_selectall_sensitive(struct queuelike *ql) {
+int ql_selectall_sensitive(void *extra) {
+  struct queuelike *ql = extra;
   return !!ql->q;
 }
 
@@ -35,7 +37,8 @@ void ql_selectall_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Select None */
 
-int ql_selectnone_sensitive(struct queuelike *ql) {
+int ql_selectnone_sensitive(void *extra) {
+  struct queuelike *ql = extra;
   return gtk_tree_selection_count_selected_rows(ql->selection) > 0;
 }
 
@@ -48,7 +51,8 @@ void ql_selectnone_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Properties */
 
-int ql_properties_sensitive(struct queuelike *ql) {
+int ql_properties_sensitive(void *extra) {
+  struct queuelike *ql = extra;
   return gtk_tree_selection_count_selected_rows(ql->selection) > 0;
 }
 
@@ -71,7 +75,7 @@ void ql_properties_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Scratch */
 
-int ql_scratch_sensitive(struct queuelike attribute((unused)) *ql) {
+int ql_scratch_sensitive(void attribute((unused)) *extra) {
   return !!(last_state & DISORDER_PLAYING)
     && right_scratchable(last_rights, config->username, playing_track);
 }
@@ -100,7 +104,8 @@ static void ql_remove_sensitive_callback(GtkTreeModel *model,
   ++counts[removable];
 }
 
-int ql_remove_sensitive(struct queuelike *ql) {
+int ql_remove_sensitive(void *extra) {
+  struct queuelike *ql = extra;
   int counts[2] = { 0, 0 };
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_remove_sensitive_callback,
@@ -135,7 +140,8 @@ void ql_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Play */
 
-int ql_play_sensitive(struct queuelike *ql) {
+int ql_play_sensitive(void *extra) {
+  struct queuelike *ql = extra;
   return (last_rights & RIGHT_PLAY)
     && gtk_tree_selection_count_selected_rows(ql->selection) > 0;
 }
@@ -162,38 +168,8 @@ void ql_play_activate(GtkMenuItem attribute((unused)) *menuitem,
                                       0);
 }
 
-/** @brief Create @c ql->menu if it does not already exist */
-static void ql_create_menu(struct queuelike *ql) {
-  if(ql->menu)
-    return;
-  ql->menu = gtk_menu_new();
-  g_signal_connect(ql->menu, "destroy",
-                   G_CALLBACK(gtk_widget_destroyed), &ql->menu);
-  for(int n = 0; n < ql->nmenuitems; ++n) {
-    ql->menuitems[n].w = gtk_menu_item_new_with_label(ql->menuitems[n].name);
-    gtk_menu_attach(GTK_MENU(ql->menu), ql->menuitems[n].w, 0, 1, n, n + 1);
-  }
-  set_tool_colors(ql->menu);
-}
-
-/** @brief Configure @c ql->menu */
-static void ql_configure_menu(struct queuelike *ql) {
-  /* Set the sensitivity of each menu item and (re-)establish the signal
-   * handlers */
-  for(int n = 0; n < ql->nmenuitems; ++n) {
-    if(ql->menuitems[n].handlerid)
-      g_signal_handler_disconnect(ql->menuitems[n].w,
-                                  ql->menuitems[n].handlerid);
-    gtk_widget_set_sensitive(ql->menuitems[n].w,
-                             ql->menuitems[n].sensitive(ql));
-    ql->menuitems[n].handlerid = g_signal_connect
-      (ql->menuitems[n].w, "activate",
-       G_CALLBACK(ql->menuitems[n].activate), ql);
-  }
-}
-
 /** @brief Called when a button is released over a queuelike */
-gboolean ql_button_release(GtkWidget*widget,
+gboolean ql_button_release(GtkWidget *widget,
                            GdkEventButton *event,
                            gpointer user_data) {
   struct queuelike *ql = user_data;
@@ -201,59 +177,22 @@ gboolean ql_button_release(GtkWidget*widget,
   if(event->type == GDK_BUTTON_PRESS
      && event->button == 3) {
     /* Right button click. */
-    if(gtk_tree_selection_count_selected_rows(ql->selection) == 0) {
-      /* Nothing is selected, select whatever is under the pointer */
-      GtkTreePath *path;
-      if(gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(widget),
-                                       event->x, event->y,
-                                       &path,
-                                       NULL,
-                                       NULL, NULL)) 
-        gtk_tree_selection_select_path(ql->selection, path);
-    }
-    ql_create_menu(ql);
-    ql_configure_menu(ql);
-    gtk_widget_show_all(ql->menu);
-    gtk_menu_popup(GTK_MENU(ql->menu), 0, 0, 0, 0,
-                   event->button, event->time);
+    ensure_selected(GTK_TREE_VIEW(widget), event);
+    popup(&ql->menu, event, ql->menuitems, ql->nmenuitems, ql);
     return TRUE;                        /* hide the click from other widgets */
   }
 
   return FALSE;
 }
 
-static int ql_tab_selectall_sensitive(void *extra) {
-  return ql_selectall_sensitive(extra);
-}
-  
-static void ql_tab_selectall_activate(void *extra) {
-  ql_selectall_activate(NULL, extra);
-}
-  
-static int ql_tab_selectnone_sensitive(void *extra) {
-  return ql_selectnone_sensitive(extra);
-}
-  
-static void ql_tab_selectnone_activate(void *extra) {
-  ql_selectnone_activate(NULL, extra);
-}
-  
-static int ql_tab_properties_sensitive(void *extra) {
-  return ql_properties_sensitive(extra);
-}
-  
-static void ql_tab_properties_activate(void *extra) {
-  ql_properties_activate(NULL, extra);
-}
-
 struct tabtype *ql_tabtype(struct queuelike *ql) {
   static const struct tabtype ql_tabtype = {
-    ql_tab_properties_sensitive,
-    ql_tab_selectall_sensitive,
-    ql_tab_selectnone_sensitive,
-    ql_tab_properties_activate,
-    ql_tab_selectall_activate,
-    ql_tab_selectnone_activate,
+    ql_properties_sensitive,
+    ql_selectall_sensitive,
+    ql_selectnone_sensitive,
+    ql_properties_activate,
+    ql_selectall_activate,
+    ql_selectnone_activate,
     0,
     0
   };

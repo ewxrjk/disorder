@@ -45,28 +45,6 @@ struct queue_column {
 /** @brief Right-algin column */
 #define COL_RIGHT 0x0004
 
-/** @brief An item in the queue's popup menu */
-struct queue_menuitem {
-  /** @brief Menu item name */
-  const char *name;
-
-  /** @brief Called to activate the menu item */
-  void (*activate)(GtkMenuItem *menuitem,
-                   gpointer user_data);
-  
-  /** @brief Called to determine whether the menu item is usable.
-   *
-   * Returns @c TRUE if it should be sensitive and @c FALSE otherwise.
-   */
-  int (*sensitive)(struct queuelike *ql);
-
-  /** @brief Signal handler ID */
-  gulong handlerid;
-
-  /** @brief Widget for menu item */
-  GtkWidget *w;
-};
-
 /** @brief Definition of a queue-like window */
 struct queuelike {
 
@@ -85,7 +63,7 @@ struct queuelike {
   int ncolumns;
 
   /** @brief Items for popup menu */
-  struct queue_menuitem *menuitems;
+  struct menuitem *menuitems;
 
   /** @brief Number of menu items */
   int nmenuitems;
@@ -119,22 +97,22 @@ extern struct queuelike ql_added;
 
 extern time_t last_playing;
 
-int ql_selectall_sensitive(struct queuelike *ql);
+int ql_selectall_sensitive(void *extra);
 void ql_selectall_activate(GtkMenuItem *menuitem,
                            gpointer user_data);
-int ql_selectnone_sensitive(struct queuelike *ql);
+int ql_selectnone_sensitive(void *extra);
 void ql_selectnone_activate(GtkMenuItem *menuitem,
                             gpointer user_data);
-int ql_properties_sensitive(struct queuelike *ql);
+int ql_properties_sensitive(void *extra);
 void ql_properties_activate(GtkMenuItem *menuitem,
                             gpointer user_data);
-int ql_scratch_sensitive(struct queuelike *ql);
+int ql_scratch_sensitive(void *extra);
 void ql_scratch_activate(GtkMenuItem *menuitem,
                          gpointer user_data);
-int ql_remove_sensitive(struct queuelike *ql);
+int ql_remove_sensitive(void *extra);
 void ql_remove_activate(GtkMenuItem *menuitem,
                         gpointer user_data);
-int ql_play_sensitive(struct queuelike *ql);
+int ql_play_sensitive(void *extra);
 void ql_play_activate(GtkMenuItem *menuitem,
                       gpointer user_data);
 gboolean ql_button_release(GtkWidget *widget,

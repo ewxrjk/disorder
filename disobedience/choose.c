@@ -38,54 +38,28 @@
  * TODO:
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
- * - popup menu
+ * - popup menu (partially implemented now)
  * - playing state
  * - display length of tracks
  */
 
 #include "disobedience.h"
-
-/** @brief Extra data at each node */
-struct choosedata {
-  /** @brief Node type */
-  int type;
-
-  /** @brief Full track or directory name */
-  gchar *track;
-
-  /** @brief Sort key */
-  gchar *sort;
-};
-
-/** @brief Track name column number */
-#define NAME_COLUMN 0
-
-/** @brief Hidden column number */
-#define CHOOSEDATA_COLUMN 1
-
-/** @brief @ref choosedata node is a file */
-#define CHOOSE_FILE 0
-
-/** @brief @ref choosedata node is a directory */
-#define CHOOSE_DIRECTORY 1
+#include "choose.h"
 
 /** @brief The current selection tree */
-static GtkTreeStore *choose_store;
+GtkTreeStore *choose_store;
 
 /** @brief The view onto the selection tree */
-static GtkWidget *choose_view;
+GtkWidget *choose_view;
 
 /** @brief The selection tree's selection */
-static GtkTreeSelection *choose_selection;
-
-/** @brief Popup menu */
-//static GtkWidget *choose_menu;
+GtkTreeSelection *choose_selection;
 
 /** @brief Map choosedata types to names */
 static const char *const choose_type_map[] = { "track", "dir" };
 
 /** @brief Return the choosedata given an interator */
-static struct choosedata *choose_iter_to_data(GtkTreeIter *iter) {
+struct choosedata *choose_iter_to_data(GtkTreeIter *iter) {
   GValue v[1];
   memset(v, 0, sizeof v);
   gtk_tree_model_get_value(GTK_TREE_MODEL(choose_store), iter, CHOOSEDATA_COLUMN, v);
@@ -275,41 +249,6 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
   /* The row references are destroyed in the _completed handlers. */
 }
 
-static int choose_tab_selectall_sensitive(void attribute((unused)) *extra) {
-  return TRUE;
-}
-  
-static void choose_tab_selectall_activate(void attribute((unused)) *extra) {
-  gtk_tree_selection_select_all(choose_selection);
-}
-  
-static int choose_tab_selectnone_sensitive(void attribute((unused)) *extra) {
-  return gtk_tree_selection_count_selected_rows(choose_selection) > 0;
-}
-  
-static void choose_tab_selectnone_activate(void attribute((unused)) *extra) {
-  gtk_tree_selection_unselect_all(choose_selection);
-}
-  
-static int choose_tab_properties_sensitive(void attribute((unused)) *extra) {
-  return TRUE;
-}
-  
-static void choose_tab_properties_activate(void attribute((unused)) *extra) {
-  fprintf(stderr, "TODO choose_tab_properties_activate\n");
-}
-
-static const struct tabtype choose_tabtype = {
-  choose_tab_properties_sensitive,
-  choose_tab_selectall_sensitive,
-  choose_tab_selectnone_sensitive,
-  choose_tab_properties_activate,
-  choose_tab_selectall_activate,
-  choose_tab_selectnone_activate,
-  0,
-  0
-};
-
 /** @brief Create the choose tab */
 GtkWidget *choose_widget(void) {
   /* Create the tree store. */
@@ -334,8 +273,10 @@ GtkWidget *choose_widget(void) {
   gtk_tree_selection_set_mode(choose_selection, GTK_SELECTION_MULTIPLE);
 
   /* Catch button presses */
-  /*g_signal_connect(choose_view, "button-press-event",
-    G_CALLBACK(choose_button_release), 0);*/
+  g_signal_connect(choose_view, "button-press-event",
+                   G_CALLBACK(choose_button_event), 0);
+  g_signal_connect(choose_view, "button-release-event",
+                   G_CALLBACK(choose_button_event), 0);
   /* Catch row expansions so we can fill in placeholders */
   g_signal_connect(choose_view, "row-expanded",
                    G_CALLBACK(choose_row_expanded), 0);

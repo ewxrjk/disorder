@@ -18,6 +18,7 @@
  * USA
  */
 #include "disobedience.h"
+#include "popup.h"
 #include "queue-generic.h"
 
 /** @brief Called with an updated list of newly-added tracks
@@ -77,7 +78,7 @@ static const struct queue_column added_columns[] = {
 };
 
 /** @brief Pop-up menu for new tracks list */
-static struct queue_menuitem added_menuitems[] = {
+static struct menuitem added_menuitems[] = {
   { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
   { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
   { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
