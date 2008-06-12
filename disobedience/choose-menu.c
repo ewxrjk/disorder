@@ -21,55 +21,31 @@
 #include "popup.h"
 #include "choose.h"
 
-VECTOR_TYPE(cdvector, struct choosedata *, xrealloc);
-
 /** @brief Popup menu */
 static GtkWidget *choose_menu;
 
-/** @brief Callback for choose_get_selected() */
-static void choose_gather_selected_callback(GtkTreeModel attribute((unused)) *model,
-                                            GtkTreePath attribute((unused)) *path,
-                                            GtkTreeIter *iter,
-                                            gpointer data) {
-  struct cdvector *v = data;
-  struct choosedata *cd = choose_iter_to_data(iter);
-
-  if(cd)
-    cdvector_append(v, cd);
-}
-
-/** @brief Get a list of all selected tracks and directories */
-static struct choosedata **choose_get_selected(int *nselected) {
-  struct cdvector v[1];
-
-  cdvector_init(v);
-  gtk_tree_selection_selected_foreach(choose_selection,
-                                      choose_gather_selected_callback,
-                                      v);
-  cdvector_terminate(v);
-  if(nselected)
-    *nselected = v->nvec;
-  return v->vec;
-}
-
 /** @brief Recursion step for choose_get_visible()
  * @param parent A visible node, or NULL for the root
- * @param cdv Visible nodes accumulated here
+ * @param callback Called for each visible node
+ * @param userdata Passed to @p callback
+ *
+ * If @p callback returns nonzero, the walk stops immediately.
  */
-static void choose_visible_recurse(GtkTreeIter *parent,
-                                   void (*callback)(GtkTreeIter *it,
-                                                    struct choosedata *cd,
-                                                    void *userdata),
-                                   void *userdata) {
-  struct choosedata *cd;
+static int choose_visible_recurse(GtkTreeIter *parent,
+                                  int (*callback)(GtkTreeIter *it,
+                                                  int isfile,
+                                                  void *userdata),
+                                  void *userdata) {
   int expanded;
   if(parent) {
-    cd = choose_iter_to_data(parent);
-    callback(parent, cd, userdata);
-    if(cd->type != CHOOSE_DIRECTORY)
-      /* Only directories can be expanded so we can avoid the more
-       * expensive test below */
-      return;
+    /* Skip placeholders */
+    if(choose_is_placeholder(parent))
+      return 0;
+    const int isfile = choose_is_file(parent);
+    if(callback(parent, isfile, userdata))
+      return 1;
+    if(isfile)
+      return 0;                 /* Files never have children */
     GtkTreePath *parent_path
       = gtk_tree_model_get_path(GTK_TREE_MODEL(choose_store),
                                 parent);
@@ -86,80 +62,122 @@ static void choose_visible_recurse(GtkTreeIter *parent,
                                                 it,
                                                 parent);
     while(itv) {
-      choose_visible_recurse(it, callback, userdata);
+      if(choose_visible_recurse(it, callback, userdata))
+        return TRUE;
       itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
     }
   }
+  return 0;
 }
 
-static void choose_visible_visit(void (*callback)(GtkTreeIter *it,
-                                                  struct choosedata *cd,
-                                                  void *userdata),
+static void choose_visible_visit(int (*callback)(GtkTreeIter *it,
+                                                 int isfile,
+                                                 void *userdata),
                                  void *userdata) {
   choose_visible_recurse(NULL, callback, userdata);
 }
 
-static void count_choosedatas(struct choosedata **cds,
-                              int counts[2]) {
-  struct choosedata *cd;
-  counts[CHOOSE_FILE] = counts[CHOOSE_DIRECTORY] = 0;
-  while((cd = *cds++))
-    ++counts[cd->type];
-}
-
-
-static void choose_selectall_sensitive_callback
-    (GtkTreeIter attribute((unused)) *it,
-     struct choosedata *cd,
+static int choose_selectall_sensitive_callback
+   (GtkTreeIter attribute((unused)) *it,
+     int isfile,
      void *userdata) {
-  if(cd->type == CHOOSE_FILE)
-    ++*(int *)userdata;
+  if(isfile) {
+    *(int *)userdata = 1;
+    return 1;
+  }
+  return 0;
 }
 
+/** @brief Should 'select all' be sensitive?
+ *
+ * Yes if there are visible files.
+ */
 static int choose_selectall_sensitive(void attribute((unused)) *extra) {
   int files = 0;
   choose_visible_visit(choose_selectall_sensitive_callback, &files);
   return files > 0;
 }
 
-static void choose_selectall_activate_callback
+static int choose_selectall_activate_callback
     (GtkTreeIter *it,
-     struct choosedata *cd,
+     int isfile,
      void attribute((unused)) *userdata) {
-  if(cd->type == CHOOSE_FILE)
+  if(isfile)
     gtk_tree_selection_select_iter(choose_selection, it);
   else
     gtk_tree_selection_unselect_iter(choose_selection, it);
+  return 0;
 }
 
+/** @brief Activate select all
+ *
+ * Selects all files and deselects everything else.
+ */
 static void choose_selectall_activate(GtkMenuItem attribute((unused)) *item,
                                       gpointer attribute((unused)) userdata) {
   choose_visible_visit(choose_selectall_activate_callback, 0);
 }
-  
+
+/** @brief Should 'select none' be sensitive
+ *
+ * Yes if anything is selected.
+ */
 static int choose_selectnone_sensitive(void attribute((unused)) *extra) {
   return gtk_tree_selection_count_selected_rows(choose_selection) > 0;
 }
-  
+
+/** @brief Activate select none */
 static void choose_selectnone_activate(GtkMenuItem attribute((unused)) *item,
                                        gpointer attribute((unused)) userdata) {
   gtk_tree_selection_unselect_all(choose_selection);
 }
-  
-static int choose_play_sensitive(void attribute((unused)) *extra) {
-  int counts[2];
-  count_choosedatas(choose_get_selected(NULL), counts);
-  return !counts[CHOOSE_DIRECTORY] && counts[CHOOSE_FILE];
+
+static void choose_play_sensitive_callback(GtkTreeModel attribute((unused)) *model,
+                                           GtkTreePath attribute((unused)) *path,
+                                           GtkTreeIter *iter,
+                                           gpointer data) {
+  int *filesp = data;
+
+  if(*filesp == -1)
+    return;
+  if(choose_is_dir(iter))
+    *filesp = -1;
+  else if(choose_is_file(iter))
+    ++*filesp;
 }
+
+/** @brief Should 'play' be sensitive?
+ *
+ * Yes if tracks are selected and no directories are */
+static int choose_play_sensitive(void attribute((unused)) *extra) {
+  int files = 0;
+  
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_play_sensitive_callback,
+                                      &files);
+  return files > 0;
+}
+
+static void choose_gather_selected_files_callback(GtkTreeModel attribute((unused)) *model,
+                                                  GtkTreePath attribute((unused)) *path,
+                                                  GtkTreeIter *iter,
+                                                  gpointer data) {
+  struct vector *v = data;
+
+  if(choose_is_file(iter))
+    vector_append(v, choose_get_track(iter));
+}
+
   
 static void choose_play_activate(GtkMenuItem attribute((unused)) *item,
                                  gpointer attribute((unused)) userdata) {
-  struct choosedata *cd, **cdp = choose_get_selected(NULL);
-  while((cd = *cdp++)) {
-    if(cd->type == CHOOSE_FILE)
-      disorder_eclient_play(client, xstrdup(cd->track),
-                            choose_play_completed, 0);
-  }
+  struct vector v[1];
+  vector_init(v);
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_gather_selected_files_callback,
+                                      v);
+  for(int n = 0; n < v->nvec; ++n)
+    disorder_eclient_play(client, v->vec[n], choose_play_completed, 0);
 }
   
 static int choose_properties_sensitive(void *extra) {
@@ -168,11 +186,11 @@ static int choose_properties_sensitive(void *extra) {
   
 static void choose_properties_activate(GtkMenuItem attribute((unused)) *item,
                                        gpointer attribute((unused)) userdata) {
-  struct choosedata *cd, **cdp = choose_get_selected(NULL);
   struct vector v[1];
   vector_init(v);
-  while((cd = *cdp++))
-    vector_append(v, xstrdup(cd->track));
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_gather_selected_files_callback,
+                                      v);
   properties(v->nvec, (const char **)v->vec);
 }
 

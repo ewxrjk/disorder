@@ -20,32 +20,19 @@
 #ifndef CHOOSE_H
 #define CHOOSE_H
 
-/** @brief Extra data at each node */
-struct choosedata {
-  /** @brief Node type */
-  int type;
-
-  /** @brief Full track or directory name */
-  gchar *track;
-
-  /** @brief Sort key */
-  gchar *sort;
-};
-
 /** @brief Column numbers */
 enum {
-  STATE_COLUMN,
-  NAME_COLUMN,
-  LENGTH_COLUMN,
-  ISFILE_COLUMN,
-  CHOOSEDATA_COLUMN
+  /* Visible columns */
+  STATE_COLUMN,                 /* Track state */
+  NAME_COLUMN,                  /* Track name (display context) */
+  LENGTH_COLUMN,                /* Track length */
+  /* Hidden columns */
+  ISFILE_COLUMN,                /* TRUE for a track, FALSE for a directory */
+  TRACK_COLUMN,                 /* Full track name, "" for placeholder */
+  SORT_COLUMN,                  /* Sort key */
+
+  CHOOSE_COLUMNS                /* column count */
 };
-
-/** @brief @ref choosedata node is a file */
-#define CHOOSE_FILE 0
-
-/** @brief @ref choosedata node is a directory */
-#define CHOOSE_DIRECTORY 1
 
 extern GtkTreeStore *choose_store;
 extern GtkWidget *choose_view;
@@ -59,6 +46,11 @@ gboolean choose_button_event(GtkWidget *widget,
                              gpointer user_data);
 void choose_play_completed(void attribute((unused)) *v,
                            const char *error);
+char *choose_get_track(GtkTreeIter *iter);
+char *choose_get_sort(GtkTreeIter *iter);
+int choose_is_file(GtkTreeIter *iter);
+int choose_is_dir(GtkTreeIter *iter);
+int choose_is_placeholder(GtkTreeIter *iter);
 
 #endif /* CHOOSE_H */
 

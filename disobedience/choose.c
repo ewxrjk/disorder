@@ -22,14 +22,11 @@
  *
  * We now use an ordinary GtkTreeStore/GtkTreeView.
  *
- * We have an extra column with per-row data.  This isn't referenced from
- * anywhere the GC can see so explicit memory management is required.
- * (TODO perhaps we could fix this using a gobject?)
- *
  * We don't want to pull the entire tree in memory, but we want directories to
  * show up as having children.  Therefore we give directories a placeholder
- * child and replace their children when they are opened.  Placeholders have a
- * null choosedata pointer.
+ * child and replace their children when they are opened.  Placeholders have
+ * TRACK_COLUMN="" and ISFILE_COLUMN=FALSE (so that they don't get check boxes,
+ * lengths, etc).
  *
  * TODO We do a period sweep which kills contracted nodes, putting back
  * placeholders, and updating expanded nodes to keep up with server-side
@@ -39,6 +36,7 @@
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
  * - searching!
+ * - proper sorting
  */
 
 #include "disobedience.h"
@@ -56,23 +54,45 @@ GtkTreeSelection *choose_selection;
 /** @brief Map choosedata types to names */
 static const char *const choose_type_map[] = { "track", "dir" };
 
-/** @brief Return the choosedata given an interator */
-struct choosedata *choose_iter_to_data(GtkTreeIter *iter) {
-  GValue v[1];
-  memset(v, 0, sizeof v);
-  gtk_tree_model_get_value(GTK_TREE_MODEL(choose_store), iter, CHOOSEDATA_COLUMN, v);
-  assert(G_VALUE_TYPE(v) == G_TYPE_POINTER);
-  struct choosedata *const cd = g_value_get_pointer(v);
-  g_value_unset(v);
-  return cd;
+static char *choose_get_string(GtkTreeIter *iter, int column) {
+  gchar *gs;
+  gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
+                     column, &gs,
+                     -1);
+  char *s = xstrdup(gs);
+  g_free(gs);
+  return s;
 }
 
-struct choosedata *choose_path_to_data(GtkTreePath *path) {
-  GtkTreeIter it[1];
-  gboolean itv = gtk_tree_model_get_iter(GTK_TREE_MODEL(choose_store),
-                                         it, path);
-  assert(itv);
-  return choose_iter_to_data(it);
+char *choose_get_track(GtkTreeIter *iter) {
+  char *s = choose_get_string(iter, TRACK_COLUMN);
+  return *s ? s : 0;                    /* Placeholder -> NULL */
+}
+
+char *choose_get_sort(GtkTreeIter *iter) {
+  return choose_get_string(iter, SORT_COLUMN);
+}
+
+int choose_is_file(GtkTreeIter *iter) {
+  gboolean isfile;
+  gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
+                     ISFILE_COLUMN, &isfile,
+                     -1);
+  return isfile;
+}
+
+int choose_is_dir(GtkTreeIter *iter) {
+  gboolean isfile;
+  gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
+                     ISFILE_COLUMN, &isfile,
+                     -1);
+  if(isfile)
+    return FALSE;
+  return !choose_is_placeholder(iter);
+}
+
+int choose_is_placeholder(GtkTreeIter *iter) {
+  return choose_get_string(iter, TRACK_COLUMN)[0] == 0;
 }
 
 /** @brief Remove node @p it and all its children
@@ -86,12 +106,6 @@ static gboolean choose_remove_node(GtkTreeIter *it) {
                                                  it);
   while(childv)
     childv = choose_remove_node(child);
-  struct choosedata *cd = choose_iter_to_data(it);
-  if(cd) {
-    g_free(cd->track);
-    g_free(cd->sort);
-    g_free(cd);
-  }
   return gtk_tree_store_remove(choose_store, it);
 }
 
@@ -100,11 +114,9 @@ static gboolean choose_set_state_callback(GtkTreeModel attribute((unused)) *mode
                                           GtkTreePath attribute((unused)) *path,
                                           GtkTreeIter *it,
                                           gpointer attribute((unused)) data) {
-  struct choosedata *cd = choose_iter_to_data(it);
-  if(!cd)
-    return FALSE;                       /* Skip placeholders*/
-  if(cd->type == CHOOSE_FILE) {
-    const long l = namepart_length(cd->track);
+  if(choose_is_file(it)) {
+    const char *track = choose_get_track(it);
+    const long l = namepart_length(track);
     char length[64];
     if(l > 0)
       byte_snprintf(length, sizeof length, "%ld:%02ld", l / 60, l % 60);
@@ -112,7 +124,7 @@ static gboolean choose_set_state_callback(GtkTreeModel attribute((unused)) *mode
       length[0] = 0;
     gtk_tree_store_set(choose_store, it,
                        LENGTH_COLUMN, length,
-                       STATE_COLUMN, queued(cd->track),
+                       STATE_COLUMN, queued(track),
                        -1);
   }
   return FALSE;                         /* continue walking */
@@ -131,7 +143,7 @@ static void choose_set_state(const char attribute((unused)) *event,
  * @param parent_ref Node to populate or NULL to fill root
  * @param nvec Number of children to add
  * @param vec Children
- * @param dirs True if children are directories
+ * @param files 1 if children are files, 0 if directories
  *
  * Adjusts the set of files (or directories) below @p parent_ref to match those
  * listed in @p nvec and @p vec.
@@ -140,7 +152,7 @@ static void choose_set_state(const char attribute((unused)) *event,
  */
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,
-                            int type) {
+                            int isfile) {
   /* Compute parent_* */
   GtkTreeIter pit[1], *parent_it;
   GtkTreePath *parent_path;
@@ -167,18 +179,18 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
                                               it,
                                               parent_it);
   while(itv) {
-    struct choosedata *cd = choose_iter_to_data(it);
+    const char *track = choose_get_track(it);
     int keep;
 
-    if(!cd)  {
+    if(!track)  {
       /* Always kill placeholders */
       //fprintf(stderr, "  kill a placeholder\n");
       keep = 0;
-    } else if(cd->type == type) {
+    } else if(choose_is_file(it) == isfile) {
       /* This is the type we care about */
-      //fprintf(stderr, "  %s is a %s\n", cd->track, choose_type_map[cd->type]);
+      //fprintf(stderr, "  %s is a %s\n", track, isfile ? "file" : "dir");
       int n;
-      for(n = 0; n < nvec && strcmp(vec[n], cd->track); ++n)
+      for(n = 0; n < nvec && strcmp(vec[n], track); ++n)
         ;
       if(n < nvec) {
         //fprintf(stderr, "   ... and survives\n");
@@ -190,7 +202,7 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
       }
     } else {
       /* Keep wrong-type entries */
-      //fprintf(stderr, "  %s is a %s\n", cd->track, choose_type_map[cd->type]);
+      //fprintf(stderr, "  %s has wrong type\n", track);
       keep = 1;
     }
     if(keep)
@@ -201,22 +213,20 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
   /* Add nodes we don't have */
   int inserted = 0;
   //fprintf(stderr, " inserting new %s nodes\n", choose_type_map[type]);
+  const char *typename = isfile ? "track" : "dir";
   for(int n = 0; n < nvec; ++n) {
     if(!found[n]) {
       //fprintf(stderr, "  %s was not found\n", vec[n]);
-      struct choosedata *cd = g_malloc0(sizeof *cd);
-      cd->type = type;
-      cd->track = g_strdup(vec[n]);
-      cd->sort = g_strdup(trackname_transform(choose_type_map[type],
-                                              vec[n],
-                                              "sort"));
       gtk_tree_store_append(choose_store, it, parent_it);
       gtk_tree_store_set(choose_store, it,
-                         NAME_COLUMN, trackname_transform(choose_type_map[type],
+                         NAME_COLUMN, trackname_transform(typename,
                                                           vec[n],
                                                           "display"),
-                         CHOOSEDATA_COLUMN, cd,
-                         ISFILE_COLUMN, type == CHOOSE_FILE,
+                         ISFILE_COLUMN, isfile,
+                         TRACK_COLUMN, vec[n],
+                         SORT_COLUMN, trackname_transform(typename,
+                                                          vec[n],
+                                                          "sort"),
                          -1);
       /* Update length and state; we expect this to kick off length lookups
        * rather than necessarily get the right value the first time round. */
@@ -224,14 +234,15 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
       ++inserted;
       /* If we inserted a directory, insert a placeholder too, so it appears to
        * have children; it will be deleted when we expand the directory. */
-      if(type == CHOOSE_DIRECTORY) {
+      if(!isfile) {
         //fprintf(stderr, "  inserting a placeholder\n");
         GtkTreeIter placeholder[1];
 
         gtk_tree_store_append(choose_store, placeholder, it);
         gtk_tree_store_set(choose_store, placeholder,
                            NAME_COLUMN, "Waddling...",
-                           CHOOSEDATA_COLUMN, (void *)0,
+                           TRACK_COLUMN, "",
+                           ISFILE_COLUMN, FALSE,
                            -1);
       }
     }
@@ -255,7 +266,7 @@ static void choose_dirs_completed(void *v,
     popup_protocol_error(0, error);
     return;
   }
-  choose_populate(v, nvec, vec, CHOOSE_DIRECTORY);
+  choose_populate(v, nvec, vec, 0/*!isfile*/);
 }
 
 static void choose_files_completed(void *v,
@@ -265,7 +276,7 @@ static void choose_files_completed(void *v,
     popup_protocol_error(0, error);
     return;
   }
-  choose_populate(v, nvec, vec, CHOOSE_FILE);
+  choose_populate(v, nvec, vec, 1/*isfile*/);
 }
 
 void choose_play_completed(void attribute((unused)) *v,
@@ -286,15 +297,12 @@ static void choose_state_toggled
                                         path_str);
   if(!itv)
     return;
-  struct choosedata *cd = choose_iter_to_data(it);
-  if(!cd)
+  if(!choose_is_file(it))
     return;
-  if(cd->type != CHOOSE_FILE)
+  const char *track = choose_get_track(it);
+  if(queued(track))
     return;
-  if(queued(cd->track))
-    return;
-  disorder_eclient_play(client, xstrdup(cd->track),
-                        choose_play_completed, 0);
+  disorder_eclient_play(client, track, choose_play_completed, 0);
   
 }
 
@@ -307,14 +315,14 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
   /* We update a node's contents whenever it is expanded, even if it was
    * already populated; the effect is that contracting and expanding a node
    * suffices to update it to the latest state on the server. */
-  struct choosedata *cd = choose_iter_to_data(iter);
+  const char *track = choose_get_track(iter);
   disorder_eclient_files(client, choose_files_completed,
-                         xstrdup(cd->track),
+                         track,
                          NULL,
                          gtk_tree_row_reference_new(GTK_TREE_MODEL(choose_store),
                                                     path));
   disorder_eclient_dirs(client, choose_dirs_completed,
-                        xstrdup(cd->track),
+                        track,
                         NULL,
                         gtk_tree_row_reference_new(GTK_TREE_MODEL(choose_store),
                                                    path));
@@ -324,12 +332,13 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
 /** @brief Create the choose tab */
 GtkWidget *choose_widget(void) {
   /* Create the tree store. */
-  choose_store = gtk_tree_store_new(1 + CHOOSEDATA_COLUMN,
+  choose_store = gtk_tree_store_new(CHOOSE_COLUMNS,
                                     G_TYPE_BOOLEAN,
                                     G_TYPE_STRING,
                                     G_TYPE_STRING,
                                     G_TYPE_BOOLEAN,
-                                    G_TYPE_POINTER);
+                                    G_TYPE_STRING,
+                                    G_TYPE_STRING);
 
   /* Create the view */
   choose_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(choose_store));
