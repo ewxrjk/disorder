@@ -51,9 +51,6 @@ GtkWidget *choose_view;
 /** @brief The selection tree's selection */
 GtkTreeSelection *choose_selection;
 
-/** @brief Map choosedata types to names */
-static const char *const choose_type_map[] = { "track", "dir" };
-
 static char *choose_get_string(GtkTreeIter *iter, int column) {
   gchar *gs;
   gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
