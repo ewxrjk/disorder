@@ -431,7 +431,8 @@ GtkWidget *choose_widget(void) {
   event_register("queue-list-changed", choose_set_state, 0);
   event_register("playing-track-changed", choose_set_state, 0);
   event_register("search-results-changed", choose_set_state, 0);
-  
+  event_register("lookups-completed", choose_set_state, 0);
+
   /* Fill the root */
   disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
   disorder_eclient_dirs(client, choose_dirs_completed, "", NULL, NULL); 
