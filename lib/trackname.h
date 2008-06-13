@@ -65,8 +65,6 @@ struct tracksort_data {
   const char *sort;
   /** @brief Display key */
   const char *display;
-  /** @brief Extra data for callers */
-  void *extra;
 };
 
 struct tracksort_data *tracksort_init(int nvec,

@@ -35,7 +35,6 @@
  * TODO:
  * - sweep up contracted nodes
  * - update when content may have changed (e.g. after a rescan)
- * - proper sorting
  */
 
 #include "disobedience.h"
@@ -75,6 +74,10 @@ char *choose_get_sort(GtkTreeIter *iter) {
   return choose_get_string(iter, SORT_COLUMN);
 }
 
+char *choose_get_display(GtkTreeIter *iter) {
+  return choose_get_string(iter, NAME_COLUMN);
+}
+
 int choose_is_file(GtkTreeIter *iter) {
   gboolean isfile;
   gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
@@ -100,6 +103,9 @@ int choose_is_placeholder(GtkTreeIter *iter) {
 /** @brief Remove node @p it and all its children
  * @param Iterator, updated to point to next
  * @return True if iterator remains valid
+ *
+ * TODO is this necessary?  gtk_tree_store_remove() does not document what
+ * happens to children.
  */
 static gboolean choose_remove_node(GtkTreeIter *it) {
   GtkTreeIter child[1];
@@ -165,6 +171,8 @@ static void choose_set_state(const char attribute((unused)) *event,
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,
                             int isfile) {
+  if(!nvec)
+    return;
   const char *type = isfile ? "track" : "dir";
   /* Compute parent_* */
   GtkTreeIter pit[1], *parent_it;
@@ -184,84 +192,117 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
     /*fprintf(stderr, "choose_populate %s: populating the root\n",
             type);*/
   }
-  /* Remove unwanted nodes and find out which we must add */
-  //fprintf(stderr, " trimming unwanted %s nodes\n", type);
+  /* Both td[] and the current node set are sorted so we can do a single linear
+   * pass to insert new nodes and remove unwanted ones.  The total performance
+   * may be worse than linear depending on the performance of GTK+'s insert and
+   * delete operations. */
+  //fprintf(stderr, "sorting tracks\n");
   struct tracksort_data *td = tracksort_init(nvec, vec, type);
   GtkTreeIter it[1];
   gboolean itv = gtk_tree_model_iter_children(GTK_TREE_MODEL(choose_store),
                                               it,
                                               parent_it);
-  while(itv) {
-    const char *track = choose_get_track(it);
-    int keep;
-
-    if(!track)  {
-      /* Always kill placeholders */
-      //fprintf(stderr, "  kill a placeholder\n");
-      keep = 0;
-    } else if(choose_is_file(it) == isfile) {
-      /* This is the type we care about */
-      //fprintf(stderr, "  %s is a %s\n", track, type);
-      int n;
-      for(n = 0; n < nvec && strcmp(td[n].track, track); ++n)
-        ;
-      if(n < nvec) {
-        //fprintf(stderr, "   ... and survives\n");
-        td[n].extra = td;
-        keep = 1;
-      } else {
-        //fprintf(stderr, "   ... and is to be removed\n");
-        keep = 0;
-      }
+  int inserted = 0, deleted_placeholder = 0;
+  //fprintf(stderr, "inserting tracks type=%s\n", type);
+  while(nvec > 0 || itv) {
+    /*fprintf(stderr, "td[] = %s, it=%s [%s]\n",
+            nvec > 0 ? td->track : "(none)",
+            itv ? choose_get_track(it) : "(!itv)",
+            itv ? (choose_is_file(it) ? "file" : "dir") : "");*/
+    enum { INSERT, DELETE, SKIP_TREE, SKIP_BOTH } action;
+    const char *track = itv ? choose_get_track(it) : 0;
+    if(itv && !track) {
+      //fprintf(stderr, " placeholder\n");
+      action = DELETE;
+      ++deleted_placeholder;
+    } else if(nvec > 0 && itv) {
+      /* There's both a tree row and a td[] entry */
+      const int cmp = compare_tracks(td->sort, choose_get_sort(it),
+                                     td->display, choose_get_display(it),
+                                     td->track, track);
+      //fprintf(stderr, " cmp=%d\n", cmp);
+      if(cmp < 0)
+        /* td < it, so we insert td before it */
+        action = INSERT;
+      else if(cmp > 0) {
+        /* td > it, so we must either delete it (if the same type) or skip it */
+        if(choose_is_file(it) == isfile)
+          action = DELETE;
+        else
+          action = SKIP_TREE;
+      } else
+        /* td = it, so we step past both */
+        action = SKIP_BOTH;
+    } else if(nvec > 0) {
+      /* We've reached the end of the tree rows, but new have tracks left in
+       * td[] */
+      //fprintf(stderr, " inserting\n");
+      action = INSERT;
     } else {
-      /* Keep wrong-type entries */
-      //fprintf(stderr, "  %s has wrong type\n", track);
-      keep = 1;
+      /* We've reached the end of the new tracks from td[], but there are
+       * further tracks in the tree */
+      //fprintf(stderr, " deleting\n");
+      action = DELETE;
     }
-    if(keep)
-      itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
-    else
-      itv = choose_remove_node(it);
-  }
-  /* Add nodes we don't have */
-  int inserted = 0;
-  //fprintf(stderr, " inserting new %s nodes\n", type);
-  for(int n = 0; n < nvec; ++n) {
-    if(!td[n].extra) {
-      //fprintf(stderr, "  %s was not found\n", td[n].track);
-      gtk_tree_store_append(choose_store, it, parent_it);
-      gtk_tree_store_set(choose_store, it,
-                         NAME_COLUMN, td[n].display,
+    
+    switch(action) {
+    case INSERT: {
+      //fprintf(stderr, " INSERT %s\n", td->track);
+      /* Insert a new row from td[] before it, or at the end if it is no longer
+       * valid */
+      GtkTreeIter child[1];
+      gtk_tree_store_insert_before(choose_store,
+                                   child, /* new row */
+                                   parent_it, /* parent */
+                                   itv ? it : NULL); /* successor */
+      gtk_tree_store_set(choose_store, child,
+                         NAME_COLUMN, td->display,
                          ISFILE_COLUMN, isfile,
-                         TRACK_COLUMN, td[n].track,
-                         SORT_COLUMN, td[n].sort,
+                         TRACK_COLUMN, td->track,
+                         SORT_COLUMN, td->sort,
                          -1);
       /* Update length and state; we expect this to kick off length lookups
        * rather than necessarily get the right value the first time round. */
-      choose_set_state_callback(0, 0, it, 0);
-      ++inserted;
+      choose_set_state_callback(0, 0, child, 0);
       /* If we inserted a directory, insert a placeholder too, so it appears to
        * have children; it will be deleted when we expand the directory. */
       if(!isfile) {
         //fprintf(stderr, "  inserting a placeholder\n");
         GtkTreeIter placeholder[1];
 
-        gtk_tree_store_append(choose_store, placeholder, it);
+        gtk_tree_store_append(choose_store, placeholder, child);
         gtk_tree_store_set(choose_store, placeholder,
                            NAME_COLUMN, "Waddling...",
                            TRACK_COLUMN, "",
                            ISFILE_COLUMN, FALSE,
                            -1);
       }
+      ++inserted;
+      ++td;
+      --nvec;
+      break;
+    }
+    case SKIP_BOTH:
+      //fprintf(stderr, " SKIP_BOTH\n");
+      ++td;
+      --nvec;
+      /* fall thru */
+    case SKIP_TREE:
+      //fprintf(stderr, " SKIP_TREE\n");
+      itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
+      break;
+    case DELETE:
+      //fprintf(stderr, " DELETE\n");
+      itv = choose_remove_node(it);
+      break;
     }
   }
-  //fprintf(stderr, " %d nodes inserted\n", inserted);
-  if(inserted) {
-    /* TODO sort the children */
-  }
+  /*fprintf(stderr, "inserted=%d deleted_placeholder=%d\n\n",
+          inserted, deleted_placeholder);*/
   if(parent_ref) {
     /* If we deleted a placeholder then we must re-expand the row */
-    gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), parent_path, FALSE);
+    if(deleted_placeholder)
+      gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), parent_path, FALSE);
     gtk_tree_row_reference_free(parent_ref);
     gtk_tree_path_free(parent_path);
   }
@@ -330,7 +371,7 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
                                 GtkTreeIter *iter,
                                 GtkTreePath *path,
                                 gpointer attribute((unused)) user_data) {
-  /*fprintf(stderr, "row-expanded path=[%s]\n",
+  /*fprintf(stderr, "row-expanded path=[%s]\n\n",
           gtk_tree_path_to_string(path));*/
   /* We update a node's contents whenever it is expanded, even if it was
    * already populated; the effect is that contracting and expanding a node

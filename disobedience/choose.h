@@ -62,6 +62,7 @@ void choose_play_completed(void attribute((unused)) *v,
                            const char *error);
 char *choose_get_track(GtkTreeIter *iter);
 char *choose_get_sort(GtkTreeIter *iter);
+char *choose_get_display(GtkTreeIter *iter);
 int choose_is_file(GtkTreeIter *iter);
 int choose_is_dir(GtkTreeIter *iter);
 int choose_is_placeholder(GtkTreeIter *iter);
