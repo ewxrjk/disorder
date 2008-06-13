@@ -37,8 +37,15 @@ enum {
 };
 
 #ifndef SEARCH_RESULT_BG
+/** @brief Background color for search results */
 # define SEARCH_RESULT_BG "#ffffc0"
+/** @brief Foreground color for search results */
 # define SEARCH_RESULT_FG "black"
+#endif
+
+#ifndef SEARCH_DELAY_MS
+/** @brief Delay between last keypress in search entry and start of search */
+# define SEARCH_DELAY_MS 500            /* milliseconds */
 #endif
 
 extern GtkTreeStore *choose_store;

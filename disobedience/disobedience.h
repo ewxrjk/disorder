@@ -48,6 +48,7 @@
 #include "kvp.h"
 #include "eventdist.h"
 #include "split.h"
+#include "timeval.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>

@@ -23,9 +23,6 @@
  * TODO:
  * - cleverer focus to implement typeahead find
  * - don't steal ^A
- * - make arrow buttons work
- * - delay search initiation until keyboard goes quiet for a bit
- *   (so that you don't get all the 'lo' tracks when you search for 'love')
  */
 #include "disobedience.h"
 #include "choose.h"
@@ -40,6 +37,9 @@ static int choose_searching;
 
 /** @brief True if in-flight search is now known to be obsolete */
 static int choose_search_obsolete;
+
+/** @brief Current search terms */
+static char *choose_search_terms;
 
 /** @brief Hash of all search result */
 static hash *choose_search_hash;
@@ -63,18 +63,17 @@ static int choose_n_search_references;
 /** @brief Event handle for monitoring newly inserted tracks */
 static event_handle choose_inserted_handle;
 
+/** @brief Time of last search entry keypress (or 0.0) */
+static struct timeval choose_search_last_keypress;
+
+/** @brief Timeout ID for search delay */
+static guint choose_search_timeout_id;
+
 static void choose_search_entry_changed(GtkEditable *editable,
                                         gpointer user_data);
 
 int choose_is_search_result(const char *track) {
   return choose_search_hash && hash_find(choose_search_hash, track);
-}
-
-/** @brief Called when the cancel search button is clicked */
-static void choose_clear_clicked(GtkButton attribute((unused)) *button,
-                                 gpointer attribute((unused)) userdata) {
-  gtk_entry_set_text(GTK_ENTRY(choose_search_entry), "");
-  /* The changed signal will do the rest of the work for us */
 }
 
 static int is_prefix(const char *dir, const char *track) {
@@ -299,11 +298,9 @@ static void choose_search_completed(void attribute((unused)) *v,
   event_raise("search-results-changed", 0);
 }
 
-/** @brief Called when the search entry changes */
-static void choose_search_entry_changed
-    (GtkEditable attribute((unused)) *editable,
-     gpointer attribute((unused)) user_data) {
-  //fprintf(stderr, "choose_search_entry_changed\n");
+/** @brief Actually initiate a search */
+static void initiate_search(void) {
+  //fprintf(stderr, "initiate_search\n");
   /* If a search is in flight don't initiate a new one until it comes back */
   if(choose_searching) {
     choose_search_obsolete = 1;
@@ -311,10 +308,18 @@ static void choose_search_entry_changed
   }
   char *terms = xstrdup(gtk_entry_get_text(GTK_ENTRY(choose_search_entry)));
   /* Strip leading and trailing space */
-  while(*terms == ' ') ++terms;
+  while(*terms == ' ')
+    ++terms;
   char *e = terms + strlen(terms);
-  while(e > terms && e[-1] == ' ') --e;
+  while(e > terms && e[-1] == ' ')
+    --e;
   *e = 0;
+  if(choose_search_terms && !strcmp(terms, choose_search_terms)) {
+    /* Search terms have not actually changed in any way that matters */
+    return;
+  }
+  /* Remember the current terms */
+  choose_search_terms = terms;
   if(!*terms) {
     /* Nothing to search for.  Fake a completion call. */
     choose_search_completed(0, 0, 0, 0);
@@ -326,6 +331,47 @@ static void choose_search_entry_changed
     return;
   }
   choose_searching = 1;
+}
+
+static gboolean choose_search_timeout(gpointer attribute((unused)) data) {
+  struct timeval now;
+  xgettimeofday(&now, NULL);
+  /*fprintf(stderr, "%ld.%06d choose_search_timeout\n",
+          now.tv_sec, now.tv_usec);*/
+  if(tvdouble(now) - tvdouble(choose_search_last_keypress)
+         < SEARCH_DELAY_MS / 1000.0) {
+    //fprintf(stderr, " ... too soon\n");
+    return TRUE;                        /* Call me again later */
+  }
+  //fprintf(stderr, " ... let's go\n");
+  choose_search_last_keypress.tv_sec = 0;
+  choose_search_last_keypress.tv_usec = 0;
+  choose_search_timeout_id = 0;
+  initiate_search();
+  return FALSE;
+}
+
+/** @brief Called when the search entry changes */
+static void choose_search_entry_changed
+    (GtkEditable attribute((unused)) *editable,
+     gpointer attribute((unused)) user_data) {
+  xgettimeofday(&choose_search_last_keypress, NULL);
+  /*fprintf(stderr, "%ld.%06d choose_search_entry_changed\n",
+          choose_search_last_keypress.tv_sec,
+          choose_search_last_keypress.tv_usec);*/
+  /* If there's already a timeout, remove it */
+  if(choose_search_timeout_id) {
+    g_source_remove(choose_search_timeout_id);
+    choose_search_timeout_id = 0;
+  }
+  /* Add a new timeout */
+  choose_search_timeout_id = g_timeout_add(SEARCH_DELAY_MS / 10,
+                                           choose_search_timeout,
+                                           0);
+  /* We really wanted to tell Glib what time we wanted the callback at rather
+   * than asking for calls at given intervals.  But there's no interface for
+   * that, and defining a new source for it seems like overkill if we can
+   * reasonably avoid it. */
 }
 
 /** @brief Identify first and last visible paths
@@ -425,6 +471,14 @@ static void choose_prev_clicked(GtkButton attribute((unused)) *button,
     }
     gtk_tree_path_free(path);
   }
+}
+
+/** @brief Called when the cancel search button is clicked */
+static void choose_clear_clicked(GtkButton attribute((unused)) *button,
+                                 gpointer attribute((unused)) userdata) {
+  gtk_entry_set_text(GTK_ENTRY(choose_search_entry), "");
+  /* We start things off straight away in this case */
+  initiate_search();
 }
 
 /** @brief Create the search widget */
