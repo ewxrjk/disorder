@@ -184,14 +184,40 @@ static int choose_compare_references(const void *av, const void *bv) {
   return rc;
 }
 
-/** @brief Move the cursor to @p ref
+/** @brief Make @p path visible
+ * @param path Row reference to make visible
+ * @param row_align Row alignment (or -ve)
  * @return 0 on success, nonzero if @p ref has gone stale
+ *
+ * If @p row_align is negative no row alignemt is performed.  Otherwise
+ * it must be between 0 (the top) and 1 (the bottom).
  */
-static int choose_set_cursor(GtkTreeRowReference *ref) {
+static int choose_make_path_visible(GtkTreePath *path,
+                                    gfloat row_align) {
+  /* Make sure that the target's parents are all expanded */
+  gtk_tree_view_expand_to_path(GTK_TREE_VIEW(choose_view), path);
+  /* Make sure the target is visible */
+  gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(choose_view), path, NULL,
+                               row_align >= 0.0,
+                               row_align,
+                               0);
+  return 0;
+}
+
+/** @brief Make @p ref visible
+ * @param ref Row reference to make visible
+ * @param row_align Row alignment (or -ve)
+ * @return 0 on success, nonzero if @p ref has gone stale
+ *
+ * If @p row_align is negative no row alignemt is performed.  Otherwise
+ * it must be between 0 (the top) and 1 (the bottom).
+ */
+static int choose_make_ref_visible(GtkTreeRowReference *ref,
+                                   gfloat row_align) {
   GtkTreePath *path = gtk_tree_row_reference_get_path(ref);
   if(!path)
     return -1;
-  gtk_tree_view_set_cursor(GTK_TREE_VIEW(choose_view), path, NULL, FALSE);
+  choose_make_path_visible(path, row_align);
   gtk_tree_path_free(path);
   return 0;
 }
@@ -231,7 +257,7 @@ static void choose_make_visible(const char attribute((unused)) *event,
           choose_n_search_references,
           sizeof (GtkTreeRowReference *),
           choose_compare_references);
-    choose_set_cursor(choose_search_references[0]);
+    choose_make_ref_visible(choose_search_references[0], 0.5);
   }
 }
 
@@ -264,6 +290,11 @@ static void choose_search_completed(void attribute((unused)) *v,
     choose_search_references = xcalloc(nvec, sizeof (GtkTreeRowReference *));
     /* Start making rows visible */
     choose_make_visible(0, 0, 0);
+    gtk_widget_set_sensitive(choose_next, TRUE);
+    gtk_widget_set_sensitive(choose_prev, TRUE);
+  } else {
+    gtk_widget_set_sensitive(choose_next, FALSE);
+    gtk_widget_set_sensitive(choose_prev, FALSE);
   }
   event_raise("search-results-changed", 0);
 }
@@ -297,14 +328,103 @@ static void choose_search_entry_changed
   choose_searching = 1;
 }
 
+/** @brief Identify first and last visible paths
+ *
+ * We'd like to use gtk_tree_view_get_visible_range() for this, but that was
+ * introduced in GTK+ 2.8, and Fink only has 2.6 (which is around three years
+ * out of date at time of writing), and I'm not yet prepared to rule out Fink
+ * support.
+ */
+static gboolean choose_get_visible_range(GtkTreeView *tree_view,
+                                         GtkTreePath **startpathp,
+                                         GtkTreePath **endpathp) {
+  GdkRectangle visible_tc[1];
+
+  /* Get the visible rectangle in tree coordinates */
+  gtk_tree_view_get_visible_rect(tree_view, visible_tc);
+  /*fprintf(stderr, "visible: %dx%x at %dx%d\n",
+          visible_tc->width, visible_tc->height,
+          visible_tc->x, visible_tc->y);*/
+  if(startpathp) {
+    /* Convert top-left visible point to widget coordinates */
+    int x_wc, y_wc;
+    gtk_tree_view_tree_to_widget_coords(tree_view,
+                                        visible_tc->x, visible_tc->y,
+                                        &x_wc, &y_wc);
+    //fprintf(stderr, " start widget coords: %dx%d\n", x_wc, y_wc);
+    gtk_tree_view_get_path_at_pos(tree_view,
+                                  x_wc, y_wc,
+                                  startpathp,
+                                  NULL,
+                                  NULL, NULL);
+  }
+  if(endpathp) {
+    /* Convert bottom-left visible point to widget coordinates */
+    /* Convert top-left visible point to widget coordinates */
+    int x_wc, y_wc;
+    gtk_tree_view_tree_to_widget_coords(tree_view,
+                                        visible_tc->x,
+                                        visible_tc->y + visible_tc->height - 1,
+                                        &x_wc, &y_wc);
+    //fprintf(stderr, " end widget coords: %dx%d\n", x_wc, y_wc);
+    gtk_tree_view_get_path_at_pos(tree_view,
+                                  x_wc, y_wc,
+                                  endpathp,
+                                  NULL,
+                                  NULL, NULL);
+  }
+  return TRUE;
+}
+
 static void choose_next_clicked(GtkButton attribute((unused)) *button,
                                 gpointer attribute((unused)) userdata) {
-  fprintf(stderr, "next\n");            /* TODO */
+  /* Find the last visible row */
+  GtkTreePath *endpath;
+  gboolean endvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
+                                               NULL,
+                                               &endpath);
+  if(!endvalid)
+    return;
+  /* Find a the first search result later than it.  They're sorted so we could
+   * actually do much better than this if necessary. */
+  for(int n = 0; n < choose_n_search_references; ++n) {
+    GtkTreePath *path
+      = gtk_tree_row_reference_get_path(choose_search_references[n]);
+    if(!path)
+      continue;
+    if(gtk_tree_path_compare(endpath, path) < 0) {
+      choose_make_path_visible(path, 0.5);
+      gtk_tree_path_free(path);
+      return;
+    }
+    gtk_tree_path_free(path);
+  }
 }
 
 static void choose_prev_clicked(GtkButton attribute((unused)) *button,
                                 gpointer attribute((unused)) userdata) {
-  fprintf(stderr, "prev\n");            /* TODO */
+  /* TODO can we de-dupe with choose_next_clicked?  Probably yes. */
+  /* Find the first visible row */
+  GtkTreePath *startpath;
+  gboolean startvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
+                                                 &startpath,
+                                                 NULL);
+  if(!startvalid)
+    return;
+  /* Find a the last search result earlier than it.  They're sorted so we could
+   * actually do much better than this if necessary. */
+  for(int n = choose_n_search_references - 1; n >= 0; --n) {
+    GtkTreePath *path
+      = gtk_tree_row_reference_get_path(choose_search_references[n]);
+    if(!path)
+      continue;
+    if(gtk_tree_path_compare(startpath, path) > 0) {
+      choose_make_path_visible(path, 0.5);
+      gtk_tree_path_free(path);
+      return;
+    }
+    gtk_tree_path_free(path);
+  }
 }
 
 /** @brief Create the search widget */

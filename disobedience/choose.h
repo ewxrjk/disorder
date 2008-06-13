@@ -36,6 +36,11 @@ enum {
   CHOOSE_COLUMNS                /* column count */
 };
 
+#ifndef SEARCH_RESULT_BG
+# define SEARCH_RESULT_BG "#ffffc0"
+# define SEARCH_RESULT_FG "black"
+#endif
+
 extern GtkTreeStore *choose_store;
 extern GtkWidget *choose_view;
 extern GtkTreeSelection *choose_selection;

@@ -130,8 +130,8 @@ static gboolean choose_set_state_callback(GtkTreeModel attribute((unused)) *mode
                        -1);
     if(choose_is_search_result(track))
       gtk_tree_store_set(choose_store, it,
-                         BG_COLUMN, "yellow",
-                         FG_COLUMN, "black",
+                         BG_COLUMN, SEARCH_RESULT_BG,
+                         FG_COLUMN, SEARCH_RESULT_FG,
                          -1);
     else
       gtk_tree_store_set(choose_store, it,
