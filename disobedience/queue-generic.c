@@ -150,7 +150,7 @@ struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
   struct queuelike *ql = g_object_get_data(G_OBJECT(model), "ql");
   GValue v[1];
   memset(v, 0, sizeof v);
-  gtk_tree_model_get_value(model, iter, ql->ncolumns, v);
+  gtk_tree_model_get_value(model, iter, ql->ncolumns + QUEUEPOINTER_COLUMN, v);
   assert(G_VALUE_TYPE(v) == G_TYPE_POINTER);
   struct queue_entry *const q = g_value_get_pointer(v);
   g_value_unset(v);
@@ -183,8 +183,19 @@ void ql_update_row(struct queue_entry *q,
                        col, ql->columns[col].value(q,
                                                    ql->columns[col].data),
                        -1);
-  /* The hidden extra column is the queue entry */
-  gtk_list_store_set(ql->store, iter, ql->ncolumns, q, -1);
+  gtk_list_store_set(ql->store, iter,
+                     ql->ncolumns + QUEUEPOINTER_COLUMN, q,
+                     -1);
+  if(q == playing_track)
+    gtk_list_store_set(ql->store, iter,
+                       ql->ncolumns + BACKGROUND_COLUMN, BG_PLAYING,
+                       ql->ncolumns + FOREGROUND_COLUMN, FG_PLAYING,
+                       -1);
+  else
+    gtk_list_store_set(ql->store, iter,
+                       ql->ncolumns + BACKGROUND_COLUMN, (char *)0,
+                       ql->ncolumns + FOREGROUND_COLUMN, (char *)0,
+                       -1);
 }
 
 /** @brief Update the list store
@@ -287,7 +298,9 @@ void ql_new_queue(struct queuelike *ql,
     const struct newqueue_data *nqd = hash_find(h, q->id);
     if(nqd->new) {
       /* Tell this row that it belongs to the new version of the queue */
-      gtk_list_store_set(ql->store, iter, ql->ncolumns, nqd->new, -1);
+      gtk_list_store_set(ql->store, iter,
+                         ql->ncolumns + QUEUEPOINTER_COLUMN, nqd->new,
+                         -1);
       it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
       ++kept;
     } else {
@@ -322,7 +335,9 @@ void ql_new_queue(struct queuelike *ql,
           gtk_list_store_append(ql->store, iter);
       } else
         gtk_list_store_prepend(ql->store, iter);
-      gtk_list_store_set(ql->store, iter, ql->ncolumns, q, -1);
+      gtk_list_store_set(ql->store, iter,
+                         ql->ncolumns + QUEUEPOINTER_COLUMN, q,
+                         -1);
       //fprintf(stderr, " add %s", q->id);
       ++inserted;
     }
@@ -388,12 +403,13 @@ void ql_new_queue(struct queuelike *ql,
 /** @brief Initialize a @ref queuelike */
 GtkWidget *init_queuelike(struct queuelike *ql) {
   D(("init_queuelike"));
-  /* Create the list store.  We add an extra column to hold the ID. */
-  GType *types = xcalloc(ql->ncolumns + 1, sizeof (GType));
-  for(int n = 0; n < ql->ncolumns; ++n)
+  /* Create the list store.  We add an extra column to hold a pointer to the
+   * queue_entry. */
+  GType *types = xcalloc(ql->ncolumns + EXTRA_COLUMNS, sizeof (GType));
+  for(int n = 0; n < ql->ncolumns + EXTRA_COLUMNS; ++n)
     types[n] = G_TYPE_STRING;
-  types[ql->ncolumns] = G_TYPE_POINTER;
-  ql->store = gtk_list_store_newv(ql->ncolumns + 1, types);
+  types[ql->ncolumns + QUEUEPOINTER_COLUMN] = G_TYPE_POINTER;
+  ql->store = gtk_list_store_newv(ql->ncolumns + EXTRA_COLUMNS, types);
   g_object_set_data(G_OBJECT(ql->store), "ql", (void *)ql);
 
   /* Create the view */
@@ -411,6 +427,8 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
       (ql->columns[n].name,
        r,
        "text", n,
+       "background", ql->ncolumns + BACKGROUND_COLUMN,
+       "foreground", ql->ncolumns + FOREGROUND_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);

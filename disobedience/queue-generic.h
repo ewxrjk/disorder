@@ -91,6 +91,24 @@ struct queuelike {
   struct tabtype tabtype;
 };
 
+enum {
+  QUEUEPOINTER_COLUMN,
+  FOREGROUND_COLUMN,
+  BACKGROUND_COLUMN,
+
+  EXTRA_COLUMNS
+};
+
+/* TODO probably need to set "horizontal-separator" to 0, but can't find any
+ * coherent description of how to set style properties in isolation. */
+#define BG_PLAYING 0
+#define FG_PLAYING 0
+
+#ifndef BG_PLAYING
+# define BG_PLAYING "#e0ffe0"
+# define FG_PLAYING "black"
+#endif
+
 extern struct queuelike ql_queue;
 extern struct queuelike ql_recent;
 extern struct queuelike ql_added;
