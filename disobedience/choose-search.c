@@ -190,6 +190,8 @@ static int choose_compare_references(const void *av, const void *bv) {
  *
  * If @p row_align is negative no row alignemt is performed.  Otherwise
  * it must be between 0 (the top) and 1 (the bottom).
+ *
+ * TODO: if the row is already visible do nothing.
  */
 static int choose_make_path_visible(GtkTreePath *path,
                                     gfloat row_align) {

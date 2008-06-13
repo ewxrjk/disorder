@@ -374,18 +374,18 @@ GtkWidget *choose_widget(void) {
   /* Create cell renderers and columns */
   /* TODO use a table */
   {
-    GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    GtkCellRenderer *r = gtk_cell_renderer_toggle_new();
     GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
-      ("Track",
+      ("Queued",
        r,
-       "text", NAME_COLUMN,
-       "background", BG_COLUMN,
-       "foreground", FG_COLUMN,
+       "active", STATE_COLUMN,
+       "visible", ISFILE_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);
-    g_object_set(c, "expand", TRUE, (char *)0);
     gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
+    g_signal_connect(r, "toggled",
+                     G_CALLBACK(choose_state_toggled), 0);
   }
   {
     GtkCellRenderer *r = gtk_cell_renderer_text_new();
@@ -400,18 +400,19 @@ GtkWidget *choose_widget(void) {
     gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
   }
   {
-    GtkCellRenderer *r = gtk_cell_renderer_toggle_new();
+    GtkCellRenderer *r = gtk_cell_renderer_text_new();
     GtkTreeViewColumn *c = gtk_tree_view_column_new_with_attributes
-      ("Queued",
+      ("Track",
        r,
-       "active", STATE_COLUMN,
-       "visible", ISFILE_COLUMN,
+       "text", NAME_COLUMN,
+       "background", BG_COLUMN,
+       "foreground", FG_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
     gtk_tree_view_column_set_reorderable(c, TRUE);
+    g_object_set(c, "expand", TRUE, (char *)0);
     gtk_tree_view_append_column(GTK_TREE_VIEW(choose_view), c);
-    g_signal_connect(r, "toggled",
-                     G_CALLBACK(choose_state_toggled), 0);
+    gtk_tree_view_set_expander_column(GTK_TREE_VIEW(choose_view), c);
   }
   
   /* The selection should support multiple things being selected */
