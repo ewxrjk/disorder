@@ -855,6 +855,7 @@ static int exp__files_dirs(int nargs,
   if(fn(dcgi_client, dir, re, &tracks, &ntracks))
     return 0;
   /* Sort it.  NB trackname_transform() does not go to the server. */
+  /* TODO use tracksort_init */
   e = xcalloc(ntracks, sizeof *e);
   for(n = 0; n < ntracks; ++n) {
     e[n].track = tracks[n];

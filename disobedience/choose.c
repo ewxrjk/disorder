@@ -165,6 +165,7 @@ static void choose_set_state(const char attribute((unused)) *event,
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,
                             int isfile) {
+  const char *type = isfile ? "track" : "dir";
   /* Compute parent_* */
   GtkTreeIter pit[1], *parent_it;
   GtkTreePath *parent_path;
@@ -175,17 +176,17 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
                                             pit, parent_path);
     assert(pitv);
     /*fprintf(stderr, "choose_populate %s: parent path is [%s]\n",
-            choose_type_map[type],
+            type,
             gtk_tree_path_to_string(parent_path));*/
   } else {
     parent_path = 0;
     parent_it = 0;
     /*fprintf(stderr, "choose_populate %s: populating the root\n",
-            choose_type_map[type]);*/
+            type);*/
   }
   /* Remove unwanted nodes and find out which we must add */
-  //fprintf(stderr, " trimming unwanted %s nodes\n", choose_type_map[type]);
-  char *found = xmalloc(nvec);
+  //fprintf(stderr, " trimming unwanted %s nodes\n", type);
+  struct tracksort_data *td = tracksort_init(nvec, vec, type);
   GtkTreeIter it[1];
   gboolean itv = gtk_tree_model_iter_children(GTK_TREE_MODEL(choose_store),
                                               it,
@@ -200,13 +201,13 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
       keep = 0;
     } else if(choose_is_file(it) == isfile) {
       /* This is the type we care about */
-      //fprintf(stderr, "  %s is a %s\n", track, isfile ? "file" : "dir");
+      //fprintf(stderr, "  %s is a %s\n", track, type);
       int n;
-      for(n = 0; n < nvec && strcmp(vec[n], track); ++n)
+      for(n = 0; n < nvec && strcmp(td[n].track, track); ++n)
         ;
       if(n < nvec) {
         //fprintf(stderr, "   ... and survives\n");
-        found[n] = 1;
+        td[n].extra = td;
         keep = 1;
       } else {
         //fprintf(stderr, "   ... and is to be removed\n");
@@ -224,21 +225,16 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
   }
   /* Add nodes we don't have */
   int inserted = 0;
-  //fprintf(stderr, " inserting new %s nodes\n", isfile ? "track" : "dir");
-  const char *typename = isfile ? "track" : "dir";
+  //fprintf(stderr, " inserting new %s nodes\n", type);
   for(int n = 0; n < nvec; ++n) {
-    if(!found[n]) {
-      //fprintf(stderr, "  %s was not found\n", vec[n]);
+    if(!td[n].extra) {
+      //fprintf(stderr, "  %s was not found\n", td[n].track);
       gtk_tree_store_append(choose_store, it, parent_it);
       gtk_tree_store_set(choose_store, it,
-                         NAME_COLUMN, trackname_transform(typename,
-                                                          vec[n],
-                                                          "display"),
+                         NAME_COLUMN, td[n].display,
                          ISFILE_COLUMN, isfile,
-                         TRACK_COLUMN, vec[n],
-                         SORT_COLUMN, trackname_transform(typename,
-                                                          vec[n],
-                                                          "sort"),
+                         TRACK_COLUMN, td[n].track,
+                         SORT_COLUMN, td[n].sort,
                          -1);
       /* Update length and state; we expect this to kick off length lookups
        * rather than necessarily get the right value the first time round. */
