@@ -300,7 +300,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
     {
       (char *)"/Edit/Select all tracks", /* path */
-      (char *)"<CTRL>A",                /* accelerator */
+      0,                                /* accelerator */
       select_all,                       /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
@@ -308,7 +308,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
     {
       (char *)"/Edit/Deselect all tracks", /* path */
-      (char *)"<CTRL><SHIFT>A",         /* accelerator */
+      0,                                /* accelerator */
       select_none,                      /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
