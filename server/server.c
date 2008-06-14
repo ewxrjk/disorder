@@ -1404,6 +1404,7 @@ static int c_reminder(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
+  /* TODO use email_valid() */
   if(!(email = kvp_get(k, "email"))
      || !strchr(email, '@')) {
     error(0, "user '%s' has no valid email address", vec[0]);

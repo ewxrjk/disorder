@@ -44,6 +44,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
+	email.c						\
 	eventdist.c eventdist.h				\
 	event.c event.h 				\
 	eventlog.c eventlog.h 				\

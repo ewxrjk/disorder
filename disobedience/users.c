@@ -41,6 +41,10 @@
 
 #include "disobedience.h"
 #include "bits.h"
+#include "sendmail.h"
+
+static void users_details_sensitize_all(void);
+static void users_set_report(const char *msg);
 
 static GtkWidget *users_window;
 static GtkListStore *users_list;
@@ -54,6 +58,7 @@ static GtkWidget *users_details_email;
 static GtkWidget *users_details_password;
 static GtkWidget *users_details_password2;
 static GtkWidget *users_details_rights[32];
+static GtkWidget *users_reporter;
 static int users_details_row;
 static const char *users_selected;
 static const char *users_deferred_select;
@@ -165,6 +170,11 @@ static void users_detail_generic(const char *title,
                    1, 1);               /* x/ypadding */
 }
 
+static void users_entry_changed(GtkEditable attribute((unused)) *editable,
+                                gpointer attribute((unused)) user_data) {
+  users_details_sensitize_all();
+}
+
 /** @brief Add a row to the user details table
  * @param entryp Where to put GtkEntry
  * @param title Label for this row
@@ -179,6 +189,8 @@ static void users_add_detail(GtkWidget **entryp,
 
   if(!(entry = *entryp)) {
     *entryp = entry = gtk_entry_new();
+    g_signal_connect(entry, "changed",
+                     G_CALLBACK(users_entry_changed), 0);
     users_detail_generic(title, entry);
   }
   gtk_entry_set_visibility(GTK_ENTRY(entry),
@@ -220,6 +232,7 @@ static void users_details_sensitize(rights_type r) {
 /** @brief Set sensitivity of everything in sight */
 static void users_details_sensitize_all(void) {
   int n;
+  const char *report = 0;
 
   for(n = 0; n < 32; ++n)
     if(users_details_rights[n])
@@ -231,8 +244,42 @@ static void users_details_sensitize_all(void) {
   users_details_sensitize(RIGHT_MOVE_ANY);
   users_details_sensitize(RIGHT_REMOVE_ANY);
   users_details_sensitize(RIGHT_SCRATCH_ANY);
-  gtk_widget_set_sensitive(users_apply_button, users_mode != MODE_NONE);
+  int apply_sensitive = 1;
+  if(users_mode == MODE_NONE)
+    apply_sensitive = 0;
+  else {
+    const char *name = gtk_entry_get_text(GTK_ENTRY(users_details_name));
+    const char *email = gtk_entry_get_text(GTK_ENTRY(users_details_email));
+    const char *pw = gtk_entry_get_text(GTK_ENTRY(users_details_password));
+    const char *pw2 = gtk_entry_get_text(GTK_ENTRY(users_details_password2));
+    /* Username must be filled in */
+    if(!*name) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Must fill in username";
+    }
+    /* Passwords must be nontrivial and match */
+    if(!*pw) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Must fill in password";
+    }
+    if(strcmp(pw, pw2)) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Passwords must match";
+    }
+    /* Email address must be somewhat valid */
+    if(*email) {
+      if(!email_valid(email)) {
+        apply_sensitive = 0;
+        report = "Invalid email address";
+      }
+    }
+  }
+  gtk_widget_set_sensitive(users_apply_button, apply_sensitive);
   gtk_widget_set_sensitive(users_delete_button, !!users_selected);
+  users_set_report(report);
 }
 
 /** @brief Called when an _ALL widget is toggled
@@ -593,6 +640,19 @@ static void users_selection_changed(GtkTreeSelection attribute((unused)) *treese
   mode(NONE);                           /* not editing *yet* */
 }
 
+static GtkWidget *users_make_reporter() {
+  if(!users_reporter) {
+    users_reporter = gtk_label_new("");
+    gtk_label_set_ellipsize(GTK_LABEL(users_reporter), PANGO_ELLIPSIZE_END);
+    gtk_misc_set_alignment(GTK_MISC(users_reporter), 0.99, 0);
+  }
+  return users_reporter;
+}
+
+static void users_set_report(const char *msg) {
+  gtk_label_set_text(GTK_LABEL(users_make_reporter()), msg ? msg : "");
+}
+
 /** @brief Table of buttons below the user list */
 static struct button users_buttons[] = {
   {
@@ -674,6 +734,10 @@ void manage_users(void) {
   vbox2 = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox2), users_details_table,
                      TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(vbox2), gtk_hseparator_new(),
+                     FALSE/*expand*/, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox2), users_make_reporter(),
+                     FALSE/*expand*/, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox2), hbox2,
                      FALSE/*expand*/, FALSE, 0);
   

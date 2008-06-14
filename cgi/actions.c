@@ -434,7 +434,8 @@ static void act_register(void) {
     return;
   }
   /* We could well do better address validation but for now we'll just do the
-   * minimum */
+   * minimum
+   /* TODO use email_valid() */
   if(!strchr(email, '@')) {
     login_error("bademail");
     return;
@@ -524,6 +525,7 @@ static void act_edituser(void) {
     }
   } else
     password = password2 = 0;
+  /* TODO use email_valid() */
   if(email && !strchr(email, '@')) {
     login_error("bademail");
     return;
