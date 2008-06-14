@@ -229,9 +229,13 @@ You need to configure a number of things to make this work:
 
      disorder setup-guest --no-online-registration
 
-3. Try it out.  You should be able to perform read-only operations straight
-   away, and after visiting the 'Login' page to authenticate, perform other
-   operations like adding a track to the queue.
+3. Try it out.  The url will be (something like):
+
+     http://localhost/cgi-bin/disorder
+
+   You should be able to perform read-only operations straight away, and after
+   visiting the 'Login' page to authenticate, perform other operations like
+   adding a track to the queue.
 
 4. If you run into problems, always look at the appropriate error log; the
    message you see in your web browser will usually not be sufficient to
