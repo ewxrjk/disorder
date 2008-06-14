@@ -96,7 +96,9 @@ int rtp_supported;
 /** @brief True if RTP play is enabled */
 int rtp_is_running;
 
-static void check_rtp_address(void);
+static void check_rtp_address(const char *event,
+                              void *eventdata,
+                              void *callbackdata);
 
 /* Window creation --------------------------------------------------------- */
 
@@ -224,16 +226,8 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
-  /* Periodically check what our rights are */
-  if(!rights_lookup_in_flight) {
-    rights_lookup_in_flight = 1;
-    disorder_eclient_userinfo(client,
-                              userinfo_rights_completed,
-                              config->username, "rights",
-                              0);
-  }
   /* Recheck RTP status too */
-  check_rtp_address();
+  check_rtp_address(0, 0, 0);
   return TRUE;                          /* don't remove me */
 }
 
@@ -263,6 +257,14 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
       volume_r = nr;
       event_raise("volume-changed", 0);
     }
+  }
+  /* Periodically check what our rights are */
+  if(!rights_lookup_in_flight) {
+    rights_lookup_in_flight = 1;
+    disorder_eclient_userinfo(client,
+                              userinfo_rights_completed,
+                              config->username, "rights",
+                              0);
   }
   return TRUE;
 }
@@ -311,6 +313,8 @@ static void got_rtp_address(void attribute((unused)) *v,
     rtp_supported = 1;
     rtp_is_running = rtp_running();
   }
+  /*fprintf(stderr, "rtp supported->%d, running->%d\n",
+          rtp_supported, rtp_is_running);*/
   if(rtp_supported != rtp_was_supported
      || rtp_is_running != rtp_was_running)
     event_raise("rtp-changed", 0);
@@ -318,9 +322,13 @@ static void got_rtp_address(void attribute((unused)) *v,
 }
 
 /** @brief Called to check whether RTP play is available */
-static void check_rtp_address(void) {
-  if(!rtp_address_in_flight)
+static void check_rtp_address(const char attribute((unused)) *event,
+                              void attribute((unused)) *eventdata,
+                              void attribute((unused)) *callbackdata) {
+  if(!rtp_address_in_flight) {
+    //fprintf(stderr, "checking rtp\n");
     disorder_eclient_rtp_address(client, got_rtp_address, NULL);
+  }
 }
 
 /* main -------------------------------------------------------------------- */
@@ -396,7 +404,7 @@ int main(int argc, char **argv) {
      || !(logclient = gtkclient()))
     return 1;                           /* already reported an error */
   /* periodic operations (e.g. expiring the cache, checking local volume) */
-  g_timeout_add(10000/*milliseconds*/, periodic_slow, 0);
+  g_timeout_add(600000/*milliseconds*/, periodic_slow, 0);
   g_timeout_add(1000/*milliseconds*/, periodic_fast, 0);
   /* global tooltips */
   tips = gtk_tooltips_new();
@@ -413,8 +421,8 @@ int main(int argc, char **argv) {
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
   /* Initiate all the checks */
-  periodic_slow(0);
   periodic_fast(0);
+  event_register("log-connected", check_rtp_address, 0);
   suppress_actions = 0;
   /* If no password is set yet pop up a login box */
   if(!config->password)

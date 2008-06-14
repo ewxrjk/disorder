@@ -382,15 +382,15 @@ static void choose_state_toggled
   
 }
 
-static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
-                                GtkTreeIter *iter,
-                                GtkTreePath *path,
-                                gpointer attribute((unused)) user_data) {
-  /*fprintf(stderr, "row-expanded path=[%s]\n\n",
-          gtk_tree_path_to_string(path));*/
-  /* We update a node's contents whenever it is expanded, even if it was
-   * already populated; the effect is that contracting and expanding a node
-   * suffices to update it to the latest state on the server. */
+/** @brief (Re-)get the children of @p path
+ * @param path Path to target row
+ * @param iter Iterator pointing at target row
+ *
+ * Called from choose_row_expanded() to make sure that the contents are present
+ * and from choose_refill_callback() to (re-)synchronize.
+ */
+static void choose_refill_row(GtkTreePath *path,
+                              GtkTreeIter *iter) {
   const char *track = choose_get_track(iter);
   disorder_eclient_files(client, choose_files_completed,
                          track,
@@ -404,7 +404,18 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
                                                    path));
   /* The row references are destroyed in the _completed handlers. */
   choose_list_in_flight += 2;
-  //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
+}
+
+static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
+                                GtkTreeIter *iter,
+                                GtkTreePath *path,
+                                gpointer attribute((unused)) user_data) {
+  /*fprintf(stderr, "row-expanded path=[%s]\n\n",
+          gtk_tree_path_to_string(path));*/
+  /* We update a node's contents whenever it is expanded, even if it was
+   * already populated; the effect is that contracting and expanding a node
+   * suffices to update it to the latest state on the server. */
+  choose_refill_row(path, iter);
   if(!choose_suppress_set_autocollapse) {
     if(choose_auto_expanding) {
       /* This was an automatic expansion; mark it the row for auto-collapse. */
@@ -463,6 +474,35 @@ void choose_auto_collapse(void) {
   gtk_tree_view_map_expanded_rows(GTK_TREE_VIEW(choose_view),
                                   choose_auto_collapse_callback,
                                   0);
+}
+
+/** @brief Called from choose_refill() with each expanded row */
+static void choose_refill_callback(GtkTreeView attribute((unused)) *tree_view,
+                                   GtkTreePath *path,
+                                   gpointer attribute((unused)) user_data) {
+  GtkTreeIter it[1];
+
+  gtk_tree_model_get_iter(GTK_TREE_MODEL(choose_store), it, path);
+  choose_refill_row(path, it);
+}
+
+/** @brief Synchronize all visible data with the server
+ *
+ * Called at startup, when a rescan completes, and via periodic_slow().
+ */
+static void choose_refill(const char attribute((unused)) *event,
+                          void attribute((unused)) *eventdata,
+                          void attribute((unused)) *callbackdata) {
+  //fprintf(stderr, "choose_refill\n");
+  /* Update the root */
+  disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
+  disorder_eclient_dirs(client, choose_dirs_completed, "", NULL, NULL); 
+  choose_list_in_flight += 2;
+  /* Update all expanded rows */
+  gtk_tree_view_map_expanded_rows(GTK_TREE_VIEW(choose_view),
+                                  choose_refill_callback,
+                                  0);
+  //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
 }
 
 /** @brief Create the choose tab */
@@ -549,11 +589,9 @@ GtkWidget *choose_widget(void) {
   event_register("search-results-changed", choose_set_state, 0);
   event_register("lookups-completed", choose_set_state, 0);
 
-  /* Fill the root */
-  disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
-  disorder_eclient_dirs(client, choose_dirs_completed, "", NULL, NULL); 
-  choose_list_in_flight += 2;
-  //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
+  /* After a rescan we update the choose tree.  We get a rescan-complete
+   * automatically at startup and upon connection too. */
+  event_register("rescan-complete", choose_refill, 0);
 
   /* Make the widget scrollable */
   GtkWidget *scrolled = scroll_widget(choose_view);

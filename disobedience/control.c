@@ -351,15 +351,18 @@ static void volume_changed(const char attribute((unused)) *event,
 static void icon_changed(const char attribute((unused)) *event,
                          void attribute((unused)) *evendata,
                          void *callbackdata) {
+  //fprintf(stderr, "icon_changed (%s)\n", event);
   const struct icon *const icon = callbackdata;
   int on = icon->on ? icon->on() : 1;
   int sensitive = icon->sensitive ? icon->sensitive() : 1;
+  //fprintf(stderr, "sensitive->%d\n", sensitive);
   GtkWidget *child, *newchild;
 
   ++suppress_actions;
   /* If the connection is down nothing is ever usable */
   if(!(last_state & DISORDER_CONNECTED))
     sensitive = 0;
+  //fprintf(stderr, "(checked connected) sensitive->%d\n", sensitive);
   /* Replace the child */
   newchild = on ? icon->image_on : icon->image_off;
   child = gtk_bin_get_child(GTK_BIN(icon->button));
@@ -371,7 +374,7 @@ static void icon_changed(const char attribute((unused)) *event,
   }
   /* If you disable play or random play NOT via the icon (for instance, via the
    * edit menu or via a completely separate command line invocation) then the
-   * icon shows up as insensitive.  Hover the mouse over it and the corrcet
+   * icon shows up as insensitive.  Hover the mouse over it and the correct
    * state is immediately displayed.  sensitive and GTK_WIDGET_SENSITIVE show
    * it to be in the correct state, so I think this is may be a GTK+ bug. */
   if(icon->tip_on)

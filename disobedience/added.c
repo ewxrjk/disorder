@@ -66,7 +66,7 @@ static void added_changed(const char attribute((unused)) *event,
 
 /** @brief Called at startup */
 static void added_init(void) {
-  event_register("added-changed", added_changed, 0);
+  event_register("rescan-complete", added_changed, 0);
 }
 
 /** @brief Columns for the new tracks list */

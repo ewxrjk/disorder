@@ -66,7 +66,7 @@ void all_update(void) {
   event_raise("queue-changed", 0);
   event_raise("recent-changed", 0);
   event_raise("volume-changed", 0);
-  event_raise("added-changed", 0);
+  event_raise("rescan-complete", 0);
   --suppress_actions;
 }
 
@@ -81,6 +81,7 @@ static void log_connected(void attribute((unused)) *v) {
    * everything.  We get this at startup too and this is how we do the initial
    * state fetch. */
   all_update();
+  event_raise("log-connected", 0);
 }
 
 /** @brief Called when the current track finishes playing */
@@ -188,7 +189,7 @@ static void log_volume(void attribute((unused)) *v,
 
 /** @brief Called when a rescan completes */
 static void log_rescanned(void attribute((unused)) *v) {
-  event_raise("added-changed", 0);
+  event_raise("rescan-complete", 0);
 }
 
 /*
