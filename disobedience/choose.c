@@ -242,7 +242,10 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
       /* We've reached the end of the new tracks from td[], but there are
        * further tracks in the tree */
       //fprintf(stderr, " deleting\n");
-      action = DELETE;
+      if(choose_is_file(it) == isfile)
+        action = DELETE;
+      else
+        action = SKIP_TREE;
     }
     
     switch(action) {

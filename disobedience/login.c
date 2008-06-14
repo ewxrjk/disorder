@@ -27,6 +27,10 @@
  * window remains.
  *
  * It you hit Cancel then the window disappears without saving anything.
+ *
+ * TODO
+ * - escape and return should work
+ * - cancel/close should be consistent with properties
  */
 
 #include "disobedience.h"

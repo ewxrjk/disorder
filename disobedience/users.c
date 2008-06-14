@@ -33,9 +33,10 @@
  * When you select 'add' a new empty set of details are displayed to be edited.
  * Again Apply will commit them.
  *
- * TODO: it would be really nice if the Username entry could be removed and new
- * user names entered in the list, rather off in the details panel.  This may
- * be possible with a sufficiently clever GtkCellRenderer.
+ * TODO:
+ * - enter new username in the GtkTreeView
+ * - escape and enter keys should work
+ * - should have a cancel or close button, consistent with properties and login
  */
 
 #include "disobedience.h"

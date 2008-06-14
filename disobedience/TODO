@@ -1,7 +1,0 @@
-properties
-	make return be the same as OK
-search
-	select tracks by tag
-
-general:
-	disobedience doesn't like starting up if the server isn't running.
