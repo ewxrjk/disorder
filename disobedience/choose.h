@@ -54,6 +54,7 @@ extern GtkWidget *choose_view;
 extern GtkTreeSelection *choose_selection;
 extern const struct tabtype choose_tabtype;
 extern int choose_auto_expanding;
+extern GtkWidget *choose_search_entry;
 
 struct choosedata *choose_iter_to_data(GtkTreeIter *iter);
 struct choosedata *choose_path_to_data(GtkTreePath *path);
@@ -72,6 +73,10 @@ int choose_can_autocollapse(GtkTreeIter *iter);
 GtkWidget *choose_search_widget(void);
 int choose_is_search_result(const char *track);
 void choose_auto_collapse(void);
+void choose_next_clicked(GtkButton *button,
+                         gpointer userdata);
+void choose_prev_clicked(GtkButton *button,
+                         gpointer userdata);
 
 #endif /* CHOOSE_H */
 

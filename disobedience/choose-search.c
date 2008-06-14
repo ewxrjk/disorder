@@ -28,7 +28,7 @@
 
 int choose_auto_expanding;
 
-static GtkWidget *choose_search_entry;
+GtkWidget *choose_search_entry;
 static GtkWidget *choose_next;
 static GtkWidget *choose_prev;
 static GtkWidget *choose_clear;
@@ -302,6 +302,10 @@ static void choose_search_completed(void attribute((unused)) *v,
   } else {
     gtk_widget_set_sensitive(choose_next, FALSE);
     gtk_widget_set_sensitive(choose_prev, FALSE);
+    choose_n_search_results = 0;
+    choose_search_results = 0;
+    choose_n_search_references = 0;
+    choose_search_references = 0;
   }
   event_raise("search-results-changed", 0);
 }
@@ -430,8 +434,10 @@ static gboolean choose_get_visible_range(GtkTreeView *tree_view,
   return TRUE;
 }
 
-static void choose_next_clicked(GtkButton attribute((unused)) *button,
-                                gpointer attribute((unused)) userdata) {
+void choose_next_clicked(GtkButton attribute((unused)) *button,
+                         gpointer attribute((unused)) userdata) {
+  if(!choose_n_search_results)
+    return;
   /* Find the last visible row */
   GtkTreePath *endpath;
   gboolean endvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
@@ -453,11 +459,23 @@ static void choose_next_clicked(GtkButton attribute((unused)) *button,
     }
     gtk_tree_path_free(path);
   }
+  /* We didn't find one.  Loop back to the first. */
+  for(int n = 0; n < choose_n_search_references; ++n) {
+    GtkTreePath *path
+      = gtk_tree_row_reference_get_path(choose_search_references[n]);
+    if(!path)
+      continue;
+    choose_make_path_visible(path, 0.5);
+    gtk_tree_path_free(path);
+    return;
+  }
 }
 
-static void choose_prev_clicked(GtkButton attribute((unused)) *button,
-                                gpointer attribute((unused)) userdata) {
+void choose_prev_clicked(GtkButton attribute((unused)) *button,
+                         gpointer attribute((unused)) userdata) {
   /* TODO can we de-dupe with choose_next_clicked?  Probably yes. */
+  if(!choose_n_search_results)
+    return;
   /* Find the first visible row */
   GtkTreePath *startpath;
   gboolean startvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
@@ -478,6 +496,16 @@ static void choose_prev_clicked(GtkButton attribute((unused)) *button,
       return;
     }
     gtk_tree_path_free(path);
+  }
+  /* We didn't find one.  Loop down to the last. */
+  for(int n = choose_n_search_references - 1; n >= 0; --n) {
+    GtkTreePath *path
+      = gtk_tree_row_reference_get_path(choose_search_references[n]);
+    if(!path)
+      continue;
+    choose_make_path_visible(path, 0.5);
+    gtk_tree_path_free(path);
+    return;
   }
 }
 

@@ -39,6 +39,7 @@
 
 #include "disobedience.h"
 #include "choose.h"
+#include <gdk/gdkkeysyms.h>
 
 /** @brief The current selection tree */
 GtkTreeStore *choose_store;
@@ -505,6 +506,46 @@ static void choose_refill(const char attribute((unused)) *event,
   //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
 }
 
+/** @brief Called for key-*-event on the main view
+ *
+ * Switches focus to the 
+ */
+static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
+                                 GdkEventKey *event,
+                                 gpointer attribute((unused)) user_data) {
+  /*fprintf(stderr, "choose_key_event type=%d state=%#x keyval=%#x\n",
+          event->type, event->state, event->keyval);*/
+  switch(event->keyval) {
+  case GDK_Page_Up:
+  case GDK_Page_Down:
+  case GDK_Up:
+  case GDK_Down:
+  case GDK_Home:
+  case GDK_End:
+    return FALSE;                       /* We'll take these */
+  case 'f': case 'F':
+    /* ^F is expected to start a search.  We implement this by focusing the
+     * search entry box. */
+    if((event->state & ~(GDK_LOCK_MASK|GDK_SHIFT_MASK)) == GDK_CONTROL_MASK
+       && event->type == GDK_KEY_PRESS) {
+      gtk_widget_grab_focus(user_data);
+      return FALSE;
+    }
+    break;
+  case 'g': case 'G':
+    /* ^G is expected to go the next match.  We simulate a click on the 'next'
+     * button. */
+    if((event->state & ~(GDK_LOCK_MASK|GDK_SHIFT_MASK)) == GDK_CONTROL_MASK
+       && event->type == GDK_KEY_PRESS) {
+      choose_next_clicked(0, 0);
+      return FALSE;
+    }
+    break;
+  }
+  gtk_widget_event(user_data, (GdkEvent *)event);
+  return TRUE;
+}
+
 /** @brief Create the choose tab */
 GtkWidget *choose_widget(void) {
   /* Create the tree store. */
@@ -604,6 +645,13 @@ GtkWidget *choose_widget(void) {
                    FALSE/*expand*/, FALSE/*fill*/, 0/*padding*/);
   
   g_object_set_data(G_OBJECT(vbox), "type", (void *)&choose_tabtype);
+
+  /* Redirect keyboard activity to the search widget */
+  g_signal_connect(choose_view, "key-press-event",
+                   G_CALLBACK(choose_key_event), choose_search_entry);
+  g_signal_connect(choose_view, "key-release-event",
+                   G_CALLBACK(choose_key_event), choose_search_entry);
+
   return vbox;
 }
 
