@@ -52,6 +52,9 @@ GtkTreeSelection *choose_selection;
 /** @brief Count of file listing operations in flight */
 static int choose_list_in_flight;
 
+/** @brief If nonzero autocollapse column won't be set */
+static int choose_suppress_set_autocollapse;
+
 static char *choose_get_string(GtkTreeIter *iter, int column) {
   gchar *gs;
   gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
@@ -95,6 +98,14 @@ int choose_is_dir(GtkTreeIter *iter) {
 
 int choose_is_placeholder(GtkTreeIter *iter) {
   return choose_get_string(iter, TRACK_COLUMN)[0] == 0;
+}
+
+int choose_can_autocollapse(GtkTreeIter *iter) {
+  gboolean autocollapse;
+  gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
+                     AUTOCOLLAPSE_COLUMN, &autocollapse,
+                     -1);
+  return autocollapse;
 }
 
 /** @brief Remove node @p it and all its children
@@ -261,6 +272,7 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
                          ISFILE_COLUMN, isfile,
                          TRACK_COLUMN, td->track,
                          SORT_COLUMN, td->sort,
+                         AUTOCOLLAPSE_COLUMN, FALSE,
                          -1);
       /* Update length and state; we expect this to kick off length lookups
        * rather than necessarily get the right value the first time round. */
@@ -302,8 +314,11 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
           inserted, deleted_placeholder);*/
   if(parent_ref) {
     /* If we deleted a placeholder then we must re-expand the row */
-    if(deleted_placeholder)
+    if(deleted_placeholder) {
+      ++choose_suppress_set_autocollapse;
       gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), parent_path, FALSE);
+      --choose_suppress_set_autocollapse;
+    }
     gtk_tree_row_reference_free(parent_ref);
     gtk_tree_path_free(parent_path);
   }
@@ -390,6 +405,64 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
   /* The row references are destroyed in the _completed handlers. */
   choose_list_in_flight += 2;
   //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
+  if(!choose_suppress_set_autocollapse) {
+    if(choose_auto_expanding) {
+      /* This was an automatic expansion; mark it the row for auto-collapse. */
+      gtk_tree_store_set(choose_store, iter,
+                         AUTOCOLLAPSE_COLUMN, TRUE,
+                         -1);
+      /*fprintf(stderr, "enable auto-collapse for %s\n",
+              gtk_tree_path_to_string(path));*/
+    } else {
+      /* This was a manual expansion.  Inhibit automatic collapse on this row
+       * and all its ancestors.  */
+      gboolean itv;
+      do {
+        gtk_tree_store_set(choose_store, iter,
+                           AUTOCOLLAPSE_COLUMN, FALSE,
+                           -1);
+        /*fprintf(stderr, "suppress auto-collapse for %s\n",
+                gtk_tree_model_get_string_from_iter(GTK_TREE_MODEL(choose_store),
+                                                    iter));*/
+        GtkTreeIter child = *iter;
+        itv = gtk_tree_model_iter_parent(GTK_TREE_MODEL(choose_store),
+                                         iter,
+                                         &child);
+      } while(itv);
+      /* The effect of this is that if you expand a row that's actually a
+       * sibling of the real target of the auto-expansion, it stays expanded
+       * when you clear a search.  That's find and good, but it _still_ stays
+       * expanded if you expand it and then collapse it.
+       *
+       * An alternative policy would be to only auto-collapse rows that don't
+       * have any expanded children (apart from ones also subject to
+       * auto-collapse).  I'm not sure what the most usable policy is.
+       */
+    }
+  }
+}
+
+static void choose_auto_collapse_callback(GtkTreeView *tree_view,
+                                          GtkTreePath *path,
+                                          gpointer attribute((unused)) user_data) {
+  GtkTreeIter it[1];
+
+  gtk_tree_model_get_iter(GTK_TREE_MODEL(choose_store), it, path);
+  if(choose_can_autocollapse(it)) {
+    /*fprintf(stderr, "collapse %s\n",
+            gtk_tree_path_to_string(path));*/
+    gtk_tree_store_set(choose_store, it,
+                       AUTOCOLLAPSE_COLUMN, FALSE,
+                       -1);
+    gtk_tree_view_collapse_row(tree_view, path);
+  }
+}
+
+/** @brief Perform automatic collapse after a search is cleared */
+void choose_auto_collapse(void) {
+  gtk_tree_view_map_expanded_rows(GTK_TREE_VIEW(choose_view),
+                                  choose_auto_collapse_callback,
+                                  0);
 }
 
 /** @brief Create the choose tab */
@@ -403,7 +476,8 @@ GtkWidget *choose_widget(void) {
                                     G_TYPE_STRING,
                                     G_TYPE_STRING,
                                     G_TYPE_STRING,
-                                    G_TYPE_STRING);
+                                    G_TYPE_STRING,
+                                    G_TYPE_BOOLEAN);
 
   /* Create the view */
   choose_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(choose_store));

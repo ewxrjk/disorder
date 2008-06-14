@@ -22,10 +22,11 @@
  *
  * TODO:
  * - cleverer focus to implement typeahead find
- * - don't steal ^A
  */
 #include "disobedience.h"
 #include "choose.h"
+
+int choose_auto_expanding;
 
 static GtkWidget *choose_search_entry;
 static GtkWidget *choose_next;
@@ -147,14 +148,16 @@ static int choose_make_one_visible(const char *track) {
       } else {
         //fprintf(stderr, "   requesting expansion of %s\n", dir);
         /* Track is below a non-expanded directory.  So let's expand it.
-         * choose_make_visible() will arrange a revisit in due course. */
+         * choose_make_visible() will arrange a revisit in due course.
+         *
+         * We mark the row as auto-expanded.
+         */
+        ++choose_auto_expanding;
         gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view),
                                  path,
                                  FALSE/*open_all*/);
         gtk_tree_path_free(path);
-        /* TODO: the old version would remember which rows had been expanded
-         * just to show search results and collapse them again.  We should
-         * probably do that. */
+        --choose_auto_expanding;
         return 0;
       }
     } else
@@ -279,6 +282,9 @@ static void choose_search_completed(void attribute((unused)) *v,
     return;
   }
   //fprintf(stderr, "*** %d search results\n", nvec);
+  /* We're actually going to use these search results.  Autocollapse anything
+   * left over from the old search. */
+  choose_auto_collapse();
   choose_search_hash = hash_new(1);
   if(nvec) {
     for(int n = 0; n < nvec; ++n)

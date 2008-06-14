@@ -32,6 +32,7 @@ enum {
   SORT_COLUMN,                  /* Sort key */
   BG_COLUMN,                    /* Background color */
   FG_COLUMN,                    /* Foreground color */
+  AUTOCOLLAPSE_COLUMN,          /* TRUE if row should be auto-collapsed */
 
   CHOOSE_COLUMNS                /* column count */
 };
@@ -52,6 +53,7 @@ extern GtkTreeStore *choose_store;
 extern GtkWidget *choose_view;
 extern GtkTreeSelection *choose_selection;
 extern const struct tabtype choose_tabtype;
+extern int choose_auto_expanding;
 
 struct choosedata *choose_iter_to_data(GtkTreeIter *iter);
 struct choosedata *choose_path_to_data(GtkTreePath *path);
@@ -66,8 +68,10 @@ char *choose_get_display(GtkTreeIter *iter);
 int choose_is_file(GtkTreeIter *iter);
 int choose_is_dir(GtkTreeIter *iter);
 int choose_is_placeholder(GtkTreeIter *iter);
+int choose_can_autocollapse(GtkTreeIter *iter);
 GtkWidget *choose_search_widget(void);
 int choose_is_search_result(const char *track);
+void choose_auto_collapse(void);
 
 #endif /* CHOOSE_H */
 
