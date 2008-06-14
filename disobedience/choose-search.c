@@ -517,6 +517,11 @@ static void choose_clear_clicked(GtkButton attribute((unused)) *button,
   initiate_search();
 }
 
+/** @brief Called when the user hits ^F to start a new search */
+void choose_search_new(void) {
+  gtk_editable_select_region(GTK_EDITABLE(choose_search_entry), 0, -1);
+}
+
 /** @brief Create the search widget */
 GtkWidget *choose_search_widget(void) {
 

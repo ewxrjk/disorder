@@ -77,6 +77,7 @@ void choose_next_clicked(GtkButton *button,
                          gpointer userdata);
 void choose_prev_clicked(GtkButton *button,
                          gpointer userdata);
+void choose_search_new(void);
 
 #endif /* CHOOSE_H */
 

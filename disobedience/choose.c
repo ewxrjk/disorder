@@ -528,8 +528,8 @@ static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
      * search entry box. */
     if((event->state & ~(GDK_LOCK_MASK|GDK_SHIFT_MASK)) == GDK_CONTROL_MASK
        && event->type == GDK_KEY_PRESS) {
-      gtk_widget_grab_focus(user_data);
-      return FALSE;
+      choose_search_new();
+      return TRUE;                      /* Handled it */
     }
     break;
   case 'g': case 'G':
@@ -538,12 +538,12 @@ static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
     if((event->state & ~(GDK_LOCK_MASK|GDK_SHIFT_MASK)) == GDK_CONTROL_MASK
        && event->type == GDK_KEY_PRESS) {
       choose_next_clicked(0, 0);
-      return FALSE;
+      return TRUE;                      /* Handled it */
     }
     break;
   }
   gtk_widget_event(user_data, (GdkEvent *)event);
-  return TRUE;
+  return TRUE;                          /* Handled it */
 }
 
 /** @brief Create the choose tab */
