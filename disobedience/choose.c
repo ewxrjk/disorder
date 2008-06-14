@@ -171,9 +171,10 @@ static void choose_set_state(const char attribute((unused)) *event,
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,
                             int isfile) {
-  if(!nvec)
-    return;
   const char *type = isfile ? "track" : "dir";
+  //fprintf(stderr, "%d new children of type %s\n", nvec, type);
+  if(!nvec)
+    goto skip;
   /* Compute parent_* */
   GtkTreeIter pit[1], *parent_it;
   GtkTreePath *parent_path;
@@ -313,14 +314,17 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
    * insertions pending, so that they don't have to keep track of how many
    * requests they've made.  */
   choose_inserted += inserted;
+skip:
   if(--choose_list_in_flight == 0) {
     /* Notify interested parties that we inserted some tracks, AFTER making
      * sure that the row is properly expanded */
     if(choose_inserted) {
+      //fprintf(stderr, "raising choose-inserted-tracks\n");
       event_raise("choose-inserted-tracks", parent_it);
       choose_inserted = 0;
     }
   }
+  //fprintf(stderr, "choose_list_in_flight -> %d-\n", choose_list_in_flight);
 }
 
 static void choose_dirs_completed(void *v,
@@ -392,6 +396,7 @@ static void choose_row_expanded(GtkTreeView attribute((unused)) *treeview,
                                                    path));
   /* The row references are destroyed in the _completed handlers. */
   choose_list_in_flight += 2;
+  //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
 }
 
 /** @brief Create the choose tab */
@@ -476,6 +481,8 @@ GtkWidget *choose_widget(void) {
   /* Fill the root */
   disorder_eclient_files(client, choose_files_completed, "", NULL, NULL); 
   disorder_eclient_dirs(client, choose_dirs_completed, "", NULL, NULL); 
+  choose_list_in_flight += 2;
+  //fprintf(stderr, "choose_list_in_flight -> %d+\n", choose_list_in_flight);
 
   /* Make the widget scrollable */
   GtkWidget *scrolled = scroll_widget(choose_view);
