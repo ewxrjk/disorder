@@ -71,7 +71,6 @@ static void namepart_fill(const char *track,
                           const char *part,
                           const char *key) {
   D(("namepart_fill %s %s %s %s", track, context, part, key));
-  /* We limit the total number of lookups in flight */
   ++namepart_lookups_outstanding;
   D(("namepart_lookups_outstanding -> %d\n", namepart_lookups_outstanding));
   disorder_eclient_namepart(client, namepart_completed,
@@ -137,6 +136,25 @@ long namepart_length(const char *track) {
   return -1;
 }
 
+/** @brief Resolve a track name
+ *
+ * Returns the supplied track name if it doesn't have the answer yet.
+ */
+char *namepart_resolve(const char *track) {
+  char *key;
+
+  byte_xasprintf(&key, "resolve track=%s", track);
+  const char *value = cache_get(&cachetype_string, key);
+  if(!value) {
+    D(("deferring..."));
+    ++namepart_lookups_outstanding;
+    D(("namepart_lookups_outstanding -> %d\n", namepart_lookups_outstanding));
+    disorder_eclient_resolve(client, namepart_completed,
+                             track, (void *)key);
+    value = track;
+  }
+  return xstrdup(value);
+}
 
 /*
 Local Variables:

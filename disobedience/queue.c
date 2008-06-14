@@ -345,6 +345,8 @@ int queued(const char *track) {
   struct queue_entry *q;
 
   D(("queued %s", track));
+  /* Queue will contain resolved name */
+  track = namepart_resolve(track);
   for(q = ql_queue.q; q; q = q->next)
     if(!strcmp(q->track, track))
       return 1;

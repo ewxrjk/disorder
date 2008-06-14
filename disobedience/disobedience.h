@@ -216,6 +216,7 @@ const char *namepart(const char *track,
                      const char *context,
                      const char *part);
 long namepart_length(const char *track);
+char *namepart_resolve(const char *track);
 
 void namepart_update(const char *track,
                      const char *context,
