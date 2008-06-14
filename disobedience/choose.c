@@ -482,6 +482,10 @@ GtkWidget *choose_widget(void) {
   /* Create the view */
   choose_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(choose_store));
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(choose_view), TRUE);
+  /* Suppress built-in typeahead find, we do our own search support.
+   * TODO: ^F still brings up the native search box
+   */
+  gtk_tree_view_set_enable_search(GTK_TREE_VIEW(choose_view), FALSE);
 
   /* Create cell renderers and columns */
   /* TODO use a table */
