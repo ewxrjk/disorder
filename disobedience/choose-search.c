@@ -125,7 +125,7 @@ static int choose_make_one_visible(const char *track) {
     }
     if(is_prefix(dir, track)) {
       /* We found a prefix of the target track. */
-      //fprintf(stderr, "   is a prefix\n");
+      //fprintf(stderr, "   %s is a prefix\n", dir);
       const gboolean expanded
         = gtk_tree_view_row_expanded(GTK_TREE_VIEW(choose_view), path);
       if(expanded) {
@@ -246,7 +246,7 @@ static void choose_make_visible(const char attribute((unused)) *event,
     /* If there's work left to be done make sure we get a callback when
      * something changes */
     if(!choose_inserted_handle)
-      choose_inserted_handle = event_register("choose-inserted-tracks",
+      choose_inserted_handle = event_register("choose-more-tracks",
                                               choose_make_visible, 0);
   } else {
     /* Suppress callbacks if there's nothing more to do */

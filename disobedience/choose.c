@@ -52,9 +52,6 @@ GtkTreeSelection *choose_selection;
 /** @brief Count of file listing operations in flight */
 static int choose_list_in_flight;
 
-/** @brief Count of files inserted in current batch of listing operations */
-static int choose_inserted;
-
 static char *choose_get_string(GtkTreeIter *iter, int column) {
   gchar *gs;
   gtk_tree_model_get(GTK_TREE_MODEL(choose_store), iter,
@@ -310,19 +307,15 @@ static void choose_populate(GtkTreeRowReference *parent_ref,
     gtk_tree_row_reference_free(parent_ref);
     gtk_tree_path_free(parent_path);
   }
+skip:
   /* We only notify others that we've inserted tracks when there are no more
    * insertions pending, so that they don't have to keep track of how many
    * requests they've made.  */
-  choose_inserted += inserted;
-skip:
   if(--choose_list_in_flight == 0) {
     /* Notify interested parties that we inserted some tracks, AFTER making
      * sure that the row is properly expanded */
-    if(choose_inserted) {
-      //fprintf(stderr, "raising choose-inserted-tracks\n");
-      event_raise("choose-inserted-tracks", parent_it);
-      choose_inserted = 0;
-    }
+    //fprintf(stderr, "raising choose-more-tracks\n");
+    event_raise("choose-more-tracks", 0);
   }
   //fprintf(stderr, "choose_list_in_flight -> %d-\n", choose_list_in_flight);
 }
