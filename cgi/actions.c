@@ -434,7 +434,7 @@ static void act_register(void) {
     return;
   }
   /* We could well do better address validation but for now we'll just do the
-   * minimum
+   * minimum */
    /* TODO use email_valid() */
   if(!strchr(email, '@')) {
     login_error("bademail");
