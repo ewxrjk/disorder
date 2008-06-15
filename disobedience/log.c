@@ -45,19 +45,19 @@ static void log_rescanned(void *v);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
-  log_connected,
-  log_completed,
-  log_failed,
-  log_moved,
-  log_playing,
-  log_queue,
-  log_recent_added,
-  log_recent_removed,
-  log_removed,
-  log_scratched,
-  log_state,
-  log_volume,
-  log_rescanned
+  .connected = log_connected,
+  .completed = log_completed,
+  .failed = log_failed,
+  .moved = log_moved,
+  .playing = log_playing,
+  .queue = log_queue,
+  .recent_added = log_recent_added,
+  .recent_removed = log_recent_removed,
+  .removed = log_removed,
+  .scratched = log_scratched,
+  .state = log_state,
+  .volume = log_volume,
+  .rescanned = log_rescanned
 };
 
 /** @brief Update everything */

@@ -878,6 +878,16 @@ static void logclient(const char *msg, void *user) {
     eventlog_remove(c->lo);
     return;
   }
+  /* user-* messages are restricted */
+  if(!strncmp(msg, "user-", 5)) {
+    /* They are only sent to admin users */
+    if(!(c->rights & RIGHT_ADMIN))
+      return;
+    /* They are not sent over TCP connections unless remote user-management is
+     * enabled */
+    if(!config->remote_userman && !(c->rights & RIGHT__LOCAL))
+      return;
+  }
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" %s\n",
 	      (uintmax_t)time(0), msg);
 }

@@ -180,6 +180,10 @@ static void logentry_scratched(disorder_eclient *c, int nvec, char **vec);
 static void logentry_state(disorder_eclient *c, int nvec, char **vec);
 static void logentry_volume(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rescanned(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_add(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -207,6 +211,10 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(rescanned, 0, 0),
   LE(scratched, 2, 2),
   LE(state, 1, 1),
+  LE(user_add, 1, 1),
+  LE(user_confirm, 1, 1),
+  LE(user_delete, 1, 1),
+  LE(user_edit, 2, 2),
   LE(volume, 2, 2)
 };
 
@@ -1529,6 +1537,30 @@ static void logentry_scratched(disorder_eclient *c,
     c->log_callbacks->scratched(c->log_v, vec[0], vec[1]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
+}
+
+static void logentry_user_add(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_add)
+    c->log_callbacks->user_add(c->log_v, vec[0]);
+}
+
+static void logentry_user_confirm(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_confirm)
+    c->log_callbacks->user_confirm(c->log_v, vec[0]);
+}
+
+static void logentry_user_delete(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_delete)
+    c->log_callbacks->user_delete(c->log_v, vec[0]);
+}
+
+static void logentry_user_edit(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_edit)
+    c->log_callbacks->user_edit(c->log_v, vec[0], vec[1]);
 }
 
 static const struct {

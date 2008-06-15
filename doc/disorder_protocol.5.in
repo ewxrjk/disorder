@@ -626,6 +626,18 @@ The current track was scratched.
 To simplify client implementation, \fBstate\fR commands reflecting the current
 state are sent at the start of the log.
 .RE
+.TB
+.B user-add \fIUSERNAME\fR
+A user was created.
+.TP
+.B user-delete \fIUSERNAME\fR
+A user was deleted.
+.TP
+.B user-edit \fIUSERNAME\fR \fIPROPERTY\fR
+Some property of a user was edited.
+.TP
+.B user-confirm \fIUSERNAME\fR
+A user's login was confirmed (via the web interface).
 .TP
 .B volume \fILEFT\fR \fIRIGHT\fR
 The volume changed.
@@ -634,6 +646,9 @@ The volume changed.
 is as defined in
 .B "TRACK INFORMATION"
 above.
+.PP
+The \fBuser-*\fR messages are only sent to admin users, and are not sent over
+non-local connections unless \fBremote_userman\fR is enabled.
 .SH "CHARACTER ENCODING"
 All data sent by both server and client is encoded using UTF-8.
 Moreover it must be valid UTF-8, i.e. non-minimal sequences are not

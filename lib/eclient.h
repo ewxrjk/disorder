@@ -93,19 +93,75 @@ typedef struct disorder_eclient_callbacks {
 typedef struct disorder_eclient_log_callbacks {
   /** @brief Called on (re-)connection */
   void (*connected)(void *v);
-  
+
+  /** @brief Called when @p track finished playing successfully */
   void (*completed)(void *v, const char *track);
+
+  /** @brief Called when @p track fails for some reason */
   void (*failed)(void *v, const char *track, const char *status);
+
+  /** @brief Called when @p user moves some track or tracks in the queue
+   *
+   * Fetch the queue again to find out what the new order is - the
+   * rearrangement could in principle be arbitrarily complicated.
+   */
   void (*moved)(void *v, const char *user);
+
+  /** @brief Called when @p track starts playing
+   *
+   * @p user might be 0.
+   */
   void (*playing)(void *v, const char *track, const char *user/*maybe 0*/);
+
+  /** @brief Called when @p q is added to the queue
+   *
+   * Fetch the queue again to find out where the in the queue it was added.
+   */   
   void (*queue)(void *v, struct queue_entry *q);
+
+  /** @brief Called when @p q is added to the recent list */
   void (*recent_added)(void *v, struct queue_entry *q);
+
+  /** @brief Called when @p id is removed from the recent list */
   void (*recent_removed)(void *v, const char *id);
+
+  /** @brief Called when @id is removed from the queue
+   *
+   * @p user might be 0.
+   */
   void (*removed)(void *v, const char *id, const char *user/*maybe 0*/);
+
+  /** @brief Called when @p track is scratched */
   void (*scratched)(void *v, const char *track, const char *user);
+
+  /** @brief Called with the current state whenever it changes
+   *
+   * State bits are:
+   * - @ref DISORDER_PLAYING_ENABLED
+   * - @ref DISORDER_RANDOM_ENABLED
+   * - @ref DISORDER_TRACK_PAUSED
+   * - @ref DISORDER_PLAYING
+   * - @ref DISORDER_CONNECTED
+   */
   void (*state)(void *v, unsigned long state);
+
+  /** @brief Called when the volume changes */
   void (*volume)(void *v, int left, int right);
+
+  /** @brief Called when a rescan completes */
   void (*rescanned)(void *v);
+
+  /** @brief Called when a user is created (admins only) */
+  void (*user_add)(void *v, const char *user);
+
+  /** @brief Called when a user is confirmed (admins only) */
+  void (*user_confirm)(void *v, const char *user);
+
+  /** @brief Called when a user is deleted (admins only) */
+  void (*user_delete)(void *v, const char *user);
+
+  /** @brief Called when a user is edited (admins only) */
+  void (*user_edit)(void *v, const char *user, const char *property);
 } disorder_eclient_log_callbacks;
 
 /* State bits */

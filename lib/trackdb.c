@@ -2681,6 +2681,7 @@ int trackdb_adduser(const char *user,
            user, rights, email);
     else
       info("created user '%s' with rights '%s'", user, rights);
+    eventlog("user-add", user, (char *)0);
     return 0;
   }
 }
@@ -2698,6 +2699,7 @@ int trackdb_deluser(const char *user) {
     return -1;
   }
   info("deleted user '%s'", user);
+  eventlog("user-delete", user, (char *)0);
   return 0;
 }
 
@@ -2777,8 +2779,10 @@ int trackdb_edituserinfo(const char *user,
   if(e) {
     error(0, "unknown user '%s'", user);
     return -1;
-  } else
+  } else {
+    eventlog("user-edit", user, key, (char *)0);
     return 0;
+  }
 }
 
 /** @brief List all users
@@ -2844,6 +2848,7 @@ int trackdb_confirm(const char *user, const char *confirmation,
   switch(e) {
   case 0:
     info("registration confirmed for user '%s'", user);
+    eventlog("user-confirm", user, (char *)0);
     return 0;
   case DB_NOTFOUND:
     error(0, "confirmation for nonexistent user '%s'", user);
