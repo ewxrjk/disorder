@@ -75,10 +75,10 @@ static void queue_playing_changed(void) {
 
 /** @brief Update the queue itself */
 static void queue_completed(void attribute((unused)) *v,
-                            const char *error,
+                            const char *err,
                             struct queue_entry *q) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   actual_queue = q;
@@ -87,10 +87,10 @@ static void queue_completed(void attribute((unused)) *v,
 
 /** @brief Update the playing track */
 static void playing_completed(void attribute((unused)) *v,
-                              const char *error,
+                              const char *err,
                               struct queue_entry *q) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   actual_playing_track = q;
@@ -198,9 +198,9 @@ struct queuelike ql_queue = {
 static int queue_drag_target = -1;
 
 static void queue_move_completed(void attribute((unused)) *v,
-                                 const char *error) {
-  if(error) {
-    popup_protocol_error(0, error);
+                                 const char *err) {
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   /* The log should tell us the queue changed so we do no more here */

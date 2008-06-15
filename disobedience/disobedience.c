@@ -197,12 +197,12 @@ static void make_toplevel_window(void) {
 }
 
 static void userinfo_rights_completed(void attribute((unused)) *v,
-                                      const char *error,
+                                      const char *err,
                                       const char *value) {
   rights_type r;
 
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     r = 0;
   } else {
     if(parse_rights(value, &r, 0))
@@ -271,7 +271,7 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
 
 /** @brief Called when a NOP completes */
 static void nop_completed(void attribute((unused)) *v,
-                          const char attribute((unused)) *error) {
+                          const char attribute((unused)) *err) {
   /* TODO report the error somewhere */
   nop_in_flight = 0;
 }
@@ -297,7 +297,7 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
 
 /** @brief Called when a rtp-address command succeeds */
 static void got_rtp_address(void attribute((unused)) *v,
-                            const char *error,
+                            const char *err,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
   const int rtp_was_supported = rtp_supported;
@@ -305,7 +305,7 @@ static void got_rtp_address(void attribute((unused)) *v,
 
   ++suppress_actions;
   rtp_address_in_flight = 0;
-  if(error) {
+  if(err) {
     /* An error just means that we're not using network play */
     rtp_supported = 0;
     rtp_is_running = 0;

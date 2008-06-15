@@ -264,11 +264,11 @@ static void choose_make_visible(const char attribute((unused)) *event,
 
 /** @brief Called with search results */
 static void choose_search_completed(void attribute((unused)) *v,
-                                    const char *error,
+                                    const char *err,
                                     int nvec, char **vec) {
   //fprintf(stderr, "choose_search_completed\n");
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   choose_searching = 0;

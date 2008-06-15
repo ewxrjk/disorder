@@ -23,10 +23,10 @@
 
 /** @brief Update the recently played list */
 static void recent_completed(void attribute((unused)) *v,
-                             const char *error,
+                             const char *err,
                              struct queue_entry *q) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   /* The recent list is backwards compared to what we wanted */

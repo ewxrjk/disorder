@@ -116,13 +116,13 @@ static int users_find_user(const char *user,
  * If users_deferred_select is set then that user is selected.
  */
 static void users_got_list(void attribute((unused)) *v,
-                           const char *error,
+                           const char *err,
                            int nvec, char **vec) {
   int n;
   GtkTreeIter iter;
 
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   /* Present users in alphabetical order */
@@ -436,16 +436,16 @@ static rights_type users_get_rights(void) {
 
 /** @brief Called when a user setting has been edited */
 static void users_edituser_completed(void attribute((unused)) *v,
-                                     const char *error) {
-  if(error)
-    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
+                                     const char *err) {
+  if(err)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
 }
 
 /** @brief Called when a new user has been created */
 static void users_adduser_completed(void *v,
-                                    const char *error) {
-  if(error) {
-    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
+                                    const char *err) {
+  if(err) {
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
     mode(ADD);                          /* Let the user try again */
   } else {
     const struct kvp *const kvp = v;
@@ -534,9 +534,9 @@ static void users_apply(GtkButton attribute((unused)) *button,
 
 /** @brief Called when a user has been deleted */
 static void users_delete_completed(void *v,
-                                   const char *error) {
-  if(error)
-    popup_submsg(users_window, GTK_MESSAGE_ERROR, error);
+                                   const char *err) {
+  if(err)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
   else {
     const struct kvp *const kvp = v;
     const char *const user = kvp_get(kvp, "user");
@@ -572,26 +572,26 @@ static void users_delete(GtkButton attribute((unused)) *button,
 }
 
 static void users_got_email(void attribute((unused)) *v,
-                            const char *error,
+                            const char *err,
                             const char *value) {
-  if(error)
-    popup_protocol_error(0, error);
+  if(err)
+    popup_protocol_error(0, err);
   users_email = value;
 }
 
 static void users_got_rights(void attribute((unused)) *v,
-                             const char *error,
+                             const char *err,
                              const char *value) {
-  if(error)
-    popup_protocol_error(0, error);
+  if(err)
+    popup_protocol_error(0, err);
   users_rights = value;
 }
 
 static void users_got_password(void attribute((unused)) *v,
-                               const char *error,
+                               const char *err,
                                const char *value) {
-  if(error)
-    popup_protocol_error(0, error);
+  if(err)
+    popup_protocol_error(0, err);
   /* TODO if an error occurred gathering user info, we should react in some
    * different way */
   users_password = value;

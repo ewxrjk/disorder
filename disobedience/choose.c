@@ -337,29 +337,29 @@ skip:
 }
 
 static void choose_dirs_completed(void *v,
-                                  const char *error,
+                                  const char *err,
                                   int nvec, char **vec) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   choose_populate(v, nvec, vec, 0/*!isfile*/);
 }
 
 static void choose_files_completed(void *v,
-                                   const char *error,
+                                   const char *err,
                                    int nvec, char **vec) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   choose_populate(v, nvec, vec, 1/*isfile*/);
 }
 
 void choose_play_completed(void attribute((unused)) *v,
-                           const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+                           const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 static void choose_state_toggled

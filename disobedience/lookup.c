@@ -36,10 +36,10 @@ static void namepart_completed_or_failed(void) {
 }
 
 /** @brief Called when a namepart lookup has completed */
-static void namepart_completed(void *v, const char *error, const char *value) {
+static void namepart_completed(void *v, const char *err, const char *value) {
   D(("namepart_completed"));
-  if(error) {
-    gtk_label_set_text(GTK_LABEL(report_label), error);
+  if(err) {
+    gtk_label_set_text(GTK_LABEL(report_label), err);
     value = "?";
   }
   const char *key = v;
@@ -49,10 +49,10 @@ static void namepart_completed(void *v, const char *error, const char *value) {
 }
 
 /** @brief Called when a length lookup has completed */
-static void length_completed(void *v, const char *error, long l) {
+static void length_completed(void *v, const char *err, long l) {
   D(("length_completed"));
-  if(error) {
-    gtk_label_set_text(GTK_LABEL(report_label), error);
+  if(err) {
+    gtk_label_set_text(GTK_LABEL(report_label), err);
     l = -1;
   }
   const char *key = v;

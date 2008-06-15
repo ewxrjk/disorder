@@ -165,7 +165,7 @@ static void manual_popup(gpointer attribute((unused)) callback_data,
 
 /** @brief Called when version arrives, displays about... popup */
 static void about_popup_got_version(void attribute((unused)) *v,
-                                    const char attribute((unused)) *error,
+                                    const char attribute((unused)) *err,
                                     const char *value) {
   GtkWidget *w;
   char *server_version_string;

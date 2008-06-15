@@ -321,7 +321,6 @@ void ql_new_queue(struct queuelike *ql,
   for(struct queue_entry *q = newq; q; q = q->next) {
     const struct newqueue_data *nqd = hash_find(h, q->id);
     if(!nqd->old) {
-      GtkTreeIter iter[1];
       if(after) {
         /* Try to insert at the right sort of place */
         GtkTreeIter where[1];

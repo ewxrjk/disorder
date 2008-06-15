@@ -28,10 +28,10 @@
  * with a valid and unique @c id field.  This function fakes it.
  */
 static void added_completed(void attribute((unused)) *v,
-                            const char *error,
+                            const char *err,
                             int nvec, char **vec) {
-  if(error) {
-    popup_protocol_error(0, error);
+  if(err) {
+    popup_protocol_error(0, err);
     return;
   }
   /* Convert the vector result to a queue linked list */

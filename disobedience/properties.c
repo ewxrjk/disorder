@@ -344,9 +344,9 @@ static void set_namepart(struct prefdata *f, const char *value) {
 }
 
 /* Called when we've set a namepart */
-static void set_namepart_completed(void *v, const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+static void set_namepart_completed(void *v, const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
   else {
     struct prefdata *f = v;
     
@@ -377,9 +377,9 @@ static void set_edited_string(struct prefdata *f, const char *value) {
 }
 
 static void set_string_completed(void attribute((unused)) *v,
-                                 const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+                                 const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 static void set_string(struct prefdata *f, const char *value) {
@@ -441,8 +441,8 @@ static void prefdata_onerror(struct callbackdata *cbd,
 }
 
 /* Got the value of a pref */
-static void prefdata_completed(void *v, const char *error, const char *value) {
-  if(error) {
+static void prefdata_completed(void *v, const char *err, const char *value) {
+  if(err) {
   } else {
     struct callbackdata *cbd = v;
     

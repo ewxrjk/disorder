@@ -81,9 +81,9 @@ int ql_scratch_sensitive(void attribute((unused)) *extra) {
 }
 
 static void ql_scratch_completed(void attribute((unused)) *v,
-                                 const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+                                 const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 void ql_scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
@@ -116,9 +116,9 @@ int ql_remove_sensitive(void *extra) {
 }
 
 static void ql_remove_completed(void attribute((unused)) *v,
-                                const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+                                const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 static void ql_remove_activate_callback(GtkTreeModel *model,
@@ -146,9 +146,9 @@ int ql_play_sensitive(void *extra) {
     && gtk_tree_selection_count_selected_rows(ql->selection) > 0;
 }
 
-static void ql_play_completed(void attribute((unused)) *v, const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+static void ql_play_completed(void attribute((unused)) *v, const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 static void ql_play_activate_callback(GtkTreeModel *model,
@@ -186,7 +186,7 @@ gboolean ql_button_release(GtkWidget *widget,
 }
 
 struct tabtype *ql_tabtype(struct queuelike *ql) {
-  static const struct tabtype ql_tabtype = {
+  static const struct tabtype queuelike_tabtype = {
     ql_properties_sensitive,
     ql_selectall_sensitive,
     ql_selectnone_sensitive,
@@ -197,7 +197,7 @@ struct tabtype *ql_tabtype(struct queuelike *ql) {
     0
   };
 
-  ql->tabtype = ql_tabtype;
+  ql->tabtype = queuelike_tabtype;
   ql->tabtype.extra = ql;
   return &ql->tabtype;
 }

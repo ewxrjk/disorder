@@ -391,9 +391,9 @@ static void icon_changed(const char attribute((unused)) *event,
 }
 
 static void icon_action_completed(void attribute((unused)) *v,
-                                  const char *error) {
-  if(error)
-    popup_protocol_error(0, error);
+                                  const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 static void clicked_icon(GtkButton attribute((unused)) *button,
@@ -420,11 +420,11 @@ static void toggled_menu(GtkCheckMenuItem attribute((unused)) *menuitem,
 
 /** @brief Called when a volume command completes */
 static void volume_completed(void attribute((unused)) *v,
-                             const char *error,
+                             const char *err,
                              int attribute((unused)) l,
                              int attribute((unused)) r) {
-  if(error)
-    popup_protocol_error(0, error);
+  if(err)
+    popup_protocol_error(0, err);
   /* We don't set the UI's notion of the volume here, it is set from the log
    * regardless of the reason it changed */
 }
