@@ -33,13 +33,18 @@
  * When you select 'add' a new empty set of details are displayed to be edited.
  * Again Apply will commit them.
  *
- * TODO: it would be really nice if the Username entry could be removed and new
- * user names entered in the list, rather off in the details panel.  This may
- * be possible with a sufficiently clever GtkCellRenderer.
+ * TODO:
+ * - enter new username in the GtkTreeView
+ * - escape and enter keys should work
+ * - should have a cancel or close button, consistent with properties and login
  */
 
 #include "disobedience.h"
 #include "bits.h"
+#include "sendmail.h"
+
+static void users_details_sensitize_all(void);
+static void users_set_report(const char *msg);
 
 static GtkWidget *users_window;
 static GtkListStore *users_list;
@@ -53,6 +58,7 @@ static GtkWidget *users_details_email;
 static GtkWidget *users_details_password;
 static GtkWidget *users_details_password2;
 static GtkWidget *users_details_rights[32];
+static GtkWidget *users_reporter;
 static int users_details_row;
 static const char *users_selected;
 static const char *users_deferred_select;
@@ -109,10 +115,16 @@ static int users_find_user(const char *user,
  *
  * If users_deferred_select is set then that user is selected.
  */
-static void users_got_list(void attribute((unused)) *v, int nvec, char **vec) {
+static void users_got_list(void attribute((unused)) *v,
+                           const char *err,
+                           int nvec, char **vec) {
   int n;
   GtkTreeIter iter;
 
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
   /* Present users in alphabetical order */
   qsort(vec, nvec, sizeof (char *), usercmp);
   /* Set the list contents */
@@ -158,6 +170,11 @@ static void users_detail_generic(const char *title,
                    1, 1);               /* x/ypadding */
 }
 
+static void users_entry_changed(GtkEditable attribute((unused)) *editable,
+                                gpointer attribute((unused)) user_data) {
+  users_details_sensitize_all();
+}
+
 /** @brief Add a row to the user details table
  * @param entryp Where to put GtkEntry
  * @param title Label for this row
@@ -172,6 +189,8 @@ static void users_add_detail(GtkWidget **entryp,
 
   if(!(entry = *entryp)) {
     *entryp = entry = gtk_entry_new();
+    g_signal_connect(entry, "changed",
+                     G_CALLBACK(users_entry_changed), 0);
     users_detail_generic(title, entry);
   }
   gtk_entry_set_visibility(GTK_ENTRY(entry),
@@ -213,6 +232,7 @@ static void users_details_sensitize(rights_type r) {
 /** @brief Set sensitivity of everything in sight */
 static void users_details_sensitize_all(void) {
   int n;
+  const char *report = 0;
 
   for(n = 0; n < 32; ++n)
     if(users_details_rights[n])
@@ -224,8 +244,42 @@ static void users_details_sensitize_all(void) {
   users_details_sensitize(RIGHT_MOVE_ANY);
   users_details_sensitize(RIGHT_REMOVE_ANY);
   users_details_sensitize(RIGHT_SCRATCH_ANY);
-  gtk_widget_set_sensitive(users_apply_button, users_mode != MODE_NONE);
+  int apply_sensitive = 1;
+  if(users_mode == MODE_NONE)
+    apply_sensitive = 0;
+  else {
+    const char *name = gtk_entry_get_text(GTK_ENTRY(users_details_name));
+    const char *email = gtk_entry_get_text(GTK_ENTRY(users_details_email));
+    const char *pw = gtk_entry_get_text(GTK_ENTRY(users_details_password));
+    const char *pw2 = gtk_entry_get_text(GTK_ENTRY(users_details_password2));
+    /* Username must be filled in */
+    if(!*name) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Must fill in username";
+    }
+    /* Passwords must be nontrivial and match */
+    if(!*pw) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Must fill in password";
+    }
+    if(strcmp(pw, pw2)) {
+      apply_sensitive = 0;
+      if(!report)
+        report = "Passwords must match";
+    }
+    /* Email address must be somewhat valid */
+    if(*email) {
+      if(!email_valid(email)) {
+        apply_sensitive = 0;
+        report = "Invalid email address";
+      }
+    }
+  }
+  gtk_widget_set_sensitive(users_apply_button, apply_sensitive);
   gtk_widget_set_sensitive(users_delete_button, !!users_selected);
+  users_set_report(report);
 }
 
 /** @brief Called when an _ALL widget is toggled
@@ -380,42 +434,38 @@ static rights_type users_get_rights(void) {
   return r;
 }
 
-/** @brief Called when various things fail */
-static void users_op_failed(struct callbackdata attribute((unused)) *cbd,
-                            int attribute((unused)) code,
-                            const char *msg) {
-  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
+/** @brief Called when a user setting has been edited */
+static void users_edituser_completed(void attribute((unused)) *v,
+                                     const char *err) {
+  if(err)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
 }
 
 /** @brief Called when a new user has been created */
-static void users_adduser_completed(void *v) {
-  struct callbackdata *cbd = v;
+static void users_adduser_completed(void *v,
+                                    const char *err) {
+  if(err) {
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
+    mode(ADD);                          /* Let the user try again */
+  } else {
+    const struct kvp *const kvp = v;
+    const char *user = kvp_get(kvp, "user");
+    const char *email = kvp_get(kvp, "email"); /* maybe NULL */
 
-  /* Now the user is created we can go ahead and set the email address */
-  if(*cbd->u.edituser.email) {
-    struct callbackdata *ncbd = xmalloc(sizeof *cbd);
-    ncbd->onerror = users_op_failed;
-    disorder_eclient_edituser(client, NULL, cbd->u.edituser.user,
-                              "email", cbd->u.edituser.email, ncbd);
+    /* Now the user is created we can go ahead and set the email address */
+    if(email)
+      disorder_eclient_edituser(client, users_edituser_completed, user,
+                                "email", email, NULL);
+    /* Refresh the list of users */
+    disorder_eclient_users(client, users_got_list, 0);
+    /* We'll select the newly created user */
+    users_deferred_select = user;
   }
-  /* Refresh the list of users */
-  disorder_eclient_users(client, users_got_list, 0);
-  /* We'll select the newly created user */
-  users_deferred_select = cbd->u.edituser.user;
-}
-
-/** @brief Called if creating a new user fails */
-static void users_adduser_failed(struct callbackdata attribute((unused)) *cbd,
-                                 int attribute((unused)) code,
-                                 const char *msg) {
-  popup_submsg(users_window, GTK_MESSAGE_ERROR, msg);
-  mode(ADD);                            /* Let the user try again */
 }
 
 /** @brief Called when the 'Apply' button is pressed */
 static void users_apply(GtkButton attribute((unused)) *button,
                         gpointer attribute((unused)) userdata) {
-  struct callbackdata *cbd;
   const char *password;
   const char *password2;
   const char *name;
@@ -447,15 +497,14 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
       return;
     }
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_adduser_failed;
-    cbd->u.edituser.user = name;
-    cbd->u.edituser.email = email;
-    disorder_eclient_adduser(client, users_adduser_completed,
+    disorder_eclient_adduser(client,
+                             users_adduser_completed,
                              name,
                              password,
                              rights_string(users_get_rights()),
-                             cbd);
+                             kvp_make("user", name,
+                                      "email", email,
+                                      (char *)0));
     /* We switch to no-op mode while creating the user */
     mode(NONE);
     break;
@@ -472,26 +521,30 @@ static void users_apply(GtkButton attribute((unused)) *button,
       popup_submsg(users_window, GTK_MESSAGE_ERROR, "Invalid email address");
       return;
     }
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_op_failed;
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "email", email, cbd);
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "password", password, cbd);
-    disorder_eclient_edituser(client, NULL, users_selected,
-                              "rights", rights_string(users_get_rights()), cbd);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "email", email, NULL);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "password", password, NULL);
+    disorder_eclient_edituser(client, users_edituser_completed, users_selected,
+                              "rights", rights_string(users_get_rights()), NULL);
     /* We remain in edit mode */
     break;
   }
 }
 
 /** @brief Called when a user has been deleted */
-static void users_deleted(void *v) {
-  const struct callbackdata *const cbd = v;
-  GtkTreeIter iter[1];
-
-  if(!users_find_user(cbd->u.user, iter))    /* Find the user... */
-    gtk_list_store_remove(users_list, iter); /* ...and remove them */
+static void users_delete_completed(void *v,
+                                   const char *err) {
+  if(err)
+    popup_submsg(users_window, GTK_MESSAGE_ERROR, err);
+  else {
+    const struct kvp *const kvp = v;
+    const char *const user = kvp_get(kvp, "user");
+    GtkTreeIter iter[1];
+    
+    if(!users_find_user(user, iter))           /* Find the user... */
+      gtk_list_store_remove(users_list, iter); /* ...and remove them */
+  }
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -499,7 +552,6 @@ static void users_delete(GtkButton attribute((unused)) *button,
 			 gpointer attribute((unused)) userdata) {
   GtkWidget *yesno;
   int res;
-  struct callbackdata *cbd;
 
   if(!users_selected)
     return;
@@ -513,22 +565,35 @@ static void users_delete(GtkButton attribute((unused)) *button,
   res = gtk_dialog_run(GTK_DIALOG(yesno));
   gtk_widget_destroy(yesno);
   if(res == GTK_RESPONSE_YES) {
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = users_op_failed;
-    cbd->u.user = users_selected;
-    disorder_eclient_deluser(client, users_deleted, cbd->u.user, cbd);
+    disorder_eclient_deluser(client, users_delete_completed, users_selected,
+                             kvp_make("user", users_selected,
+                                      (char *)0));
   }
 }
 
-static void users_got_email(void attribute((unused)) *v, const char *value) {
+static void users_got_email(void attribute((unused)) *v,
+                            const char *err,
+                            const char *value) {
+  if(err)
+    popup_protocol_error(0, err);
   users_email = value;
 }
 
-static void users_got_rights(void attribute((unused)) *v, const char *value) {
+static void users_got_rights(void attribute((unused)) *v,
+                             const char *err,
+                             const char *value) {
+  if(err)
+    popup_protocol_error(0, err);
   users_rights = value;
 }
 
-static void users_got_password(void attribute((unused)) *v, const char *value) {
+static void users_got_password(void attribute((unused)) *v,
+                               const char *err,
+                               const char *value) {
+  if(err)
+    popup_protocol_error(0, err);
+  /* TODO if an error occurred gathering user info, we should react in some
+   * different way */
   users_password = value;
   users_makedetails(users_selected,
                     users_email,
@@ -573,6 +638,19 @@ static void users_selection_changed(GtkTreeSelection attribute((unused)) *treese
                               "password", 0);
   }
   mode(NONE);                           /* not editing *yet* */
+}
+
+static GtkWidget *users_make_reporter() {
+  if(!users_reporter) {
+    users_reporter = gtk_label_new("");
+    gtk_label_set_ellipsize(GTK_LABEL(users_reporter), PANGO_ELLIPSIZE_END);
+    gtk_misc_set_alignment(GTK_MISC(users_reporter), 0.99, 0);
+  }
+  return users_reporter;
+}
+
+static void users_set_report(const char *msg) {
+  gtk_label_set_text(GTK_LABEL(users_make_reporter()), msg ? msg : "");
 }
 
 /** @brief Table of buttons below the user list */
@@ -656,6 +734,10 @@ void manage_users(void) {
   vbox2 = gtk_vbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox2), users_details_table,
                      TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(vbox2), gtk_hseparator_new(),
+                     FALSE/*expand*/, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox2), users_make_reporter(),
+                     FALSE/*expand*/, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(vbox2), hbox2,
                      FALSE/*expand*/, FALSE, 0);
   

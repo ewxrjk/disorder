@@ -45,6 +45,10 @@
 #include "configuration.h"
 #include "hash.h"
 #include "selection.h"
+#include "kvp.h"
+#include "eventdist.h"
+#include "split.h"
+#include "timeval.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -84,12 +88,17 @@ struct callbackdata {
  * have some callbacks to set them appropriately.
  */
 struct tabtype {
-  int (*properties_sensitive)(GtkWidget *tab);
-  int (*selectall_sensitive)(GtkWidget *tab);
-  int (*selectnone_sensitive)(GtkWidget *tab);
-  void (*properties_activate)(GtkWidget *tab);
-  void (*selectall_activate)(GtkWidget *tab);
-  void (*selectnone_activate)(GtkWidget *tab);
+  int (*properties_sensitive)(void *extra);
+  int (*selectall_sensitive)(void *extra);
+  int (*selectnone_sensitive)(void *extra);
+  void (*properties_activate)(GtkMenuItem *menuitem,
+                              gpointer user_data);
+  void (*selectall_activate)(GtkMenuItem *menuitem,
+                             gpointer user_data);
+  void (*selectnone_activate)(GtkMenuItem *menuitem,
+                              gpointer user_data);
+  void (*selected)(void);
+  void *extra;
 };
 
 /** @brief Button definitions */
@@ -109,6 +118,7 @@ extern GtkWidget *tabs;                 /* main tabs */
 extern disorder_eclient *client;        /* main client */
 
 extern unsigned long last_state;        /* last reported state */
+extern rights_type last_rights;         /* last reported rights bitmap */
 extern int playing;                     /* true if playing some track */
 extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
@@ -119,8 +129,6 @@ extern int rtp_is_running;
 extern GtkItemFactory *mainmenufactory;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
-
-typedef void monitor_callback(void *u);
 
 /* Functions --------------------------------------------------------------- */
 
@@ -133,8 +141,6 @@ void popup_protocol_error(int code,
 
 void properties(int ntracks, const char **tracks);
 /* Pop up a properties window for a list of tracks */
-
-void properties_reset(void);
 
 GtkWidget *scroll_widget(GtkWidget *child);
 /* Wrap a widget up for scrolling */
@@ -166,18 +172,7 @@ GtkWidget *create_buttons_box(struct button *buttons,
                               size_t nbuttons,
                               GtkWidget *box);
 
-void register_monitor(monitor_callback *callback,
-                      void *u,
-                      unsigned long mask);
-/* Register a state monitor */
-
-/** @brief Type signature for a reset callback */
-typedef void reset_callback(void);
-
-void register_reset(reset_callback *callback);
-/* Register a reset callback */
-
-void reset(void);
+void logged_in(void);
 
 void all_update(void);
 /* Update everything */
@@ -186,10 +181,6 @@ void all_update(void);
 
 GtkWidget *menubar(GtkWidget *w);
 /* Create the menu bar */
-     
-void menu_update(int page);
-/* Called whenever the main menu might need to change.  PAGE is the current
- * page if known or -1 otherwise. */
 
 void users_set_sensitive(int sensitive);
 
@@ -197,11 +188,6 @@ void users_set_sensitive(int sensitive);
 
 GtkWidget *control_widget(void);
 /* Make the controls widget */
-
-void volume_update(void);
-/* Called whenever we think the volume control has changed */
-
-void control_monitor(void *u);
 
 extern int suppress_actions;
 
@@ -213,12 +199,6 @@ GtkWidget *added_widget(void);
 /* Create widgets for displaying the queue, the recently played list and the
  * newly added tracks list */
 
-void queue_update(void);
-void recent_update(void);
-void added_update(void);
-/* Called whenever we think the queue, recent or newly-added list might have
- * changed */
-
 void queue_select_all(struct queuelike *ql);
 void queue_select_none(struct queuelike *ql);
 /* Select all/none on some queue */
@@ -229,11 +209,19 @@ void queue_properties(struct queuelike *ql);
 int queued(const char *track);
 /* Return nonzero iff TRACK is queued or playing */
 
+extern struct queue_entry *playing_track;
+
+/* Lookups */
+const char *namepart(const char *track,
+                     const char *context,
+                     const char *part);
+long namepart_length(const char *track);
+char *namepart_resolve(const char *track);
+
 void namepart_update(const char *track,
                      const char *context,
                      const char *part);
 /* Called when a namepart might have changed */
-
 
 /* Choose */
 
@@ -242,6 +230,9 @@ GtkWidget *choose_widget(void);
 
 void choose_update(void);
 /* Called when we think the choose tree might need updating */
+
+void play_completed(void *v,
+                    const char *error);
 
 /* Login details */
 
@@ -281,35 +272,6 @@ void save_settings(void);
 void load_settings(void);
 void set_tool_colors(GtkWidget *w);
 void popup_settings(void);
-
-/* Widget leakage debugging rubbish ---------------------------------------- */
-
-#if MDEBUG
-#define NW(what) do {                                   \
-  if(++current##what % 100 > max##what) {               \
-    fprintf(stderr, "%s:%d: %d %s\n",                   \
-            __FILE__, __LINE__, current##what, #what);  \
-    max##what = current##what;                          \
-  }                                                     \
-} while(0)
-#define WT(what) static int current##what, max##what
-#define DW(what) (--current##what)
-#else
-#define NW(what) do { } while(0)
-#define DW(what) do { } while(0)
-#define WT(what) struct neverused
-#endif
-
-#if MTRACK
-extern const char *mtag;
-#define MTAG(x) do { mtag = x; } while(0)
-#define MTAG_PUSH(x) do { const char *save_mtag = mtag; mtag = x; (void)0
-#define MTAG_POP() mtag = save_mtag; } while(0)
-#else
-#define MTAG(x) do { } while(0)
-#define MTAG_PUSH(x) do {} while(0)
-#define MTAG_POP() do {} while(0)
-#endif
 
 #endif /* DISOBEDIENCE_H */
 

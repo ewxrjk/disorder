@@ -24,6 +24,8 @@
 #ifndef ECLIENT_H
 #define ECLIENT_H
 
+#include "rights.h"
+
 /* Asynchronous client interface */
 
 /** @brief Handle type */
@@ -42,9 +44,13 @@ struct queue_entry;
  * These must all be valid.
  */
 typedef struct disorder_eclient_callbacks {
-  /** @brief Called when a communication error (e.g. connected refused) occurs.
+  /** @brief Called when a communication error occurs.
    * @param u from disorder_eclient_new()
    * @param msg error message
+   *
+   * This might be called at any time, and indicates a low-level error,
+   * e.g. connection refused by the server.  It does not mean that any requests
+   * made of the owning eclient will not be fulfilled at some point.
    */
   void (*comms_error)(void *u, const char *msg);
   
@@ -52,6 +58,11 @@ typedef struct disorder_eclient_callbacks {
    * @param u from disorder_eclient_new()
    * @param v from failed command, or NULL if during setup
    * @param msg error message
+   *
+   * This call is obsolete at least in its current form, in which it is used to
+   * report most errors from most requests.  Ultimately requests-specific
+   * errors will be reported in a request-specific way rather than via this
+   * generic callback.
    */
   void (*protocol_error)(void *u, void *v, int code, const char *msg);
 
@@ -84,19 +95,78 @@ typedef struct disorder_eclient_callbacks {
 typedef struct disorder_eclient_log_callbacks {
   /** @brief Called on (re-)connection */
   void (*connected)(void *v);
-  
+
+  /** @brief Called when @p track finished playing successfully */
   void (*completed)(void *v, const char *track);
+
+  /** @brief Called when @p track fails for some reason */
   void (*failed)(void *v, const char *track, const char *status);
+
+  /** @brief Called when @p user moves some track or tracks in the queue
+   *
+   * Fetch the queue again to find out what the new order is - the
+   * rearrangement could in principle be arbitrarily complicated.
+   */
   void (*moved)(void *v, const char *user);
+
+  /** @brief Called when @p track starts playing
+   *
+   * @p user might be 0.
+   */
   void (*playing)(void *v, const char *track, const char *user/*maybe 0*/);
+
+  /** @brief Called when @p q is added to the queue
+   *
+   * Fetch the queue again to find out where the in the queue it was added.
+   */   
   void (*queue)(void *v, struct queue_entry *q);
+
+  /** @brief Called when @p q is added to the recent list */
   void (*recent_added)(void *v, struct queue_entry *q);
+
+  /** @brief Called when @p id is removed from the recent list */
   void (*recent_removed)(void *v, const char *id);
+
+  /** @brief Called when @id is removed from the queue
+   *
+   * @p user might be 0.
+   */
   void (*removed)(void *v, const char *id, const char *user/*maybe 0*/);
+
+  /** @brief Called when @p track is scratched */
   void (*scratched)(void *v, const char *track, const char *user);
+
+  /** @brief Called with the current state whenever it changes
+   *
+   * State bits are:
+   * - @ref DISORDER_PLAYING_ENABLED
+   * - @ref DISORDER_RANDOM_ENABLED
+   * - @ref DISORDER_TRACK_PAUSED
+   * - @ref DISORDER_PLAYING
+   * - @ref DISORDER_CONNECTED
+   */
   void (*state)(void *v, unsigned long state);
+
+  /** @brief Called when the volume changes */
   void (*volume)(void *v, int left, int right);
+
+  /** @brief Called when a rescan completes */
   void (*rescanned)(void *v);
+
+  /** @brief Called when a user is created (admins only) */
+  void (*user_add)(void *v, const char *user);
+
+  /** @brief Called when a user is confirmed (admins only) */
+  void (*user_confirm)(void *v, const char *user);
+
+  /** @brief Called when a user is deleted (admins only) */
+  void (*user_delete)(void *v, const char *user);
+
+  /** @brief Called when a user is edited (admins only) */
+  void (*user_edit)(void *v, const char *user, const char *property);
+
+  /** @brief Called when your rights change */
+  void (*rights_changed)(void *v, rights_type new_rights);
 } disorder_eclient_log_callbacks;
 
 /* State bits */
@@ -135,32 +205,89 @@ struct kvp;
 struct sink;
 
 /* Completion callbacks.  These provide the result of operations to the caller.
- * It is always allowed for these to be null pointers if you don't care about
- * the result. */
+ * Unlike in earlier releases, these are not allowed to be NULL. */
 
-typedef void disorder_eclient_no_response(void *v);
-/* completion callback with no data */
+/** @brief Trivial completion callback
+ * @param v User data
+ * @param error Error string or NULL on succes
+ */
+typedef void disorder_eclient_no_response(void *v,
+                                          const char *error);
 
 /** @brief String result completion callback
  * @param v User data
- * @param value or NULL
+ * @param error Error string or NULL on succes
+ * @param value Result or NULL
  *
- * @p value can be NULL for disorder_eclient_get(),
- * disorder_eclient_get_global() and disorder_eclient_userinfo().
+ * @p error will be NULL on success.  In this case @p value will be the result
+ * (which might be NULL for disorder_eclient_get(),
+ * disorder_eclient_get_global() and disorder_eclient_userinfo()).
+ *
+ * @p error will be non-NULL on failure.  In this case @p value is always NULL.
  */
-typedef void disorder_eclient_string_response(void *v, const char *value);
+typedef void disorder_eclient_string_response(void *v,
+                                              const char *error,
+                                              const char *value);
 
-typedef void disorder_eclient_integer_response(void *v, long value);
-/* completion callback with a integer result */
+/** @brief String result completion callback
+ * @param v User data
+ * @param error Error string or NULL on succes
+ * @param value Result or 0
+ *
+ * @p error will be NULL on success.  In this case @p value will be the result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p value is always 0.
+ */
+typedef void disorder_eclient_integer_response(void *v,
+                                               const char *error,
+                                               long value);
+/** @brief Volume completion callback
+ * @param v User data
+ * @param error Error string or NULL on success
+ * @param l Left channel volume
+ * @param r Right channel volume
+ *
+ * @p error will be NULL on success.  In this case @p l and @p r will be the
+ * result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p l and @p r are always
+ * 0.
+ */
+typedef void disorder_eclient_volume_response(void *v,
+                                              const char *error,
+                                              int l, int r);
 
-typedef void disorder_eclient_volume_response(void *v, int l, int r);
-/* completion callback with a pair of integer results */
+/** @brief Queue request completion callback
+ * @param v User data
+ * @param error Error string or NULL on success
+ * @param q Head of queue data list
+ *
+ * @p error will be NULL on success.  In this case @p q will be the (head of
+ * the) result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p q may be NULL but
+ * MIGHT also be some subset of the queue.  For consistent behavior it should
+ * be ignored in the error case.
+ */
+typedef void disorder_eclient_queue_response(void *v,
+                                             const char *error,
+                                             struct queue_entry *q);
 
-typedef void disorder_eclient_queue_response(void *v, struct queue_entry *q);
-/* completion callback for queue/recent listing */
-
-typedef void disorder_eclient_list_response(void *v, int nvec, char **vec);
-/* completion callback for file listing etc */
+/** @brief List request completion callback
+ * @param v User data
+ * @param error Error string or NULL on success
+ * @param nvec Number of elements in response list
+ * @param vec Pointer to response list
+ *
+ * @p error will be NULL on success.  In this case @p nvec and @p vec will give
+ * the result.
+ *
+ * @p error will be non-NULL on failure.  In this case @p nvec and @p vec will
+ * be 0 and NULL.
+ */
+typedef void disorder_eclient_list_response(void *v,
+                                            const char *error,
+                                            int nvec, char **vec);
 
 disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
                                        void *u);

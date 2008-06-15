@@ -17,1525 +17,336 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-/** @file disobedience/queue.c
- * @brief Queue widgets
- *
- * This file provides both the queue widget and the recently-played widget.
- *
- * A queue layout is structured as follows:
- *
- * <pre>
- *  vbox
- *   titlescroll
- *    titlelayout
- *     titlecells[col]                 eventbox (made by wrap_queue_cell)
- *      titlecells[col]->child         label (from columns[])
- *   mainscroll
- *    mainlayout
- *     cells[row * N + c]              eventbox (made by wrap_queue_cell)
- *      cells[row * N + c]->child      label (from column constructors)
- * </pre>
- *
- * titlescroll never has any scrollbars.  Instead whenever mainscroll's
- * horizontal adjustment is changed, queue_scrolled adjusts titlescroll to
- * match, forcing the title and the queue to pan in sync but allowing the queue
- * to scroll independently.
- *
- * Whenever the queue changes everything below mainlayout is thrown away and
- * reconstructed from scratch.  Name lookups are cached, so this doesn't imply
- * lots of disorder protocol traffic.
- *
- * The last cell on each row is the padding cell, and this extends ridiculously
- * far to the right.  (Can we do better?)
- *
- * When drag and drop is active we create extra eventboxes to act as dropzones.
- * These only exist while the drag proceeds, as otherwise they steal events
- * from more deserving widgets.  (It might work to hide them when not in use
- * too but this way around the d+d code is a bit more self-contained.)
- *
- * NB that while in the server the playing track is not in the queue, in
- * Disobedience, the playing does live in @c ql_queue.q, despite its different
- * status to everything else found in that list.
- */
-
 #include "disobedience.h"
-#include "charset.h"
+#include "popup.h"
+#include "queue-generic.h"
 
-/** @brief Horizontal padding for queue cells */
-#define HCELLPADDING 4
+/** @brief The actual queue */
+static struct queue_entry *actual_queue;
+static struct queue_entry *actual_playing_track;
 
-/** @brief Vertical padding for queue cells */
-#define VCELLPADDING 2
+/** @brief The playing track */
+struct queue_entry *playing_track;
 
-/* Queue management -------------------------------------------------------- */
+/** @brief When we last got the playing track */
+time_t last_playing;
 
-WT(label);
-WT(event_box);
-WT(menu);
-WT(menu_item);
-WT(layout);
-WT(vbox);
+static void queue_completed(void *v,
+                            const char *error,
+                            struct queue_entry *q);
+static void playing_completed(void *v,
+                              const char *error,
+                              struct queue_entry *q);
 
-struct queuelike;
+/** @brief Called when either the actual queue or the playing track change */
+static void queue_playing_changed(void) {
 
-static void add_drag_targets(struct queuelike *ql);
-static void remove_drag_targets(struct queuelike *ql);
-static void redisplay_queue(struct queuelike *ql);
-static GtkWidget *column_when(const struct queuelike *ql,
-                              const struct queue_entry *q,
-                              const char *data);
-static GtkWidget *column_who(const struct queuelike *ql,
-                             const struct queue_entry *q,
-                             const char *data);
-static GtkWidget *column_namepart(const struct queuelike *ql,
-                                  const struct queue_entry *q,
-                                  const char *data);
-static GtkWidget *column_length(const struct queuelike *ql,
-                                const struct queue_entry *q,
-                                const char *data);
-static int draggable_row(const struct queue_entry *q);
-
-static const struct tabtype tabtype_queue; /* forward */
-
-static const GtkTargetEntry dragtargets[] = {
-  { (char *)"disobedience-queue", GTK_TARGET_SAME_APP, 0 }
-};
-#define NDRAGTARGETS (int)(sizeof dragtargets / sizeof *dragtargets)
-
-/** @brief Definition of a column */
-struct column {
-  const char *name;                     /* Column name */
-  GtkWidget *(*widget)(const struct queuelike *ql,
-                       const struct queue_entry *q,
-                       const char *data); /* Make a label for this column */
-  const char *data;                     /* Data to pass to widget() */
-  gfloat xalign;                        /* Alignment of the label */
-};
-
-/** @brief Table of columns for queue and recently played list */
-static const struct column maincolumns[] = {
-  { "When",   column_when,     0,        1 },
-  { "Who",    column_who,      0,        0 },
-  { "Artist", column_namepart, "artist", 0 },
-  { "Album",  column_namepart, "album",  0 },
-  { "Title",  column_namepart, "title",  0 },
-  { "Length", column_length,   0,        1 }
-};
-
-/** @brief Number of columns in queue and recnetly played list */
-#define NMAINCOLUMNS (int)(sizeof maincolumns / sizeof *maincolumns)
-
-/** @brief Table of columns for recently added tracks */
-static const struct column addedcolumns[] = {
-  { "Artist", column_namepart, "artist", 0 },
-  { "Album",  column_namepart, "album",  0 },
-  { "Title",  column_namepart, "title",  0 },
-  { "Length", column_length,   0,        1 }
-};
-
-/** @brief Number of columns in recently added list */
-#define NADDEDCOLUMNS (int)(sizeof addedcolumns / sizeof *addedcolumns)
-
-/** @brief Maximum number of column in any @ref queuelike */
-#define MAXCOLUMNS (NMAINCOLUMNS > NADDEDCOLUMNS ? NMAINCOLUMNS : NADDEDCOLUMNS)
-
-/** @brief Data passed to menu item activation handlers */
-struct menuiteminfo {
-  struct queuelike *ql;                 /**< @brief which queue we're dealing with */
-  struct queue_entry *q;                /**< @brief hovered entry or 0 */
-};
-
-/** @brief An item in the queue's popup menu */
-struct queue_menuitem {
-  /** @brief Menu item name */
-  const char *name;
-
-  /** @brief Called to activate the menu item
-   *
-   * The user data is the queue entry that the pointer was over when the menu
-   * popped up. */
-  void (*activate)(GtkMenuItem *menuitem,
-                   gpointer user_data);
-  
-  /** @brief Called to determine whether the menu item is usable.
-   *
-   * Returns @c TRUE if it should be sensitive and @c FALSE otherwise.  @p q
-   * points to the queue entry the pointer is over.
-   */
-  int (*sensitive)(struct queuelike *ql,
-                   struct queue_menuitem *m,
-                   struct queue_entry *q);
-
-  /** @brief Signal handler ID */
-  gulong handlerid;
-
-  /** @brief Widget for menu item */
-  GtkWidget *w;
-};
-
-/** @brief A queue-like object
- *
- * There are (currently) three of these: @ref ql_queue, @ref ql_recent and @ref
- * ql_added.
- */
-struct queuelike {
-  /** @brief Called when an update completes */
-  void (*notify)(void);
-
-  /** @brief Called to fix up the queue after update
-   * @param q The list passed back from the server
-   * @return Assigned to @c ql->q
-   */
-  struct queue_entry *(*fixup)(struct queue_entry *q);
-
-  /* Widgets */
-  GtkWidget *mainlayout;                /**< @brief main layout */
-  GtkWidget *mainscroll;                /**< @brief scroller for main layout */
-  GtkWidget *titlelayout;               /**< @brief title layout */
-  GtkWidget *titlecells[MAXCOLUMNS + 1]; /**< @brief title cells */
-  GtkWidget **cells;                    /**< @brief all the cells */
-  GtkWidget *menu;                      /**< @brief popup menu */
-  struct queue_menuitem *menuitems;     /**< @brief menu items */
-  GtkWidget *dragmark;                  /**< @brief drag destination marker */
-  GtkWidget **dropzones;                /**< @brief drag targets */
-  int ndropzones;                       /**< @brief number of drag targets */
-
-  /* State */
-  struct queue_entry *q;                /**< @brief head of queue */
-  struct queue_entry *last_click;       /**< @brief last click */
-  int nrows;                            /**< @brief number of rows */
-  int mainrowheight;                    /**< @brief height of one row */
-  hash *selection;                      /**< @brief currently selected items */
-  int swallow_release;                  /**< @brief swallow button release from drag */
-
-  const struct column *columns;         /**< @brief Table of columns */
-  int ncolumns;                         /**< @brief Number of columns */
-};
-
-static struct queuelike ql_queue; /**< @brief The main queue */
-static struct queuelike ql_recent; /*< @brief Recently-played tracks */
-static struct queuelike ql_added; /*< @brief Newly added tracks */
-static struct queue_entry *actual_queue; /**< @brief actual queue */
-static struct queue_entry *playing_track;     /**< @brief currenty playing */
-static time_t last_playing = (time_t)-1; /**< @brief when last got playing */
-static int namepart_lookups_outstanding;
-static int  namepart_completions_deferred; /* # of completions not processed */
-static const struct cache_type cachetype_string = { 3600 };
-static const struct cache_type cachetype_integer = { 3600 };
-static GtkWidget *playing_length_label;
-
-/* Debugging --------------------------------------------------------------- */
-
-#if 0
-static void describe_widget(const char *name, GtkWidget *w, int indent) {
-  int ww, wh, wx, wy;
-
-  if(name)
-    fprintf(stderr, "%*s[%s]: '%s'\n", indent, "",
-            name, gtk_widget_get_name(w));
-  gdk_window_get_position(w->window, &wx, &wy);
-  gdk_drawable_get_size(GDK_DRAWABLE(w->window), &ww, &wh);
-  fprintf(stderr, "%*s window %p: %dx%d at %dx%d\n",
-          indent, "", w->window, ww, wh, wx, wy);
-}
-
-static void dump_layout(const struct queuelike *ql) {
-  GtkWidget *w;
-  char s[20];
-  int row, col;
-  const struct queue_entry *q;
-  
-  describe_widget("mainscroll", ql->mainscroll, 0);
-  describe_widget("mainlayout", ql->mainlayout, 1);
-  for(q = ql->q, row = 0; q; q = q->next, ++row)
-    for(col = 0; col < ql->ncolumns + 1; ++col)
-      if((w = ql->cells[row * (ql->ncolumns + 1) + col])) {
-        sprintf(s, "%dx%d", row, col);
-        describe_widget(s, w, 2);
-        if(GTK_BIN(w)->child)
-          describe_widget(0, w, 3);
-      }
-}
-#endif
-
-/* Track detail lookup ----------------------------------------------------- */
-
-/** @brief Called when a namepart lookup has completed or failed */
-static void namepart_completed_or_failed(void) {
-  D(("namepart_completed_or_failed"));
-  --namepart_lookups_outstanding;
-  if(!namepart_lookups_outstanding) {
-    redisplay_queue(&ql_queue);
-    redisplay_queue(&ql_recent);
-    redisplay_queue(&ql_added);
-    namepart_completions_deferred = 0;
-  }
-}
-
-/** @brief Called when A namepart lookup has completed */
-static void namepart_completed(void *v, const char *value) {
-  struct callbackdata *cbd = v;
-
-  D(("namepart_completed"));
-  cache_put(&cachetype_string, cbd->u.key, value);
-  ++namepart_completions_deferred;
-  namepart_completed_or_failed();
-}
-
-/** @brief Called when a length lookup has completed */
-static void length_completed(void *v, long l) {
-  struct callbackdata *cbd = v;
-  long *value;
-
-  D(("namepart_completed"));
-  value = xmalloc(sizeof *value);
-  *value = l;
-  cache_put(&cachetype_integer, cbd->u.key, value);
-  ++namepart_completions_deferred;
-  namepart_completed_or_failed();
-}
-
-/** @brief Called when a length or namepart lookup has failed */
-static void namepart_protocol_error(
-  struct callbackdata attribute((unused)) *cbd,
-  int attribute((unused)) code,
-  const char *msg) {
-  D(("namepart_protocol_error"));
-  gtk_label_set_text(GTK_LABEL(report_label), msg);
-  namepart_completed_or_failed();
-}
-
-/** @brief Arrange to fill in a namepart cache entry */
-static void namepart_fill(const char *track,
-                          const char *context,
-                          const char *part,
-                          const char *key) {
-  struct callbackdata *cbd;
-
-  ++namepart_lookups_outstanding;
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = namepart_protocol_error;
-  cbd->u.key = key;
-  disorder_eclient_namepart(client, namepart_completed,
-                            track, context, part, cbd);
-}
-
-/** @brief Look up a namepart
- *
- * If it is in the cache then just return its value.  If not then look it up
- * and arrange for the queues to be updated when its value is available. */
-static const char *namepart(const char *track,
-                            const char *context,
-                            const char *part) {
-  char *key;
-  const char *value;
-
-  D(("namepart %s %s %s", track, context, part));
-  byte_xasprintf(&key, "namepart context=%s part=%s track=%s",
-                 context, part, track);
-  value = cache_get(&cachetype_string, key);
-  if(!value) {
-    D(("deferring..."));
-    /* stick a value in the cache so we don't issue another lookup if we
-     * revisit */
-    cache_put(&cachetype_string, key, value = "?");
-    namepart_fill(track, context, part, key);
-  }
-  return value;
-}
-
-/** @brief Called from @ref disobedience/properties.c when we know a name part has changed */
-void namepart_update(const char *track,
-                     const char *context,
-                     const char *part) {
-  char *key;
-
-  byte_xasprintf(&key, "namepart context=%s part=%s track=%s",
-                 context, part, track);
-  /* Only refetch if it's actually in the cache */
-  if(cache_get(&cachetype_string, key))
-    namepart_fill(track, context, part, key);
-}
-
-/** @brief Look up a track length
- *
- * If it is in the cache then just return its value.  If not then look it up
- * and arrange for the queues to be updated when its value is available. */
-static long getlength(const char *track) {
-  char *key;
-  const long *value;
-  struct callbackdata *cbd;
-  static const long bogus = -1;
-
-  D(("getlength %s", track));
-  byte_xasprintf(&key, "length track=%s", track);
-  value = cache_get(&cachetype_integer, key);
-  if(!value) {
-    D(("deferring..."));;
-    cache_put(&cachetype_integer, key, value = &bogus);
-    ++namepart_lookups_outstanding;
-    cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = namepart_protocol_error;
-    cbd->u.key = key;
-    disorder_eclient_length(client, length_completed, track, cbd);
-  }
-  return *value;
-}
-
-/* Column constructors ----------------------------------------------------- */
-
-/** @brief Format the 'when' column */
-static GtkWidget *column_when(const struct queuelike attribute((unused)) *ql,
-                              const struct queue_entry *q,
-                              const char attribute((unused)) *data) {
-  char when[64];
-  struct tm tm;
-  time_t t;
-
-  D(("column_when"));
-  switch(q->state) {
-  case playing_isscratch:
-  case playing_unplayed:
-  case playing_random:
-    t = q->expected;
-    break;
-  case playing_failed:
-  case playing_no_player:
-  case playing_ok:
-  case playing_scratched:
-  case playing_started:
-  case playing_paused:
-  case playing_quitting:
-    t = q->played;
-    break;
-  default:
-    t = 0;
-    break;
-  }
-  if(t)
-    strftime(when, sizeof when, "%H:%M", localtime_r(&t, &tm));
-  else
-    when[0] = 0;
-  NW(label);
-  return gtk_label_new(when);
-}
-
-/** @brief Format the 'who' column */
-static GtkWidget *column_who(const struct queuelike attribute((unused)) *ql,
-                             const struct queue_entry *q,
-                             const char attribute((unused)) *data) {
-  D(("column_who"));
-  NW(label);
-  return gtk_label_new(q->submitter ? q->submitter : "");
-}
-
-/** @brief Format one of the track name columns */
-static GtkWidget *column_namepart(const struct queuelike
-                                               attribute((unused)) *ql,
-                                  const struct queue_entry *q,
-                                  const char *data) {
-  D(("column_namepart"));
-  NW(label);
-  return gtk_label_new(truncate_for_display(namepart(q->track, "display", data),
-                                            config->short_display));
-}
-
-/** @brief Compute the length field */
-static const char *text_length(const struct queue_entry *q) {
-  long l;
-  time_t now;
-  char *played = 0, *length = 0;
-
-  /* Work out what to say for the length */
-  l = getlength(q->track);
-  if(l > 0)
-    byte_xasprintf(&length, "%ld:%02ld", l / 60, l % 60);
-  else
-    byte_xasprintf(&length, "?:??");
-  /* For the currently playing track we want to report how much of the track
-   * has been played */
-  if(q == playing_track) {
-    /* log_state() arranges that we re-get the playing data whenever the
-     * pause/resume state changes */
-    if(last_state & DISORDER_TRACK_PAUSED)
-      l = playing_track->sofar;
-    else {
-      time(&now);
-      l = playing_track->sofar + (now - last_playing);
-    }
-    byte_xasprintf(&played, "%ld:%02ld/%s", l / 60, l % 60, length);
-    return played;
-  } else
-    return length;
-}
-
-/** @brief Format the length column */
-static GtkWidget *column_length(const struct queuelike attribute((unused)) *ql,
-                                const struct queue_entry *q,
-                                const char attribute((unused)) *data) {
-  D(("column_length"));
-  if(q == playing_track) {
-    assert(!playing_length_label);
-    NW(label);
-    playing_length_label = gtk_label_new(text_length(q));
-    /* Zot playing_length_label when it is destroyed */
-    g_signal_connect(playing_length_label, "destroy",
-                     G_CALLBACK(gtk_widget_destroyed), &playing_length_label);
-    return playing_length_label;
-  } else {
-    NW(label);
-    return gtk_label_new(text_length(q));
-  }
-  
-}
-
-/** @brief Apply a new queue contents, transferring the selection from the old value */
-static void update_queue(struct queuelike *ql, struct queue_entry *newq) {
-  struct queue_entry *q;
-
-  D(("update_queue"));
-  /* Propagate last_click across the change */
-  if(ql->last_click) {
-    for(q = newq; q; q = q->next) {
-      if(!strcmp(q->id, ql->last_click->id)) 
+  /* Check that the playing track isn't in the queue.  There's a race here due
+   * to the fact that we issue the two commands at slightly different times.
+   * If it goes wrong we re-issue and try again, so that we never offer up an
+   * inconsistent state. */
+  if(actual_playing_track) {
+    struct queue_entry *q;
+    for(q = actual_queue; q; q = q->next)
+      if(!strcmp(q->id, actual_playing_track->id))
         break;
-      ql->last_click = q;
+    if(q) {
+      disorder_eclient_playing(client, playing_completed, 0);
+      disorder_eclient_queue(client, queue_completed, 0);
+      return;
     }
   }
-  /* Tell every queue entry which queue owns it */
-  for(q = newq; q; q = q->next)
-    q->ql = ql;
-  /* Switch to the new queue */
-  ql->q = newq;
-  /* Clean up any selected items that have fallen off */
-  for(q = ql->q; q; q = q->next)
-    selection_live(ql->selection, q->id);
-  selection_cleanup(ql->selection);
-}
-
-/** @brief Wrap up a widget for putting into the queue or title
- * @param label Label to contain
- * @param style Pointer to style to use
- * @param wp Updated with maximum width (or NULL)
- * @return New widget
- */
-static GtkWidget *wrap_queue_cell(GtkWidget *label,
-                                  GtkStyle *style,
-                                  int *wp) {
-  GtkRequisition req;
-  GtkWidget *bg;
-
-  D(("wrap_queue_cell"));
-  /* Padding should be in the label so there are no gaps in the
-   * background */
-  gtk_misc_set_padding(GTK_MISC(label), HCELLPADDING, VCELLPADDING);
-  /* Event box is just to hold a background color */
-  NW(event_box);
-  bg = gtk_event_box_new();
-  gtk_container_add(GTK_CONTAINER(bg), label);
-  if(wp) {
-    /* Update maximum width */
-    gtk_widget_size_request(label, &req);
-    if(req.width > *wp) *wp = req.width;
-  }
-  /* Set colors */
-  gtk_widget_set_style(bg, style);
-  gtk_widget_set_style(label, style);
-  return bg;
-}
-
-/** @brief Create the wrapped widget for a cell in the queue display */
-static GtkWidget *get_queue_cell(struct queuelike *ql,
-                                 const struct queue_entry *q,
-                                 int row,
-                                 int col,
-                                 GtkStyle *style,
-                                 int *wp) {
-  GtkWidget *label;
-  D(("get_queue_cell %d %d", row, col));
-  label = ql->columns[col].widget(ql, q, ql->columns[col].data);
-  gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-  return wrap_queue_cell(label, style, wp);
-}
-
-/** @brief Add a padding cell to the end of a row */
-static GtkWidget *get_padding_cell(GtkStyle *style) {
-  D(("get_padding_cell"));
-  NW(label);
-  return wrap_queue_cell(gtk_label_new(""), style, 0);
-}
-
-/* User button press and menu ---------------------------------------------- */
-
-/** @brief Update widget states in order to reflect the selection status */
-static void set_widget_states(struct queuelike *ql) {
-  struct queue_entry *q;
-  int row, col;
-
-  for(q = ql->q, row = 0; q; q = q->next, ++row) {
-    for(col = 0; col < ql->ncolumns + 1; ++col)
-      gtk_widget_set_state(ql->cells[row * (ql->ncolumns + 1) + col],
-                           selection_selected(ql->selection, q->id) ?
-                           GTK_STATE_SELECTED : GTK_STATE_NORMAL);
-  }
-  /* Might need to change sensitivity of 'Properties' in main menu */
-  menu_update(-1);
-}
-
-/** @brief Ordering function for queue entries */
-static int queue_before(const struct queue_entry *a,
-                        const struct queue_entry *b) {
-  while(a && a != b)
-    a = a->next;
-  return !!a;
-}
-
-/** @brief A button was pressed and released */
-static gboolean queuelike_button_released(GtkWidget attribute((unused)) *widget,
-                                          GdkEventButton *event,
-                                          gpointer user_data) {
-  struct queue_entry *q = user_data, *qq;
-  struct queuelike *ql = q->ql;
-  struct menuiteminfo *mii;
-  int n;
   
-  /* Might be a release left over from a drag */
-  if(ql->swallow_release) {
-    ql->swallow_release = 0;
-    return FALSE;                       /* propagate */
-  }
-
-  if(event->type == GDK_BUTTON_PRESS
-     && event->button == 3) {
-    /* Right button click.
-     * If the current item is not selected then switch the selection to just
-     * this item */
-    if(q && !selection_selected(ql->selection, q->id)) {
-      selection_empty(ql->selection);
-      selection_set(ql->selection, q->id, 1);
-      ql->last_click = q;
-      set_widget_states(ql);
-    }
-    /* Set the sensitivity of each menu item and (re-)establish the signal
-     * handlers */
-    for(n = 0; ql->menuitems[n].name; ++n) {
-      if(ql->menuitems[n].handlerid)
-        g_signal_handler_disconnect(ql->menuitems[n].w,
-                                    ql->menuitems[n].handlerid);
-      gtk_widget_set_sensitive(ql->menuitems[n].w,
-                               ql->menuitems[n].sensitive(ql,
-                                                          &ql->menuitems[n],
-                                                          q));
-      mii = xmalloc(sizeof *mii);
-      mii->ql = ql;
-      mii->q = q;
-      ql->menuitems[n].handlerid = g_signal_connect
-        (ql->menuitems[n].w, "activate",
-         G_CALLBACK(ql->menuitems[n].activate), mii);
-    }
-    /* Update the menu according to context */
-    gtk_widget_show_all(ql->menu);
-    gtk_menu_popup(GTK_MENU(ql->menu), 0, 0, 0, 0,
-                   event->button, event->time);
-    return TRUE;                        /* hide the click from other widgets */
-  }
-  if(event->type == GDK_BUTTON_RELEASE
-     && event->button == 1) {
-    /* no modifiers: select this, unselect everything else, set last click
-     * +ctrl: flip selection of this, set last click
-     * +shift: select from last click to here, don't set last click
-     * +ctrl+shift: select from last click to here, set last click
-     */
-    switch(event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK)) {
-    case 0:
-      selection_empty(ql->selection);
-      selection_set(ql->selection, q->id, 1);
-      ql->last_click = q;
-      break;
-    case GDK_CONTROL_MASK:
-      selection_flip(ql->selection, q->id);
-      ql->last_click = q;
-      break;
-    case GDK_SHIFT_MASK:
-    case GDK_SHIFT_MASK|GDK_CONTROL_MASK:
-      if(ql->last_click) {
-        if(!(event->state & GDK_CONTROL_MASK))
-          selection_empty(ql->selection);
-        selection_set(ql->selection, q->id, 1);
-        qq = q;
-        if(queue_before(ql->last_click, q))
-          while(qq != ql->last_click) {
-            qq = qq->prev;
-            selection_set(ql->selection, qq->id, 1);
-          }
-        else
-          while(qq != ql->last_click) {
-            qq = qq->next;
-            selection_set(ql->selection, qq->id, 1);
-          }
-        if(event->state & GDK_CONTROL_MASK)
-          ql->last_click = q;
-      }
-      break;
-    }
-    set_widget_states(ql);
-    gtk_widget_queue_draw(ql->mainlayout);
-  }
-  return FALSE;                         /* propagate */
-}
-
-/** @brief A button was pressed or released on the mainlayout
- *
- * For debugging only at the moment. */
-static gboolean mainlayout_button(GtkWidget attribute((unused)) *widget,
-                                  GdkEventButton attribute((unused)) *event,
-                                  gpointer attribute((unused)) user_data) {
-  return FALSE;                         /* propagate */
-}
-
-/** @brief Select all entries in a queue */
-void queue_select_all(struct queuelike *ql) {
-  struct queue_entry *qq;
-
-  for(qq = ql->q; qq; qq = qq->next)
-    selection_set(ql->selection, qq->id, 1);
-  ql->last_click = 0;
-  set_widget_states(ql);
-}
-
-/** @brief Deselect all entries in a queue */
-void queue_select_none(struct queuelike *ql) {
-  struct queue_entry *qq;
-
-  for(qq = ql->q; qq; qq = qq->next)
-    selection_set(ql->selection, qq->id, 0);
-  ql->last_click = 0;
-  set_widget_states(ql);
-}
-
-/** @brief Pop up properties for selected tracks */
-void queue_properties(struct queuelike *ql) {
-  struct vector v;
-  const struct queue_entry *qq;
-
-  vector_init(&v);
-  for(qq = ql->q; qq; qq = qq->next)
-    if(selection_selected(ql->selection, qq->id))
-      vector_append(&v, (char *)qq->track);
-  if(v.nvec)
-    properties(v.nvec, (const char **)v.vec);
-}
-
-/* Drag and drop rearrangement --------------------------------------------- */
-
-/** @brief Return nonzero if @p is a draggable row
- *
- * Only tracks in the main queue are draggable (and the currently playing track
- * is not draggable).
- */
-static int draggable_row(const struct queue_entry *q) {
-  return q->ql == &ql_queue && q != playing_track;
-}
-
-/** @brief Called when a drag begings */
-static void queue_drag_begin(GtkWidget attribute((unused)) *widget, 
-                             GdkDragContext attribute((unused)) *dc,
-                             gpointer data) {
-  struct queue_entry *q = data;
-  struct queuelike *ql = q->ql;
-
-  /* Make sure the playing track is not selected, since it cannot be dragged */
-  if(playing_track)
-    selection_set(ql->selection, playing_track->id, 0);
-  /* If the dragged item is not in the selection then change the selection to
-   * just that */
-  if(!selection_selected(ql->selection, q->id)) {
-    selection_empty(ql->selection);
-    selection_set(ql->selection, q->id, 1);
-    set_widget_states(ql);
-  }
-  /* Ignore the eventual button release */
-  ql->swallow_release = 1;
-  /* Create dropzones */
-  add_drag_targets(ql);
-}
-
-/** @brief Convert @p id back into a queue entry and a screen row number */
-static struct queue_entry *findentry(struct queuelike *ql,
-                                     const char *id,
-                                     int *rowp) {
-  int row;
-  struct queue_entry *q;
-
-  if(id) {
-    for(q = ql->q, row = 0; q && strcmp(q->id, id); q = q->next, ++row)
-      ;
+  struct queue_entry *q = xmalloc(sizeof *q);
+  if(actual_playing_track) {
+    *q = *actual_playing_track;
+    q->next = actual_queue;
+    playing_track = q;
   } else {
-    q = 0;
-    row = playing_track ? 0 : -1;
+    playing_track = NULL;
+    q = actual_queue;
   }
-  if(rowp) *rowp = row;
-  return q;
+  time(&last_playing);          /* for column_length() */
+  ql_new_queue(&ql_queue, q);
+  /* Tell anyone who cares */
+  event_raise("queue-list-changed", q);
+  event_raise("playing-track-changed", q);
 }
 
-/** @brief Called when data is dropped */
-static gboolean queue_drag_drop(GtkWidget attribute((unused)) *widget,
-                                GdkDragContext *drag_context,
-                                gint attribute((unused)) x,
-                                gint attribute((unused)) y,
-                                guint when,
-                                gpointer user_data) {
-  struct queuelike *ql = &ql_queue;
-  const char *id = user_data;
-  struct vector vec;
-  struct queue_entry *q;
-
-  if(!id || (playing_track && !strcmp(id, playing_track->id)))
-    id = "";
-  vector_init(&vec);
-  for(q = ql->q; q; q = q->next)
-    if(q != playing_track && selection_selected(ql->selection, q->id))
-      vector_append(&vec, (char *)q->id);
-  disorder_eclient_moveafter(client, id, vec.nvec, (const char **)vec.vec,
-                             0/*completed*/, 0/*v*/);
-  gtk_drag_finish(drag_context, TRUE, TRUE, when);
-  /* Destroy dropzones */
-  remove_drag_targets(ql);
-  return TRUE;
-}
-
-/** @brief Called when we enter, or move within, a drop zone */
-static gboolean queue_drag_motion(GtkWidget attribute((unused)) *widget,
-                                  GdkDragContext *drag_context,
-                                  gint attribute((unused)) x,
-                                  gint attribute((unused)) y,
-                                  guint when,
-                                  gpointer user_data) {
-  struct queuelike *ql = &ql_queue;
-  const char *id = user_data;
-  int row;
-  struct queue_entry *q = findentry(ql, id, &row);
-
-  if(!id || q) {
-    if(!ql->dragmark) {
-      NW(event_box);
-      ql->dragmark = gtk_event_box_new();
-      g_signal_connect(ql->dragmark, "destroy",
-                       G_CALLBACK(gtk_widget_destroyed), &ql->dragmark);
-      gtk_widget_set_size_request(ql->dragmark, 10240, row ? 4 : 2);
-      gtk_widget_set_style(ql->dragmark, drag_style);
-      gtk_layout_put(GTK_LAYOUT(ql->mainlayout), ql->dragmark, 0, 
-                     (row + 1) * ql->mainrowheight - !!row);
-    } else
-      gtk_layout_move(GTK_LAYOUT(ql->mainlayout), ql->dragmark, 0, 
-                      (row + 1) * ql->mainrowheight - !!row);
-    gtk_widget_show(ql->dragmark);
-    gdk_drag_status(drag_context, GDK_ACTION_MOVE, when);
-    return TRUE;
-  } else
-    /* ID has gone AWOL */
-    return FALSE;
-}                              
-
-/** @brief Called when we leave a drop zone */
-static void queue_drag_leave(GtkWidget attribute((unused)) *widget,
-                             GdkDragContext attribute((unused)) *drag_context,
-                             guint attribute((unused)) when,
-                             gpointer attribute((unused)) user_data) {
-  struct queuelike *ql = &ql_queue;
-  
-  if(ql->dragmark)
-    gtk_widget_hide(ql->dragmark);
-}
-
-/** @brief Add a drag target
- * @param ql The queue-like (in practice this is always @ref ql_queue)
- * @param y The Y coordinate to place the drag target
- * @param id Track to insert moved tracks after, or NULL
- *
- * Adds a drop zone at Y coordinate @p y, which is assumed to lie between two
- * tracks (or before the start of the queue or after the end of the queue).  If
- * tracks are dragged into this dropzone then they will be moved @em after
- * track @p id, or to the start of the queue if @p id is NULL.
- *
- * We remember all the dropzones in @c ql->dropzones so they can be destroyed
- * later.
- */
-static void add_drag_target(struct queuelike *ql, int y,
-                            const char *id) {
-  GtkWidget *eventbox;
-
-  NW(event_box);
-  eventbox = gtk_event_box_new();
-  /* Make the target zone invisible */
-  gtk_event_box_set_visible_window(GTK_EVENT_BOX(eventbox), FALSE);
-  /* Make it large enough */
-  gtk_widget_set_size_request(eventbox, 10240, 
-                              y ? ql->mainrowheight : ql->mainrowheight / 2);
-  /* Position it */
-  gtk_layout_put(GTK_LAYOUT(ql->mainlayout), eventbox, 0,
-                 y ? y - ql->mainrowheight / 2 : 0);
-  /* Mark it as capable of receiving drops */
-  gtk_drag_dest_set(eventbox,
-                    0,
-                    dragtargets, NDRAGTARGETS, GDK_ACTION_MOVE);
-  g_signal_connect(eventbox, "drag-drop",
-                   G_CALLBACK(queue_drag_drop), (char *)id);
-  /* Monitor drag motion */
-  g_signal_connect(eventbox, "drag-motion",
-                   G_CALLBACK(queue_drag_motion), (char *)id);
-  g_signal_connect(eventbox, "drag-leave",
-                   G_CALLBACK(queue_drag_leave), (char *)id);
-  /* The widget needs to be shown to receive drags */
-  gtk_widget_show(eventbox);
-  /* Remember the drag targets */
-  ql->dropzones[ql->ndropzones] = eventbox;
-  g_signal_connect(eventbox, "destroy",
-                   G_CALLBACK(gtk_widget_destroyed),
-                   &ql->dropzones[ql->ndropzones]);
-  ++ql->ndropzones;
-}
-
-/** @brief Create dropzones for dragging into */
-static void add_drag_targets(struct queuelike *ql) {
-  int y;
-  struct queue_entry *q;
-
-  /* Create an array to store the widgets */
-  ql->dropzones = xcalloc(ql->nrows, sizeof (GtkWidget *));
-  ql->ndropzones = 0;
-  y = 0;
-  /* Add a drag target before the first row provided it's not the playing
-   * track */
-  if(!playing_track || ql->q != playing_track)
-    add_drag_target(ql, 0, 0);
-  /* Put a drag target at the bottom of every row */
-  for(q = ql->q; q; q = q->next) {
-    y += ql->mainrowheight;
-    add_drag_target(ql, y, q->id);
-  }
-}
-
-/** @brief Remove the dropzones */
-static void remove_drag_targets(struct queuelike *ql) {
-  int n;
-
-  for(n = 0; n < ql->ndropzones; ++n) {
-    if(ql->dropzones[n]) {
-      DW(event_box);
-      gtk_widget_destroy(ql->dropzones[n]);
-    }
-    assert(ql->dropzones[n] == 0);
-  }
-}
-
-/* Layout ------------------------------------------------------------------ */
-
-/** @brief Redisplay a queue */
-static void redisplay_queue(struct queuelike *ql) {
-  struct queue_entry *q;
-  int row, col;
-  GList *c, *children;
-  GtkStyle *style;
-  GtkRequisition req;  
-  GtkWidget *w;
-  int maxwidths[MAXCOLUMNS], x, y, titlerowheight;
-  int totalwidth = 10240;               /* TODO: can we be less blunt */
-
-  D(("redisplay_queue"));
-  /* Eliminate all the existing widgets and start from scratch */
-  for(c = children = gtk_container_get_children(GTK_CONTAINER(ql->mainlayout));
-      c;
-      c = c->next) {
-    /* Destroy both the label and the eventbox */
-    if(GTK_BIN(c->data)->child) {
-      DW(label);
-      gtk_widget_destroy(GTK_BIN(c->data)->child);
-    }
-    DW(event_box);
-    gtk_widget_destroy(GTK_WIDGET(c->data));
-  }
-  g_list_free(children);
-  /* Adjust the row count */
-  for(q = ql->q, ql->nrows = 0; q; q = q->next)
-    ++ql->nrows;
-  /* We need to create all the widgets before we can position them */
-  ql->cells = xcalloc(ql->nrows * (ql->ncolumns + 1), sizeof *ql->cells);
-  /* Minimum width is given by the column headings */
-  for(col = 0; col < ql->ncolumns; ++col) {
-    /* Reset size so we don't inherit last iteration's maximum size */
-    gtk_widget_set_size_request(GTK_BIN(ql->titlecells[col])->child, -1, -1);
-    gtk_widget_size_request(GTK_BIN(ql->titlecells[col])->child, &req);
-    maxwidths[col] = req.width;
-  }
-  /* Find the vertical size of the title bar */
-  gtk_widget_size_request(GTK_BIN(ql->titlecells[0])->child, &req);
-  titlerowheight = req.height;
-  y = 0;
-  if(ql->nrows) {
-    /* Construct the widgets */
-    for(q = ql->q, row = 0; q; q = q->next, ++row) {
-      /* Figure out the widget name for this row */
-      if(q == playing_track) style = active_style;
-      else style = row % 2 ? even_style : odd_style;
-      /* Make the widget for each column */
-      for(col = 0; col <= ql->ncolumns; ++col) {
-        /* Create and store the widget */
-        if(col < ql->ncolumns)
-          w = get_queue_cell(ql, q, row, col, style, &maxwidths[col]);
-        else
-          w = get_padding_cell(style);
-        ql->cells[row * (ql->ncolumns + 1) + col] = w;
-        /* Maybe mark it draggable */
-        if(draggable_row(q)) {
-          gtk_drag_source_set(w, GDK_BUTTON1_MASK,
-                              dragtargets, NDRAGTARGETS, GDK_ACTION_MOVE);
-          g_signal_connect(w, "drag-begin", G_CALLBACK(queue_drag_begin), q);
-        }
-        /* Catch button presses */
-        g_signal_connect(w, "button-release-event",
-                         G_CALLBACK(queuelike_button_released), q);
-        g_signal_connect(w, "button-press-event",
-                         G_CALLBACK(queuelike_button_released), q);
-      }
-    }
-    /* ...and of each row in the main layout */
-    gtk_widget_size_request(GTK_BIN(ql->cells[0])->child, &req);
-    ql->mainrowheight = req.height;
-    /* Now we know the maximum width of each column we can set the size of
-     * everything and position it */
-    for(row = 0, q = ql->q; row < ql->nrows; ++row, q = q->next) {
-      x = 0;
-      for(col = 0; col < ql->ncolumns; ++col) {
-        w = ql->cells[row * (ql->ncolumns + 1) + col];
-        gtk_widget_set_size_request(GTK_BIN(w)->child,
-                                    maxwidths[col], -1);
-        gtk_layout_put(GTK_LAYOUT(ql->mainlayout), w, x, y);
-        x += maxwidths[col];
-      }
-      w = ql->cells[row * (ql->ncolumns + 1) + col];
-      gtk_widget_set_size_request(GTK_BIN(w)->child,
-                                  totalwidth - x, -1);
-      gtk_layout_put(GTK_LAYOUT(ql->mainlayout), w, x, y);
-      y += ql->mainrowheight;
-    }
-  }
-  /* Titles */
-  x = 0;
-  for(col = 0; col < ql->ncolumns; ++col) {
-    gtk_widget_set_size_request(GTK_BIN(ql->titlecells[col])->child,
-                                maxwidths[col], -1);
-    gtk_layout_move(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], x, 0);
-    x += maxwidths[col];
-  }
-  gtk_widget_set_size_request(GTK_BIN(ql->titlecells[col])->child,
-                              totalwidth - x, -1);
-  gtk_layout_move(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], x, 0);
-  /* Set the states */
-  set_widget_states(ql);
-  /* Make sure it's all visible */
-  gtk_widget_show_all(ql->mainlayout);
-  gtk_widget_show_all(ql->titlelayout);
-  /* Layouts might shrink to arrange for the area they shrink out of to be
-   * redrawn */
-  gtk_widget_queue_draw(ql->mainlayout);
-  gtk_widget_queue_draw(ql->titlelayout);
-  /* Adjust the size of the layout */
-  gtk_layout_set_size(GTK_LAYOUT(ql->mainlayout), x, y);
-  gtk_layout_set_size(GTK_LAYOUT(ql->titlelayout), x, titlerowheight);
-  gtk_widget_set_size_request(ql->titlelayout, -1, titlerowheight);
-}
-
-/** @brief Called with new queue/recent contents */ 
-static void queuelike_completed(void *v, struct queue_entry *q) {
-  struct callbackdata *cbd = v;
-  struct queuelike *ql = cbd->u.ql;
-
-  D(("queuelike_complete"));
-  /* Install the new queue */
-  update_queue(ql, ql->fixup ? ql->fixup(q) : q);
-  /* Update the display */
-  redisplay_queue(ql);
-  if(ql->notify)
-    ql->notify();
-  /* Update sensitivity of main menu items */
-  menu_update(-1);
-}
-
-/** @brief Called with a new currently playing track */
-static void playing_completed(void attribute((unused)) *v,
-                              struct queue_entry *q) {
-  struct callbackdata cbd;
-  D(("playing_completed"));
-  playing_track = q;
-  /* Record when we got the playing track data so we know how old the 'sofar'
-   * field is */
-  time(&last_playing);
-  cbd.u.ql = &ql_queue;
-  queuelike_completed(&cbd, actual_queue);
-}
-
-/** @brief Called when the queue is scrolled */
-static void queue_scrolled(GtkAdjustment *adjustment,
-                           gpointer user_data) {
-  GtkAdjustment *titleadj = user_data;
-
-  D(("queue_scrolled"));
-  gtk_adjustment_set_value(titleadj, adjustment->value);
-}
-
-/** @brief Create a queuelike thing (queue/recent) */
-static GtkWidget *queuelike(struct queuelike *ql,
-                            struct queue_entry *(*fixup)(struct queue_entry *),
-                            void (*notify)(void),
-                            struct queue_menuitem *menuitems,
-                            const struct column *columns,
-                            int ncolumns) {
-  GtkWidget *vbox, *mainscroll, *titlescroll, *label;
-  GtkAdjustment *mainadj, *titleadj;
-  int col, n;
-
-  D(("queuelike"));
-  ql->fixup = fixup;
-  ql->notify = notify;
-  ql->menuitems = menuitems;
-  ql->mainrowheight = !0;                /* else division by 0 */
-  ql->selection = selection_new();
-  ql->columns = columns;
-  ql->ncolumns = ncolumns;
-  /* Create the layouts */
-  NW(layout);
-  ql->mainlayout = gtk_layout_new(0, 0);
-  gtk_widget_set_style(ql->mainlayout, layout_style);
-  NW(layout);
-  ql->titlelayout = gtk_layout_new(0, 0);
-  gtk_widget_set_style(ql->titlelayout, title_style);
-  /* Scroll the layouts */
-  ql->mainscroll = mainscroll = scroll_widget(ql->mainlayout);
-  titlescroll = scroll_widget(ql->titlelayout);
-  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(titlescroll),
-                                 GTK_POLICY_NEVER, GTK_POLICY_NEVER);
-  mainadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(mainscroll));
-  titleadj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(titlescroll));
-  g_signal_connect(mainadj, "changed", G_CALLBACK(queue_scrolled), titleadj);
-  g_signal_connect(mainadj, "value-changed", G_CALLBACK(queue_scrolled), titleadj);
-  /* Fill the titles and put them anywhere */
-  for(col = 0; col < ql->ncolumns; ++col) {
-    NW(label);
-    label = gtk_label_new(ql->columns[col].name);
-    gtk_misc_set_alignment(GTK_MISC(label), ql->columns[col].xalign, 0);
-    ql->titlecells[col] = wrap_queue_cell(label, title_style, 0);
-    gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
-  }
-  ql->titlecells[col] = get_padding_cell(title_style);
-  gtk_layout_put(GTK_LAYOUT(ql->titlelayout), ql->titlecells[col], 0, 0);
-  /* Pack the lot together in a vbox */
-  NW(vbox);
-  vbox = gtk_vbox_new(0, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), titlescroll, 0, 0, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), mainscroll, 1, 1, 0);
-  /* Create the popup menu */
-  NW(menu);
-  ql->menu = gtk_menu_new();
-  g_signal_connect(ql->menu, "destroy",
-                   G_CALLBACK(gtk_widget_destroyed), &ql->menu);
-  for(n = 0; menuitems[n].name; ++n) {
-    NW(menu_item);
-    menuitems[n].w = gtk_menu_item_new_with_label(menuitems[n].name);
-    gtk_menu_attach(GTK_MENU(ql->menu), menuitems[n].w, 0, 1, n, n + 1);
-  }
-  g_object_set_data(G_OBJECT(vbox), "type", (void *)&tabtype_queue);
-  g_object_set_data(G_OBJECT(vbox), "queue", ql);
-  /* Catch button presses */
-  g_signal_connect(ql->mainlayout, "button-release-event",
-                   G_CALLBACK(mainlayout_button), ql);
-#if 0
-  g_signal_connect(ql->mainlayout, "button-press-event",
-                   G_CALLBACK(mainlayout_button), ql);
-#endif
-  set_tool_colors(ql->menu);
-  return vbox;
-}
-
-/* Popup menu items -------------------------------------------------------- */
-
-/** @brief Count the number of items selected */
-static int queue_count_selected(const struct queuelike *ql) {
-  return hash_count(ql->selection);
-}
-
-/** @brief Count the number of items selected */
-static int queue_count_entries(const struct queuelike *ql) {
-  int nitems = 0;
-  const struct queue_entry *q;
-
-  for(q = ql->q; q; q = q->next)
-    ++nitems;
-  return nitems;
-}
-
-/** @brief Count the number of items selected, excluding the playing track if
- * there is one */
-static int count_selected_nonplaying(const struct queuelike *ql) {
-  int nselected = queue_count_selected(ql);
-
-  if(ql->q == playing_track && selection_selected(ql->selection, ql->q->id))
-    --nselected;
-  return nselected;
-}
-
-/** @brief Determine whether the scratch option should be sensitive */
-static int scratch_sensitive(struct queuelike attribute((unused)) *ql,
-                             struct queue_menuitem attribute((unused)) *m,
-                             struct queue_entry attribute((unused)) *q) {
-  /* We can scratch if the playing track is selected */
-  return (playing_track
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED)
-          && selection_selected(ql->selection, playing_track->id));
-}
-
-/** @brief Scratch the playing track */
-static void scratch_activate(GtkMenuItem attribute((unused)) *menuitem,
-                             gpointer attribute((unused)) user_data) {
-  if(playing_track)
-    disorder_eclient_scratch(client, playing_track->id, 0, 0);
-}
-
-/** @brief Determine whether the remove option should be sensitive */
-static int remove_sensitive(struct queuelike *ql,
-                            struct queue_menuitem attribute((unused)) *m,
+/** @brief Update the queue itself */
+static void queue_completed(void attribute((unused)) *v,
+                            const char *err,
                             struct queue_entry *q) {
-  /* We can remove if we're hovering over a particular track or any non-playing
-   * tracks are selected */
-  return ((disorder_eclient_state(client) & DISORDER_CONNECTED)
-          && ((q
-               && q != playing_track)
-              || count_selected_nonplaying(ql)));
-}
-
-/** @brief Remove selected track(s) */
-static void remove_activate(GtkMenuItem attribute((unused)) *menuitem,
-                            gpointer user_data) {
-  const struct menuiteminfo *mii = user_data;
-  struct queue_entry *q = mii->q;
-  struct queuelike *ql = mii->ql;
-
-  if(count_selected_nonplaying(mii->ql)) {
-    /* Remove selected tracks */
-    for(q = ql->q; q; q = q->next)
-      if(selection_selected(ql->selection, q->id) && q != playing_track)
-        disorder_eclient_remove(client, q->id, 0, 0);
-  } else if(q)
-    /* Remove just the hovered track */
-    disorder_eclient_remove(client, q->id, 0, 0);
-}
-
-/** @brief Determine whether the properties menu option should be sensitive */
-static int properties_sensitive(struct queuelike *ql,
-                                struct queue_menuitem attribute((unused)) *m,
-                                struct queue_entry attribute((unused)) *q) {
-  /* "Properties" is sensitive if at least something is selected */
-  return (hash_count(ql->selection) > 0
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
-}
-
-/** @brief Pop up properties for the selected tracks */
-static void properties_activate(GtkMenuItem attribute((unused)) *menuitem,
-                                gpointer user_data) {
-  const struct menuiteminfo *mii = user_data;
-  
-  queue_properties(mii->ql);
-}
-
-/** @brief Determine whether the select all menu option should be sensitive */
-static int selectall_sensitive(struct queuelike *ql,
-                               struct queue_menuitem attribute((unused)) *m,
-                               struct queue_entry attribute((unused)) *q) {
-  /* Sensitive if there is anything to select */
-  return !!ql->q;
-}
-
-/** @brief Select all tracks */
-static void selectall_activate(GtkMenuItem attribute((unused)) *menuitem,
-                               gpointer user_data) {
-  const struct menuiteminfo *mii = user_data;
-  queue_select_all(mii->ql);
-}
-
-/** @brief Determine whether the select none menu option should be sensitive */
-static int selectnone_sensitive(struct queuelike *ql,
-                                struct queue_menuitem attribute((unused)) *m,
-                                struct queue_entry attribute((unused)) *q) {
-  /* Sensitive if there is anything selected */
-  return hash_count(ql->selection) != 0;
-}
-
-/** @brief Select no tracks */
-static void selectnone_activate(GtkMenuItem attribute((unused)) *menuitem,
-                               gpointer user_data) {
-  const struct menuiteminfo *mii = user_data;
-  queue_select_none(mii->ql);
-}
-
-/** @brief Determine whether the play menu option should be sensitive */
-static int play_sensitive(struct queuelike *ql,
-                          struct queue_menuitem attribute((unused)) *m,
-                          struct queue_entry attribute((unused)) *q) {
-  /* "Play" is sensitive if at least something is selected */
-  return (hash_count(ql->selection) > 0
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
-}
-
-/** @brief Play the selected tracks */
-static void play_activate(GtkMenuItem attribute((unused)) *menuitem,
-                          gpointer user_data) {
-  const struct menuiteminfo *mii = user_data;
-  struct queue_entry *q = mii->q;
-  struct queuelike *ql = mii->ql;
-
-  if(queue_count_selected(ql)) {
-    /* Play selected tracks */
-    for(q = ql->q; q; q = q->next)
-      if(selection_selected(ql->selection, q->id))
-        disorder_eclient_play(client, q->track, 0, 0);
-  } else if(q)
-    /* Nothing is selected, so play the hovered track */
-    disorder_eclient_play(client, q->track, 0, 0);
-}
-
-/* The queue --------------------------------------------------------------- */
-
-/** @brief Fix up the queue by sticking the currently playing track on the front */
-static struct queue_entry *fixup_queue(struct queue_entry *q) {
-  D(("fixup_queue"));
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
   actual_queue = q;
-  if(playing_track) {
-    if(actual_queue)
-      actual_queue->prev = playing_track;
-    playing_track->next = actual_queue;
-    return playing_track;
-  } else
-    return actual_queue;
+  queue_playing_changed();
 }
 
-/** @brief Adjust track played label
- *
- *  Called regularly to adjust the so-far played label (redrawing the whole
- * queue once a second makes disobedience occupy >10% of the CPU on my Athlon
- * which is ureasonable expensive) */
-static gboolean adjust_sofar(gpointer attribute((unused)) data) {
-  if(playing_length_label && playing_track)
-    gtk_label_set_text(GTK_LABEL(playing_length_label),
-                       text_length(playing_track));
-  return TRUE;
+/** @brief Update the playing track */
+static void playing_completed(void attribute((unused)) *v,
+                              const char *err,
+                              struct queue_entry *q) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  actual_playing_track = q;
+  queue_playing_changed();
 }
 
-/** @brief Popup menu for the queue
+/** @brief Schedule an update to the queue
  *
- * Properties first so that finger trouble is less dangerous. */
-static struct queue_menuitem queue_menu[] = {
-  { "Track properties", properties_activate, properties_sensitive, 0, 0 },
-  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
-  { "Scratch track", scratch_activate, scratch_sensitive, 0, 0 },
-  { "Remove track from queue", remove_activate, remove_sensitive, 0, 0 },
-  { 0, 0, 0, 0, 0 }
-};
-
-/** @brief Called whenever @ref DISORDER_PLAYING or @ref DISORDER_TRACK_PAUSED changes
- *
- * We monitor pause/resume as well as whether the track is playing in order to
- * keep the time played so far up to date correctly.  See playing_completed().
+ * Called whenever a track is added to it or removed from it.
  */
-static void playing_update(void attribute((unused)) *v) {
-  D(("playing_update"));
+static void queue_changed(const char attribute((unused)) *event,
+                           void  attribute((unused)) *eventdata,
+                           void  attribute((unused)) *callbackdata) {
+  D(("queue_changed"));
+  gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
+  disorder_eclient_queue(client, queue_completed, 0);
+}
+
+/** @brief Schedule an update to the playing track
+ *
+ * Called whenever it changes
+ */
+static void playing_changed(const char attribute((unused)) *event,
+                            void  attribute((unused)) *eventdata,
+                            void  attribute((unused)) *callbackdata) {
+  D(("playing_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
   disorder_eclient_playing(client, playing_completed, 0);
 }
 
-/** @brief Create the queue widget */
-GtkWidget *queue_widget(void) {
-  D(("queue_widget"));
-  /* Arrange periodic update of the so-far played field */
-  g_timeout_add(1000/*ms*/, adjust_sofar, 0);
+/** @brief Called regularly
+ *
+ * Updates the played-so-far field
+ */
+static gboolean playing_periodic(gpointer attribute((unused)) data) {
+  /* If there's a track playing, update its row */
+  if(playing_track)
+    ql_update_row(playing_track, 0);
+  return TRUE;
+}
+
+/** @brief Called at startup */
+static void queue_init(void) {
   /* Arrange a callback whenever the playing state changes */ 
-  register_monitor(playing_update, 0, DISORDER_PLAYING|DISORDER_TRACK_PAUSED);
-  register_reset(queue_update);
-  /* We pass choose_update() as our notify function since the choose screen
-   * marks tracks that are playing/in the queue. */
-  return queuelike(&ql_queue, fixup_queue, choose_update, queue_menu,
-                   maincolumns, NMAINCOLUMNS);
+  event_register("playing-changed", playing_changed, 0);
+  /* We reget both playing track and queue at pause/resume so that start times
+   * can be computed correctly */
+  event_register("pause-changed", playing_changed, 0);
+  event_register("pause-changed", queue_changed, 0);
+  /* Reget the queue whenever it changes */
+  event_register("queue-changed", queue_changed, 0);
+  /* ...and once a second anyway */
+  g_timeout_add(1000/*ms*/, playing_periodic, 0);
 }
 
-/** @brief Arrange an update of the queue widget
+/** @brief Columns for the queue */
+static const struct queue_column queue_columns[] = {
+  { "When",   column_when,     0,        COL_RIGHT },
+  { "Who",    column_who,      0,        0 },
+  { "Artist", column_namepart, "artist", COL_EXPAND|COL_ELLIPSIZE },
+  { "Album",  column_namepart, "album",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Title",  column_namepart, "title",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Length", column_length,   0,        COL_RIGHT }
+};
+
+/** @brief Pop-up menu for queue */
+static struct menuitem queue_menuitems[] = {
+  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Scratch playing track", ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
+  { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
+};
+
+struct queuelike ql_queue = {
+  .name = "queue",
+  .init = queue_init,
+  .columns = queue_columns,
+  .ncolumns = sizeof queue_columns / sizeof *queue_columns,
+  .menuitems = queue_menuitems,
+  .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems
+};
+
+/* Drag and drop has to be figured out experimentally, because it is not well
+ * documented.
  *
- * Called when a track is added to the queue, removed from the queue (by user
- * cmmand or because it is to be played) or moved within the queue
+ * First you get a row-inserted.  The path argument points to the destination
+ * row but this will not yet have had its values set.  The source row is still
+ * present.  AFAICT the iter argument points to the same place.
+ *
+ * Then you get a row-deleted.  The path argument identifies the row that was
+ * deleted.  By this stage the row inserted above has acquired its values.
+ *
+ * A complication is that the deletion will move the inserted row.  For
+ * instance, if you do a drag that moves row 1 down to after the track that was
+ * formerly on row 9, in the row-inserted call it will show up as row 10, but
+ * in the row-deleted call, row 1 will have been deleted thus making the
+ * inserted row be row 9.
+ *
+ * So when we see the row-inserted we have no idea what track to move.
+ * Therefore we stash it until we see a row-deleted.
  */
-void queue_update(void) {
-  struct callbackdata *cbd;
 
-  D(("queue_update"));
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_queue;
-  gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
-  disorder_eclient_queue(client, queuelike_completed, cbd);
-}
+/** @brief Target row for drag */
+static int queue_drag_target = -1;
 
-/* Recently played tracks -------------------------------------------------- */
-
-/** @brief Fix up the recently played list
- *
- * It's in the wrong order!  TODO fix this globally */
-static struct queue_entry *fixup_recent(struct queue_entry *q) {
-  struct queue_entry *qr = 0,  *qn;
-
-  D(("fixup_recent"));
-  while(q) {
-    qn = q->next;
-    /* Swap next/prev pointers */
-    q->next = q->prev;
-    q->prev = qn;
-    /* Remember last node for new head */
-    qr = q;
-    /* Next node */
-    q = qn;
+static void queue_move_completed(void attribute((unused)) *v,
+                                 const char *err) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
   }
-  return qr;
+  /* The log should tell us the queue changed so we do no more here */
 }
 
-/** @brief Pop-up menu for recently played list */
-static struct queue_menuitem recent_menu[] = {
-  { "Track properties", properties_activate, properties_sensitive,0, 0 },
-  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
-  { 0, 0, 0, 0, 0 }
-};
+static void queue_row_deleted(GtkTreeModel *treemodel,
+                              GtkTreePath *path,
+                              gpointer attribute((unused)) user_data) {
+  if(!suppress_actions) {
+#if 0
+    char *ps = gtk_tree_path_to_string(path);
+    fprintf(stderr, "row-deleted path=%s queue_drag_target=%d\n",
+            ps, queue_drag_target);
+    GtkTreeIter j[1];
+    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
+    int row = 0;
+    while(jt) {
+      struct queue_entry *q = ql_iter_to_q(treemodel, j);
+      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
+      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_queue.store), j);
+    }
+    g_free(ps);
+#endif
+    if(queue_drag_target < 0) {
+      error(0, "unsuppressed row-deleted with no row-inserted");
+      return;
+    }
+    int drag_source = gtk_tree_path_get_indices(path)[0];
 
-/** @brief Create the recently-played list */
-GtkWidget *recent_widget(void) {
-  D(("recent_widget"));
-  register_reset(recent_update);
-  return queuelike(&ql_recent, fixup_recent, 0, recent_menu,
-                   maincolumns, NMAINCOLUMNS);
-}
+    /* If the drag is downwards (=towards higher row numbers) then the target
+     * will have been moved upwards (=towards lower row numbers) by one row. */
+    if(drag_source < queue_drag_target)
+      --queue_drag_target;
+    
+    /* Find the track to move */
+    GtkTreeIter src[1];
+    gboolean srcv = gtk_tree_model_iter_nth_child(treemodel, src, NULL,
+                                                  queue_drag_target);
+    if(!srcv) {
+      error(0, "cannot get iterator to drag target %d", queue_drag_target);
+      queue_playing_changed();
+      queue_drag_target = -1;
+      return;
+    }
+    struct queue_entry *srcq = ql_iter_to_q(treemodel, src);
+    assert(srcq);
+    //fprintf(stderr, "move %s %s\n", srcq->id, srcq->track);
+    
+    /* Don't allow the currently playing track to be moved.  As above, we put
+     * the queue back into the right order straight away. */
+    if(srcq == playing_track) {
+      //fprintf(stderr, "cannot move currently playing track\n");
+      queue_playing_changed();
+      queue_drag_target = -1;
+      return;
+    }
 
-/** @brief Update the recently played list
- *
- * Called whenever a track is added to it or removed from it.
- */
-void recent_update(void) {
-  struct callbackdata *cbd;
-
-  D(("recent_update"));
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_recent;
-  gtk_label_set_text(GTK_LABEL(report_label), "updating recently played list");
-  disorder_eclient_recent(client, queuelike_completed, cbd);
-}
-
-/* Newly added tracks ------------------------------------------------------ */
-
-/** @brief Pop-up menu for recently played list */
-static struct queue_menuitem added_menu[] = {
-  { "Track properties", properties_activate, properties_sensitive, 0, 0 },
-  { "Play track", play_activate, play_sensitive, 0, 0 },
-  { "Select all tracks", selectall_activate, selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", selectnone_activate, selectnone_sensitive, 0, 0 },
-  { 0, 0, 0, 0, 0 }
-};
-
-/** @brief Create the newly-added list */
-GtkWidget *added_widget(void) {
-  D(("added_widget"));
-  register_reset(added_update);
-  return queuelike(&ql_added, 0/*fixup*/, 0/*notify*/, added_menu,
-                   addedcolumns, NADDEDCOLUMNS);
-}
-
-/** @brief Called with an updated list of newly-added tracks
- *
- * This is called with a raw list of track names but the rest of @ref
- * disobedience/queue.c requires @ref queue_entry structures with a valid and
- * unique @c id field.  This function fakes it.
- */
-static void new_completed(void *v, int nvec, char **vec) {
-  struct queue_entry *q, *qh, *qlast = 0, **qq = &qh;
-  int n;
-
-  for(n = 0; n < nvec; ++n) {
-    q = xmalloc(sizeof *q);
-    q->prev = qlast;
-    q->track = vec[n];
-    q->id = vec[n];
-    *qq = q;
-    qq = &q->next;
-    qlast = q;
+    /* Find the destination */
+    struct queue_entry *dstq;
+    if(queue_drag_target) {
+      GtkTreeIter dst[1];
+      gboolean dstv = gtk_tree_model_iter_nth_child(treemodel, dst, NULL,
+                                                    queue_drag_target - 1);
+      if(!dstv) {
+        error(0, "cannot get iterator to drag target predecessor %d",
+              queue_drag_target - 1);
+        queue_playing_changed();
+        queue_drag_target = -1;
+        return;
+      }
+      dstq = ql_iter_to_q(treemodel, dst);
+      assert(dstq);
+      if(dstq == playing_track)
+        dstq = 0;
+    } else
+      dstq = 0;
+    /* NB if the user attempts to move a queued track before the currently
+     * playing track we assume they just missed a bit, and put it after. */
+    //fprintf(stderr, " target %s %s\n", dstq ? dstq->id : "(none)", dstq ? dstq->track : "(none)");
+    /* Now we know what is to be moved.  We need to know the preceding queue
+     * entry so we can move it. */
+    disorder_eclient_moveafter(client,
+                               dstq ? dstq->id : "",
+                               1, &srcq->id,
+                               queue_move_completed, NULL);
+    queue_drag_target = -1;
   }
-  *qq = 0;
-  queuelike_completed(v, qh);
 }
 
-/** @brief Update the newly-added list */
-void added_update(void) {
-  struct callbackdata *cbd;
-  D(("added_updae"));
+static void queue_row_inserted(GtkTreeModel attribute((unused)) *treemodel,
+                               GtkTreePath *path,
+                               GtkTreeIter attribute((unused)) *iter,
+                               gpointer attribute((unused)) user_data) {
+  if(!suppress_actions) {
+#if 0
+    char *ps = gtk_tree_path_to_string(path);
+    GtkTreeIter piter[1];
+    gboolean pi = gtk_tree_model_get_iter(treemodel, piter, path);
+    struct queue_entry *pq = pi ? ql_iter_to_q(treemodel, piter) : 0;
+    struct queue_entry *iq = ql_iter_to_q(treemodel, iter);
 
-  cbd = xmalloc(sizeof *cbd);
-  cbd->onerror = 0;
-  cbd->u.ql = &ql_added;
-  gtk_label_set_text(GTK_LABEL(report_label),
-                     "updating newly added track list");
-  disorder_eclient_new_tracks(client, new_completed, 0/*all*/, cbd);
+    fprintf(stderr, "row-inserted path=%s pi=%d pq=%p path=%s iq=%p iter=%s\n",
+            ps,
+            pi,
+            pq,
+            (pi
+             ? (pq ? pq->track : "(pq=0)")
+             : "(pi=FALSE)"),
+            iq,
+            iq ? iq->track : "(iq=0)");
+
+    GtkTreeIter j[1];
+    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
+    int row = 0;
+    while(jt) {
+      struct queue_entry *q = ql_iter_to_q(treemodel, j);
+      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
+      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_queue.store), j);
+    }
+    g_free(ps);
+#endif
+    queue_drag_target = gtk_tree_path_get_indices(path)[0];
+  }
 }
 
-/* Main menu plumbing ------------------------------------------------------ */
+GtkWidget *queue_widget(void) {
+  GtkWidget *const w = init_queuelike(&ql_queue);
 
-static int queue_properties_sensitive(GtkWidget *w) {
-  return (!!queue_count_selected(g_object_get_data(G_OBJECT(w), "queue"))
-          && (disorder_eclient_state(client) & DISORDER_CONNECTED));
+  /* Enable drag+drop */
+  gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ql_queue.view), TRUE);
+  g_signal_connect(ql_queue.store,
+                   "row-inserted",
+                   G_CALLBACK(queue_row_inserted), &ql_queue);
+  g_signal_connect(ql_queue.store,
+                   "row-deleted",
+                   G_CALLBACK(queue_row_deleted), &ql_queue);
+  return w;
 }
-
-static int queue_selectall_sensitive(GtkWidget *w) {
-  return !!queue_count_entries(g_object_get_data(G_OBJECT(w), "queue"));
-}
-
-static int queue_selectnone_sensitive(GtkWidget *w) {
-  struct queuelike *const ql = g_object_get_data(G_OBJECT(w), "queue");
-
-  return hash_count(ql->selection) != 0;
-}
-
-static void queue_properties_activate(GtkWidget *w) {
-  queue_properties(g_object_get_data(G_OBJECT(w), "queue"));
-}
-
-static void queue_selectall_activate(GtkWidget *w) {
-  queue_select_all(g_object_get_data(G_OBJECT(w), "queue"));
-}
-
-static void queue_selectnone_activate(GtkWidget *w) {
-  queue_select_none(g_object_get_data(G_OBJECT(w), "queue"));
-}
-
-static const struct tabtype tabtype_queue = {
-  queue_properties_sensitive,
-  queue_selectall_sensitive,
-  queue_selectnone_sensitive,
-  queue_properties_activate,
-  queue_selectall_activate,
-  queue_selectnone_activate,
-};
-
-/* Other entry points ------------------------------------------------------ */
 
 /** @brief Return nonzero if @p track is in the queue */
 int queued(const char *track) {
   struct queue_entry *q;
 
   D(("queued %s", track));
+  /* Queue will contain resolved name */
+  track = namepart_resolve(track);
   for(q = ql_queue.q; q; q = q->next)
     if(!strcmp(q->track, track))
       return 1;

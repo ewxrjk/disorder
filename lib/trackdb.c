@@ -2406,6 +2406,9 @@ char **trackdb_new(int *ntracksp,
  * @return null-terminated array of track names, or NULL on deadlock
  *
  * The most recently added track is first in the array.
+ *
+ * TODO: exclude tracks that have been deleted again.
+ *
  */
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
@@ -2701,6 +2704,7 @@ int trackdb_adduser(const char *user,
            user, rights, email);
     else
       info("created user '%s' with rights '%s'", user, rights);
+    eventlog("user_add", user, (char *)0);
     return 0;
   }
 }
@@ -2718,6 +2722,7 @@ int trackdb_deluser(const char *user) {
     return -1;
   }
   info("deleted user '%s'", user);
+  eventlog("user_delete", user, (char *)0);
   return 0;
 }
 
@@ -2797,8 +2802,10 @@ int trackdb_edituserinfo(const char *user,
   if(e) {
     error(0, "unknown user '%s'", user);
     return -1;
-  } else
+  } else {
+    eventlog("user_edit", user, key, (char *)0);
     return 0;
+  }
 }
 
 /** @brief List all users
@@ -2864,6 +2871,7 @@ int trackdb_confirm(const char *user, const char *confirmation,
   switch(e) {
   case 0:
     info("registration confirmed for user '%s'", user);
+    eventlog("user_confirm", user, (char *)0);
     return 0;
   case DB_NOTFOUND:
     error(0, "confirmation for nonexistent user '%s'", user);

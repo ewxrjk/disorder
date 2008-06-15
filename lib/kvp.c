@@ -201,6 +201,25 @@ const char *kvp_get(const struct kvp *kvp, const char *name) {
   return kvp ? kvp->value : 0;
 }
 
+struct kvp *kvp_make(const char *name, ...) {
+  const char *value;
+  struct kvp *kvp = 0, *k;
+  va_list ap;
+
+  va_start(ap, name);
+  while(name) {
+    value = va_arg(ap, const char *);
+    k = xmalloc(sizeof *k);
+    k->name = name;
+    k->value = value ? xstrdup(value) : value;
+    k->next = kvp;
+    kvp = k;
+    name = va_arg(ap, const char *);
+  }
+  va_end(ap);
+  return kvp;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

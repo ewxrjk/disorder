@@ -19,7 +19,7 @@
 #
 
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
-noinst_PROGRAMS=test-eclient filename-bytes
+noinst_PROGRAMS=filename-bytes
 noinst_SCRIPTS=dump2wav
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -43,12 +43,6 @@ disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
-
-test_eclient_SOURCES=test-eclient.c \
-	../lib/memgc.c
-test_eclient_LDADD=../lib/libdisorder.a \
-	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE)
-test_eclient_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)

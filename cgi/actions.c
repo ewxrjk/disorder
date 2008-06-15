@@ -248,6 +248,7 @@ static void act_play(void) {
     } else if((dir = cgi_get("dir"))) {
       if(disorder_files(dcgi_client, dir, 0, &tracks, &ntracks))
         ntracks = 0;
+      /* TODO use tracksort_init */
       e = xmalloc(ntracks * sizeof (struct dcgi_entry));
       for(n = 0; n < ntracks; ++n) {
         e[n].track = tracks[n];
@@ -434,6 +435,7 @@ static void act_register(void) {
   }
   /* We could well do better address validation but for now we'll just do the
    * minimum */
+   /* TODO use email_valid() */
   if(!strchr(email, '@')) {
     login_error("bademail");
     return;
@@ -523,6 +525,7 @@ static void act_edituser(void) {
     }
   } else
     password = password2 = 0;
+  /* TODO use email_valid() */
   if(email && !strchr(email, '@')) {
     login_error("bademail");
     return;

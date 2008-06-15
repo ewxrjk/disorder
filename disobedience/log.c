@@ -42,52 +42,33 @@ static void log_scratched(void *v, const char *track, const char *user);
 static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
+static void log_rights_changed(void *v, rights_type r);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
-  log_connected,
-  log_completed,
-  log_failed,
-  log_moved,
-  log_playing,
-  log_queue,
-  log_recent_added,
-  log_recent_removed,
-  log_removed,
-  log_scratched,
-  log_state,
-  log_volume,
-  log_rescanned
+  .connected = log_connected,
+  .completed = log_completed,
+  .failed = log_failed,
+  .moved = log_moved,
+  .playing = log_playing,
+  .queue = log_queue,
+  .recent_added = log_recent_added,
+  .recent_removed = log_recent_removed,
+  .removed = log_removed,
+  .scratched = log_scratched,
+  .state = log_state,
+  .volume = log_volume,
+  .rescanned = log_rescanned,
+  .rights_changed = log_rights_changed
 };
-
-/** @brief State monitor
- *
- * We keep a linked list of everything that is interested in state changes.
- */
-struct monitor {
-  /** @brief Next monitor */
-  struct monitor *next;
-
-  /** @brief State bits of interest */
-  unsigned long mask;
-
-  /** @brief Function to call if any of @c mask change */
-  monitor_callback *callback;
-
-  /** @brief User data for callback */
-  void *u;
-};
-
-/** @brief List of monitors */
-static struct monitor *monitors;
 
 /** @brief Update everything */
 void all_update(void) {
   ++suppress_actions;
-  queue_update();
-  recent_update();
-  volume_update();
-  added_update();
+  event_raise("queue-changed", 0);
+  event_raise("recent-changed", 0);
+  event_raise("volume-changed", 0);
+  event_raise("rescan-complete", 0);
   --suppress_actions;
 }
 
@@ -96,14 +77,13 @@ void all_update(void) {
  * Depending on server and network state the TCP connection to the server may
  * go up or down many times during the lifetime of Disobedience.  This function
  * is called whenever it connects.
- *
- * The intent is to use the monitor logic to achieve this in future.
  */
 static void log_connected(void attribute((unused)) *v) {
   /* Don't know what we might have missed while disconnected so update
    * everything.  We get this at startup too and this is how we do the initial
    * state fetch. */
   all_update();
+  event_raise("log-connected", 0);
 }
 
 /** @brief Called when the current track finishes playing */
@@ -120,7 +100,7 @@ static void log_failed(void attribute((unused)) *v,
 /** @brief Called when some track is moved within the queue */
 static void log_moved(void attribute((unused)) *v,
                       const char attribute((unused)) *user) {
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 static void log_playing(void attribute((unused)) *v,
@@ -131,13 +111,13 @@ static void log_playing(void attribute((unused)) *v,
 /** @brief Called when a track is added to the queue */
 static void log_queue(void attribute((unused)) *v,
                       struct queue_entry attribute((unused)) *q) {
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 /** @brief Called when a track is added to the recently-played list */
 static void log_recent_added(void attribute((unused)) *v,
                              struct queue_entry attribute((unused)) *q) {
-  recent_update();
+  event_raise("recent-changed", 0);
 }
 
 /** @brief Called when a track is removed from the recently-played list
@@ -153,8 +133,7 @@ static void log_recent_removed(void attribute((unused)) *v,
 static void log_removed(void attribute((unused)) *v,
                         const char attribute((unused)) *id,
                         const char attribute((unused)) *user) {
-
-  queue_update();
+  event_raise("queue-changed", 0);
 }
 
 /** @brief Called when the current track is scratched */
@@ -163,10 +142,21 @@ static void log_scratched(void attribute((unused)) *v,
                           const char attribute((unused)) *user) {
 }
 
+/** @brief Map from state bits to state change events */
+static const struct {
+  unsigned long bit;
+  const char *event;
+} state_events[] = {
+  { DISORDER_PLAYING_ENABLED, "enabled-changed" },
+  { DISORDER_RANDOM_ENABLED, "random-changed" },
+  { DISORDER_TRACK_PAUSED, "pause-changed" },
+  { DISORDER_PLAYING, "playing-changed" },
+};
+#define NSTATE_EVENTS (sizeof state_events / sizeof *state_events)
+
 /** @brief Called when a state change occurs */
 static void log_state(void attribute((unused)) *v,
                       unsigned long state) {
-  const struct monitor *m;
   unsigned long changes = state ^ last_state;
   static int first = 1;
 
@@ -180,11 +170,10 @@ static void log_state(void attribute((unused)) *v,
      disorder_eclient_interpret_state(state),
      disorder_eclient_interpret_state(changes)));
   last_state = state;
-  /* Tell anything that cares about the state change */
-  for(m = monitors; m; m = m->next) {
-    if(changes & m->mask)
-      m->callback(m->u);
-  }
+  /* Notify interested parties what has changed */
+  for(unsigned n = 0; n < NSTATE_EVENTS; ++n)
+    if(changes & state_events[n].bit)
+      event_raise(state_events[n].event, 0);
   --suppress_actions;
 }
 
@@ -195,33 +184,23 @@ static void log_volume(void attribute((unused)) *v,
     volume_l = l;
     volume_r = r;
     ++suppress_actions;
-    volume_update();
+    event_raise("volume-changed", 0);
     --suppress_actions;
   }
 }
 
 /** @brief Called when a rescan completes */
 static void log_rescanned(void attribute((unused)) *v) {
-  added_update();
+  event_raise("rescan-complete", 0);
 }
 
-/** @brief Add a monitor to the list
- * @param callback Function to call
- * @param u User data to pass to @p callback
- * @param mask Mask of flags that @p callback cares about
- *
- * Pass @p mask as -1UL to match all flags.
- */
-void register_monitor(monitor_callback *callback,
-                      void *u,
-                      unsigned long mask) {
-  struct monitor *m = xmalloc(sizeof *m);
-
-  m->next = monitors;
-  m->mask = mask;
-  m->callback = callback;
-  m->u = u;
-  monitors = m;
+/** @brief Called when our rights change */
+static void log_rights_changed(void attribute((unused)) *v,
+                               rights_type new_rights) {
+  ++suppress_actions;
+  last_rights = new_rights;
+  event_raise("rights-changed", 0);
+  --suppress_actions;
 }
 
 /*

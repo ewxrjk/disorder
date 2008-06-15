@@ -44,6 +44,8 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
+	email.c						\
+	eventdist.c eventdist.h				\
 	event.c event.h 				\
 	eventlog.c eventlog.h 				\
 	filepart.c filepart.h				\
@@ -79,6 +81,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	timeval.h					\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackorder.c trackname.h		\
+	tracksort.c					\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\

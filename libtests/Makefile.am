@@ -22,7 +22,7 @@ TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
 	t-cookies t-dateparse t-event t-filepart t-hash t-heap t-hex	\
 	t-kvp t-mime t-printf t-regsub t-selection t-signame t-sink	\
 	t-split t-syscalls t-trackname t-unicode t-url t-utf8 t-vector	\
-	t-words t-wstat t-macros t-cgi
+	t-words t-wstat t-macros t-cgi t-eventdist
 
 noinst_PROGRAMS=$(TESTS)
 
@@ -61,6 +61,7 @@ t_utf8_SOURCES=t-utf8.c test.c test.h
 t_vector_SOURCES=t-vector.c test.c test.h
 t_words_SOURCES=t-words.c test.c test.h
 t_wstat_SOURCES=t-wstat.c test.c test.h
+t_eventdist_SOURCES=t-eventdist.c test.c test.h
 
 check-report: before-check check make-coverage-reports
 before-check:

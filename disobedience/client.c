@@ -120,7 +120,6 @@ static void gtkclient_poll(void *u,
 static void gtkclient_comms_error(void attribute((unused)) *u,
 				  const char *msg) {
   D(("gtkclient_comms_error %s", msg));
-  menu_update(-1);
   gtk_label_set_text(GTK_LABEL(report_label), msg);
 }
 
@@ -148,7 +147,6 @@ static void gtkclient_report(void attribute((unused)) *u,
   if(!msg)
     /* We're idle - clear the report line */
     gtk_label_set_text(GTK_LABEL(report_label), "");
-  menu_update(-1);
 }
 
 /** @brief Repoort an unhandled protocol-level error to the user */
