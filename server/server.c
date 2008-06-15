@@ -879,8 +879,8 @@ static void logclient(const char *msg, void *user) {
     c->lo = 0;
     return;
   }
-  /* user-* messages are restricted */
-  if(!strncmp(msg, "user-", 5)) {
+  /* user_* messages are restricted */
+  if(!strncmp(msg, "user_", 5)) {
     /* They are only sent to admin users */
     if(!(c->rights & RIGHT_ADMIN))
       return;
@@ -1254,9 +1254,9 @@ static int c_edituser(struct conn *c,
             /* Notify any log connections */
             if(d->lo)
               sink_printf(ev_writer_sink(d->w),
-                          "%"PRIxMAX" rights-changed %s\n",
+                          "%"PRIxMAX" rights_changed %s\n",
                           (uintmax_t)time(0),
-                          new_rights);
+                          quoteutf8(new_rights));
           }
         }
       }

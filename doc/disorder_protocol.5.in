@@ -620,7 +620,7 @@ A track started playing.
 .B resume
 The current track was resumed.
 .TP
-.B rights-changed \fIRIGHTS\fR
+.B rights_changed \fIRIGHTS\fR
 User's rights were changed.
 .TP
 .B scratched
@@ -630,16 +630,16 @@ To simplify client implementation, \fBstate\fR commands reflecting the current
 state are sent at the start of the log.
 .RE
 .TB
-.B user-add \fIUSERNAME\fR
+.B user_add \fIUSERNAME\fR
 A user was created.
 .TP
-.B user-delete \fIUSERNAME\fR
+.B user_delete \fIUSERNAME\fR
 A user was deleted.
 .TP
-.B user-edit \fIUSERNAME\fR \fIPROPERTY\fR
+.B user_edit \fIUSERNAME\fR \fIPROPERTY\fR
 Some property of a user was edited.
 .TP
-.B user-confirm \fIUSERNAME\fR
+.B user_confirm \fIUSERNAME\fR
 A user's login was confirmed (via the web interface).
 .TP
 .B volume \fILEFT\fR \fIRIGHT\fR
