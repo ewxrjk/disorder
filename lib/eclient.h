@@ -24,6 +24,8 @@
 #ifndef ECLIENT_H
 #define ECLIENT_H
 
+#include "rights.h"
+
 /* Asynchronous client interface */
 
 /** @brief Handle type */
@@ -162,6 +164,9 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when a user is edited (admins only) */
   void (*user_edit)(void *v, const char *user, const char *property);
+
+  /** @brief Called when your rights change */
+  void (*rights_changed)(void *v, rights_type new_rights);
 } disorder_eclient_log_callbacks;
 
 /* State bits */

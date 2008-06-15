@@ -876,6 +876,7 @@ static void logclient(const char *msg, void *user) {
   if(!c->w || !c->r) {
     /* This connection has gone up in smoke for some reason */
     eventlog_remove(c->lo);
+    c->lo = 0;
     return;
   }
   /* user-* messages are restricted */
@@ -1244,10 +1245,21 @@ static int c_edituser(struct conn *c,
       /* Update rights for this user */
       rights_type r;
 
-      if(parse_rights(vec[2], &r, 1))
-	for(d = connections; d; d = d->next)
-	  if(!strcmp(d->who, vec[0]))
+      if(!parse_rights(vec[2], &r, 1)) {
+        const char *new_rights = rights_string(r);
+	for(d = connections; d; d = d->next) {
+	  if(!strcmp(d->who, vec[0])) {
+            /* Update rights */
 	    d->rights = r;
+            /* Notify any log connections */
+            if(d->lo)
+              sink_printf(ev_writer_sink(d->w),
+                          "%"PRIxMAX" rights-changed %s\n",
+                          (uintmax_t)time(0),
+                          new_rights);
+          }
+        }
+      }
     }
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
@@ -1762,6 +1774,7 @@ static int listen_callback(ev_source *ev,
   D(("server listen_callback fd %d (%s)", fd, l->name));
   nonblock(fd);
   cloexec(fd);
+  c->next = connections;
   c->tag = tags++;
   c->ev = ev;
   c->w = ev_writer_new(ev, fd, writer_error, c,
@@ -1773,6 +1786,7 @@ static int listen_callback(ev_source *ev,
   c->reader = reader_callback;
   c->l = l;
   c->rights = 0;
+  connections = c;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
 	      2,

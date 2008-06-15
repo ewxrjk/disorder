@@ -620,6 +620,9 @@ A track started playing.
 .B resume
 The current track was resumed.
 .TP
+.B rights-changed \fIRIGHTS\fR
+User's rights were changed.
+.TP
 .B scratched
 The current track was scratched.
 .PP

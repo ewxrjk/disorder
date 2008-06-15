@@ -184,6 +184,7 @@ static void logentry_user_add(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
+static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -209,6 +210,7 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(recent_removed, 1, 1),
   LE(removed, 1, 2),
   LE(rescanned, 0, 0),
+  LE(rights_changed, 1, 1),
   LE(scratched, 2, 2),
   LE(state, 1, 1),
   LE(user_add, 1, 1),
@@ -1561,6 +1563,15 @@ static void logentry_user_edit(disorder_eclient *c,
                               int attribute((unused)) nvec, char **vec) {
   if(c->log_callbacks->user_edit)
     c->log_callbacks->user_edit(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_rights_changed(disorder_eclient *c,
+                                    int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->rights_changed) {
+    rights_type r;
+    if(parse_rights(vec[0], &r, 0/*report*/))
+      c->log_callbacks->rights_changed(c->log_v, r);
+  }
 }
 
 static const struct {
