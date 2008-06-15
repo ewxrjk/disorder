@@ -1449,12 +1449,18 @@ static void logline(disorder_eclient *c, const char *line) {
     return;
   }
   /* TODO: do something with the time */
+  //fprintf(stderr, "log key: %s\n", vec[1]);
   n = TABLE_FIND(logentry_handlers, name, vec[1]);
-  if(n < 0) return;                     /* probably a future command */
+  if(n < 0) {
+    //fprintf(stderr, "...not found\n");
+    return;                     /* probably a future command */
+  }
   vec += 2;
   nvec -= 2;
-  if(nvec < logentry_handlers[n].min || nvec > logentry_handlers[n].max)
+  if(nvec < logentry_handlers[n].min || nvec > logentry_handlers[n].max) {
+    //fprintf(stderr, "...wrong # args\n");
     return;
+  }
   logentry_handlers[n].handler(c, nvec, vec);
 }
 
@@ -1569,7 +1575,7 @@ static void logentry_rights_changed(disorder_eclient *c,
                                     int attribute((unused)) nvec, char **vec) {
   if(c->log_callbacks->rights_changed) {
     rights_type r;
-    if(parse_rights(vec[0], &r, 0/*report*/))
+    if(!parse_rights(vec[0], &r, 0/*report*/))
       c->log_callbacks->rights_changed(c->log_v, r);
   }
 }
