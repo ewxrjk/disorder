@@ -1,3 +1,12 @@
+disorder (4.0.1) unstable; urgency=low
+
+  * Version 4.0.1
+  * Update READMEs
+  * Make group modification noisier
+  * Makefile fiddling for Automake/Libtool's benefit
+
+ -- Richard Kettlewell <richard@dekabrach.anjou.terraraq.org.uk>  Sun, 15 Jun 2008 12:22:52 +0100
+
 disorder (4.0) unstable; urgency=low
 
   * Version 4.0
