@@ -42,6 +42,7 @@ static void log_scratched(void *v, const char *track, const char *user);
 static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
+static void log_rights_changed(void *v, rights_type r);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -57,7 +58,8 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .scratched = log_scratched,
   .state = log_state,
   .volume = log_volume,
-  .rescanned = log_rescanned
+  .rescanned = log_rescanned,
+  .rights_changed = log_rights_changed
 };
 
 /** @brief Update everything */
@@ -190,6 +192,15 @@ static void log_volume(void attribute((unused)) *v,
 /** @brief Called when a rescan completes */
 static void log_rescanned(void attribute((unused)) *v) {
   event_raise("rescan-complete", 0);
+}
+
+/** @brief Called when our rights change */
+static void log_rights_changed(void attribute((unused)) *v,
+                               rights_type new_rights) {
+  ++suppress_actions;
+  last_rights = new_rights;
+  event_raise("rights-changed", 0);
+  --suppress_actions;
 }
 
 /*

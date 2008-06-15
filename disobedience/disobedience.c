@@ -96,6 +96,12 @@ int rtp_supported;
 /** @brief True if RTP play is enabled */
 int rtp_is_running;
 
+/** @brief Server version */
+const char *server_version;
+
+/** @brief Parsed server version */
+long server_version_bytes;
+
 static void check_rtp_address(const char *event,
                               void *eventdata,
                               void *callbackdata);
@@ -218,6 +224,16 @@ static void userinfo_rights_completed(void attribute((unused)) *v,
   rights_lookup_in_flight = 0;
 }
 
+static void check_rights(void) {
+  if(!rights_lookup_in_flight) {
+    rights_lookup_in_flight = 1;
+    disorder_eclient_userinfo(client,
+                              userinfo_rights_completed,
+                              config->username, "rights",
+                              0);
+  }
+}
+
 /** @brief Called occasionally */
 static gboolean periodic_slow(gpointer attribute((unused)) data) {
   D(("periodic_slow"));
@@ -259,13 +275,15 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
     }
   }
   /* Periodically check what our rights are */
-  if(!rights_lookup_in_flight) {
-    rights_lookup_in_flight = 1;
-    disorder_eclient_userinfo(client,
-                              userinfo_rights_completed,
-                              config->username, "rights",
-                              0);
-  }
+  int recheck_rights = 1;
+  if(server_version_bytes >= 0x04010000)
+    /* Server versions after 4.1 will send updates */
+    recheck_rights = 0;
+  if((server_version_bytes & 0xFF) == 0x01)
+    /* Development servers might do regardless of their version number */
+    recheck_rights = 0;
+  if(recheck_rights)
+    check_rights();
   return TRUE;
 }
 
@@ -359,6 +377,40 @@ static void help(void) {
   exit(0);
 }
 
+static void version_completed(void attribute((unused)) *v,
+                              const char attribute((unused)) *err,
+                              const char *version) {
+  long major, minor, patch, dev;
+
+  if(!version) {
+    server_version = 0;
+    server_version_bytes = 0;
+    return;
+  }
+  server_version = version;
+  server_version_bytes = 0;
+  major = strtol(version, (char **)&version, 10);
+  if(*version != '.')
+    return;
+  ++version;
+  minor = strtol(version, (char **)&version, 10);
+  if(*version == '.') {
+    ++version;
+    patch = strtol(version, (char **)&version, 10);
+  } else
+    patch = 0;
+  if(*version) {
+    if(*version == '+') {
+      dev = 1;
+      ++version;
+    }
+    if(*version)
+      dev = 2;
+  } else
+    dev = 0;
+  server_version_bytes = (major << 24) + (minor << 16) + (patch << 8) + dev;
+}
+
 void logged_in(void) {
   /* reset the clients */
   disorder_eclient_close(client);
@@ -368,6 +420,8 @@ void logged_in(void) {
   /* Force the periodic checks */
   periodic_slow(0);
   periodic_fast(0);
+  /* Recheck server version */
+  disorder_eclient_version(client, version_completed, 0);
 }
 
 int main(int argc, char **argv) {
@@ -422,6 +476,7 @@ int main(int argc, char **argv) {
   disorder_eclient_log(logclient, &log_callbacks, 0);
   /* Initiate all the checks */
   periodic_fast(0);
+  disorder_eclient_version(client, version_completed, 0);
   event_register("log-connected", check_rtp_address, 0);
   suppress_actions = 0;
   /* If no password is set yet pop up a login box */
