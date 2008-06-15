@@ -45,51 +45,24 @@ static void quit_program(gpointer attribute((unused)) callback_data,
   exit(0);
 }
 
-/* TODO can we have a single parameterized callback for all these */
-
-/** @brief Called when the select all option is activated
+/** @brief Called when an edit menu item is selected
  *
- * Calls the per-tab select all function.
+ * Shared by several menu items; callback_action is expected to be the offset
+ * of the activate member of struct tabtype.
  */
-static void select_all(gpointer attribute((unused)) callback_data,
-                       guint attribute((unused)) callback_action,
-                       GtkWidget attribute((unused)) *menu_item) {
-  GtkWidget *tab = gtk_notebook_get_nth_page
-    (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
-  const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
-
-  if(t->selectall_activate)
-    t->selectall_activate(NULL, t->extra);
-}
-
-/** @brief Called when the select none option is activated
- *
- * Calls the per-tab select none function.
- */
-static void select_none(gpointer attribute((unused)) callback_data,
-                        guint attribute((unused)) callback_action,
-                        GtkWidget attribute((unused)) *menu_item) {
-  GtkWidget *tab = gtk_notebook_get_nth_page
-    (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
-  const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
-
-  if(t->selectnone_activate)
-    t->selectnone_activate(NULL, t->extra);
-}
-
-/** @brief Called when the track properties option is activated
- *
- * Calls the per-tab properties function.
- */
-static void properties_item(gpointer attribute((unused)) callback_data,
-                            guint attribute((unused)) callback_action,
+static void menu_tab_action(gpointer attribute((unused)) callback_data,
+                            guint callback_action,
                             GtkWidget attribute((unused)) *menu_item) {
   GtkWidget *tab = gtk_notebook_get_nth_page
     (GTK_NOTEBOOK(tabs), gtk_notebook_current_page(GTK_NOTEBOOK(tabs)));
   const struct tabtype *t = g_object_get_data(G_OBJECT(tab), "type");
 
-  if(t->properties_activate)
-    t->properties_activate(NULL, t->extra);
+  void (**activatep)(GtkMenuItem *, gpointer)
+    = (void *)((const char *)t + callback_action);
+  void (*activate)(GtkMenuItem *, gpointer) = *activatep;
+  
+  if(activate)
+    activate(NULL, t->extra);
 }
 
 /** @brief Called when the login option is activated */
@@ -301,24 +274,24 @@ GtkWidget *menubar(GtkWidget *w) {
     {
       (char *)"/Edit/Select all tracks", /* path */
       0,                                /* accelerator */
-      select_all,                       /* callback */
-      0,                                /* callback_action */
+      menu_tab_action,                  /* callback */
+      offsetof(struct tabtype, selectall_activate), /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
     },
     {
       (char *)"/Edit/Deselect all tracks", /* path */
       0,                                /* accelerator */
-      select_none,                      /* callback */
-      0,                                /* callback_action */
+      menu_tab_action,                  /* callback */
+      offsetof(struct tabtype, selectnone_activate), /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
     },
     {
       (char *)"/Edit/Track properties", /* path */
       0,                                /* accelerator */
-      properties_item,                  /* callback */
-      0,                                /* callback_action */
+      menu_tab_action,                  /* callback */
+      offsetof(struct tabtype, properties_activate), /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
     },

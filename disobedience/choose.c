@@ -28,13 +28,8 @@
  * TRACK_COLUMN="" and ISFILE_COLUMN=FALSE (so that they don't get check boxes,
  * lengths, etc).
  *
- * TODO We do a period sweep which kills contracted nodes, putting back
- * placeholders, and updating expanded nodes to keep up with server-side
- * changes.  (We could trigger the latter off rescan complete notifications?)
- * 
  * TODO:
- * - sweep up contracted nodes
- * - update when content may have changed (e.g. after a rescan)
+ * - sweep up contracted nodes, replacing their content with a placeholder
  */
 
 #include "disobedience.h"
@@ -561,9 +556,7 @@ GtkWidget *choose_widget(void) {
   /* Create the view */
   choose_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(choose_store));
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(choose_view), TRUE);
-  /* Suppress built-in typeahead find, we do our own search support.
-   * TODO: ^F still brings up the native search box
-   */
+  /* Suppress built-in typeahead find, we do our own search support. */
   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(choose_view), FALSE);
 
   /* Create cell renderers and columns */

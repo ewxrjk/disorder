@@ -128,8 +128,6 @@ struct icon {
   GtkWidget *image_off;
 };
 
-/* TODO: Add rights into the mix below */
-
 static int pause_resume_on(void) {
   return !(last_state & DISORDER_TRACK_PAUSED);
 }
