@@ -507,8 +507,6 @@ static void choose_refill(const char attribute((unused)) *event,
 }
 
 /** @brief Called for key-*-event on the main view
- *
- * Switches focus to the 
  */
 static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
                                  GdkEventKey *event,

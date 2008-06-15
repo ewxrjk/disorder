@@ -19,9 +19,6 @@
  */
 /** @file disobedience/search.c
  * @brief Search support
- *
- * TODO:
- * - cleverer focus to implement typeahead find
  */
 #include "disobedience.h"
 #include "choose.h"
@@ -436,6 +433,7 @@ static gboolean choose_get_visible_range(GtkTreeView *tree_view,
 
 void choose_next_clicked(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
+  gtk_widget_grab_focus(choose_view);
   if(!choose_n_search_results)
     return;
   /* Find the last visible row */
@@ -473,6 +471,7 @@ void choose_next_clicked(GtkButton attribute((unused)) *button,
 
 void choose_prev_clicked(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
+  gtk_widget_grab_focus(choose_view);
   /* TODO can we de-dupe with choose_next_clicked?  Probably yes. */
   if(!choose_n_search_results)
     return;
@@ -513,6 +512,7 @@ void choose_prev_clicked(GtkButton attribute((unused)) *button,
 static void choose_clear_clicked(GtkButton attribute((unused)) *button,
                                  gpointer attribute((unused)) userdata) {
   gtk_entry_set_text(GTK_ENTRY(choose_search_entry), "");
+  gtk_widget_grab_focus(choose_view);
   /* We start things off straight away in this case */
   initiate_search();
 }
