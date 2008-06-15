@@ -2383,6 +2383,9 @@ char **trackdb_new(int *ntracksp,
  * @return null-terminated array of track names, or NULL on deadlock
  *
  * The most recently added track is first in the array.
+ *
+ * TODO: exclude tracks that have been deleted again.
+ *
  */
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
