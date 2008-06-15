@@ -1,3 +1,9 @@
+disorder (4.0.2) unstable; urgency=low
+
+  * Correct web browser linkage from Disobedience.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 15 Jun 2008 14:44:22 +0100
+
 disorder (4.0.1) unstable; urgency=low
 
   * Version 4.0.1
