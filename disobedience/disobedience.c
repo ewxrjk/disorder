@@ -379,32 +379,32 @@ static void help(void) {
 
 static void version_completed(void attribute((unused)) *v,
                               const char attribute((unused)) *err,
-                              const char *version) {
+                              const char *ver) {
   long major, minor, patch, dev;
 
-  if(!version) {
+  if(!ver) {
     server_version = 0;
     server_version_bytes = 0;
     return;
   }
-  server_version = version;
+  server_version = ver;
   server_version_bytes = 0;
-  major = strtol(version, (char **)&version, 10);
-  if(*version != '.')
+  major = strtol(ver, (char **)&ver, 10);
+  if(*ver != '.')
     return;
-  ++version;
-  minor = strtol(version, (char **)&version, 10);
-  if(*version == '.') {
-    ++version;
-    patch = strtol(version, (char **)&version, 10);
+  ++ver;
+  minor = strtol(ver, (char **)&ver, 10);
+  if(*ver == '.') {
+    ++ver;
+    patch = strtol(ver, (char **)&ver, 10);
   } else
     patch = 0;
-  if(*version) {
-    if(*version == '+') {
+  if(*ver) {
+    if(*ver == '+') {
       dev = 1;
-      ++version;
+      ++ver;
     }
-    if(*version)
+    if(*ver)
       dev = 2;
   } else
     dev = 0;
