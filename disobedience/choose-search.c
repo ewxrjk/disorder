@@ -431,34 +431,42 @@ static gboolean choose_get_visible_range(GtkTreeView *tree_view,
   return TRUE;
 }
 
-void choose_next_clicked(GtkButton attribute((unused)) *button,
-                         gpointer attribute((unused)) userdata) {
+/** @brief Move to the next/prev match
+ * @param direction -1 for prev, +1 for next
+ */
+static void choose_move(int direction) {
+  /* Refocus the main view so typahead find continues to work */
   gtk_widget_grab_focus(choose_view);
+  /* If there's no results we have nothing to do */
   if(!choose_n_search_results)
     return;
-  /* Find the last visible row */
-  GtkTreePath *endpath;
-  gboolean endvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
-                                               NULL,
-                                               &endpath);
-  if(!endvalid)
+  /* Compute bounds for searching over the array in the right direction */
+  const int first = direction > 0 ? 0 : choose_n_search_references - 1;
+  const int limit = direction > 0 ? choose_n_search_references : -1;
+  /* Find the first/last currently visible row */
+  GtkTreePath *limitpath;
+  if(!choose_get_visible_range(GTK_TREE_VIEW(choose_view),
+                               direction < 0 ? &limitpath : 0,
+                               direction > 0 ? &limitpath : 0))
     return;
-  /* Find a the first search result later than it.  They're sorted so we could
-   * actually do much better than this if necessary. */
-  for(int n = 0; n < choose_n_search_references; ++n) {
+  /* Find a the first search result later/earlier than it.  They're sorted so
+   * we could actually do much better than this if necessary. */
+  for(int n = first; n != limit; n += direction) {
     GtkTreePath *path
       = gtk_tree_row_reference_get_path(choose_search_references[n]);
     if(!path)
       continue;
-    if(gtk_tree_path_compare(endpath, path) < 0) {
+    /* gtk_tree_path_compare returns -1, 0 or 1 so we compare naively with
+     * direction */
+    if(gtk_tree_path_compare(limitpath, path) + direction == 0) {
       choose_make_path_visible(path, 0.5);
       gtk_tree_path_free(path);
       return;
     }
     gtk_tree_path_free(path);
   }
-  /* We didn't find one.  Loop back to the first. */
-  for(int n = 0; n < choose_n_search_references; ++n) {
+  /* We didn't find one.  Loop back to the first/las. */
+  for(int n = first; n != limit; n += direction) {
     GtkTreePath *path
       = gtk_tree_row_reference_get_path(choose_search_references[n]);
     if(!path)
@@ -469,43 +477,14 @@ void choose_next_clicked(GtkButton attribute((unused)) *button,
   }
 }
 
+void choose_next_clicked(GtkButton attribute((unused)) *button,
+                         gpointer attribute((unused)) userdata) {
+  choose_move(1);
+}
+
 void choose_prev_clicked(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
-  gtk_widget_grab_focus(choose_view);
-  /* TODO can we de-dupe with choose_next_clicked?  Probably yes. */
-  if(!choose_n_search_results)
-    return;
-  /* Find the first visible row */
-  GtkTreePath *startpath;
-  gboolean startvalid = choose_get_visible_range(GTK_TREE_VIEW(choose_view),
-                                                 &startpath,
-                                                 NULL);
-  if(!startvalid)
-    return;
-  /* Find a the last search result earlier than it.  They're sorted so we could
-   * actually do much better than this if necessary. */
-  for(int n = choose_n_search_references - 1; n >= 0; --n) {
-    GtkTreePath *path
-      = gtk_tree_row_reference_get_path(choose_search_references[n]);
-    if(!path)
-      continue;
-    if(gtk_tree_path_compare(startpath, path) > 0) {
-      choose_make_path_visible(path, 0.5);
-      gtk_tree_path_free(path);
-      return;
-    }
-    gtk_tree_path_free(path);
-  }
-  /* We didn't find one.  Loop down to the last. */
-  for(int n = choose_n_search_references - 1; n >= 0; --n) {
-    GtkTreePath *path
-      = gtk_tree_row_reference_get_path(choose_search_references[n]);
-    if(!path)
-      continue;
-    choose_make_path_visible(path, 0.5);
-    gtk_tree_path_free(path);
-    return;
-  }
+  choose_move(-1);
 }
 
 /** @brief Called when the cancel search button is clicked */
