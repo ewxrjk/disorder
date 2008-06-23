@@ -745,7 +745,7 @@ void dcgi_expand(const char *name, int header) {
   if(!(found = mx_find(p, 0/*report*/)))
     fatal(errno, "cannot find %s", p);
   if(header) {
-    if(printf("Content-Type: text/html\n"
+    if(printf("Content-Type: text/html; charset=UTF-8\n"
               "%s\n"
               "\n", dcgi_cookie_header()) < 0)
       fatal(errno, "error writing to stdout");
