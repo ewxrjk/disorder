@@ -60,6 +60,7 @@
 #include "unicode.h"
 #include "unidata.h"
 #include "base64.h"
+#include "sendmail.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -2784,8 +2785,8 @@ int trackdb_edituserinfo(const char *user,
     }
   } else if(!strcmp(key, "email")) {
     if(*value) {
-      if(!strchr(value, '@')) {
-        error(0, "invalid email address '%s' for user '%s'", user, value);
+      if(!email_valid(value)) {
+        error(0, "invalid email address '%s' for user '%s'", value, user);
         return -1;
       }
     } else
