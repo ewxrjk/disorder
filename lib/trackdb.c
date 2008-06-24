@@ -509,8 +509,13 @@ void trackdb_close(void) {
 
 /* generic db routines *******************************************************/
 
-/* fetch and decode a database entry.  Returns 0, DB_NOTFOUND or
- * DB_LOCK_DEADLOCK. */
+/** @brief Fetch and decode a database entry
+ * @param db Database
+ * @param track Track name
+ * @param kp Where to put decoded list (or NULL if you don't care)
+ * @param tid Owning transaction
+ * @return 0, @c DB_NOTFOUND or @c DB_LOCK_DEADLOCK
+ */
 int trackdb_getdata(DB *db,
                     const char *track,
                     struct kvp **kp,
@@ -521,10 +526,12 @@ int trackdb_getdata(DB *db,
   switch(err = db->get(db, tid, make_key(&key, track),
                        prepare_data(&data), 0)) {
   case 0:
-    *kp = kvp_urldecode(data.data, data.size);
+    if(kp)
+      *kp = kvp_urldecode(data.data, data.size);
     return 0;
   case DB_NOTFOUND:
-    *kp = 0;
+    if(kp)
+      *kp = 0;
     return err;
   case DB_LOCK_DEADLOCK:
     error(0, "error querying database: %s", db_strerror(err));
@@ -2407,9 +2414,6 @@ char **trackdb_new(int *ntracksp,
  * @return null-terminated array of track names, or NULL on deadlock
  *
  * The most recently added track is first in the array.
- *
- * TODO: exclude tracks that have been deleted again.
- *
  */
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
@@ -2422,8 +2426,16 @@ static char **trackdb_new_tid(int *ntracksp,
   vector_init(tracks);
   c = trackdb_opencursor(trackdb_noticeddb, tid);
   while((maxtracks <= 0 || tracks->nvec < maxtracks)
-        && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV)))
-    vector_append(tracks, xstrndup(d.data, d.size));
+        && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV))) {
+    /* See if the track still exists */
+    char *const track = xstrndup(d.data, d.size);
+    err = trackdb_getdata(trackdb_tracksdb, track, NULL/*kp*/, tid);
+    if(err == DB_NOTFOUND)
+      continue;                         /* It doesn't, skip it */
+    if(err == DB_LOCK_DEADLOCK)
+      break;                            /* Doh */
+    vector_append(tracks, track);
+  }
   switch(err) {
   case 0:                               /* hit maxtracks */
   case DB_NOTFOUND:                     /* ran out of tracks */
