@@ -167,7 +167,7 @@ USA
       <p class=entry>
        <a href="@url?action=choose&#38;dir=@urlquote{@track}">
         <img class=button src="@image{directory}" alt="">
-        @display
+        @quote{@display}
        </a>
       </p>}
     </div>
@@ -191,7 +191,7 @@ USA
        }@#
        <a href="@url?action=play&#38;track=@urlquote{@track}&#38;back=@urlquote{@thisurl}"
           title="@label{choose.play}">
-        @display
+        @quote{@display}
        </a>
        @if{@eq{@trackstate{@track}}{playing}}
           {[<b>playing</b>]}
