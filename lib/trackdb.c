@@ -2422,13 +2422,17 @@ static char **trackdb_new_tid(int *ntracksp,
   DBT k, d;
   int err = 0;
   struct vector tracks[1];
+  hash *h = hash_new(1);
 
   vector_init(tracks);
   c = trackdb_opencursor(trackdb_noticeddb, tid);
   while((maxtracks <= 0 || tracks->nvec < maxtracks)
         && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV))) {
-    /* See if the track still exists */
     char *const track = xstrndup(d.data, d.size);
+    /* Don't add any track more than once */
+    if(hash_add(h, track, "", HASH_INSERT))
+      continue;
+    /* See if the track still exists */
     err = trackdb_getdata(trackdb_tracksdb, track, NULL/*kp*/, tid);
     if(err == DB_NOTFOUND)
       continue;                         /* It doesn't, skip it */
