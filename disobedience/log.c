@@ -151,6 +151,7 @@ static const struct {
   { DISORDER_RANDOM_ENABLED, "random-changed" },
   { DISORDER_TRACK_PAUSED, "pause-changed" },
   { DISORDER_PLAYING, "playing-changed" },
+  { DISORDER_CONNECTED, "connected-changed" },
 };
 #define NSTATE_EVENTS (sizeof state_events / sizeof *state_events)
 

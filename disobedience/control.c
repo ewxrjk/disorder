@@ -275,6 +275,7 @@ GtkWidget *control_widget(void) {
     char **events = split(icons[n].events, 0, 0, 0, 0);
     while(*events)
       event_register(*events++, icon_changed, &icons[n]);
+    event_register("connected-changed", icon_changed, &icons[n]);
   }
   /* create the adjustments for the volume control */
   volume_adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, goesupto,
