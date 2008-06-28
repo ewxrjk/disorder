@@ -251,6 +251,11 @@ void login_box(void) {
   }
   buttonbox = create_buttons(buttons, NBUTTONS);
   vbox = gtk_vbox_new(FALSE, 1);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_image_new_from_pixbuf(find_image("logo256.png")),
+                     TRUE/*expand*/,
+                     TRUE/*fill*/,
+                     4/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), table, 
                      TRUE/*expand*/, TRUE/*fill*/, 1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox,
