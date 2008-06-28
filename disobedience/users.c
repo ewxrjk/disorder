@@ -645,6 +645,8 @@ static GtkWidget *users_make_reporter() {
     users_reporter = gtk_label_new("");
     gtk_label_set_ellipsize(GTK_LABEL(users_reporter), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment(GTK_MISC(users_reporter), 0.99, 0);
+    g_signal_connect(users_reporter, "destroy",
+                     G_CALLBACK(gtk_widget_destroyed), &users_reporter);
   }
   return users_reporter;
 }
@@ -681,6 +683,9 @@ void manage_users(void) {
     gtk_window_present(GTK_WINDOW(users_window));
     return;
   }
+  /* Destroy old widgets */
+  if(users_reporter)
+    gtk_widget_destroy(users_reporter);
   /* Create the window */
   users_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_style(users_window, tool_style);
