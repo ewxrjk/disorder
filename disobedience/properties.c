@@ -19,9 +19,6 @@
  */
 /** @file disobedience/properties.c
  * @brief Track properties editor
- *
- * TODO:
- * - return and escape keys should work 
  */
 #include "disobedience.h"
 
@@ -179,6 +176,24 @@ static void propagate_clicked(GtkButton attribute((unused)) *button,
   }
 }
 
+/** @brief Keypress handler */
+static gboolean properties_keypress(GtkWidget attribute((unused)) *widget,
+                                    GdkEventKey *event,
+                                    gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Return:
+    properties_ok(0, 0);
+    return TRUE;
+  case GDK_Escape:
+    properties_cancel(0, 0);
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 void properties(int ntracks, const char **tracks) {
   int n, m;
   struct prefdata *f;
@@ -205,6 +220,9 @@ void properties(int ntracks, const char **tracks) {
   gtk_widget_set_style(properties_window, tool_style);
   g_signal_connect(properties_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &properties_window);
+  /* Keyboard shortcuts */
+  g_signal_connect(properties_window, "key-press-event",
+                   G_CALLBACK(properties_keypress), 0);
   /* Most of the action is the table of preferences */
   properties_table = gtk_table_new((NPREFS + 1) * ntracks, 2 + ntracks > 1,
                                    FALSE);
