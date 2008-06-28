@@ -60,6 +60,7 @@
 #include "unicode.h"
 #include "unidata.h"
 #include "base64.h"
+#include "sendmail.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -508,8 +509,13 @@ void trackdb_close(void) {
 
 /* generic db routines *******************************************************/
 
-/* fetch and decode a database entry.  Returns 0, DB_NOTFOUND or
- * DB_LOCK_DEADLOCK. */
+/** @brief Fetch and decode a database entry
+ * @param db Database
+ * @param track Track name
+ * @param kp Where to put decoded list (or NULL if you don't care)
+ * @param tid Owning transaction
+ * @return 0, @c DB_NOTFOUND or @c DB_LOCK_DEADLOCK
+ */
 int trackdb_getdata(DB *db,
                     const char *track,
                     struct kvp **kp,
@@ -520,10 +526,12 @@ int trackdb_getdata(DB *db,
   switch(err = db->get(db, tid, make_key(&key, track),
                        prepare_data(&data), 0)) {
   case 0:
-    *kp = kvp_urldecode(data.data, data.size);
+    if(kp)
+      *kp = kvp_urldecode(data.data, data.size);
     return 0;
   case DB_NOTFOUND:
-    *kp = 0;
+    if(kp)
+      *kp = 0;
     return err;
   case DB_LOCK_DEADLOCK:
     error(0, "error querying database: %s", db_strerror(err));
@@ -1852,7 +1860,7 @@ static int do_list(struct vector *v, const char *dir,
   char *ptr;
   int err;
   size_t l, last_dir_len = 0;
-  char *last_dir = 0, *track, *alias;
+  char *last_dir = 0, *track;
   struct kvp *p;
 
   dl = strlen(dir);
@@ -1885,12 +1893,35 @@ static int do_list(struct vector *v, const char *dir,
         if((err = trackdb_getdata(trackdb_prefsdb,
                                   track, &p, tid)) == DB_LOCK_DEADLOCK)
           goto deadlocked;
+        /* There's an awkward question here...
+         *
+         * If a track shares a directory with its alias then we could
+         * do one of three things:
+         * - report both.  Looks ridiculuous in most UIs.
+         * - report just the alias.  Remarkably inconvenient to write
+         *   UI code for!
+         * - report just the real name.  Ugly if the UI doesn't prettify
+         *   names via the name parts.
+         */
+#if 1
+        /* If this file is an alias for a track in the same directory then we
+         * skip it */
+        struct kvp *t = kvp_urldecode(d.data, d.size);
+        const char *alias_target = kvp_get(t, "_alias_for");
+        if(!(alias_target
+             && !strcmp(d_dirname(alias_target),
+                        d_dirname(track))))
+	  if(track_matches(dl, k.data, k.size, re))
+	    vector_append(v, track);
+#else
 	/* if this file has an alias in the same directory then we skip it */
+           char *alias;
         if((err = compute_alias(&alias, track, p, tid)))
           goto deadlocked;
         if(!(alias && !strcmp(d_dirname(alias), d_dirname(track))))
 	  if(track_matches(dl, k.data, k.size, re))
 	    vector_append(v, track);
+#endif
       }
     }
     err = cursor->c_get(cursor, &k, &d, DB_NEXT);
@@ -2383,9 +2414,6 @@ char **trackdb_new(int *ntracksp,
  * @return null-terminated array of track names, or NULL on deadlock
  *
  * The most recently added track is first in the array.
- *
- * TODO: exclude tracks that have been deleted again.
- *
  */
 static char **trackdb_new_tid(int *ntracksp,
                               int maxtracks,
@@ -2394,12 +2422,24 @@ static char **trackdb_new_tid(int *ntracksp,
   DBT k, d;
   int err = 0;
   struct vector tracks[1];
+  hash *h = hash_new(1);
 
   vector_init(tracks);
   c = trackdb_opencursor(trackdb_noticeddb, tid);
   while((maxtracks <= 0 || tracks->nvec < maxtracks)
-        && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV)))
-    vector_append(tracks, xstrndup(d.data, d.size));
+        && !(err = c->c_get(c, prepare_data(&k), prepare_data(&d), DB_PREV))) {
+    char *const track = xstrndup(d.data, d.size);
+    /* Don't add any track more than once */
+    if(hash_add(h, track, "", HASH_INSERT))
+      continue;
+    /* See if the track still exists */
+    err = trackdb_getdata(trackdb_tracksdb, track, NULL/*kp*/, tid);
+    if(err == DB_NOTFOUND)
+      continue;                         /* It doesn't, skip it */
+    if(err == DB_LOCK_DEADLOCK)
+      break;                            /* Doh */
+    vector_append(tracks, track);
+  }
   switch(err) {
   case 0:                               /* hit maxtracks */
   case DB_NOTFOUND:                     /* ran out of tracks */
@@ -2761,8 +2801,8 @@ int trackdb_edituserinfo(const char *user,
     }
   } else if(!strcmp(key, "email")) {
     if(*value) {
-      if(!strchr(value, '@')) {
-        error(0, "invalid email address '%s' for user '%s'", user, value);
+      if(!email_valid(value)) {
+        error(0, "invalid email address '%s' for user '%s'", value, user);
         return -1;
       }
     } else

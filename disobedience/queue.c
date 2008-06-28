@@ -32,10 +32,10 @@ struct queue_entry *playing_track;
 time_t last_playing;
 
 static void queue_completed(void *v,
-                            const char *error,
+                            const char *err,
                             struct queue_entry *q);
 static void playing_completed(void *v,
-                              const char *error,
+                              const char *err,
                               struct queue_entry *q);
 
 /** @brief Called when either the actual queue or the playing track change */

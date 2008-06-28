@@ -32,7 +32,7 @@ static void completed_namepart(struct prefdata *f);
 static const char *get_edited_namepart(struct prefdata *f);
 static void set_edited_namepart(struct prefdata *f, const char *value);
 static void set_namepart(struct prefdata *f, const char *value);
-static void set_namepart_completed(void *v, const char *error);
+static void set_namepart_completed(void *v, const char *err);
 
 static void kickoff_string(struct prefdata *f);
 static void completed_string(struct prefdata *f);
@@ -46,7 +46,7 @@ static const char *get_edited_boolean(struct prefdata *f);
 static void set_edited_boolean(struct prefdata *f, const char *value);
 static void set_boolean(struct prefdata *f, const char *value);
 
-static void prefdata_completed(void *v, const char *error, const char *value);
+static void prefdata_completed(void *v, const char *err, const char *value);
 static void prefdata_onerror(struct callbackdata *cbd,
                              int code,
                              const char *msg);

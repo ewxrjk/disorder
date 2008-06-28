@@ -232,7 +232,7 @@ void choose_update(void);
 /* Called when we think the choose tree might need updating */
 
 void play_completed(void *v,
-                    const char *error);
+                    const char *err);
 
 /* Login details */
 

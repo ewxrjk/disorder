@@ -1,8 +1,29 @@
-disorder (3.0.99.dev) unstable; urgency=low
+disorder (4.1) unstable; urgency=low
 
-  * Bodge version number
+  * DisOrder 4.1
 
- -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 18 May 2008 21:30:14 +0100
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 28 Jun 2008 14:35:20 +0100
+
+disorder (4.0.2) unstable; urgency=low
+
+  * Correct web browser linkage from Disobedience.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 15 Jun 2008 14:44:22 +0100
+
+disorder (4.0.1) unstable; urgency=low
+
+  * Version 4.0.1
+  * Update READMEs
+  * Make group modification noisier
+  * Makefile fiddling for Automake/Libtool's benefit
+
+ -- Richard Kettlewell <richard@dekabrach.anjou.terraraq.org.uk>  Sun, 15 Jun 2008 12:22:52 +0100
+
+disorder (4.0) unstable; urgency=low
+
+  * Version 4.0
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun,  8 Jun 2008 14:44:05 +0100
 
 disorder (3.0) unstable; urgency=low
 

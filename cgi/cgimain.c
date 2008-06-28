@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   /* TODO we could make disorder/ACTION equivalent to disorder?action=ACTION */
   if(getenv("PATH_INFO")) {
     /* TODO it might be nice to link back to the right place... */
-    printf("Content-Type: text/html\n");
+    printf("Content-Type: text/html; charset=UTF-8\n");
     printf("Status: 404\n");
     printf("\n");
     printf("<p>Sorry, PATH_INFO not supported.</p>\n");

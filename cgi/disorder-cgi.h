@@ -60,16 +60,6 @@ extern char *dcgi_cookie;
 extern const char *dcgi_error_string;
 extern const char *dcgi_status_string;
 
-/** @brief Entry in a list of tracks or directories */
-struct dcgi_entry {
-  /** @brief Track name */
-  const char *track;
-  /** @brief Sort key */
-  const char *sort;
-  /** @brief Display key */
-  const char *display;
-};
-
 /** @brief Compare two @ref entry objects */
 int dcgi_compare_entry(const void *a, const void *b);
 

@@ -57,7 +57,71 @@ span.command {
 
 <p>This file documents recent user-visible changes to DisOrder.</p>
 
-<h2>Changes up to version 3.1</h2>
+<h2>Changes up to version 4.1</h2>
+
+<div class=section>
+
+  <h3>Disobedience</h3>
+  
+    <div class=section>
+  
+      <p>Disobedience has been largely rewritten:</p>
+
+      <ul>
+        
+        <li>All the tabs now use native GTK+ list/tree widgets, resulting in
+        greater speed in some cases and more consistency with other GTK+
+        applications.</li>
+
+        <li>You can now use type-ahead find in the choose tab.  The initiation
+        of a search is delayed slightly to avoid lots of updates when you're
+        half way through entering search terms.</li>
+
+        <li>The choose tab now shows track lengths.</li>
+    
+        <li>Many buttons are now more reliably made insensitive when they can't
+        be used.</li>
+
+        <li>You can now play tracks off the recent tab.</li>
+        
+      </ul>
+      
+      <p>Disobedience attempts to cope with servers from older versions, up to
+      a point, but this is not well tested and it's best to keep the server
+      fully up to date.</p>
+
+    </div>
+     
+  <h3>Server</h3>
+  
+    <div class=section>
+
+      <p>When a track shares a directory with its alias, the real track name is
+      now returned instead of the alias (the opposite way round to the previous
+      behaviour).</p>
+      
+    </div>
+</div>
+
+<h2>Changes up to version 4.0.2</h2>
+
+<div class=section>
+
+  <p>Corrected web browser linked from Disobedience.</p>
+  
+</div>
+
+<h2>Changes up to version 4.0.1</h2>
+
+<div class=section>
+
+  <p>Libtool and Automake now install the CGI correctly.  As part of this,
+  <tt>cgidir</tt> has been renamed to <tt>cgiexecdir</tt>.  The configure
+  script will report an error if you try to use the old name.</p>
+  
+</div>
+
+<h2>Changes up to version 4.0</h2>
 
 <div class=section>
 

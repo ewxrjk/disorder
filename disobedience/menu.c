@@ -31,7 +31,7 @@ static GtkWidget *properties_widget;
 GtkItemFactory *mainmenufactory;
 
 static void about_popup_got_version(void *v,
-                                    const char *error,
+                                    const char *err,
                                     const char *value);
 
 /** @brief Called when the quit option is activated

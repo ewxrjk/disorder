@@ -62,7 +62,7 @@ gboolean choose_button_event(GtkWidget *widget,
                              GdkEventButton *event,
                              gpointer user_data);
 void choose_play_completed(void attribute((unused)) *v,
-                           const char *error);
+                           const char *err);
 char *choose_get_track(GtkTreeIter *iter);
 char *choose_get_sort(GtkTreeIter *iter);
 char *choose_get_display(GtkTreeIter *iter);
