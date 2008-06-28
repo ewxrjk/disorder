@@ -35,7 +35,6 @@
  *
  * TODO:
  * - enter new username in the GtkTreeView
- * - escape and enter keys should work
  * - should have a cancel or close button, consistent with properties and login
  */
 
@@ -672,6 +671,21 @@ static struct button users_buttons[] = {
 };
 #define NUSERS_BUTTONS (sizeof users_buttons / sizeof *users_buttons)
 
+/** @brief Keypress handler */
+static gboolean users_keypress(GtkWidget attribute((unused)) *widget,
+                               GdkEventKey *event,
+                               gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Escape:
+    gtk_widget_destroy(users_window);
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 /** @brief Pop up the user management window */
 void manage_users(void) {
   GtkWidget *tree, *buttons, *hbox, *hbox2, *vbox, *vbox2;
@@ -692,6 +706,9 @@ void manage_users(void) {
   g_signal_connect(users_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &users_window);
   gtk_window_set_title(GTK_WINDOW(users_window), "User Management");
+  /* Keyboard shortcuts */
+  g_signal_connect(users_window, "key-press-event",
+                   G_CALLBACK(users_keypress), 0);
   /* default size is too small */
   gtk_window_set_default_size(GTK_WINDOW(users_window), 240, 240);
 
