@@ -209,14 +209,14 @@ struct sink;
 
 /** @brief Trivial completion callback
  * @param v User data
- * @param error Error string or NULL on succes
+ * @param err Error string or NULL on succes
  */
 typedef void disorder_eclient_no_response(void *v,
-                                          const char *error);
+                                          const char *err);
 
 /** @brief String result completion callback
  * @param v User data
- * @param error Error string or NULL on succes
+ * @param err Error string or NULL on succes
  * @param value Result or NULL
  *
  * @p error will be NULL on success.  In this case @p value will be the result
@@ -226,12 +226,12 @@ typedef void disorder_eclient_no_response(void *v,
  * @p error will be non-NULL on failure.  In this case @p value is always NULL.
  */
 typedef void disorder_eclient_string_response(void *v,
-                                              const char *error,
+                                              const char *err,
                                               const char *value);
 
 /** @brief String result completion callback
  * @param v User data
- * @param error Error string or NULL on succes
+ * @param err Error string or NULL on succes
  * @param value Result or 0
  *
  * @p error will be NULL on success.  In this case @p value will be the result.
@@ -239,11 +239,11 @@ typedef void disorder_eclient_string_response(void *v,
  * @p error will be non-NULL on failure.  In this case @p value is always 0.
  */
 typedef void disorder_eclient_integer_response(void *v,
-                                               const char *error,
+                                               const char *err,
                                                long value);
 /** @brief Volume completion callback
  * @param v User data
- * @param error Error string or NULL on success
+ * @param err Error string or NULL on success
  * @param l Left channel volume
  * @param r Right channel volume
  *
@@ -254,12 +254,12 @@ typedef void disorder_eclient_integer_response(void *v,
  * 0.
  */
 typedef void disorder_eclient_volume_response(void *v,
-                                              const char *error,
+                                              const char *err,
                                               int l, int r);
 
 /** @brief Queue request completion callback
  * @param v User data
- * @param error Error string or NULL on success
+ * @param err Error string or NULL on success
  * @param q Head of queue data list
  *
  * @p error will be NULL on success.  In this case @p q will be the (head of
@@ -270,12 +270,12 @@ typedef void disorder_eclient_volume_response(void *v,
  * be ignored in the error case.
  */
 typedef void disorder_eclient_queue_response(void *v,
-                                             const char *error,
+                                             const char *err,
                                              struct queue_entry *q);
 
 /** @brief List request completion callback
  * @param v User data
- * @param error Error string or NULL on success
+ * @param err Error string or NULL on success
  * @param nvec Number of elements in response list
  * @param vec Pointer to response list
  *
@@ -286,7 +286,7 @@ typedef void disorder_eclient_queue_response(void *v,
  * be 0 and NULL.
  */
 typedef void disorder_eclient_list_response(void *v,
-                                            const char *error,
+                                            const char *err,
                                             int nvec, char **vec);
 
 disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
