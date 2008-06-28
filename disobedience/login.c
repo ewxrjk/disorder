@@ -226,7 +226,7 @@ void login_box(void) {
 		   G_CALLBACK(gtk_widget_destroyed), &login_window);
   gtk_window_set_title(GTK_WINDOW(login_window), "Login Details");
   /* Construct the form */
-  table = gtk_table_new(NLWIS + 1/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
+  table = gtk_table_new(NLWIS/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
   gtk_widget_set_style(table, tool_style);
   for(n = 0; n < NLWIS; ++n) {
     label = gtk_label_new(lwis[n].description);
