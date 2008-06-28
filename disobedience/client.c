@@ -129,16 +129,11 @@ static void gtkclient_comms_error(void attribute((unused)) *u,
  * original command and if none is supplied we pop up an error box.
  */
 static void gtkclient_protocol_error(void attribute((unused)) *u,
-				     void *v,
+				     void attribute((unused)) *v,
                                      int code,
 				     const char *msg) {
-  struct callbackdata *cbd = v;
-
   D(("gtkclient_protocol_error %s", msg));
-  if(cbd && cbd->onerror)
-    cbd->onerror(cbd, code, msg);
-  else
-    popup_protocol_error(code, msg);
+  popup_protocol_error(code, msg);
 }
 
 /** @brief Report callback from eclient */

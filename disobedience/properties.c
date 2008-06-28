@@ -44,12 +44,6 @@ static void set_edited_boolean(struct prefdata *f, const char *value);
 static void set_boolean(struct prefdata *f, const char *value);
 
 static void prefdata_completed(void *v, const char *err, const char *value);
-static void prefdata_onerror(struct callbackdata *cbd,
-                             int code,
-                             const char *msg);
-static struct callbackdata *make_callbackdata(struct prefdata *f);
-static void prefdata_completed_common(struct prefdata *f,
-                                      const char *value);
 
 static void properties_ok(GtkButton *button, gpointer userdata);
 static void properties_apply(GtkButton *button, gpointer userdata);
@@ -329,8 +323,8 @@ static void kickoff_namepart(struct prefdata *f) {
    * wanted was the underlying preference, but in fact it should always match
    * and will supply a sane default without having to know how to parse tracks
    * names (which implies knowing collection roots). */
-  disorder_eclient_namepart(client, prefdata_completed, f->track, "display", f->p->part,
-                            make_callbackdata(f));
+  disorder_eclient_namepart(client, prefdata_completed,
+                            f->track, "display", f->p->part, f);
 }
 
 static void completed_namepart(struct prefdata *f) {
@@ -375,8 +369,7 @@ static void set_namepart_completed(void *v, const char *err) {
 /* String preferences ------------------------------------------------------ */
 
 static void kickoff_string(struct prefdata *f) {
-  disorder_eclient_get(client, prefdata_completed, f->track, f->p->part, 
-		       make_callbackdata(f));
+  disorder_eclient_get(client, prefdata_completed, f->track, f->p->part, f);
 }
 
 static void completed_string(struct prefdata *f) {
@@ -408,8 +401,7 @@ static void set_string(struct prefdata *f, const char *value) {
 /* Boolean preferences ----------------------------------------------------- */
 
 static void kickoff_boolean(struct prefdata *f) {
-  disorder_eclient_get(client, prefdata_completed, f->track, f->p->part, 
-		       make_callbackdata(f));
+  disorder_eclient_get(client, prefdata_completed, f->track, f->p->part, f);
 }
 
 static void completed_boolean(struct prefdata *f) {
@@ -442,34 +434,11 @@ static void set_boolean(struct prefdata *f, const char *value) {
 
 /* Querying preferences ---------------------------------------------------- */
 
-/* Make a suitable callbackdata */
-static struct callbackdata *make_callbackdata(struct prefdata *f) {
-  struct callbackdata *cbd = xmalloc(sizeof *cbd);
-
-  cbd->onerror = prefdata_onerror;
-  cbd->u.f = f;
-  return cbd;
-}
-
-/* No pref was set */
-static void prefdata_onerror(struct callbackdata *cbd,
-                             int attribute((unused)) code,
-                             const char attribute((unused)) *msg) {
-  prefdata_completed_common(cbd->u.f, 0);
-}
-
-/* Got the value of a pref */
 static void prefdata_completed(void *v, const char *err, const char *value) {
-  if(err) {
-  } else {
-    struct callbackdata *cbd = v;
-    
-    prefdata_completed_common(cbd->u.f, value);
-  }
-}
+  struct prefdata *const f = v;
 
-static void prefdata_completed_common(struct prefdata *f,
-                                      const char *value) {
+  if(err)
+    popup_protocol_error(0, err);
   f->value = value;
   f->p->type->completed(f);
   f->p->type->set_edited(f, f->value);
