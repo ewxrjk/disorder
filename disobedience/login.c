@@ -29,7 +29,6 @@
  * It you hit Cancel then the window disappears without saving anything.
  *
  * TODO
- * - escape and return should work
  * - cancel/close should be consistent with properties
  */
 
@@ -173,6 +172,24 @@ static void login_cancel(GtkButton attribute((unused)) *button,
   gtk_widget_destroy(login_window);
 }
 
+/** @brief Keypress handler */
+static gboolean login_keypress(GtkWidget attribute((unused)) *widget,
+                               GdkEventKey *event,
+                               gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Return:
+    login_ok(0, 0);
+    return TRUE;
+  case GDK_Escape:
+    login_cancel(0, 0);
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 /* Buttons that appear at the bottom of the window */
 static struct button buttons[] = {
   {
@@ -241,6 +258,9 @@ void login_box(void) {
   gtk_container_add(GTK_CONTAINER(login_window), frame_widget(vbox, NULL));
   gtk_window_set_transient_for(GTK_WINDOW(login_window),
                                GTK_WINDOW(toplevel));
+  /* Keyboard shortcuts */
+  g_signal_connect(login_window, "key-press-event",
+                   G_CALLBACK(login_keypress), 0);
   gtk_widget_show_all(login_window);
 }
 
