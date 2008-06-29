@@ -163,6 +163,8 @@ static void login_ok(GtkButton attribute((unused)) *button,
   } else {
     /* Failed to connect - report the error */
     popup_msg(GTK_MESSAGE_ERROR, disorder_last(c));
+    /* TODO it would be nice to restore the config (not the entry contents!) to
+     * the last known good one if we were already connected to something. */
   }
   disorder_close(c);                    /* no use for this any more */
 }
