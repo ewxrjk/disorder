@@ -483,7 +483,9 @@ int disorder_eclient_adduser(disorder_eclient *c,
                              const char *password,
                              const char *rights,
                              void *v);
-
+void disorder_eclient_enable_connect(disorder_eclient *c);
+void disorder_eclient_disable_connect(disorder_eclient *c);
+  
 #endif
 
 /*

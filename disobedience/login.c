@@ -29,7 +29,6 @@
  * It you hit Cancel then the window disappears without saving anything.
  *
  * TODO
- * - escape and return should work
  * - cancel/close should be consistent with properties
  */
 
@@ -163,6 +162,8 @@ static void login_ok(GtkButton attribute((unused)) *button,
   } else {
     /* Failed to connect - report the error */
     popup_msg(GTK_MESSAGE_ERROR, disorder_last(c));
+    /* TODO it would be nice to restore the config (not the entry contents!) to
+     * the last known good one if we were already connected to something. */
   }
   disorder_close(c);                    /* no use for this any more */
 }
@@ -171,6 +172,24 @@ static void login_ok(GtkButton attribute((unused)) *button,
 static void login_cancel(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(login_window);
+}
+
+/** @brief Keypress handler */
+static gboolean login_keypress(GtkWidget attribute((unused)) *widget,
+                               GdkEventKey *event,
+                               gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Return:
+    login_ok(0, 0);
+    return TRUE;
+  case GDK_Escape:
+    login_cancel(0, 0);
+    return TRUE;
+  default:
+    return FALSE;
+  }
 }
 
 /* Buttons that appear at the bottom of the window */
@@ -209,7 +228,7 @@ void login_box(void) {
 		   G_CALLBACK(gtk_widget_destroyed), &login_window);
   gtk_window_set_title(GTK_WINDOW(login_window), "Login Details");
   /* Construct the form */
-  table = gtk_table_new(NLWIS + 1/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
+  table = gtk_table_new(NLWIS/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
   gtk_widget_set_style(table, tool_style);
   for(n = 0; n < NLWIS; ++n) {
     label = gtk_label_new(lwis[n].description);
@@ -234,6 +253,11 @@ void login_box(void) {
   }
   buttonbox = create_buttons(buttons, NBUTTONS);
   vbox = gtk_vbox_new(FALSE, 1);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_image_new_from_pixbuf(find_image("logo256.png")),
+                     TRUE/*expand*/,
+                     TRUE/*fill*/,
+                     4/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), table, 
                      TRUE/*expand*/, TRUE/*fill*/, 1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox,
@@ -241,6 +265,9 @@ void login_box(void) {
   gtk_container_add(GTK_CONTAINER(login_window), frame_widget(vbox, NULL));
   gtk_window_set_transient_for(GTK_WINDOW(login_window),
                                GTK_WINDOW(toplevel));
+  /* Keyboard shortcuts */
+  g_signal_connect(login_window, "key-press-event",
+                   G_CALLBACK(login_keypress), 0);
   gtk_widget_show_all(login_window);
 }
 

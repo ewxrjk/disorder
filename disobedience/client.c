@@ -68,8 +68,7 @@ static gboolean gtkclient_dispatch(GSource *source,
   if(revents & (G_IO_OUT|G_IO_HUP|G_IO_ERR))
     mode |= DISORDER_POLL_WRITE;
   time(&esource->last_poll);
-  if(!login_window)
-    disorder_eclient_polled(esource->client, mode);
+  disorder_eclient_polled(esource->client, mode);
   return TRUE;                          /* ??? not documented */
 }
 
@@ -126,19 +125,15 @@ static void gtkclient_comms_error(void attribute((unused)) *u,
 /** @brief Report a protocol-level error
  *
  * The error will not be retried.  We offer a callback to the submitter of the
- * original command and if none is supplied we pop up an error box.
+ * original command and if none is supplied we drop the error message in the
+ * status bar.
  */
 static void gtkclient_protocol_error(void attribute((unused)) *u,
-				     void *v,
+				     void attribute((unused)) *v,
                                      int code,
 				     const char *msg) {
-  struct callbackdata *cbd = v;
-
   D(("gtkclient_protocol_error %s", msg));
-  if(cbd && cbd->onerror)
-    cbd->onerror(cbd, code, msg);
-  else
-    popup_protocol_error(code, msg);
+  gtk_label_set_text(GTK_LABEL(report_label), msg);
 }
 
 /** @brief Report callback from eclient */

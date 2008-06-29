@@ -144,6 +144,9 @@ struct disorder_eclient {
 
   /** @brief Protocol version */
   int protocol;
+
+  /** @brief True if enabled */
+  int enabled;
 };
 
 /* Forward declarations ******************************************************/
@@ -234,6 +237,7 @@ disorder_eclient *disorder_eclient_new(const disorder_eclient_callbacks *cb,
   c->callbacks = cb;
   c->u = u;
   c->opstail = &c->ops;
+  c->enabled = 1;
   vector_init(&c->vec);
   dynstr_init(&c->input);
   dynstr_init(&c->output);
@@ -269,6 +273,16 @@ void disorder_eclient_close(disorder_eclient *c) {
   /* Drop our use a hint that we're disconnected */
   if(c->log_callbacks && c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits);
+}
+
+/** @brief Permit new connection activity */
+void disorder_eclient_enable_connect(disorder_eclient *c) {
+  c->enabled = 1;
+}
+
+/** @brief Suppress new connection activity */
+void disorder_eclient_disable_connect(disorder_eclient *c) {
+  c->enabled = 0;
 }
 
 /** @brief Return current state */
@@ -340,9 +354,12 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
     /* If there is no password yet then we cannot connect */
     if(!config->password) {
       comms_error(c, "no password is configured");
+      c->enabled = 0;
       return;
     }
-    start_connect(c);
+    /* Only try to connect if enabled */
+    if(c->enabled)
+      start_connect(c);
     /* might now be state_disconnected (on error), state_connecting (slow
      * connect) or state_connected (fast connect).  If state_disconnected then
      * we just rely on a periodic callback from the event loop sometime. */
@@ -597,6 +614,7 @@ static void authuser_opcallback(disorder_eclient *c,
   if(c->rc / 100 != 2) {
     /* Wrong password or something.  We cannot proceed. */
     protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    c->enabled = 0;
     disorder_eclient_close(c);
     return;
   }
