@@ -32,11 +32,13 @@
 #include "mem.h"
 
 /** @brief Figure out what address to connect to
+ * @param c Configuration to honor
  * @param sap Where to store pointer to sockaddr
  * @param namep Where to store socket name
  * @return Socket length, or (socklen_t)-1
  */
-socklen_t find_server(struct sockaddr **sap, char **namep) {
+socklen_t find_server(struct config *c,
+                      struct sockaddr **sap, char **namep) {
   struct sockaddr *sa;
   struct sockaddr_un su;
   struct addrinfo *res = 0;
@@ -50,13 +52,13 @@ socklen_t find_server(struct sockaddr **sap, char **namep) {
     .ai_protocol = IPPROTO_TCP,
   };
 
-  if(config->connect.n) {
-    res = get_address(&config->connect, &pref, &name);
+  if(c->connect.n) {
+    res = get_address(&c->connect, &pref, &name);
     if(!res) return -1;
     sa = res->ai_addr;
     len = res->ai_addrlen;
   } else {
-    name = config_get_file("socket");
+    name = config_get_file2(c, "socket");
     if(strlen(name) >= sizeof su.sun_path) {
       error(errno, "socket path is too long");
       return -1;

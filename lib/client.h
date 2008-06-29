@@ -28,6 +28,7 @@
 #define CLIENT_H
 
 #include <time.h>
+#include "configuration.h"
 
 /** @brief Client data */
 typedef struct disorder_client disorder_client;
@@ -42,6 +43,11 @@ int disorder_connect_user(disorder_client *c,
 			  const char *username,
 			  const char *password);
 int disorder_connect_cookie(disorder_client *c, const char *cookie);
+int disorder_connect_generic(struct config *conf,
+                             disorder_client *c,
+                             const char *username,
+                             const char *password,
+                             const char *cookie);
 int disorder_close(disorder_client *c);
 int disorder_version(disorder_client *c, char **versionp);
 int disorder_play(disorder_client *c, const char *track);

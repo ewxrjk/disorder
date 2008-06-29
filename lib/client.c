@@ -37,7 +37,6 @@
 
 #include "log.h"
 #include "mem.h"
-#include "configuration.h"
 #include "queue.h"
 #include "client.h"
 #include "charset.h"
@@ -248,6 +247,7 @@ static int dequote(int rc, char **rp) {
 }
 
 /** @brief Generic connection routine
+ * @param conf Configuration to follow
  * @param c Client
  * @param username Username to log in with or NULL
  * @param password Password to log in with or NULL
@@ -258,10 +258,11 @@ static int dequote(int rc, char **rp) {
  * username must not be.  If @p username is not NULL then nor may @p
  * password be.
  */
-static int disorder_connect_generic(disorder_client *c,
-				    const char *username,
-				    const char *password,
-				    const char *cookie) {
+int disorder_connect_generic(struct config *conf,
+                             disorder_client *c,
+                             const char *username,
+                             const char *password,
+                             const char *cookie) {
   int fd = -1, fd2 = -1, nrvec, rc;
   unsigned char *nonce;
   size_t nl;
@@ -271,7 +272,7 @@ static int disorder_connect_generic(disorder_client *c,
   struct sockaddr *sa;
   socklen_t salen;
 
-  if((salen = find_server(&sa, &c->ident)) == (socklen_t)-1)
+  if((salen = find_server(conf, &sa, &c->ident)) == (socklen_t)-1)
     return -1;
   c->fpin = c->fpout = 0;
   if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
@@ -363,7 +364,8 @@ error_rc:
 int disorder_connect_user(disorder_client *c,
 			  const char *username,
 			  const char *password) {
-  return disorder_connect_generic(c,
+  return disorder_connect_generic(config,
+                                  c,
 				  username,
 				  password,
 				  0);
@@ -399,7 +401,8 @@ int disorder_connect(disorder_client *c) {
     error(0, "no password configured");
     return -1;
   }
-  return disorder_connect_generic(c,
+  return disorder_connect_generic(config,
+                                  c,
 				  username,
 				  password,
 				  0);
@@ -416,7 +419,8 @@ int disorder_connect(disorder_client *c) {
  */
 int disorder_connect_cookie(disorder_client *c,
 			    const char *cookie) {
-  return disorder_connect_generic(c,
+  return disorder_connect_generic(config,
+                                  c,
 				  "guest",
 				  "",
 				  cookie);

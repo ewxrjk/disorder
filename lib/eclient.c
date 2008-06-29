@@ -490,7 +490,7 @@ static int start_connect(disorder_eclient *c) {
   socklen_t len;
 
   D(("start_connect"));
-  if((len = find_server(&sa, &c->ident)) == (socklen_t)-1)
+  if((len = find_server(config, &sa, &c->ident)) == (socklen_t)-1)
     return comms_error(c, "cannot look up server"); /* TODO better error */
   if(c->fd != -1) {
     xclose(c->fd);

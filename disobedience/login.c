@@ -49,7 +49,7 @@ struct login_window_item {
   const char *(*get)(void);
 
   /** @brief Set a new value */
-  void (*set)(const char *value);
+  void (*set)(struct config *c, const char *value);
 
   /** @brief Flags
    * 
@@ -80,10 +80,21 @@ static const char *get_service(void) { return config->connect.s[1]; }
 static const char *get_username(void) { return config->username; }
 static const char *get_password(void) { return config->password ? config->password : ""; }
 
-static void set_hostname(const char *s) { config->connect.s[0] = (char *)s; }
-static void set_service(const char *s) { config->connect.s[1] = (char *)s; }
-static void set_username(const char *s) { config->username = s; }
-static void set_password(const char *s) { config->password = s; }
+static void set_hostname(struct config *c, const char *s) {
+  c->connect.s[0] = (char *)s;
+}
+
+static void set_service(struct config *c, const char *s) {
+  c->connect.s[1] = (char *)s;
+}
+
+static void set_username(struct config *c, const char *s) {
+  c->username = s;
+}
+
+static void set_password(struct config *c, const char *s) {
+  c->password = s;
+}
 
 /** @brief Table used to generate the form */
 static const struct login_window_item lwis[] = {
@@ -96,11 +107,15 @@ static const struct login_window_item lwis[] = {
 
 static GtkWidget *lwi_entry[NLWIS];
 
-static void login_update_config(void) {
+static void login_update_config(struct config *c) {
   size_t n;
 
+  if(c->connect.n < 2) {
+    c->connect.n = 2;
+    c->connect.s = xcalloc(2, sizeof (char *));
+  }
   for(n = 0; n < NLWIS; ++n)
-    lwis[n].set(xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
+    lwis[n].set(c, xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
 }
 
 /** @brief Save current login details */
@@ -148,13 +163,17 @@ done:
 static void login_ok(GtkButton attribute((unused)) *button,
                      gpointer attribute((unused)) userdata) {
   disorder_client *c;
+  struct config *tmpconfig = xmalloc(sizeof *tmpconfig);
   
   /* Copy the new config into @ref config */
-  login_update_config();
+  login_update_config(tmpconfig);
   /* Attempt a login with the new details */
   c = disorder_new(0);
-  if(!disorder_connect(c)) {
+  if(!disorder_connect_generic(tmpconfig, c,
+                               tmpconfig->username, tmpconfig->password,
+                               NULL/*cookie*/)) {
     /* Success; save the config and start using it */
+    login_update_config(config);
     login_save_config();
     logged_in();
     /* Pop down login window */
@@ -162,8 +181,6 @@ static void login_ok(GtkButton attribute((unused)) *button,
   } else {
     /* Failed to connect - report the error */
     popup_msg(GTK_MESSAGE_ERROR, disorder_last(c));
-    /* TODO it would be nice to restore the config (not the entry contents!) to
-     * the last known good one if we were already connected to something. */
   }
   disorder_close(c);                    /* no use for this any more */
 }
