@@ -134,7 +134,6 @@ static void gtkclient_protocol_error(void attribute((unused)) *u,
 				     const char *msg) {
   struct callbackdata *cbd = v;
 
-  fprintf(stderr, "protocol error: %s\n", msg);
   D(("gtkclient_protocol_error %s", msg));
   if(cbd && cbd->onerror)
     cbd->onerror(cbd, code, msg);
