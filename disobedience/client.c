@@ -130,7 +130,7 @@ static void gtkclient_comms_error(void attribute((unused)) *u,
  */
 static void gtkclient_protocol_error(void attribute((unused)) *u,
 				     void attribute((unused)) *v,
-                                     int code,
+                                     int attribute((unused)) code,
 				     const char *msg) {
   D(("gtkclient_protocol_error %s", msg));
   gtk_label_set_text(GTK_LABEL(report_label), msg);
