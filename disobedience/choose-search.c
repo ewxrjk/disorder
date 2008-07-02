@@ -69,6 +69,9 @@ static guint choose_search_timeout_id;
 
 static void choose_search_entry_changed(GtkEditable *editable,
                                         gpointer user_data);
+static gboolean choose_get_visible_range(GtkTreeView *tree_view,
+                                         GtkTreePath **startpathp,
+                                         GtkTreePath **endpathp);
 
 int choose_is_search_result(const char *track) {
   return choose_search_hash && hash_find(choose_search_hash, track);
@@ -190,18 +193,23 @@ static int choose_compare_references(const void *av, const void *bv) {
  *
  * If @p row_align is negative no row alignemt is performed.  Otherwise
  * it must be between 0 (the top) and 1 (the bottom).
- *
- * TODO: if the row is already visible do nothing.
  */
 static int choose_make_path_visible(GtkTreePath *path,
                                     gfloat row_align) {
   /* Make sure that the target's parents are all expanded */
   gtk_tree_view_expand_to_path(GTK_TREE_VIEW(choose_view), path);
+  /* Find out what's currently visible */
+  GtkTreePath *startpath, *endpath;
+  choose_get_visible_range(GTK_TREE_VIEW(choose_view), &startpath, &endpath);
   /* Make sure the target is visible */
-  gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(choose_view), path, NULL,
-                               row_align >= 0.0,
-                               row_align,
-                               0);
+  if(gtk_tree_path_compare(path, startpath) < 0
+     || gtk_tree_path_compare(path, endpath) > 0) 
+    gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(choose_view), path, NULL,
+                                 row_align >= 0.0,
+                                 row_align,
+                                 0);
+  gtk_tree_path_free(startpath);
+  gtk_tree_path_free(endpath);
   return 0;
 }
 

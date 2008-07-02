@@ -24,7 +24,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-socklen_t find_server(struct sockaddr **sap, char **namep);
+socklen_t find_server(struct config *c, struct sockaddr **sap, char **namep);
 
 #endif /* CLIENT_COMMON_H */
 
