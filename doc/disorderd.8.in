@@ -75,6 +75,20 @@ exist.
 If \fBdisorder\fR(1) is run as root on the same machine as the
 server it is capable of extracting the password from the database
 directly.
+.PP
+Therefore it is immediately possible to create other users with
+.B "disorder adduser"
+as root on the server machine.
+However it is likely to be preferable to get users to register
+themselves via the web interface; see
+.B setup-guest
+in
+.BR disorder (1)
+for more details on this.
+.SS "Logging"
+In its usual configuration, DisOrder logs to daemon.* via \fBsyslog\fR(3).
+Exactly where this ends up depends on the contents of
+.IR /etc/syslog.conf .
 .SS "Locales"
 .B disorderd
 is locale-aware.
@@ -110,30 +124,42 @@ Terminate the daemon gracefully.
 It may be more convenient to perform these operations from the client
 \fBdisorder\fR(1).
 .SH FILES
+.SS "Configuration Files"
 .TP
 .I pkgconfdir/config
 Global configuration file.
 See \fBdisorder_config\fR(5).
 .TP
 .I pkgconfdir/config.private
-Private configuration (usernames and passwords).
+Private configuration (now largely obsolete).
 .TP
 .I ~/.disorder/passwd
 Per-user password file.
+.SS "Communication"
+.TP
+.I pkgstatedir/socket
+Communication socket for \fBdisorder\fR(1).
+See \fBdisorder_protocol\fR(5) for protocol documentation.
+.SS "Internal State"
+Don't modify these files, especially not while the server is running.
 .TP
 .I pkgstatedir/queue
 Saved copy of queue.
-Do not edit while the daemon is running.
 .TP
 .I pkgstatedir/recent
 Saved copy of recently played track list.
-Do not edit while the daemon is running.
+.TP
+.I pkgstatedir/global.db
+Global preferences database.
+.TP
+.I pkgstatedir/noticed.db
+Records recently added tracks.
 .TP
 .I pkgstatedir/prefs.db
 Preferences database.
 .TP
-.I pkgstatedir/global.db
-Global preferences database.
+.I pkgstatedir/schedule.db
+Database of scheduled tasks.
 .TP
 .I pkgstatedir/search.db
 Search lookup database.
@@ -144,6 +170,9 @@ Tag lookup database.
 .I pkgstatedir/tracks.db
 Tracks database.
 .TP
+.I pkgstatedir/users.db
+User database.
+.TP
 .I pkgstatedir/DB_CONFIG
 Berkeley DB configuration file.
 This may be used to override database settings without recompiling
@@ -153,8 +182,8 @@ See the Berkeley DB documention for further details.
 .I pkgstatedir/log.* \fRand \fIpkgstatedir/__db.*
 Database internal files.
 .TP
-.I pkgstatedir/socket
-Communication socket for \fBdisorder\fR(1).
+.I pkgstatedir/speaker/socket
+Socket for communication with \fBdisorder-speaker\fR(8).
 .TP
 .I pkgstatedir/lock
 Lockfile.
