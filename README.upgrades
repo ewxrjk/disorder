@@ -73,6 +73,14 @@ in using their main DisOrder password and the one in the htpassed file is now
 obsolete.  You should revisit the web interface setup instructions in README
 from scratch.
 
+As part of this, the DisOrder URL has changed from (e.g.)
+
+    http://yourserver/cgi-bin/disorder/disorder
+
+to just
+
+    http://yourserver/cgi-bin/disorder
+
 ** Checklist
 
    * delete default 'stopword', 'player' and 'tracklength' directives
