@@ -326,6 +326,23 @@ static void queue_row_inserted(GtkTreeModel attribute((unused)) *treemodel,
   }
 }
 
+/** @brief Called when a key is pressed in the queue tree view */
+static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
+                                GdkEventKey *event,
+                                gpointer user_data) {
+  /*fprintf(stderr, "queue_key_press type=%d state=%#x keyval=%#x\n",
+          event->type, event->state, event->keyval);*/
+  switch(event->keyval) {
+  case GDK_BackSpace:
+  case GDK_Delete:
+    if(event->state)
+      break;                            /* Only take unmodified DEL/<-- */
+    ql_remove_activate(0, user_data);
+    return TRUE;                        /* Do not propagate */
+  }
+  return FALSE;                         /* Propagate */
+}
+
 GtkWidget *queue_widget(void) {
   GtkWidget *const w = init_queuelike(&ql_queue);
 
@@ -337,6 +354,9 @@ GtkWidget *queue_widget(void) {
   g_signal_connect(ql_queue.store,
                    "row-deleted",
                    G_CALLBACK(queue_row_deleted), &ql_queue);
+  /* Catch keypresses */
+  g_signal_connect(ql_queue.view, "key-press-event",
+                   G_CALLBACK(queue_key_press), &ql_queue);
   return w;
 }
 

@@ -226,7 +226,14 @@ Select all tracks.
 .SS "Login Details Window"
 The login details window allows you to edit the connection details and
 authorization information used by Disobedience.
-It has four text entry fields:
+.PP
+At the top is a 'remote' switch.
+If this is enabled then you can use the \fBHostname\fR and \fBService\fR
+fields to connect to a remote server.
+If it is disabled then then Disobedience will connect to a local server
+instead.
+.PP
+Below this are four text entry fields:
 .TP
 .B Hostname
 The host to connect to.
@@ -242,16 +249,14 @@ The password to use when logging in.
 Note that this is NOT your login password but is your password to the
 DisOrder server.
 .PP
-It has three buttons:
+It has two buttons:
 .TP
 .B Login
 This button attempts to (re-)connect to the server with the currently displayed
 settings.
-The settings are not saved.
-.TP
-.B Save
-This button saves the current settings in 
+The settings are saved in
 .IR $HOME/.disorder/passwd .
+on success.
 .TP
 .B Close
 This button closes the window, discarding any unsaved changes.

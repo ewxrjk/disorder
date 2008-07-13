@@ -127,7 +127,8 @@ static void ql_remove_activate_callback(GtkTreeModel *model,
                                         gpointer attribute((unused)) data) {
   struct queue_entry *q = ql_iter_to_q(model, iter);
 
-  disorder_eclient_remove(client, q->id, ql_remove_completed, q);
+  if(q != playing_track)
+    disorder_eclient_remove(client, q->id, ql_remove_completed, q);
 }
 
 void ql_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
