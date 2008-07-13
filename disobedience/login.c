@@ -71,12 +71,18 @@ GtkWidget *login_window;
 
 /** @brief Set connection defaults */
 static void default_connect(void) {
-  if(!config->connect.n) {
-    config->connect.n = 2;
-    config->connect.s = xcalloc(2, sizeof (char *));
-    config->connect.s[0] = xstrdup("localhost");
-    config->connect.s[1] = xstrdup("9999"); /* whatever */
-  }
+  /* If a password is set assume we're good */
+  if(config->password)
+    return;
+  /* If we already have a host and/or port that's good too */
+  if(config->connect.n)
+    return;
+  /* If there's a suitable socket that's probably what we wanted */
+  const char *s = config_get_file("socket");
+  struct stat st;
+  if(s && *s && stat(s, &st) == 0 && S_ISSOCK(st.st_mode))
+    return;
+  /* TODO can we use some mdns thing to find a DisOrder server? */
 }
 
 static const char *get_hostname(void) {
@@ -322,9 +328,9 @@ void login_box(void) {
     lwi_entry[n] = entry;
   }
   /* Initial settings */
-  lwi_remote_toggled(GTK_TOGGLE_BUTTON(lwi_remote), 0);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lwi_remote),
                                config->connect.n >= 2);
+  lwi_remote_toggled(GTK_TOGGLE_BUTTON(lwi_remote), 0);
   buttonbox = create_buttons(buttons, NBUTTONS);
   vbox = gtk_vbox_new(FALSE, 1);
   gtk_box_pack_start(GTK_BOX(vbox),
