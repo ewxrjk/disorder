@@ -37,7 +37,7 @@ See \fBdisorder\fR(3) for more details about this.
 Each track can have a set of preferences associated with it.
 These are simple key-value pairs; they can be used for anything you
 like, but a number of keys have specific meanings.
-See \fBdisorder\fR(1) for more details about these.
+See \fBdisorder_preferences\fR(5) for more details about these.
 .SS "Track Names"
 Track names are derived from filenames under the control of regular
 expressions, rather than attempting to interpret format-specific embedded name
@@ -50,6 +50,7 @@ the displayed track titles are not lexically sorted.
 .SS "Server State"
 A collection of global preferences define various bits of server state: whether
 random play is enabled, what tags to check for when picking at random, etc.
+See \fBdisorder_preferences\fR(5) for more information.
 .SS "Users And Access Control"
 DisOrder distinguishes between multiple users.
 This is for access control and reporting, not to provide different
@@ -712,7 +713,7 @@ Specify password.
 .TP
 .B username \fIUSERNAME\fR
 Specify username.
-The default is taken from the environment variable \fBLOGNAME\fR.
+The default is inferred from the current UID.
 .SS "Web Interface Configuration"
 .\" TODO this section is misnamed really...
 .TP
@@ -780,34 +781,6 @@ longer needs to be specified.
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
 .SH "GLOBAL PREFERENCES"
-These are the values set with \fBset\-global\fR.
-.TP
-.B required\-tags
-If this is set an nonempty then randomly played tracks will always have at
-least one of the listed tags.
-.TP
-.B prohibited\-tags
-If this is set an nonempty then randomly played tracks will never have any of
-the listed tags.
-.TP
-.B playing
-If unset or \fByes\fR then play is enabled.
-Otherwise it is disabled.
-Use \fBdisable\fR rather than setting it directly.
-.TP
-.B random\-play
-If unset or \fByes\fR then random play is enabled.
-Otherwise it is disabled.
-Use \fBdisable\fR rather than setting it directly.
-.PP
-Global preferences starting '_' are read-only (in the sense that you cannot
-modify them; the server may modify them as part of its normal operation).
-They are:
-.TP
-.B _dbversion
-The database version string.
-This is used by DisOrder to detect when it must
-modify the database after an upgrade.
 .SH "LIBAO DRIVER"
 .SS "Raw Protocol Players"
 Raw protocol players are expected to use the \fBdisorder\fR libao driver.
@@ -863,7 +836,7 @@ name and \fBext\fR which is the filename extension, including the initial dot
 .SH "SEE ALSO"
 \fBdisorder\fR(1), \fBsox\fR(1), \fBdisorderd\fR(8), \fBdisorder\-dump\fR(8),
 \fBpcrepattern\fR(3), \fBdisorder_templates\fR(5), \fBdisorder_actions\fR(5),
-\fBdisorder.cgi\fR(8)
+\fBdisorder.cgi\fR(8), \fBdisorder_preferences\fR(5)
 .\" Local Variables:
 .\" mode:nroff
 .\" fill-column:79

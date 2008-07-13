@@ -35,6 +35,10 @@ If no commands are specified then \fBdisorder\fR connects to the
 daemon and then immediately disconnects.
 This can be used to test whether the daemon is running.
 Otherwise, it executes the commands specified.
+.PP
+This man page documents the command-line client.
+See \fBdisorderd\fR (8) for information about the server process
+and \fBdisorder_config\fR (5) for documentation of the configuration file.
 .SH OPTIONS
 .TP
 .B \-\-config \fIPATH\fR, \fB\-c \fIPATH
@@ -99,9 +103,11 @@ Only files with a basename matching the regexp will be returned.
 .TP
 .B get \fITRACK\fR \fIKEY\fR
 Display the preference \fIKEY\fR for \fITRACK\fR.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B get\-global \fIKEY\fR
 Get a global preference.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B get\-volume
 Display the current volume settings.
@@ -146,6 +152,7 @@ Report the currently playing track.
 .TP
 .B prefs \fITRACK\fR
 Display all the preferences for \fITRACK\fR.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B queue
 List the current queue.
@@ -238,9 +245,11 @@ For example:
 .TP
 .B set \fITRACK\fR \fIKEY\fR \fIVALUE\fR
 Set the preference \fIKEY\fR for \fITRACK\fR to \fIVALUE\fR.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B set\-global \fIKEY\fR \fIVALUE\fR
 Set a global preference.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B set\-volume \fBLEFT\fR \fBRIGHT\fR
 Set the volume.
@@ -269,9 +278,11 @@ List known tags.
 .TP
 .B unset \fITRACK\fR \fIKEY\fR
 Unset the preference \fIKEY\fR for \fITRACK\fR.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B unset\-global \fIKEY\fR
 Unset the global preference \fIKEY\fR.
+See \fBdisorder_preferences\fR (5).
 .TP
 .B userinfo \fIUSERNAME PROPERTY
 Get some property of a user.
@@ -289,67 +300,6 @@ and
 tracks may be specified by name or by ID.
 If you use the name and a track appears twice in the queue it is
 undefined which is affected.
-.SH PREFERENCES
-Currently the following preferences are supported.
-Some are expected to be set by users, others updated automatically by plugins.
-.TP
-.B pick_at_random
-If this preference is present and set to "0" then the track will not
-be picked for random play.
-Otherwise it may be.
-.TP
-.B played
-A decimal integer giving the number times the track was played.
-This includes tracks that are scratched or were picked at random.
-.TP
-.B played_time
-The last time the track was played, as a \fBtime_t\fR converted to a
-decimal integer.
-.TP
-.B scratched
-The number of times the track has been scratched.
-.TP
-.B requested
-A decimal integer giving the number of times the track was requested.
-(Tracks that are removed before being played are not counted.)
-.TP
-.B tags
-Tags that apply to this track, separated by commas.
-Tags can contain any printing character except comma.
-Leading and trailing spaces are not significant but internal spaces are.
-.IP
-Using the
-.B required\-tags
-and
-.B prohibited\-tags
-global preferences, it is possible to limit the tracks that will be selected at
-random.
-.TP
-.B trackname_\fICONTEXT\fB_\fIPART\fR
-These preferences can be used to override the filename parsing rules
-to find a track name part.
-For backwards compatibility, \fBtrackname_\fIPART\fR will be used
-if the full version is not present.
-.TP
-.B unscratched
-The number of times the track has been played to completion without
-being scratched.
-.TP
-.B weight
-The weight for this track.  Weights are non-negative integers which determine
-the relative likelihood of a track being picked at random (i.e. if track A has
-twice the weight of track B then it is twice as likely to be picked at random).
-A track with weight 0 will not be picked at random, though \fBpick_at_random\fR
-is a more sensible way to configure this.
-.IP
-The default weight, used if no weight is set or the weight value is invalid, is
-90000.  Note that many other factors than track weight affect whether a track
-will be played - tracks already in the queue will not be picked at random for
-instance.
-.IP
-The maximum allowed weight is 2147483647.  If you set a larger value it will be
-clamped to this value.  Negative weights will be completely ignored and the
-default value used instead.
 .SH NOTES
 .B disorder
 is locale-aware.
@@ -406,9 +356,6 @@ The README recommends using \fBjukebox\fR for this purpose but it could
 be different locally.
 .SH ENVIRONMENT
 .TP
-.B LOGNAME
-The default username.
-.TP
 .B HOME
 The user's home directory.
 .TP
@@ -428,7 +375,8 @@ Per-user password file
 Communication socket for \fBdisorder\fR(1).
 .SH "SEE ALSO"
 \fBdisorderd\fR(8), \fBdisorder_config\fR(5), \fBsyslog\fR(3), \fBtime\fR(2),
-\fBpcrepattern\fR(3), \fBdisobedience\fR(1), \fBdisorder.cgi\fR(8)
+\fBpcrepattern\fR(3), \fBdisobedience\fR(1), \fBdisorder.cgi\fR(8),
+\fBdisorder_prefeferences\fR(5)
 .PP
 "\fBpydoc disorder\fR" for the Python API documentation.
 .\" Local Variables:

@@ -1,0 +1,117 @@
+.\"
+.\" Copyright (C) 2008 Richard Kettlewell
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful, but
+.\" WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.\" General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+.\" USA
+.\"
+.TH disorder_preferences 5
+.SH NAME
+disorder_preferences \- DisOrder global and per-track preferences
+.SH "PER-TRACK PREFERENCES"
+Currently the following preferences are supported.
+Some are expected to be set by users, others updated automatically by plugins.
+.TP
+.B pick_at_random
+If this preference is present and set to "0" then the track will not
+be picked for random play.
+Otherwise it may be.
+.TP
+.B played
+A decimal integer giving the number times the track was played.
+This includes tracks that are scratched or were picked at random.
+.TP
+.B played_time
+The last time the track was played, as a \fBtime_t\fR converted to a
+decimal integer.
+.TP
+.B scratched
+The number of times the track has been scratched.
+.TP
+.B requested
+A decimal integer giving the number of times the track was requested.
+(Tracks that are removed before being played are not counted.)
+.TP
+.B tags
+Tags that apply to this track, separated by commas.
+Tags can contain any printing character except comma.
+Leading and trailing spaces are not significant but internal spaces are.
+.IP
+Using the
+.B required\-tags
+and
+.B prohibited\-tags
+global preferences, it is possible to limit the tracks that will be selected at
+random.
+.TP
+.B trackname_\fICONTEXT\fB_\fIPART\fR
+These preferences can be used to override the filename parsing rules
+to find a track name part.
+For backwards compatibility, \fBtrackname_\fIPART\fR will be used
+if the full version is not present.
+.TP
+.B unscratched
+The number of times the track has been played to completion without
+being scratched.
+.TP
+.B weight
+The weight for this track.  Weights are non-negative integers which determine
+the relative likelihood of a track being picked at random (i.e. if track A has
+twice the weight of track B then it is twice as likely to be picked at random).
+A track with weight 0 will not be picked at random, though \fBpick_at_random\fR
+is a more sensible way to configure this.
+.IP
+The default weight, used if no weight is set or the weight value is invalid, is
+90000.  Note that many other factors than track weight affect whether a track
+will be played - tracks already in the queue will not be picked at random for
+instance.
+.IP
+The maximum allowed weight is 2147483647.  If you set a larger value it will be
+clamped to this value.  Negative weights will be completely ignored and the
+default value used instead.
+.SH "GLOBAL PREFERENCES"
+These are the values set with \fBset\-global\fR.
+.TP
+.B required\-tags
+If this is set an nonempty then randomly played tracks will always have at
+least one of the listed tags.
+.TP
+.B prohibited\-tags
+If this is set an nonempty then randomly played tracks will never have any of
+the listed tags.
+.TP
+.B playing
+If unset or \fByes\fR then play is enabled.
+Otherwise it is disabled.
+Use \fBdisable\fR rather than setting it directly.
+.TP
+.B random\-play
+If unset or \fByes\fR then random play is enabled.
+Otherwise it is disabled.
+Use \fBdisable\fR rather than setting it directly.
+.PP
+Global preferences starting '_' are read-only (in the sense that you cannot
+modify them; the server may modify them as part of its normal operation).
+They are:
+.TP
+.B _dbversion
+The database version string.
+This is used by DisOrder to detect when it must
+modify the database after an upgrade.
+.SH "SEE ALSO"
+\fBdisorder\fR(1), \fBdisorderd\fR(8), \fBdisorder_config\fR(5)
+.\" Local Variables:
+.\" mode:nroff
+.\" fill-column:79
+.\" End:
