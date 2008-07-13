@@ -376,7 +376,7 @@ Communication socket for \fBdisorder\fR(1).
 .SH "SEE ALSO"
 \fBdisorderd\fR(8), \fBdisorder_config\fR(5), \fBsyslog\fR(3), \fBtime\fR(2),
 \fBpcrepattern\fR(3), \fBdisobedience\fR(1), \fBdisorder.cgi\fR(8),
-\fBdisorder_prefeferences\fR(5)
+\fBdisorder_preferences\fR(5)
 .PP
 "\fBpydoc disorder\fR" for the Python API documentation.
 .\" Local Variables:
