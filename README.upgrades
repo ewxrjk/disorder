@@ -17,7 +17,7 @@ all 1.1.x versions.
 
 If you install from .deb files then much of this work is automated.
 
-* 3.0 -> 4.0
+* 3.0 -> 4.x
 
 If you customized any of the templates, you will pretty much have to start from
 scratch as the web interface has been rewritten.  See disorder.cgi(8) for a
