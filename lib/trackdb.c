@@ -159,6 +159,13 @@ DB *trackdb_scheduledb;
  */
 DB *trackdb_usersdb;
 
+/** @brief The playlists database
+ * - Keys are playlist names
+ * - Values are encoded key-value pairs
+ * - Data is user data and cannot be reconstructed
+ */
+DB *trackdb_playlistsdb;
+
 static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
 static int initialized, opened;         /* state */
@@ -468,6 +475,7 @@ void trackdb_open(int flags) {
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, dbflags, 0666);
   trackdb_scheduledb = open_db("schedule.db", 0, DB_HASH, dbflags, 0666);
+  trackdb_playlistsdb = open_db("playlists.db", 0, DB_HASH, dbflags, 0666);
   if(!trackdb_existing_database) {
     /* Stash the database version */
     char buf[32];
@@ -502,6 +510,8 @@ void trackdb_close(void) {
     fatal(0, "error closing schedule.db: %s", db_strerror(err));
   if((err = trackdb_usersdb->close(trackdb_usersdb, 0)))
     fatal(0, "error closing users.db: %s", db_strerror(err));
+  if((err = trackdb_playlistsdb->close(trackdb_playlistsdb, 0)))
+    fatal(0, "error closing playlists.db: %s", db_strerror(err));
   trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;
   trackdb_tagsdb = trackdb_globaldb = 0;
   D(("closed databases"));
@@ -2551,8 +2561,10 @@ static int trusted(const char *user) {
  * Currently we only allow the letters and digits in ASCII.  We could be more
  * liberal than this but it is a nice simple test.  It is critical that
  * semicolons are never allowed.
+ *
+ * NB also used by playlist_parse_name() to validate playlist names!
  */
-static int valid_username(const char *user) {
+int valid_username(const char *user) {
   if(!*user)
     return 0;
   while(*user) {

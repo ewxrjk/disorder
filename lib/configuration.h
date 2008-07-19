@@ -185,6 +185,9 @@ struct config {
    */
   int api;
 
+  /** @brief Maximum size of a playlist */
+  long playlist_max;
+
 /* These values had better be non-negative */
 #define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
 #define BACKEND_COMMAND 1		/**< Execute a command */

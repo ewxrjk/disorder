@@ -952,6 +952,7 @@ static const struct conf conf[] = {
   { C(noticed_history),  &type_integer,          validate_positive },
   { C(password),         &type_string,           validate_any },
   { C(player),           &type_stringlist_accum, validate_player },
+  { C(playlist_max) ,    &type_integer,          validate_positive },
   { C(plugins),          &type_string_accum,     validate_isdir },
   { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
@@ -1198,6 +1199,7 @@ static struct config *config_default(void) {
   c->reminder_interval = 600;		/* 10m */
   c->new_bias_age = 7 * 86400;		/* 1 week */
   c->new_bias = 9000000;		/* 100 times the base weight */
+  c->playlist_max = INT_MAX;            /* effectively no limit */
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
