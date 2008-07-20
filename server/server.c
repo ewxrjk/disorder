@@ -41,6 +41,34 @@ struct listener {
   int pf;
 };
 
+struct conn;
+
+/** @brief Signature for line reader callback
+ * @param c Connection
+ * @param line Line
+ * @return 0 if incomplete, 1 if complete
+ *
+ * @p line is 0-terminated and excludes the newline.  It points into the
+ * input buffer so will become invalid shortly.
+ */
+typedef int line_reader_type(struct conn *c,
+                             char *line);
+
+/** @brief Signature for with-body command callbacks
+ * @param c Connection
+ * @param body List of body lines
+ * @param nbody Number of body lines
+ * @param u As passed to fetch_body()
+ * @return 0 to suspend input, 1 if complete
+ *
+ * The body strings are allocated (so survive indefinitely) and don't include
+ * newlines.
+ */
+typedef int body_callback_type(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
+
 /** @brief One client connection */
 struct conn {
   /** @brief Read commands from here */
@@ -78,6 +106,14 @@ struct conn {
   const char *locked_playlist;
   /** @brief When that playlist was locked */
   time_t locked_when;
+  /** @brief Line reader function */
+  line_reader_type *line_reader;
+  /** @brief Called when command body has been read */
+  body_callback_type *body_callback;
+  /** @brief Passed to @c body_callback */
+  void *body_u;
+  /** @brief Accumulating body */
+  struct vector body[1];
 };
 
 /** @brief Linked list of connections */
@@ -89,6 +125,15 @@ static int reader_callback(ev_source *ev,
 			   size_t bytes,
 			   int eof,
 			   void *u);
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u);
+static int body_line(struct conn *c, char *line);
+static int command(struct conn *c, char *line);
 
 static const char *noyes[] = { "no", "yes" };
 
@@ -1609,7 +1654,22 @@ static int c_playlist_get(struct conn *c,
 static int c_playlist_set(struct conn *c,
 			  char **vec,
 			  int attribute((unused)) nvec) {
-  /* TODO */
+  return fetch_body(c, c_playlist_set_body, vec[0]);
+}
+
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u) {
+  const char *playlist = u;
+  int err;
+
+  if(!(err = trackdb_playlist_set(playlist, c->who,
+                                  body, nbody, 0))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
 }
 
 static int c_playlist_get_share(struct conn *c,
@@ -1619,7 +1679,7 @@ static int c_playlist_get_share(struct conn *c,
   int err;
 
   if(!(err = trackdb_playlist_get(vec[0], c->who, 0, 0, &share))) {
-    sink_printf(ev_writer_sink(c->w), "252 %s", quoteutf8(share));
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(share));
     return 1;
   } else
     return playlist_response(c, err);
@@ -1631,7 +1691,7 @@ static int c_playlist_set_share(struct conn *c,
   int err;
 
   if(!(err = trackdb_playlist_set(vec[0], c->who, 0, 0, vec[1]))) {
-    sink_printf(ev_writer_sink(c->w), "250 OK");
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
     return 1;
   } else
     return playlist_response(c, err);
@@ -1652,7 +1712,7 @@ static int c_playlist_delete(struct conn *c,
   int err;
   
   if(!(err = trackdb_playlist_delete(vec[0], c->who))) {
-    sink_writes(ev_writer_sink(c->w), "250 OK");
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
     return 1;
   } else
     return playlist_response(c, err);
@@ -1688,7 +1748,7 @@ static int c_playlist_lock(struct conn *c,
 }
 
 static int c_playlist_unlock(struct conn *c,
-                             char **vec,
+                             char attribute((unused)) **vec,
                              int attribute((unused)) nvec) {
   if(!c->locked_playlist) {
     sink_writes(ev_writer_sink(c->w), "550 Not holding a lock\n");
@@ -1787,13 +1847,58 @@ static const struct command {
   { "volume",         0, 2,       c_volume,         RIGHT_READ|RIGHT_VOLUME }
 };
 
+/** @brief Fetch a command body
+ * @param c Connection
+ * @param body_callback Called with body
+ * @param u Passed to body_callback
+ * @return 1
+ */
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u) {
+  assert(c->line_reader == command);
+  c->line_reader = body_line;
+  c->body_callback = body_callback;
+  c->body_u = u;
+  vector_init(c->body);
+  return 1;
+}
+
+/** @brief @ref line_reader_type callback for command body lines
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
+static int body_line(struct conn *c,
+                     char *line) {
+  if(*line == '.') {
+    ++line;
+    if(!*line) {
+      /* That's the lot */
+      c->line_reader = command;
+      vector_terminate(c->body);
+      return c->body_callback(c, c->body->vec, c->body->nvec, c->body_u);
+    }
+  }
+  vector_append(c->body, xstrdup(line));
+  return 1;                             /* completed */
+}
+
 static void command_error(const char *msg, void *u) {
   struct conn *c = u;
 
   sink_printf(ev_writer_sink(c->w), "500 parse error: %s\n", msg);
 }
 
-/* process a command.  Return 1 if complete, 0 if incomplete. */
+/** @brief @ref line_reader_type callback for commands
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
 static int command(struct conn *c, char *line) {
   char **vec;
   int nvec, n;
@@ -1864,7 +1969,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   while((eol = memchr(ptr, '\n', bytes))) {
     *eol++ = 0;
     ev_reader_consume(reader, eol - (char *)ptr);
-    complete = command(c, ptr);
+    complete = c->line_reader(c, ptr);  /* usually command() */
     bytes -= (eol - (char *)ptr);
     ptr = eol;
     if(!complete) {
@@ -1917,6 +2022,7 @@ static int listen_callback(ev_source *ev,
   c->reader = reader_callback;
   c->l = l;
   c->rights = 0;
+  c->line_reader = command;
   connections = c;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
