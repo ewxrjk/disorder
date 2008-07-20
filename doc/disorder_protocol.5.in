@@ -40,6 +40,15 @@ that comments are prohibited.
 Bodies borrow their syntax from RFC821; they consist of zero or more ordinary
 lines, with any initial full stop doubled up, and are terminated by a line
 consisting of a full stop and a line feed.
+.PP
+Commands only have a body if explicitly stated below.
+If they do have a body then the body should always be sent immediately;
+unlike (for instance) the SMTP "DATA" command there is no intermediate step
+where the server asks for the body to be sent.
+.PP
+Replies also only have a body if stated below.
+The presence of a reply body can always be inferred from the response code;
+if the last digit is a 3 then a body is present, otherwise it is not.
 .SH COMMANDS
 Commands always have a command name as the first field of the line; responses
 always have a 3-digit response code as the first field.
@@ -49,8 +58,6 @@ All commands require the connection to have been already authenticated unless
 stated otherwise.
 If not stated otherwise, the \fBread\fR right is sufficient to execute
 the command.
-.PP
-Neither commands nor responses have a body unless stated otherwise.
 .TP
 .B adduser \fIUSERNAME PASSWORD \fR[\fIRIGHTS\fR]
 Create a new user with the given username and password.
@@ -205,6 +212,43 @@ If the response is \fB252\fR then the rest of the response line consists of
 track information (see below).
 .IP
 If the response is \fB259\fR then nothing is playing.
+.TP
+.B playlist-delete \fIPLAYLIST\fR
+Delete a playlist.
+Requires permission to modify that playlist and the \fBplay\fR right.
+.TP
+.B playlist-get \fIPLAYLIST\fR
+Get the contents of a playlist, in a response body.
+Requires permission to read that playlist and the \fBread\fR right.
+.TP
+.B playlist-get-share \fIPLAYLIST\fR
+Get the sharing status of a playlist.
+The result will be \fBpublic\fR, \fBprivate\fR or \fBshared\fR.
+Requires permission to read that playlist and the \fBread\fR right.
+.TP
+.B playlist-lock \fIPLAYLIST\fR
+Lock a playlist.
+Requires permission to modify that playlist and the \fBplay\fR right.
+Only one playlist may be locked at a time on a given connection and the lock
+automatically expires when the connection is closed.
+.TP
+.B playlist-set \fIPLAYLIST\fR
+Set the contents of a playlist.
+The new contents should be supplied in a command body.
+Requires permission to modify that playlist and the \fBplay\fR right.
+The playlist must be locked.
+.TP
+.B playlist-set-share \fIPLAYLIST\fR \fISHARE\fR
+Set the sharing status of a playlist to
+\fBpublic\fR, \fBprivate\fR or \fBshared\fR.
+Requires permission to modify that playlist and the \fBplay\fR right.
+.TP
+.B playlist-unlock\fR
+Unlock the locked playlist.
+.TP
+.B playlists
+List all playlists that this connection has permission to read.
+Requires the \fBread\fR right.
 .TP
 .B prefs \fBTRACK\fR
 Send back the preferences for \fITRACK\fR in a response body.
