@@ -74,6 +74,10 @@ struct conn {
   struct conn *next;
   /** @brief True if pending rescan had 'wait' set */
   int rescan_wait;
+  /** @brief Playlist that this connection locks */
+  const char *locked_playlist;
+  /** @brief When that playlist was locked */
+  time_t locked_when;
 };
 
 /** @brief Linked list of connections */
@@ -1026,19 +1030,23 @@ static int c_resolve(struct conn *c,
   return 1;
 }
 
-static int c_tags(struct conn *c,
-		  char attribute((unused)) **vec,
-		  int attribute((unused)) nvec) {
-  char **tags = trackdb_alltags();
-  
-  sink_printf(ev_writer_sink(c->w), "253 Tag list follows\n");
-  while(*tags) {
+static int list_response(struct conn *c,
+                         const char *reply,
+                         char **list) {
+  sink_printf(ev_writer_sink(c->w), "253 %s\n", reply);
+  while(*list) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**tags == '.' ? "." : "", *tags);
-    ++tags;
+		**list == '.' ? "." : "", *list);
+    ++list;
   }
   sink_writes(ev_writer_sink(c->w), ".\n");
   return 1;				/* completed */
+}
+
+static int c_tags(struct conn *c,
+		  char attribute((unused)) **vec,
+		  int attribute((unused)) nvec) {
+  return list_response(c, "Tag list follows", trackdb_alltags());
 }
 
 static int c_set_global(struct conn *c,
@@ -1307,17 +1315,7 @@ static int c_userinfo(struct conn *c,
 static int c_users(struct conn *c,
 		   char attribute((unused)) **vec,
 		   int attribute((unused)) nvec) {
-  /* TODO de-dupe with c_tags */
-  char **users = trackdb_listusers();
-
-  sink_writes(ev_writer_sink(c->w), "253 User list follows\n");
-  while(*users) {
-    sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**users == '.' ? "." : "", *users);
-    ++users;
-  }
-  sink_writes(ev_writer_sink(c->w), ".\n");
-  return 1;				/* completed */
+  return list_response(c, "User list follows", trackdb_listusers());
 }
 
 /** @brief Base64 mapping table for confirmation strings
@@ -1575,6 +1573,132 @@ static int c_schedule_add(struct conn *c,
   return 1;
 }
 
+static int playlist_response(struct conn *c,
+                             int err) {
+  switch(err) {
+  case 0:
+    assert(!"cannot cope with success");
+  case EACCES:
+    sink_writes(ev_writer_sink(c->w), "550 Access denied\n");
+    break;
+  case EINVAL:
+    sink_writes(ev_writer_sink(c->w), "550 Invalid playlist name\n");
+    break;
+  case ENOENT:
+    sink_writes(ev_writer_sink(c->w), "555 No such playlist\n");
+    break;
+  default:
+    sink_writes(ev_writer_sink(c->w), "550 Error accessing playlist\n");
+    break;
+  }
+  return 1;
+}
+
+static int c_playlist_get(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  char **tracks;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, &tracks, 0, 0)))
+    return list_response(c, "Playlist contents follows", tracks);
+  else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  /* TODO */
+}
+
+static int c_playlist_get_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  char *share;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, 0, 0, &share))) {
+    sink_printf(ev_writer_sink(c->w), "252 %s", quoteutf8(share));
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  int err;
+
+  if(!(err = trackdb_playlist_set(vec[0], c->who, 0, 0, vec[1]))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlists(struct conn *c,
+                       char attribute((unused)) **vec,
+                       int attribute((unused)) nvec) {
+  char **p;
+
+  trackdb_playlist_list(c->who, &p, 0);
+  return list_response(c, "List of playlists follows", p);
+}
+
+static int c_playlist_delete(struct conn *c,
+                             char **vec,
+                             int attribute((unused)) nvec) {
+  int err;
+  
+  if(!(err = trackdb_playlist_delete(vec[0], c->who))) {
+    sink_writes(ev_writer_sink(c->w), "250 OK");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_lock(struct conn *c,
+                           char **vec,
+                           int attribute((unused)) nvec) {
+  int err;
+  struct conn *cc;
+
+  /* Check we're allowed to modify this playlist */
+  if((err = trackdb_playlist_set(vec[0], c->who, 0, 0, 0)))
+    return playlist_response(c, err);
+  /* If we hold a lock don't allow a new one */
+  if(c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Already holding a lock\n");
+    return 1;
+  }
+  /* See if some other connection locks the same playlist */
+  for(cc = connections; cc; cc = cc->next)
+    if(cc->locked_playlist && !strcmp(cc->locked_playlist, vec[0]))
+      break;
+  if(cc) {
+    /* TODO: implement config->playlist_lock_timeout */
+    sink_writes(ev_writer_sink(c->w), "550 Already locked\n");
+    return 1;
+  }
+  c->locked_playlist = xstrdup(vec[0]);
+  time(&c->locked_when);
+  sink_writes(ev_writer_sink(c->w), "250 Acquired lock\n");
+  return 1;
+}
+
+static int c_playlist_unlock(struct conn *c,
+                             char **vec,
+                             int attribute((unused)) nvec) {
+  if(!c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Not holding a lock\n");
+    return 1;
+  }
+  c->locked_playlist = 0;
+  sink_writes(ev_writer_sink(c->w), "250 Released lock\n");
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1620,6 +1744,14 @@ static const struct command {
   { "pause",          0, 0,       c_pause,          RIGHT_PAUSE },
   { "play",           1, 1,       c_play,           RIGHT_PLAY },
   { "playing",        0, 0,       c_playing,        RIGHT_READ },
+  { "playlist-delete",    1, 1,   c_playlist_delete,    RIGHT_PLAY },
+  { "playlist-get",       1, 1,   c_playlist_get,       RIGHT_PLAY },
+  { "playlist-get-share", 1, 1,   c_playlist_get_share, RIGHT_PLAY },
+  { "playlist-lock",      1, 1,   c_playlist_lock,      RIGHT_PLAY },
+  { "playlist-set",       1, 1,   c_playlist_set,       RIGHT_PLAY },
+  { "playlist-set-share", 2, 2,   c_playlist_set_share, RIGHT_PLAY },
+  { "playlist-unlock",    0, 0,   c_playlist_unlock,    RIGHT_PLAY },
+  { "playlists",          0, 0,   c_playlists,          RIGHT_PLAY },
   { "prefs",          1, 1,       c_prefs,          RIGHT_READ },
   { "queue",          0, 0,       c_queue,          RIGHT_READ },
   { "random-disable", 0, 0,       c_random_disable, RIGHT_GLOBAL_PREFS },

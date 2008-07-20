@@ -147,7 +147,7 @@ static int playlist_may_write(const char *name,
  *
  * Possible return values:
  * - @c 0 on success
- * - @c DB_NOTFOUND if the playlist doesn't exist
+ * - @c ENOENT if the playlist doesn't exist
  * - @c EINVAL if the playlist name is invalid
  * - @c EACCES if the playlist cannot be read by @p who
  */
@@ -165,6 +165,9 @@ int trackdb_playlist_get(const char *name,
   WITH_TRANSACTION(trackdb_playlist_get_tid(name, who,
                                             tracksp, ntracksp, sharep,
                                             tid));
+  /* Don't expose libdb error codes too much */
+  if(e == DB_NOTFOUND)
+    e = ENOENT;
   return e;
 }
 
@@ -236,6 +239,10 @@ static int trackdb_playlist_get_tid(const char *name,
  * If the playlist does not exist it is created.  The default set of tracks is
  * none, and the default sharing is private (if it is an owned one) or shared
  * (otherwise).
+ *
+ * If neither @c tracks nor @c share are set then we only do an access check.
+ * The database is never modified (even to create the playlist) in this
+ * situation.
  *
  * Possible return values:
  * - @c 0 on success
@@ -312,6 +319,9 @@ static int trackdb_playlist_set_tid(const char *name,
   }
   if(!playlist_may_write(name, who, s))
     return EACCES;
+  /* If no change was requested then don't even create */
+  if(!share && !tracks)
+    return 0;
   /* Set the new values */
   if(share)
     kvp_set(&k, "share", share);
@@ -418,7 +428,7 @@ static int trackdb_playlist_list_tid(const char *who,
  * - @c 0 on success
  * - @c EINVAL if the playlist name is invalid
  * - @c EACCES if the playlist cannot be modified by @p who
- * - @c DB_NOTFOUND if the playlist doesn't exist
+ * - @c ENOENT if the playlist doesn't exist
  */
 int trackdb_playlist_delete(const char *name,
                             const char *who) {
@@ -431,6 +441,8 @@ int trackdb_playlist_delete(const char *name,
   }
   /* We've checked as much as we can for now, now go and attempt the change */
   WITH_TRANSACTION(trackdb_playlist_delete_tid(name, who, tid));
+  if(e == DB_NOTFOUND)
+    e = ENOENT;
   return e;
 }
 
