@@ -169,9 +169,9 @@ static int rtp_sensitive(void) {
 /** @brief Table of all icons */
 static struct icon icons[] = {
   {
-    icon_on: "pause.png",
+    icon_on: "pause32.png",
     tip_on: "Pause playing track",
-    icon_off: "play.png",
+    icon_off: "play32.png",
     tip_off: "Resume playing track",
     menuitem: "<GdisorderMain>/Control/Playing",
     on: pause_resume_on,
@@ -181,7 +181,7 @@ static struct icon icons[] = {
     events: "pause-changed playing-changed rights-changed",
   },
   {
-    icon_on: "cross.png",
+    icon_on: "cross32.png",
     tip_on: "Cancel playing track",
     menuitem: "<GdisorderMain>/Control/Scratch",
     sensitive: scratch_sensitive,
@@ -189,9 +189,9 @@ static struct icon icons[] = {
     events: "playing-track-changed rights-changed",
   },
   {
-    icon_on: "randomcross.png",
+    icon_on: "randomenabled32.png",
     tip_on: "Disable random play",
-    icon_off: "random.png",
+    icon_off: "randomdisabled32.png",
     tip_off: "Enable random play",
     menuitem: "<GdisorderMain>/Control/Random play",
     on: random_enabled,
@@ -201,9 +201,9 @@ static struct icon icons[] = {
     events: "random-changed rights-changed",
   },
   {
-    icon_on: "notescross.png",
+    icon_on: "playenabled32.png",
     tip_on: "Disable play",
-    icon_off: "notes.png",
+    icon_off: "playdisabled32.png",
     tip_off: "Enable play",
     on: playing_enabled,
     sensitive: playing_sensitive,
@@ -212,9 +212,9 @@ static struct icon icons[] = {
     events: "enabled-changed rights-changed",
   },
   {
-    icon_on: "speakercross.png",
+    icon_on: "rtpenabled32.png",
     tip_on: "Stop playing network stream",
-    icon_off: "speaker.png",
+    icon_off: "rtpdisabled32.png",
     tip_off: "Play network stream",
     menuitem: "<GdisorderMain>/Control/Network player",
     on: rtp_enabled,

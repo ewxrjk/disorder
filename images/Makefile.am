@@ -24,6 +24,11 @@ notes.png play.png pause.png random.png randomcross.png notescross.png	\
 propagate.png speaker.png speakercross.png directory.png logo.png	\
 logosmall.png logo256.png
 
-EXTRA_DIST=$(pkghttp_DATA) duck.png disobedience16x16.xpm disobedience32x32.xpm
+EXTRA_DIST=$(pkghttp_DATA) duck.png disobedience16x16.xpm		\
+disobedience32x32.xpm cross.svg go.svg notes.svg noteson.svg pause.svg	\
+query.svg queryon.svg speaker.svg speakeron.svg cross32.png		\
+pause32.png play32.png playdisabled32.png playenabled32.png		\
+randomdisabled32.png randomenabled32.png rtpdisabled32.png		\
+rtpenabled32.png
 
 CLEANFILES=$(SEDFILES)

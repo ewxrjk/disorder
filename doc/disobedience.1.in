@@ -73,6 +73,8 @@ name, author and version number of the software.
 .TP
 .B "Pause button"
 The pause button can be used to pause and resume tracks.
+This button shows either a pause symbol (two vertical bars) or a resume symbol
+(a right-pointing arrow).
 .TP
 .B "Scratch button"
 The scratch button, a red cross, can be used to interrupt the currently playing
@@ -81,16 +83,22 @@ track.
 .B "Random play button"
 The random play button can be used to enable and disable random play.
 It does not take effect until the currently playing track finishes.
+When the button is green, random play is enabled.
+When it is grey, random play is disabled.
 .TP
 .B "Play button"
 The play button controls whether tracks will be played at all.
 As above it does not take effect until the currently playing track finishes.
+When the button is green, play is enabled.
+When it is grey, play is disabled.
 .TP
 .B "Network play button"
 The network play buttons enables or disables network play.
 See
 .B "NETWORK PLAY"
 below.
+When the button is green, network play is enabled.
+When it is grey, network play is disabled.
 .TP
 .B "Volume slider"
 The volume slider indicates the current volume level and can be used to adjust
