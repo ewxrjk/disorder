@@ -100,7 +100,7 @@ static int playlist_may_read(const char *name,
                              const char *share) {
   char *owner;
   
-  if(!playlist_parse_name(name, &owner, 0))
+  if(playlist_parse_name(name, &owner, 0))
     return 0;
   /* Anyone can read shared playlists */
   if(!owner)
@@ -125,7 +125,7 @@ static int playlist_may_write(const char *name,
                               const char attribute((unused)) *share) {
   char *owner;
   
-  if(!playlist_parse_name(name, &owner, 0))
+  if(playlist_parse_name(name, &owner, 0))
     return 0;
   /* Anyone can modify shared playlists */
   if(!owner)
@@ -158,7 +158,7 @@ int trackdb_playlist_get(const char *name,
                          char **sharep) {
   int e;
 
-  if(!playlist_parse_name(name, 0, 0)) {
+  if(playlist_parse_name(name, 0, 0)) {
     error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }
@@ -257,7 +257,7 @@ int trackdb_playlist_set(const char *name,
   int e;
   char *owner;
   
-  if(!playlist_parse_name(name, &owner, 0)) {
+  if(playlist_parse_name(name, &owner, 0)) {
     error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }
@@ -324,7 +324,7 @@ static int trackdb_playlist_set_tid(const char *name,
     return 0;
   /* Set the new values */
   if(share)
-    kvp_set(&k, "share", share);
+    kvp_set(&k, "sharing", share);
   if(tracks) {
     char b[16];
     int oldcount, n;
@@ -386,11 +386,15 @@ static int trackdb_playlist_list_tid(const char *who,
   while(!(e = c->c_get(c, k, prepare_data(d), DB_NEXT))) {
     char *name = xstrndup(k->data, k->size), *owner;
     const char *share = kvp_get(kvp_urldecode(d->data, d->size),
-                                "share");
+                                "sharing");
 
     /* Extract owner; malformed names are skipped */
     if(playlist_parse_name(name, &owner, 0)) {
       error(0, "invalid playlist name '%s' found in database", name);
+      continue;
+    }
+    if(!share) {
+      error(0, "playlist '%s' has no 'sharing' key", name);
       continue;
     }
     /* Always list public and shared playlists
@@ -403,6 +407,7 @@ static int trackdb_playlist_list_tid(const char *who,
            && owner && !strcmp(owner, who)))
       vector_append(v, name);
   }
+  trackdb_closecursor(c);
   switch(e) {
   case DB_NOTFOUND:
     break;
@@ -435,7 +440,7 @@ int trackdb_playlist_delete(const char *name,
   int e;
   char *owner;
   
-  if(!playlist_parse_name(name, &owner, 0)) {
+  if(playlist_parse_name(name, &owner, 0)) {
     error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }

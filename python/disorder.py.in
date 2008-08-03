@@ -937,7 +937,7 @@ class client:
     Arguments:
     playlist -- Playlist to set
     tracks -- Array of tracks"""
-    self._simple_body("playlist-set", tracks, playlist)
+    self._simple_body(tracks, "playlist-set", playlist)
 
   def playlist_set_share(self, playlist, share):
     """Set the sharing status of a playlist"""
@@ -949,6 +949,11 @@ class client:
     if res == 555:
       return None
     return _split(details)[0]
+
+  def playlists(self):
+    """Returns the list of visible playlists"""
+    self._simple("playlists")
+    return self._body()
 
   ########################################################################
   # I/O infrastructure

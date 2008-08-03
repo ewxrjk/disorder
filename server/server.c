@@ -1664,6 +1664,11 @@ static int c_playlist_set_body(struct conn *c,
   const char *playlist = u;
   int err;
 
+  if(!c->locked_playlist
+     || strcmp(playlist, c->locked_playlist)) {
+    sink_writes(ev_writer_sink(c->w), "550 Playlist is not locked\n");
+    return 1;
+  }
   if(!(err = trackdb_playlist_set(playlist, c->who,
                                   body, nbody, 0))) {
     sink_printf(ev_writer_sink(c->w), "250 OK\n");
