@@ -26,9 +26,11 @@ def test():
     dtest.create_user()
     c = disorder.client()
     c.random_disable()
+    #
     print " checking initial playlist set is empty"
     l = c.playlists()
     assert l == [], "checking initial playlist set is empty"
+    #
     print " creating a shared playlist"
     c.playlist_lock("wibble")
     c.playlist_set("wibble", ["one", "two", "three"])
@@ -39,6 +41,26 @@ def test():
     print " checking new playlist contents is as assigned"
     l = c.playlist_get("wibble")
     assert l == ["one", "two", "three"], "checking playlist contents"
+    #
+    print " checking new playlist is shared"
+    s = c.playlist_get_share("wibble")
+    assert s == "shared", "checking playlist is shared"
+    #
+    print " checking cannot unshare un-owned playlist"
+    try:
+        c.playlist_set_share("wibble", "private")
+        print "*** should not be able to adjust shared playlist's sharing ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    #
+    print " modifying shared playlist"
+    c.playlist_lock("wibble")
+    c.playlist_set("wibble", ["three", "two", "one"])
+    c.playlist_unlock()
+    print " checking updated playlist contents is as assigned"
+    l = c.playlist_get("wibble")
+    assert l == ["three", "two", "one"], "checking modified playlist contents"
 
 if __name__ == '__main__':
     dtest.run()

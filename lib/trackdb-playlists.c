@@ -81,7 +81,7 @@ int playlist_parse_name(const char *name,
     if(!valid_username(name))
       return -1;
     owner = 0;
-    share = "public";
+    share = "shared";
   }
   if(ownerp)
     *ownerp = owner;
