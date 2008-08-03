@@ -34,6 +34,7 @@ complete -o default \
              tags new rtp-address adduser users edituser deluser userinfo
              setup-guest schedule-del schedule-list
              schedule-set-global schedule-unset-global schedule-play
+             playlist-del playlist-get playlist-set playlists
              -h --help -H --help-commands --version -V --config -c
              --length --debug -d" \
 	 disorder
