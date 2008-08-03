@@ -32,6 +32,7 @@
 #include "log.h"
 #include "configuration.h"
 #include "vector.h"
+#include "eventlog.h"
 
 static int trackdb_playlist_get_tid(const char *name,
                                     const char *who,
@@ -293,6 +294,7 @@ static int trackdb_playlist_set_tid(const char *name,
   struct kvp *k;
   int e;
   const char *s;
+  const char *event = "playlist_modified";
 
   if((e = trackdb_getdata(trackdb_playlistsdb, name, &k, tid))
      && e != DB_NOTFOUND)
@@ -311,6 +313,7 @@ static int trackdb_playlist_set_tid(const char *name,
     k = 0;
     kvp_set(&k, "count", 0);
     kvp_set(&k, "sharing", defshare);
+    event = "playlist_created";
   }
   /* Check that the modification is allowed */
   if(!(s = kvp_get(k, "sharing"))) {
@@ -354,7 +357,11 @@ static int trackdb_playlist_set_tid(const char *name,
     kvp_set(&k, "count", b);
   }
   /* Store the resulting record */
-  return trackdb_putdata(trackdb_playlistsdb, name, k, tid, 0);
+  e = trackdb_putdata(trackdb_playlistsdb, name, k, tid, 0);
+  /* Log the event */
+  if(!e)
+    eventlog(event, name, kvp_get(k, "sharing"), (char *)0);
+  return e;
 }
 
 /** @brief Get a list of playlists
@@ -468,7 +475,10 @@ static int trackdb_playlist_delete_tid(const char *name,
   if(!playlist_may_write(name, who, s))
     return EACCES;
   /* Delete the playlist */
-  return trackdb_delkey(trackdb_playlistsdb, name, tid);
+  e = trackdb_delkey(trackdb_playlistsdb, name, tid);
+  if(!e)
+    eventlog("playlist_deleted", name, 0);
+  return e;
 }
 
 /*

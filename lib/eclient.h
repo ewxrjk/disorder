@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -167,6 +167,15 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when your rights change */
   void (*rights_changed)(void *v, rights_type new_rights);
+
+  /** @brief Called when a new playlist is created */
+  void (*playlist_created)(void *v, const char *playlist, const char *sharing);
+
+  /** @brief Called when a playlist is modified */
+  void (*playlist_modified)(void *v, const char *playlist, const char *sharing);
+
+  /** @brief Called when a new playlist is deleted */
+  void (*playlist_deleted)(void *v, const char *playlist);
 } disorder_eclient_log_callbacks;
 
 /* State bits */

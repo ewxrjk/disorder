@@ -612,6 +612,21 @@ Further details aren't included any more.
 .B playing \fITRACK\fR [\fIUSERNAME\fR]
 Started playing \fITRACK\fR.
 .TP
+.B playlist_created \fIPLAYLIST\fR \fISHARING\fR
+Sent when a playlist is created.
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
+.TP
+.B playlist_deleted \fIPLAYLIST\fR
+Sent when a playlist is deleted.
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
+.TP
+.B playlist_modified \fIPLAYLIST\fR \fISHARING\fR
+Sent when a playlist is modified (either its contents or its sharing status).
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
+.TP
 .B queue \fIQUEUE-ENTRY\fR...
 Added \fITRACK\fR to the queue.
 .TP
@@ -673,7 +688,7 @@ The current track was scratched.
 To simplify client implementation, \fBstate\fR commands reflecting the current
 state are sent at the start of the log.
 .RE
-.TB
+.TP
 .B user_add \fIUSERNAME\fR
 A user was created.
 .TP

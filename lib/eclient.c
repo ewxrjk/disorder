@@ -191,6 +191,9 @@ static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_created(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_deleted(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_modified(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -211,6 +214,9 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(failed, 2, 2),
   LE(moved, 1, 1),
   LE(playing, 1, 2),
+  LE(playlist_created, 2, 2),
+  LE(playlist_deleted, 1, 1),
+  LE(playlist_modified, 2, 2),
   LE(queue, 2, INT_MAX),
   LE(recent_added, 2, INT_MAX),
   LE(recent_removed, 1, 1),
@@ -1766,6 +1772,27 @@ static void logentry_rights_changed(disorder_eclient *c,
     if(!parse_rights(vec[0], &r, 0/*report*/))
       c->log_callbacks->rights_changed(c->log_v, r);
   }
+}
+
+static void logentry_playlist_created(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_created)
+    c->log_callbacks->playlist_created(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_playlist_deleted(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_deleted)
+    c->log_callbacks->playlist_deleted(c->log_v, vec[0]);
+}
+
+static void logentry_playlist_modified(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_modified)
+    c->log_callbacks->playlist_modified(c->log_v, vec[0], vec[1]);
 }
 
 static const struct {
