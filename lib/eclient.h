@@ -221,7 +221,8 @@ typedef void disorder_eclient_no_response(void *v,
  *
  * @p error will be NULL on success.  In this case @p value will be the result
  * (which might be NULL for disorder_eclient_get(),
- * disorder_eclient_get_global() and disorder_eclient_userinfo()).
+ * disorder_eclient_get_global(), disorder_eclient_userinfo() and
+ * disorder_eclient_playlist_get_share()).
  *
  * @p error will be non-NULL on failure.  In this case @p value is always NULL.
  */
@@ -280,7 +281,8 @@ typedef void disorder_eclient_queue_response(void *v,
  * @param vec Pointer to response list
  *
  * @p error will be NULL on success.  In this case @p nvec and @p vec will give
- * the result.
+ * the result, or be -1 and NULL respectively e.g. from
+ * disorder_eclient_playlist_get() if there is no such playlist.
  *
  * @p error will be non-NULL on failure.  In this case @p nvec and @p vec will
  * be 0 and NULL.
@@ -485,7 +487,40 @@ int disorder_eclient_adduser(disorder_eclient *c,
                              void *v);
 void disorder_eclient_enable_connect(disorder_eclient *c);
 void disorder_eclient_disable_connect(disorder_eclient *c);
-  
+int disorder_eclient_playlists(disorder_eclient *c,
+                               disorder_eclient_list_response *completed,
+                               void *v);
+int disorder_eclient_playlist_delete(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     const char *playlist,
+                                     void *v);
+int disorder_eclient_playlist_lock(disorder_eclient *c,
+                                   disorder_eclient_no_response *completed,
+                                   const char *playlist,
+                                   void *v);
+int disorder_eclient_playlist_unlock(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     void *v);
+int disorder_eclient_playlist_set_share(disorder_eclient *c,
+                                        disorder_eclient_no_response *completed,
+                                        const char *playlist,
+                                        const char *sharing,
+                                        void *v);
+int disorder_eclient_playlist_get_share(disorder_eclient *c,
+                                        disorder_eclient_string_response *completed,
+                                        const char *playlist,
+                                        void *v);
+int disorder_eclient_playlist_set(disorder_eclient *c,
+                                  disorder_eclient_no_response *completed,
+                                  const char *playlist,
+                                  char **tracks,
+                                  int ntracks,
+                                  void *v);
+int disorder_eclient_playlist_get(disorder_eclient *c,
+                                  disorder_eclient_list_response *completed,
+                                  const char *playlist,
+                                  void *v);
+
 #endif
 
 /*
