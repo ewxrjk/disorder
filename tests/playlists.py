@@ -122,7 +122,30 @@ def test():
         assert False
     except disorder.operationError:
         pass                            # good
-    
+    #
+    print " deleting playlists"
+    c.playlist_delete("fred.spong")
+    l = c.playlists()
+    assert dtest.lists_have_same_contents(l,
+                                          ["fred.foo", "wibble"])
+    try:
+        d.playlist_delete("fred.foo")
+        print "*** should not be to delete fred's playlist ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    d.playlist_delete("wibble")
+    l = c.playlists()
+    assert l == ["fred.foo"]
+    c.playlist_delete("fred.foo")
+    l = c.playlists()
+    assert l == []
+    try:
+        c.playlist_delete("nonesuch")
+        print "*** should not be to delete nonexistent playlist ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
 
 if __name__ == '__main__':
     dtest.run()

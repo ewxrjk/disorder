@@ -911,7 +911,9 @@ class client:
 
   def playlist_delete(self, playlist):
     """Delete a playlist"""
-    self._simple("playlist-delete", playlist)
+    res, details = self._simple("playlist-delete", playlist)
+    if res == 555:
+      raise operationError(res, details, "playlist-delete")
 
   def playlist_get(self, playlist):
     """Get the contents of a playlist
