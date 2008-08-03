@@ -61,6 +61,68 @@ def test():
     print " checking updated playlist contents is as assigned"
     l = c.playlist_get("wibble")
     assert l == ["three", "two", "one"], "checking modified playlist contents"
+    #
+    print " creating a private playlist"
+    c.playlist_lock("fred.spong")
+    c.playlist_set("fred.spong", ["a", "b", "c"])
+    c.playlist_unlock()
+    s = c.playlist_get_share("fred.spong")
+    assert s == "private", "owned playlists are private by default"
+    #
+    print " creating a public playlist"
+    c.playlist_lock("fred.foo")
+    c.playlist_set("fred.foo", ["p", "q", "r"])
+    c.playlist_set_share("fred.foo", "public")
+    c.playlist_unlock()
+    s = c.playlist_get_share("fred.foo")
+    assert s == "public", "new playlist is now public"
+    #
+    print " checking fred can see all playlists"
+    l = c.playlists()
+    assert dtest.lists_have_same_contents(l,
+                                          ["fred.spong", "fred.foo", "wibble"]), "playlist list is as expected"
+    #
+    print " adding a second user"
+    c.adduser("bob", "bobpass")
+    d = disorder.client(user="bob", password="bobpass")
+    print " checking bob cannot see fred's private playlist"
+    l = d.playlists()
+    assert dtest.lists_have_same_contents(l,
+                                          ["fred.foo", "wibble"]), "playlist list is as expected"
+    #
+    print " checking bob can read shared and public playlists"
+    d.playlist_get("wibble")
+    d.playlist_get("fred.foo")
+    print " checking bob cannot read private playlist"
+    try:
+        d.playlist_get("fred.spong")
+        print "*** should not be able to read private playlist ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    #
+    print " checking bob cannot modify fred's playlists"
+    try:
+        d.playlist_lock("fred.foo")
+        print "*** should not be able to lock fred's public playlist ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    try:
+        d.playlist_lock("fred.spong")
+        print "*** should not be able to lock fred's private playlist ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    print " checking unlocked playlists cannot be modified"
+    #
+    try:
+        c.playlist_set("wibble", ["a"])
+        print "*** should not be able to modify unlocked playlists ***"
+        assert False
+    except disorder.operationError:
+        pass                            # good
+    
 
 if __name__ == '__main__':
     dtest.run()
