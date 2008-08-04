@@ -252,6 +252,12 @@ void load_settings(void);
 void set_tool_colors(GtkWidget *w);
 void popup_settings(void);
 
+/* Playlists */
+
+void playlists_init(void);
+extern char **playlists;
+extern int nplaylists;
+
 #endif /* DISOBEDIENCE_H */
 
 /*

@@ -43,6 +43,12 @@ static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
 static void log_rights_changed(void *v, rights_type r);
+static void log_playlist_created(void *v,
+                                 const char *playlist, const char *sharing);
+static void log_playlist_modified(void *v,
+                                  const char *playlist, const char *sharing);
+static void log_playlist_deleted(void *v,
+                                 const char *playlist);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -59,7 +65,10 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .state = log_state,
   .volume = log_volume,
   .rescanned = log_rescanned,
-  .rights_changed = log_rights_changed
+  .rights_changed = log_rights_changed,
+  .playlist_created = log_playlist_created,
+  .playlist_modified = log_playlist_modified,
+  .playlist_deleted = log_playlist_deleted,
 };
 
 /** @brief Update everything */
@@ -202,6 +211,23 @@ static void log_rights_changed(void attribute((unused)) *v,
   last_rights = new_rights;
   event_raise("rights-changed", 0);
   --suppress_actions;
+}
+
+static void log_playlist_created(void attribute((unused)) *v,
+                                 const char *playlist,
+                                 const char attribute((unused)) *sharing) {
+  event_raise("playlist-created", (void *)playlist);
+}
+
+static void log_playlist_modified(void attribute((unused)) *v,
+                                  const char *playlist,
+                                  const char attribute((unused)) *sharing) {
+  event_raise("playlist-modified", (void *)playlist);
+}
+
+static void log_playlist_deleted(void attribute((unused)) *v,
+                                 const char *playlist) {
+  event_raise("playlist-deleted", (void *)playlist);
 }
 
 /*
