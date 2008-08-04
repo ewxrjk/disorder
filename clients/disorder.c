@@ -628,7 +628,7 @@ static void cf_playlist_set(char **argv) {
     tag = "stdin";
   }
   vector_init(v);
-  while(inputline(tag, input, &l, '\n')) {
+  while(!inputline(tag, input, &l, '\n')) {
     if(!strcmp(l, "."))
       break;
     vector_append(v, l);
