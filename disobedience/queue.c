@@ -40,7 +40,8 @@ static void playing_completed(void *v,
 
 /** @brief Called when either the actual queue or the playing track change */
 static void queue_playing_changed(void) {
-
+  const char *old_id = playing_track ? playing_track->id : 0;
+  
   /* Check that the playing track isn't in the queue.  There's a race here due
    * to the fact that we issue the two commands at slightly different times.
    * If it goes wrong we re-issue and try again, so that we never offer up an
@@ -66,7 +67,8 @@ static void queue_playing_changed(void) {
     playing_track = NULL;
     q = actual_queue;
   }
-  time(&last_playing);          /* for column_length() */
+  if(!old_id || !playing_track || strcmp(old_id, playing_track->id))
+    time(&last_playing);                /* for column_length() */
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
   event_raise("queue-list-changed", q);
