@@ -83,6 +83,43 @@ static void playlists_updated(void attribute((unused)) *v,
   event_raise("playlists-updated", 0);
 }
 
+/** @brief Called to activate a playlist */
+static void menu_activate_playlist(GtkMenuItem *menuitem,
+                                   gpointer attribute((unused)) user_data) {
+  GtkLabel *label = GTK_LABEL(GTK_BIN(menuitem)->child);
+  const char *playlist = gtk_label_get_text(label);
+
+  fprintf(stderr, "activate playlist %s\n", playlist); /* TODO */
+}
+
+/** @brief Called when the playlists change */
+static void menu_playlists_changed(const char attribute((unused)) *event,
+                                   void attribute((unused)) *eventdata,
+                                   void attribute((unused)) *callbackdata) {
+  if(!playlists_menu)
+    return;                             /* OMG too soon */
+  GtkMenuShell *menu = GTK_MENU_SHELL(playlists_menu);
+  /* TODO: we could be more sophisticated and only insert/remove widgets as
+   * needed.  For now that's too much effort. */
+  while(menu->children)
+    gtk_container_remove(GTK_CONTAINER(menu), GTK_WIDGET(menu->children->data));
+  /* NB nplaylists can be -1 as well as 0 */
+  for(int n = 0; n < nplaylists; ++n) {
+    GtkWidget *w = gtk_menu_item_new_with_label(playlists[n]);
+    g_signal_connect(w, "activate", G_CALLBACK(menu_activate_playlist), 0);
+    gtk_widget_show(w);
+    gtk_menu_shell_append(menu, w);
+  }
+  gtk_widget_set_sensitive(playlists_widget,
+                           nplaylists > 0);
+}
+
+ void edit_playlists(gpointer attribute((unused)) callback_data,
+                     guint attribute((unused)) callback_action,
+                     GtkWidget attribute((unused)) *menu_item) {
+  fprintf(stderr, "edit playlists\n");  /* TODO */
+}
+
 /** @brief Initialize playlist support */
 void playlists_init(void) {
   /* We re-get all playlists upon any change... */
@@ -94,6 +131,7 @@ void playlists_init(void) {
   /* ...and from time to time */
   event_register("periodic-slow", playlists_update, 0);
   /* ...and at startup */
+  event_register("playlists-updated", menu_playlists_changed, 0);
   playlists_update(0, 0, 0);
 }
 
