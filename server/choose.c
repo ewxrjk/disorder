@@ -54,7 +54,7 @@ static void help(void) {
 	  "  --debug, -d             Turn on debugging\n"
           "  --[no-]syslog           Enable/disable logging to syslog\n"
           "\n"
-          "Track choose for DisOrder.  Not intended to be run\n"
+          "Track chooser for DisOrder.  Not intended to be run\n"
           "directly.\n");
   xfclose(stdout);
   exit(0);
