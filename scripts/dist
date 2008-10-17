@@ -22,7 +22,7 @@
 set -e
 [ -d =build ] && cd =build
 make
-make check
+make distcheck
 make dist-bzip2
 d=$(make echo-distdir)
 cp $d.tar.bz2 $HOME/work/web/disorder
