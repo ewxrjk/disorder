@@ -117,6 +117,11 @@ case "$host" in
   AC_MSG_RESULT([$minver])
   AC_DEFINE_UNQUOTED([MAC_OS_X_VERSION_MIN_REQUIRED], [$minver],
                      [define to minimum version of Mac OS X to support])
+
+  # Fink's GTK+ is hopelessly broken
+  PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
+  export PKG_CONFIG_PATH
+
   ;;
 *-freebsd* )
   AC_MSG_RESULT([FreeBSD])
