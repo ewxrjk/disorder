@@ -294,6 +294,8 @@ Stop the daemon if it has not stopped already"""
     else:
         print "  daemon already stopped"
     daemon = None
+    # Wait a bit for subprocess to finish too, to try to avoid stupid races
+    time.sleep(1)
 
 def run(module=None, report=True):
     """dtest.run(MODULE)
