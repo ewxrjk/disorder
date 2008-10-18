@@ -22,6 +22,8 @@ EXTRA_DIST=TODO CHANGES.html README.streams BUGS \
 README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 
+DISTCHECK_CONFIGURE_FLAGS=httpdir=$(distdir)/_inst/httpdir
+
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f */*.gcda */*.gcov
