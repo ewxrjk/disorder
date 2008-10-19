@@ -16,14 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-noinst_SCRIPTS=tkdisorder
 nodist_python_PYTHON=disorder.py
 
 SEDFILES=disorder.py
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-EXTRA_DIST=disorder.py.in tkdisorder
+EXTRA_DIST=disorder.py.in
 
 BUILT_SOURCES=disorder.py
 
