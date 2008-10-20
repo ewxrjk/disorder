@@ -21,7 +21,7 @@ EXTRA_DIST=TODO CHANGES.html README.streams BUGS \
 README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 
-DISTCHECK_CONFIGURE_FLAGS=httpdir=$(distdir)/_inst/httpdir
+DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(httpdir)/_inst/cgiexecdir
 
 check-report: before-check check make-coverage-reports
 before-check:
