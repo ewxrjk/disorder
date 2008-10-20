@@ -22,7 +22,7 @@ srcdir=$(dirname $0)
 here=$(pwd)
 cd $srcdir
 rm -f COPYING
-for f in /usr/share/common-licenses/GPL-2 $HOME/doc/GPL-2; do
+for f in /usr/share/common-licenses/GPL-3 $HOME/doc/GPL-3 $HOME/Documents/GPL-3; do
   if test -e "$f"; then
     ln -s "$f" COPYING
     break
