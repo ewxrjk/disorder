@@ -14,14 +14,13 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 #
 
 EXTRA_DIST=TODO CHANGES.html README.streams BUGS \
 README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 
-DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(httpdir)/_inst/cgiexecdir
+DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(distdir)/_inst/cgiexecdir
 
 check-report: before-check check make-coverage-reports
 before-check:
