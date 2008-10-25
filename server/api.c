@@ -15,7 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file server/api.c
+ * @brief Generic API
+ *
+ * These functions are made available to all kinds of plugins.
+ */
 #include "disorder-server.h"
 
 /* shared implementation of vararg functions */

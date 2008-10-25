@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/queue-ops.c
+ * @brief Track queues (server-specific code)
+ */
 #include "disorder-server.h"
 
 static int find_in_list(struct queue_entry *needle,

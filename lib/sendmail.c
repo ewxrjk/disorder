@@ -15,7 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/sendmail.c
+ * @brief Sending email
+ *
+ * Can send email either via a local MTA or by connecting to an SMTP TCP port.
+ * The former is preferred as there is a strong implication that the local MTA
+ * will queue for you than some random TCP SMTP server you found.
+ */
 #include "common.h"
 
 #include <errno.h>

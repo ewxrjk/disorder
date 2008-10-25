@@ -336,7 +336,13 @@ while(<>) {
 print STDERR "Generating unidata.h...\n";
 open(STDOUT, ">unidata.h") or die "unidata.h: $!\n";
 
-out("/* Automatically generated file, see scripts/make-unidata */\n",
+out("/** \@file lib/unidata.h\n",
+    " * \@brief Unicode tables\n",
+    " *\n",
+    " * Automatically generated file, see scripts/make-unidata\n",
+    " *\n",
+    " * DO NOT EDIT.\n",
+    " */\n",
     "#ifndef UNIDATA_H\n",
     "#define UNIDATA_H\n");
 
@@ -436,7 +442,13 @@ close STDOUT or die "unidata.h: $!\n";
 print STDERR "Generating unidata.c...\n";
 open(STDOUT, ">unidata.c") or die "unidata.c: $!\n";
 
-out("/* Automatically generated file, see scripts/make-unidata */\n",
+out("/** \@file lib/unidata.c\n",
+    " * \@brief Unicode tables\n",
+    " *\n",
+    " * Automatically generated file, see scripts/make-unidata\n",
+    " *\n",
+    " * DO NOT EDIT.\n",
+    " */\n",
     "#include \"common.h\"\n",
     "#include \"unidata.h\"\n");
 

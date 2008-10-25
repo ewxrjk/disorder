@@ -1,4 +1,10 @@
-/* Automatically generated file, see scripts/make-unidata */
+/** @file lib/unidata.c
+ * @brief Unicode tables
+ *
+ * Automatically generated file, see scripts/make-unidata
+ *
+ * DO NOT EDIT.
+ */
 #include "common.h"
 #include "unidata.h"
 #define Cc unicode_General_Category_Cc

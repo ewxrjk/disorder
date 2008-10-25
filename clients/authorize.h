@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file clients/authorize.h
+ * @brief Create a new login
+ */
 #ifndef AUTHORIZE_H
 #define AUTHORIZE_H
 

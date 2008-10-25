@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/queue.c
+ * @brief Track queues
+ */
 #include "common.h"
 
 #include <errno.h>

@@ -15,11 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file plugins/madshim.h
+ * @brief Integrate code from mpg123
+ */
 
 #ifndef MADSHIM_H
 #define MADSHIM_H
-
-/* shim to integrate code from mpg123 */
 
 typedef struct {
   int num_frames;

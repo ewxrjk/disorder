@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/client-common.h
+ * @brief Common code to client APIs
+ */
 
 #ifndef CLIENT_COMMON_H
 #define CLIENT_COMMON_H

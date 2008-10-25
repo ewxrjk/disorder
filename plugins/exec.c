@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file plugins/exec.c
+ * @brief Plugin to play a track by executing a command
+ */
 #include <config.h>
 
 #include <unistd.h>

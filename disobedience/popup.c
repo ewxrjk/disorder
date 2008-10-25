@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file disobedience/popup.c
+ * @brief Disobedience popup menus
+ */
 #include "disobedience.h"
 #include "popup.h"
 

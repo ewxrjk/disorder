@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/snprintf.c
+ * @brief UTF-8 capable *snprintf workalikes
+ */
 
 #define NO_MEMORY_ALLOCATION
 /* because used from log.c */

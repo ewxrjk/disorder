@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/version.c
+ * @brief Display version string and exit
+ */
 #include "common.h"
 
 #include "syscalls.h"

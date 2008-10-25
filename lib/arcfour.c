@@ -18,11 +18,13 @@
  * 02110-1301, USA.
  *
  */
-
-/* Code from Libgcrypt adapted for gnulib by Simon Josefsson. */
-
-/*
+/** @file lib/arcfour.c
+ * @brief Arcfour (RC4-compatible) stream cipher implementation
+ *
+ * Code from Libgcrypt adapted for gnulib by Simon Josefsson.
+ *
  * For a description of the algorithm, see:
+ * 
  *   Bruce Schneier: Applied Cryptography. John Wiley & Sons, 1996.
  *   ISBN 0-471-11709-9. Pages 397 ff.
  */

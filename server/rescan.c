@@ -15,7 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file server/rescan.c
+ * @brief Rescanning utility
+ *
+ * Invoked by the server.
+ */
 #include "disorder-server.h"
 
 static time_t last_report;

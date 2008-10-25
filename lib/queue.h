@@ -15,7 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/queue.h
+ * @brief Track queues
+ *
+ * Used for the queue, the recently played list and the currently playing
+ * track, both in the server and in clients.
+ */
 #ifndef QUEUE_H
 #define QUEUE_H
 

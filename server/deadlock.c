@@ -15,7 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file server/deadlock.c
+ * @brief Deadlock monitor
+ *
+ * Spawned by the server.
+ */
 #include "disorder-server.h"
 
 static const struct option options[] = {

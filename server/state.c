@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file server/state.c
+ * @brief Global server state
+ */
 #include "disorder-server.h"
 
 static const char *current_unix;

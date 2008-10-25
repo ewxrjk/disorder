@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/choose-search.c
- * @brief Search support
+ * @brief Search support for Disobedience choose window
  */
 #include "disobedience.h"
 #include "choose.h"

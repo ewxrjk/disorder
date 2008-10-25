@@ -15,6 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file plugins/notify.c
+ * @brief Standard notify plugin
+ *
+ * The arrangements here are not very satisfactory - you wanted to be
+ * able to replace the plugin but still keep its features.  So you
+ * wanted a list of plugins really.
+ */
 
 #include "common.h"
 

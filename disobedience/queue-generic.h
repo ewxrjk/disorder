@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file disobedience/queue-generic.h
+ * @brief Disobedience queue widgets
+ */
 #ifndef QUEUE_GENERIC_H
 #define QUEUE_GENERIC_H
 

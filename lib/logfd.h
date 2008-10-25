@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/logfd.h
+ * @brief Redirect subprocess stderr to DisOrder server's log
+ */
 
 #ifndef LOGFD_H
 #define LOGFD_H

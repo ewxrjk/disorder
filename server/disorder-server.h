@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/disorder-server.h
+ * @brief Definitions for server and allied utilities
+ */
 
 #ifndef DISORDER_SERVER_H
 #define DISORDER_SERVER_H

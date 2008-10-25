@@ -15,6 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/stats.c
+ * @brief Generate server statistics
+ *
+ * This is done in a subprogram because it can be quite slow and we don't want
+ * to wedge the rest of the server for the duration.
+ */
 
 #include "disorder-server.h"
 

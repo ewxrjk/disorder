@@ -1,4 +1,3 @@
-
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
@@ -16,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/charset.h @brief Character set conversion */
 #ifndef CHARSET_H
 #define CHARSET_H
 

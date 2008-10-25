@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file server/trackname.c
+ * @brief Utility to run the track name calculator in isolation
+ */
 #include "disorder-server.h"
 
 static const struct option options[] = {

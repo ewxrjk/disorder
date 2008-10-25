@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/eventdist.h
+ * @brief Event distribution
+ */
 #ifndef EVENTDIST_H
 #define EVENTDIST_H
 

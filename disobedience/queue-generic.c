@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/queue-generic.c
- * @brief Queue widgets
+ * @brief Disobedience queue widgets
  *
  * This file provides contains code shared between all the queue-like
  * widgets - the queue, the recent list and the added tracks list.

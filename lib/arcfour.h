@@ -18,6 +18,9 @@
  * 02110-1301, USA.
  *
  */
+/** @file lib/arcfour.h
+ * @brief Arcfour (RC4-compatible) stream cipher implementation
+ */
 
 /* Code from Libgcrypt adapted for gnulib by Simon Josefsson. */
 

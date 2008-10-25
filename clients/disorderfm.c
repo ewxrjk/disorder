@@ -15,7 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file clients/disorderfm.c
+ * @brief DisOrder file manager
+ *
+ * Intended to support encoding conversion, tag extraction, etc.  Not yet
+ * complete (and hasn't been worked on for ages).
+ */
 #include "common.h"
 
 #include <getopt.h>

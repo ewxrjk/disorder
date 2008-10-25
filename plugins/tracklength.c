@@ -15,6 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file plugins/tracklength.c
+ * @brief Plugin to compute track lengths
+ *
+ * Currently implements MP3, OGG, FLAC and WAV.
+ */
 
 #include <config.h>
 

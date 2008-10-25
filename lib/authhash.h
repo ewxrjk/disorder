@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2006, 2007, 2008 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/authhash.h @brief The authorization hash */
 #ifndef AUTHHASH_H
 #define AUTHHASH_H
 

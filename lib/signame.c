@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/signame.c
+ * @brief Signal names
+ */
 #include "common.h"
 
 #include <signal.h>
@@ -132,6 +134,10 @@ static const struct sigtable {
 #undef S
 };
 
+/** @brief Map a signal name to its number
+ * @param s Signal name e.g. "SIGINT"
+ * @return Signal value or -1 if not found
+ */
 int find_signal(const char *s) {
   int n;
 

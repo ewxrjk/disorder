@@ -15,6 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/kvp.c
+ * @brief Linked list of key-value pairs
+ *
+ * Also supports URL encoding/decoding (of raw strings and kvp lists).
+ *
+ * For large sets of keys, see @ref lib/hash.c.
+ */
 
 #include "common.h"
 

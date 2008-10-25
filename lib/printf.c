@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/printf.c
+ * @brief UTF-8 *printf workalike (core)
+ */
 
 #define NO_MEMORY_ALLOCATION
 /* because byte_snprintf used from log.c */

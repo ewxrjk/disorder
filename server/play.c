@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/play.c
+ * @brief Playing tracks
+ */
 
 #include "disorder-server.h"
 #include <ao/ao.h>

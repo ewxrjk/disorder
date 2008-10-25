@@ -106,7 +106,12 @@ versionstring.h: version-string ${top_srcdir}/scripts/text2c
 
 definitions.h: Makefile
 	rm -f $@.new
-	echo "#define PKGLIBDIR \"${pkglibdir}\"" > $@.new
+	echo "/** @file lib/definitions.h" >> $@.new
+	echo " * @brief Definitions exported from makefile" >> $@.new
+	echo " *" >> $@.new
+	echo " * DO NOT EDIT." >> $@.new
+	echo " */" >> $@.new
+	echo "#define PKGLIBDIR \"${pkglibdir}\"" >> $@.new
 	echo "#define PKGCONFDIR \"${sysconfdir}/\"PACKAGE" >> $@.new
 	echo "#define PKGSTATEDIR \"${localstatedir}/\"PACKAGE" >> $@.new
 	echo "#define PKGDATADIR \"${pkgdatadir}/\"" >> $@.new

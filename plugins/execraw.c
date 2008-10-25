@@ -1,3 +1,8 @@
+/** @file plugins/execraw.c
+ * @brief Plugin to play a track by executing a command (raw mode)
+ *
+ * Shares code with @ref exec.c.
+ */
 #define TYPE DISORDER_PLAYER_RAW
 #include "exec.c"
 

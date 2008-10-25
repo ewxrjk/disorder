@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/version.h
+ * @brief Display version string and exit
+ */
 #ifndef VERSION_H
 #define VERSION_H
 

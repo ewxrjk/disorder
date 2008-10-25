@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/eventlog.h
+ * @brief Event logging
+ */
 #ifndef EVENTLOG_H
 #define EVENTLOG_H
 

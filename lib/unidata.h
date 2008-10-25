@@ -1,4 +1,10 @@
-/* Automatically generated file, see scripts/make-unidata */
+/** @file lib/unidata.h
+ * @brief Unicode tables
+ *
+ * Automatically generated file, see scripts/make-unidata
+ *
+ * DO NOT EDIT.
+ */
 #ifndef UNIDATA_H
 #define UNIDATA_H
 enum unicode_General_Category {

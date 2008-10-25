@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/disorderd.c
+ * @brief Main DisOrder server
+ */
 #include "disorder-server.h"
 
 static ev_source *ev;

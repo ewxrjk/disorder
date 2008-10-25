@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/signame.h
+ * @brief Signal names
+ */
 #ifndef SIGNAME_H
 #define SIGNAME_H
 

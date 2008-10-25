@@ -15,7 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/** @file lib/hash.c
+ * @brief A simple hash table
+ */
 #include "common.h"
 
 #include "hash.h"
