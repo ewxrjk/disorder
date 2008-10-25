@@ -55,7 +55,7 @@ void popup(GtkWidget **menup,
 }
 
 /** @brief Make sure the right thing is selected
- * @param widget Tree view
+ * @param treeview Tree view
  * @param event Mouse event
  */
 void ensure_selected(GtkTreeView *treeview,

@@ -103,7 +103,7 @@ int choose_can_autocollapse(GtkTreeIter *iter) {
 }
 
 /** @brief Remove node @p it and all its children
- * @param Iterator, updated to point to next
+ * @param it Iterator, updated to point to next
  * @return True if iterator remains valid
  *
  * TODO is this necessary?  gtk_tree_store_remove() does not document what
@@ -163,12 +163,12 @@ static void choose_set_state(const char attribute((unused)) *event,
  * @param parent_ref Node to populate or NULL to fill root
  * @param nvec Number of children to add
  * @param vec Children
- * @param files 1 if children are files, 0 if directories
+ * @param isfile 1 if children are files, 0 if directories
  *
  * Adjusts the set of files (or directories) below @p parent_ref to match those
  * listed in @p nvec and @p vec.
  *
- * @parent_ref will be destroyed.
+ * @p parent_ref will be destroyed.
  */
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,

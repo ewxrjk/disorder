@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file server/options.c
+/** @file cgi/options.c
  * @brief CGI options
  *
  * Options represent an additional configuration system private to the

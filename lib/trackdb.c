@@ -2246,7 +2246,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
  * @param ev Event loop or 0 to block
  * @param recheck 1 to recheck lengths, 0 to suppress check
  * @param rescanned Called on completion (if not NULL)
- * @param u Passed to @p rescanned
+ * @param ru Passed to @p rescanned
  */
 void trackdb_rescan(ev_source *ev, int recheck,
                     void (*rescanned)(void *ru),

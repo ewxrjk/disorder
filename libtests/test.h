@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file lib/test.h @brief Library tests */
+/** @file libtests/test.h @brief Library tests */
 
 #ifndef TEST_H
 #define TEST_H

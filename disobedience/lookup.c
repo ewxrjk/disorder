@@ -79,7 +79,6 @@ static void namepart_fill(const char *track,
  * @param track Track name
  * @param context Context
  * @param part Name part
- * @param lookup If nonzero, will schedule a lookup for unknown values
  *
  * If it is in the cache then just return its value.  If not then look it up
  * and arrange for the queues to be updated when its value is available. */

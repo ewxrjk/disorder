@@ -26,8 +26,8 @@
 
 /** @brief Parse a filename
  * @param path Filename to parse
- * @param Where to put directory name, or NULL
- * @param Where to put basename, or NULL
+ * @param dirnamep Where to put directory name, or NULL
+ * @param basenamep Where to put basename, or NULL
  */
 static void parse_filename(const char *path,
                            char **dirnamep,
@@ -102,7 +102,7 @@ char *d_dirname(const char *path) {
 }
 
 /** @brief Return the basename part of @p path
- * @param Path to parse
+ * @param path Path to parse
  * @return Base part of @p path
  *
  * Extracts the base part of @p path.  This is a simple lexical transformation

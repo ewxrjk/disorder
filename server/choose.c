@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file choose.c
+/** @file server/choose.c
  * @brief Random track chooser
  *
  * Picks a track at random and writes it to standard output.  If for

@@ -348,6 +348,8 @@ static void users_details_destroyed(GtkWidget attribute((unused)) *widget,
  * @param email Email address
  * @param rights User rights string
  * @param password Password
+ * @param nameflags Visibility/editability for username
+ * @param flags Visibility/editability for other fields
  */
 static void users_makedetails(const char *name,
                               const char *email,

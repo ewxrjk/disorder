@@ -55,7 +55,7 @@ static int better_cookie(const struct cookie *a, const struct cookie *b) {
 /** @brief Login cookie */
 char *dcgi_cookie;
 
-/** @brief Set @ref login_cookie */
+/** @brief Set @ref dcgi_cookie */
 void dcgi_get_cookie(void) {
   const char *cookie_env;
   int n, best_cookie;

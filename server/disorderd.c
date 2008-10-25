@@ -96,7 +96,7 @@ static int periodic_callback(ev_source *ev_,
 }
 
 /** @brief Create a periodic action
- * @param ev Event loop
+ * @param ev_ Event loop
  * @param callback Callback function
  * @param period Interval between calls in seconds
  * @param immediate If true, call @p callback straight away

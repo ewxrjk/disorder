@@ -95,6 +95,9 @@ static const char *const schedule_required[] = {"when", "who", "action"};
 
 /** @brief Parse a scheduled event key and data
  * @param k Pointer to key
+ * @param d Pointer to data
+ * @param idp Where to store event ID
+ * @param actiondatap Where to store parsed data
  * @param whenp Where to store timestamp
  * @return 0 on success, non-0 on error
  *
@@ -225,8 +228,9 @@ void schedule_init(ev_source *ev) {
 /******************************************************************************/
 
 /** @brief Create a scheduled event
- * @param ev Event loop
+ * @param id Event ID
  * @param actiondata Action data
+ * @param tid Containing transaction
  */
 static int schedule_add_tid(const char *id,
 			    struct kvp *actiondata,
@@ -416,6 +420,7 @@ static struct {
 };
 
 /** @brief Look up a scheduled event
+ * @param id Event ID
  * @param actiondata Event description
  * @return index in schedule_actions[] on success, -1 on error
  *

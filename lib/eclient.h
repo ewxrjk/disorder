@@ -125,7 +125,7 @@ typedef struct disorder_eclient_log_callbacks {
   /** @brief Called when @p id is removed from the recent list */
   void (*recent_removed)(void *v, const char *id);
 
-  /** @brief Called when @id is removed from the queue
+  /** @brief Called when @p id is removed from the queue
    *
    * @p user might be 0.
    */

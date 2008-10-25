@@ -6,7 +6,7 @@ my $name;
 my $docs;
 while(defined($_ = <>)) {
   chomp;
-  if(!defined $name and m,^/\*! (\@?([a-z\-]+).*),) {
+  if(!defined $name and m,^/\*\$ (\@?([a-z\-]+).*),) {
     $name = $2;
     my $heading = $1;
     $docs = [$heading];

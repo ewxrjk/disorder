@@ -478,6 +478,7 @@ void abandon(ev_source attribute((unused)) *ev,
 }
 
 /** @brief Called with a new random track
+ * @param ev Event loop
  * @param track Track name
  */
 static void chosen_random_track(ev_source *ev,
