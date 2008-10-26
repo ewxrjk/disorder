@@ -29,6 +29,7 @@
 /** @brief Supply audio callback
  * @param dst Where to write audio data
  * @param nsamples Number of samples to write
+ * @return Number of samples written
  *
  * This function should write up to @p *nsamples samples of data at
  * @p dst, and return the number of samples written, or -1 if some error

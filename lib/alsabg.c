@@ -17,6 +17,12 @@
  */
 /** @file alsabg.c
  * @brief Background-thread interface to ALSA
+ *
+ * This wraps ALSA with an interface which calls back to the client from a
+ * thread.  It's not intended for completely general use, just what DisOrder
+ * needs.
+ *
+ * Only builds on Linux systems.
  */
 
 #include "common.h"
@@ -273,6 +279,10 @@ void alsa_bg_init(const char *device,
   ep(pthread_create(&alsa_bg_play_tid, 0, alsa_bg_play, 0));
 }
 
+/** @brief Deinitialize background ALSA playback
+ *
+ * The opposite of alsa_bg_init().
+ */
 void alsa_bg_close(void) {
   void *r;
 

@@ -28,7 +28,10 @@
 
 /** @brief Structure of algorithm lookup table */
 struct algorithm {
+  /** @brief DisOrder algorithm name */
   const char *name;
+
+  /** @brief gcrypt algorithm ID */
   int id;
 };
 
@@ -56,6 +59,7 @@ static const struct algorithm algorithms[] = {
  * @param nchallenge Size of challenge
  * @param password Password
  * @param algo Algorithm to use
+ * @return Hex string or NULL on error
  *
  * Computes H(challenge|password) and returns it as a newly allocated hex
  * string, or returns NULL on error.

@@ -32,6 +32,7 @@
 
 #define ARCFOUR_SBOX_SIZE 256
 
+/** @brief Context structture for Arcfour stream cipher */
 typedef struct
 {
   char sbox[ARCFOUR_SBOX_SIZE];
