@@ -68,7 +68,11 @@ extern int fail_first;
 extern int verbose;
 extern int skipped;
 
-/** @brief Checks that @p expr is nonzero */
+/** @brief Checks that @p expr is nonzero
+ * @param expr Expression to check
+ *
+ * If @p expr is nonzero then logs an error (and continues).
+ */
 #define insist(expr) do {				\
   if(!(expr)) {						\
     count_error();						\
@@ -78,6 +82,15 @@ extern int skipped;
   ++tests;						\
 } while(0)
 
+/** @brief Check that a pair of strings match
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p GOT and @p WANT differ then logs an error (and continues).
+ *
+ * @p WANT is allowed to evaluate to a null pointer (but if it comes to
+ * anything else then must be safe to strcmp).
+ */
 #define check_string(GOT, WANT) do {                                    \
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
@@ -94,6 +107,15 @@ extern int skipped;
   ++tests;                                                              \
  } while(0)
 
+/** @brief Check that a string prefix matches
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p WANT is not a prefix of @p GOT then logs an error (and continues).
+ *
+ * @p WANT is allowed to evaluate to a null pointer (but if it comes to
+ * anything else then must be safe to strcmp).
+ */
 #define check_string_prefix(GOT, WANT) do {                             \
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
@@ -110,6 +132,12 @@ extern int skipped;
   ++tests;                                                              \
  } while(0)
 
+/** @brief Check that a pair of integers match.
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p GOT and @p WANT differ then logs an error (and continues).
+ */
 #define check_integer(GOT, WANT) do {                           \
   const intmax_t got = GOT, want = WANT;                        \
   if(got != want) {                                             \
@@ -120,6 +148,12 @@ extern int skipped;
   ++tests;                                                      \
 } while(0)
 
+/** @brief Check that a function calls fatal()
+ * @param WHAT Expression to evaluate
+ *
+ * Evaluates WHAT and if it does not call fatal(), logs an error.  In any case,
+ * continues.  Modifies exitfn() so that fatal() isn't actually fatal.
+ */
 #define check_fatal(WHAT) do {                                          \
   void (*const save_exitfn)(int) attribute((noreturn)) = exitfn;        \
                                                                         \
@@ -145,6 +179,15 @@ void test_init(int argc, char **argv);
 extern jmp_buf fatal_env;
 void test_exitfn(int) attribute((noreturn));
 
+/** @brief Common code for each test source file
+ * @param name Name of test
+ *
+ * Expands to a  @c main function which:
+ * - calls test_init()
+ * - calls test_NAME()
+ * - reports a count of errors
+ * - returns the right exit status
+ */
 #define TEST(name)                                                      \
   int main(int argc, char **argv) {                                     \
     test_init(argc, argv);                                              \
