@@ -28,6 +28,8 @@
  *
  * See <a href="http://www.ietf.org/rfc/rfc1889.txt">RFC1889</a> (now obsoleted
  * by <a href="http://www.ietf.org/rfc/rfc3550.txt">RFC3550</a>).
+ *
+ * All values in this structure are big-endian.
  */
 struct attribute((packed)) rtp_header {
   /** @brief Version, padding, extension and CSRC
@@ -59,6 +61,21 @@ struct attribute((packed)) rtp_header {
 
   /** @brief Synchronization source */
   uint32_t ssrc;
+};
+
+/** @brief RTP packet header format
+ *
+ * See <a href="http://www.ietf.org/rfc/rfc1889.txt">RFC1889</a> (now obsoleted
+ * by <a href="http://www.ietf.org/rfc/rfc3550.txt">RFC3550</a>).
+ *
+ * All values in this structure are big-endian.
+ */
+struct attribute((packed)) rtp_extension {
+  /** @brief Profile-defined extension type */
+  uint16_t type;
+
+  /** @brief Length of rest of extension */
+  uint16_t length;
 };
 
 #endif /* RTP_H */

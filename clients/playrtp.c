@@ -397,6 +397,9 @@ static void *listen_thread(void attribute((unused)) *arg) {
            timestamp, next_timestamp);
       continue;
     }
+    /* Ignore packets with the extension bit set. */
+    if(header.vpxcc & 0x10)
+      continue;
     p->next = 0;
     p->flags = 0;
     p->timestamp = timestamp;
