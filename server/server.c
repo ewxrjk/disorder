@@ -188,7 +188,7 @@ static int c_play(struct conn *c, char **vec,
     sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
     return 1;
   }
-  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM);
+  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, origin_picked);
   queue_write();
   /* If we added the first track, and something is playing, then prepare the
    * new track.  If nothing is playing then we don't bother as it wouldn't gain

@@ -40,7 +40,48 @@ enum playing_state {
   playing_unplayed			/* haven't played this track yet */
 };
 
-extern const char *playing_states[];
+extern const char *const playing_states[];
+
+/** @brief Possible track origins
+ *
+ * This is a newly introduced field.  The aim is ultimately to separate the
+ * concepts of the track origin and its current state.  NB that both are
+ * potentially mutable!
+ */
+enum track_origin {
+  /** @brief Track was picked at random and then adopted by a user
+   *
+   * @c submitter identifies who adopted it.  This isn't implemented
+   * yet.
+   */
+  origin_adopted,
+
+  /** @brief Track was picked by a user
+   *
+   * @c submitter identifies who picked it
+   */
+  origin_picked,
+
+  /** @brief Track was picked at random
+   *
+   * @c submitter will be NULL
+   */
+  origin_random,
+
+  /** @brief Track was scheduled by a user
+   *
+   * @c submitter identifies who picked it
+   */
+  origin_scheduled,
+
+  /** @brief Track is a scratch
+   *
+   * @c submitter identifies who did the scratching
+   */
+  origin_scratch
+};
+
+extern const char *const track_origins[];
 
 /* queue entries form a circular doubly-linked list */
 struct queue_entry {
@@ -51,6 +92,7 @@ struct queue_entry {
   time_t when;				/* time submitted */
   time_t played;			/* when played */
   enum playing_state state;		/* state */
+  enum track_origin origin;             /* where track came from */
   long wstat;				/* wait status */
   const char *scratched;		/* scratched by */
   const char *id;			/* queue entry ID */

@@ -49,13 +49,14 @@ static void queue_id(struct queue_entry *q) {
 }
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where) {
+			      int where, enum track_origin origin) {
   struct queue_entry *q, *beforeme;
 
   q = xmalloc(sizeof *q);
   q->track = xstrdup(track);
   q->submitter = submitter ? xstrdup(submitter) : 0;
   q->state = playing_unplayed;
+  q->origin = origin;
   queue_id(q);
   time(&q->when);
   switch(where) {
@@ -70,7 +71,7 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
      * at the end. */
     beforeme = &qhead;
     while(beforeme->prev != &qhead
-	  && beforeme->prev->state == playing_random)
+	  && beforeme->prev->origin == origin_random)
       beforeme = beforeme->prev;
     queue_insert_entry(beforeme->prev, q);
     break;

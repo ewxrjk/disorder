@@ -486,7 +486,7 @@ static int exp_isqueue(int attribute((unused)) nargs,
   return mx_bool_result(output, !!dcgi_queue);
 }
 
-/*$ @isrecent@
+/*$ @isrecent
  *
  * Expands to "true" if there the recently played list is nonempty, otherwise
  * "false".
@@ -581,7 +581,7 @@ static int exp_transform(int nargs,
   return sink_writes(output, cgi_sgmlquote(t)) < 0 ? -1 : 0;
 }
 
-/*$ @enabled@
+/*$ @enabled
  *
  * Expands to "true" if playing is enabled, otherwise "false".
  */
@@ -680,7 +680,7 @@ static int exp_paused(int attribute((unused)) nargs,
                                  && dcgi_playing->state == playing_paused));
 }
 
-/*$ @state{ID}@
+/*$ @state{ID}
  *
  * Expands to the current state of track ID.
  */
@@ -695,7 +695,22 @@ static int exp_state(int attribute((unused)) nargs,
   return 0;
 }
 
-/*$ @right{RIGHT}{WITH-RIGHT}{WITHOUT-RIGHT}@
+/*$ @origin{ID}
+ *
+ * Expands to the current origin of track ID.
+ */
+static int exp_origin(int attribute((unused)) nargs,
+                      char **args,
+                      struct sink *output,
+                      void attribute((unused)) *u) {
+  struct queue_entry *q = dcgi_findtrack(args[0]);
+
+  if(q)
+    return sink_writes(output, track_origins[q->origin]) < 0 ? -1 : 0;
+  return 0;
+}
+
+/*$ @right{RIGHT}{WITH-RIGHT}{WITHOUT-RIGHT}
  *
  * Expands to WITH-RIGHT if the current user has right RIGHT, otherwise to
  * WITHOUT-RIGHT.  The WITHOUT-RIGHT argument may be left out.
@@ -999,6 +1014,7 @@ void dcgi_expansions(void) {
   mx_register("label",  1, 1, exp_label);
   mx_register("length", 1, 1, exp_length);
   mx_register("movable", 1, 2, exp_movable);
+  mx_register("origin", 1, 1, exp_origin);
   mx_register("part", 2, 3, exp_part);
   mx_register("paused", 0, 0, exp_paused);
   mx_register("pref", 2, 2, exp_pref);

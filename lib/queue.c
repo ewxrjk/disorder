@@ -31,7 +31,7 @@
 #include "table.h"
 #include "printf.h"
 
-const char *playing_states[] = {
+const char *const playing_states[] = {
   "failed",
   "isscratch",
   "no_player",
@@ -42,6 +42,15 @@ const char *playing_states[] = {
   "scratched",
   "started",
   "unplayed"
+};
+
+/** @brief String values for @c origin field */
+const char *const track_origins[] = {
+  "adopted",
+  "picked",
+  "random",
+  "scheduled",
+  "scratch",
 };
 
 #define VALUE(q, offset, type) *(type *)((char *)q + offset)
@@ -139,8 +148,29 @@ static int unmarshall_state(char *data, struct queue_entry *q,
   return 0;
 }
 
+static int unmarshall_origin(char *data, struct queue_entry *q,
+                             size_t offset,
+                             void (*error_handler)(const char *, void *),
+                             void *u) {
+  int n;
+
+  if((n = table_find(track_origins, 0, sizeof (char *),
+		     sizeof track_origins / sizeof *track_origins,
+		     data)) < 0) {
+    D(("origin=[%s] n=%d", data, n));
+    error_handler("invalid origin", u);
+    return -1;
+  }
+  VALUE(q, offset, enum track_origin) = n;
+  return 0;
+}
+
 static const char *marshall_state(const struct queue_entry *q, size_t offset) {
   return playing_states[VALUE(q, offset, enum playing_state)];
+}
+
+static const char *marshall_origin(const struct queue_entry *q, size_t offset) {
+  return track_origins[VALUE(q, offset, enum track_origin)];
 }
 
 #define F(n, h) { #n, offsetof(struct queue_entry, n), marshall_##h, unmarshall_##h }
@@ -156,6 +186,7 @@ static const struct field {
   /* Keep this table sorted. */
   F(expected, time_t),
   F(id, string),
+  F(origin, origin),
   F(played, time_t),
   F(scratched, string),
   F(sofar, long),

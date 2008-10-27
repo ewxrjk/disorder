@@ -99,8 +99,17 @@ static void cf_version(char attribute((unused)) **argv) {
 static void print_queue_entry(const struct queue_entry *q) {
   if(q->track) xprintf("track %s\n", nullcheck(utf82mb(q->track)));
   if(q->id) xprintf("  id %s\n", nullcheck(utf82mb(q->id)));
-  if(q->submitter) xprintf("  submitted by %s at %s",
-			   nullcheck(utf82mb(q->submitter)), ctime(&q->when));
+  switch(q->origin) {
+  case origin_adopted:
+  case origin_picked:
+  case origin_scheduled:
+    xprintf("  %s by %s at %s",
+            track_origins[q->origin],
+            nullcheck(utf82mb(q->submitter)), ctime(&q->when));
+    break;
+  default:
+    break;
+  }
   if(q->played) xprintf("  played at %s", ctime(&q->played));
   if(q->state == playing_started
      || q->state == playing_paused) xprintf("  %lds so far",  q->sofar);

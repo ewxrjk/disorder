@@ -87,7 +87,7 @@ static void act_playing(void) {
   }
   if(!dcgi_playing
      && ((dcgi_queue
-          && dcgi_queue->state != playing_random)
+          && dcgi_queue->origin != origin_random)
          || dcgi_random_enabled)
      && dcgi_enabled) {
     /* no track playing but playing is enabled and there is something coming
