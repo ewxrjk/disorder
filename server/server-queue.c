@@ -65,6 +65,7 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   char *buffer;
   FILE *fp;
   struct queue_entry *q;
+  int version = 0;
 
   if(!(fp = fopen(path, "r"))) {
     if(errno == ENOENT)
@@ -73,8 +74,20 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   }
   head->next = head->prev = head;
   while(!inputline(path, fp, &buffer, '\n')) {
+    if(buffer[0] == '#') {
+      /* Version indicator */
+      version = atoi(buffer + 1);
+      continue;
+    }
     q = xmalloc(sizeof *q);
     queue_unmarshall(q, buffer, queue_read_error, (void *)path);
+    if(version < 1) {
+      /* Fix up origin field as best we can; will be wrong in some cases but
+       * hopefully not too horribly so. */
+      q->origin = q->submitter ? origin_picked : origin_random;
+      if(q->state == playing_isscratch)
+        q->origin = origin_scratch;
+    }
     if(head == &qhead
        && (!q->track
 	   || !q->when))
@@ -109,6 +122,9 @@ static void queue_do_write(const struct queue_entry *head, const char *path) {
 
   byte_xasprintf(&tmp, "%s.new", path);
   if(!(fp = fopen(tmp, "w"))) fatal(errno, "error opening %s", tmp);
+  /* Save version indicator */
+  if(fprintf(fp, "#1\n") < 0)
+    fatal(errno, "error writing %s", tmp);
   for(q = head->next; q != head; q = q->next)
     if(fprintf(fp, "%s\n", queue_marshall(q)) < 0)
       fatal(errno, "error writing %s", tmp);
