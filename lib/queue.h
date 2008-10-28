@@ -26,18 +26,59 @@
 
 #include <time.h>
 
-
+/** @brief Possible track states */
 enum playing_state {
-  playing_failed,			/* failed to play */
-  playing_isscratch,			/* this is a scratch track */
-  playing_no_player,			/* couldn't find a player */
-  playing_ok,				/* played OK */
-  playing_paused,			/* started but paused */
-  playing_quitting,			/* interrupt because server quit */
-  playing_random,			/* unplayed randomly chosen track */
-  playing_scratched,			/* was scratched */
-  playing_started,			/* started to play */
-  playing_unplayed			/* haven't played this track yet */
+  /** @brief Track failed to play */
+  playing_failed,
+
+  /** @brief Track is a scratch and has not been played yet
+   *
+   * Going to become obsolete.
+   */
+  playing_isscratch,
+
+  /** @brief Could not find a player
+   *
+   * Obsolete - nothing sets this any more
+   */
+  playing_no_player,
+
+  /** @brief Play completed successfully
+   *
+   * Currently this actually means it finished decoding - it might still be
+   * buffered in the speaker, RTP player, sound card, etc.
+   *
+   * It might also mean that it's a (short!) track that hasn't been played at
+   * all yet but has been fully decoded ahead of time!  (This is very confusing
+   * so might change.)
+   */
+  playing_ok,
+
+  /** @brief Track is playing, but paused */
+  playing_paused,
+
+  /** @brief Track is playing but the server is quitting */
+  playing_quitting,
+
+  /** @brief Track was randomly chosen and has not been played
+   *
+   * This is going to become obsolete eventually; it's equivalent to @ref
+   * playing_unplayed but for tracks with a different origin.
+   */
+  playing_random,
+
+  /** @brief Track was scratched */
+  playing_scratched,
+
+  /** @brief Track is now playing
+   *
+   * This refers to the actual playing track, not something being decoded ahead
+   * of time.
+   */
+  playing_started,
+
+  /** @brief Track has not been played yet */
+  playing_unplayed
 };
 
 extern const char *const playing_states[];
@@ -83,31 +124,84 @@ enum track_origin {
 
 extern const char *const track_origins[];
 
-/* queue entries form a circular doubly-linked list */
+/** @brief One queue/recently played entry
+ *
+ * The queue and recently played list form a doubly linked list with the head
+ * and tail referred to from @ref qhead and @ref phead.
+ */
 struct queue_entry {
-  struct queue_entry *next;		/* next entry */
-  struct queue_entry *prev;		/* previous entry */
-  const char *track;			/* path to track */
-  const char *submitter;		/* name of submitter */
-  time_t when;				/* time submitted */
-  time_t played;			/* when played */
-  enum playing_state state;		/* state */
-  enum track_origin origin;             /* where track came from */
-  long wstat;				/* wait status */
-  const char *scratched;		/* scratched by */
-  const char *id;			/* queue entry ID */
-  time_t expected;			/* expected started time */
-  /* for playing or soon-to-be-played tracks only: */
+  /** @brief Next entry */
+  struct queue_entry *next;
+
+  /** @brief Previous entry */
+  struct queue_entry *prev;
+
+  /** @brief Path to track (a database key) */
+  const char *track;
+
+  /** @brief Submitter or NULL
+   *
+   * Adopter, if @c origin is @ref origin_adopted.
+   */
+  const char *submitter;
+
+  /** @brief When submitted */
+  time_t when;
+
+  /** @brief When played */
+  time_t played;
+
+  /** @brief Current state
+   *
+   * Currently this includes some origin information but this is being phased
+   * out. */
+  enum playing_state state;
+
+  /** @brief Where track came from */
+  enum track_origin origin;
+
+  /** @brief Wait status from player
+   *
+   * Only valid in certain states (TODO).
+   */
+  long wstat;
+
+  /** @brief Who scratched this track or NULL */
+  const char *scratched;
+
+  /** @brief Unique ID string */
+  const char *id;
+
+  /** @brief Estimated starting time */
+  time_t expected;
+
+  /** @brief Type word from plugin (playing/buffered tracks only) */
   unsigned long type;			/* type word from plugin */
-  const struct plugin *pl;		/* plugin that's playing this track */
-  void *data;				/* player data */
-  long sofar;				/* how much played so far */
-  int prepared;				/* true when connected to speaker */
+
+  /** @brief Plugin for this track (playing/buffered tracks only) */
+  const struct plugin *pl;
+
+  /** @brief Player-specific data (playing/buffered tracks only) */
+  void *data;
+
+  /** @brief How much of track has been played so far (seconds) */
+  long sofar;
+
+  /** @brief True if decoder is connected to speaker */
+  int prepared;
   /* For DISORDER_PLAYER_PAUSES only: */
-  time_t lastpaused, lastresumed;	/* when last paused/resumed, or 0 */
-  long uptopause;			/* how much played up to last pause */
-  /* For Disobedience */
-  struct queuelike *ql;			/* owning queue */
+
+  /** @brief When last paused or 0 */
+  time_t lastpaused;
+
+  /** @brief When last resumed or 0 */
+  time_t lastresumed;
+
+  /** @brief How much of track was played up to last pause (seconds) */
+  long uptopause;
+
+  /** @brief Owning queue (for Disobedience only) */
+  struct queuelike *ql;
 };
 
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n);
