@@ -492,7 +492,6 @@ static void chosen_random_track(ev_source *ev,
     return;
   /* Add the track to the queue */
   q = queue_add(track, 0, WHERE_END, origin_random);
-  q->state = playing_random;
   D(("picked %p (%s) at random", (void *)q, q->track));
   queue_write();
   /* Maybe a track can now be played */

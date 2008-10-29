@@ -60,10 +60,11 @@ enum playing_state {
   /** @brief Track is playing but the server is quitting */
   playing_quitting,
 
-  /** @brief Track was randomly chosen and has not been played
+  /** @brief OBSOLETE
    *
-   * This is going to become obsolete eventually; it's equivalent to @ref
-   * playing_unplayed but for tracks with a different origin.
+   * Formerly this meant a track that was picked at random and has not yet been
+   * played.  This situation is now indicated by @p playing_unplayed and @p
+   * origin_random (or @p origin_adopted).
    */
   playing_random,
 
