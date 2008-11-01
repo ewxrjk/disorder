@@ -85,9 +85,12 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
       /* Fix up origin field as best we can; will be wrong in some cases but
        * hopefully not too horribly so. */
       q->origin = q->submitter ? origin_picked : origin_random;
+      /* Eliminated obsolete states, since they are assumed elsewhere not to be
+       * set. */
       switch(q->state) {
       case playing_isscratch:
         q->origin = origin_scratch;
+        q->state = playing_unplayed;
         break;
       case playing_random:
         q->state = playing_unplayed;

@@ -80,7 +80,7 @@ static void act_playing(void) {
     if(now + refresh > fin)
       refresh = fin - now;
   }
-  if(dcgi_queue && dcgi_queue->state == playing_isscratch) {
+  if(dcgi_queue && dcgi_queue->origin == origin_scratch) {
     /* next track is a scratch, don't leave more than the inter-track gap */
     if(refresh > config->gap)
       refresh = config->gap;
@@ -179,24 +179,19 @@ static void act_remove(void) {
       error(0, "missing 'id' argument");
     else if(!(q = dcgi_findtrack(id)))
       error(0, "unknown queue id %s", id);
-    else switch(q->state) {
-    case playing_isscratch:
-    case playing_failed:
-    case playing_no_player:
-    case playing_ok:
-    case playing_quitting:
-    case playing_scratched:
-      error(0, "does not make sense to scratch %s", id);
-      break;
-    case playing_paused:                /* started but paused */
-    case playing_started:               /* started to play */
+    else if(q->origin == origin_scratch)
+      /* can't scratch scratches */
+      error(0, "does not make sense to scratch or remove %s", id);
+    else if(q->state == playing_paused
+            || q->state == playing_started)
+      /* removing the playing track = scratching */
       disorder_scratch(dcgi_client, id);
-      break;
-    case playing_random:                /* unplayed randomly chosen track */
-    case playing_unplayed:              /* haven't played this track yet */
+    else if(q->state == playing_unplayed)
+      /* otherwise it must be in the queue */
       disorder_remove(dcgi_client, id);
-      break;
-    }
+    else
+      /* various error states */
+      error(0, "does not make sense to scratch or remove %s", id);
   }
   redirect(0);
 }

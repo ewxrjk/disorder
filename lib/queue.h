@@ -31,9 +31,10 @@ enum playing_state {
   /** @brief Track failed to play */
   playing_failed,
 
-  /** @brief Track is a scratch and has not been played yet
+  /** @brief OBSOLETE
    *
-   * Going to become obsolete.
+   * Formerly denoted an unplayed scratch.  This is now indicated by @p
+   * playing_unplayed and @p origin_scratch.
    */
   playing_isscratch,
 

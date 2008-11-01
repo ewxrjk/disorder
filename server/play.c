@@ -643,7 +643,6 @@ void scratch(const char *who, const char *id) {
     if(playing_is_enabled() && config->scratch.n) {
       int r = rand() * (double)config->scratch.n / (RAND_MAX + 1.0);
       q = queue_add(config->scratch.s[r], who, WHERE_START, origin_scratch);
-      q->state = playing_isscratch;
     }
     notify_scratch(playing->track, playing->submitter, who,
 		   time(0) - playing->played);
