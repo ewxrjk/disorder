@@ -477,7 +477,7 @@ namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .TP
 .B new_bias \fIWEIGHT\fR
 The weight for new tracks.
-The default is 900000, i.e. recently added tracks are a hundred times as likely
+The default is 450000, i.e. recently added tracks are a fifty times as likely
 to be picked as normal.
 .TP
 .B new_bias_age \fISECONDS\fR
