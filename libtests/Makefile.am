@@ -69,7 +69,7 @@ make-coverage-reports:
 
 EXTRA_DIST=t-macros-1.tmpl t-macros-2
 
-CLEANFILES=*.gcda *.gcov *.gcno
+CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html
 
 DISTCLEANFILES=GraphemeBreakTest.txt NormalizationTest.txt	\
 	       WordBreakTest.txt

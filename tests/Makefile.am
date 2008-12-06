@@ -34,3 +34,4 @@ clean-local:
 	rm -rf testroot *.log *.pyc
 
 EXTRA_DIST=dtest.py ${TESTS}
+CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

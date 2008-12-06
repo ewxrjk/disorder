@@ -29,3 +29,5 @@ disorder_DEPENDENCIES=../lib/libdisorder.a
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(cgiexecdir)
+
+CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

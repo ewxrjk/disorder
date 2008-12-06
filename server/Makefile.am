@@ -136,3 +136,5 @@ check-decode: disorder-decode disorder-normalize
 	rm -f scratch.wav config decoded.raw oggdec.raw
 
 EXTRA_DIST=README.dbversions
+
+CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

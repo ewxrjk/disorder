@@ -75,6 +75,7 @@ check-completions: disorder
 		| sort > ,completions
 	diff -u ,commands ,completions
 
-CLEANFILES=,commands ,completions
+CLEANFILES=,commands ,completions \
+	   *.gcda *.gcov *.gcno *.c.html index.html
 
 EXTRA_DIST=dump2wav

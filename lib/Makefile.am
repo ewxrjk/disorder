@@ -133,6 +133,6 @@ rebuild-unicode:
 	mv $@.new $@
 
 CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
-	   *.gcda *.gcov *.gcno
+	   *.gcda *.gcov *.gcno *.c.html index.html
 
 EXTRA_DIST=trackdb.c trackdb-stub.c
