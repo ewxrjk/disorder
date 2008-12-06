@@ -64,7 +64,7 @@ t_eventdist_SOURCES=t-eventdist.c test.c test.h
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f *.gcda *.gcov
-make-coverage-reports:
+make-coverage-reports: check
 	cd ../lib && ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
 
 EXTRA_DIST=t-macros-1.tmpl t-macros-2

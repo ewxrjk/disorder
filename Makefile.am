@@ -25,7 +25,7 @@ DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell p
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f */*.gcda */*.gcov
-make-coverage-reports:
+make-coverage-reports: check
 	@for subdir in lib plugins server clients disobedience; do \
 	  echo cd $$subdir;\
 	  cd $$subdir;\
