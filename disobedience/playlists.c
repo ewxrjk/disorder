@@ -112,6 +112,8 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
   }
   gtk_widget_set_sensitive(playlists_widget,
                            nplaylists > 0);
+  gtk_widget_set_sensitive(editplaylists_widget,
+                           nplaylists >= 0);
 }
 
  void edit_playlists(gpointer attribute((unused)) callback_data,

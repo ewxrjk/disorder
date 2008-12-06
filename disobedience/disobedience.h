@@ -262,6 +262,7 @@ extern char **playlists;
 extern int nplaylists;
 extern GtkWidget *playlists_widget;
 extern GtkWidget *playlists_menu;
+extern GtkWidget *editplaylists_widget;
 
 #endif /* DISOBEDIENCE_H */
 

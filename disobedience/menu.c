@@ -28,6 +28,7 @@ static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
 GtkWidget *playlists_widget;
 GtkWidget *playlists_menu;
+GtkWidget *editplaylists_widget;
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
@@ -403,11 +404,14 @@ GtkWidget *menubar(GtkWidget *w) {
                                                "<GdisorderMain>/Control/Activate playlist");
   playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
+  editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                     "<GdisorderMain>/Edit/Edit playlists");
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
   assert(playlists_widget != 0);
   assert(playlists_menu != 0);
+  assert(editplaylists_widget != 0);
 
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");
