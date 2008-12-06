@@ -143,7 +143,7 @@ const char *column_length(const struct queue_entry *q,
 /** @brief Return the @ref queue_entry corresponding to @p iter
  * @param model Model that owns @p iter
  * @param iter Tree iterator
- * @return ID string
+ * @return Pointer to queue entry
  */
 struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
                                  GtkTreeIter *iter) {
@@ -399,6 +399,120 @@ void ql_new_queue(struct queuelike *ql,
   --suppress_actions;
 }
 
+/* Drag and drop has to be figured out experimentally, because it is not well
+ * documented.
+ *
+ * First you get a row-inserted.  The path argument points to the destination
+ * row but this will not yet have had its values set.  The source row is still
+ * present.  AFAICT the iter argument points to the same place.
+ *
+ * Then you get a row-deleted.  The path argument identifies the row that was
+ * deleted.  By this stage the row inserted above has acquired its values.
+ *
+ * A complication is that the deletion will move the inserted row.  For
+ * instance, if you do a drag that moves row 1 down to after the track that was
+ * formerly on row 9, in the row-inserted call it will show up as row 10, but
+ * in the row-deleted call, row 1 will have been deleted thus making the
+ * inserted row be row 9.
+ *
+ * So when we see the row-inserted we have no idea what track to move.
+ * Therefore we stash it until we see a row-deleted.
+ */
+
+/** @brief row-inserted callback */
+static void ql_row_inserted(GtkTreeModel attribute((unused)) *treemodel,
+                            GtkTreePath *path,
+                            GtkTreeIter attribute((unused)) *iter,
+                            gpointer user_data) {
+  struct queuelike *const ql = user_data;
+  if(!suppress_actions) {
+#if 0
+    char *ps = gtk_tree_path_to_string(path);
+    GtkTreeIter piter[1];
+    gboolean pi = gtk_tree_model_get_iter(treemodel, piter, path);
+    struct queue_entry *pq = pi ? ql_iter_to_q(treemodel, piter) : 0;
+    struct queue_entry *iq = ql_iter_to_q(treemodel, iter);
+
+    fprintf(stderr, "row-inserted %s path=%s pi=%d pq=%p path=%s iq=%p iter=%s\n",
+            ql->name,
+            ps,
+            pi,
+            pq,
+            (pi
+             ? (pq ? pq->track : "(pq=0)")
+             : "(pi=FALSE)"),
+            iq,
+            iq ? iq->track : "(iq=0)");
+
+    GtkTreeIter j[1];
+    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
+    int row = 0;
+    while(jt) {
+      struct queue_entry *q = ql_iter_to_q(treemodel, j);
+      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
+      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), j);
+    }
+    g_free(ps);
+#endif
+    /* Remember an iterator pointing at the insertion target */
+    if(ql->drag_target)
+      gtk_tree_path_free(ql->drag_target);
+    ql->drag_target = gtk_tree_path_copy(path);
+  }
+}
+
+/** @brief row-deleted callback */
+static void ql_row_deleted(GtkTreeModel attribute((unused)) *treemodel,
+                           GtkTreePath *path,
+                           gpointer user_data) {
+  struct queuelike *const ql = user_data;
+
+  if(!suppress_actions) {
+#if 0
+    char *ps = gtk_tree_path_to_string(path);
+    fprintf(stderr, "row-deleted %s path=%s ql->drag_target=%s\n",
+            ql->name, ps, gtk_tree_path_to_string(ql->drag_target));
+    GtkTreeIter j[1];
+    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
+    int row = 0;
+    while(jt) {
+      struct queue_entry *q = ql_iter_to_q(treemodel, j);
+      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
+      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), j);
+    }
+    g_free(ps);
+#endif
+    if(!ql->drag_target) {
+      error(0, "%s: unsuppressed row-deleted with no row-inserted",
+            ql->name);
+      return;
+    }
+
+    /* Get the source and destination row numbers. */
+    int srcrow = gtk_tree_path_get_indices(path)[0];
+    int dstrow = gtk_tree_path_get_indices(ql->drag_target)[0];
+    //fprintf(stderr, "srcrow=%d dstrow=%d\n", srcrow, dstrow);
+
+    /* Note that the source row is computed AFTER the destination has been
+     * inserted, since GTK+ does the insert before the delete.  Therefore if
+     * the source row is south (higher row number) of the destination, it will
+     * be one higher than expected.
+     *
+     * For instance if we drag row 1 to before row 0 we will see row-inserted
+     * for row 0 but then a row-deleted for row 2.
+     */
+    if(srcrow > dstrow)
+      --srcrow;
+
+    /* Tell the queue implementation */
+    ql->drop(srcrow, dstrow);
+
+    /* Dispose of stashed data */
+    gtk_tree_path_free(ql->drag_target);
+    ql->drag_target = 0;
+  }
+}
+
 /** @brief Initialize a @ref queuelike */
 GtkWidget *init_queuelike(struct queuelike *ql) {
   D(("init_queuelike"));
@@ -444,6 +558,17 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   g_signal_connect(ql->view, "button-press-event",
                    G_CALLBACK(ql_button_release), ql);
 
+  /* Drag+drop*/
+  if(ql->drop) {
+    gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ql->view), TRUE);
+    g_signal_connect(ql->store,
+                     "row-inserted",
+                     G_CALLBACK(ql_row_inserted), ql);
+    g_signal_connect(ql->store,
+                     "row-deleted",
+                     G_CALLBACK(ql_row_deleted), ql);
+  }
+  
   /* TODO style? */
 
   ql->init();
