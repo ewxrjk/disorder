@@ -35,6 +35,11 @@ make-coverage-reports: check
 	  cd ..;\
 	done
 
+clean-gcov:
+	rm -f */index.html
+	rm -f */*.c.html
+	rm -f */*.gcov
+
 echo-distdir:
 	@echo $(distdir)
 
