@@ -46,8 +46,10 @@ static void test_url(void) {
   insist(parse_url("http://www.example.com/example%2zpath", &p) == -1);
 
   setenv("SERVER_NAME", "www.anjou.terraraq.org.uk", 1);
-  setenv("SERVER_PORT", "80", 1);
   setenv("SCRIPT_NAME", "/~richard/env.cgi", 1);
+  check_string(infer_url(1),
+               "http://www.anjou.terraraq.org.uk/~richard/env.cgi");
+  setenv("SERVER_PORT", "80", 1);
   check_string(infer_url(1),
                "http://www.anjou.terraraq.org.uk/~richard/env.cgi");
   setenv("HTTPS", "on", 1);
@@ -56,6 +58,9 @@ static void test_url(void) {
   setenv("QUERY_STRING", "foo", 1);
   check_string(infer_url(1),
                "https://www.anjou.terraraq.org.uk/~richard/env.cgi");
+  setenv("SCRIPT_NAME", "", 1);
+  check_string(infer_url(1),
+               "https://www.anjou.terraraq.org.uk/");
   setenv("REQUEST_URI", "/~richard/env%2ecgi", 1);
   check_string(infer_url(1),
                "https://www.anjou.terraraq.org.uk/~richard/env%2ecgi");

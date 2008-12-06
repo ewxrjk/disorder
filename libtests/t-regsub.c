@@ -50,6 +50,8 @@ static void test_regsub(void) {
                "bspong");
   check_string(regsub(re, "baaaaa", "foo-$&-bar", 0),
                "bfoo-aaaaa-bar");
+  check_string(regsub(re, "baaaaa", "foo-$&-bar$x", 0),
+               "bfoo-aaaaa-bar$x");
 
   re = pcre_compile("(a+)(b+)", PCRE_UTF8|PCRE_CASELESS, &errstr, &erroffset, 0);
   assert(re != 0);

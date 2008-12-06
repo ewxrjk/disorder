@@ -58,6 +58,16 @@ static void test_kvp(void) {
   check_integer(urldecode(sink_error(), "bar=foo", 7), -1);
   check_integer(urlencode(sink_error(), "wibble", 7), -1);
   check_integer(urlencode(sink_error(), " ", 1), -1);
+  k = kvp_make("wibble", "spong",
+               "blit", "blat",
+               (char *)0);
+  check_string(kvp_urlencode(k, &n),
+               "blit=blat&wibble=spong");
+  k = kvp_make("wibble", (char *)0,
+               "blit", "blat",
+               (char *)0);
+  check_string(kvp_urlencode(k, &n),
+               "blit=blat&wibble=");
 }
 
 TEST(kvp);

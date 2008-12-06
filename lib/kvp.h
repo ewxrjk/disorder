@@ -25,10 +25,22 @@
 struct dynstr;
 struct sink;
 
+/** @brief Linked list of key-value pairs */
 struct kvp {
-  struct kvp *next;			/* next entry */
-  const char *name;			/* name */
-  const char *value;			/* value */
+  /** @brief Next entry */
+  struct kvp *next;
+
+  /** @brief Name
+   *
+   * Might not be unique.  Must not be null.
+   */
+  const char *name;
+
+  /** @brief Value
+   *
+   * Must not be null.
+   */
+  const char *value;
 };
 
 struct kvp *kvp_urldecode(const char *ptr, size_t n);
