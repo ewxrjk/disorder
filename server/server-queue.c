@@ -65,7 +65,7 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   char *buffer;
   FILE *fp;
   struct queue_entry *q;
-  int version = 0;
+  int ver = 0;
 
   if(!(fp = fopen(path, "r"))) {
     if(errno == ENOENT)
@@ -76,12 +76,12 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   while(!inputline(path, fp, &buffer, '\n')) {
     if(buffer[0] == '#') {
       /* Version indicator */
-      version = atoi(buffer + 1);
+      ver = atoi(buffer + 1);
       continue;
     }
     q = xmalloc(sizeof *q);
     queue_unmarshall(q, buffer, queue_read_error, (void *)path);
-    if(version < 1) {
+    if(ver < 1) {
       /* Fix up origin field as best we can; will be wrong in some cases but
        * hopefully not too horribly so. */
       q->origin = q->submitter ? origin_picked : origin_random;
