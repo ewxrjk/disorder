@@ -38,8 +38,11 @@ Terminates the program.
 .SS "Edit Menu"
 This has the following options:
 .TP
-.B "Select All"
-Select all tracks in whichever of the Queue or Recent tabs are showing.
+.B "Select All Tracks"
+Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .TP
 .B Properties
 Edit the details of the selected tracks.
@@ -134,8 +137,11 @@ See
 .B "Properties Window"
 below.
 .TP
-.B "Select All"
+.B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .TP
 .B Scratch
 Interrupt the currently playing track.
@@ -157,8 +163,14 @@ See
 .B "Properties Window"
 below.
 .TP
-.B "Select All"
+.B "Play track"
+Play the select track(s);
+.TP
+.B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .SS "Choose Tab"
 This displays all the tracks known to the server in a tree structure.
 .PP
@@ -204,11 +216,11 @@ Play all the tracks in the directory, in the order they appear on screen.
 .B "Track properties"
 Edit properties of all tracks in the directory.
 .TP
-.B "Select all tracks"
+.B "Select children"
 Select all the tracks in the directory (and deselect everything else).
-.PP
-Note that these options do not apply recursively - only the tracks in the
-relevant directory are affected, not those in its subdirectories.
+.TP
+.B "Deselect all tracks"
+Deselect everything.
 .SS "Added Tab"
 This displays a list of tracks recently added to the server's database.
 The most recently added track is at the top.
@@ -229,6 +241,9 @@ Play selected tracks.
 .TP
 .B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .SS "Login Details Window"
 The login details window allows you to edit the connection details and
 authorization information used by Disobedience.

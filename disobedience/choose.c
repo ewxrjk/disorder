@@ -619,6 +619,7 @@ GtkWidget *choose_widget(void) {
   event_register("playing-track-changed", choose_set_state, 0);
   event_register("search-results-changed", choose_set_state, 0);
   event_register("lookups-completed", choose_set_state, 0);
+  event_register("choose-more-tracks", choose_menu_moretracks, 0);
 
   /* After a rescan we update the choose tree.  We get a rescan-complete
    * automatically at startup and upon connection too. */
