@@ -28,52 +28,6 @@ static GtkWidget *choose_menu;
 /** @brief Path to directory pending a "select children" operation */
 static GtkTreePath *choose_eventually_select_children;
 
-/** @brief Recursion step for choose_get_visible()
- * @param parent A visible node, or NULL for the root
- * @param callback Called for each visible node
- * @param userdata Passed to @p callback
- *
- * If @p callback returns nonzero, the walk stops immediately.
- */
-static int choose_visible_recurse(GtkTreeIter *parent,
-                                  int (*callback)(GtkTreeIter *it,
-                                                  int isfile,
-                                                  void *userdata),
-                                  void *userdata) {
-  int expanded;
-  if(parent) {
-    /* Skip placeholders */
-    if(choose_is_placeholder(parent))
-      return 0;
-    const int isfile = choose_is_file(parent);
-    if(callback(parent, isfile, userdata))
-      return 1;
-    if(isfile)
-      return 0;                 /* Files never have children */
-    GtkTreePath *parent_path
-      = gtk_tree_model_get_path(GTK_TREE_MODEL(choose_store),
-                                parent);
-    expanded = gtk_tree_view_row_expanded(GTK_TREE_VIEW(choose_view),
-                                          parent_path);
-    gtk_tree_path_free(parent_path);
-  } else
-    expanded = 1;
-  /* See if parent is expanded */
-  if(expanded) {
-    /* Parent is expanded, visit all its children */
-    GtkTreeIter it[1];
-    gboolean itv = gtk_tree_model_iter_children(GTK_TREE_MODEL(choose_store),
-                                                it,
-                                                parent);
-    while(itv) {
-      if(choose_visible_recurse(it, callback, userdata))
-        return TRUE;
-      itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
-    }
-  }
-  return 0;
-}
-
 /** @brief Should edit->select all be sensitive?  No, for the choose tab. */
 static int choose_selectall_sensitive(void attribute((unused)) *extra) {
   return FALSE;
