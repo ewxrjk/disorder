@@ -165,6 +165,9 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when your rights change */
   void (*rights_changed)(void *v, rights_type new_rights);
+
+  /** @brief Called when a track is adopted */
+  void (*adopted)(void *v, const char *id, const char *who);
 } disorder_eclient_log_callbacks;
 
 /* State bits */

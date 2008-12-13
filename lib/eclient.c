@@ -186,6 +186,7 @@ static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
+static void logentry_adopted(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -202,6 +203,7 @@ struct logentry_handler {
 /** @brief Table for parsing log entries */
 static const struct logentry_handler logentry_handlers[] = {
 #define LE(X, MIN, MAX) { #X, MIN, MAX, logentry_##X }
+  LE(adopted, 2, 2),
   LE(completed, 1, 1),
   LE(failed, 2, 2),
   LE(moved, 1, 1),
@@ -1690,6 +1692,12 @@ char *disorder_eclient_interpret_state(unsigned long statebits) {
   }
   dynstr_terminate(d);
   return d->vec;
+}
+
+static void logentry_adopted(disorder_eclient *c,
+                             int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->adopted) 
+    c->log_callbacks->adopted(c->log_v, vec[0], vec[1]);
 }
 
 /*

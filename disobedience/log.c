@@ -41,6 +41,7 @@ static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
 static void log_rights_changed(void *v, rights_type r);
+static void log_adopted(void *v, const char *id, const char *user);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -57,7 +58,8 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .state = log_state,
   .volume = log_volume,
   .rescanned = log_rescanned,
-  .rights_changed = log_rights_changed
+  .rights_changed = log_rights_changed,
+  .adopted = log_adopted
 };
 
 /** @brief Update everything */
@@ -200,6 +202,13 @@ static void log_rights_changed(void attribute((unused)) *v,
   last_rights = new_rights;
   event_raise("rights-changed", 0);
   --suppress_actions;
+}
+
+/** @brief Called when a track is adopted */
+static void log_adopted(void attribute((unused)) *v,
+                        const char attribute((unused)) *id,
+                        const char attribute((unused)) *who) {
+  event_raise("queue-changed", 0);
 }
 
 /*
