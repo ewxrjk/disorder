@@ -134,6 +134,9 @@ void ql_remove_activate(GtkMenuItem *menuitem,
 int ql_play_sensitive(void *extra);
 void ql_play_activate(GtkMenuItem *menuitem,
                       gpointer user_data);
+int ql_adopt_sensitive(void *extra);
+void ql_adopt_activate(GtkMenuItem *menuitem,
+                       gpointer user_data);
 gboolean ql_button_release(GtkWidget *widget,
                            GdkEventButton *event,
                            gpointer user_data);

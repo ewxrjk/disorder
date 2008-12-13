@@ -166,6 +166,7 @@ static struct menuitem queue_menuitems[] = {
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
   { "Scratch playing track", ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
   { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Adopt track", ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
 };
 
 struct queuelike ql_queue = {
