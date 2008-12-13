@@ -94,8 +94,7 @@ extern const char *const playing_states[];
 enum track_origin {
   /** @brief Track was picked at random and then adopted by a user
    *
-   * @c submitter identifies who adopted it.  This isn't implemented
-   * yet.
+   * @c submitter identifies who adopted it.
    */
   origin_adopted,
 

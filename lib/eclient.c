@@ -1404,6 +1404,20 @@ int disorder_eclient_adduser(disorder_eclient *c,
                 "adduser", user, password, rights, (char *)0);
 }
 
+/** @brief Adopt a track
+ * @param c Client
+ * @param completed Called on completion
+ * @param id Track ID
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_adopt(disorder_eclient *c,
+                           disorder_eclient_no_response *completed,
+                           const char *id,
+                           void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "adopt", id, (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log

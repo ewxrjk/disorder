@@ -577,6 +577,11 @@ static void cf_schedule_unset_global(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+static void cf_adopt(char **argv) {
+  if(disorder_adopt(getclient(), argv[0]))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -586,6 +591,8 @@ static const struct command {
 } commands[] = {
   { "adduser",        2, 3, cf_adduser, isarg_rights, "USERNAME PASSWORD [RIGHTS]",
                       "Create a new user" },
+  { "adopt",          1, 1, cf_adopt, 0, "ID",
+                      "Adopt a randomly picked track" },
   { "allfiles",       1, 2, cf_allfiles, isarg_regexp, "DIR [~REGEXP]",
                       "List all files and directories in DIR" },
   { "authorize",      1, 2, cf_authorize, isarg_rights, "USERNAME [RIGHTS]",

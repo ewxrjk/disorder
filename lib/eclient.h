@@ -483,7 +483,10 @@ int disorder_eclient_adduser(disorder_eclient *c,
                              void *v);
 void disorder_eclient_enable_connect(disorder_eclient *c);
 void disorder_eclient_disable_connect(disorder_eclient *c);
-  
+int disorder_eclient_adopt(disorder_eclient *c,
+                           disorder_eclient_no_response *completed,
+                           const char *id,
+                           void *v);  
 #endif
 
 /*

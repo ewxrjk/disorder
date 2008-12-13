@@ -1573,6 +1573,31 @@ static int c_schedule_add(struct conn *c,
   return 1;
 }
 
+static int c_adopt(struct conn *c,
+		   char **vec,
+		   int attribute((unused)) nvec) {
+  struct queue_entry *q;
+
+  if(!c->who) {
+    sink_writes(ev_writer_sink(c->w), "550 no identity\n");
+    return 1;
+  }
+  if(!(q = queue_find(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
+    return 1;
+  }
+  if(q->origin != origin_random) {
+    sink_writes(ev_writer_sink(c->w), "550 not a random track\n");
+    return 1;
+  }
+  q->origin = origin_adopted;
+  q->submitter = xstrdup(c->who);
+  eventlog("adopted", q->id, q->submitter, (char *)0);
+  queue_write();
+  sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1594,6 +1619,7 @@ static const struct command {
   rights_type rights;
 } commands[] = {
   { "adduser",        2, 3,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "adopt",          1, 1,       c_adopt,          RIGHT_PLAY },
   { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
   { "confirm",        1, 1,       c_confirm,        0 },
   { "cookie",         1, 1,       c_cookie,         0 },

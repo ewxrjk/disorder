@@ -131,6 +131,7 @@ int disorder_schedule_add(disorder_client *c,
 			  const char *priority,
 			  const char *action,
 			  ...);
+int disorder_adopt(disorder_client *c, const char *id);
 
 #endif /* CLIENT_H */
 

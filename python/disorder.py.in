@@ -905,6 +905,10 @@ class client:
     """Add a scheduled event"""
     self._simple("schedule-add", str(when), priority, action, *rest)
 
+  def adopt(self, id):
+    """Adopt a randomly picked track"""
+    self._simple("adopt", id)
+
   ########################################################################
   # I/O infrastructure
 

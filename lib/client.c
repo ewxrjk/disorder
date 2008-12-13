@@ -1302,6 +1302,15 @@ int disorder_schedule_add(disorder_client *c,
   return rc;
 }
 
+/** @brief Adopt a track
+ * @param c Client
+ * @param id Track ID to adopt
+ * @return 0 on success, non-0 on error
+ */
+int disorder_adopt(disorder_client *c, const char *id) {
+  return disorder_simple(c, 0, "adopt", id, (char *)0);
+}
+
 /*
 Local Variables:
 c-basic-offset:2
