@@ -148,8 +148,11 @@ Interrupt the currently playing track.
 (Note that this appears even if you right click over a queued track rather
 than the currently playing track.)
 .TP
-.B Remove
+.B "Remove track from queue"
 Remove the selected tracks from the queue.
+.TP
+.B "Adopt track"
+Sets the submitter of a randomly picked track to you.
 .SS "Recent Tab"
 This displays recently played tracks, the most recent at the top.
 .PP

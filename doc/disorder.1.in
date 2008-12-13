@@ -62,6 +62,10 @@ Create a new user.
 If \fIRIGHTS\fR is not specified then the \fBdefault_rights\fR
 setting from the server's configuration file applies.
 .TP
+.B adopt \fIID\fR
+Adopts track \fIID\fR (in the queue).
+The track will show up as submitted by the calling user.
+.TP
 .B authorize \fIUSERNAME\fR [\fIRIGHTS\fR]
 Create user \fIUSERNAME\fR with a random password.
 User \fIUSERNAME\fR must be a UNIX login user (not just any old string).
