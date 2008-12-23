@@ -41,6 +41,7 @@ want_coreaudio=yes
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_AWK
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
   gcc_werror=-Werror
@@ -166,6 +167,37 @@ if test -z "$browser"; then
   browser="$rjk_cv_browser"
 fi
 AC_DEFINE_UNQUOTED([BROWSER],["$browser"],[HTML viewer])
+
+# Figure out what version of sox is installed
+AC_CACHE_CHECK([sox version],[rjk_cv_soxver],[
+  rjk_cv_soxver=UNKNOWN
+  if sox --version > /dev/null 2>&1; then
+    rjk_cv_soxver=`sox --version|$AWK '{ if(match($0, /[[0-9\.]]+/)) print substr($0,RSTART,RLENGTH)}'`
+  else
+    rjk_cv_soxver=`sox -h 2>&1|$AWK '/Version/ { if(match($0, /[[0-9\.]]+/)) print substr($0,RSTART,RLENGTH)}'`
+  fi
+])
+
+# Decide what command line options to use
+#
+# sox version   endian     bits       deployed
+# 12.17.9       -x         -[bwld]    debian etch, ubuntu dapper
+# 14.0.0        -x/-[BL]   -[bwld]    ubuntu hardy
+# 14.0.1        -x/-[BL]   -[1248]    debian lenny
+# 14.2.0        -x/-[BL]   -[1248]    debian sid (at 2008-12)
+
+AC_CACHE_CHECK([default sox generation],[rjk_cv_soxgen],[
+  case $rjk_cv_soxver in
+  [0-9].* | 1[0123].* )
+    rjk_cv_soxgen=0
+    ;;
+  * )
+    rjk_cv_soxgen=1
+    ;;
+  esac
+])
+AC_DEFINE_UNQUOTED([DEFAULT_SOX_GENERATION],[$rjk_cv_soxgen],
+                   [default sox generation])
 
 AC_ARG_WITH([server],
 	    [AS_HELP_STRING([--without-server],

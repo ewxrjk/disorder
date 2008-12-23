@@ -646,7 +646,10 @@ Determines whether calls to \fBsox\fR(1) should use \fB\-b\fR, \fB\-x\fR, etc (i
 the generation is 0) or \fB\-\fIbits\fR, \fB\-L\fR etc (if it is 1).
 See the documentation for your installed copy of \fBsox\fR to determine
 which you need.
-The default is 0.
+The default is set according to the version of sox found when DisOrder was
+built.
+If you run on a system with a different version of sox, you will need to
+set this option.
 .TP
 .B speaker_backend \fINAME
 This is an alias for \fBapi\fR; see above.

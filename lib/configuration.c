@@ -1196,6 +1196,7 @@ static struct config *config_default(void) {
   c->reminder_interval = 600;		/* 10m */
   c->new_bias_age = 7 * 86400;		/* 1 week */
   c->new_bias = 4500000;		/* 50 times the base weight */
+  c->sox_generation = DEFAULT_SOX_GENERATION;
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
