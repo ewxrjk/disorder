@@ -188,7 +188,7 @@ AC_CACHE_CHECK([sox version],[rjk_cv_soxver],[
 
 AC_CACHE_CHECK([default sox generation],[rjk_cv_soxgen],[
   case $rjk_cv_soxver in
-  [0-9].* | 1[0123].* )
+  [[0-9]].* | 1[[0123]].* )
     rjk_cv_soxgen=0
     ;;
   * )
