@@ -73,6 +73,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	sink.c sink.h					\
 	speaker-protocol.c speaker-protocol.h		\
 	split.c split.h					\
+	strptime.c strptime.h				\
 	syscalls.c syscalls.h				\
 	common.h					\
 	table.c table.h					\

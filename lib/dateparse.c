@@ -32,6 +32,10 @@
  * This set of patterns is designed to parse a specific time of a specific day,
  * since that's what the scheduler needs.  Other requirements might need other
  * pattern lists.
+ *
+ * NB DisOrder now uses my_strptime() instead of the system strptime().  This
+ * has some bits missing.  Therefore check carefuly before adding to this
+ * table.
  */
 static const char *const datemsk[] = {
   /* ISO format */
