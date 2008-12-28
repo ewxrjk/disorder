@@ -35,6 +35,7 @@
 #include <time.h>
 
 #include "dateparse.h"
+#include "strptime.h"
 
 #define TM_YEAR_BASE 1900
 
@@ -134,7 +135,7 @@ xgetdate_r (const char *string, struct tm *tp,
       tp->tm_isdst = -1;
       tp->tm_gmtoff = 0;
       tp->tm_zone = NULL;
-      result = strptime (string, line, tp);
+      result = my_strptime (string, line, tp);
       if (result && *result == '\0')
 	break;
     }

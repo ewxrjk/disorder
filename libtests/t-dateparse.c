@@ -46,10 +46,6 @@ static void test_dateparse(void) {
   check_date(now, "%H:%M:%S", localtime);
   /* This one needs a bodge: */
   check_date(now - now % 60, "%H:%M", localtime);
-#if __FreeBSD__
-  fprintf(stderr, "strptime() is broken on FreeBSD - skipping further tests\n");
-  ++skipped;
-#else
   /* Reject invalid formats */
   check_fatal(dateparse("12"));
   check_fatal(dateparse("12:34:56:23"));
@@ -57,7 +53,6 @@ static void test_dateparse(void) {
   check_fatal(dateparse("25:34"));
   check_fatal(dateparse("23:61"));
   check_fatal(dateparse("23:23:62"));
-#endif
 }
 
 TEST(dateparse);
