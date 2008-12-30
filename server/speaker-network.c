@@ -202,7 +202,7 @@ static size_t network_play(size_t frames) {
     /* Find the number of microseconds elapsed since rtp_time=0 */
     delta = tvsub_us(now, rtp_time_0);
     if(delta > UINT64_MAX / 88200)
-      fatal(0, "rtp_time=%llu now=%ld.%06ld rtp_time_0=%ld.%06ld delta=%llu (%lld)",
+      fatal(0, "rtp_time=%"PRIu64" now=%ld.%06ld rtp_time_0=%ld.%06ld delta=%"PRIu64" (%"PRId64")",
             rtp_time,
             (long)now.tv_sec, (long)now.tv_usec,
             (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
@@ -302,7 +302,7 @@ static void network_beforepoll(int *timeoutp) {
   xgettimeofday(&now, 0);
   target_us = tvsub_us(now, rtp_time_0);
   if(target_us > UINT64_MAX / 88200)
-    fatal(0, "rtp_time=%llu rtp_time_0=%ld.%06ld now=%ld.%06ld target_us=%llu (%lld)\n",
+    fatal(0, "rtp_time=%"PRIu64" rtp_time_0=%ld.%06ld now=%ld.%06ld target_us=%"PRIu64" (%"PRId64")\n",
           rtp_time,
           (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
           (long)now.tv_sec, (long)now.tv_usec,
