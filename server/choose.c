@@ -295,8 +295,10 @@ int main(int argc, char **argv) {
   if((err = trackdb_get_global_tid("prohibited-tags", global_tid, &tags)))
     fatal(0, "error getting prohibited-tags: %s", db_strerror(err));
   prohibited_tags = parsetags(tags);
-  if(trackdb_scan(0, collect_tracks_callback, 0, global_tid))
+  if(trackdb_scan(0, collect_tracks_callback, 0, global_tid)) {
+    global_tid->abort(global_tid);
     exit(1);
+  }
   trackdb_commit_transaction(global_tid);
   trackdb_close();
   trackdb_deinit();
