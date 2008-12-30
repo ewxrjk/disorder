@@ -25,7 +25,7 @@ effort.
 
 Build dependencies:
   Name             Tested              Notes
-  libdb            4.3.29              not 4.2.x; 4.4-4.6 seem to work too
+  libdb            4.3.29              not 4.2/4.6; 4.[457] seem to be ok
   libgc            6.8
   libvorbisfile    1.1.2
   libpcre          6.7                 need UTF-8 support
