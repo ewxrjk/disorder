@@ -354,7 +354,7 @@ static DB *open_db(const char *path,
                    DBTYPE dbtype,
                    u_int32_t openflags,
                    int mode) {
-  int err;
+  int err, err2;
   DB *db;
 
   D(("open %s", path));
@@ -369,8 +369,14 @@ static DB *open_db(const char *path,
       fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
   if((err = db->open(db, 0, path, 0, dbtype,
                      openflags | DB_AUTO_COMMIT, mode))) {
-    if((openflags & DB_CREATE) || errno != ENOENT)
+    if((openflags & DB_CREATE) || errno != ENOENT) {
+      if((err2 = db->close(db, 0)))
+        error(0, "db->close: %s", db_strerror(err2));
+      trackdb_close();
+      trackdb_env->close(trackdb_env,0);
+      trackdb_env = 0;
       fatal(0, "db->open %s: %s", path, db_strerror(err));
+    }
     db->close(db, 0);
     db = 0;
   }
@@ -484,24 +490,19 @@ void trackdb_close(void) {
   /* sanity checks */
   assert(opened == 1);
   --opened;
-  if((err = trackdb_tracksdb->close(trackdb_tracksdb, 0)))
-    fatal(0, "error closing tracks.db: %s", db_strerror(err));
-  if((err = trackdb_searchdb->close(trackdb_searchdb, 0)))
-    fatal(0, "error closing search.db: %s", db_strerror(err));
-  if((err = trackdb_tagsdb->close(trackdb_tagsdb, 0)))
-    fatal(0, "error closing tags.db: %s", db_strerror(err));
-  if((err = trackdb_prefsdb->close(trackdb_prefsdb, 0)))
-    fatal(0, "error closing prefs.db: %s", db_strerror(err));
-  if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
-    fatal(0, "error closing global.db: %s", db_strerror(err));
-  if((err = trackdb_noticeddb->close(trackdb_noticeddb, 0)))
-    fatal(0, "error closing noticed.db: %s", db_strerror(err));
-  if((err = trackdb_scheduledb->close(trackdb_scheduledb, 0)))
-    fatal(0, "error closing schedule.db: %s", db_strerror(err));
-  if((err = trackdb_usersdb->close(trackdb_usersdb, 0)))
-    fatal(0, "error closing users.db: %s", db_strerror(err));
-  trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;
-  trackdb_tagsdb = trackdb_globaldb = 0;
+#define CLOSE(N, V) do {                                        \
+  if(V && (err = V->close(V, 0)))                               \
+    fatal(0, "error closing %s: %s", N, db_strerror(err));      \
+  V = 0;                                                        \
+} while(0)
+  CLOSE("tracks.db", trackdb_tracksdb);
+  CLOSE("search.db", trackdb_searchdb);
+  CLOSE("tags.db", trackdb_tagsdb);
+  CLOSE("prefs.db", trackdb_prefsdb);
+  CLOSE("global.db", trackdb_globaldb);
+  CLOSE("noticed.db", trackdb_noticeddb);
+  CLOSE("schedule.db", trackdb_scheduledb);
+  CLOSE("users.db", trackdb_usersdb);
   D(("closed databases"));
 }
 
