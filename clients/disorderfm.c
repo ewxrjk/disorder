@@ -136,6 +136,7 @@ static int copy(const char *from, const char *to) {
   int fdin, fdout;
   char buffer[4096];
   int n;
+  struct stat sb;
 
   if((fdin = open(from, O_RDONLY)) < 0)
     fatal(errno, "error opening %s", from);
@@ -146,6 +147,12 @@ static int copy(const char *from, const char *to) {
       fatal(errno, "error writing to %s", to);
   }
   if(n < 0) fatal(errno, "error reading %s", from);
+  if(fstat(fdin, &sb) < 0)
+    fatal(errno, "error stating %s", from);
+  if(fchown(fdout, sb.st_uid, sb.st_gid) < 0)
+    fatal(errno, "error chowning %s", from);
+  if(fchmod(fdout, sb.st_mode & 07777) < 0)
+    fatal(errno, "error chmoding %s", from);
   if(close(fdout) < 0) fatal(errno, "error closing %s", to);
   xclose(fdin);
   return 0;
@@ -310,7 +317,20 @@ static void visit(const char *path, const char *destpath) {
   
     /* We create the directory on the destination side.  If it already exists,
      * that's fine. */
-    if(dirmaker(fulldestpath, 0777) < 0 && errno != EEXIST) {
+    if(dirmaker(fulldestpath, 0700) == 0) {
+      if(dirmaker != nomkdir) {
+        /* Created new directory.  Adjust permissions and ownership to match the
+         * old one. */
+        if(chown(fulldestpath, sb.st_uid, sb.st_gid) < 0) {
+          error(errno, "cannot chown %s", errdestpath);
+          ++errors;
+        }
+        if(chmod(fulldestpath, sb.st_mode & 07777) < 0) {
+          error(errno, "cannot chmod %s", errdestpath);
+          ++errors;
+        }
+      }
+    } else if(errno != EEXIST) {
       error(errno, "cannot mkdir %s", errdestpath);
       ++errors;
       return;
