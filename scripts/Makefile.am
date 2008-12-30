@@ -23,7 +23,7 @@ SEDFILES=setup teardown
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata \
+EXTRA_DIST=htmlman sedfiles.make text2c oggrename make-unidata fix-names \
 	format-gcov-report make-version-string setup.in teardown.in macro-docs
 
 CLEANFILES=$(SEDFILES)
