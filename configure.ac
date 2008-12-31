@@ -590,16 +590,33 @@ if test $want_server = yes; then
 		       #if DB_VERSION_MAJOR < 4
 		       # error inadequate db version
 		       #endif
-		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR <= 2
+		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR <= 3
 		       # error inadequate db version
 		       #endif
 		      ],
 		      [rjk_cv_db_version=ok],
 		      [rjk_cv_db_version=inadequate])
+    if test $rjk_cv_db_version = ok; then
+      AC_PREPROC_IFELSE([
+                         #include <db.h>
+                         #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 6
+                         # error http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=510270
+                         #endif
+                        ],
+                        [rjk_cv_db_version=ok],
+                        [rjk_cv_db_version=toxic])
+    fi
   ])
-  if test $rjk_cv_db_version != ok; then
-    AC_MSG_ERROR([need db.h version at least 4.2])
-  fi
+  case $rjk_cv_db_version in
+  ok )
+    ;;
+  inadequate )
+    AC_MSG_ERROR([need db version at least 4.3 (but not 4.6)])
+    ;;
+  toxic )
+    AC_MSG_ERROR([db version 4.6.x does not work - see debian bug 510270])
+    ;;
+  esac
 fi
 
 AM_CONDITIONAL([SERVER], [test x$want_server = xyes])
