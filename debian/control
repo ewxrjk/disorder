@@ -4,6 +4,8 @@ Section: sound
 Priority: optional
 Standards-Version: 3.7.2.2
 Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libao-dev, python, libflac-dev, libgtk2.0-dev
+Vcs-Bzr: http://www.greenend.org.uk/rjk/bzr/disorder.dev/
+Homepage: http://www.greenend.org.uk/rjk/disorder/
 
 Package: disorder
 Architecture: any
