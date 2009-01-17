@@ -28,7 +28,7 @@ Package: disorder-server
 Architecture: any
 Section: sound
 Priority: extra
-Depends: disorder,httpd-cgi,sox,debconf,${shlibs:Depends},mail-transport-agent
+Depends: disorder,httpd-cgi,sox,debconf,${shlibs:Depends},exim4|mail-transport-agent,adduser
 Suggests: disorder-playrtp,disobedience
 Description: Play random or selected digital audio files continuously
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
