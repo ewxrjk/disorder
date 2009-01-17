@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@ man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
 	disorder-playrtp.1 disorder-normalize.8 disorder-decode.8 \
 	disorder-stats.8 disorder-dbupgrade.8 disorder_templates.5 \
 	disorder_actions.5 disorder_options.5 disorder.cgi.8 \
-	disorder_preferences.5
+	disorder_preferences.5 disorder-choose.8
 
 SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
 	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-playrtp.1 \
 	disorder-decode.8 disorder-stats.8 disorder-dbupgrade.8 \
 	disorder_options.5 disorder.cgi.8 disorder_templates.5 \
-	disorder_actions.5 disorder_preferences.5
+	disorder_actions.5 disorder_preferences.5 disorder-choose.8
 
 include ${top_srcdir}/scripts/sedfiles.make
 
