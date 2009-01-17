@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-set -
+set -e
 case "$1" in
 upgrade )
-  /etc/init.d/disorder stop
+  invoke-rc.d disorder stop
   ;;
 failed-upgrade )
   # Upgrading from 2.0 to 3.0.x can provoke this problem.  The 2.0

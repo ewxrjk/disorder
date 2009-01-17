@@ -34,7 +34,7 @@ configure_init_d() {
 }
 
 restart_server() {
-  /etc/init.d/disorder restart
+  invoke-rc.d disorder restart
   # Wait for the server to get going.  This is a horrid bodge and ought
   # to be done away with, but is required for the time being.  Sorry.
   sleep 5
@@ -166,10 +166,10 @@ reconfigure )
   create_config
   ;;
 abort-upgrade )
-  /etc/init.d/disorder restart
+  invoke-rc.d disorder restart
   ;;
 reconfigure )
-  /etc/init.d/disorder reload
+  invoke-rc.d disorder reload
   ;;
 esac
 
