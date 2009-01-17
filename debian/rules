@@ -289,7 +289,7 @@ binary-arch: pkg-disorder pkg-disorder-server pkg-disorder-playrtp \
 binary-indep: 
 
 clean:
-	-$(MAKE) distclean
+	test -f Makefile && $(MAKE) distclean
 	rm -f config.cache
 	rm -f debian/files
 	rm -f debian/substvars.*
