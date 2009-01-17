@@ -654,7 +654,7 @@ The current track was scratched.
 To simplify client implementation, \fBstate\fR commands reflecting the current
 state are sent at the start of the log.
 .RE
-.TB
+.TP
 .B user_add \fIUSERNAME\fR
 A user was created.
 .TP
