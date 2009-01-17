@@ -1,6 +1,6 @@
 ?package(disobedience):\
 	needs="x11" \
-	section="Apps/Sound" \
+	section="Applications/Sound" \
 	title="Disobedience" \
         icon16x16="/usr/share/pixmaps/disobedience16x16.xpm" \
         icon32x32="/usr/share/pixmaps/disobedience32x32.xpm" \

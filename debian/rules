@@ -81,7 +81,13 @@ pkg-disorder: build
 	$(INSTALL_DATA) debian/changelog \
 		debian/disorder/usr/share/doc/disorder/changelog.Debian
 	gzip -9 debian/disorder/usr/share/doc/disorder/changelog.Debian
-	@for f in preinst postinst prerm postrm conffiles templates config; do\
+	@for f in conffiles templates; do\
+	  if test -e debian/$$f.disorder; then\
+	    echo $(INSTALL_DATA) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
+	    $(INSTALL_DATA) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
+	  fi;\
+	done
+	@for f in preinst postinst prerm postrm config; do\
 	  if test -e debian/$$f.disorder; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
 	    $(INSTALL_SCRIPT) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
@@ -159,6 +165,7 @@ pkg-disorder-server: build
 		debian/disorder-server/etc/disorder/options.user
 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) cgi/disorder \
 		$(shell pwd)/debian/disorder-server${cgiexecdir}/disorder
+	gzip -9f debian/disorder-server/usr/share/man/man*/*
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
 		debian/disorder-server${cgiexecdir}/disorder \
 		debian/disorder-server/usr/sbin/* \
@@ -231,6 +238,7 @@ pkg-disobedience: build
 			debian/disobedience/usr/share/pixmaps
 	$(INSTALL_DATA) debian/usr.share.menu.disobedience \
 		debian/disobedience/usr/share/menu/disobedience
+	gzip -9f debian/disobedience/usr/share/man/man*/*
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \
 		debian/disobedience/usr/bin/*
 	rm -rf debian/disobedience/usr/share/doc/disobedience
