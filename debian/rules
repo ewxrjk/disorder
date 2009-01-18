@@ -43,6 +43,12 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 INSTALL_PROGRAM += -s
 endif
 
+# Set DEB_BUILD_OPTIONS=parallel=N to do make -jN
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+PARALLEL = -j$(NUMJOBS)
+endif
+
 export INSTALL_DATA
 export INSTALL_SCRIPT
 export INSTALL_PROGRAM
@@ -68,7 +74,7 @@ build:
 	  echo ./config.status;\
 	  ./config.status;\
 	fi
-	$(MAKE) SENDMAIL=${SENDMAIL}
+	$(MAKE) SENDMAIL=${SENDMAIL} ${PARALLEL}
 
 pkg-disorder: build
 	rm -rf debian/disorder
