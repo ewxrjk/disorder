@@ -46,6 +46,7 @@ t_kvp_SOURCES=t-kvp.c test.c test.h
 t_macros_SOURCES=t-macros.c test.c test.h
 t_mime_SOURCES=t-mime.c test.c test.h
 t_printf_SOURCES=t-printf.c test.c test.h
+t_printf_CFLAGS=$(AM_CFLAGS) -Wno-format-security
 t_regsub_SOURCES=t-regsub.c test.c test.h
 t_selection_SOURCES=t-selection.c test.c test.h
 t_signame_SOURCES=t-signame.c test.c test.h
