@@ -127,6 +127,8 @@ const char *column_length(const struct queue_entry *q,
     if(last_state & DISORDER_TRACK_PAUSED)
       l = playing_track->sofar;
     else {
+      if(!last_playing)
+        return NULL;
       time(&now);
       l = playing_track->sofar + (now - last_playing);
     }
@@ -176,11 +178,14 @@ void ql_update_row(struct queue_entry *q,
     iter = my_iter;
   }
   /* Update all the columns */
-  for(int col = 0; col < ql->ncolumns; ++col)
-    gtk_list_store_set(ql->store, iter,
-                       col, ql->columns[col].value(q,
-                                                   ql->columns[col].data),
-                       -1);
+  for(int col = 0; col < ql->ncolumns; ++col) {
+    const char *const v = ql->columns[col].value(q,
+                                                 ql->columns[col].data);
+    if(v)
+      gtk_list_store_set(ql->store, iter,
+                         col, v,
+                         -1);
+  }
   gtk_list_store_set(ql->store, iter,
                      ql->ncolumns + QUEUEPOINTER_COLUMN, q,
                      -1);

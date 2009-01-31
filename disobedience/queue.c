@@ -29,7 +29,10 @@ static struct queue_entry *actual_playing_track;
 /** @brief The playing track */
 struct queue_entry *playing_track;
 
-/** @brief When we last got the playing track */
+/** @brief When we last got the playing track
+ *
+ * Set to 0 if the timings are currently off due to having just unpaused.
+ */
 time_t last_playing;
 
 static void queue_completed(void *v,
@@ -118,6 +121,9 @@ static void playing_changed(const char attribute((unused)) *event,
                             void  attribute((unused)) *callbackdata) {
   D(("playing_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
+  /* Setting last_playing=0 means that we don't know what the correct value
+   * is right now, e.g. because things have been deranged by a pause. */
+  last_playing = 0;
   disorder_eclient_playing(client, playing_completed, 0);
 }
 
