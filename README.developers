@@ -12,7 +12,7 @@ Dependencies:
      apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
 		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
-		     libflac-dev
+		     libflac-dev vorbis-tools
 
      (Use the bzr from backports, the one in etch is obsolete.)
 
