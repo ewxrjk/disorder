@@ -256,54 +256,6 @@ char *cgi_sgmlquote(const char *src) {
   return d->vec;
 }
 
-/** @brief Write a CGI attribute
- * @param output Where to send output
- * @param name Attribute name
- * @param value Attribute value
- */
-void cgi_attr(struct sink *output, const char *name, const char *value) {
-  /* Try to avoid needless quoting */
-  if(!value[strspn(value, "abcdefghijklmnopqrstuvwxyz"
-		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		   "0123456789")])
-    sink_printf(output, "%s=%s", name, value);
-  else
-    sink_printf(output, "%s=\"%s\"", name, cgi_sgmlquote(value));
-}
-
-/** @brief Write an open tag
- * @param output Where to send output
- * @param name Element name
- * @param ... Attribute name/value pairs
- *
- * The name/value pair list is terminated by a single (char *)0.
- */
-void cgi_opentag(struct sink *output, const char *name, ...) {
-  va_list ap;
-  const char *n, *v;
-   
-  sink_printf(output, "<%s", name);
-  va_start(ap, name);
-  while((n = va_arg(ap, const char *))) {
-    sink_printf(output, " ");
-    v = va_arg(ap, const char *);
-    if(v)
-      cgi_attr(output, n, v);
-    else
-      sink_printf(output, n);
-  }
-  va_end(ap);
-  sink_printf(output, ">");
-}
-
-/** @brief Write a close tag
- * @param output Where to send output
- * @param name Element name
- */
-void cgi_closetag(struct sink *output, const char *name) {
-  sink_printf(output, "</%s>", name);
-}
-
 /** @brief Construct a URL
  * @param url Base URL
  * @param ... Name/value pairs for constructed query string

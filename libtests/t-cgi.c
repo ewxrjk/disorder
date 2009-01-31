@@ -35,7 +35,6 @@ static void input_from(const char *s) {
 }
 
 static void test_cgi(void) {
-  struct dynstr d[1];
 
   setenv("REQUEST_METHOD", "GET", 1);
   setenv("QUERY_STRING", "foo=bar&a=b+c&c=x%7ey", 1);
@@ -111,27 +110,6 @@ static void test_cgi(void) {
   check_string(cgi_sgmlquote("<wibble>"), "&#60;wibble&#62;");
   check_string(cgi_sgmlquote("\"&\""), "&#34;&#38;&#34;");
   check_string(cgi_sgmlquote("\xC2\xA3"), "&#163;");
-
-  dynstr_init(d);
-  cgi_opentag(sink_dynstr(d), "element",
-	      "foo", "bar",
-	      "foo", "has space",
-	      "foo", "has \"quotes\"",
-	      (char *)NULL);
-  dynstr_terminate(d);
-  check_string(d->vec, "<element foo=bar foo=\"has space\" foo=\"has &#34;quotes&#34;\">");
-  
-  dynstr_init(d);
-  cgi_opentag(sink_dynstr(d), "element",
-	      "foo", (char *)NULL,
-	      (char *)NULL);
-  dynstr_terminate(d);
-  check_string(d->vec, "<element foo>");
-  
-  dynstr_init(d);
-  cgi_closetag(sink_dynstr(d), "element");
-  dynstr_terminate(d);
-  check_string(d->vec, "</element>");
 
   check_string(cgi_makeurl("http://example.com/", (char *)NULL),
 	       "http://example.com/");
