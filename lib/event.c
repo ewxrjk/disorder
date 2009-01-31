@@ -517,7 +517,9 @@ static void sighandler(int s) {
 
   /* probably the reader has stopped listening for some reason */
   if(write(sigfd[s], &sc, 1) < 0) {
-    write(2, errmsg, sizeof errmsg - 1);
+	/* do the best we can as we're about to abort; shut _up_, gcc */
+	int _ignore = write(2, errmsg, sizeof errmsg - 1);
+	(void)_ignore;
     abort();
   }
 }

@@ -365,7 +365,8 @@ static int start(ev_source *ev,
 	     || write(sfd, q->id, l) < 0)
 	    fatal(errno, "writing to %s", addr.sun_path);
 	  /* Await the ack */
-	  read(sfd, &l, 1);
+	  if (read(sfd, &l, 1) < 0) 
+		fatal(errno, "reading ack from %s", addr.sun_path);
 	  /* Plumbing */
 	  xdup2(np[0], 0);
 	  xdup2(sfd, 1);

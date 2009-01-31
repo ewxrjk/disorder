@@ -490,7 +490,8 @@ static void mainloop(void) {
           id[l] = 0;
           D(("id %s fd %d", id, fd));
           t = findtrack(id, 1/*create*/);
-          write(fd, "", 1);             /* write an ack */
+          if (write(fd, "", 1) < 0)             /* write an ack */
+			error(errno, "writing ack to inbound connection");
           if(t->fd != -1) {
             error(0, "%s: already got a connection", id);
             xclose(fd);
