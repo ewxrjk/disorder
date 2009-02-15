@@ -18,17 +18,57 @@
 #
 
 set -e
-[ -d =build ] && cd =build
+web=$HOME/public_html/web/disorder
+
 make
 make distcheck
 make dist-bzip2
 d=$(make echo-distdir)
-cp $d.tar.bz2 $HOME/work/web/disorder
+src=$d.tar.bz2
+
+# Report and execute a command remotely
+remote() {
+  local h=$1
+  shift
+  echo "$h:" "$@"
+  ssh $h "$@"
+}
+
+# Build .debs and copy to the right place
+build() {
+  local h=$1			# build host
+  local f=$2
+
+  remote $h "mkdir -p _builds"
+  remote $h "rm -rf _builds/*.deb _builds/$d"
+  scp $src $h:_builds
+  remote $h "cd _builds && tar xfj $src"
+  remote $h "cd _builds/$d && fakeroot debian/rules binary"
+  mkdir -p $web/$f
+  scp $h:_builds/*.deb $web/$f/.
+}
+
+# Build various debs
+
+# Ubuntu dapper; binaries suit Debian etch too
+build dekabrach etch
+
+# Debian lenny (32-bit)
+build leucomorph lenny
+
+# Debian lenny (64-bit)
+build araminta lenny  
+
+# Update the web
+cp $src $web
 cd doc
 for f in *.[1-9].html; do
   echo $f
-  rm -f $HOME/work/web/disorder/$f
-  sed < $f > $HOME/work/web/disorder/$f 's/^@.*//'
+  rm -f $web/$f
+  sed < $f > $web/$f 's/^@.*//'
 done
-cp plumbing.svg $HOME/work/web/disorder
-cp plumbing.png $HOME/work/web/disorder
+cp plumbing.svg $web/.
+if [ -f plumbing.png ]; then
+  cp plumbing.png $web/.
+fi
+
