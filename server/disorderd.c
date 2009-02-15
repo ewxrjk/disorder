@@ -174,6 +174,7 @@ static void fix_path(void) {
 int main(int argc, char **argv) {
   int n, background = 1, logsyslog = 0;
   const char *pidfile = 0;
+  struct rlimit rl[1];
 
   set_progname(argv);
   mem_init();
@@ -208,6 +209,18 @@ int main(int argc, char **argv) {
   srand(time(0));			/* don't start the same every time */
   /* gcrypt initialization */
   gcry_control(GCRYCTL_INIT_SECMEM, 1);
+  /* make sure we can't have more than FD_SETSIZE files open (event.c does
+   * check but this provides an additional line of defence) */
+  if(getrlimit(RLIMIT_NOFILE, rl) < 0)
+    fatal(errno, "getrlimit RLIMIT_NOFILE");
+  if(rl->rlim_cur > FD_SETSIZE) {
+    rl->rlim_cur = FD_SETSIZE;
+    if(setrlimit(RLIMIT_NOFILE, rl) < 0)
+      fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
+            (unsigned long)rl->rlim_cur);
+    info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
+  } else
+    info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
   /* create event loop */
   ev = ev_new();
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");

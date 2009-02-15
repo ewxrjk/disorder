@@ -1400,7 +1400,9 @@ void trackdb_stats_subprocess(ev_source *ev,
   pid = subprogram(ev, p[1], "disorder-stats", (char *)0);
   xclose(p[1]);
   ev_child(ev, pid, 0, stats_finished, d);
-  ev_reader_new(ev, p[0], stats_read, stats_error, d, "disorder-stats reader");
+  if(!ev_reader_new(ev, p[0], stats_read, stats_error, d,
+                    "disorder-stats reader"))
+    fatal(0, "ev_reader_new for disorder-stats reader failed");
 }
 
 /** @brief Parse a track name part preference
@@ -1756,8 +1758,9 @@ int trackdb_request_random(ev_source *ev,
   choose_callback = callback;
   choose_output.nvec = 0;
   choose_complete = 0;
-  ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
-                "disorder-choose reader"); /* owns p[0] */
+  if(!ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
+                    "disorder-choose reader")) /* owns p[0] */
+    fatal(0, "ev_reader_new for disorder-choose reader failed");
   ev_child(ev, choose_pid, 0, choose_exited, 0); /* owns the subprocess */
   return 0;
 }

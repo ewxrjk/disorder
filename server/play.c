@@ -128,7 +128,8 @@ void speaker_setup(ev_source *ev) {
   /* Wait for the speaker to be ready */
   speaker_recv(speaker_fd, &sm);
   nonblock(speaker_fd);
-  ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0, "speaker read");
+  if(ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0, "speaker read") < 0)
+    fatal(0, "error registering speaker socket fd");
 }
 
 void speaker_reload(void) {

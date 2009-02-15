@@ -1802,8 +1802,18 @@ static int listen_callback(ev_source *ev,
   c->ev = ev;
   c->w = ev_writer_new(ev, fd, writer_error, c,
 		       "client writer");
+  if(!c->w) {
+    error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
+          fd);
+    close(fd);
+    return 0;
+  }
   c->r = ev_reader_new(ev, fd, redirect_reader_callback, reader_error, c,
 		       "client reader");
+  if(!c->r)
+    /* Main reason for failure is the FD is too big and that will already have
+     * been handled */
+    fatal(0, "ev_reader_new for file inbound connection (fd=%d) failed", fd);
   ev_tie(c->r, c->w);
   c->fd = fd;
   c->reader = reader_callback;

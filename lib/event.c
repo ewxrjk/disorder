@@ -311,6 +311,8 @@ int ev_fd(ev_source *ev,
 
   D(("registering %s fd %d callback %p %p", modenames[mode], fd,
      (void *)callback, u));
+  if(fd >= FD_SETSIZE)
+    return -1;
   assert(mode < ev_nmodes);
   if(ev->mode[mode].nfds >= ev->mode[mode].fdslots) {
     ev->mode[mode].fdslots = (ev->mode[mode].fdslots
