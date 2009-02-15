@@ -88,7 +88,8 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder-stats.8.in disorder-dbupgrade.8.in \
 	   disorder_actions.5.head disorder_templates.5.head \
 	   disorder_actions.5.tail disorder_templates.5.tail \
-	   disorder_options.5.in disorder.cgi.8.in disorder_preferences.5.in
+	   disorder_options.5.in disorder.cgi.8.in disorder_preferences.5.in \
+	   disorder-choose.8.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN) $(TMPLMAN) \
 	disorder_actions.5.in disorder_templates.5.in
