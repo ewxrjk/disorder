@@ -1,6 +1,6 @@
 #! /usr/bin/perl -w
 #
-# scripts/setversion VERSION
+# scripts/setversion VERSION [DESCRIPTION [DISTRIBUTION]]
 #
 # Sets a new version number, including a debian/changelog entry (albeit
 # a rather terse and informal one).
@@ -9,6 +9,18 @@ use strict;
 use POSIX qw(strftime uname);
 
 my $version = shift;
+my $description;
+my $distribution;
+if(@ARGV > 0) {
+    $description = shift;
+} else {
+    $description = "DisOrder $version";
+}
+if(@ARGV > 0) {
+    $distribution = shift;
+} else {
+    $distribution = "unstable";
+}
 
 my $hostname = (uname)[1];
 $hostname = (gethostbyname($hostname))[0];
@@ -16,6 +28,9 @@ my $logname = (getpwuid($<))[0];
 my $name = (getpwuid($<))[6];
 $name =~ s/,.*//;
 my $email = "$logname\@$hostname";
+if(exists $ENV{"EMAIL"}) {
+    $email = $ENV{"EMAIL"};
+}
 my $date = strftime("%a, %d %b %Y %H:%M:%S %z", localtime);
 
 sub input {
@@ -48,9 +63,9 @@ output("configure.ac", \@c);
 
 @c = input("debian/changelog");
 unshift(@c,
-	"disorder ($version) unstable; urgency=low\n",
+	"disorder ($version) $distribution; urgency=low\n",
 	"\n",
-	"  * Disorder $version\n",
+	"  * $description\n",
 	"\n",
 	" -- $name <$email>  $date\n",
 	"\n");

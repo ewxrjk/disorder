@@ -23,6 +23,7 @@ web=$HOME/public_html/web/disorder
 make
 make distcheck
 make dist-bzip2
+v=$(make echo-version)
 d=$(make echo-distdir)
 src=$d.tar.bz2
 
@@ -38,11 +39,16 @@ remote() {
 build() {
   local h=$1			# build host
   local f=$2
+  local vs=$3
+  local dist=$4
 
   remote $h "mkdir -p _builds"
   remote $h "rm -rf _builds/*.deb _builds/$d"
   scp $src $h:_builds
   remote $h "cd _builds && tar xfj $src"
+  if [ "$vs" != "" ]; then
+    remote $h "cd _builds/$d && scripts/setversion $v~$vs 'Backport to $vs' $dist"
+  fi
   remote $h "cd _builds/$d && fakeroot debian/rules binary"
   mkdir -p $web/$f
   scp $h:_builds/*.deb $web/$f/.
@@ -51,13 +57,13 @@ build() {
 # Build various debs
 
 # Ubuntu dapper; binaries suit Debian etch too
-build dekabrach etch
+build dekabrach etch etch oldstable
 
 # Debian lenny (32-bit)
-build leucomorph lenny
+build leucomorph lenny "" stable
 
 # Debian lenny (64-bit)
-build araminta lenny  
+build araminta lenny "" stable
 
 # Update the web
 cp $src $web
