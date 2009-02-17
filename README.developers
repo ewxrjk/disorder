@@ -16,6 +16,9 @@ Dependencies:
 
      (Use the bzr from backports, the one in etch is obsolete.)
 
+     On lenny use libdb4.5-deb.  libdb4.6 does not work (and configure will
+     refuse to use it).
+
    * On FreeBSD you'll need at least these packages:
 	 autotools
 	 bash
@@ -34,8 +37,8 @@ Dependencies:
 
 Building:
 
-   * Compiled versions of configure and the makefiles are including in bzr, so
-     if you didn't use a source tarball, you must start as follows:
+   * Compiled versions of configure and the makefiles are not included in bzr,
+     so if you didn't use a source tarball, you must start as follows:
 
         bash ./prepare
         ./configure -C
