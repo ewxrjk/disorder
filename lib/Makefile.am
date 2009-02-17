@@ -79,6 +79,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	table.c table.h					\
 	timeval.h					\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
+	trackdb-playlists.c				\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
 	url.h url.c					\

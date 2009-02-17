@@ -92,6 +92,7 @@ typedef void operation_callback(disorder_eclient *c, struct operation *op);
 struct operation {
   struct operation *next;          /**< @brief next operation */
   char *cmd;                       /**< @brief command to send or 0 */
+  char **body;                     /**< @brief command body */
   operation_callback *opcallback;  /**< @brief internal completion callback */
   void (*completed)();             /**< @brief user completion callback or 0 */
   void *v;                         /**< @brief data for COMPLETED */
@@ -165,6 +166,8 @@ static void stash_command(disorder_eclient *c,
                           operation_callback *opcallback,
                           void (*completed)(),
                           void *v,
+                          int nbody,
+                          char **body,
                           const char *cmd,
                           ...);
 static void log_opcallback(disorder_eclient *c, struct operation *op);
@@ -187,6 +190,9 @@ static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
 static void logentry_adopted(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_created(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_deleted(disorder_eclient *c, int nvec, char **vec);
+static void logentry_playlist_modified(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -208,6 +214,9 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(failed, 2, 2),
   LE(moved, 1, 1),
   LE(playing, 1, 2),
+  LE(playlist_created, 2, 2),
+  LE(playlist_deleted, 1, 1),
+  LE(playlist_modified, 2, 2),
   LE(queue, 2, INT_MAX),
   LE(recent_added, 2, INT_MAX),
   LE(recent_removed, 1, 1),
@@ -326,6 +335,24 @@ static int protocol_error(disorder_eclient *c, struct operation *op,
 
 /* State machine *************************************************************/
 
+/** @brief Send an operation (into the output buffer)
+ * @param op Operation to send
+ */
+static void op_send(struct operation *op) {
+  disorder_eclient *const c = op->client;
+  put(c, op->cmd, strlen(op->cmd));
+  if(op->body) {
+    for(int n = 0; op->body[n]; ++n) {
+      if(op->body[n][0] == '.')
+        put(c, ".", 1);
+      put(c, op->body[n], strlen(op->body[n]));
+      put(c, "\n", 1);
+    }
+    put(c, ".\n", 2);
+  }
+  op->sent = 1;
+}
+
 /** @brief Called when there's something to do
  * @param c Client
  * @param mode bitmap of @ref DISORDER_POLL_READ and/or @ref DISORDER_POLL_WRITE.
@@ -379,7 +406,7 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
     D(("state_connected"));
     /* We just connected.  Initiate the authentication protocol. */
     stash_command(c, 1/*queuejump*/, authbanner_opcallback,
-                  0/*completed*/, 0/*v*/, 0/*cmd*/);
+                  0/*completed*/, 0/*v*/, -1/*nbody*/, 0/*body*/, 0/*cmd*/);
     /* We never stay is state_connected very long.  We could in principle jump
      * straight to state_cmdresponse since there's actually no command to
      * send, but that would arguably be cheating. */
@@ -395,17 +422,13 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
       if(c->authenticated) {
         /* Transmit all unsent operations */
         for(op = c->ops; op; op = op->next) {
-          if(!op->sent) {
-            put(c, op->cmd, strlen(op->cmd));
-            op->sent = 1;
-          }
+          if(!op->sent)
+            op_send(op);
         }
       } else {
         /* Just send the head operation */
-        if(c->ops->cmd && !c->ops->sent) {
-          put(c, c->ops->cmd, strlen(c->ops->cmd));
-          c->ops->sent = 1;
-        }
+        if(c->ops->cmd && !c->ops->sent)
+          op_send(c->ops);
       }
       /* Awaiting response for the operation at the head of the list */
       c->state = state_cmdresponse;
@@ -601,6 +624,7 @@ static void authbanner_opcallback(disorder_eclient *c,
     return;
   }
   stash_command(c, 1/*queuejump*/, authuser_opcallback, 0/*completed*/, 0/*v*/,
+                -1/*nbody*/, 0/*body*/,
                 "user", quoteutf8(config->username), quoteutf8(res),
                 (char *)0);
 }
@@ -625,6 +649,7 @@ static void authuser_opcallback(disorder_eclient *c,
   if(c->log_callbacks && !(c->ops && c->ops->opcallback == log_opcallback))
     /* We are a log client, switch to logging mode */
     stash_command(c, 0/*queuejump*/, log_opcallback, 0/*completed*/, c->log_v,
+                  -1/*nbody*/, 0/*body*/,
                   "log", (char *)0);
 }
 
@@ -787,6 +812,8 @@ static void stash_command_vector(disorder_eclient *c,
                                  operation_callback *opcallback,
                                  void (*completed)(),
                                  void *v,
+                                 int nbody,
+                                 char **body,
                                  int ncmd,
                                  char **cmd) {
   struct operation *op = xmalloc(sizeof *op);
@@ -805,6 +832,13 @@ static void stash_command_vector(disorder_eclient *c,
     op->cmd = d.vec;
   } else
     op->cmd = 0;                        /* usually, awaiting challenge */
+  if(nbody >= 0) {
+    op->body = xcalloc(nbody + 1, sizeof (char *));
+    for(n = 0; n < nbody; ++n)
+      op->body[n] = xstrdup(body[n]);
+    op->body[n] = 0;
+  } else
+    op->body = NULL;
   op->opcallback = opcallback;
   op->completed = completed;
   op->v = v;
@@ -830,6 +864,8 @@ static void vstash_command(disorder_eclient *c,
                            operation_callback *opcallback,
                            void (*completed)(),
                            void *v,
+                           int nbody,
+                           char **body,
                            const char *cmd, va_list ap) {
   char *arg;
   struct vector vec;
@@ -841,9 +877,11 @@ static void vstash_command(disorder_eclient *c,
     while((arg = va_arg(ap, char *)))
       vector_append(&vec, arg);
     stash_command_vector(c, queuejump, opcallback, completed, v, 
-                         vec.nvec, vec.vec);
+                         nbody, body, vec.nvec, vec.vec);
   } else
-    stash_command_vector(c, queuejump, opcallback, completed, v, 0, 0);
+    stash_command_vector(c, queuejump, opcallback, completed, v,
+                         nbody, body,
+                         0, 0);
 }
 
 static void stash_command(disorder_eclient *c,
@@ -851,12 +889,14 @@ static void stash_command(disorder_eclient *c,
                           operation_callback *opcallback,
                           void (*completed)(),
                           void *v,
+                          int nbody,
+                          char **body,
                           const char *cmd,
                           ...) {
   va_list ap;
 
   va_start(ap, cmd);
-  vstash_command(c, queuejump, opcallback, completed, v, cmd, ap);
+  vstash_command(c, queuejump, opcallback, completed, v, nbody, body, cmd, ap);
   va_end(ap);
 }
 
@@ -1008,6 +1048,8 @@ static void list_response_opcallback(disorder_eclient *c,
   D(("list_response_callback"));
   if(c->rc / 100 == 2)
     completed(op->v, NULL, c->vec.nvec, c->vec.vec);
+  else if(c->rc == 555)
+    completed(op->v, NULL, -1, NULL);
   else
     completed(op->v, errorstring(c), 0, 0);
 }
@@ -1039,7 +1081,24 @@ static int simple(disorder_eclient *c,
   va_list ap;
 
   va_start(ap, cmd);
-  vstash_command(c, 0/*queuejump*/, opcallback, completed, v, cmd, ap);
+  vstash_command(c, 0/*queuejump*/, opcallback, completed, v, -1, 0, cmd, ap);
+  va_end(ap);
+  /* Give the state machine a kick, since we might be in state_idle */
+  disorder_eclient_polled(c, 0);
+  return 0;
+}
+
+static int simple_body(disorder_eclient *c,
+                       operation_callback *opcallback,
+                       void (*completed)(),
+                       void *v,
+                       int nbody,
+                       char **body,
+                       const char *cmd, ...) {
+  va_list ap;
+
+  va_start(ap, cmd);
+  vstash_command(c, 0/*queuejump*/, opcallback, completed, v, nbody, body, cmd, ap);
   va_end(ap);
   /* Give the state machine a kick, since we might be in state_idle */
   disorder_eclient_polled(c, 0);
@@ -1124,7 +1183,7 @@ int disorder_eclient_moveafter(disorder_eclient *c,
   for(n = 0; n < nids; ++n)
     vector_append(&vec, (char *)ids[n]);
   stash_command_vector(c, 0/*queuejump*/, no_response_opcallback, completed, v,
-                       vec.nvec, vec.vec);
+                       -1, 0, vec.nvec, vec.vec);
   disorder_eclient_polled(c, 0);
   return 0;
 }
@@ -1420,6 +1479,123 @@ int disorder_eclient_adopt(disorder_eclient *c,
                 "adopt", id, (char *)0);
 }
 
+/** @brief Get the list of playlists
+ * @param c Client
+ * @param completed Called with list of playlists
+ * @param v Passed to @p completed
+ *
+ * The playlist list is not sorted in any particular order.
+ */
+int disorder_eclient_playlists(disorder_eclient *c,
+                               disorder_eclient_list_response *completed,
+                               void *v) {
+  return simple(c, list_response_opcallback, (void (*)())completed, v,
+                "playlists", (char *)0);
+}
+
+/** @brief Delete a playlist
+ * @param c Client
+ * @param completed Called on completion
+ * @param playlist Playlist to delete
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_delete(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     const char *playlist,
+                                     void *v) {
+  return simple(c, no_response_opcallback,  (void (*)())completed, v,
+                "playlist-delete", playlist, (char *)0);
+}
+
+/** @brief Lock a playlist
+ * @param c Client
+ * @param completed Called on completion
+ * @param playlist Playlist to lock
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_lock(disorder_eclient *c,
+                                   disorder_eclient_no_response *completed,
+                                   const char *playlist,
+                                   void *v) {
+  return simple(c, no_response_opcallback,  (void (*)())completed, v,
+                "playlist-lock", playlist, (char *)0);
+}
+
+/** @brief Unlock the locked a playlist
+ * @param c Client
+ * @param completed Called on completion
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_unlock(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     void *v) {
+  return simple(c, no_response_opcallback,  (void (*)())completed, v,
+                "playlist-unlock", (char *)0);
+}
+
+/** @brief Set a playlist's sharing
+ * @param c Client
+ * @param completed Called on completion
+ * @param playlist Playlist to modify
+ * @param sharing @c "public" or @c "private"
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_set_share(disorder_eclient *c,
+                                        disorder_eclient_no_response *completed,
+                                        const char *playlist,
+                                        const char *sharing,
+                                        void *v) {
+  return simple(c, no_response_opcallback,  (void (*)())completed, v,
+                "playlist-set-share", playlist, sharing, (char *)0);
+}
+
+/** @brief Get a playlist's sharing
+ * @param c Client
+ * @param completed Called with sharing status
+ * @param playlist Playlist to inspect
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_get_share(disorder_eclient *c,
+                                        disorder_eclient_string_response *completed,
+                                        const char *playlist,
+                                        void *v) {
+  return simple(c, string_response_opcallback,  (void (*)())completed, v,
+                "playlist-get-share", playlist, (char *)0);
+}
+
+/** @brief Set a playlist
+ * @param c Client
+ * @param completed Called on completion
+ * @param playlist Playlist to modify
+ * @param tracks List of tracks
+ * @param ntracks Number of tracks
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_set(disorder_eclient *c,
+                                  disorder_eclient_no_response *completed,
+                                  const char *playlist,
+                                  char **tracks,
+                                  int ntracks,
+                                  void *v) {
+  return simple_body(c, no_response_opcallback, (void (*)())completed, v,
+                     ntracks, tracks,
+                     "playlist-set", playlist, (char *)0);
+}
+
+/** @brief Get a playlist's contents
+ * @param c Client
+ * @param completed Called with playlist contents
+ * @param playlist Playlist to inspect
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_playlist_get(disorder_eclient *c,
+                                  disorder_eclient_list_response *completed,
+                                  const char *playlist,
+                                  void *v) {
+  return simple(c, list_response_opcallback,  (void (*)())completed, v,
+                "playlist-get", playlist, (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log
@@ -1444,7 +1620,7 @@ int disorder_eclient_log(disorder_eclient *c,
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits);
   stash_command(c, 0/*queuejump*/, log_opcallback, 0/*completed*/, v,
-                "log", (char *)0);
+                -1, 0, "log", (char *)0);
   disorder_eclient_polled(c, 0);
   return 0;
 }
@@ -1610,6 +1786,27 @@ static void logentry_rights_changed(disorder_eclient *c,
     if(!parse_rights(vec[0], &r, 0/*report*/))
       c->log_callbacks->rights_changed(c->log_v, r);
   }
+}
+
+static void logentry_playlist_created(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_created)
+    c->log_callbacks->playlist_created(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_playlist_deleted(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_deleted)
+    c->log_callbacks->playlist_deleted(c->log_v, vec[0]);
+}
+
+static void logentry_playlist_modified(disorder_eclient *c,
+                                      int attribute((unused)) nvec,
+                                      char **vec) {
+  if(c->log_callbacks->playlist_modified)
+    c->log_callbacks->playlist_modified(c->log_v, vec[0], vec[1]);
 }
 
 static const struct {

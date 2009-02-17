@@ -113,8 +113,8 @@ class operationError(Error):
     self.cmd_ = cmd
     self.details_ = details
   def __str__(self):
-    """Return the complete response string from the server, with the command
-    if available.
+    """Return the complete response string from the server, with the
+    command if available.
 
     Excludes the final newline.
     """
@@ -422,8 +422,8 @@ class client:
 
     Returns the ID of the new queue entry.
 
-    Note that queue IDs are unicode strings (because all track information
-    values are unicode strings).
+    Note that queue IDs are unicode strings (because all track
+    information values are unicode strings).
     """
     res, details = self._simple("play", track)
     return unicode(details)             # because it's unicode in queue() output
@@ -528,8 +528,8 @@ class client:
     The return value is a list of dictionaries corresponding to
     recently played tracks.  The next track to be played comes first.
 
-    See disorder_protocol(5) for the meanings of the keys.  All keys are
-    plain strings but the values will be unicode strings."""
+    See disorder_protocol(5) for the meanings of the keys.
+    All keys are plain strings but the values will be unicode strings."""
     return self._somequeue("queue")
 
   def _somedir(self, command, dir, re):
@@ -764,7 +764,8 @@ class client:
     
     The callback should return True to continue or False to stop (don't
     forget this, or your program will mysteriously misbehave).  Once you
-    stop reading the log the connection is useless and should be deleted.
+    stop reading the log the connection is useless and should be
+    deleted.
 
     It is suggested that you use the disorder.monitor class instead of
     calling this method directly, but this is not mandatory.
@@ -891,7 +892,8 @@ class client:
     self._simple("schedule-del", event)
 
   def schedule_get(self, event):
-    """Get the details for an event as a dict (returns None if event not found)"""
+    """Get the details for an event as a dict (returns None if
+    event not found)"""
     res, details = self._simple("schedule-get", event)
     if res == 555:
       return None
@@ -908,6 +910,54 @@ class client:
   def adopt(self, id):
     """Adopt a randomly picked track"""
     self._simple("adopt", id)
+
+  def playlist_delete(self, playlist):
+    """Delete a playlist"""
+    res, details = self._simple("playlist-delete", playlist)
+    if res == 555:
+      raise operationError(res, details, "playlist-delete")
+
+  def playlist_get(self, playlist):
+    """Get the contents of a playlist
+
+    The return value is an array of track names, or None if there is no
+    such playlist."""
+    res, details = self._simple("playlist-get", playlist)
+    if res == 555:
+      return None
+    return self._body()
+
+  def playlist_lock(self, playlist):
+    """Lock a playlist.  Playlists can only be modified when locked."""
+    self._simple("playlist-lock", playlist)
+
+  def playlist_unlock(self):
+    """Unlock the locked playlist."""
+    self._simple("playlist-unlock")
+
+  def playlist_set(self, playlist, tracks):
+    """Set the contents of a playlist.  The playlist must be locked.
+
+    Arguments:
+    playlist -- Playlist to set
+    tracks -- Array of tracks"""
+    self._simple_body(tracks, "playlist-set", playlist)
+
+  def playlist_set_share(self, playlist, share):
+    """Set the sharing status of a playlist"""
+    self._simple("playlist-set-share", playlist, share)
+
+  def playlist_get_share(self, playlist):
+    """Returns the sharing status of a playlist"""
+    res, details = self._simple("playlist-get-share", playlist)
+    if res == 555:
+      return None
+    return _split(details)[0]
+
+  def playlists(self):
+    """Returns the list of visible playlists"""
+    self._simple("playlists")
+    return self._body()
 
   ########################################################################
   # I/O infrastructure
@@ -938,8 +988,8 @@ class client:
     else:
       raise protocolError(self.who, "invalid response %s")
 
-  def _send(self, *command):
-    # Quote and send a command
+  def _send(self, body, *command):
+    # Quote and send a command and optional body
     #
     # Returns the encoded command.
     quoted = _quote(command)
@@ -948,6 +998,13 @@ class client:
     try:
       self.w.write(encoded)
       self.w.write("\n")
+      if body != None:
+        for l in body:
+          if l[0] == ".":
+            self.w.write(".")
+          self.w.write(l)
+          self.w.write("\n")
+        self.w.write(".\n")
       self.w.flush()
       return encoded
     except IOError, e:
@@ -958,8 +1015,18 @@ class client:
       self._disconnect()
       raise
 
-  def _simple(self, *command):
+  def _simple(self, *command): 
     # Issue a simple command, throw an exception on error
+    #
+    # If an I/O error occurs, disconnect from the server.
+    #
+    # On success or 'normal' errors returns response as a (code, details) tuple
+    #
+    # On error raise operationError
+    return self._simple_body(None, *command)
+ 
+  def _simple_body(self, body, *command):
+    # Issue a simple command with optional body, throw an exception on error
     #
     # If an I/O error occurs, disconnect from the server.
     #
@@ -969,7 +1036,7 @@ class client:
     if self.state == 'disconnected':
       self.connect()
     if command:
-      cmd = self._send(*command)
+      cmd = self._send(body, *command)
     else:
       cmd = None
     res, details = self._response()
@@ -1050,8 +1117,8 @@ class client:
 class monitor:
   """DisOrder event log monitor class
 
-  Intended to be subclassed with methods corresponding to event log messages
-  the implementor cares about over-ridden."""
+  Intended to be subclassed with methods corresponding to event log
+  messages the implementor cares about over-ridden."""
 
   def __init__(self, c=None):
     """Constructor for the monitor class
@@ -1067,8 +1134,8 @@ class monitor:
 
   def run(self):
     """Start monitoring logs.  Continues monitoring until one of the
-    message-specific methods returns False.  Can be called more than once
-    (but not recursively!)"""
+    message-specific methods returns False.  Can be called more than
+    once (but not recursively!)"""
     self.c.log(self._callback)
 
   def when(self):

@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <pcre.h>
 #include <ctype.h>
+#include <langinfo.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -50,6 +51,7 @@
 #include "vector.h"
 #include "version.h"
 #include "dateparse.h"
+#include "inputline.h"
 
 static disorder_client *client;
 
@@ -185,15 +187,34 @@ static void cf_queue(char attribute((unused)) **argv) {
 }
 
 static void cf_quack(char attribute((unused)) **argv) {
-  xprintf("\n"
-	  " .------------------.\n"
-	  " | Naath is a babe! |\n"
-	  " `---------+--------'\n"
-	  "            \\\n"
-	  "              >0\n"
-	  "               (<)'\n"
-	  "~~~~~~~~~~~~~~~~~~~~~~\n"
-	  "\n");
+  if(!strcasecmp(nl_langinfo(CODESET), "utf-8")) {
+#define TL "\xE2\x95\xAD"
+#define TR "\xE2\x95\xAE"
+#define BR "\xE2\x95\xAF"
+#define BL "\xE2\x95\xB0"
+#define H "\xE2\x94\x80"
+#define V "\xE2\x94\x82"
+#define T "\xE2\x94\xAC"
+    xprintf("\n"
+            " "TL H H H H H H H H H H H H H H H H H H TR"\n"
+            " "V" Naath is a babe! "V"\n"
+            " "BL H H H H H H H H H T H H H H H H H H BR"\n"
+            "            \\\n"
+            "              >0\n"
+            "               (<)'\n"
+            "~~~~~~~~~~~~~~~~~~~~~~\n"
+            "\n");
+  } else {
+    xprintf("\n"
+            " .------------------.\n"
+            " | Naath is a babe! |\n"
+            " `---------+--------'\n"
+            "            \\\n"
+            "              >0\n"
+            "               (<)'\n"
+            "~~~~~~~~~~~~~~~~~~~~~~\n"
+            "\n");
+  }
 }
 
 static void cf_somelist(char **argv,
@@ -582,6 +603,61 @@ static void cf_adopt(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+static void cf_playlists(char attribute((unused)) **argv) {
+  char **vec;
+
+  if(disorder_playlists(getclient(), &vec, 0))
+    exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
+static void cf_playlist_del(char **argv) {
+  if(disorder_playlist_delete(getclient(), argv[0]))
+    exit(EXIT_FAILURE);
+}
+
+static void cf_playlist_get(char **argv) {
+  char **vec;
+
+  if(disorder_playlist_get(getclient(), argv[0], &vec, 0))
+    exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
+static void cf_playlist_set(char **argv) {
+  struct vector v[1];
+  FILE *input;
+  const char *tag;
+  char *l;
+
+  if(argv[1]) {
+    // Read track list from file
+    if(!(input = fopen(argv[1], "r")))
+      fatal(errno, "opening %s", argv[1]);
+    tag = argv[1];
+  } else {
+    // Read track list from standard input
+    input = stdin;
+    tag = "stdin";
+  }
+  vector_init(v);
+  while(!inputline(tag, input, &l, '\n')) {
+    if(!strcmp(l, "."))
+      break;
+    vector_append(v, l);
+  }
+  if(ferror(input))
+    fatal(errno, "reading %s", tag);
+  if(input != stdin)
+    fclose(input);
+  if(disorder_playlist_lock(getclient(), argv[0])
+     || disorder_playlist_set(getclient(), argv[0], v->vec, v->nvec)
+     || disorder_playlist_unlock(getclient()))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -635,6 +711,14 @@ static const struct command {
                       "Add TRACKS to the end of the queue" },
   { "playing",        0, 0, cf_playing, 0, "",
                       "Report the playing track" },
+  { "playlist-del",   1, 1, cf_playlist_del, 0, "PLAYLIST",
+                      "Delete a playlist" },
+  { "playlist-get",   1, 1, cf_playlist_get, 0, "PLAYLIST",
+                      "Get the contents of a playlist" },
+  { "playlist-set",   1, 2, cf_playlist_set, isarg_filename, "PLAYLIST [PATH]",
+                      "Set the contents of a playlist" },
+  { "playlists",      0, 0, cf_playlists, 0, "",
+                      "List playlists" },
   { "prefs",          1, 1, cf_prefs, 0, "TRACK",
                       "Display all the preferences for TRACK" },
   { "quack",          0, 0, cf_quack, 0, 0, 0 },

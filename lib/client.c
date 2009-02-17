@@ -153,6 +153,8 @@ static int check_response(disorder_client *c, char **rp) {
  * @param c Client
  * @param rp Where to store result, or NULL
  * @param cmd Command
+ * @param body Body or NULL
+ * @param nbody Length of body or -1
  * @param ap Arguments (UTF-8), terminated by (char *)0
  * @return 0 on success, non-0 on error
  *
@@ -163,10 +165,21 @@ static int check_response(disorder_client *c, char **rp) {
  *
  * NB that the response will NOT be converted to the local encoding
  * nor will quotes be stripped.  See dequote().
+ *
+ * If @p body is not NULL then the body is sent immediately after the
+ * command.  @p nbody should be the number of lines or @c -1 to count
+ * them if @p body is NULL-terminated.
+ *
+ * Usually you would call this via one of the following interfaces:
+ * - disorder_simple()
+ * - disorder_simple_body()
+ * - disorder_simple_list()
  */
 static int disorder_simple_v(disorder_client *c,
 			     char **rp,
-			     const char *cmd, va_list ap) {
+			     const char *cmd,
+                             char **body, int nbody,
+                             va_list ap) {
   const char *arg;
   struct dynstr d;
 
@@ -185,13 +198,32 @@ static int disorder_simple_v(disorder_client *c,
     dynstr_append(&d, '\n');
     dynstr_terminate(&d);
     D(("command: %s", d.vec));
-    if(fputs(d.vec, c->fpout) < 0 || fflush(c->fpout)) {
-      byte_xasprintf((char **)&c->last, "write error: %s", strerror(errno));
-      error(errno, "error writing to %s", c->ident);
-      return -1;
+    if(fputs(d.vec, c->fpout) < 0)
+      goto write_error;
+    if(body) {
+      if(nbody < 0)
+        for(nbody = 0; body[nbody]; ++nbody)
+          ;
+      for(int n = 0; n < nbody; ++n) {
+        if(body[n][0] == '.')
+          if(fputc('.', c->fpout) < 0)
+            goto write_error;
+        if(fputs(body[n], c->fpout) < 0)
+          goto write_error;
+        if(fputc('\n', c->fpout) < 0)
+          goto write_error;
+      }
+      if(fputs(".\n", c->fpout) < 0)
+        goto write_error;
     }
+    if(fflush(c->fpout))
+      goto write_error;
   }
   return check_response(c, rp);
+write_error:
+  byte_xasprintf((char **)&c->last, "write error: %s", strerror(errno));
+  error(errno, "error writing to %s", c->ident);
+  return -1;
 }
 
 /** @brief Issue a command and parse a simple response
@@ -218,7 +250,30 @@ static int disorder_simple(disorder_client *c,
   int ret;
 
   va_start(ap, cmd);
-  ret = disorder_simple_v(c, rp, cmd, ap);
+  ret = disorder_simple_v(c, rp, cmd, 0, 0, ap);
+  va_end(ap);
+  return ret;
+}
+
+/** @brief Issue a command with a body and parse a simple response
+ * @param c Client
+ * @param rp Where to store result, or NULL (UTF-8)
+ * @param body Pointer to body
+ * @param nbody Size of body
+ * @param cmd Command
+ * @return 0 on success, non-0 on error
+ *
+ * See disorder_simple().
+ */
+static int disorder_simple_body(disorder_client *c,
+                                char **rp,
+                                char **body, int nbody,
+                                const char *cmd, ...) {
+  va_list ap;
+  int ret;
+
+  va_start(ap, cmd);
+  ret = disorder_simple_v(c, rp, cmd, body, nbody, ap);
   va_end(ap);
   return ret;
 }
@@ -670,6 +725,8 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
  * *)0.  They should be in UTF-8.
  *
  * 5xx responses count as errors.
+ *
+ * See disorder_simple().
  */
 static int disorder_simple_list(disorder_client *c,
 				char ***vecp, int *nvecp,
@@ -678,7 +735,7 @@ static int disorder_simple_list(disorder_client *c,
   int ret;
 
   va_start(ap, cmd);
-  ret = disorder_simple_v(c, 0, cmd, ap);
+  ret = disorder_simple_v(c, 0, cmd, 0, 0, ap);
   va_end(ap);
   if(ret) return ret;
   return readlist(c, vecp, nvecp);
@@ -1309,6 +1366,103 @@ int disorder_schedule_add(disorder_client *c,
  */
 int disorder_adopt(disorder_client *c, const char *id) {
   return disorder_simple(c, 0, "adopt", id, (char *)0);
+}
+
+/** @brief Delete a playlist
+ * @param c Client
+ * @param playlist Playlist to delete
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_delete(disorder_client *c,
+                             const char *playlist) {
+  return disorder_simple(c, 0, "playlist-delete", playlist, (char *)0);
+}
+
+/** @brief Get the contents of a playlist
+ * @param c Client
+ * @param playlist Playlist to get
+ * @param tracksp Where to put list of tracks
+ * @param ntracksp Where to put count of tracks
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_get(disorder_client *c, const char *playlist,
+                          char ***tracksp, int *ntracksp) {
+  return disorder_simple_list(c, tracksp, ntracksp,
+                              "playlist-get", playlist, (char *)0);
+}
+
+/** @brief List all readable playlists
+ * @param c Client
+ * @param playlistsp Where to put list of playlists
+ * @param nplaylistsp Where to put count of playlists
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlists(disorder_client *c,
+                       char ***playlistsp, int *nplaylistsp) {
+  return disorder_simple_list(c, playlistsp, nplaylistsp,
+                              "playlists", (char *)0);
+}
+
+/** @brief Get the sharing status of a playlist
+ * @param c Client
+ * @param playlist Playlist to inspect
+ * @param sharep Where to put sharing status
+ * @return 0 on success, non-0 on error
+ *
+ * Possible @p sharep values are @c public, @c private and @c shared.
+ */
+int disorder_playlist_get_share(disorder_client *c, const char *playlist,
+                                char **sharep) {
+  return disorder_simple(c, sharep,
+                         "playlist-get-share", playlist, (char *)0);
+}
+
+/** @brief Get the sharing status of a playlist
+ * @param c Client
+ * @param playlist Playlist to modify
+ * @param share New sharing status
+ * @return 0 on success, non-0 on error
+ *
+ * Possible @p share values are @c public, @c private and @c shared.
+ */
+int disorder_playlist_set_share(disorder_client *c, const char *playlist,
+                                const char *share) {
+  return disorder_simple(c, 0,
+                         "playlist-set-share", playlist, share, (char *)0);
+}
+
+/** @brief Lock a playlist for modifications
+ * @param c Client
+ * @param playlist Playlist to lock
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_lock(disorder_client *c, const char *playlist) {
+  return disorder_simple(c, 0,
+                         "playlist-lock", playlist, (char *)0);
+}
+
+/** @brief Unlock the locked playlist
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_unlock(disorder_client *c) {
+  return disorder_simple(c, 0,
+                         "playlist-unlock", (char *)0);
+}
+
+/** @brief Set the contents of a playlst
+ * @param c Client
+ * @param playlist Playlist to modify
+ * @param tracks List of tracks
+ * @param ntracks Length of @p tracks (or -1 to count up to the first NULL)
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_set(disorder_client *c,
+                          const char *playlist,
+                          char **tracks,
+                          int ntracks) {
+  return disorder_simple_body(c, 0, tracks, ntracks,
+                              "playlist-set", playlist, (char *)0);
 }
 
 /*

@@ -183,6 +183,12 @@ struct config {
    */
   int api;
 
+  /** @brief Maximum size of a playlist */
+  long playlist_max;
+
+  /** @brief Maximum lifetime of a playlist lock */
+  long playlist_lock_timeout;
+
 /* These values had better be non-negative */
 #define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
 #define BACKEND_COMMAND 1		/**< Execute a command */
