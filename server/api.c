@@ -22,9 +22,6 @@
  */
 #include "disorder-server.h"
 
-/* shared implementation of vararg functions */
-#include "log-impl.h"
-
 void *disorder_malloc(size_t n) {
   return xmalloc(n);
 }

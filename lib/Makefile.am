@@ -54,10 +54,10 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
-	log.c log.h log-impl.h				\
+	log.c log.h					\
 	logfd.c logfd.h					\
 	macros.c macros-builtin.c macros.h		\
-	mem.c mem.h mem-impl.h				\
+	mem.c mem.h 					\
 	mime.h mime.c					\
 	mixer.c mixer.h mixer-oss.c mixer-alsa.c	\
 	printf.c printf.h				\

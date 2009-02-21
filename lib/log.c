@@ -194,15 +194,41 @@ void elog(int pri, int errno_value, const char *fmt, va_list ap) {
   }
 }
 
-#define disorder_fatal fatal
-#define disorder_error error
-#define disorder_info info
+/** @brief Log an error and quit
+ *
+ * If @c ${DISORDER_FATAL_ABORT} is defined (as anything) then the process
+ * is aborted, so you can get a backtrace.
+ */
+void disorder_fatal(int errno_value, const char *msg, ...) {
+  va_list ap;
 
-/* shared implementation of vararg functions */
-#include "log-impl.h"
+  va_start(ap, msg);
+  elog(LOG_CRIT, errno_value, msg, ap);
+  va_end(ap);
+  if(getenv("DISORDER_FATAL_ABORT")) abort();
+  exitfn(EXIT_FAILURE);
+}
+
+/** @brief Log an error */
+void disorder_error(int errno_value, const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_ERR, errno_value, msg, ap);
+  va_end(ap);
+}
+
+/** @brief Log an informational message */
+void disorder_info(const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_INFO, 0, msg, ap);
+  va_end(ap);
+}
 
 /** @brief Log a debug message */
-void debug(const char *msg, ...) {
+void disorder_debug(const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);
