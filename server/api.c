@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 
 /* shared implementation of vararg functions */
 #include "log-impl.h"
-#include "mem-impl.h"
 
 void *disorder_malloc(size_t n) {
   return xmalloc(n);
@@ -56,6 +55,16 @@ int disorder_snprintf(char buffer[], size_t bufsize, const char *fmt, ...) {
 
   va_start(ap, fmt);
   n = byte_vsnprintf(buffer, bufsize, fmt, ap);
+  va_end(ap);
+  return n;
+}
+
+int disorder_asprintf(char **rp, const char *fmt, ...) {
+  va_list ap;
+  int n;
+
+  va_start(ap, fmt);
+  n = byte_vasprintf(rp, fmt, ap);
   va_end(ap);
   return n;
 }
