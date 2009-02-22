@@ -23,13 +23,13 @@
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 #include <pthread.h>
-#include <CoreAudio/AudioHardware.h>
 
 #include "mem.h"
 #include "log.h"
 #include "vector.h"
 #include "heap.h"
 #include "playrtp.h"
+#include "coreaudio.h"
 
 /** @brief Callback from Core Audio */
 static OSStatus adioproc
@@ -112,13 +112,8 @@ void playrtp_coreaudio(void) {
    * excellent reason for that... */
 
   /* TODO report errors as strings not numbers */
-  propertySize = sizeof adid;
-  status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
-				    &propertySize, &adid);
-  if(status)
-    fatal(0, "AudioHardwareGetProperty: %d", (int)status);
-  if(adid == kAudioDeviceUnknown)
-    fatal(0, "no output device");
+  /* Identify the device to use */
+  adid = coreaudio_getdevice(device);
   propertySize = sizeof asbd;
   status = AudioDeviceGetProperty(adid, 0, false,
 				  kAudioDevicePropertyStreamFormat,

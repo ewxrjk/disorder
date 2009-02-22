@@ -39,6 +39,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
 	cookies.c cookies.h				\
+	coreaudio.c coreaudio.h				\
 	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
