@@ -37,13 +37,13 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <CoreAudio/AudioHardware.h>
 
 #include "configuration.h"
 #include "syscalls.h"
 #include "log.h"
 #include "speaker-protocol.h"
 #include "speaker.h"
+#include "coreaudio.h"
 
 /** @brief Core Audio Device ID */
 static AudioDeviceID adid;
@@ -113,13 +113,7 @@ static void coreaudio_init(void) {
   UInt32 propertySize;
   AudioStreamBasicDescription asbd;
 
-  propertySize = sizeof adid;
-  status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
-				    &propertySize, &adid);
-  if(status)
-    fatal(0, "AudioHardwareGetProperty: %d", (int)status);
-  if(adid == kAudioDeviceUnknown)
-    fatal(0, "no output device");
+  adid = coreaudio_getdevice(config->device);
   propertySize = sizeof asbd;
   status = AudioDeviceGetProperty(adid, 0, false,
 				  kAudioDevicePropertyStreamFormat,

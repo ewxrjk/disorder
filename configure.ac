@@ -91,7 +91,7 @@ case "$host" in
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
   if test $want_coreaudio = yes; then
-    COREAUDIO="-framework CoreAudio"
+    COREAUDIO="-framework CoreFoundation -framework CoreAudio"
   fi
   browser=open
   AC_MSG_CHECKING([Mac OS X target version])

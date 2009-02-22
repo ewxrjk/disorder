@@ -51,8 +51,9 @@ Use Core Audio to play sound.
 .TP
 .B \-\-device \fIDEVICE\fR, \fB\-D \fIDEVICE\fR
 Specifies the audio device to use.
-The exact meaning of this is platform-dependent; on Linux it is the
-ALSA device name.
+See
+.B "DEVICE NAMES"
+below for more information.
 .TP
 .B \-\-config \fIPATH\fR, \fB\-C \fIPATH
 Set the configuration file.
@@ -113,6 +114,16 @@ After the first command the connection is closed.
 Only one connection at a time will be serviced.
 .PP
 This protocol is not guaranteed to be stable.
+.SH "DEVICE NAMES"
+.SS "Core Audio"
+On a Mac, the device name can either be the human-readable name of the desired
+output or its UID.
+To get a list of the human-readable names, visit System Preferences -> Sound;
+the Type column has the name you want.
+.PP
+For example, you might use "Built-in Output" for the built-in speaker
+or "Built-in Line Output" if you have connected external speakers.
+Remember to quote the name.
 .SH "SEE ALSO"
 .BR disobedience (1),
 .BR disorder_config (5),

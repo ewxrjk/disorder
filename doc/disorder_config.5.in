@@ -386,7 +386,12 @@ will be tried.
 .IP
 For \fBapi alsa\fR this is the device name to use.
 .IP
-For \fBapi coreaudio\fR this is currently ignored.
+For \fBapi coreaudio\fR this can be either the UID or the human-readable
+name of the desired device.
+For a list of names, visit System Preferences -> Sound and look at the Type column.
+For example, you might use "Built-in Output" for the built-in speaker
+or "Built-in Line Output" if you have connected external speakers.
+Remember to quote the name.
 .IP
 The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
