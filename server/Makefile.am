@@ -28,7 +28,7 @@ disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	schedule.c exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
-	$(LIBASOUND) $(COREAUDIO)
+	$(LIBASOUND)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
