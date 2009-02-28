@@ -33,7 +33,7 @@
  * this is arranged by the @c disorder-normalize program (see @ref
  * server/normalize.c).
  *
-7 * @b Garbage @b Collection.  This program deliberately does not use the
+ * @b Garbage @b Collection.  This program deliberately does not use the
  * garbage collector even though it might be convenient to do so.  This is for
  * two reasons.  Firstly some sound APIs use thread threads and we do not want
  * to have to deal with potential interactions between threading and garbage
