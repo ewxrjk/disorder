@@ -34,6 +34,8 @@
 #include "mem.h"
 #include "log.h"
 #include "syscalls.h"
+#include "uaudio.h"
+#include "configuration.h"
 
 static int oss_fd = -1;
 static pthread_t oss_thread;
@@ -43,6 +45,8 @@ static int oss_activated;
 static int oss_going;
 static pthread_mutex_t oss_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t oss_cond = PTHREAD_COND_INITIALIZER;
+
+/** @brief Buffer size in bytes */
 static int oss_bufsize;
 
 static const char *const oss_options[] = {
@@ -50,10 +54,10 @@ static const char *const oss_options[] = {
   NULL
 };
 
-static void *oss_thread(void *userdata) {
+static void *oss_thread_fn(void *userdata) {
   int16_t *buffer;
   pthread_mutex_lock(&oss_lock);
-  buffer = xmalloc(XXX);
+  buffer = xmalloc(oss_bufsize);
   while(oss_started) {
     while(oss_started && !oss_activated)
       pthread_cond_wait(&oss_cond, &oss_lock);
@@ -63,10 +67,18 @@ static void *oss_thread(void *userdata) {
     oss_going = 1;
     pthread_cond_signal(&oss_cond);
     while(oss_activated) {
-      const int nsamples = oss_callback(buffer, oss_bufsizeXXX, userdata);;
-      if(write(oss_fd, buffer, XXX) < 0)
-        fatal(errno, "error playing audio");
-      // TODO short writes!
+      const int nsamples = oss_callback(buffer,
+                                        oss_bufsize / sizeof(int16_t),
+                                        userdata);
+      const int nbytes = nsamples * sizeof(int16_t);
+      int written = 0;
+
+      while(written < nsamples) {
+        const int rc = write(oss_fd, buffer + written, nbytes - written);
+        if(rc < 0)
+          fatal(errno, "error playing audio");
+        written += rc;
+      }
     }
     oss_going = 0;
     pthread_cond_signal(&oss_cond);
@@ -75,32 +87,10 @@ static void *oss_thread(void *userdata) {
   return NULL;
 }
 
-static void oss_start(uaudio_callback *callback,
-                      void *userdata) {
-  int e;
-  oss_callback = callback;
-  if((e = pthread_create(&oss_thread,
-                         NULL,
-                         oss_thread_fn,
-                         userdata)))
-    fatal(e, "pthread_create");
-}
-
-static void oss_stop(void) {
-  void *result;
-
-  oss_deactivate();
-  pthread_mutex_lock(&oss_lock);
-  oss_started = 0;
-  pthread_cond_signal(&oss_cond);
-  pthread_mutex_unlock(&oss_lock);
-  pthread_join(oss_thread, &result);
-}
-
 static void oss_activate(void) {
   pthread_mutex_lock(&oss_lock);
   if(!oss_activated) {
-    const char *device = uaudio_get(&uadiuo_oss, "device");
+    const char *device = uaudio_get("device");
 
 #if EMPEG_HOST
     if(!device || !*device || !strcmp(device, "default")) {
@@ -122,10 +112,8 @@ static void oss_activate(void) {
     oss_bufsize = 4608;
 #else
     int stereo = (config->sample_format.channels == 2), format, rate;
-    if(ioctl(ossfd, SNDCTL_DSP_STEREO, &stereo) < 0) {
-      error(errno, "error calling ioctl SNDCTL_DSP_STEREO %d", stereo);
-      goto failed;
-    }
+    if(ioctl(oss_fd, SNDCTL_DSP_STEREO, &stereo) < 0)
+      fatal(errno, "error calling ioctl SNDCTL_DSP_STEREO %d", stereo);
     /* TODO we need to think about where we decide this */
     if(config->sample_format.bits == 8)
       format = AFMT_U8;
@@ -166,6 +154,28 @@ static void oss_deactivate(void) {
     oss_fd = -1;
   }
   pthread_mutex_unlock(&oss_lock);
+}
+  
+static void oss_start(uaudio_callback *callback,
+                      void *userdata) {
+  int e;
+  oss_callback = callback;
+  if((e = pthread_create(&oss_thread,
+                         NULL,
+                         oss_thread_fn,
+                         userdata)))
+    fatal(e, "pthread_create");
+}
+
+static void oss_stop(void) {
+  void *result;
+
+  oss_deactivate();
+  pthread_mutex_lock(&oss_lock);
+  oss_started = 0;
+  pthread_cond_signal(&oss_cond);
+  pthread_mutex_unlock(&oss_lock);
+  pthread_join(oss_thread, &result);
 }
 
 const struct uaudio uaudio_oss = {
