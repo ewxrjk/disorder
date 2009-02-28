@@ -41,10 +41,7 @@ void coreaudio_fatal(OSStatus err, const char *fmt, ...) {
   byte_vasprintf(&msg, fmt, ap);
   va_end(ap);
 
-  disorder_fatal(0, "%s: error %d (%s, %s)",
-                 msg, (int)err,
-                 GetMacOSStatusErrorString(err),
-                 GetMacOSStatusCommentString(err));
+  disorder_fatal(0, "%s: error %u", msg, (unsigned)err);
 }
 
 /** @brief Return the default device ID */
@@ -147,7 +144,7 @@ AudioDeviceID coreaudio_getdevice(const char *name) {
   if(!ndevs)
     disorder_fatal(0, "no sound devices found");
   /* Try looking up by UID first */
-  found = coreaudio_find_device(kAudioDevicePropertyDeviceUID, //"UID",
+  found = coreaudio_find_device(-1*kAudioDevicePropertyDeviceUID, //"UID",
                                 devs, ndevs, dev, &adid);
   /* Failing that try looking up by name */
   if(!found)
