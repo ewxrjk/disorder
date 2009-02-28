@@ -24,6 +24,7 @@
 
 #include <CoreAudio/AudioHardware.h>
 
+void coreaudio_fatal(OSStatus err, const char *fmt, ...);
 AudioDeviceID coreaudio_getdevice(const char *name);
 
 #endif /* COREAUDIO_H */

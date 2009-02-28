@@ -25,7 +25,27 @@
 
 #include "coreaudio.h"
 #include "log.h"
+#include "printf.h"
 #include <CoreFoundation/CFString.h>
+/* evil bodge to work around broken header file */
+#undef error
+#include <CoreServices/CoreServices.h>
+#include <stdarg.h>
+
+/** @brief Report an error with an OSStatus */
+void coreaudio_fatal(OSStatus err, const char *fmt, ...) {
+  va_list ap;
+  char *msg;
+
+  va_start(ap, fmt);
+  byte_vasprintf(&msg, fmt, ap);
+  va_end(ap);
+
+  disorder_fatal(0, "%s: error %d (%s, %s)",
+                 msg, (int)err,
+                 GetMacOSStatusErrorString(err),
+                 GetMacOSStatusCommentString(err));
+}
 
 /** @brief Return the default device ID */
 static AudioDeviceID coreaudio_use_default(void) {
@@ -40,9 +60,9 @@ static AudioDeviceID coreaudio_use_default(void) {
   status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
                                     &propertySize, &adid);
   if(status)
-    fatal(0, "AudioHardwareGetProperty kAudioHardwarePropertyDefaultOutputDevice: %d", (int)status);
+    coreaudio_fatal(status, "AudioHardwareGetProperty kAudioHardwarePropertyDefaultOutputDevice");
   if(adid == kAudioDeviceUnknown)
-    fatal(0, "no output device");
+    disorder_fatal(0, "no output device");
   return adid;
 }
 
@@ -70,7 +90,7 @@ static int coreaudio_find_device(AudioObjectPropertySelector selector,
                                     selector,
                                     &propertySize, &name);
     if(status)
-      fatal(0, "AudioDeviceGetProperty: %d", (int)status);
+      coreaudio_fatal(status, "AudioDeviceGetProperty");
 #if 0
     UInt8 output[1024];
     CFIndex used;
@@ -113,7 +133,7 @@ AudioDeviceID coreaudio_getdevice(const char *name) {
                                   name,
                                   kCFStringEncodingUTF8);
   if(!dev)
-    fatal(0, "CFStringCreateWithBytes failed");
+    disorder_fatal(0, "CFStringCreateWithBytes failed");
   /* Get a list of available devices */
   AudioDeviceID devs[1024];
   unsigned ndevs;
@@ -122,11 +142,10 @@ AudioDeviceID coreaudio_getdevice(const char *name) {
   status = AudioHardwareGetProperty(kAudioHardwarePropertyDevices,
                                     &propertySize, devs);
   if(status)
-    fatal(0, "AudioHardwareGetProperty kAudioHardwarePropertyDevices: %d",
-          (int)status);
+    coreaudio_fatal(status, "AudioHardwareGetProperty kAudioHardwarePropertyDevices");
   ndevs = propertySize / sizeof *devs;
   if(!ndevs)
-    fatal(0, "no sound devices found");
+    disorder_fatal(0, "no sound devices found");
   /* Try looking up by UID first */
   found = coreaudio_find_device(kAudioDevicePropertyDeviceUID, //"UID",
                                 devs, ndevs, dev, &adid);
@@ -136,7 +155,7 @@ AudioDeviceID coreaudio_getdevice(const char *name) {
                                   devs, ndevs, dev, &adid);
   CFRelease(dev);
   if(!found)
-    fatal(0, "cannot find device '%s'", name);
+    disorder_fatal(0, "cannot find device '%s'", name);
   return adid;
 }
 
