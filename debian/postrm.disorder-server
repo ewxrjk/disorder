@@ -30,6 +30,7 @@ cleanup_remove() {
   rm -f $state/__db.*
   rm -f $state/noticed.db
   rm -f $state/search.db
+  rm -f $state/isearch.db
   rm -f $state/tags.db
   rm -f $state/tracks.db
 }
@@ -43,6 +44,7 @@ cleanup_purge() {
   rm -f $state/prefs.db
   rm -f $state/schedule.db
   rm -f $state/users.db
+  rm -f $state/playlists.db
 }
 
 case "$1" in
