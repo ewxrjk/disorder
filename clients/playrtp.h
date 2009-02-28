@@ -128,7 +128,6 @@ void playrtp_free_packet(struct packet *p);
 void playrtp_fill_buffer(void);
 struct packet *playrtp_next_packet(void);
 
-extern const char *device;
 extern struct packet *received_packets;
 extern struct packet **received_tail;
 extern pthread_mutex_t receive_lock;

@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,6 +82,8 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
+	uaudio.c uaudio.h				\
+	uaudio-oss.c uaudio-coreaudio.c	uaudio-rtp.c	\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
