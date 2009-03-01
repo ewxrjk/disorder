@@ -62,15 +62,27 @@ span.command {
 
   <div class=section>
   
-    <h3>Mac OS X</h3>
+    <h3>Server</h3>
+ 
+    <div class=section>
+
+      <p>The <tt>device</tt> configuration option work under OS X.  Devices may
+      be specified either by UID or name.  Fixes <a
+       href="http://code.google.com/p/disorder/issues/detail?id=27">Issue
+      27</a>.</p>
+
+    </div>
+      
+    <h3>RTP Player</h3>
   
     <div class=section>
 
-      <p>The <tt>device</tt> configuration option and <tt>--device</tt> option
-      to <tt>disorder-playrtp</tt> now work.  Devices may be specified either
-      by UID or name.  Fixes <a
-       href="http://code.google.com/p/disorder/issues/detail?id=27">Issue
-      27</a>.</p>
+      <p>There is a new <tt>--command</tt> option which allows the RTP player
+      to send audio data to a user-chosen command instead of an audio API. See
+      the man page for details.</p>
+      
+      <p>The <tt>--device</tt> option to <tt>disorder-playrtp</tt> now works
+      under OS X (as above).</p>
         
     </div>
 
