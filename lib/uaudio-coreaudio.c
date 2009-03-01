@@ -68,18 +68,44 @@ static OSStatus coreaudio_adioproc
 
     while(nsamples > 0) {
       /* Integer-format input buffer */
-      int16_t input[1024], *ptr = input;
+      unsigned char input[1024];
+      const int maxsamples = sizeof input / uaudio_sample_size;
       /* How many samples we'll ask for */
-      const int ask = nsamples > 1024 ? 1024 : (int)nsamples;
+      const int ask = nsamples > maxsamples ? maxsamples : (int)nsamples;
       /* How many we get */
       int got;
 
       got = coreaudio_callback(input, ask, coreaudio_userdata);
       /* Convert the samples and store in the output buffer */
       nsamples -= got;
-      while(got > 0) {
-        --got;
-        *samples++ = *ptr++ * (0.5 / 32767);
+      if(uaudio_signed) {
+        if(uaudio_bits == 16) {
+          const int16_t *ptr = input;
+          while(got > 0) {
+            --got;
+            *samples++ = *ptr++ * (0.5 / 32767);
+          }
+        } else {
+          const int8_t *ptr = input;
+          while(got > 0) {
+            --got;
+            *samples++ = *ptr++ * (0.5 / 127);
+          }
+        }
+      } else {
+        if(uaudio_bits == 16) {
+          const uint16_t *ptr = input;
+          while(got > 0) {
+            --got;
+            *samples++ = ((int)*ptr++ - 32768) * (0.5 / 32767);
+          }
+        } else {
+          const uint8_t *ptr = input;
+          while(got > 0) {
+            --got;
+            *samples++ = ((int)*ptr++ - 128) * (0.5 / 127);
+          }
+        }
       }
     }
     /* Move on to the next buffer */
@@ -96,10 +122,14 @@ static void coreaudio_start(uaudio_callback *callback,
   AudioStreamBasicDescription asbd;
   const char *device;
 
+  if(uaudio_bits != 8 && uaudio_bits != 16)
+    disorder_fatal("asked for %d bits/channel but only support 8 and 16",
+                   uaudio_bits);
   coreaudio_callback = callback;
   coreaudio_userdata = userdata;
   device = uaudio_get("device");
   coreaudio_adid = coreaudio_getdevice(device);
+  /* Get the device properties */
   propertySize = sizeof asbd;
   status = AudioDeviceGetProperty(coreaudio_adid, 0, false,
 				  kAudioDevicePropertyStreamFormat,
@@ -115,8 +145,19 @@ static void coreaudio_start(uaudio_callback *callback,
   D(("mChannelsPerFrame %08lx", asbd.mChannelsPerFrame));
   D(("mBitsPerChannel   %08lx", asbd.mBitsPerChannel));
   D(("mReserved         %08lx", asbd.mReserved));
+  /* Check that everything adds up */
   if(asbd.mFormatID != kAudioFormatLinearPCM)
     disorder_fatal(0, "audio device does not support kAudioFormatLinearPCM");
+  if(asbd.mSampleRate != uaudio_rate
+     || asbd.mChannelsPerFrame != uaudio_channels) {
+    disorder_fatal(0, "want %dHz %d channels "
+                      "but got %"PRIu32"Hz %"PRIu32" channels",
+                   uaudio_rate,
+                   uaudio_channels,
+                   asbd.mSampleRate,
+                   asbd.mChannelsPerFrame);
+  }
+  /* Add a collector callback */
   status = AudioDeviceAddIOProc(coreaudio_adid, coreaudio_adioproc, 0);
   if(status)
     coreaudio_fatal(status, "AudioDeviceAddIOProc");

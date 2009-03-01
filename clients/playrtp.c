@@ -399,7 +399,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
     if(header.mpt & 0x80)
       p->flags |= IDLE;
     switch(header.mpt & 0x7F) {
-    case 10:
+    case 10:                            /* L16 */
       p->nsamples = (n - sizeof header) / sizeof(uint16_t);
       break;
       /* TODO support other RFC3551 media types (when the speaker does) */
@@ -498,7 +498,7 @@ static void help(void) {
   exit(0);
 }
 
-static size_t playrtp_callback(int16_t *buffer,
+static size_t playrtp_callback(void *buffer,
                                size_t max_samples,
                                void attribute((unused)) *userdata) {
   size_t samples;
@@ -543,12 +543,12 @@ static size_t playrtp_callback(int16_t *buffer,
     if(samples > max_samples)
       samples = max_samples;
     //info("infill by %zu", samples);
-    memset(buffer, 0, samples * sizeof *buffer);
+    memset(buffer, 0, samples * uaudio_sample_size);
   }
   /* Debug dump */
   if(dump_buffer) {
     for(size_t i = 0; i < samples; ++i) {
-      dump_buffer[dump_index++] = buffer[i];
+      dump_buffer[dump_index++] = ((int16_t *)buffer)[i];
       dump_index %= dump_size;
     }
   }
@@ -745,7 +745,10 @@ int main(int argc, char **argv) {
   /* Choose output device */
   if(device)
     uaudio_set("device", device);
-  /* Set up output */
+  /* Set up output.  Currently we only support L16 so there's no harm setting
+   * the format before we know what it is! */
+  uaudio_set_format(44100/*Hz*/, 2/*channels*/,
+                    16/*bits/channel*/, 1/*signed*/);
   backend->start(playrtp_callback, NULL);
   /* We receive and convert audio data in a background thread */
   if((err = pthread_create(&ltid, 0, listen_thread, 0)))
@@ -765,8 +768,9 @@ int main(int argc, char **argv) {
     /* Wait until the buffer empties out */
     while(nsamples >= minbuffer
 	  || (nsamples > 0
-	      && contains(pheap_first(&packets), next_timestamp)))
+	      && contains(pheap_first(&packets), next_timestamp))) {
       pthread_cond_wait(&cond, &lock);
+    }
     /* Stop playing for a bit until the buffer re-fills */
     backend->deactivate();
     active = 0;

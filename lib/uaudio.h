@@ -23,17 +23,30 @@
 #ifndef UAUDIO_H
 #define UAUDIO_H
 
+extern int uaudio_rate;
+extern int uaudio_bits;
+extern int uaudio_channels;
+extern int uaudio_signed;
+extern size_t uaudio_sample_size;
+
 /** @brief Callback to get audio data
  * @param buffer Where to put audio data
  * @param max_samples How many samples to supply
  * @param userdata As passed to uaudio_open()
  * @return Number of samples filled
- *
- * One sample is a single 16-bit signed value.
  */
-typedef size_t uaudio_callback(int16_t *buffer,
+typedef size_t uaudio_callback(void *buffer,
                                size_t max_samples,
                                void *userdata);
+
+/** @brief Callback to play audio data
+ * @param buffer Pointer to audio buffer
+ * @param samples Number of samples to play
+ * @return Number of samples played
+ *
+ * Used with uaudio_thread_start() etc.
+ */
+typedef size_t uaudio_playcallback(void *buffer, size_t samples);
 
 /** @brief Audio API definition */
 struct uaudio {
@@ -78,9 +91,18 @@ struct uaudio {
   void (*deactivate)(void);
 
 };
-                                
+
+void uaudio_set_format(int rate, int channels, int samplesize, int signed_);
 void uaudio_set(const char *name, const char *value);
 const char *uaudio_get(const char *name);
+void uaudio_thread_start(uaudio_callback *callback,
+			 void *userdata,
+			 uaudio_playcallback *playcallback,
+			 size_t min,
+                         size_t max);
+void uaudio_thread_stop(void);
+void uaudio_thread_activate(void);
+void uaudio_thread_deactivate(void);
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 extern const struct uaudio uaudio_coreaudio;

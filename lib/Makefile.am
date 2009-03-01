@@ -82,8 +82,10 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
-	uaudio.c uaudio.h				\
-	uaudio-oss.c uaudio-coreaudio.c	uaudio-rtp.c	\
+	uaudio.c uaudio-thread.c uaudio.h		\
+	uaudio-oss.c uaudio-alsa.c 			\
+	uaudio-coreaudio.c				\
+	uaudio-rtp.c					\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
