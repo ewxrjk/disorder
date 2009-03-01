@@ -80,7 +80,7 @@ static void command_open(void) {
     fatal(errno, "error executing /bin/sh");
   }
   close(pfd[0]);
-  command_pid = pfd[1];
+  command_fd = pfd[1];
 }
 
 /** @brief Send audio data to subprocess */
