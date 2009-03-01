@@ -57,7 +57,7 @@ void uaudio_set(const char *name, const char *value) {
 }
 
 /** @brief Set a uaudio option */
-const char *uaudio_get(const char *name) {
+char *uaudio_get(const char *name) {
   const char *value = (uaudio_options ?
                        *(char **)hash_find(uaudio_options, name)
                        : NULL);
@@ -107,6 +107,7 @@ const struct uaudio *uaudio_apis[] = {
   &uaudio_oss,
 #endif
   &uaudio_rtp,
+  &uaudio_command,
   NULL,
 };
 

@@ -216,6 +216,7 @@ static const struct option options[] = {
   { "core-audio", no_argument, 0, 'c' },
 #endif
   { "dump", required_argument, 0, 'r' },
+  { "command", required_argument, 0, 'e' },
   { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
   { 0, 0, 0, 0 }
@@ -491,6 +492,7 @@ static void help(void) {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
           "  --core-audio, -c        Use Core Audio to play audio\n"
 #endif
+          "  --command, -e COMMAND   Pipe audio to command\n"
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
           );
@@ -577,7 +579,6 @@ int main(int argc, char **argv) {
   };
   union any_sockaddr mgroup;
   const char *dumpfile = 0;
-  const char *device = 0;
   pthread_t ltid;
 
   static const struct addrinfo prefs = {
@@ -590,12 +591,12 @@ int main(int argc, char **argv) {
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:r", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:re:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
     case 'd': debugging = 1; break;
-    case 'D': device = optarg; break;
+    case 'D': uaudio_set("device", optarg); break;
     case 'm': minbuffer = 2 * atol(optarg); break;
     case 'b': readahead = 2 * atol(optarg); break;
     case 'x': maxbuffer = 2 * atol(optarg); break;
@@ -613,6 +614,7 @@ int main(int argc, char **argv) {
     case 'C': configfile = optarg; break;
     case 's': control_socket = optarg; break;
     case 'r': dumpfile = optarg; break;
+    case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;
     default: fatal(0, "invalid option");
     }
   }
@@ -742,9 +744,6 @@ int main(int argc, char **argv) {
       fatal(errno, "mapping %s", dumpfile);
     info("dumping to %s", dumpfile);
   }
-  /* Choose output device */
-  if(device)
-    uaudio_set("device", device);
   /* Set up output.  Currently we only support L16 so there's no harm setting
    * the format before we know what it is! */
   uaudio_set_format(44100/*Hz*/, 2/*channels*/,
