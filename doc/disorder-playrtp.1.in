@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2007, 2008 Richard Kettlewell
+.\" Copyright (C) 2007-2009 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -21,21 +21,21 @@ disorder-playrtp \- play DisOrder network broadcasts
 .B disorder\-playrtp
 .RI [ OPTIONS ]
 .RB [ \-\- ]
-.RI [[ GROUP ]
+.RI [[ ADDRESS ]
 .IR PORT ]
 .SH DESCRIPTION
 \fBdisorder\-playrtp\fR plays a network broadcast sent from the specified
 address.
 .PP
-If neither a group nor port are specified then the local DisOrder
+If neither an address nor port are specified then the local DisOrder
 configuration is consulted to find the server and the server is asked where the
 RTP stream is.
 .PP
 If just a port is specified then the RTP stream is assumed to be unicast or
 broadcast to that port.
 .PP
-If a group and a port are specified then the RTP stream is assumed to be
-multicast to that group and port.
+If an address and a port are specified then the RTP stream is assumed to be
+multicast to that group address and port.
 .SH OPTIONS
 The default sound API is the first of the ones listed below that are available.
 Usually this implies ALSA under Linux and Core Audio under OS X.

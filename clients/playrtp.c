@@ -474,7 +474,7 @@ struct packet *playrtp_next_packet(void) {
 /* display usage message and terminate */
 static void help(void) {
   xprintf("Usage:\n"
-	  "  disorder-playrtp [OPTIONS] ADDRESS [PORT]\n"
+	  "  disorder-playrtp [OPTIONS] [[ADDRESS] PORT]\n"
 	  "Options:\n"
           "  --device, -D DEVICE     Output device\n"
           "  --min, -m FRAMES        Buffer low water mark\n"
