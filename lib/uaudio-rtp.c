@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file lib/uaudio-oss.c
+/** @file lib/uaudio-rtp.c
  * @brief Support for RTP network play backend */
 #include "common.h"
 

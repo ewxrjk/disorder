@@ -107,6 +107,7 @@ const struct uaudio *uaudio_apis[] = {
   &uaudio_oss,
 #endif
   &uaudio_rtp,
+  &uaudio_command,
   NULL,
 };
 
