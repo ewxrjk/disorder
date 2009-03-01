@@ -79,6 +79,7 @@
 #include "playrtp.h"
 #include "inputline.h"
 #include "version.h"
+#include "uaudio.h"
 
 #define readahead linux_headers_are_borked
 
@@ -94,7 +95,6 @@ static int rtpfd;
 static FILE *logfp;
 
 /** @brief Output device */
-const char *device;
 
 /** @brief Minimum low watermark
  *
@@ -168,16 +168,8 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 /** @brief Condition variable signalled whenever @ref packets is changed */
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-#if DEFAULT_BACKEND == BACKEND_ALSA
-# define DEFAULT_PLAYRTP_BACKEND playrtp_alsa
-#elif DEFAULT_BACKEND == BACKEND_OSS
-# define DEFAULT_PLAYRTP_BACKEND playrtp_oss
-#elif DEFAULT_BACKEND == BACKEND_COREAUDIO
-# define DEFAULT_PLAYRTP_BACKEND playrtp_coreaudio
-#endif
-
 /** @brief Backend to play with */
-static void (*backend)(void) = DEFAULT_PLAYRTP_BACKEND;
+static const struct uaudio *backend;
 
 HEAP_DEFINE(pheap, struct packet *, lt_packet);
 
@@ -407,7 +399,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
     if(header.mpt & 0x80)
       p->flags |= IDLE;
     switch(header.mpt & 0x7F) {
-    case 10:
+    case 10:                            /* L16 */
       p->nsamples = (n - sizeof header) / sizeof(uint16_t);
       break;
       /* TODO support other RFC3551 media types (when the speaker does) */
@@ -479,33 +471,10 @@ struct packet *playrtp_next_packet(void) {
   return 0;
 }
 
-/** @brief Play an RTP stream
- *
- * This is the guts of the program.  It is responsible for:
- * - starting the listening thread
- * - opening the audio device
- * - reading ahead to build up a buffer
- * - arranging for audio to be played
- * - detecting when the buffer has got too small and re-buffering
- */
-static void play_rtp(void) {
-  pthread_t ltid;
-  int err;
-
-  /* We receive and convert audio data in a background thread */
-  if((err = pthread_create(&ltid, 0, listen_thread, 0)))
-    fatal(err, "pthread_create listen_thread");
-  /* We have a second thread to add received packets to the queue */
-  if((err = pthread_create(&ltid, 0, queue_thread, 0)))
-    fatal(err, "pthread_create queue_thread");
-  /* The rest of the work is backend-specific */
-  backend();
-}
-
 /* display usage message and terminate */
 static void help(void) {
   xprintf("Usage:\n"
-	  "  disorder-playrtp [OPTIONS] ADDRESS [PORT]\n"
+	  "  disorder-playrtp [OPTIONS] [[ADDRESS] PORT]\n"
 	  "Options:\n"
           "  --device, -D DEVICE     Output device\n"
           "  --min, -m FRAMES        Buffer low water mark\n"
@@ -529,6 +498,66 @@ static void help(void) {
   exit(0);
 }
 
+static size_t playrtp_callback(void *buffer,
+                               size_t max_samples,
+                               void attribute((unused)) *userdata) {
+  size_t samples;
+
+  pthread_mutex_lock(&lock);
+  /* Get the next packet, junking any that are now in the past */
+  const struct packet *p = playrtp_next_packet();
+  if(p && contains(p, next_timestamp)) {
+    /* This packet is ready to play; the desired next timestamp points
+     * somewhere into it. */
+
+    /* Timestamp of end of packet */
+    const uint32_t packet_end = p->timestamp + p->nsamples;
+
+    /* Offset of desired next timestamp into current packet */
+    const uint32_t offset = next_timestamp - p->timestamp;
+
+    /* Pointer to audio data */
+    const uint16_t *ptr = (void *)(p->samples_raw + offset);
+
+    /* Compute number of samples left in packet, limited to output buffer
+     * size */
+    samples = packet_end - next_timestamp;
+    if(samples > max_samples)
+      samples = max_samples;
+
+    /* Copy into buffer, converting to native endianness */
+    size_t i = samples;
+    int16_t *bufptr = buffer;
+    while(i > 0) {
+      *bufptr++ = (int16_t)ntohs(*ptr++);
+      --i;
+    }
+    /* We don't junk the packet here; a subsequent call to
+     * playrtp_next_packet() will dispose of it (if it's actually done with). */
+  } else {
+    /* There is no suitable packet.  We introduce 0s up to the next packet, or
+     * to fill the buffer if there's no next packet or that's too many.  The
+     * comparison with max_samples deals with the otherwise troubling overflow
+     * case. */
+    samples = p ? p->timestamp - next_timestamp : max_samples;
+    if(samples > max_samples)
+      samples = max_samples;
+    //info("infill by %zu", samples);
+    memset(buffer, 0, samples * uaudio_sample_size);
+  }
+  /* Debug dump */
+  if(dump_buffer) {
+    for(size_t i = 0; i < samples; ++i) {
+      dump_buffer[dump_index++] = ((int16_t *)buffer)[i];
+      dump_index %= dump_size;
+    }
+  }
+  /* Advance timestamp */
+  next_timestamp += samples;
+  pthread_mutex_unlock(&lock);
+  return samples;
+}
+
 int main(int argc, char **argv) {
   int n, err;
   struct addrinfo *res;
@@ -548,6 +577,8 @@ int main(int argc, char **argv) {
   };
   union any_sockaddr mgroup;
   const char *dumpfile = 0;
+  const char *device = 0;
+  pthread_t ltid;
 
   static const struct addrinfo prefs = {
     .ai_flags = AI_PASSIVE,
@@ -558,6 +589,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  backend = uaudio_apis[0];
   while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:r", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -570,13 +602,13 @@ int main(int argc, char **argv) {
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
 #if HAVE_ALSA_ASOUNDLIB_H
-    case 'a': backend = playrtp_alsa; break;
+    case 'a': backend = &uaudio_alsa; break;
 #endif
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-    case 'o': backend = playrtp_oss; break;
+    case 'o': backend = &uaudio_oss; break;
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H      
-    case 'c': backend = playrtp_coreaudio; break;
+    case 'c': backend = &uaudio_coreaudio; break;
 #endif
     case 'C': configfile = optarg; break;
     case 's': control_socket = optarg; break;
@@ -710,7 +742,40 @@ int main(int argc, char **argv) {
       fatal(errno, "mapping %s", dumpfile);
     info("dumping to %s", dumpfile);
   }
-  play_rtp();
+  /* Choose output device */
+  if(device)
+    uaudio_set("device", device);
+  /* Set up output.  Currently we only support L16 so there's no harm setting
+   * the format before we know what it is! */
+  uaudio_set_format(44100/*Hz*/, 2/*channels*/,
+                    16/*bits/channel*/, 1/*signed*/);
+  backend->start(playrtp_callback, NULL);
+  /* We receive and convert audio data in a background thread */
+  if((err = pthread_create(&ltid, 0, listen_thread, 0)))
+    fatal(err, "pthread_create listen_thread");
+  /* We have a second thread to add received packets to the queue */
+  if((err = pthread_create(&ltid, 0, queue_thread, 0)))
+    fatal(err, "pthread_create queue_thread");
+  pthread_mutex_lock(&lock);
+  for(;;) {
+    /* Wait for the buffer to fill up a bit */
+    playrtp_fill_buffer();
+    /* Start playing now */
+    info("Playing...");
+    next_timestamp = pheap_first(&packets)->timestamp;
+    active = 1;
+    backend->activate();
+    /* Wait until the buffer empties out */
+    while(nsamples >= minbuffer
+	  || (nsamples > 0
+	      && contains(pheap_first(&packets), next_timestamp))) {
+      pthread_cond_wait(&cond, &lock);
+    }
+    /* Stop playing for a bit until the buffer re-fills */
+    backend->deactivate();
+    active = 0;
+    /* Go back round */
+  }
   return 0;
 }
 
