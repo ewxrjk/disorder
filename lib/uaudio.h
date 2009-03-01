@@ -94,7 +94,7 @@ struct uaudio {
 
 void uaudio_set_format(int rate, int channels, int samplesize, int signed_);
 void uaudio_set(const char *name, const char *value);
-const char *uaudio_get(const char *name);
+char *uaudio_get(const char *name);
 void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,
 			 uaudio_playcallback *playcallback,
