@@ -17,7 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/uaudio-command.c
- * @brief Support for commmand backend */
+ * @brief Support for commmand backend
+ *
+ * We use the code in @ref lib/uaudio-schedule.c to ensure that we write at
+ * approximately the 'real' rate.  For disorder-playrtp this isn't very useful
+ * (thought it might reduce the size of various buffers downstream of us) but
+ * when run from the speaker it means that pausing stands a chance of working.
+ */
 #include "common.h"
 
 #include <errno.h>
@@ -85,6 +91,7 @@ static void command_open(void) {
 
 /** @brief Send audio data to subprocess */
 static size_t command_play(void *buffer, size_t nsamples) {
+  uaudio_schedule_synchronize();
   const size_t bytes = nsamples * uaudio_sample_size;
   int written = write(command_fd, buffer, bytes);
   if(written < 0) {
@@ -100,12 +107,15 @@ static size_t command_play(void *buffer, size_t nsamples) {
       fatal(errno, "error writing to audio command subprocess");
     }
   }
-  return written / uaudio_sample_size;
+  const size_t written_samples = written / uaudio_sample_size;
+  uaudio_schedule_update(written_samples);
+  return written_samples;
 }
 
 static void command_start(uaudio_callback *callback,
                       void *userdata) {
   command_open();
+  uaudio_schedule_init();
   uaudio_thread_start(callback,
                       userdata,
                       command_play,
@@ -119,6 +129,7 @@ static void command_stop(void) {
 }
 
 static void command_activate(void) {
+  uaudio_schedule_reactivated = 1;
   uaudio_thread_activate();
 }
 

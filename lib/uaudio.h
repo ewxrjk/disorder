@@ -103,6 +103,12 @@ void uaudio_thread_start(uaudio_callback *callback,
 void uaudio_thread_stop(void);
 void uaudio_thread_activate(void);
 void uaudio_thread_deactivate(void);
+void uaudio_schedule_synchronize(void);
+void uaudio_schedule_update(size_t written_samples);
+void uaudio_schedule_init(void);
+
+extern uint64_t uaudio_schedule_timestamp;
+extern int uaudio_schedule_reactivated;
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 extern const struct uaudio uaudio_coreaudio;
