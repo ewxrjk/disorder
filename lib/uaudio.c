@@ -89,28 +89,6 @@ void uaudio_set_format(int rate, int channels, int bits, int signed_) {
   uaudio_sample_size = bits / CHAR_BIT;
 }
 
-/** @brief List of known APIs
- *
- * Terminated by a null pointer.
- *
- * The first one will be used as a default, so putting ALSA before OSS
- * constitutes a policy decision.
- */
-const struct uaudio *uaudio_apis[] = {
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-  &uaudio_coreaudio,
-#endif  
-#if HAVE_ALSA_ASOUNDLIB_H
-  &uaudio_alsa,
-#endif
-#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-  &uaudio_oss,
-#endif
-  &uaudio_rtp,
-  &uaudio_command,
-  NULL,
-};
-
 /*
 Local Variables:
 c-basic-offset:2

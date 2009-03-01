@@ -590,7 +590,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  backend = uaudio_apis[0];
+  backend = &UAUDIO_DEFAULT;
   while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:re:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
