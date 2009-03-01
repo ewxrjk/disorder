@@ -40,20 +40,40 @@ multicast to that group address and port.
 The default sound API is the first of the ones listed below that are available.
 Usually this implies ALSA under Linux and Core Audio under OS X.
 .TP
-.B \-\-alsa\fR, \fB-\a
+.B \-\-alsa\fR, \fB\-a
 Use ALSA to play sound.
+Only available on Linux.
 .TP
 .B \-\-oss\fR, \fB\-o
 Use OSS to play sound.
+Only available on Linux and FreeBSD.
 .TP
 .B \-\-core\-audio\fR, \fB\-c
 Use Core Audio to play sound.
+Only available on Macs.
 .TP
 .B \-\-device \fIDEVICE\fR, \fB\-D \fIDEVICE\fR
 Specifies the audio device to use.
 See
 .B "DEVICE NAMES"
 below for more information.
+.TP
+.B \-\-command \fICOMMAND\fR, \fB-e \fICOMMAND\fR
+Instead of sending to a physical audio device, invoke \fICOMMAND\fR using the
+shell and write audio samples to its standard input.
+Currently the input will be 44100KHz 16-bit signed stereo samples.
+If \fICOMMAND\fR exits it is re-executed; any samples that had been written to
+the pipe but not processed by the previous instance will be lost.
+.IP
+.B \-\-device
+is redundant with this option.
+.IP
+As an example,
+.B "-e \(aqcat > dump\(aq"
+would log audio data to a file for later processing.
+You could convert it to another format with, for instance:
+.IP
+.B "sox -c2 -traw -r44100 -s -w dump dump.wav"
 .TP
 .B \-\-config \fIPATH\fR, \fB\-C \fIPATH
 Set the configuration file.
