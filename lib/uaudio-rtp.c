@@ -20,11 +20,13 @@
 #include "common.h"
 
 #include <errno.h>
+#include <sys/socket.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <gcrypt.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/uio.h>
 
 #include "uaudio.h"
 #include "mem.h"
