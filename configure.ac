@@ -41,6 +41,7 @@ want_coreaudio=yes
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_AWK
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
