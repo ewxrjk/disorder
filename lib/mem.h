@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ void *xcalloc(size_t count, size_t size);
 
 void *xmalloc_noptr(size_t);
 void *xrealloc_noptr(void *, size_t);
+void *xcalloc_noptr(size_t count, size_t size);
 char *xstrdup(const char *);
 char *xstrndup(const char *, size_t);
 /* As malloc/realloc/strdup, but

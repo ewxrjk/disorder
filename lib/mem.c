@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,6 +136,20 @@ void *xmalloc_noptr(size_t n) {
   return ptr;
 }
 
+/** @brief Allocate memory
+ * @param count Number of objects to allocate
+ * @param size Size of one object
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  IMPORTANT: the allocated memory is NOT
+ * 0-filled (unlike @c calloc()).
+ */
+void *xcalloc_noptr(size_t count, size_t size) {
+  if(count > SIZE_MAX / size)
+    fatal(0, "excessively large calloc");
+  return xmalloc_noptr(count * size);
+}
+
 /** @brief Reallocate memory
  * @param ptr Block to reallocated
  * @param n Bytes to allocate
@@ -196,5 +210,7 @@ void xfree(void *ptr) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

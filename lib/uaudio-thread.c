@@ -208,7 +208,8 @@ void uaudio_thread_start(uaudio_callback *callback,
   uaudio_thread_max = max;
   uaudio_thread_started = 1;
   for(int n = 0; n < UAUDIO_THREAD_BUFFERS; ++n)
-    uaudio_buffers[n].samples = xcalloc(uaudio_thread_max, uaudio_sample_size);
+    uaudio_buffers[n].samples = xcalloc_noptr(uaudio_thread_max,
+                                              uaudio_sample_size);
   uaudio_collect_buffer = uaudio_play_buffer = 0;
   if((e = pthread_create(&uaudio_collect_thread,
                          NULL,

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1358,8 +1358,10 @@ uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp,
       }
       /* If it's a word add it to the list of results */
       if(isword) {
-        w = xcalloc(b2 - b1 + 1, sizeof(uint32_t));
-        memcpy(w, it->s + b1, (b2 - b1) * sizeof (uint32_t));
+        const size_t len = b2 - b1;
+        w = xcalloc_noptr(len + 1, sizeof(uint32_t));
+        memcpy(w, it->s + b1, len * sizeof (uint32_t));
+        w[len] = 0;
         vector32_append(v32, w);
       }
     }
