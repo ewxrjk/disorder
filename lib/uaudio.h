@@ -112,29 +112,17 @@ extern int uaudio_schedule_reactivated;
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 extern const struct uaudio uaudio_coreaudio;
-#ifndef UAUDIO_DEFAULT
-# define UAUDIO_DEFAULT uaudio_coreaudio
-#endif
 #endif
 
 #if HAVE_ALSA_ASOUNDLIB_H
 extern const struct uaudio uaudio_alsa;
-#ifndef UAUDIO_DEFAULT
-# define UAUDIO_DEFAULT uaudio_alsa
-#endif
 #endif
 
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
 extern const struct uaudio uaudio_oss;
-#ifndef UAUDIO_DEFAULT
-# define UAUDIO_DEFAULT uaudio_oss
-#endif
 #endif
 
 extern const struct uaudio uaudio_rtp;
-#ifndef UAUDIO_DEFAULT
-# define UAUDIO_DEFAULT uaudio_rtp
-#endif
 
 extern const struct uaudio uaudio_command;
 
