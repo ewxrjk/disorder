@@ -126,7 +126,7 @@ extern const struct uaudio uaudio_rtp;
 
 extern const struct uaudio uaudio_command;
 
-extern const struct uaudio *uaudio_apis[];
+extern const struct uaudio *const uaudio_apis[];
 
 #endif /* UAUDIO_H */
 

@@ -30,7 +30,7 @@
  * The first one will be used as a default, so putting ALSA before OSS
  * constitutes a policy decision.
  */
-const struct uaudio *uaudio_apis[] = {
+const struct uaudio *const  uaudio_apis[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   &uaudio_coreaudio,
 #endif  
