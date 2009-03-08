@@ -50,6 +50,11 @@ size_t uaudio_sample_size;
 
 /** @brief Set a uaudio option */
 void uaudio_set(const char *name, const char *value) {
+  if(!value) {
+    if(uaudio_options)
+      hash_remove(uaudio_options, name);
+    return;
+  }
   if(!uaudio_options)
     uaudio_options = hash_new(sizeof(char *));
   value = xstrdup(value);
@@ -58,10 +63,12 @@ void uaudio_set(const char *name, const char *value) {
 
 /** @brief Get a uaudio option */
 char *uaudio_get(const char *name, const char *default_value) {
-  const char *value = (uaudio_options ?
-                       *(char **)hash_find(uaudio_options, name)
-                       : default_value);
-  return value ? xstrdup(value) : NULL;
+  if(!uaudio_options)
+    return default_value ? xstrdup(default_value) : 0;
+  char **valuep = hash_find(uaudio_options, name);
+  if(!valuep)
+    return default_value ? xstrdup(default_value) : 0;
+  return xstrdup(*valuep);
 }
 
 /** @brief Set sample format 

@@ -114,6 +114,9 @@ struct uaudio {
    * 0 is silent and 100 is maximum volume.
    */
   void (*set_volume)(int *left, int *right);
+
+  /** @brief Set configuration */
+  void (*configure)(void);
   
 };
 

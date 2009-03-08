@@ -34,6 +34,7 @@
 #include "mem.h"
 #include "wstat.h"
 #include "uaudio.h"
+#include "configuration.h"
 
 /** @brief Pipe to subprocess */
 static int command_fd;
@@ -137,13 +138,18 @@ static void command_deactivate(void) {
   uaudio_thread_deactivate();
 }
 
+static void command_configure(void) {
+  uaudio_set("command", config->speaker_command);
+}
+
 const struct uaudio uaudio_command = {
   .name = "command",
   .options = command_options,
   .start = command_start,
   .stop = command_stop,
   .activate = command_activate,
-  .deactivate = command_deactivate
+  .deactivate = command_deactivate,
+  .configure = command_configure,
 };
 
 /*

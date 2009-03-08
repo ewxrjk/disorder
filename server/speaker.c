@@ -662,6 +662,8 @@ int main(int argc, char **argv) {
   /* TODO other parameters! */
   backend = uaudio_find(config->api);
   /* backend-specific initialization */
+  if(backend->configure)
+    backend->configure();
   backend->start(speaker_callback, NULL);
   /* create the socket directory */
   byte_xasprintf(&dir, "%s/speaker", config->home);

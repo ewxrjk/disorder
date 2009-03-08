@@ -235,6 +235,9 @@ struct config {
   /** @brief Source address for network audio transmission */
   struct stringlist broadcast_from;
 
+  /** @brief RTP delay threshold */
+  long rtp_delay_threshold;
+  
   /** @brief TTL for multicast packets */
   long multicast_ttl;
 
