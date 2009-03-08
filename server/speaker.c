@@ -79,6 +79,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <sys/resource.h>
 
 #include "configuration.h"
 #include "syscalls.h"

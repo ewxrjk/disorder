@@ -39,7 +39,8 @@ disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
+	$(LIBPTHREAD)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_decode_SOURCES=decode.c disorder-server.h
