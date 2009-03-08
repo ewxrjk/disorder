@@ -829,7 +829,7 @@ static int c_volume(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 error accessing mixer\n");
     return 1;
   }
-  api->set_volume(&l, &r);
+  (set ? api->set_volume : api->get_volume)(&l, &r);
   sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);
   if(l != volume_left || r != volume_right) {
     volume_left = l;
