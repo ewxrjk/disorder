@@ -80,6 +80,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <sys/resource.h>
+#include <gcrypt.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -652,6 +653,11 @@ int main(int argc, char **argv) {
     info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
   } else
     info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
+  /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
+  gcry_control(GCRYCTL_INIT_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   /* create a pipe between the backend callback and the poll() loop */
   xpipe(sigpipe);
   nonblock(sigpipe[0]);

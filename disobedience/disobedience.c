@@ -25,6 +25,7 @@
 #include <getopt.h>
 #include <locale.h>
 #include <pcre.h>
+#include <gcrypt.h>
 
 /* Apologies for the numerous de-consting casts, but GLib et al do not seem to
  * have heard of const. */
@@ -448,6 +449,11 @@ int main(int argc, char **argv) {
   }
   if(!gtkok)
     fatal(0, "failed to initialize GTK+");
+  /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
+  gcry_control(GCRYCTL_INIT_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   signal(SIGPIPE, SIG_IGN);
   init_styles();
   load_settings();

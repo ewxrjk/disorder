@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <pcre.h>
 #include <ctype.h>
+#include <gcrypt.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -764,6 +765,11 @@ int main(int argc, char **argv) {
     config->connect.n = 0;
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
+  /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
+  gcry_control(GCRYCTL_INIT_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   /* accumulate command args */
   while(n < argc) {
     if((i = TABLE_FIND(commands, name, argv[n])) < 0)

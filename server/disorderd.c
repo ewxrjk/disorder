@@ -209,7 +209,10 @@ int main(int argc, char **argv) {
   fix_path();
   srand(time(0));			/* don't start the same every time */
   /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
   gcry_control(GCRYCTL_INIT_SECMEM, 1);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   /* make sure we can't have more than FD_SETSIZE files open (event.c does
    * check but this provides an additional line of defence) */
   if(getrlimit(RLIMIT_NOFILE, rl) < 0)
