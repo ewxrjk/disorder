@@ -1,7 +1,6 @@
-
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +26,8 @@
 
 #include "speaker-protocol.h"
 #include "rights.h"
+
+struct uaudio;
 
 /* Configuration is kept in a @struct config@; the live configuration
  * is always pointed to by @config@.  Values in @config@ are UTF-8 encoded.
@@ -176,29 +177,8 @@ struct config {
   /** @brief Sox syntax generation */
   long sox_generation;
 
-  /** @brief API used to play sound
-   *
-   * Choices are @ref BACKEND_ALSA, @ref BACKEND_COMMAND or @ref
-   * BACKEND_NETWORK.
-   */
-  int api;
-
-/* These values had better be non-negative */
-#define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
-#define BACKEND_COMMAND 1		/**< Execute a command */
-#define BACKEND_NETWORK 2		/**< Transmit RTP  */
-#define BACKEND_COREAUDIO 3		/**< Use Core Audio (Mac only) */
-#define BACKEND_OSS 4		        /**< Use OSS */
-
-#if HAVE_ALSA_ASOUNDLIB_H
-# define DEFAULT_BACKEND BACKEND_ALSA
-#elif HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-# define DEFAULT_BACKEND BACKEND_OSS
-#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-# define DEFAULT_BACKEND BACKEND_COREAUDIO
-#else
-# error Cannot choose a default backend
-#endif
+  /** @brief API used to play sound */
+  const char *api;
 
   /** @brief Home directory for state files */
   const char *home;
@@ -327,6 +307,8 @@ char *config_private(void);
 
 extern char *configfile;
 extern int config_per_user;
+
+extern const struct uaudio *const *config_uaudio_apis;
 
 #endif /* CONFIGURATION_H */
 

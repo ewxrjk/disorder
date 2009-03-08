@@ -22,6 +22,7 @@
 
 #include "common.h"
 #include "uaudio.h"
+#include "log.h"
 
 /** @brief List of known APIs
  *
@@ -30,7 +31,7 @@
  * The first one will be used as a default, so putting ALSA before OSS
  * constitutes a policy decision.
  */
-const struct uaudio *const  uaudio_apis[] = {
+const struct uaudio *const uaudio_apis[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   &uaudio_coreaudio,
 #endif  
@@ -44,6 +45,18 @@ const struct uaudio *const  uaudio_apis[] = {
   &uaudio_command,
   NULL,
 };
+
+/** @brief Look up an audio API by name */
+const struct uaudio *uaudio_find(const char *name) {
+  int n;
+
+  for(n = 0; uaudio_apis[n]; ++n)
+    if(!strcmp(uaudio_apis[n]->name, name))
+      return uaudio_apis[n];
+  if(!strcmp(name, "network"))
+    return &uaudio_rtp;
+  fatal(0, "cannot find audio API '%s'", name);
+}
 
 /*
 Local Variables:

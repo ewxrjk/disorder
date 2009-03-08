@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	schedule.c exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
-	$(LIBASOUND)
+	$(LIBASOUND) $(COREAUDIO)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
@@ -37,12 +37,7 @@ disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_speaker_SOURCES=speaker.c speaker.h \
-		         speaker-command.c \
-			 speaker-network.c \
-			 speaker-coreaudio.c \
-			 speaker-oss.c \
-			 speaker-alsa.c
+disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a

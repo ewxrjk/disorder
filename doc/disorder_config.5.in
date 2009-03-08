@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2008 Richard Kettlewell
+.\" Copyright (C) 2004-2009 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -276,12 +276,14 @@ This is the default if
 .B speaker_command
 is specified, or if no native is available.
 .TP
-.B network
+.B rtp
 Transmit audio over the network.
 This is the default if \fBbroadcast\fR is specified.
 You can use
 .BR disorder-playrtp (1)
 to receive and play the resulting stream on Linux and OS X.
+.B network
+is a deprecated synonym for this API.
 .RE
 .TP
 .B authorization_algorithm \fIALGORITHM\fR
@@ -293,7 +295,7 @@ for more details.
 .TP
 .B broadcast \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.
-This implies \fBapi network\fR.
+This implies \fBapi rtp\fR.
 .IP
 See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
@@ -435,12 +437,12 @@ For \fBapi coreaudio\fR, volume setting is not currently supported.
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.
 The default is \fByes\fR.
-This only applies if \fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR
+This only applies if \fBapi\fR is set to \fBrtp\fR and \fBbroadcast\fR
 is actually a multicast address.
 .TP
 .B multicast_ttl \fIHOPS\fR
 Set the maximum number of hops to send multicast packets.
-This only applies if \fBapi\fR is set to \fBnetwork\fR and
+This only applies if \fBapi\fR is set to \fBrtp\fR and
 \fBbroadcast\fR is actually a multicast address.
 The default is 1.
 .TP
@@ -628,7 +630,7 @@ The default is
 .BR 16/44100/2 .
 .PP
 With the
-.B network
+.B rtp
 backend the sample format is forced to
 .B 16b/44100/2
 and with the

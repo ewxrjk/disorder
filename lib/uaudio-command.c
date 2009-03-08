@@ -69,7 +69,7 @@ static void command_open(void) {
   int pfd[2];
   const char *command;
 
-  if(!(command = uaudio_get("command")))
+  if(!(command = uaudio_get("command", NULL)))
     fatal(0, "'command' not set");
   xpipe(pfd);
   command_pid = xfork();

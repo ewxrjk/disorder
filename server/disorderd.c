@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -132,7 +132,8 @@ static void periodic_volume_check(ev_source attribute((unused)) *ev_) {
   int l, r;
   char lb[32], rb[32];
 
-  if(!mixer_control(-1/*as configured*/, &l, &r, 0)) {
+  if(api && api->get_volume) {
+    api->get_volume(&l, &r);
     if(l != volume_left || r != volume_right) {
       volume_left = l;
       volume_right = r;
@@ -225,6 +226,7 @@ int main(int argc, char **argv) {
   ev = ev_new();
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");
   /* read config */
+  config_uaudio_apis = uaudio_apis;
   if(config_read(1))
     fatal(0, "cannot read configuration");
   /* make sure the home directory exists and has suitable permissions */

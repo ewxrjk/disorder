@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@ static int current_unix_fd;
 
 static struct addrinfo *current_listen_addrinfo;
 static int current_listen_fd;
+
+/** @brief Current audio API */
+const struct uaudio *api;
 
 void quit(ev_source *ev) {
   info("shutting down...");
@@ -112,6 +115,11 @@ int reconfigure(ev_source *ev, int reload) {
   int ret = 0;
 
   D(("reconfigure(%d)", reload));
+  if(api) {
+    if(api->close_mixer)
+      api->close_mixer();
+    api = NULL;
+  }
   if(reload) {
     need_another_rescan = trackdb_rescan_cancel();
     trackdb_close();
@@ -126,6 +134,9 @@ int reconfigure(ev_source *ev, int reload) {
   } else
     /* We only allow for upgrade at startup */
     trackdb_open(TRACKDB_CAN_UPGRADE);
+  api = uaudio_find(config->api);
+  if(api->open_mixer)
+    api->open_mixer();
   if(need_another_rescan)
     trackdb_rescan(ev, 1/*check*/, 0, 0);
   /* Arrange timeouts for schedule actions */

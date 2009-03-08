@@ -56,11 +56,11 @@ void uaudio_set(const char *name, const char *value) {
   hash_add(uaudio_options, name, &value, HASH_INSERT_OR_REPLACE);
 }
 
-/** @brief Set a uaudio option */
-char *uaudio_get(const char *name) {
+/** @brief Get a uaudio option */
+char *uaudio_get(const char *name, const char *default_value) {
   const char *value = (uaudio_options ?
                        *(char **)hash_find(uaudio_options, name)
-                       : NULL);
+                       : default_value);
   return value ? xstrdup(value) : NULL;
 }
 

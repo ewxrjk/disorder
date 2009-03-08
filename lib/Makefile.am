@@ -60,7 +60,6 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	macros.c macros-builtin.c macros.h		\
 	mem.c mem.h 					\
 	mime.h mime.c					\
-	mixer.c mixer.h mixer-oss.c mixer-alsa.c	\
 	printf.c printf.h				\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\

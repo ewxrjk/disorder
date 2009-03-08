@@ -20,7 +20,6 @@
  */
 
 #include "disobedience.h"
-#include "mixer.h"
 #include "version.h"
 
 #include <getopt.h>
@@ -67,6 +66,9 @@ int volume_l;
 
 /** @brief Right channel volume */
 int volume_r;
+
+/** @brief Audio backend */
+const struct uaudio *backend;
 
 double goesupto = 10;                   /* volume upper bound */
 
@@ -263,10 +265,10 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
   }
   last = now;
 #endif
-  if(rtp_supported && mixer_supported(DEFAULT_BACKEND)) {
+  if(rtp_supported && backend && backend->get_volume) {
     int nl, nr;
-    if(!mixer_control(DEFAULT_BACKEND, &nl, &nr, 0)
-       && (nl != volume_l || nr != volume_r)) {
+    backend->get_volume(&nl, &nr);
+    if(nl != volume_l || nr != volume_r) {
       volume_l = nl;
       volume_r = nr;
       event_raise("volume-changed", 0);
@@ -453,6 +455,10 @@ int main(int argc, char **argv) {
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
   if(config_read(0)) fatal(0, "cannot read configuration");
+  /* we'll need mixer support */
+  backend = uaudio_apis[0];
+  if(backend->open_mixer)
+    backend->open_mixer();
   /* create the clients */
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))

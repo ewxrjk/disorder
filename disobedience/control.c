@@ -20,7 +20,6 @@
  */
 
 #include "disobedience.h"
-#include "mixer.h"
 
 /* Forward declarations ---------------------------------------------------- */
 
@@ -323,7 +322,7 @@ static void volume_changed(const char attribute((unused)) *event,
   ++suppress_actions;
   /* Only display volume/balance controls if they will work */
   if(!rtp_supported
-     || (rtp_supported && mixer_supported(DEFAULT_BACKEND)))
+     || (rtp_supported && backend && backend->set_volume))
     volume_supported = TRUE;
   else
     volume_supported = FALSE;
@@ -444,7 +443,8 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
    * from the log. */
   if(rtp_supported) {
     int l = nearbyint(left(v, b) * 100), r = nearbyint(right(v, b) * 100);
-    mixer_control(DEFAULT_BACKEND, &l, &r, 1);
+    if(backend && backend->set_volume)
+      backend->set_volume(&l, &r);
   } else
     disorder_eclient_volume(client, volume_completed,
                             nearbyint(left(v, b) * 100),

@@ -127,7 +127,7 @@ static void coreaudio_start(uaudio_callback *callback,
                    uaudio_bits);
   coreaudio_callback = callback;
   coreaudio_userdata = userdata;
-  device = uaudio_get("device");
+  device = uaudio_get("device", "default");
   coreaudio_adid = coreaudio_getdevice(device);
   /* Get the device properties */
   propertySize = sizeof asbd;

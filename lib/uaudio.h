@@ -90,11 +90,36 @@ struct uaudio {
    */
   void (*deactivate)(void);
 
+  /** @brief Open mixer device */
+  void (*open_mixer)(void);
+
+  /** @brief Closer mixer device */
+  void (*close_mixer)(void);
+
+  /** @brief Get volume
+   * @param left Where to put the left-channel value
+   * @param right Where to put the right-channel value
+   *
+   * 0 is silent and 100 is maximum volume.
+   */
+  void (*get_volume)(int *left, int *right);
+
+  /** @brief Set volume
+   * @param left Pointer to left-channel value (updated)
+   * @param right Pointer to right-channel value (updated)
+   *
+   * The values are updated with those actually set by the underlying system
+   * call.
+   *
+   * 0 is silent and 100 is maximum volume.
+   */
+  void (*set_volume)(int *left, int *right);
+  
 };
 
 void uaudio_set_format(int rate, int channels, int samplesize, int signed_);
 void uaudio_set(const char *name, const char *value);
-char *uaudio_get(const char *name);
+char *uaudio_get(const char *name, const char *default_value);
 void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,
 			 uaudio_playcallback *playcallback,
@@ -106,6 +131,7 @@ void uaudio_thread_deactivate(void);
 void uaudio_schedule_synchronize(void);
 void uaudio_schedule_update(size_t written_samples);
 void uaudio_schedule_init(void);
+const struct uaudio *uaudio_find(const char *name);
 
 extern uint64_t uaudio_schedule_timestamp;
 extern int uaudio_schedule_reactivated;

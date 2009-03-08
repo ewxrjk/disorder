@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -825,17 +825,18 @@ static int c_volume(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
-  if(mixer_control(-1/*as configured*/, &l, &r, set))
+  if(!api || !api->set_volume) {
     sink_writes(ev_writer_sink(c->w), "550 error accessing mixer\n");
-  else {
-    sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);
-    if(l != volume_left || r != volume_right) {
-      volume_left = l;
-      volume_right = r;
-      snprintf(lb, sizeof lb, "%d", l);
-      snprintf(rb, sizeof rb, "%d", r);
-      eventlog("volume", lb, rb, (char *)0);
-    }
+    return 1;
+  }
+  api->set_volume(&l, &r);
+  sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);
+  if(l != volume_left || r != volume_right) {
+    volume_left = l;
+    volume_right = r;
+    snprintf(lb, sizeof lb, "%d", l);
+    snprintf(rb, sizeof rb, "%d", r);
+    eventlog("volume", lb, rb, (char *)0);
   }
   return 1;
 }
@@ -1098,7 +1099,7 @@ static int c_new(struct conn *c,
 static int c_rtp_address(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
-  if(config->api == BACKEND_NETWORK) {
+  if(api == &uaudio_rtp) {
     sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
 		quoteutf8(config->broadcast.s[0]),
 		quoteutf8(config->broadcast.s[1]));

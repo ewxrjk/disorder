@@ -143,17 +143,16 @@ static void rtp_open(void) {
   socklen_t len;
   char *sockname, *ssockname;
   struct stringlist dst, src;
-  const char *delay;
   
   /* Get configuration */
   dst.n = 2;
   dst.s = xcalloc(2, sizeof *dst.s);
-  dst.s[0] = uaudio_get("rtp-destination");
-  dst.s[1] = uaudio_get("rtp-destination-port");
+  dst.s[0] = uaudio_get("rtp-destination", NULL);
+  dst.s[1] = uaudio_get("rtp-destination-port", NULL);
   src.n = 2;
   src.s = xcalloc(2, sizeof *dst.s);
-  src.s[0] = uaudio_get("rtp-source");
-  src.s[1] = uaudio_get("rtp-source-port");
+  src.s[0] = uaudio_get("rtp-source", NULL);
+  src.s[1] = uaudio_get("rtp-source-port", NULL);
   if(!dst.s[0])
     fatal(0, "'rtp-destination' not set");
   if(!dst.s[1])
@@ -164,10 +163,8 @@ static void rtp_open(void) {
     src.n = 2;
   } else
     src.n = 0;
-  if((delay = uaudio_get("rtp-delay-threshold")))
-    rtp_delay_threshold = atoi(delay);
-  else
-    rtp_delay_threshold = 1000;         /* microseconds */
+  rtp_delay_threshold = atoi(uaudio_get("rtp-delay-threshold", "1000"));
+  /* ...microseconds */
 
   /* Resolve addresses */
   res = get_address(&dst, &pref, &sockname);
@@ -184,10 +181,8 @@ static void rtp_open(void) {
     fatal(errno, "error creating broadcast socket");
   if(multicast(res->ai_addr)) {
     /* Enable multicast options */
-    const char *ttls = uaudio_get("multicast-ttl");
-    const int ttl = ttls ? atoi(ttls) : 1;
-    const char *loops = uaudio_get("multicast-loop");
-    const int loop = loops ? !strcmp(loops, "yes") : 1;
+    const int ttl = atoi(uaudio_get("multicast-ttl", "1"));
+    const int loop = !strcmp(uaudio_get("multicast-loop", "yes"), "yes");
     switch(res->ai_family) {
     case PF_INET: {
       if(setsockopt(rtp_fd, IPPROTO_IP, IP_MULTICAST_TTL,
