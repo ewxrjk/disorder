@@ -75,7 +75,7 @@ void random_get(void *ptr, size_t bytes) {
 
 /** @brief Return a random ID string */
 char *random_id(void) {
-  unsigned long words[2];
+  uint32_t words[2];
   char id[128];
 
   random_get(words, sizeof words);

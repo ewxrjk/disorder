@@ -31,7 +31,7 @@
  * @param nwords Length of bignum
  * @return !v
  */
-static int zero(const unsigned long *v, int nwords) {
+static int zero(const uint32_t *v, int nwords) {
   int n;
 
   for(n = 0; n < nwords && !v[n]; ++n)
@@ -47,7 +47,7 @@ static int zero(const unsigned long *v, int nwords) {
  *
  * The quotient is stored in @p v.
  */
-static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
+static unsigned divide(uint32_t *v, int nwords, unsigned long m) {
   unsigned long r = 0, a, b;
   int n;
 
@@ -66,6 +66,31 @@ static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
   return r;
 }
 
+/** @brief Multiple v by m and add a
+ * @param v Pointer to bigendian bignum
+ * @param nwords Length of bignum
+ * @param m Value to multiply by
+ * @param a Value to add
+ * @return 0 on success, non-0 on overflow
+ *
+ * Does v = m * v + a.
+ */
+static int mla(uint32_t *v, int nwords, uint32_t m, uint32_t a) {
+  int n = nwords - 1;
+  uint32_t carry = a;
+
+  while(n >= 0) {
+    const uint64_t p = (uint64_t)v[n] * m + carry;
+    carry = (uint32_t)(p >> 32);
+    v[n] = (uint32_t)p;
+    --n;
+  }
+  /* If there is still a carry then we overflowed */
+  return !!carry;
+}
+
+static const char basen_chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 /** @brief Convert v to a chosen base
  * @param v Pointer to bigendian bignum (modified!)
  * @param nwords Length of bignum
@@ -75,23 +100,50 @@ static unsigned divide(unsigned long *v, int nwords, unsigned long m) {
  * @return 0 on success, -1 if the buffer is too small
  *
  * Converts @p v to a string in the given base using decimal digits, lower case
- * letter sand upper case letters as digits.
+ * letters and upper case letters as digits.
+ *
+ * The inverse of nesab().
  */
-int basen(unsigned long *v,
+int basen(uint32_t *v,
 	  int nwords,
 	  char buffer[],
 	  size_t bufsize,
 	  unsigned base) {
   size_t i = bufsize;
-  static const char chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   
   do {
     if(i <= 1)
       return -1;			/* overflow */
-    buffer[--i] = chars[divide(v, nwords, base)];
+    buffer[--i] = basen_chars[divide(v, nwords, base)];
   } while(!zero(v, nwords));
   memmove(buffer, buffer + i, bufsize - i);
   buffer[bufsize - i] = 0;
+  return 0;
+}
+
+/** @brief Convert a string back to a large integer in an arbitrary base
+ * @param v Where to store result as a bigendian bignum
+ * @param nwords Space available in @p v
+ * @param s Input string
+ * @param base Number base (2..62)
+ * @return 0 on success, non-0 on overflow or invalid input
+ *
+ * The inverse of basen().  If the number is much smaller than the buffer then
+ * the first words will be 0.
+ */
+int nesab(uint32_t *v,
+          int nwords,
+          const char *s,
+          unsigned base) {
+  /* Initialize to 0 */
+  memset(v, 0, nwords * sizeof *v);
+  while(*s) {
+    const char *dp = strchr(basen_chars, *s++);
+    if(!dp)
+      return -1;
+    if(mla(v, nwords, base, dp - basen_chars))
+      return -1;
+  }
   return 0;
 }
 
