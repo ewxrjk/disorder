@@ -149,6 +149,11 @@ static int to_percent(long n) {
   return (n - alsa_mixer_min) * 100 / (alsa_mixer_max - alsa_mixer_min);
 }
 
+/** @brief Convert a percentage to a level */
+static int from_percent(int n) {
+  return alsa_mixer_min + n * (alsa_mixer_max - alsa_mixer_min) / 100;
+}
+
 static void alsa_open_mixer(void) {
   int err;
   snd_mixer_selem_id_t *id;
@@ -159,8 +164,8 @@ static void alsa_open_mixer(void) {
   snd_mixer_selem_id_alloca(&id);
   if((err = snd_mixer_open(&alsa_mixer_handle, 0)))
     fatal(0, "snd_mixer_open: %s", snd_strerror(err));
-  if((err = snd_mixer_attach(alsa_mixer_handle, config->device)))
-    fatal(0, "snd_mixer_attach %s: %s", config->device, snd_strerror(err));
+  if((err = snd_mixer_attach(alsa_mixer_handle, device)))
+    fatal(0, "snd_mixer_attach %s: %s", device, snd_strerror(err));
   if((err = snd_mixer_selem_register(alsa_mixer_handle,
                                      0/*options*/, 0/*classp*/)))
     fatal(0, "snd_mixer_selem_register %s: %s",

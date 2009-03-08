@@ -145,11 +145,11 @@ static void oss_stop(void) {
 static const char *oss_channels[] = SOUND_DEVICE_NAMES;
 
 static int oss_mixer_find_channel(const char *channel) {
-  if(!channel[strspn(c, "0123456789")])
+  if(!channel[strspn(channel, "0123456789")])
     return atoi(channel);
   else {
-    for(int n = 0; n < sizeof oss_channels / sizeof *oss_channels; ++n)
-      if(!strcmp(oss_channels[n], channels))
+    for(unsigned n = 0; n < sizeof oss_channels / sizeof *oss_channels; ++n)
+      if(!strcmp(oss_channels[n], channel))
 	return n;
     return -1;
   }
@@ -175,7 +175,7 @@ static void oss_get_volume(int *left, int *right) {
   int r;
 
   *left = *right = 0;
-  if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(ch), &r) < 0)
+  if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
     error(errno, "error getting volume");
   else {
     *left = r & 0xff;
@@ -185,9 +185,9 @@ static void oss_get_volume(int *left, int *right) {
 
 static void oss_set_volume(int *left, int *right) {
   int r =  (*left & 0xff) + (*right & 0xff) * 256;
-  if(ioctl(fd, SOUND_MIXER_WRITE(ch), &r) == -1)
+  if(ioctl(oss_mixer_fd, SOUND_MIXER_WRITE(oss_mixer_channel), &r) == -1)
     error(errno, "error setting volume");
-  else if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(ch), &r) < 0)
+  else if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
     error(errno, "error getting volume");
   else {
     *left = r & 0xff;
