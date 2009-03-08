@@ -36,6 +36,7 @@
 #include "addr.h"
 #include "ifreq.h"
 #include "timeval.h"
+#include "configuration.h"
 
 /** @brief Bytes to send per network packet
  *
@@ -296,13 +297,33 @@ static void rtp_deactivate(void) {
   uaudio_thread_deactivate();
 }
 
+static void rtp_configure(void) {
+  char buffer[64];
+
+  uaudio_set("rtp-destination", config->broadcast.s[0]);
+  uaudio_set("rtp-destination-port", config->broadcast.s[1]);
+  if(config->broadcast_from.n) {
+    uaudio_set("rtp-source", config->broadcast_from.s[0]);
+    uaudio_set("rtp-source-port", config->broadcast_from.s[0]);
+  } else {
+    uaudio_set("rtp-source", NULL);
+    uaudio_set("rtp-source-port", NULL);
+  }
+  snprintf(buffer, sizeof buffer, "%ld", config->multicast_ttl);
+  uaudio_set("multicast-ttl", buffer);
+  uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
+  snprintf(buffer, sizeof buffer, "%ld", config->rtp_delay_threshold);
+  uaudio_set("delay-threshold", buffer);
+}
+
 const struct uaudio uaudio_rtp = {
   .name = "rtp",
   .options = rtp_options,
   .start = rtp_start,
   .stop = rtp_stop,
   .activate = rtp_activate,
-  .deactivate = rtp_deactivate
+  .deactivate = rtp_deactivate,
+  .configure = rtp_configure,
 };
 
 /*

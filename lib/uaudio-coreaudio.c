@@ -26,6 +26,7 @@
 #include "mem.h"
 #include "log.h"
 #include "syscalls.h"
+#include "configuration.h"
 
 /** @brief Callback to request sample data */
 static uaudio_callback *coreaudio_callback;
@@ -182,13 +183,18 @@ static void coreaudio_deactivate(void) {
     coreaudio_fatal(status, "AudioDeviceStop");
 }
 
+static void coreaudio_configure(void) {
+  uaudio_set("device", config->device);
+}
+
 const struct uaudio uaudio_coreaudio = {
   .name = "coreaudio",
   .options = coreaudio_options,
   .start = coreaudio_start,
   .stop = coreaudio_stop,
   .activate = coreaudio_activate,
-  .deactivate = coreaudio_deactivate
+  .deactivate = coreaudio_deactivate,
+  .configure = coreaudio_configure,
 };
 
 #endif

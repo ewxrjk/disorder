@@ -26,6 +26,7 @@
 #include "mem.h"
 #include "log.h"
 #include "uaudio.h"
+#include "configuration.h"
 
 /** @brief The current PCM handle */
 static snd_pcm_t *alsa_pcm;
@@ -245,6 +246,12 @@ static void alsa_set_volume(int *left, int *right) {
   *right = to_percent(r);
 }
 
+static void alsa_configure(void) {
+  uaudio_set("device", config->device);
+  uaudio_set("mixer-control", config->mixer);
+  uaudio_set("mixer-channel", config->channel);
+}
+
 const struct uaudio uaudio_alsa = {
   .name = "alsa",
   .options = alsa_options,
@@ -256,6 +263,7 @@ const struct uaudio uaudio_alsa = {
   .close_mixer = alsa_close_mixer,
   .get_volume = alsa_get_volume,
   .set_volume = alsa_set_volume,
+  .configure = alsa_configure
 };
 
 #endif

@@ -135,6 +135,8 @@ int reconfigure(ev_source *ev, int reload) {
     /* We only allow for upgrade at startup */
     trackdb_open(TRACKDB_CAN_UPGRADE);
   api = uaudio_find(config->api);
+  if(api->configure)
+    api->configure();
   if(api->open_mixer)
     api->open_mixer();
   if(need_another_rescan)

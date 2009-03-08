@@ -32,6 +32,7 @@
 #include "mem.h"
 #include "log.h"
 #include "uaudio.h"
+#include "configuration.h"
 
 #ifndef AFMT_U16_NE
 # if BYTE_ORDER == BIG_ENDIAN
@@ -195,6 +196,12 @@ static void oss_set_volume(int *left, int *right) {
   }
 }
 
+static void oss_configure(void) {
+  uaudio_set("device", config->device);
+  uaudio_set("mixer-device", config->mixer);
+  uaudio_set("mixer-channel", config->channel);
+}
+
 const struct uaudio uaudio_oss = {
   .name = "oss",
   .options = oss_options,
@@ -206,6 +213,7 @@ const struct uaudio uaudio_oss = {
   .close_mixer = oss_close_mixer,
   .get_volume = oss_get_volume,
   .set_volume = oss_set_volume,
+  .configure = oss_configure,
 };
 
 #endif

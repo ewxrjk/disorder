@@ -940,6 +940,7 @@ static const struct conf conf[] = {
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
+  { C(rtp_delay_threshold), &type_integer,       validate_positive },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(sendmail),         &type_string,           validate_isabspath },
