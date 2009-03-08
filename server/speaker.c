@@ -41,6 +41,11 @@
  * obvious way.  If the callback finds itself required to play when there is no
  * playing track it returns dead air.
  *
+ * To implement gapless playback, the server is notified that a track has
+ * finished slightly early.  @ref SM_PLAY is therefore allowed to arrive while
+ * the previous track is still playing provided an early @ref SM_FINISHED has
+ * been sent for it.
+ *
  * @b Encodings.  The encodings supported depend entirely on the uaudio backend
  * chosen.  See @ref uaudio.h, etc.
  *
@@ -96,6 +101,12 @@
 /** @brief Maximum number of FDs to poll for */
 #define NFDS 1024
 
+/** @brief Number of bytes before end of track to send SM_FINISHED
+ *
+ * Generally set to 1 second.
+ */
+static size_t early_finish;
+
 /** @brief Track structure
  *
  * Known tracks are kept in a linked list.  Usually there will be at most two
@@ -133,6 +144,14 @@ struct track {
    * out life not playable.
    */
   int playable;
+
+  /** @brief Set when finished
+   *
+   * This is set when we've notified the server that the track is finished.
+   * Once this has happened (typically very late in the track's lifetime) the
+   * track cannot be paused or cancelled.
+   */
+  int finished;
   
   /** @brief Input buffer
    *
@@ -155,10 +174,16 @@ static struct track *tracks;
 
 /** @brief Playing track, or NULL
  *
- * This means the DESIRED playing track.  It does not reflect any other state
- * (e.g. activation of uaudio backend).
+ * This means the track the speaker process intends to play.  It does not
+ * reflect any other state (e.g. activation of uaudio backend).
  */
 static struct track *playing;
+
+/** @brief Pending playing track, or NULL
+ *
+ * This means the track the server wants the speaker to play.
+ */
+static struct track *pending_playing;
 
 /** @brief Array of file descriptors for poll() */
 static struct pollfd fds[NFDS];
@@ -317,10 +342,15 @@ static int speaker_fill(struct track *t) {
  *
  * We want to play audio if there is a current track; and it is not paused; and
  * it is playable according to the rules for @ref track::playable.
+ *
+ * We don't allow tracks to be paused if we've already told the server we've
+ * finished them; that would cause such tracks to survive much longer than the
+ * few samples they're supposed to, with report() remaining silent for the
+ * duration.
  */
 static int playable(void) {
   return playing
-         && !paused
+         && (!paused || playing->finished)
          && playing->playable;
 }
 
@@ -329,6 +359,10 @@ static void report(void) {
   struct speaker_message sm;
 
   if(playing) {
+    /* Had better not send a report for a track that the server thinks has
+     * finished, that would be confusing. */
+    if(playing->finished)
+      return;
     memset(&sm, 0, sizeof sm);
     sm.type = paused ? SM_PAUSED : SM_PLAYING;
     strcpy(sm.id, playing->id);
@@ -336,8 +370,8 @@ static void report(void) {
     sm.data = playing->played / (uaudio_rate * uaudio_channels);
     pthread_mutex_unlock(&lock);
     speaker_send(1, &sm);
+    time(&last_report);
   }
-  time(&last_report);
 }
 
 /** @brief Add a file descriptor to the set to poll() for
@@ -419,9 +453,9 @@ static void mainloop(void) {
     int force_report = 0;
 
     fdno = 0;
-    /* By default we will wait up to a second before thinking about current
-     * state. */
-    timeout = 1000;
+    /* By default we will wait up to half a second before thinking about
+     * current state. */
+    timeout = 500;
     /* Always ready for commands from the main server. */
     stdin_slot = addfd(0, POLLIN);
     /* Also always ready for inbound connections */
@@ -495,18 +529,32 @@ static void mainloop(void) {
        * this won't be the case, so we don't bother looping around to pick them
        * all up. */ 
       n = speaker_recv(0, &sm);
-      /* TODO */
       if(n > 0)
+        /* As a rule we don't send success replies to most commands - we just
+         * force the regular status update to be sent immediately rather than
+         * on schedule. */
 	switch(sm.type) {
 	case SM_PLAY:
-          if(playing)
-            fatal(0, "got SM_PLAY but already playing something");
+          /* SM_PLAY is only allowed if the server reasonably believes that
+           * nothing is playing */
+          if(playing) {
+            /* If finished isn't set then the server can't believe that this
+             * track has finished */
+            if(!playing->finished)
+              fatal(0, "got SM_PLAY but already playing something");
+            /* If pending_playing is set then the server must believe that that
+             * is playing */
+            if(pending_playing)
+              fatal(0, "got SM_PLAY but have a pending playing track");
+          }
 	  t = findtrack(sm.id, 1);
           D(("SM_PLAY %s fd %d", t->id, t->fd));
           if(t->fd == -1)
             error(0, "cannot play track because no connection arrived");
-          playing = t;
-          force_report = 1;
+          pending_playing = t;
+          /* If nothing is currently playing then we'll switch to the pending
+           * track below so there's no point distinguishing the situations
+           * here. */
 	  break;
 	case SM_PAUSE:
           D(("SM_PAUSE"));
@@ -523,10 +571,15 @@ static void mainloop(void) {
 	  t = removetrack(sm.id);
 	  if(t) {
             pthread_mutex_lock(&lock);
-	    if(t == playing) {
-              /* scratching the playing track */
+	    if(t == playing || t == pending_playing) {
+              /* Scratching the track that the server believes is playing,
+               * which might either be the actual playing track or a pending
+               * playing track */
               sm.type = SM_FINISHED;
-	      playing = 0;
+              if(t == playing)
+                playing = 0;
+              else
+                pending_playing = 0;
             } else {
               /* Could be scratching the playing track before it's quite got
                * going, or could be just removing a track from the queue.  We
@@ -571,18 +624,36 @@ static void mainloop(void) {
 
       read(sigpipe[0], buffer, sizeof buffer);
     }
-    if(playing && playing->used == 0 && playing->eof) {
-      /* The playing track is done.  Tell the server, and destroy it. */
+    /* Send SM_FINISHED when we're near the end of the track.
+     *
+     * This is how we implement gapless play; we hope that the SM_PLAY from the
+     * server arrives before the remaining bytes of the track play out.
+     */
+    if(playing
+       && playing->eof
+       && !playing->finished
+       && playing->used <= early_finish) {
       memset(&sm, 0, sizeof sm);
       sm.type = SM_FINISHED;
       strcpy(sm.id, playing->id);
       speaker_send(1, &sm);
-      removetrack(playing->id);
+      playing->finished = 1;
+    }
+    /* When the track is actually finished, deconfigure it */
+    if(playing && playing->eof && !playing->used) {
       pthread_mutex_lock(&lock);
+      removetrack(playing->id);
       destroy(playing);
       playing = 0;
       pthread_mutex_unlock(&lock);
-      /* The server will presumalby send as an SM_PLAY by return */
+    }
+    /* Act on the pending SM_PLAY */
+    if(pending_playing) {
+      pthread_mutex_lock(&lock);
+      playing = pending_playing;
+      pending_playing = 0;
+      pthread_mutex_unlock(&lock);
+      force_report = 1;
     }
     /* Impose any state change required by the above */
     if(playable()) {
@@ -666,6 +737,7 @@ int main(int argc, char **argv) {
                     config->sample_format.channels,
                     config->sample_format.bits,
                     config->sample_format.bits != 8);
+  early_finish = uaudio_sample_size * uaudio_channels * uaudio_rate;
   /* TODO other parameters! */
   backend = uaudio_find(config->api);
   /* backend-specific initialization */
