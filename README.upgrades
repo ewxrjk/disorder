@@ -17,6 +17,14 @@ all 1.1.x versions.
 
 If you install from .deb files then much of this work is automated.
 
+* 4.x -> 4.4
+
+The syntax of confirmation strings for online registrations has changed and old
+ones no longer work.  This only affects users who registered before the upgrade
+but have not yet confirmed their login.  You can delete such half-created users
+with 'disorder deluser USERNAME' (as an administrative user, for instance as
+root on the server) and they can start the registration process again.
+
 * 3.0 -> 4.x
 
 If you customized any of the templates, you will pretty much have to start from

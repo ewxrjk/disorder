@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +17,18 @@
  */
 
 #include "disorder-server.h"
+#include "basen.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
 #endif
 
 #ifndef CONFIRM_SIZE
-# define CONFIRM_SIZE 10
+/** @brief Size of nonce in confirmation string in 32-bit words
+ *
+ * 64 bits gives 11 digits (in base 62).
+ */
+# define CONFIRM_SIZE 2
 #endif
 
 int volume_left, volume_right;		/* last known volume */
@@ -1318,30 +1323,23 @@ static int c_users(struct conn *c,
   return 1;				/* completed */
 }
 
-/** @brief Base64 mapping table for confirmation strings
- *
- * This is used with generic_to_base64() and generic_base64().  We cannot use
- * the MIME table as that contains '+' and '=' which get quoted when
- * URL-encoding.  (The CGI still does the URL encoding but it is desirable to
- * avoid it being necessary.)
- */
-static const char confirm_base64_table[] =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/.*";
-
 static int c_register(struct conn *c,
 		      char **vec,
 		      int attribute((unused)) nvec) {
-  char *buf, *cs;
-  size_t bufsize;
-  int offset;
+  char *cs;
+  uint32_t nonce[CONFIRM_SIZE];
+  char nonce_str[(32 * CONFIRM_SIZE) / 5 + 1];
 
-  /* The confirmation string is base64(username;nonce) */
-  bufsize = strlen(vec[0]) + CONFIRM_SIZE + 2;
-  buf = xmalloc_noptr(bufsize);
-  offset = byte_snprintf(buf, bufsize, "%s;", vec[0]);
-  gcry_randomize(buf + offset, CONFIRM_SIZE, GCRY_STRONG_RANDOM);
-  cs = generic_to_base64((uint8_t *)buf, offset + CONFIRM_SIZE,
-			 confirm_base64_table);
+  /* The confirmation string is username/base62(nonce).  The confirmation
+   * process will pick the username back out to identify them but the _whole_
+   * string is used as the confirmation string.  Base 62 means we used only
+   * letters and digits, minimizing the chance of the URL being mispasted. */
+  gcry_randomize(nonce, sizeof nonce, GCRY_STRONG_RANDOM);
+  if(basen(nonce, CONFIRM_SIZE, nonce_str, sizeof nonce_str, 62)) {
+    error(0, "buffer too small encoding confirmation string");
+    sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
+  }
+  byte_xasprintf(&cs, "%s/%s", vec[0], nonce_str);
   if(trackdb_adduser(vec[0], vec[1], config->default_rights, vec[2], cs))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
@@ -1352,7 +1350,6 @@ static int c_register(struct conn *c,
 static int c_confirm(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  size_t nuser;
   char *user, *sep;
   rights_type rights;
   const char *host;
@@ -1362,12 +1359,12 @@ static int c_confirm(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "530 Authentication failure\n");
     return 1;
   }
-  if(!(user = generic_base64(vec[0], &nuser, confirm_base64_table))
-     || !(sep = memchr(user, ';', nuser))) {
+  /* Picking the LAST / means we don't (here) rule out slashes in usernames. */
+  if(!(sep = strrchr(vec[0], '/'))) {
     sink_writes(ev_writer_sink(c->w), "550 Malformed confirmation string\n");
     return 1;
   }
-  *sep = 0;
+  user = xstrndup(vec[0], sep - vec[0]);
   if(trackdb_confirm(user, vec[0], &rights))
     sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
   else {
