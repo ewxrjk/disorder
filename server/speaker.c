@@ -648,7 +648,7 @@ static void mainloop(void) {
       pthread_mutex_unlock(&lock);
     }
     /* Act on the pending SM_PLAY */
-    if(pending_playing) {
+    if(!playing && pending_playing) {
       pthread_mutex_lock(&lock);
       playing = pending_playing;
       pending_playing = 0;
