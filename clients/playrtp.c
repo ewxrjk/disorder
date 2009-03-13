@@ -104,7 +104,7 @@ unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
 /** @brief Buffer high watermark
  *
  * We'll only start playing when this many samples are available. */
-static unsigned readahead = 2 * 2 * 44100;
+static unsigned readahead = 44100;      /* 0.5 seconds */
 
 /** @brief Maximum buffer size
  *
