@@ -580,6 +580,7 @@ int main(int argc, char **argv) {
   union any_sockaddr mgroup;
   const char *dumpfile = 0;
   pthread_t ltid;
+  static const int one = 1;
 
   static const struct addrinfo prefs = {
     .ai_flags = AI_PASSIVE,
@@ -651,8 +652,14 @@ int main(int argc, char **argv) {
                      res->ai_socktype,
                      res->ai_protocol)) < 0)
     fatal(errno, "error creating socket");
-  /* Stash the multicast group address */
-  if((is_multicast = multicast(res->ai_addr))) {
+  /* Allow multiple listeners */
+  xsetsockopt(rtpfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+  is_multicast = multicast(res->ai_addr);
+  /* The multicast and unicast/broadcast cases are different enough that they
+   * are totally split.  Trying to find commonality between them causes more
+   * trouble that it's worth. */
+  if(is_multicast) {
+    /* Stash the multicast group address */
     memcpy(&mgroup, res->ai_addr, res->ai_addrlen);
     switch(res->ai_addr->sa_family) {
     case AF_INET:
@@ -661,24 +668,13 @@ int main(int argc, char **argv) {
     case AF_INET6:
       mgroup.in6.sin6_port = 0;
       break;
+    default:
+      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
     }
-  }
-  /* Bind to 0/port */
-  switch(res->ai_addr->sa_family) {
-  case AF_INET:
-    memset(&((struct sockaddr_in *)res->ai_addr)->sin_addr, 0,
-           sizeof (struct in_addr));
-    break;
-  case AF_INET6:
-    memset(&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, 0,
-           sizeof (struct in6_addr));
-    break;
-  default:
-    fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
-  }
-  if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-    fatal(errno, "error binding socket to %s", sockname);
-  if(is_multicast) {
+    /* Bind to to the multicast group address */
+    if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
+      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+    /* Add multicast group membership */
     switch(mgroup.sa.sa_family) {
     case PF_INET:
       mreq.imr_multiaddr = mgroup.in.sin_addr;
@@ -697,10 +693,35 @@ int main(int argc, char **argv) {
     default:
       fatal(0, "unsupported address family %d", res->ai_family);
     }
+    /* Report what we did */
     info("listening on %s multicast group %s",
          format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
-  } else
+  } else {
+    /* Bind to 0/port */
+    switch(res->ai_addr->sa_family) {
+    case AF_INET: {
+      struct sockaddr_in *in = (struct sockaddr_in *)res->ai_addr;
+      
+      memset(&in->sin_addr, 0, sizeof (struct in_addr));
+      if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
+        fatal(errno, "error binding socket to 0.0.0.0 port %d",
+              ntohs(in->sin_port));
+      break;
+    }
+    case AF_INET6: {
+      struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)res->ai_addr;
+      
+      memset(&in6->sin6_addr, 0, sizeof (struct in6_addr));
+      break;
+    }
+    default:
+      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+    }
+    if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
+      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+    /* Report what we did */
     info("listening on %s", format_sockaddr(res->ai_addr));
+  }
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
     fatal(errno, "error calling getsockopt SO_RCVBUF");
