@@ -763,7 +763,9 @@ int main(int argc, char **argv) {
     info("Playing...");
     next_timestamp = pheap_first(&packets)->timestamp;
     active = 1;
+    pthread_mutex_unlock(&lock);
     backend->activate();
+    pthread_mutex_lock(&lock);
     /* Wait until the buffer empties out */
     while(nsamples >= minbuffer
 	  || (nsamples > 0
@@ -771,7 +773,9 @@ int main(int argc, char **argv) {
       pthread_cond_wait(&cond, &lock);
     }
     /* Stop playing for a bit until the buffer re-fills */
+    pthread_mutex_unlock(&lock);
     backend->deactivate();
+    pthread_mutex_lock(&lock);
     active = 0;
     /* Go back round */
   }

@@ -34,6 +34,15 @@ extern size_t uaudio_sample_size;
  * @param max_samples How many samples to supply
  * @param userdata As passed to uaudio_open()
  * @return Number of samples filled
+ *
+ * This function should not block if possible (better to fill the buffer with
+ * 0s) and should definitely not block indefinitely.  This great caution with
+ * any locks or syscalls!  In particular avoid it taking a lock that may be
+ * held while any of the @ref uaudio members are called.
+ *
+ * If it's more convenient, it's OK to return less than the maximum number of
+ * samples (including 0) provided you expect to be called again for more
+ * samples immediately.
  */
 typedef size_t uaudio_callback(void *buffer,
                                size_t max_samples,
