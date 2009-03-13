@@ -136,7 +136,17 @@ void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,
 			 uaudio_playcallback *playcallback,
 			 size_t min,
-                         size_t max);
+                         size_t max,
+                         unsigned flags);
+
+/** @brief Fake pauses
+ *
+ * This flag is used for audio backends that cannot sensibly be paused.
+ * The thread support code will supply silence while deactivated in this
+ * case.
+ */
+#define UAUDIO_THREAD_FAKE_PAUSE 0x00000001
+
 void uaudio_thread_stop(void);
 void uaudio_thread_activate(void);
 void uaudio_thread_deactivate(void);

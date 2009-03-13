@@ -121,7 +121,8 @@ static void command_start(uaudio_callback *callback,
                       userdata,
                       command_play,
                       uaudio_channels,
-		      4096 / uaudio_sample_size);
+		      4096 / uaudio_sample_size,
+                      UAUDIO_THREAD_FAKE_PAUSE);
 }
 
 static void command_stop(void) {

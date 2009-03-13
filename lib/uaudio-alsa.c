@@ -136,7 +136,8 @@ static void alsa_start(uaudio_callback *callback,
   alsa_open();
   uaudio_thread_start(callback, userdata, alsa_play,
                       32 / uaudio_sample_size,
-                      4096 / uaudio_sample_size);
+                      4096 / uaudio_sample_size,
+                      0);
 }
 
 static void alsa_stop(void) {

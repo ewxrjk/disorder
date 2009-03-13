@@ -128,13 +128,15 @@ static void oss_start(uaudio_callback *callback,
   /* Very specific buffer size requirements here apparently */
   uaudio_thread_start(callback, userdata, oss_play, 
                       4608 / uaudio_sample_size,
-                      4608 / uaudio_sample_size);
+                      4608 / uaudio_sample_size,
+                      0);
 #else
   /* We could SNDCTL_DSP_GETBLKSIZE but only when the device is already open,
    * which is kind of inconvenient.  We go with 1-4Kbyte for now. */
   uaudio_thread_start(callback, userdata, oss_play, 
                       32 / uaudio_sample_size,
-                      4096 / uaudio_sample_size);
+                      4096 / uaudio_sample_size,
+                      0);
 #endif
 }
 

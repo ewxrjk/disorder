@@ -281,7 +281,8 @@ static void rtp_start(uaudio_callback *callback,
                       rtp_play,
                       256 / uaudio_sample_size,
                       (NETWORK_BYTES - sizeof(struct rtp_header))
-                      / uaudio_sample_size);
+                      / uaudio_sample_size,
+                      0);
 }
 
 static void rtp_stop(void) {
