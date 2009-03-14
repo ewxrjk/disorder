@@ -190,7 +190,7 @@ tracklength *.mp3 disorder-tracklength
 tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
-api network
+api rtp
 broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
 mail_sender no.such.user.sorry@greenend.org.uk
