@@ -163,9 +163,13 @@ struct track {
 /** @brief Lock protecting data structures
  *
  * This lock protects values shared between the main thread and the callback.
- * It is needed e.g. if changing @ref playing or if modifying buffer pointers.
- * It is not needed to add a new track, to read values only modified in the
- * same thread, etc.
+ *
+ * It is held 'all' the time by the main thread, the exceptions being when
+ * called activate/deactivate callbacks and when calling (potentially) slow
+ * system calls (in particular poll(), where in fact the main thread will spend
+ * most of its time blocked).
+ *
+ * The callback holds it when it's running.
  */
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -299,7 +303,6 @@ static int speaker_fill(struct track *t) {
      t->id, t->eof, t->used));
   if(t->eof)
     return -1;
-  pthread_mutex_lock(&lock);
   if(t->used < sizeof t->buffer) {
     /* there is room left in the buffer */
     where = (t->start + t->used) % sizeof t->buffer;
@@ -334,7 +337,6 @@ static int speaker_fill(struct track *t) {
       rc = 0;
     }
   }
-  pthread_mutex_unlock(&lock);
   return rc;
 }
 
@@ -366,9 +368,7 @@ static void report(void) {
     memset(&sm, 0, sizeof sm);
     sm.type = paused ? SM_PAUSED : SM_PLAYING;
     strcpy(sm.id, playing->id);
-    pthread_mutex_lock(&lock);
     sm.data = playing->played / (uaudio_rate * uaudio_channels);
-    pthread_mutex_unlock(&lock);
     speaker_send(1, &sm);
     time(&last_report);
   }
@@ -437,6 +437,10 @@ static size_t speaker_callback(void *buffer,
   if(!provided_samples) {
     memset(buffer, 0, max_bytes);
     provided_samples = max_samples;
+    if(playing)
+      info("%zu samples silence, playing->used=%zu", provided_samples, playing->used);
+    else
+      info("%zu samples silence, playing=NULL", provided_samples);
   }
   pthread_mutex_unlock(&lock);
   return provided_samples;
@@ -449,6 +453,7 @@ static void mainloop(void) {
   int n, fd, stdin_slot, timeout, listen_slot, sigpipe_slot;
 
   /* Keep going while our parent process is alive */
+  pthread_mutex_lock(&lock);
   while(getppid() != 1) {
     int force_report = 0;
 
@@ -481,9 +486,11 @@ static void mainloop(void) {
         } else
           t->slot = -1;
       }
-    sigpipe_slot = addfd(sigpipe[1], POLLIN);
+    sigpipe_slot = addfd(sigpipe[0], POLLIN);
     /* Wait for something interesting to happen */
+    pthread_mutex_unlock(&lock);
     n = poll(fds, fdno, timeout);
+    pthread_mutex_lock(&lock);
     if(n < 0) {
       if(errno == EINTR) continue;
       fatal(errno, "error calling poll");
@@ -570,7 +577,6 @@ static void mainloop(void) {
           D(("SM_CANCEL %s", sm.id));
 	  t = removetrack(sm.id);
 	  if(t) {
-            pthread_mutex_lock(&lock);
 	    if(t == playing || t == pending_playing) {
               /* Scratching the track that the server believes is playing,
                * which might either be the actual playing track or a pending
@@ -591,7 +597,6 @@ static void mainloop(void) {
             }
             strcpy(sm.id, t->id);
 	    destroy(t);
-            pthread_mutex_unlock(&lock);
 	  } else {
             /* Probably scratching the playing track well before it's got
              * going, but could indicate a bug, so we log this as an error. */
@@ -641,30 +646,30 @@ static void mainloop(void) {
     }
     /* When the track is actually finished, deconfigure it */
     if(playing && playing->eof && !playing->used) {
-      pthread_mutex_lock(&lock);
       removetrack(playing->id);
       destroy(playing);
       playing = 0;
-      pthread_mutex_unlock(&lock);
     }
     /* Act on the pending SM_PLAY */
     if(!playing && pending_playing) {
-      pthread_mutex_lock(&lock);
       playing = pending_playing;
       pending_playing = 0;
-      pthread_mutex_unlock(&lock);
       force_report = 1;
     }
     /* Impose any state change required by the above */
     if(playable()) {
       if(!activated) {
         activated = 1;
+        pthread_mutex_unlock(&lock);
         backend->activate();
+        pthread_mutex_lock(&lock);
       }
     } else {
       if(activated) {
         activated = 0;
+        pthread_mutex_unlock(&lock);
         backend->deactivate();
+        pthread_mutex_lock(&lock);
       }
     }
     /* If we've not reported our state for a second do so now. */
