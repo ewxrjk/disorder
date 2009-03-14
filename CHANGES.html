@@ -66,13 +66,28 @@ span.command {
  
     <div class=section>
 
-      <p>The <tt>device</tt> configuration option work under OS X.  Devices may
+      <p>The <tt>device</tt> configuration option no works under OS X.
+      Devices may
       be specified either by UID or name.  Fixes <a
        href="http://code.google.com/p/disorder/issues/detail?id=27">Issue
       27</a>.</p>
 
-      <p>Confirmation URLs for online registrations are cleaner now.</p>
+      <p>Gapless play should be more reliable, and playback latency over
+      RTP should be a bit lower.</p>
+      
+      <p>The <tt>command</tt> backend now (optionally) sends silence instead
+      of suspending writes when a pause occurs or no track is playing.</p>
+      
+    </div>
+      
+    <h3>Web Interface</h3>
+ 
+    <div class=section>
 
+      <p>Confirmation URLs should be cleaner (and in particular not end
+      with punctuation).  (Please see <a
+      href="README.upgrades">README.upgrades</a> for more about this.)</p>
+      
     </div>
       
     <h3>RTP Player</h3>
@@ -87,7 +102,21 @@ span.command {
       under OS X (as above).</p>
         
     </div>
+      
+    <h3>General</h3>
 
+    <div class=section>
+
+      <p>IPv6 should now work.  Network address specifications
+      (<tt>listen</tt>, <tt>connect</tt> etc) can now be prefixed with
+      <tt>-4</tt> or <tt>-6</tt> to force use
+      of IPv4 or IPv6, though normally this should not be needed.</p>
+
+      <p>Various elements of the source code have been
+      rationalized.</p>
+      
+    </div>
+    
     <h3>Bugs fixed</h3>
   
     <div class=section>
@@ -103,6 +132,11 @@ span.command {
           <td>Mac DisOrder uses wrong sound device</td>
         </tr>
 
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=33">#33</a></d>
+          <td>(Some) plugins need -lm.</td>
+        </tr>
+        
       </table>
       
     </div>
