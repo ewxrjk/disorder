@@ -27,7 +27,6 @@ endif
 
 libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
-	alsabg.c alsabg.h				\
 	arcfour.c arcfour.h				\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
