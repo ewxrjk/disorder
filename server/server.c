@@ -1105,9 +1105,12 @@ static int c_rtp_address(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
   if(api == &uaudio_rtp) {
+    char **addr;
+
+    netaddress_format(&config->broadcast, NULL, &addr);
     sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
-		quoteutf8(config->broadcast.s[0]),
-		quoteutf8(config->broadcast.s[1]));
+		quoteutf8(addr[1]),
+		quoteutf8(addr[2]));
   } else
     sink_writes(ev_writer_sink(c->w), "550 No RTP\n");
   return 1;

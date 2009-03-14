@@ -24,6 +24,7 @@
 #include "uaudio.h"
 #include "hash.h"
 #include "mem.h"
+#include "log.h"
 
 /** @brief Options for chosen uaudio API */
 static hash *uaudio_options;

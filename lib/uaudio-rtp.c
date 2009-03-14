@@ -85,6 +85,50 @@ static const char *const rtp_options[] = {
   NULL
 };
 
+static void rtp_get_netconfig(const char *af,
+                              const char *addr,
+                              const char *port,
+                              struct netaddress *na) {
+  char *vec[3];
+  
+  vec[0] = uaudio_get(af, NULL);
+  vec[1] = uaudio_get(addr, NULL);
+  vec[2] = uaudio_get(port, NULL);
+  if(!*vec)
+    na->af = -1;
+  else
+    if(netaddress_parse(na, 3, vec))
+      fatal(0, "invalid RTP address");
+}
+
+static void rtp_set_netconfig(const char *af,
+                              const char *addr,
+                              const char *port,
+                              const struct netaddress *na) {
+  uaudio_set(af, NULL);
+  uaudio_set(addr, NULL);
+  uaudio_set(port, NULL);
+  if(na->af != -1) {
+    int nvec;
+    char **vec;
+
+    netaddress_format(na, &nvec, &vec);
+    if(nvec > 0) {
+      uaudio_set(af, vec[0]);
+      xfree(vec[0]);
+    }
+    if(nvec > 1) {
+      uaudio_set(addr, vec[1]);
+      xfree(vec[1]);
+    }
+    if(nvec > 2) {
+      uaudio_set(port, vec[2]);
+      xfree(vec[2]);
+    }
+    xfree(vec);
+  }
+}
+
 static size_t rtp_play(void *buffer, size_t nsamples) {
   struct rtp_header header;
   struct iovec vec[2];
@@ -129,52 +173,31 @@ static size_t rtp_play(void *buffer, size_t nsamples) {
 
 static void rtp_open(void) {
   struct addrinfo *res, *sres;
-  static const struct addrinfo pref = {
-    .ai_flags = 0,
-    .ai_family = PF_INET,
-    .ai_socktype = SOCK_DGRAM,
-    .ai_protocol = IPPROTO_UDP,
-  };
-  static const struct addrinfo prefbind = {
-    .ai_flags = AI_PASSIVE,
-    .ai_family = PF_INET,
-    .ai_socktype = SOCK_DGRAM,
-    .ai_protocol = IPPROTO_UDP,
-  };
   static const int one = 1;
   int sndbuf, target_sndbuf = 131072;
   socklen_t len;
-  char *sockname, *ssockname;
-  struct stringlist dst, src;
+  struct netaddress dst[1], src[1];
   
   /* Get configuration */
-  dst.n = 2;
-  dst.s = xcalloc(2, sizeof *dst.s);
-  dst.s[0] = uaudio_get("rtp-destination", NULL);
-  dst.s[1] = uaudio_get("rtp-destination-port", NULL);
-  src.n = 2;
-  src.s = xcalloc(2, sizeof *dst.s);
-  src.s[0] = uaudio_get("rtp-source", NULL);
-  src.s[1] = uaudio_get("rtp-source-port", NULL);
-  if(!dst.s[0])
-    fatal(0, "'rtp-destination' not set");
-  if(!dst.s[1])
-    fatal(0, "'rtp-destination-port' not set");
-  if(src.s[0]) {
-    if(!src.s[1])
-      fatal(0, "'rtp-source-port' not set");
-    src.n = 2;
-  } else
-    src.n = 0;
+  rtp_get_netconfig("rtp-destination-af",
+                    "rtp-destination",
+                    "rtp-destination-port",
+                    dst);
+  rtp_get_netconfig("rtp-source-af",
+                    "rtp-source",
+                    "rtp-source-port",
+                    src);
   rtp_delay_threshold = atoi(uaudio_get("rtp-delay-threshold", "1000"));
   /* ...microseconds */
 
   /* Resolve addresses */
-  res = get_address(&dst, &pref, &sockname);
-  if(!res) exit(-1);
-  if(src.n) {
-    sres = get_address(&src, &prefbind, &ssockname);
-    if(!sres) exit(-1);
+  res = netaddress_resolve(dst, 0, IPPROTO_UDP);
+  if(!res)
+    exit(-1);
+  if(src->af != -1) {
+    sres = netaddress_resolve(src, 1, IPPROTO_UDP);
+    if(!sres)
+      exit(-1);
   } else
     sres = 0;
   /* Create the socket */
@@ -209,7 +232,7 @@ static void rtp_open(void) {
       fatal(0, "unsupported address family %d", res->ai_family);
     }
     info("multicasting on %s TTL=%d loop=%s", 
-         sockname, ttl, loop ? "yes" : "no");
+         format_sockaddr(res->ai_addr), ttl, loop ? "yes" : "no");
   } else {
     struct ifaddrs *ifs;
 
@@ -228,9 +251,10 @@ static void rtp_open(void) {
     if(ifs) {
       if(setsockopt(rtp_fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
         fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-      info("broadcasting on %s (%s)", sockname, ifs->ifa_name);
+      info("broadcasting on %s (%s)", 
+           format_sockaddr(res->ai_addr), ifs->ifa_name);
     } else
-      info("unicasting on %s", sockname);
+      info("unicasting on %s", format_sockaddr(res->ai_addr));
   }
   /* Enlarge the socket buffer */
   len = sizeof sndbuf;
@@ -250,9 +274,11 @@ static void rtp_open(void) {
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
   if(sres && bind(rtp_fd, sres->ai_addr, sres->ai_addrlen) < 0)
-    fatal(errno, "error binding broadcast socket to %s", ssockname);
+    fatal(errno, "error binding broadcast socket to %s", 
+          format_sockaddr(sres->ai_addr));
   if(connect(rtp_fd, res->ai_addr, res->ai_addrlen) < 0)
-    fatal(errno, "error connecting broadcast socket to %s", sockname);
+    fatal(errno, "error connecting broadcast socket to %s", 
+          format_sockaddr(res->ai_addr));
 }
 
 static void rtp_start(uaudio_callback *callback,
@@ -303,15 +329,12 @@ static void rtp_deactivate(void) {
 static void rtp_configure(void) {
   char buffer[64];
 
-  uaudio_set("rtp-destination", config->broadcast.s[0]);
-  uaudio_set("rtp-destination-port", config->broadcast.s[1]);
-  if(config->broadcast_from.n) {
-    uaudio_set("rtp-source", config->broadcast_from.s[0]);
-    uaudio_set("rtp-source-port", config->broadcast_from.s[1]);
-  } else {
-    uaudio_set("rtp-source", NULL);
-    uaudio_set("rtp-source-port", NULL);
-  }
+  rtp_set_netconfig("rtp-destination-af",
+                    "rtp-destination",
+                    "rtp-destination-port", &config->broadcast);
+  rtp_set_netconfig("rtp-source-af",
+                    "rtp-source",
+                    "rtp-source-port", &config->broadcast_from);
   snprintf(buffer, sizeof buffer, "%ld", config->multicast_ttl);
   uaudio_set("multicast-ttl", buffer);
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");

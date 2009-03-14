@@ -489,6 +489,18 @@ static int set_rights(const struct config_state *cs,
   return 0;
 }
 
+static int set_netaddress(const struct config_state *cs,
+			  const struct conf *whoami,
+			  int nvec, char **vec) {
+  struct netaddress *na = ADDRESS(cs->config, struct netaddress);
+
+  if(netaddress_parse(na, nvec, vec)) {
+    error(0, "%s:%d: invalid network address", cs->path, cs->line);
+    return -1;
+  }
+  return 0;
+}
+
 /* free functions */
 
 static void free_none(struct config attribute((unused)) *c,
@@ -572,6 +584,13 @@ static void free_transformlist(struct config *c,
   xfree(tl->t);
 }
 
+static void free_netaddress(struct config *c,
+			    const struct conf *whoami) {
+  struct netaddress *na = ADDRESS(c, struct netaddress);
+
+  xfree(na->address);
+}
+
 /* configuration types */
 
 static const struct conftype
@@ -587,6 +606,7 @@ static const struct conftype
   type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
+  type_netaddress = { set_netaddress, free_netaddress },
   type_rights = { set_rights, free_none };
 
 /* specific validation routine */
@@ -898,6 +918,22 @@ static int validate_pausemode(const struct config_state attribute((unused)) *cs,
   return -1;
 }
 
+static int validate_destaddr(const struct config_state attribute((unused)) *cs,
+			     int nvec,
+			     char **vec) {
+  struct netaddress na[1];
+
+  if(netaddress_parse(na, nvec, vec)) {
+    error(0, "%s:%d: invalid network address", cs->path, cs->line);
+    return -1;
+  }
+  if(!na->address) {
+    error(0, "%s:%d: destination address required", cs->path, cs->line);
+    return -1;
+  }
+  return 0;
+}
+
 /** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
 /** @brief Item name and and offset */
@@ -909,8 +945,8 @@ static const struct conf conf[] = {
   { C(allow),            &type_stringlist_accum, validate_allow },
   { C(api),              &type_string,           validate_backend },
   { C(authorization_algorithm), &type_string,    validate_algo },
-  { C(broadcast),        &type_stringlist,       validate_addrport },
-  { C(broadcast_from),   &type_stringlist,       validate_addrport },
+  { C(broadcast),        &type_netaddress,       validate_destaddr },
+  { C(broadcast_from),   &type_netaddress,       validate_any },
   { C(channel),          &type_string,           validate_any },
   { C(checkpoint_kbyte), &type_integer,          validate_non_negative },
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
@@ -1202,6 +1238,8 @@ static struct config *config_default(void) {
 		       default_players[n], "disorder-tracklength", (char *)0))
       exit(1);
   }
+  c->broadcast.af = -1;
+  c->broadcast_from.af = -1;
   return c;
 }
 
@@ -1273,7 +1311,7 @@ static void config_postdefaults(struct config *c,
   if(!c->api) {
     if(c->speaker_command)
       c->api = xstrdup("command");
-    else if(c->broadcast.n)
+    else if(c->broadcast.af != -1)
       c->api = xstrdup("rtp");
     else if(config_uaudio_apis)
       c->api = xstrdup(config_uaudio_apis[0]->name);
@@ -1285,7 +1323,7 @@ static void config_postdefaults(struct config *c,
   if(server) {
     if(!strcmp(c->api, "command") && !c->speaker_command)
       fatal(0, "'api command' but speaker_command is not set");
-    if((!strcmp(c->api, "rtp")) && !c->broadcast.n)
+    if((!strcmp(c->api, "rtp")) && c->broadcast.af == -1)
       fatal(0, "'api rtp' but broadcast is not set");
   }
   /* Override sample format */

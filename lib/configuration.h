@@ -26,6 +26,7 @@
 
 #include "speaker-protocol.h"
 #include "rights.h"
+#include "addr.h"
 
 struct uaudio;
 
@@ -233,10 +234,10 @@ struct config {
   struct transformlist transform;	/* path name transformations */
 
   /** @brief Address to send audio data to */
-  struct stringlist broadcast;
+  struct netaddress broadcast;
 
   /** @brief Source address for network audio transmission */
-  struct stringlist broadcast_from;
+  struct netaddress broadcast_from;
 
   /** @brief RTP delay threshold */
   long rtp_delay_threshold;

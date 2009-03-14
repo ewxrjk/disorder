@@ -23,7 +23,23 @@
 
 #include <netdb.h>
 
-#include "configuration.h"
+struct stringlist;
+
+/** @brief A network address */
+struct netaddress {
+  /** @brief Address family
+   *
+   * Typically @c AF_UNIX, @c AF_INET, @c AF_INET6 or @c AF_UNSPEC.
+   * Set to -1 to mean 'no address'.
+   */
+  int af;
+
+  /** @brief Address or NULL for 'any' */
+  char *address;
+
+  /** @brief Port number */
+  int port;
+};
 
 struct addrinfo *get_address(const struct stringlist *a,
 			     const struct addrinfo *pref,
@@ -34,6 +50,16 @@ int addrinfocmp(const struct addrinfo *a,
 
 int multicast(const struct sockaddr *sa);
 char *format_sockaddr(const struct sockaddr *sa);
+
+int netaddress_parse(struct netaddress *na,
+		     int nvec,
+		     char **vec);
+void netaddress_format(const struct netaddress *na,
+		       int *nvecp,
+		       char ***vecp);
+struct addrinfo *netaddress_resolve(const struct netaddress *na,
+				    int passive,
+				    int protocol);
 
 #endif /* ADDR_H */
 
