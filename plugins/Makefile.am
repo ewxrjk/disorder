@@ -25,7 +25,7 @@ notify_la_LDFLAGS=-module
 
 disorder_tracklength_la_SOURCES=tracklength.c mad.c madshim.h ../lib/wav.h ../lib/wav.c
 disorder_tracklength_la_LDFLAGS=-module
-disorder_tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC)
+disorder_tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC) -lm
 
 fs_la_SOURCES=fs.c
 fs_la_LDFLAGS=-module
