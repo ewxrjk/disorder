@@ -217,6 +217,7 @@ static const struct option options[] = {
 #endif
   { "dump", required_argument, 0, 'r' },
   { "command", required_argument, 0, 'e' },
+  { "pause-mode", required_argument, 0, 'P' },
   { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
   { 0, 0, 0, 0 }
@@ -492,7 +493,9 @@ static void help(void) {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
           "  --core-audio, -c        Use Core Audio to play audio\n"
 #endif
-          "  --command, -e COMMAND   Pipe audio to command\n"
+          "  --command, -e COMMAND   Pipe audio to command.\n"
+          "  --pause-mode, -P silence  For -e: pauses send silence (default)\n"
+          "  --pause-mode, -P suspend  For -e: pauses suspend writes\n"
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
           );
@@ -592,7 +595,7 @@ int main(int argc, char **argv) {
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:re:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:re:P:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
@@ -616,6 +619,7 @@ int main(int argc, char **argv) {
     case 's': control_socket = optarg; break;
     case 'r': dumpfile = optarg; break;
     case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;
+    case 'P': uaudio_set("pause-mode", optarg); break;
     default: fatal(0, "invalid option");
     }
   }

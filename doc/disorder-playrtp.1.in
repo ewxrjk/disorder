@@ -66,7 +66,8 @@ If \fICOMMAND\fR exits it is re-executed; any samples that had been written to
 the pipe but not processed by the previous instance will be lost.
 .IP
 .B \-\-device
-is redundant with this option.
+is redundant with this option, but you might wan to set
+.BR \-\-pause\-mode .
 .IP
 As an example,
 .B "-e \(aqcat > dump\(aq"
@@ -74,6 +75,12 @@ would log audio data to a file for later processing.
 You could convert it to another format with, for instance:
 .IP
 .B "sox -c2 -traw -r44100 -s -w dump dump.wav"
+.TP
+.B \-\-pause\-mode \fIMODE\fR, \fB-P \fIMODE
+Set the pause mode for \fB\-\-command\fR to either \fBsilence\fR (the default), in
+which pauses are represented by sending silent samples, or \fBsuspend\fR, in which
+writes to  the subprocess are suspended, requiring it to infer a pause from flow
+control.
 .TP
 .B \-\-config \fIPATH\fR, \fB\-C \fIPATH
 Set the configuration file.

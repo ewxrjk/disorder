@@ -44,6 +44,7 @@ static pid_t command_pid;
 
 static const char *const command_options[] = {
   "command",
+  "pause-mode",
   NULL
 };
 
@@ -115,6 +116,15 @@ static size_t command_play(void *buffer, size_t nsamples) {
 
 static void command_start(uaudio_callback *callback,
                       void *userdata) {
+  const char *pausemode = uaudio_get("pause-mode", "silence");
+  unsigned flags = 0;
+
+  if(!strcmp(pausemode, "silence"))
+    flags |= UAUDIO_THREAD_FAKE_PAUSE;
+  else if(!strcmp(pausemode, "suspend"))
+    ;
+  else
+    fatal(0, "unknown pause mode '%s'", pausemode);
   command_open();
   uaudio_schedule_init();
   uaudio_thread_start(callback,
@@ -122,7 +132,7 @@ static void command_start(uaudio_callback *callback,
                       command_play,
                       uaudio_channels,
 		      4096 / uaudio_sample_size,
-                      UAUDIO_THREAD_FAKE_PAUSE);
+                      flags);
 }
 
 static void command_stop(void) {
