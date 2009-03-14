@@ -762,7 +762,7 @@ int main(int argc, char **argv) {
   if(password)
     config->password = password;
   if(local)
-    config->connect.n = 0;
+    config->connect.af = -1;
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
   /* gcrypt initialization */

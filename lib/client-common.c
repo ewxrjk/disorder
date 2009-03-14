@@ -45,17 +45,11 @@ socklen_t find_server(struct config *c,
   struct addrinfo *res = 0;
   char *name;
   socklen_t len;
-   
-  static const struct addrinfo pref = {
-    .ai_flags = 0,
-    .ai_family = PF_INET,
-    .ai_socktype = SOCK_STREAM,
-    .ai_protocol = IPPROTO_TCP,
-  };
 
-  if(c->connect.n) {
-    res = get_address(&c->connect, &pref, &name);
-    if(!res) return -1;
+  if(c->connect.af != -1) {
+    res = netaddress_resolve(&c->connect, 0, IPPROTO_TCP);
+    if(!res) 
+      return -1;
     sa = res->ai_addr;
     len = res->ai_addrlen;
   } else {
@@ -73,7 +67,7 @@ socklen_t find_server(struct config *c,
   *sap = xmalloc_noptr(len);
   memcpy(*sap, sa, len);
   if(namep)
-    *namep = name;
+    *namep = format_sockaddr(sa);
   if(res)
     freeaddrinfo(res);
   return len;

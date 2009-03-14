@@ -194,7 +194,7 @@ struct config {
   const char *password;
 
   /** @brief Address to connect to */
-  struct stringlist connect;
+  struct netaddress connect;
 
   /** @brief Directories to search for web templates */
   struct stringlist templates;

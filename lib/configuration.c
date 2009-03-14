@@ -833,27 +833,6 @@ static int validate_alias(const struct config_state *cs,
   return 0;
 }
 
-static int validate_addrport(const struct config_state attribute((unused)) *cs,
-			     int nvec,
-			     char attribute((unused)) **vec) {
-  switch(nvec) {
-  case 0:
-    error(0, "%s:%d: missing address",
-	  cs->path, cs->line);
-    return -1;
-  case 1:
-    error(0, "%s:%d: missing port name/number",
-	  cs->path, cs->line);
-    return -1;
-  case 2:
-    return 0;
-  default:
-    error(0, "%s:%d: expected ADDRESS PORT",
-	  cs->path, cs->line);
-    return -1;
-  }
-}
-
 static int validate_algo(const struct config_state attribute((unused)) *cs,
 			 int nvec,
 			 char **vec) {
@@ -933,7 +912,7 @@ static const struct conf conf[] = {
   { C(checkpoint_kbyte), &type_integer,          validate_non_negative },
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
-  { C(connect),          &type_stringlist,       validate_addrport },
+  { C(connect),          &type_netaddress,       validate_destaddr },
   { C(cookie_login_lifetime),  &type_integer,    validate_positive },
   { C(cookie_key_lifetime),  &type_integer,      validate_positive },
   { C(dbversion),        &type_integer,          validate_positive },
@@ -1223,6 +1202,7 @@ static struct config *config_default(void) {
   c->broadcast.af = -1;
   c->broadcast_from.af = -1;
   c->listen.af = -1;
+  c->connect.af = -1;
   return c;
 }
 

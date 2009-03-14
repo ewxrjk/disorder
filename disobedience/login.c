@@ -73,7 +73,7 @@ static void default_connect(void) {
   if(config->password)
     return;
   /* If we already have a host and/or port that's good too */
-  if(config->connect.n)
+  if(config->connect.af != -1)
     return;
   /* If there's a suitable socket that's probably what we wanted */
   const char *s = config_get_file("socket");
@@ -84,11 +84,21 @@ static void default_connect(void) {
 }
 
 static const char *get_hostname(void) {
-  return config->connect.n >= 2 ? config->connect.s[0] : "";
+  if(config->connect.af == -1 || !config->connect.address)
+    return "";
+  else
+    return config->connect.address;
 }
 
 static const char *get_service(void) {
-  return config->connect.n >= 2 ? config->connect.s[1] : "";
+  if(config->connect.af == -1)
+    return "";
+  else {
+    char *s;
+
+    byte_xasprintf(&s, "%d", config->connect.port);
+    return s;
+  }
 }
 
 static const char *get_username(void) {
@@ -100,11 +110,13 @@ static const char *get_password(void) {
 }
 
 static void set_hostname(struct config *c, const char *s) {
-  c->connect.s[0] = (char *)s;
+  if(c->connect.af == -1)
+    c->connect.af = AF_UNSPEC;
+  c->connect.address = xstrdup(s);
 }
 
 static void set_service(struct config *c, const char *s) {
-  c->connect.s[1] = (char *)s;
+  c->connect.port = atoi(s);
 }
 
 static void set_username(struct config *c, const char *s) {
@@ -131,13 +143,10 @@ static void login_update_config(struct config *c) {
   size_t n;
   const gboolean remote = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lwi_remote));
 
-  if(remote) {
-    c->connect.n = 2;
-    c->connect.s = xcalloc(2, sizeof (char *));
-  } else {
-    c->connect.n = 0;
-    c->connect.s = 0;
-  }
+  if(remote)
+    c->connect.af = AF_UNSPEC;
+  else
+    c->connect.af = -1;
   for(n = 0; n < NLWIS; ++n)
     if(remote || !(lwis[n].flags & LWI_REMOTE))
       lwis[n].set(c, xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
@@ -161,10 +170,12 @@ static void login_save_config(void) {
                    "password %s\n",
                    quoteutf8(config->username),
                    quoteutf8(config->password));
-  if(rc >= 0 && config->connect.n)
-    rc = fprintf(fp, "connect %s %s\n",
-                 quoteutf8(config->connect.s[0]),
-                 quoteutf8(config->connect.s[1]));
+  if(rc >= 0 && config->connect.af != -1) {
+    char **vec;
+
+    netaddress_format(&config->connect, NULL, &vec);
+    rc = fprintf(fp, "connect %s %s %s\n", vec[0], vec[1], vec[2]);
+  }
   if(rc < 0) {
     fpopup_msg(GTK_MESSAGE_ERROR, "error writing to %s: %s",
                tmp, strerror(errno));
@@ -327,7 +338,7 @@ void login_box(void) {
   }
   /* Initial settings */
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lwi_remote),
-                               config->connect.n >= 2);
+                               config->connect.af != -1);
   lwi_remote_toggled(GTK_TOGGLE_BUTTON(lwi_remote), 0);
   buttonbox = create_buttons(buttons, NBUTTONS);
   vbox = gtk_vbox_new(FALSE, 1);
