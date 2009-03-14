@@ -15,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file server/server-queue.c
+ * @brief Server-specific track queue support
+ */
 #include "disorder-server.h"
 
 /* the head of the queue is played next, so normally we add to the tail */

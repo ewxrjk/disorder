@@ -1,3 +1,6 @@
+/** @file server/endian.c
+ * @brief Expose runtime endianness to makefile for testing
+ */
 #include <config.h>
 #include <stdio.h>
 
