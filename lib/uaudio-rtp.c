@@ -307,7 +307,7 @@ static void rtp_configure(void) {
   uaudio_set("rtp-destination-port", config->broadcast.s[1]);
   if(config->broadcast_from.n) {
     uaudio_set("rtp-source", config->broadcast_from.s[0]);
-    uaudio_set("rtp-source-port", config->broadcast_from.s[0]);
+    uaudio_set("rtp-source-port", config->broadcast_from.s[1]);
   } else {
     uaudio_set("rtp-source", NULL);
     uaudio_set("rtp-source-port", NULL);
