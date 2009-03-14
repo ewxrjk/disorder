@@ -198,11 +198,15 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
  * @param playcallback Callback to play audio data
  * @param min Minimum number of samples to play in a chunk
  * @param max Maximum number of samples to play in a chunk
+ * @param flags Flags
  *
  * @p callback will be called multiple times in quick succession if necessary
  * to gather at least @p min samples.  Equally @p playcallback may be called
  * repeatedly in quick succession to play however much was received in a single
  * chunk.
+ *
+ * Possible flags are:
+ * - @ref UAUDIO_THREAD_FAKE_PAUSE
  */
 void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,

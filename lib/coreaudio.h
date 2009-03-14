@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/coreaudio.h
- * @brief Support for @ref BACKEND_COREAUDIO
+ * @brief Support for Apple Core Audio
  */
 
 #ifndef COREAUDIO_H

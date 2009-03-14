@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/coreaudio.c
- * @brief Support for @ref BACKEND_COREAUDIO
+ * @brief Support for Apple Core Audio
  */
 
 #include "common.h"
@@ -65,9 +65,9 @@ static AudioDeviceID coreaudio_use_default(void) {
 
 /** @brief Find a device by some string
  * @param selector Selector for property to look for
- * @param description Property description
  * @param devs List of device IDs
  * @param ndevs Number of device IDs in @p devs
+ * @param dev Desired device name
  * @param resultp Where to put device ID
  * @return 1 if found, 0 if not found
  */

@@ -24,20 +24,20 @@
  * systems.  There is no support for Microsoft Windows yet, and that will in
  * fact probably an entirely separate program.
  *
- * The program runs (at least) three threads.  listen_thread() is responsible
- * for reading RTP packets off the wire and adding them to the linked list @ref
- * received_packets, assuming they are basically sound.  queue_thread() takes
- * packets off this linked list and adds them to @ref packets (an operation
- * which might be much slower due to contention for @ref lock).
+ * The program runs (at least) three threads:
  *
- * The main thread is responsible for actually playing audio.  In ALSA this
- * means it waits until ALSA says it's ready for more audio which it then
- * plays.  See @ref clients/playrtp-alsa.c.
+ * listen_thread() is responsible for reading RTP packets off the wire and
+ * adding them to the linked list @ref received_packets, assuming they are
+ * basically sound.
  *
- * In Core Audio the main thread is only responsible for starting and stopping
- * play: the system does the actual playback in its own private thread, and
- * calls adioproc() to fetch the audio data.  See @ref
- * clients/playrtp-coreaudio.c.
+ * queue_thread() takes packets off this linked list and adds them to @ref
+ * packets (an operation which might be much slower due to contention for @ref
+ * lock).
+ *
+ * control_thread() accepts commands from Disobedience (or anything else).
+ *
+ * The main thread activates and deactivates audio playing via the @ref
+ * lib/uaudio.h API (which probably implies at least one further thread).
  *
  * Sometimes it happens that there is no audio available to play.  This may
  * because the server went away, or a packet was dropped, or the server
