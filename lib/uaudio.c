@@ -50,18 +50,25 @@ size_t uaudio_sample_size;
 
 /** @brief Set a uaudio option */
 void uaudio_set(const char *name, const char *value) {
+  if(!value) {
+    if(uaudio_options)
+      hash_remove(uaudio_options, name);
+    return;
+  }
   if(!uaudio_options)
     uaudio_options = hash_new(sizeof(char *));
   value = xstrdup(value);
   hash_add(uaudio_options, name, &value, HASH_INSERT_OR_REPLACE);
 }
 
-/** @brief Set a uaudio option */
-char *uaudio_get(const char *name) {
-  const char *value = (uaudio_options ?
-                       *(char **)hash_find(uaudio_options, name)
-                       : NULL);
-  return value ? xstrdup(value) : NULL;
+/** @brief Get a uaudio option */
+char *uaudio_get(const char *name, const char *default_value) {
+  if(!uaudio_options)
+    return default_value ? xstrdup(default_value) : 0;
+  char **valuep = hash_find(uaudio_options, name);
+  if(!valuep)
+    return default_value ? xstrdup(default_value) : 0;
+  return xstrdup(*valuep);
 }
 
 /** @brief Set sample format 
@@ -88,28 +95,6 @@ void uaudio_set_format(int rate, int channels, int bits, int signed_) {
   uaudio_signed = signed_;
   uaudio_sample_size = bits / CHAR_BIT;
 }
-
-/** @brief List of known APIs
- *
- * Terminated by a null pointer.
- *
- * The first one will be used as a default, so putting ALSA before OSS
- * constitutes a policy decision.
- */
-const struct uaudio *uaudio_apis[] = {
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-  &uaudio_coreaudio,
-#endif  
-#if HAVE_ALSA_ASOUNDLIB_H
-  &uaudio_alsa,
-#endif
-#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-  &uaudio_oss,
-#endif
-  &uaudio_rtp,
-  &uaudio_command,
-  NULL,
-};
 
 /*
 Local Variables:

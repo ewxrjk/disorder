@@ -32,6 +32,7 @@
 #include "mem.h"
 #include "log.h"
 #include "uaudio.h"
+#include "configuration.h"
 
 #ifndef AFMT_U16_NE
 # if BYTE_ORDER == BIG_ENDIAN
@@ -41,10 +42,22 @@
 # endif
 #endif
 
+/* documentation does not match implementation! */
+#ifndef SOUND_MIXER_READ
+# define SOUND_MIXER_READ(x) MIXER_READ(x)
+#endif
+#ifndef SOUND_MIXER_WRITE
+# define SOUND_MIXER_WRITE(x) MIXER_WRITE(x)
+#endif
+
 static int oss_fd = -1;
+static int oss_mixer_fd = -1;
+static int oss_mixer_channel;
 
 static const char *const oss_options[] = {
   "device",
+  "mixer-device",
+  "mixer-channel",
   NULL
 };
 
@@ -59,7 +72,7 @@ static size_t oss_play(void *buffer, size_t samples) {
 
 /** @brief Open the OSS sound device */
 static void oss_open(void) {
-  const char *device = uaudio_get("device");
+  const char *device = uaudio_get("device", NULL);
 
 #if EMPEG_HOST
   if(!device || !*device || !strcmp(device, "default"))
@@ -115,18 +128,80 @@ static void oss_start(uaudio_callback *callback,
   /* Very specific buffer size requirements here apparently */
   uaudio_thread_start(callback, userdata, oss_play, 
                       4608 / uaudio_sample_size,
-                      4608 / uaudio_sample_size);
+                      4608 / uaudio_sample_size,
+                      0);
 #else
   /* We could SNDCTL_DSP_GETBLKSIZE but only when the device is already open,
    * which is kind of inconvenient.  We go with 1-4Kbyte for now. */
   uaudio_thread_start(callback, userdata, oss_play, 
                       32 / uaudio_sample_size,
-                      4096 / uaudio_sample_size);
+                      4096 / uaudio_sample_size,
+                      0);
 #endif
 }
 
 static void oss_stop(void) {
   uaudio_thread_stop();
+}
+
+/** @brief Channel names */
+static const char *oss_channels[] = SOUND_DEVICE_NAMES;
+
+static int oss_mixer_find_channel(const char *channel) {
+  if(!channel[strspn(channel, "0123456789")])
+    return atoi(channel);
+  else {
+    for(unsigned n = 0; n < sizeof oss_channels / sizeof *oss_channels; ++n)
+      if(!strcmp(oss_channels[n], channel))
+	return n;
+    return -1;
+  }
+}  
+
+static void oss_open_mixer(void) {
+  const char *mixer = uaudio_get("mixer-device", "/dev/mixer");
+  /* TODO infer mixer-device from device */
+  if((oss_mixer_fd = open(mixer, O_RDWR, 0)) < 0)
+    fatal(errno, "error opening %s", mixer);
+  const char *channel = uaudio_get("mixer-channel", "pcm");
+  oss_mixer_channel = oss_mixer_find_channel(channel);
+  if(oss_mixer_channel < 0)
+    fatal(0, "no such channel as '%s'", channel);
+}
+
+static void oss_close_mixer(void) {
+  close(oss_mixer_fd);
+  oss_mixer_fd = -1;
+}
+
+static void oss_get_volume(int *left, int *right) {
+  int r;
+
+  *left = *right = 0;
+  if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
+    error(errno, "error getting volume");
+  else {
+    *left = r & 0xff;
+    *right = (r >> 8) & 0xff;
+  }
+}
+
+static void oss_set_volume(int *left, int *right) {
+  int r =  (*left & 0xff) + (*right & 0xff) * 256;
+  if(ioctl(oss_mixer_fd, SOUND_MIXER_WRITE(oss_mixer_channel), &r) == -1)
+    error(errno, "error setting volume");
+  else if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
+    error(errno, "error getting volume");
+  else {
+    *left = r & 0xff;
+    *right = (r >> 8) & 0xff;
+  }
+}
+
+static void oss_configure(void) {
+  uaudio_set("device", config->device);
+  uaudio_set("mixer-device", config->mixer);
+  uaudio_set("mixer-channel", config->channel);
 }
 
 const struct uaudio uaudio_oss = {
@@ -135,7 +210,12 @@ const struct uaudio uaudio_oss = {
   .start = oss_start,
   .stop = oss_stop,
   .activate = oss_activate,
-  .deactivate = oss_deactivate
+  .deactivate = oss_deactivate,
+  .open_mixer = oss_open_mixer,
+  .close_mixer = oss_close_mixer,
+  .get_volume = oss_get_volume,
+  .set_volume = oss_set_volume,
+  .configure = oss_configure,
 };
 
 #endif

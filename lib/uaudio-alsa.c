@@ -26,14 +26,35 @@
 #include "mem.h"
 #include "log.h"
 #include "uaudio.h"
+#include "configuration.h"
 
 /** @brief The current PCM handle */
 static snd_pcm_t *alsa_pcm;
 
 static const char *const alsa_options[] = {
   "device",
+  "mixer-control",
+  "mixer-channel",
   NULL
 };
+
+/** @brief Mixer handle */
+snd_mixer_t *alsa_mixer_handle;
+
+/** @brief Mixer control */
+static snd_mixer_elem_t *alsa_mixer_elem;
+
+/** @brief Left channel */
+static snd_mixer_selem_channel_id_t alsa_mixer_left;
+
+/** @brief Right channel */
+static snd_mixer_selem_channel_id_t alsa_mixer_right;
+
+/** @brief Minimum level */
+static long alsa_mixer_min;
+
+/** @brief Maximum level */
+static long alsa_mixer_max;
 
 /** @brief Actually play sound via ALSA */
 static size_t alsa_play(void *buffer, size_t samples) {
@@ -59,11 +80,9 @@ static size_t alsa_play(void *buffer, size_t samples) {
 
 /** @brief Open the ALSA sound device */
 static void alsa_open(void) {
-  const char *device = uaudio_get("device");
+  const char *device = uaudio_get("device", "default");
   int err;
 
-  if(!device || !*device)
-    device = "default";
   if((err = snd_pcm_open(&alsa_pcm,
 			 device,
 			 SND_PCM_STREAM_PLAYBACK,
@@ -117,7 +136,8 @@ static void alsa_start(uaudio_callback *callback,
   alsa_open();
   uaudio_thread_start(callback, userdata, alsa_play,
                       32 / uaudio_sample_size,
-                      4096 / uaudio_sample_size);
+                      4096 / uaudio_sample_size,
+                      0);
 }
 
 static void alsa_stop(void) {
@@ -126,13 +146,125 @@ static void alsa_stop(void) {
   alsa_pcm = 0;
 }
 
+/** @brief Convert a level to a percentage */
+static int to_percent(long n) {
+  return (n - alsa_mixer_min) * 100 / (alsa_mixer_max - alsa_mixer_min);
+}
+
+/** @brief Convert a percentage to a level */
+static int from_percent(int n) {
+  return alsa_mixer_min + n * (alsa_mixer_max - alsa_mixer_min) / 100;
+}
+
+static void alsa_open_mixer(void) {
+  int err;
+  snd_mixer_selem_id_t *id;
+  const char *device = uaudio_get("device", "default");
+  const char *mixer = uaudio_get("mixer-control", "0");
+  const char *channel = uaudio_get("mixer-channel", "PCM");
+
+  snd_mixer_selem_id_alloca(&id);
+  if((err = snd_mixer_open(&alsa_mixer_handle, 0)))
+    fatal(0, "snd_mixer_open: %s", snd_strerror(err));
+  if((err = snd_mixer_attach(alsa_mixer_handle, device)))
+    fatal(0, "snd_mixer_attach %s: %s", device, snd_strerror(err));
+  if((err = snd_mixer_selem_register(alsa_mixer_handle,
+                                     0/*options*/, 0/*classp*/)))
+    fatal(0, "snd_mixer_selem_register %s: %s",
+          device, snd_strerror(err));
+  if((err = snd_mixer_load(alsa_mixer_handle)))
+    fatal(0, "snd_mixer_load %s: %s", device, snd_strerror(err));
+  snd_mixer_selem_id_set_name(id, channel);
+  snd_mixer_selem_id_set_index(id, atoi(mixer));
+  if(!(alsa_mixer_elem = snd_mixer_find_selem(alsa_mixer_handle, id)))
+    fatal(0, "device '%s' mixer control '%s,%s' does not exist",
+	  device, channel, mixer);
+  if(!snd_mixer_selem_has_playback_volume(alsa_mixer_elem))
+    fatal(0, "device '%s' mixer control '%s,%s' has no playback volume",
+	  device, channel, mixer);
+  if(snd_mixer_selem_is_playback_mono(alsa_mixer_elem)) {
+    alsa_mixer_left = alsa_mixer_right = SND_MIXER_SCHN_MONO;
+  } else {
+    alsa_mixer_left = SND_MIXER_SCHN_FRONT_LEFT;
+    alsa_mixer_right = SND_MIXER_SCHN_FRONT_RIGHT;
+  }
+  if(!snd_mixer_selem_has_playback_channel(alsa_mixer_elem,
+                                           alsa_mixer_left)
+     || !snd_mixer_selem_has_playback_channel(alsa_mixer_elem,
+                                              alsa_mixer_right))
+    fatal(0, "device '%s' mixer control '%s,%s' lacks required playback channels",
+	  device, channel, mixer);
+  snd_mixer_selem_get_playback_volume_range(alsa_mixer_elem,
+                                            &alsa_mixer_min, &alsa_mixer_max);
+
+}
+
+static void alsa_close_mixer(void) {
+  /* TODO alsa_mixer_elem */
+  if(alsa_mixer_handle)
+    snd_mixer_close(alsa_mixer_handle);
+}
+
+static void alsa_get_volume(int *left, int *right) {
+  long l, r;
+  int err;
+  
+  if((err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
+                                                alsa_mixer_left, &l))
+     || (err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
+                                                   alsa_mixer_right, &r)))
+    fatal(0, "snd_mixer_selem_get_playback_volume: %s", snd_strerror(err));
+  *left = to_percent(l);
+  *right = to_percent(r);
+}
+
+static void alsa_set_volume(int *left, int *right) {
+  long l, r;
+  int err;
+  
+  /* Set the volume */
+  if(alsa_mixer_left == alsa_mixer_right) {
+    /* Mono output - just use the loudest */
+    if((err = snd_mixer_selem_set_playback_volume
+	(alsa_mixer_elem, alsa_mixer_left,
+	 from_percent(*left > *right ? *left : *right))))
+      fatal(0, "snd_mixer_selem_set_playback_volume: %s", snd_strerror(err));
+  } else {
+    /* Stereo output */
+    if((err = snd_mixer_selem_set_playback_volume
+	(alsa_mixer_elem, alsa_mixer_left, from_percent(*left)))
+       || (err = snd_mixer_selem_set_playback_volume
+	   (alsa_mixer_elem, alsa_mixer_right, from_percent(*right))))
+      fatal(0, "snd_mixer_selem_set_playback_volume: %s", snd_strerror(err));
+  }
+  /* Read it back to see what we ended up at */
+  if((err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
+                                                alsa_mixer_left, &l))
+     || (err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
+                                                   alsa_mixer_right, &r)))
+    fatal(0, "snd_mixer_selem_get_playback_volume: %s", snd_strerror(err));
+  *left = to_percent(l);
+  *right = to_percent(r);
+}
+
+static void alsa_configure(void) {
+  uaudio_set("device", config->device);
+  uaudio_set("mixer-control", config->mixer);
+  uaudio_set("mixer-channel", config->channel);
+}
+
 const struct uaudio uaudio_alsa = {
   .name = "alsa",
   .options = alsa_options,
   .start = alsa_start,
   .stop = alsa_stop,
   .activate = alsa_activate,
-  .deactivate = alsa_deactivate
+  .deactivate = alsa_deactivate,
+  .open_mixer = alsa_open_mixer,
+  .close_mixer = alsa_close_mixer,
+  .get_volume = alsa_get_volume,
+  .set_volume = alsa_set_volume,
+  .configure = alsa_configure
 };
 
 #endif

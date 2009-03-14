@@ -47,6 +47,7 @@
 #include "eventdist.h"
 #include "split.h"
 #include "timeval.h"
+#include "uaudio.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -104,6 +105,7 @@ extern GtkTooltips *tips;
 extern int rtp_supported;
 extern int rtp_is_running;
 extern GtkItemFactory *mainmenufactory;
+extern const struct uaudio *backend;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,7 +67,6 @@
 #include "logfd.h"
 #include "mem.h"
 #include "mime.h"
-#include "mixer.h"
 #include "printf.h"
 #include "queue.h"
 #include "random.h"
@@ -81,11 +80,14 @@
 #include "trackdb-int.h"
 #include "trackdb.h"
 #include "trackname.h"
+#include "uaudio.h"
 #include "unicode.h"
 #include "user.h"
 #include "vector.h"
 #include "version.h"
 #include "wstat.h"
+
+extern const struct uaudio *api;
 
 void daemonize(const char *tag, int fac, const char *pidfile);
 /* Go into background.  Send stdout/stderr to syslog.

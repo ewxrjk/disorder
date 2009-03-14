@@ -34,6 +34,15 @@ extern size_t uaudio_sample_size;
  * @param max_samples How many samples to supply
  * @param userdata As passed to uaudio_open()
  * @return Number of samples filled
+ *
+ * This function should not block if possible (better to fill the buffer with
+ * 0s) and should definitely not block indefinitely.  This great caution with
+ * any locks or syscalls!  In particular avoid it taking a lock that may be
+ * held while any of the @ref uaudio members are called.
+ *
+ * If it's more convenient, it's OK to return less than the maximum number of
+ * samples (including 0) provided you expect to be called again for more
+ * samples immediately.
  */
 typedef size_t uaudio_callback(void *buffer,
                                size_t max_samples,
@@ -90,19 +99,64 @@ struct uaudio {
    */
   void (*deactivate)(void);
 
+  /** @brief Open mixer device */
+  void (*open_mixer)(void);
+
+  /** @brief Closer mixer device */
+  void (*close_mixer)(void);
+
+  /** @brief Get volume
+   * @param left Where to put the left-channel value
+   * @param right Where to put the right-channel value
+   *
+   * 0 is silent and 100 is maximum volume.
+   */
+  void (*get_volume)(int *left, int *right);
+
+  /** @brief Set volume
+   * @param left Pointer to left-channel value (updated)
+   * @param right Pointer to right-channel value (updated)
+   *
+   * The values are updated with those actually set by the underlying system
+   * call.
+   *
+   * 0 is silent and 100 is maximum volume.
+   */
+  void (*set_volume)(int *left, int *right);
+
+  /** @brief Set configuration */
+  void (*configure)(void);
+  
 };
 
 void uaudio_set_format(int rate, int channels, int samplesize, int signed_);
 void uaudio_set(const char *name, const char *value);
-char *uaudio_get(const char *name);
+char *uaudio_get(const char *name, const char *default_value);
 void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,
 			 uaudio_playcallback *playcallback,
 			 size_t min,
-                         size_t max);
+                         size_t max,
+                         unsigned flags);
+
+/** @brief Fake pauses
+ *
+ * This flag is used for audio backends that cannot sensibly be paused.
+ * The thread support code will supply silence while deactivated in this
+ * case.
+ */
+#define UAUDIO_THREAD_FAKE_PAUSE 0x00000001
+
 void uaudio_thread_stop(void);
 void uaudio_thread_activate(void);
 void uaudio_thread_deactivate(void);
+void uaudio_schedule_synchronize(void);
+void uaudio_schedule_update(size_t written_samples);
+void uaudio_schedule_init(void);
+const struct uaudio *uaudio_find(const char *name);
+
+extern uint64_t uaudio_schedule_timestamp;
+extern int uaudio_schedule_reactivated;
 
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
 extern const struct uaudio uaudio_coreaudio;
@@ -117,9 +171,10 @@ extern const struct uaudio uaudio_oss;
 #endif
 
 extern const struct uaudio uaudio_rtp;
+
 extern const struct uaudio uaudio_command;
 
-extern const struct uaudio *uaudio_apis[];
+extern const struct uaudio *const uaudio_apis[];
 
 #endif /* UAUDIO_H */
 

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  * Portions copyright (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -43,12 +43,12 @@
 #include "inputline.h"
 #include "charset.h"
 #include "defs.h"
-#include "mixer.h"
 #include "printf.h"
 #include "regsub.h"
 #include "signame.h"
 #include "authhash.h"
 #include "vector.h"
+#include "uaudio.h"
 
 /** @brief Path to config file 
  *
@@ -61,6 +61,12 @@ char *configfile;
  * If clear, the user-specific configuration is not read.
  */
 int config_per_user = 1;
+
+/** @brief Table of audio APIs
+ *
+ * Only set in server processes.
+ */
+const struct uaudio *const *config_uaudio_apis;
 
 /** @brief Config file parser state */
 struct config_state {
@@ -466,52 +472,6 @@ static int set_transform(const struct config_state *cs,
   return 0;
 }
 
-static int set_backend(const struct config_state *cs,
-		       const struct conf *whoami,
-		       int nvec, char **vec) {
-  int *const valuep = ADDRESS(cs->config, int);
-  
-  if(nvec != 1) {
-    error(0, "%s:%d: '%s' requires one argument",
-	  cs->path, cs->line, whoami->name);
-    return -1;
-  }
-  if(!strcmp(vec[0], "alsa")) {
-#if HAVE_ALSA_ASOUNDLIB_H
-    *valuep = BACKEND_ALSA;
-#else
-    error(0, "%s:%d: ALSA is not available on this platform",
-	  cs->path, cs->line);
-    return -1;
-#endif
-  } else if(!strcmp(vec[0], "command"))
-    *valuep = BACKEND_COMMAND;
-  else if(!strcmp(vec[0], "network"))
-    *valuep = BACKEND_NETWORK;
-  else if(!strcmp(vec[0], "coreaudio")) {
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-    *valuep = BACKEND_COREAUDIO;
-#else
-    error(0, "%s:%d: Core Audio is not available on this platform",
-	  cs->path, cs->line);
-    return -1;
-#endif
-  } else if(!strcmp(vec[0], "oss")) {
-#if HAVE_SYS_SOUNDCARD_H
-    *valuep = BACKEND_OSS;
-#else
-    error(0, "%s:%d: OSS is not available on this platform",
-	  cs->path, cs->line);
-    return -1;
-#endif
-  } else {
-    error(0, "%s:%d: invalid '%s' value '%s'",
-	  cs->path, cs->line, whoami->name, vec[0]);
-    return -1;
-  }
-  return 0;
-}
-
 static int set_rights(const struct config_state *cs,
 		      const struct conf *whoami,
 		      int nvec, char **vec) {
@@ -627,8 +587,7 @@ static const struct conftype
   type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
-  type_rights = { set_rights, free_none },
-  type_backend = { set_backend, free_none };
+  type_rights = { set_rights, free_none };
 
 /* specific validation routine */
 
@@ -907,6 +866,29 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+static int validate_backend(const struct config_state attribute((unused)) *cs,
+                            int nvec,
+                            char **vec) {
+  int n;
+  if(nvec != 1) {
+    error(0, "%s:%d: invalid sound API specification", cs->path, cs->line);
+    return -1;
+  }
+  if(!strcmp(vec[0], "network")) {
+    error(0, "'api network' is deprecated; use 'api rtp'");
+    return 0;
+  }
+  if(config_uaudio_apis) {
+    for(n = 0; config_uaudio_apis[n]; ++n)
+      if(!strcmp(vec[0], config_uaudio_apis[n]->name))
+        return 0;
+    error(0, "%s:%d: unrecognized sound API '%s'", cs->path, cs->line, vec[0]);
+    return -1;
+  }
+  /* In non-server processes we have no idea what's valid */
+  return 0;
+}
+
 /** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
 /** @brief Item name and and offset */
@@ -916,7 +898,7 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
   { C(allow),            &type_stringlist_accum, validate_allow },
-  { C(api),              &type_backend,          validate_any },
+  { C(api),              &type_string,           validate_backend },
   { C(authorization_algorithm), &type_string,    validate_algo },
   { C(broadcast),        &type_stringlist,       validate_addrport },
   { C(broadcast_from),   &type_stringlist,       validate_addrport },
@@ -958,6 +940,7 @@ static const struct conf conf[] = {
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
+  { C(rtp_delay_threshold), &type_integer,       validate_positive },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(sendmail),         &type_string,           validate_isabspath },
@@ -965,7 +948,7 @@ static const struct conf conf[] = {
   { C(signal),           &type_signal,           validate_any },
   { C(smtp_server),      &type_string,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
-  { C2(speaker_backend, api),  &type_backend,          validate_any },
+  { C2(speaker_backend, api),  &type_string,     validate_backend },
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
@@ -1178,7 +1161,7 @@ static struct config *config_default(void) {
   c->sample_format.endian = ENDIAN_NATIVE;
   c->queue_pad = 10;
   c->replay_min = 8 * 3600;
-  c->api = -1;
+  c->api = NULL;
   c->multicast_ttl = 1;
   c->multicast_loop = 1;
   c->authorization_algorithm = xstrdup("sha1");
@@ -1277,34 +1260,36 @@ static void config_postdefaults(struct config *c,
     for(n = 0; n < NTRANSFORM; ++n)
       set_transform(&cs, whoami, 5, (char **)transform[n]);
   }
-  if(c->api == -1) {
+  if(!c->api) {
     if(c->speaker_command)
-      c->api = BACKEND_COMMAND;
+      c->api = xstrdup("command");
     else if(c->broadcast.n)
-      c->api = BACKEND_NETWORK;
+      c->api = xstrdup("rtp");
+    else if(config_uaudio_apis)
+      c->api = xstrdup(config_uaudio_apis[0]->name);
     else
-      c->api = DEFAULT_BACKEND;
+      c->api = xstrdup("<none>");
   }
+  if(!strcmp(c->api, "network"))
+    c->api = xstrdup("rtp");
   if(server) {
-    if(c->api == BACKEND_COMMAND && !c->speaker_command)
+    if(!strcmp(c->api, "command") && !c->speaker_command)
       fatal(0, "'api command' but speaker_command is not set");
-    if(c->api == BACKEND_NETWORK && !c->broadcast.n)
-      fatal(0, "'api network' but broadcast is not set");
+    if((!strcmp(c->api, "rtp")) && !c->broadcast.n)
+      fatal(0, "'api rtp' but broadcast is not set");
   }
   /* Override sample format */
-  switch(c->api) {
-  case BACKEND_NETWORK:
-    c->sample_format.rate = 44100;
-    c->sample_format.channels = 2;
-    c->sample_format.bits = 16;
-    c->sample_format.endian = ENDIAN_BIG;
-    break;
-  case BACKEND_COREAUDIO:
+  if(!strcmp(c->api, "rtp")) {
     c->sample_format.rate = 44100;
     c->sample_format.channels = 2;
     c->sample_format.bits = 16;
     c->sample_format.endian = ENDIAN_NATIVE;
-    break; 
+  }
+  if(!strcmp(c->api, "coreaudio")) {
+    c->sample_format.rate = 44100;
+    c->sample_format.channels = 2;
+    c->sample_format.bits = 16;
+    c->sample_format.endian = ENDIAN_NATIVE;
   }
   if(!c->default_rights) {
     rights_type r = RIGHTS__MASK & ~(RIGHT_ADMIN|RIGHT_REGISTER

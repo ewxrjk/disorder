@@ -60,7 +60,6 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	macros.c macros-builtin.c macros.h		\
 	mem.c mem.h 					\
 	mime.h mime.c					\
-	mixer.c mixer.h mixer-oss.c mixer-alsa.c	\
 	printf.c printf.h				\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\
@@ -82,10 +81,10 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
-	uaudio.c uaudio-thread.c uaudio.h		\
+	uaudio.c uaudio-thread.c uaudio.h uaudio-apis.c	\
 	uaudio-oss.c uaudio-alsa.c 			\
 	uaudio-coreaudio.c				\
-	uaudio-rtp.c uaudio-command.c			\
+	uaudio-rtp.c uaudio-command.c uaudio-schedule.c	\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
