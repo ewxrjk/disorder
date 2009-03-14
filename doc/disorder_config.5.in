@@ -297,14 +297,22 @@ See
 .BR disorder_protocol (5)
 for more details.
 .TP
-.B broadcast \fIADDRESS\fR \fIPORT\fR
+.B broadcast \fR[\fIFAMILY\fR] \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.
 This implies \fBapi rtp\fR.
 .IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIADDRESS\fR.
+Note that IPv6 is not currently well tested.
+.IP
 See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
-.B broadcast_from \fIADDRESS\fR \fIPORT\fR
+.B broadcast_from \fR[\fIFAMILY\fR] \fIADDRESS\fR \fIPORT\fR
 Sets the (local) source address used by \fBbroadcast\fR.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIADDRESS\fR.
+Note that IPv6 is not currently well tested.
 .TP
 .B channel \fICHANNEL\fR
 The mixer channel that the volume control should use.
@@ -313,6 +321,7 @@ For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
+
 Output level for the audio device.
 This is probably what you want and is the default.
 .TP
@@ -413,10 +422,14 @@ reinstated.
 Specifies the number of recently played tracks to remember (including
 failed tracks and scratches).
 .TP
-.B listen \fR[\fIHOST\fR] \fISERVICE\fR
+.B listen \fR[\fIFAMILY\fR] \fR[\fIHOST\fR] \fISERVICE\fR
 Listen for connections on the address specified by \fIHOST\fR and port
 specified by \fISERVICE\fR.
-If \fIHOST\fR is omitted then listens on all local addresses.
+If \fIHOST\fR is omitted, or is \fB*\fR, then listens on all local addresses.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIHOST\fR.
+Note that IPv6 is not currently well tested.
 .IP
 Normally the server only listens on a UNIX domain socket.
 .TP
@@ -729,9 +742,13 @@ These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
 or
 \fIpkgconfdir/config.\fRUSERNAME.
 .TP
-.B connect \fIHOST SERVICE\fR
+.B connect \fR[\fIFAMILY\fR] \fIHOST SERVICE\fR
 Connect to the address specified by \fIHOST\fR and port specified by
 \fISERVICE\fR.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIHOST\fR.
+Note that IPv6 is not currently well tested.
 .TP
 .B password \fIPASSWORD\fR
 Specify password.
