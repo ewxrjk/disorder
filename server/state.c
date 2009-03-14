@@ -23,8 +23,15 @@
 static const char *current_unix;
 static int current_unix_fd;
 
-static struct addrinfo *current_listen_addrinfo;
-static int current_listen_fd;
+/** @brief TCP listener definition */
+struct listener {
+  struct listener *next;
+  struct sockaddr *sa;
+  int fd;
+};
+
+/** @brief Current listeners */
+static struct listener *listeners;
 
 /** @brief Current audio API */
 const struct uaudio *api;
@@ -38,18 +45,17 @@ void quit(ev_source *ev) {
   exit(0);
 }
 
+static struct sockaddr *copy_sockaddr(const struct addrinfo *addr) {
+  struct sockaddr *sa = xmalloc_noptr(addr->ai_addrlen);
+  memcpy(sa, addr->ai_addr, addr->ai_addrlen);
+  return sa;
+}
+
 static void reset_socket(ev_source *ev) {
   const char *new_unix;
-  struct addrinfo *res;
+  struct addrinfo *res, *r;
+  struct listener *l, **ll;
   struct sockaddr_un sun;
-  char *name;
-  
-  static const struct addrinfo pref = {
-    .ai_flags = AI_PASSIVE,
-    .ai_family = PF_INET,
-    .ai_socktype = SOCK_STREAM,
-    .ai_protocol = IPPROTO_TCP,
-  };
 
   /* unix first */
   new_unix = config_get_file("socket");
@@ -80,28 +86,42 @@ static void reset_socket(ev_source *ev) {
   }
 
   /* get the new listen config */
-  if(config->listen.n)
-    res = get_address(&config->listen, &pref, &name);
+  if(config->listen.af != -1)
+    res = netaddress_resolve(&config->listen, 1, IPPROTO_TCP);
   else
     res = 0;
 
-  if((res && !current_listen_addrinfo)
-     || (current_listen_addrinfo
-	 && (!res
-	     || addrinfocmp(res, current_listen_addrinfo)))) {
-    /* something has to change */
-    if(current_listen_addrinfo) {
-      /* delete the old listener */
-      server_stop(ev, current_listen_fd);
-      freeaddrinfo(current_listen_addrinfo);
-      current_listen_addrinfo = 0;
+  /* Close any current listeners that aren't required any more */
+  ll = &listeners;
+  while((l = *ll)) {
+    for(r = res; r; r = r->ai_next)
+      if(!sockaddrcmp(r->ai_addr, l->sa))
+	break;
+    if(!r) {
+      /* Didn't find a match, remove this one */
+      server_stop(ev, l->fd);
+      *ll = l->next;
+    } else {
+      /* This address is still wanted */
+      ll = &l->next;
     }
-    if(res) {
-      /* start the new listener */
-      if((current_listen_fd = server_start(ev, res->ai_family, res->ai_addrlen,
-					   res->ai_addr, name)) >= 0) {
-	current_listen_addrinfo = res;
-	res = 0;
+  }
+
+  /* Open any new listeners that are required */
+  for(r = res; r; r = r->ai_next) {
+    for(l = listeners; l; l = l->next)
+      if(!sockaddrcmp(r->ai_addr, l->sa))
+	break;
+    if(!l) {
+      /* Didn't find a match, need a new listener */
+      int fd = server_start(ev, r->ai_family, r->ai_addrlen, r->ai_addr,
+			    format_sockaddr(r->ai_addr));
+      if(fd >= 0) {
+	l = xmalloc(sizeof *l);
+	l->next = listeners;
+	l->sa = copy_sockaddr(r);
+	l->fd = fd;
+	listeners = l;
       }
     }
   }

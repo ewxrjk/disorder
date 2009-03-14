@@ -1850,6 +1850,7 @@ int server_start(ev_source *ev, int pf,
   l->pf = pf;
   if(ev_listen(ev, fd, listen_callback, l, "server listener"))
     exit(EXIT_FAILURE);
+  info("listening on %s", name);
   return fd;
 }
 

@@ -95,29 +95,38 @@ struct addrinfo *get_address(const struct stringlist *a,
  */
 int addrinfocmp(const struct addrinfo *a,
 		const struct addrinfo *b) {
-  const struct sockaddr_in *ina, *inb;
-  const struct sockaddr_in6 *in6a, *in6b;
-  
   if(a->ai_family != b->ai_family) return a->ai_family - b->ai_family;
   if(a->ai_socktype != b->ai_socktype) return a->ai_socktype - b->ai_socktype;
   if(a->ai_protocol != b->ai_protocol) return a->ai_protocol - b->ai_protocol;
-  switch(a->ai_family) {
+  return sockaddrcmp(a->ai_addr, b->ai_addr);
+}
+
+/** @brief Comparison function for socket addresses
+ *
+ * Suitable for qsort().
+ */
+int sockaddrcmp(const struct sockaddr *a,
+		const struct sockaddr *b) {
+  const struct sockaddr_in *ina, *inb;
+  const struct sockaddr_in6 *in6a, *in6b;
+  
+  if(a->sa_family != b->sa_family) return a->sa_family - b->sa_family;
+  switch(a->sa_family) {
   case PF_INET:
-    ina = (const struct sockaddr_in *)a->ai_addr;
-    inb = (const struct sockaddr_in *)b->ai_addr;
+    ina = (const struct sockaddr_in *)a;
+    inb = (const struct sockaddr_in *)b;
     if(ina->sin_port != inb->sin_port) return ina->sin_port - inb->sin_port;
     return ina->sin_addr.s_addr - inb->sin_addr.s_addr;
     break;
   case PF_INET6:
-    in6a = (const struct sockaddr_in6 *)a->ai_addr;
-    in6b = (const struct sockaddr_in6 *)b->ai_addr;
+    in6a = (const struct sockaddr_in6 *)a;
+    in6b = (const struct sockaddr_in6 *)b;
     if(in6a->sin6_port != in6b->sin6_port)
       return in6a->sin6_port - in6b->sin6_port;
     return memcmp(&in6a->sin6_addr, &in6b->sin6_addr,
 		  sizeof (struct in6_addr));
   default:
-    error(0, "unsupported protocol family %d", a->ai_protocol);
-    return memcmp(a->ai_addr, b->ai_addr, a->ai_addrlen); /* kludge */
+    fatal(0, "unsupported protocol family %d", a->sa_family);
   }
 }
 

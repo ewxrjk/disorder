@@ -155,7 +155,7 @@ struct config {
   long prefsync;			/* preflog sync interval */
 
   /** @brief Secondary listen address */
-  struct stringlist listen;
+  struct netaddress listen;
 
   /** @brief Alias format string */
   const char *alias;
