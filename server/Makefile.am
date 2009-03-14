@@ -19,7 +19,7 @@
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
 	      disorder-stats disorder-dbupgrade disorder-choose
-noinst_PROGRAMS=trackname
+noinst_PROGRAMS=trackname endian
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
@@ -117,12 +117,12 @@ check-help: all
 	./disorder-choose --version > /dev/null
 
 # My sox doesn't know MP3 or FLAC unfortunately
-check-decode: disorder-decode disorder-normalize
+check-decode: disorder-decode disorder-normalize endian
 	echo "speaker_backend network" > config
 	echo "broadcast 127.255.255.255 discard" > config
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
 	  ./disorder-normalize --config config > decoded.raw
-	oggdec -b 16 -e 1 -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
+	oggdec -b 16 -e `./endian` -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
 	cmp decoded.raw oggdec.raw
 	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
 	./disorder-decode scratch.wav | \

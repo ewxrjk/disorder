@@ -201,3 +201,4 @@ plugins/index.html
 doc/disorder-choose.8
 doc/disorder-choose.8.html
 config.aux/compile
+server/endian
