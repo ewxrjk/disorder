@@ -66,7 +66,7 @@ If \fICOMMAND\fR exits it is re-executed; any samples that had been written to
 the pipe but not processed by the previous instance will be lost.
 .IP
 .B \-\-device
-is redundant with this option, but you might wan to set
+is redundant with this option, but you might want to set
 .BR \-\-pause\-mode .
 .IP
 As an example,
