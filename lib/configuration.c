@@ -498,6 +498,7 @@ static void free_none(struct config attribute((unused)) *c,
 static void free_string(struct config *c,
 			const struct conf *whoami) {
   xfree(VALUE(c, char *));
+  VALUE(c, char *) = 0;
 }
 
 static void free_stringlist(struct config *c,
