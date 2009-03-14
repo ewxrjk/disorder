@@ -889,6 +889,15 @@ static int validate_backend(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+static int validate_pausemode(const struct config_state attribute((unused)) *cs,
+                              int nvec,
+                              char **vec) {
+  if(nvec == 1 && (!strcmp(vec[0], "silence") || !strcmp(vec[0], "suspend")))
+    return 0;
+  error(0, "%s:%d: invalid pause mode", cs->path, cs->line);
+  return -1;
+}
+
 /** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
 /** @brief Item name and and offset */
@@ -931,6 +940,7 @@ static const struct conf conf[] = {
   { C(nice_speaker),     &type_integer,          validate_any },
   { C(noticed_history),  &type_integer,          validate_positive },
   { C(password),         &type_string,           validate_any },
+  { C(pause_mode),       &type_string,           validate_pausemode },
   { C(player),           &type_stringlist_accum, validate_player },
   { C(plugins),          &type_string_accum,     validate_isdir },
   { C(prefsync),         &type_integer,          validate_positive },

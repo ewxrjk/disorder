@@ -171,6 +171,9 @@ struct config {
   /** @brief Command execute by speaker to play audio */
   const char *speaker_command;
 
+  /** @brief Pause mode for command backend */
+  const char *pause_mode;
+  
   /** @brief Target sample format */
   struct stream_header sample_format;
 

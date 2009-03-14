@@ -151,6 +151,7 @@ static void command_deactivate(void) {
 
 static void command_configure(void) {
   uaudio_set("command", config->speaker_command);
+  uaudio_set("pause-mode", config->pause_mode);
 }
 
 const struct uaudio uaudio_command = {

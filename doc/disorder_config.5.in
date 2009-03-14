@@ -275,6 +275,10 @@ Execute a command.
 This is the default if
 .B speaker_command
 is specified, or if no native is available.
+.IP
+You might want to set
+.B pause_mode
+with this backend.
 .TP
 .B rtp
 Transmit audio over the network.
@@ -526,6 +530,19 @@ The default is 0.
 The maximum days that a track can survive in the database of newly added
 tracks.
 The default is 31.
+.TP
+.B pause_mode \fIMODE
+Sets the pause mode for the \fBcommand\fR backend.
+The possible values are:
+.RS
+.TP
+.B silence
+Send silent (0-value) samples when paused.
+This is the default.
+.TP
+.B suspend
+Stop writing when paused.
+.RE
 .TP
 .B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB\-\-\fR]] \fIARGS\fR...
 Specifies the player for files matching the glob \fIPATTERN\fR.
