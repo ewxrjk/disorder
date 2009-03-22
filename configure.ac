@@ -47,6 +47,7 @@ want_coreaudio=yes
 #  - you will still need Fink (or something) for other libraries
 #  - if you wanted an application bundle you are out of luck
 #  - the menu bar is still in the main window (not at the top of the screen)
+#  - drag and drop doesn't work
 #
 # So it's still rather rough and ready.  But it does work...
 #
