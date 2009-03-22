@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
 # This program is free software: you can redistribute it and/or modify
@@ -39,6 +39,21 @@ want_alsa=yes
 want_oss=yes
 want_coreaudio=yes
 
+# By default we don't want gtk-osx.  But if you ask for --with-gtk-osx...
+#
+# Disobedience can be built to a native OS X application.  There are some
+# caveats:
+#  - you will still need Fink (or something) for other libraries
+#  - if you wanted an application bundle you are out of luck
+#  - the menu bar is still in the main window (not at the top of the screen)
+#
+# So it's still rather rough and ready.  But it does work...
+#
+# See:
+#   http://www.gtk-osx.org/
+#   http://live.gnome.org/GTK%2B/OSX/Framework
+want_gtkosx=no
+
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -74,6 +89,10 @@ AC_ARG_WITH([tests],
 	    [AS_HELP_STRING([--without-tests],
 			    [do not build test suit])],
 	    [want_tests=$withval])
+AC_ARG_WITH([gtk-osx],
+	    [AS_HELP_STRING([--with-gtk-osx],
+			    [use native GTK+])],
+	    [want_gtkosx=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -118,9 +137,11 @@ case "$host" in
   AC_DEFINE_UNQUOTED([MAC_OS_X_VERSION_MIN_REQUIRED], [$minver],
                      [define to minimum version of Mac OS X to support])
 
-  # Fink's GTK+ is hopelessly broken
-  PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
-  export PKG_CONFIG_PATH
+  if test $want_gtkosx = no; then
+    # Fink's GTK+ is hopelessly broken
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
+    export PKG_CONFIG_PATH
+  fi
 
   ;;
 *-freebsd* )
@@ -417,8 +438,14 @@ AC_CHECK_LIB([pthread], [pthread_create],
 	     [missing_libraries="$missing_libraries libpthread"])
 
 if test $want_gtk = yes; then
-  AM_PATH_GLIB_2_0([],[],[missing_libraries="$missing_libraries libglib"])
-  AM_PATH_GTK_2_0([],[],[missing_libraries="$missing_libraries libgtk"])
+  if test $want_gtkosx = yes; then
+    GTK_CFLAGS="-isystem /Library/Frameworks/Gtk.framework/Headers -isystem /Library/Frameworks/Cairo.framework/Headers"
+    GLIB_CFLAGS="-isystem /Library/Frameworks/GLib.framework/Headers"
+    GTK_LIBS="-framework Gtk -framework GLib"
+  else
+    AM_PATH_GLIB_2_0([],[],[missing_libraries="$missing_libraries libglib"])
+    AM_PATH_GTK_2_0([],[],[missing_libraries="$missing_libraries libgtk"])
+  fi
 fi
 
 # Some platforms have iconv already
