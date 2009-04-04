@@ -108,7 +108,7 @@ it.
 .TP
 .B "Balance slider"
 The balance slider indicates the current balance and can be used to adjust it.
--1 means only the left speaker, 0 means both speakers at equal volume and +1
+\-1 means only the left speaker, 0 means both speakers at equal volume and +1
 means the only the right speaker.
 .SS "Queue Tab"
 This displays the currently playing track and the queue.
