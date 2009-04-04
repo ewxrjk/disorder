@@ -101,6 +101,8 @@ pkg-disorder: build
 	done
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C doc
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C clients
+	strip --remove-section=.comment debian/disorder/usr/bin/disorder
+	strip --remove-section=.comment debian/disorder/usr/bin/disorderfm
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C lib
 	$(INSTALL_DATA) scripts/completion.bash \
 		debian/disorder/etc/bash_completion.d/disorder
@@ -201,6 +203,11 @@ pkg-disorder-server: build
 		debian/disorder-server/usr/lib/disorder/*.so
 	rm -rf debian/disorder-server/usr/share/doc/disorder-server
 	ln -s disorder debian/disorder-server/usr/share/doc/disorder-server
+	strip --remove-section=.comment \
+		debian/disorder-server/usr/sbin/* \
+		debian/disorder-server${cgiexecdir}/* \
+		debian/disorder-server/usr/lib/ao/plugins*/*.so \
+		debian/disorder-server/usr/lib/disorder/*.so
 	cd debian/disorder-server && \
 		find -name DEBIAN -prune -o -type f -print \
 			| sed 's/^\.\///' \
@@ -230,6 +237,7 @@ pkg-disorder-playrtp: build
 	$(MKDIR) debian/disorder-playrtp/usr/share/man/man1
 	$(INSTALL_PROGRAM) clients/disorder-playrtp \
 		debian/disorder-playrtp/usr/bin/disorder-playrtp
+	strip --remove-section=.comment debian/disorder-playrtp/usr/bin/disorder-playrtp
 	$(INSTALL_DATA) doc/disorder-playrtp.1 \
 		debian/disorder-playrtp/usr/share/man/man1/disorder-playrtp.1
 	dpkg-shlibdeps -Tdebian/substvars.disorder-playrtp \
@@ -268,6 +276,7 @@ pkg-disobedience: build
 	$(MKDIR) debian/disobedience/usr/share/pixmaps
 	$(MKDIR) debian/disobedience/usr/share/menu
 	$(MAKE) -C disobedience install DESTDIR=`pwd`/debian/disobedience
+	strip --remove-section=.comment debian/disobedience/usr/bin/disobedience
 	$(INSTALL_DATA) doc/disobedience.1 \
 		debian/disobedience/usr/share/man/man1/disobedience.1
 	$(INSTALL_DATA) images/disobedience16x16.xpm \
