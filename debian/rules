@@ -141,6 +141,9 @@ pkg-disorder-server: build
 	$(MKDIR) debian/disorder-server
 	$(MKDIR) debian/disorder-server/DEBIAN
 	$(MKDIR) debian/disorder-server/usr/share/doc/disorder-server
+	$(MKDIR) debian/disorder-server/usr/share/lintian/overrides
+	$(INSTALL_DATA) debian/overrides.disorder-server \
+	    debian/disorder-server/usr/share/lintian/overrides/disorder-server
 	$(INSTALL_DATA) debian/copyright \
 		debian/disorder-server/usr/share/doc/disorder-server/copyright
 	$(INSTALL_DATA) debian/changelog \
