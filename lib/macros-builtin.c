@@ -156,7 +156,7 @@ static int exp_include(int attribute((unused)) nargs,
 
 /*$ @include{COMMAND}
  *
- * Executes COMMAND via the shell (using "sh -c") and copies its
+ * Executes COMMAND via the shell (using "sh \-c") and copies its
  * standard output to the template output.  The shell command output
  * is not expanded or modified in any other way.
  *
