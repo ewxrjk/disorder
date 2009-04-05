@@ -603,6 +603,12 @@ int utf32_iterator_grapheme_boundary(utf32_iterator it) {
   /* GB9 */
   if(gbafter == unicode_Grapheme_Break_Extend)
     return 0;
+  /* GB9a */
+  if(gbafter == unicode_Grapheme_Break_SpacingMark)
+    return 0;
+  /* GB9b */
+  if(gbbefore == unicode_Grapheme_Break_Prepend)
+    return 0;
   /* GB10 */
   return 1;
 
