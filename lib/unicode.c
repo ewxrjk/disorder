@@ -633,6 +633,16 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
   /* WB3 */
   if(it->s[it->n-1] == 0x000D && it->s[it->n] == 0x000A)
     return 0;
+  /* WB3a */
+  if(utf32__iterator_word_break(it, it->s[it->n-1]) == unicode_Word_Break_Newline
+     || it->s[it->n-1] == 0x000D
+     || it->s[it->n-1] == 0x000A)
+    return 1;
+  /* WB3b */
+  if(utf32__iterator_word_break(it, it->s[it->n]) == unicode_Word_Break_Newline
+     || it->s[it->n] == 0x000D
+     || it->s[it->n] == 0x000A)
+    return 1;
   /* WB4 */
   /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
   if(utf32__sentence_break(it->s[it->n-1]) != unicode_Sentence_Break_Sep
@@ -667,12 +677,14 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
     return 0;
   /* WB6 */
   if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_MidLetter
+     && (after == unicode_Word_Break_MidLetter
+         || after == unicode_Word_Break_MidNumLet)
      && twoafter == unicode_Word_Break_ALetter)
     return 0;
   /* WB7 */
   if(twobefore == unicode_Word_Break_ALetter
-     && before == unicode_Word_Break_MidLetter
+     && (before == unicode_Word_Break_MidLetter
+         || before == unicode_Word_Break_MidNumLet)
      && after == unicode_Word_Break_ALetter)
     return 0;
   /* WB8 */
@@ -689,12 +701,14 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
     return 0;
    /* WB11 */
   if(twobefore == unicode_Word_Break_Numeric
-     && before == unicode_Word_Break_MidNum
+     && (before == unicode_Word_Break_MidNum
+         || before == unicode_Word_Break_MidNumLet)
      && after == unicode_Word_Break_Numeric)
     return 0;
   /* WB12 */
   if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_MidNum
+     && (after == unicode_Word_Break_MidNum
+         || after == unicode_Word_Break_MidNumLet)
      && twoafter == unicode_Word_Break_Numeric)
     return 0;
   /* WB13 */
