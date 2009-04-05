@@ -61,16 +61,11 @@ APIs And Formats:
 
    * To support a new sound API:
      1) Teach configure.ac how to detect any libraries required.
-     2) Define a new BACKEND_ value and update configuration.[ch] for it.
-     3) Create a suitable server/speaker-*.c along the pattern of the existing
-        ones.
-     4) If possible create a suitable lib/mixer-*.c.  This doesn't make sense
-        for all APIs (e.g. network), but even for those it does, playback
-        support without volume control support is likely to be acceptable (even
-        if inferior to full support).
+     2) Create lib/uaudio-<name>.c; see uaudio.h for the interface.
+     3) Update the list in lib/uaudio-apis.c
+     4) Add a new option to clients/playrtp.c and document it in
+        doc/disorder-playrtp.1.in (if appropriate).
      5) Update doc/disorder_config.5.in.
-     6) If relevant, create a suitable clients/playrtp-*.c and update
-        doc/disorder-playrtp.1.in.
 
    * To support a new file format:
      1) Teach configure.ac how to detect any libraries required.
@@ -140,8 +135,9 @@ The Server:
 Web Interface:
 
    * The web interface does not use Javascript or Flash and I would like to
-     keep it that way.  Clever use of CSS is OK provided it works well on the
-     mainstream browsers.
+     keep it that way; Javascript might be acceptable but it must degrade
+     gracefuly if disabled.  Clever use of CSS is OK provided it works well on
+     the mainstream browsers.
 
    * Update templates/help.tmpl for any changes you make.
 
