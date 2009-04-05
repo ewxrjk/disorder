@@ -624,29 +624,32 @@ int utf32_iterator_grapheme_boundary(utf32_iterator it) {
  * string) and 0 otherwise.
  */
 int utf32_iterator_word_boundary(utf32_iterator it) {
+  uint32_t before, after;
   enum unicode_Word_Break wbtwobefore, wbbefore, wbafter, wbtwoafter;
   size_t nn;
 
   /* WB1 and WB2 */
   if(it->n == 0 || it->n == it->ns)
     return 1;
+  before = it->s[it->n-1];
+  after = it->s[it->n];
   /* WB3 */
-  if(it->s[it->n-1] == 0x000D && it->s[it->n] == 0x000A)
+  if(before == 0x000D && after == 0x000A)
     return 0;
   /* WB3a */
-  if(utf32__iterator_word_break(it, it->s[it->n-1]) == unicode_Word_Break_Newline
-     || it->s[it->n-1] == 0x000D
-     || it->s[it->n-1] == 0x000A)
+  if(utf32__iterator_word_break(it, before) == unicode_Word_Break_Newline
+     || before == 0x000D
+     || before == 0x000A)
     return 1;
   /* WB3b */
-  if(utf32__iterator_word_break(it, it->s[it->n]) == unicode_Word_Break_Newline
-     || it->s[it->n] == 0x000D
-     || it->s[it->n] == 0x000A)
+  if(utf32__iterator_word_break(it, after) == unicode_Word_Break_Newline
+     || after == 0x000D
+     || after == 0x000A)
     return 1;
   /* WB4 */
   /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
-  if(utf32__sentence_break(it->s[it->n-1]) != unicode_Sentence_Break_Sep
-     && utf32__boundary_ignorable(utf32__iterator_word_break(it, it->s[it->n])))
+  if(utf32__sentence_break(before) != unicode_Sentence_Break_Sep
+     && utf32__boundary_ignorable(utf32__iterator_word_break(it, after)))
     return 0;
   /* Gather the property values we'll need for the rest of the test taking the
    * s6.2 changes into account */
