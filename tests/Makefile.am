@@ -1,3 +1,4 @@
+
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
@@ -26,7 +27,7 @@ disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 
 TESTS=cookie.py dbversion.py dump.py files.py play.py queue.py	\
 	recode.py search.py user-upgrade.py user.py aliases.py	\
-	schedule.py
+	schedule.py hashes.py
 
 TESTS_ENVIRONMENT=${PYTHON} -u
 

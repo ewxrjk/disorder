@@ -342,7 +342,7 @@ if test $want_gtk = yes; then
   fi
 fi
 if test $want_tests = yes && test $want_python = yes; then
-  AM_PATH_PYTHON([2.4])
+  AM_PATH_PYTHON([2.5])
   subdirs="${subdirs} python tests"
 fi
 AC_SUBST([subdirs])
