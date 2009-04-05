@@ -48,31 +48,40 @@ enum unicode_Grapheme_Break {
   unicode_Grapheme_Break_LV,
   unicode_Grapheme_Break_LVT,
   unicode_Grapheme_Break_Other,
+  unicode_Grapheme_Break_Prepend,
+  unicode_Grapheme_Break_SpacingMark,
   unicode_Grapheme_Break_T,
   unicode_Grapheme_Break_V
 };
 extern const char *const unicode_Grapheme_Break_names[];
 enum unicode_Word_Break {
   unicode_Word_Break_ALetter,
+  unicode_Word_Break_CR,
   unicode_Word_Break_Extend,
   unicode_Word_Break_ExtendNumLet,
   unicode_Word_Break_Format,
   unicode_Word_Break_Katakana,
+  unicode_Word_Break_LF,
   unicode_Word_Break_MidLetter,
   unicode_Word_Break_MidNum,
+  unicode_Word_Break_MidNumLet,
+  unicode_Word_Break_Newline,
   unicode_Word_Break_Numeric,
   unicode_Word_Break_Other
 };
 extern const char *const unicode_Word_Break_names[];
 enum unicode_Sentence_Break {
   unicode_Sentence_Break_ATerm,
+  unicode_Sentence_Break_CR,
   unicode_Sentence_Break_Close,
   unicode_Sentence_Break_Extend,
   unicode_Sentence_Break_Format,
+  unicode_Sentence_Break_LF,
   unicode_Sentence_Break_Lower,
   unicode_Sentence_Break_Numeric,
   unicode_Sentence_Break_OLetter,
   unicode_Sentence_Break_Other,
+  unicode_Sentence_Break_SContinue,
   unicode_Sentence_Break_STerm,
   unicode_Sentence_Break_Sep,
   unicode_Sentence_Break_Sp,
