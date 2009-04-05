@@ -592,6 +592,9 @@ int main(int argc, char **argv) {
     .ai_protocol = IPPROTO_UDP
   };
 
+  /* Timing information is often important to debugging playrtp, so we include
+   * timestamps in the logs */
+  logdate = 1;
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];

@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "log.h"
 #include "disorder.h"
@@ -65,6 +66,9 @@ const char *progname;
 
 /** @brief Filename for debug messages */
 const char *debug_filename;
+
+/** @brief Set to include timestamps in log messages */
+int logdate;
 
 /** @brief Line number for debug messages */
 int debug_lineno;
@@ -121,6 +125,14 @@ static void logfp(int pri, const char *msg, void *user) {
   
   if(progname)
     fprintf(fp, "%s: ", progname);
+  if(logdate) {
+    char timebuf[64];
+    struct tm *tm;
+    gettimeofday(&tv, 0);
+    tm = localtime(&tv.tv_sec);
+    strftime(timebuf, sizeof timebuf, "%Y-%m-%d %H:%M:%S %Z", tm);
+    fprintf(fp, "%s: ", timebuf);
+  }
   if(pri <= LOG_ERR)
     fputs("ERROR: ", fp);
   else if(pri < LOG_DEBUG)

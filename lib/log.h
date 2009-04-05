@@ -67,6 +67,7 @@ extern struct log_output log_stderr, log_syslog, *log_default;
 
 extern const char *debug_filename;
 extern int debug_lineno;
+extern int logdate;
 
 #define D(x) do {				\
   if(debugging) {				\
