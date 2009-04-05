@@ -92,7 +92,7 @@ sub input {
     my $path = shift;
     my $lpath = basename($path);
     if(!-e $lpath) {
-	system("wget http://www.unicode.org/Public/5.0.0/ucd/$path");
+	system("wget http://www.unicode.org/Public/5.1.0/ucd/$path");
 	chmod(0444, $lpath) or die "$lpath: $!\n";
     }
     open(STDIN, "<$lpath") or die "$lpath: $!\n";
