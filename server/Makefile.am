@@ -119,7 +119,7 @@ check-help: all
 # My sox doesn't know MP3 or FLAC unfortunately
 check-decode: disorder-decode disorder-normalize endian
 	echo "speaker_backend network" > config
-	echo "broadcast 127.255.255.255 discard" > config
+	echo "broadcast 127.255.255.255 9" > config
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
 	  ./disorder-normalize --config config > decoded.raw
 	oggdec -b 16 -e `./endian` -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
