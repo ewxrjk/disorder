@@ -33,6 +33,7 @@ static void test_addr(void) {
   };
 
   struct sockaddr_in a1 = {
+    .sin_family = AF_INET,
     .sin_port = ntohs(25),
     .sin_addr = { .s_addr = 0}
   };
@@ -45,6 +46,7 @@ static void test_addr(void) {
   };
 
   struct sockaddr_in a2 = {
+    .sin_family = AF_INET,
     .sin_port = ntohs(119),
     .sin_addr = { .s_addr = htonl(0x7F000001) }
   };
