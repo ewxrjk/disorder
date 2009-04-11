@@ -17,7 +17,7 @@
 #
 
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
-noinst_PROGRAMS=filename-bytes
+noinst_PROGRAMS=filename-bytes rtpmon
 noinst_SCRIPTS=dump2wav
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -38,6 +38,9 @@ disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
 	$(LIBDB) $(LIBPTHREAD)
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
+
+rtpmon_SOURCES=rtpmon.c
+rtpmon_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
 
