@@ -104,13 +104,14 @@ static double rate(unsigned earlier, unsigned later) {
  * @param n How many frames of audio data we received
  */
 static void frames(const struct timeval *when, size_t n) {
+  const time_t prev = ring[(ringtail - 1) % RINGSIZE].when.tv_sec;
+
   ring[ringtail].when = *when;
   ring[ringtail].serial = serial;
   serial += n;
   ringtail = (ringtail + 1) % RINGSIZE;
-  // Report rates every couple of hundred packets
-  if(!(ringtail & 1023)) {
-    
+  // Report once a second
+  if(prev != when->tv_sec) {
     if(printf("%8.2f  %8.2f  %8.2f\n",
               rate((ringtail - RINGSIZE / 8) % RINGSIZE,
                    (ringtail - 1) % RINGSIZE),
