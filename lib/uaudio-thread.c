@@ -153,7 +153,7 @@ static void *uaudio_collect_thread_fn(void attribute((unused)) *arg) {
 static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
   int resync = 1;
   unsigned last_flags = 0;
-  unsigned char zero[uaudio_thread_min * uaudio_sample_size];
+  unsigned char zero[uaudio_thread_max * uaudio_sample_size];
   memset(zero, 0, sizeof zero);
 
   while(uaudio_thread_started) {
@@ -163,7 +163,7 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
       unsigned flags = UAUDIO_PAUSED;
       if(last_flags & UAUDIO_PLAYING)
         flags |= UAUDIO_PAUSE;
-      uaudio_thread_play_callback(zero, uaudio_thread_min,
+      uaudio_thread_play_callback(zero, uaudio_thread_max,
                                   last_flags = flags);
       /* We expect the play callback to block for a reasonable period */
       pthread_mutex_lock(&uaudio_thread_lock);
