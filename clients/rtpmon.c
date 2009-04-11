@@ -61,7 +61,7 @@ static unsigned bpf = 4;
 static uint32_t serial;
 
 /** @brief Size of ring buffer */
-#define RINGSIZE 16384
+#define RINGSIZE 131072
 
 /** @brief Ring buffer */
 static struct entry ring[RINGSIZE];
@@ -112,7 +112,15 @@ static void frames(const struct timeval *when, size_t n) {
   ringtail = (ringtail + 1) % RINGSIZE;
   // Report once a second
   if(prev != when->tv_sec) {
-    if(printf("%8.2f  %8.2f  %8.2f\n",
+    if(printf("%8.2f  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f\n",
+              rate((ringtail - RINGSIZE / 128) % RINGSIZE,
+                   (ringtail - 1) % RINGSIZE),
+              rate((ringtail - RINGSIZE / 64) % RINGSIZE,
+                   (ringtail - 1) % RINGSIZE),
+              rate((ringtail - RINGSIZE / 32) % RINGSIZE,
+                   (ringtail - 1) % RINGSIZE),
+              rate((ringtail - RINGSIZE / 16) % RINGSIZE,
+                   (ringtail - 1) % RINGSIZE),
               rate((ringtail - RINGSIZE / 8) % RINGSIZE,
                    (ringtail - 1) % RINGSIZE),
               rate((ringtail - RINGSIZE / 4) % RINGSIZE,
