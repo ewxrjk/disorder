@@ -35,6 +35,7 @@
 #include <locale.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/uio.h>
 
 #include "syscalls.h"
 #include "timeval.h"
