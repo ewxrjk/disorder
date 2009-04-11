@@ -81,8 +81,6 @@
 #include "version.h"
 #include "uaudio.h"
 
-#define readahead linux_headers_are_borked
-
 /** @brief Obsolete synonym */
 #ifndef IPV6_JOIN_GROUP
 # define IPV6_JOIN_GROUP IPV6_ADD_MEMBERSHIP
@@ -96,19 +94,13 @@ static FILE *logfp;
 
 /** @brief Output device */
 
-/** @brief Minimum low watermark
- *
- * We'll stop playing if there's only this many samples in the buffer. */
-unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
+/** @brief Buffer low watermark in samples */
+unsigned minbuffer = 4 * (2 * 44100) / 10;  /* 0.4 seconds */
 
-/** @brief Buffer high watermark
+/** @brief Maximum buffer size in samples
  *
- * We'll only start playing when this many samples are available. */
-static unsigned readahead = 44100;      /* 0.5 seconds */
-
-/** @brief Maximum buffer size
- *
- * We'll stop reading from the network if we have this many samples. */
+ * We'll stop reading from the network if we have this many samples.
+ */
 static unsigned maxbuffer;
 
 /** @brief Received packets
@@ -204,7 +196,6 @@ static const struct option options[] = {
   { "device", required_argument, 0, 'D' },
   { "min", required_argument, 0, 'm' },
   { "max", required_argument, 0, 'x' },
-  { "buffer", required_argument, 0, 'b' },
   { "rcvbuf", required_argument, 0, 'R' },
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
   { "oss", no_argument, 0, 'o' },
@@ -440,12 +431,18 @@ static void *listen_thread(void attribute((unused)) *arg) {
  * Must be called with @ref lock held.
  */
 void playrtp_fill_buffer(void) {
-  while(nsamples)
+  /* Discard current buffer contents */
+  while(nsamples) {
+    //fprintf(stderr, "%8u/%u (%u) DROPPING\n", nsamples, maxbuffer, minbuffer);
     drop_first_packet();
+  }
   info("Buffering...");
-  while(nsamples < readahead) {
+  /* Wait until there's at least minbuffer samples available */
+  while(nsamples < minbuffer) {
+    //fprintf(stderr, "%8u/%u (%u) FILLING\n", nsamples, maxbuffer, minbuffer);
     pthread_cond_wait(&cond, &lock);
   }
+  /* Start from whatever is earliest */
   next_timestamp = pheap_first(&packets)->timestamp;
   active = 1;
 }
@@ -480,7 +477,6 @@ static void help(void) {
 	  "Options:\n"
           "  --device, -D DEVICE     Output device\n"
           "  --min, -m FRAMES        Buffer low water mark\n"
-          "  --buffer, -b FRAMES     Buffer high water mark\n"
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
           "  --config, -C PATH       Set configuration file\n"
@@ -537,8 +533,6 @@ static size_t playrtp_callback(void *buffer,
       *bufptr++ = (int16_t)ntohs(*ptr++);
       --i;
     }
-    /* We don't junk the packet here; a subsequent call to
-     * playrtp_next_packet() will dispose of it (if it's actually done with). */
   } else {
     /* There is no suitable packet.  We introduce 0s up to the next packet, or
      * to fill the buffer if there's no next packet or that's too many.  The
@@ -559,6 +553,8 @@ static size_t playrtp_callback(void *buffer,
   }
   /* Advance timestamp */
   next_timestamp += samples;
+  /* Junk obsolete packets */
+  playrtp_next_packet();
   pthread_mutex_unlock(&lock);
   return samples;
 }
@@ -568,7 +564,7 @@ int main(int argc, char **argv) {
   struct addrinfo *res;
   struct stringlist sl;
   char *sockname;
-  int rcvbuf, target_rcvbuf = 131072;
+  int rcvbuf, target_rcvbuf = 0;
   socklen_t len;
   struct ip_mreq mreq;
   struct ipv6_mreq mreq6;
@@ -598,14 +594,13 @@ int main(int argc, char **argv) {
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];
-  while((n = getopt_long(argc, argv, "hVdD:m:b:x:L:R:M:aocC:re:P:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:M:aocC:re:P:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
     case 'd': debugging = 1; break;
     case 'D': uaudio_set("device", optarg); break;
     case 'm': minbuffer = 2 * atol(optarg); break;
-    case 'b': readahead = 2 * atol(optarg); break;
     case 'x': maxbuffer = 2 * atol(optarg); break;
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
@@ -628,7 +623,7 @@ int main(int argc, char **argv) {
   }
   if(config_read(0)) fatal(0, "cannot read configuration");
   if(!maxbuffer)
-    maxbuffer = 4 * readahead;
+    maxbuffer = 2 * minbuffer;
   argc -= optind;
   argv += optind;
   switch(argc) {
@@ -743,6 +738,7 @@ int main(int argc, char **argv) {
            rcvbuf, target_rcvbuf);
   } else
     info("default socket receive buffer %d", rcvbuf);
+  //info("minbuffer %u maxbuffer %u", minbuffer, maxbuffer);
   if(logfp)
     info("WARNING: -L option can impact performance");
   if(control_socket) {
@@ -794,12 +790,28 @@ int main(int argc, char **argv) {
     pthread_mutex_unlock(&lock);
     backend->activate();
     pthread_mutex_lock(&lock);
-    /* Wait until the buffer empties out */
+    /* Wait until the buffer empties out
+     *
+     * If there's a packet that we can play right now then we definitely
+     * continue.
+     *
+     * Also if there's at least minbuffer samples we carry on regardless and
+     * insert silence.  The assumption is there's been a pause but more data
+     * is now available.
+     */
     while(nsamples >= minbuffer
 	  || (nsamples > 0
 	      && contains(pheap_first(&packets), next_timestamp))) {
+      //fprintf(stderr, "%8u/%u (%u) PLAYING\n", nsamples, maxbuffer, minbuffer);
       pthread_cond_wait(&cond, &lock);
     }
+#if 0
+    if(nsamples) {
+      struct packet *p = pheap_first(&packets);
+      fprintf(stderr, "nsamples=%u (%u) next_timestamp=%"PRIx32", first packet is [%"PRIx32",%"PRIx32")\n",
+              nsamples, minbuffer, next_timestamp,p->timestamp,p->timestamp+p->nsamples);
+    }
+#endif
     /* Stop playing for a bit until the buffer re-fills */
     pthread_mutex_unlock(&lock);
     backend->deactivate();

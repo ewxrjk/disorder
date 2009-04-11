@@ -27,12 +27,24 @@
  *
  * The sequence numbers are intended for RTP's use but it's more convenient to
  * maintain them here.
+ *
+ * The basic idea:
+ * - we maintain a base time
+ * - we calculate from this how many samples SHOULD have been sent by now
+ * - we compare this with the number of samples sent so far
+ * - we use this to wait until we're ready to send something
+ * - it's up to the caller to send nothing, or send 0s, if it's supposed to
+ *   be paused
+ *
+ * An implication of this is that the caller must still call
+ * uaudio_schedule_sync() when deactivated (paused) and pretend to send 0s.
  */
 
 #include "common.h"
 
 #include <unistd.h>
-#include <gcrypt.h>
+#include <time.h>
+#include <errno.h>
 
 #include "uaudio.h"
 #include "mem.h"
@@ -50,113 +62,88 @@
  * timestamp is maintained as a 64-bit integer, giving around six million years
  * before wrapping, and truncated to 32 bits when transmitting.
  */
-uint64_t uaudio_schedule_timestamp;
+static uint64_t timestamp;
 
-/** @brief Actual time corresponding to @ref uaudio_schedule_timestamp
+/** @brief Base time
  *
- * This is the time, on this machine, at which the sample at @ref
- * uaudio_schedule_timestamp ought to be sent, interpreted as the time the last
- * packet was sent plus the time length of the packet. */
-static struct timeval uaudio_schedule_timeval;
-
-/** @brief Set when we (re-)activate, to provoke timestamp resync */
-int uaudio_schedule_reactivated;
-
-/** @brief Delay threshold in microseconds
- *
- * uaudio_schedule_play() never attempts to introduce a delay shorter than this.
+ * This is the base time that corresponds to a timestamp of 0.
  */
-static int64_t uaudio_schedule_delay_threshold;
-
-/** @brief Time for current packet */
-static struct timeval uaudio_schedule_now;
+struct timeval base;
 
 /** @brief Synchronize playback operations against real time
+ * @return Sample number
  *
- * This function sleeps as necessary to rate-limit playback operations to match
- * the actual playback rate.  It also maintains @ref uaudio_schedule_timestamp
- * as an arbitrarily-based sample counter, for use by RTP.
- *
- * You should call this in your API's @ref uaudio_playcallback before writing
- * and call uaudio_schedule_update() afterwards.
  */
-void uaudio_schedule_synchronize(void) {
-retry:
-  xgettimeofday(&uaudio_schedule_now, NULL);
-  if(uaudio_schedule_reactivated) {
-    /* We've been deactivated for some unknown interval.  We need to advance
-     * rtp_timestamp to account for the dead air. */
-    /* On the first run through we'll set the start time. */
-    if(!uaudio_schedule_timeval.tv_sec)
-      uaudio_schedule_timeval = uaudio_schedule_now;
-    /* See how much time we missed.
-     *
-     * This will be 0 on the first run through, in which case we'll not modify
-     * anything.
-     *
-     * It'll be negative in the (rare) situation where the deactivation
-     * interval is shorter than the last packet we sent.  In this case we wait
-     * for that much time and then return having sent no samples, which will
-     * cause uaudio_play_thread_fn() to retry.
-     *
-     * In the normal case it will be positive.
-     */
-    const int64_t delay = tvsub_us(uaudio_schedule_now,
-                                   uaudio_schedule_timeval); /* microseconds */
-    if(delay < 0) {
-      usleep(-delay);
-      goto retry;
-    }
-    /* Advance the RTP timestamp to the present.  With 44.1KHz stereo this will
-     * overflow the intermediate value with a delay of a bit over 6 years.
-     * This seems acceptable. */
-    uint64_t update = (delay * uaudio_rate * uaudio_channels) / 1000000;
-    /* Don't throw off channel synchronization */
-    update -= update % uaudio_channels;
-    /* We log nontrivial changes */
-    if(update)
-      info("advancing uaudio_schedule_timeval by %"PRIu64" samples", update);
-    uaudio_schedule_timestamp += update;
-    uaudio_schedule_timeval = uaudio_schedule_now;
-    uaudio_schedule_reactivated = 0;
-  } else {
-    /* Chances are we've been called right on the heels of the previous packet.
-     * If we just sent packets as fast as we got audio data we'd get way ahead
-     * of the player and some buffer somewhere would fill (or at least become
-     * unreasonably large).
-     *
-     * First find out how far ahead of the target time we are.
-     */
-    const int64_t ahead = tvsub_us(uaudio_schedule_timeval,
-                                   uaudio_schedule_now); /* microseconds */
-    /* Only delay at all if we are nontrivially ahead. */
-    if(ahead > uaudio_schedule_delay_threshold) {
-      /* Don't delay by the full amount */
-      usleep(ahead - uaudio_schedule_delay_threshold / 2);
-      /* Refetch time (so we don't get out of step with reality) */
-      xgettimeofday(&uaudio_schedule_now, NULL);
-    }
+uint32_t uaudio_schedule_sync(void) {
+  const unsigned rate = uaudio_rate * uaudio_channels;
+  struct timeval now;
+
+  xgettimeofday(&now, NULL);
+  /* If we're just starting then we might as well send as much as possible
+   * straight away. */
+  if(!base.tv_sec) {
+    base = now;
+    return timestamp;
   }
+  /* Calculate how many microseconds ahead of the base time we are */
+  uint64_t us = tvsub_us(now, base);
+  /* Calculate how many samples that is */
+  uint64_t samples = us * rate / 1000000;
+  /* So...
+   *
+   * We've actually sent 'timestamp' samples so far.
+   *
+   * We OUGHT to have sent 'samples' samples so far.
+   *
+   * Suppose it's the SECOND call.  timestamp will be (say) 716.  'samples'
+   * will be (say) 10 - there's been a bit of scheduling delay.  So in that
+   * case we should wait for 716-10=706 samples worth of time before we can
+   * even send one sample.
+   *
+   * So we wait that long and send our 716 samples.
+   *
+   * On the next call we'll have timestamp=1432 and samples=726, say.  So we
+   * wait and send again.
+   *
+   * On the next call there's been a bit of a delay.  timestamp=2148 but
+   * samples=2200.  So we send our 716 samples immediately.
+   *
+   * If the delay had been longer we might sent further packets back to back to
+   * make up for it.
+   *
+   * Now timestamp=2864 and samples=2210 (say).  Now we're back to waiting.
+   */
+  if(samples < timestamp) {
+    /* We should delay a bit */
+    int64_t wait_samples = timestamp - samples;
+    int64_t wait_ns = wait_samples * 1000000000 / rate;
+    
+    struct timespec ts[1];
+    ts->tv_sec = wait_ns / 1000000000;
+    ts->tv_nsec = wait_ns % 1000000000;
+#if 0
+    fprintf(stderr,
+            "samples=%8"PRIu64" timestamp=%8"PRIu64" wait=%"PRId64" (%"PRId64"ns)\n",
+            samples, timestamp, wait_samples, wait_ns);
+#endif
+    while(nanosleep(ts, ts) < 0 && errno == EINTR)
+      ;
+  } else {
+#if 0
+    fprintf(stderr, "samples=%8"PRIu64" timestamp=%8"PRIu64"\n",
+            samples, timestamp);
+#endif
+  }
+  /* If samples >= timestamp then it's time, or gone time, to play the
+   * timestamp'th sample.  So we return immediately. */
+  return timestamp;
 }
 
-/** @brief Update schedule after writing
- *
- * Called by your API's @ref uaudio_playcallback after sending audio data (to a
- * subprocess or network or whatever).  A separate function so that the caller
- * doesn't have to know how many samples they're going to write until they've
- * done so.
+/** @brief Report how many samples we actually sent
+ * @param nsamples Number of samples sent
  */
-void uaudio_schedule_update(size_t written_samples) {
-  /* uaudio_schedule_timestamp and uaudio_schedule_timestamp are supposed to
-   * refer to the first sample of the next packet */
-  uaudio_schedule_timestamp += written_samples;
-  const unsigned usec = (uaudio_schedule_timeval.tv_usec
-                         + 1000000 * written_samples / (uaudio_rate
-                                                            * uaudio_channels));
-  /* ...will only overflow 32 bits if one packet is more than about half an
-   * hour long, which is not plausible. */
-  uaudio_schedule_timeval.tv_sec += usec / 1000000;
-  uaudio_schedule_timeval.tv_usec = usec % 1000000;
+void uaudio_schedule_sent(size_t nsamples) {
+  timestamp += nsamples;
 }
 
 /** @brief Initialize audio scheduling
@@ -164,10 +151,8 @@ void uaudio_schedule_update(size_t written_samples) {
  * Should be called from your API's @c start callback.
  */
 void uaudio_schedule_init(void) {
-  gcry_create_nonce(&uaudio_schedule_timestamp,
-                    sizeof uaudio_schedule_timestamp);
   /* uaudio_schedule_play() will spot this and choose an initial value */
-  uaudio_schedule_timeval.tv_sec = 0;
+  base.tv_sec = 0;
 }
 
 /*

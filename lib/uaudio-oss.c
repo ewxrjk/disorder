@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #include "mem.h"
 #include "log.h"
@@ -60,15 +61,6 @@ static const char *const oss_options[] = {
   "mixer-channel",
   NULL
 };
-
-/** @brief Actually play sound via OSS */
-static size_t oss_play(void *buffer, size_t samples) {
-  const size_t bytes = samples * uaudio_sample_size;
-  int rc = write(oss_fd, buffer, bytes);
-  if(rc < 0)
-    fatal(errno, "error writing to sound device");
-  return rc / uaudio_sample_size;
-}
 
 /** @brief Open the OSS sound device */
 static void oss_open(void) {
@@ -105,17 +97,40 @@ static void oss_open(void) {
 #endif
 }
 
-static void oss_activate(void) {
-  oss_open();
-  uaudio_thread_activate();
+/** @brief Close the OSS sound device */
+static void oss_close(void) {
+  if(oss_fd != -1) {
+    close(oss_fd);
+    oss_fd = -1;
+  }
 }
 
-static void oss_deactivate(void) {
-  uaudio_thread_deactivate();
-  close(oss_fd);
-  oss_fd = -1;
+/** @brief Actually play sound via OSS */
+static size_t oss_play(void *buffer, size_t samples, unsigned flags) {
+  /* cf uaudio-alsa.c:alsa-play() */
+  if(flags & UAUDIO_PAUSED) {
+    if(flags & UAUDIO_PAUSE)
+      oss_close();
+    if(samples > 64)
+      samples /= 2;
+    const uint64_t ns = ((uint64_t)samples * 1000000000
+                         / (uaudio_rate * uaudio_channels));
+    struct timespec ts[1];
+    ts->tv_sec = ns / 1000000000;
+    ts->tv_nsec = ns % 1000000000;
+    while(nanosleep(ts, ts) < 0 && errno == EINTR)
+      ;
+    return samples;
+  }
+  if(flags & UAUDIO_RESUME)
+    oss_open();
+  const size_t bytes = samples * uaudio_sample_size;
+  int rc = write(oss_fd, buffer, bytes);
+  if(rc < 0)
+    fatal(errno, "error writing to sound device");
+  return rc / uaudio_sample_size;
 }
-  
+
 static void oss_start(uaudio_callback *callback,
                       void *userdata) {
   if(uaudio_channels != 1 && uaudio_channels != 2)
@@ -142,6 +157,7 @@ static void oss_start(uaudio_callback *callback,
 
 static void oss_stop(void) {
   uaudio_thread_stop();
+  oss_close();                          /* might not have been paused */
 }
 
 /** @brief Channel names */
@@ -209,8 +225,8 @@ const struct uaudio uaudio_oss = {
   .options = oss_options,
   .start = oss_start,
   .stop = oss_stop,
-  .activate = oss_activate,
-  .deactivate = oss_deactivate,
+  .activate = uaudio_thread_activate,
+  .deactivate = uaudio_thread_deactivate,
   .open_mixer = oss_open_mixer,
   .close_mixer = oss_close_mixer,
   .get_volume = oss_get_volume,
