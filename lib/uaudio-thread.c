@@ -75,7 +75,6 @@ static uaudio_callback *uaudio_thread_collect_callback;
 static uaudio_playcallback *uaudio_thread_play_callback;
 static void *uaudio_thread_userdata;
 static int uaudio_thread_started;
-static int uaudio_thread_activated;
 static int uaudio_thread_collecting;
 static pthread_mutex_t uaudio_thread_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t uaudio_thread_cond = PTHREAD_COND_INITIALIZER;
@@ -85,6 +84,9 @@ static size_t uaudio_thread_min;
 
 /** @brief Maximum number of samples per chunk */
 static size_t uaudio_thread_max;
+
+/** @brief Set when activated, clear when paused */
+static int uaudio_thread_activated;
 
 /** @brief Return number of buffers currently in use */
 static int uaudio_buffers_used(void) {
@@ -107,8 +109,7 @@ static void *uaudio_collect_thread_fn(void attribute((unused)) *arg) {
     /* We are definitely active now */
     uaudio_thread_collecting = 1;
     pthread_cond_broadcast(&uaudio_thread_cond);
-    while(uaudio_thread_activated
-          || (uaudio_thread_flags & UAUDIO_THREAD_FAKE_PAUSE)) {
+    while(uaudio_thread_activated) {
       if(uaudio_buffers_used() < UAUDIO_THREAD_BUFFERS - 1) {
         /* At least one buffer is available.  We release the lock while
          * collecting data so that other already-filled buffers can be played
@@ -127,9 +128,6 @@ static void *uaudio_collect_thread_fn(void attribute((unused)) *arg) {
                uaudio_thread_max - b->nsamples,
                uaudio_thread_userdata);
           }
-        } else if(uaudio_thread_flags & UAUDIO_THREAD_FAKE_PAUSE) {
-          memset(b->samples, 0, uaudio_thread_min * uaudio_sample_size);
-          b->nsamples += uaudio_thread_min;
         }
         pthread_mutex_lock(&uaudio_thread_lock);
         /* Advance to next buffer */
@@ -154,9 +152,23 @@ static void *uaudio_collect_thread_fn(void attribute((unused)) *arg) {
  */
 static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
   int resync = 1;
+  unsigned last_flags = 0;
+  unsigned char zero[uaudio_thread_min * uaudio_sample_size];
+  memset(zero, 0, sizeof zero);
 
-  pthread_mutex_lock(&uaudio_thread_lock);
   while(uaudio_thread_started) {
+    // If we're paused then just play silence
+    if(!uaudio_thread_activated) {
+      pthread_mutex_unlock(&uaudio_thread_lock);
+      unsigned flags = UAUDIO_PAUSED;
+      if(last_flags & UAUDIO_PLAYING)
+        flags |= UAUDIO_PAUSE;
+      uaudio_thread_play_callback(zero, uaudio_thread_min,
+                                  last_flags = flags);
+      /* We expect the play callback to block for a reasonable period */
+      pthread_mutex_lock(&uaudio_thread_lock);
+      continue;
+    }
     const int used = uaudio_buffers_used();
     int go;
 
@@ -171,10 +183,15 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
       pthread_mutex_unlock(&uaudio_thread_lock);
       //fprintf(stderr, "P%d.", uaudio_play_buffer);
       size_t played = 0;
-      while(played < b->nsamples)
+      while(played < b->nsamples) {
+        unsigned flags = UAUDIO_PLAYING;
+        if(last_flags & UAUDIO_PAUSED)
+          flags |= UAUDIO_RESUME;
         played += uaudio_thread_play_callback((char *)b->samples
                                               + played * uaudio_sample_size,
-                                              b->nsamples - played);
+                                              b->nsamples - played,
+                                              last_flags = flags);
+      }
       pthread_mutex_lock(&uaudio_thread_lock);
       /* Move to next buffer */
       uaudio_play_buffer = (1 + uaudio_play_buffer) % UAUDIO_THREAD_BUFFERS;
@@ -198,15 +215,12 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
  * @param playcallback Callback to play audio data
  * @param min Minimum number of samples to play in a chunk
  * @param max Maximum number of samples to play in a chunk
- * @param flags Flags
+ * @param flags Flags (not currently used)
  *
  * @p callback will be called multiple times in quick succession if necessary
  * to gather at least @p min samples.  Equally @p playcallback may be called
  * repeatedly in quick succession to play however much was received in a single
  * chunk.
- *
- * Possible flags are:
- * - @ref UAUDIO_THREAD_FAKE_PAUSE
  */
 void uaudio_thread_start(uaudio_callback *callback,
 			 void *userdata,
@@ -222,6 +236,7 @@ void uaudio_thread_start(uaudio_callback *callback,
   uaudio_thread_max = max;
   uaudio_thread_flags = flags;
   uaudio_thread_started = 1;
+  uaudio_thread_activated = 0;
   for(int n = 0; n < UAUDIO_THREAD_BUFFERS; ++n)
     uaudio_buffers[n].samples = xcalloc_noptr(uaudio_thread_max,
                                               uaudio_sample_size);
@@ -258,20 +273,14 @@ void uaudio_thread_activate(void) {
   pthread_mutex_lock(&uaudio_thread_lock);
   uaudio_thread_activated = 1;
   pthread_cond_broadcast(&uaudio_thread_cond);
-  while(!uaudio_thread_collecting)
-    pthread_cond_wait(&uaudio_thread_cond, &uaudio_thread_lock);
   pthread_mutex_unlock(&uaudio_thread_lock);
 }
 
 /** @brief Deactivate audio output */
 void uaudio_thread_deactivate(void) {
   pthread_mutex_lock(&uaudio_thread_lock);
-  uaudio_thread_activated = 0;
+  uaudio_thread_activated = 0; 
   pthread_cond_broadcast(&uaudio_thread_cond);
-  if(!(uaudio_thread_flags & UAUDIO_THREAD_FAKE_PAUSE)) {
-    while(uaudio_thread_collecting || uaudio_buffers_used())
-      pthread_cond_wait(&uaudio_thread_cond, &uaudio_thread_lock);
-  }
   pthread_mutex_unlock(&uaudio_thread_lock);
 }
 

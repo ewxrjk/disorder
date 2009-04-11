@@ -59,6 +59,9 @@ static int rtp_fd;
 /** @brief RTP SSRC */
 static uint32_t rtp_id;
 
+/** @brief Base for timestamp */
+static uint32_t rtp_base;
+
 /** @brief RTP sequence number */
 static uint16_t rtp_sequence;
 
@@ -68,11 +71,8 @@ static uint16_t rtp_sequence;
  */
 static int rtp_errors;
 
-/** @brief Delay threshold in microseconds
- *
- * rtp_play() never attempts to introduce a delay shorter than this.
- */
-static int64_t rtp_delay_threshold;
+/** @brief Set while paused */
+static volatile int rtp_paused;
 
 static const char *const rtp_options[] = {
   "rtp-destination",
@@ -81,7 +81,6 @@ static const char *const rtp_options[] = {
   "rtp-source-port",
   "multicast-ttl",
   "multicast-loop",
-  "delay-threshold",
   NULL
 };
 
@@ -129,16 +128,28 @@ static void rtp_set_netconfig(const char *af,
   }
 }
 
-static size_t rtp_play(void *buffer, size_t nsamples) {
+static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
   struct rtp_header header;
   struct iovec vec[2];
-  
+
+#if 0
+  if(flags & (UAUDIO_PAUSE|UAUDIO_RESUME))
+    fprintf(stderr, "rtp_play %zu samples%s%s%s%s\n", nsamples,
+            flags & UAUDIO_PAUSE ? " UAUDIO_PAUSE" : "",
+            flags & UAUDIO_RESUME ? " UAUDIO_RESUME" : "",
+            flags & UAUDIO_PLAYING ? " UAUDIO_PLAYING" : "",
+            flags & UAUDIO_PAUSED ? " UAUDIO_PAUSED" : "");
+#endif
+          
   /* We do as much work as possible before checking what time it is */
   /* Fill out header */
   header.vpxcc = 2 << 6;              /* V=2, P=0, X=0, CC=0 */
   header.seq = htons(rtp_sequence++);
   header.ssrc = rtp_id;
-  header.mpt = (uaudio_schedule_reactivated ? 0x80 : 0x00) | rtp_payload;
+  header.mpt = rtp_payload;
+  /* If we've come out of a pause, set the marker bit */
+  if(flags & UAUDIO_RESUME)
+    header.mpt |= 0x80;
 #if !WORDS_BIGENDIAN
   /* Convert samples to network byte order */
   uint16_t *u = buffer, *const limit = u + nsamples;
@@ -151,8 +162,13 @@ static size_t rtp_play(void *buffer, size_t nsamples) {
   vec[0].iov_len = sizeof header;
   vec[1].iov_base = buffer;
   vec[1].iov_len = nsamples * uaudio_sample_size;
-  uaudio_schedule_synchronize();
-  header.timestamp = htonl((uint32_t)uaudio_schedule_timestamp);
+  const uint32_t timestamp = uaudio_schedule_sync();
+  header.timestamp = htonl(rtp_base + (uint32_t)timestamp);
+  /* If we're paused don't actually end a packet, we just pretend */
+  if(flags & UAUDIO_PAUSED) {
+    uaudio_schedule_sent(nsamples);
+    return nsamples;
+  }
   int written_bytes;
   do {
     written_bytes = writev(rtp_fd, vec, 2);
@@ -165,10 +181,10 @@ static size_t rtp_play(void *buffer, size_t nsamples) {
     return 0;
   } else
     rtp_errors /= 2;                    /* gradual decay */
-  written_bytes -= sizeof (struct rtp_header);
-  const size_t written_samples = written_bytes / uaudio_sample_size;
-  uaudio_schedule_update(written_samples);
-  return written_samples;
+  /* TODO what can we sensibly do about short writes here?  Really that's just
+   * an error and we ought to be using smaller packets. */
+  uaudio_schedule_sent(nsamples);
+  return nsamples;
 }
 
 static void rtp_open(void) {
@@ -187,7 +203,6 @@ static void rtp_open(void) {
                     "rtp-source",
                     "rtp-source-port",
                     src);
-  rtp_delay_threshold = atoi(uaudio_get("rtp-delay-threshold", "1000"));
   /* ...microseconds */
 
   /* Resolve addresses */
@@ -299,6 +314,7 @@ static void rtp_start(uaudio_callback *callback,
    * packet contents are highly public so there's no point asking for very
    * strong randomness. */
   gcry_create_nonce(&rtp_id, sizeof rtp_id);
+  gcry_create_nonce(&rtp_base, sizeof rtp_base);
   gcry_create_nonce(&rtp_sequence, sizeof rtp_sequence);
   rtp_open();
   uaudio_schedule_init();
@@ -317,15 +333,6 @@ static void rtp_stop(void) {
   rtp_fd = -1;
 }
 
-static void rtp_activate(void) {
-  uaudio_schedule_reactivated = 1;
-  uaudio_thread_activate();
-}
-
-static void rtp_deactivate(void) {
-  uaudio_thread_deactivate();
-}
-
 static void rtp_configure(void) {
   char buffer[64];
 
@@ -338,8 +345,6 @@ static void rtp_configure(void) {
   snprintf(buffer, sizeof buffer, "%ld", config->multicast_ttl);
   uaudio_set("multicast-ttl", buffer);
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
-  snprintf(buffer, sizeof buffer, "%ld", config->rtp_delay_threshold);
-  uaudio_set("delay-threshold", buffer);
 }
 
 const struct uaudio uaudio_rtp = {
@@ -347,8 +352,8 @@ const struct uaudio uaudio_rtp = {
   .options = rtp_options,
   .start = rtp_start,
   .stop = rtp_stop,
-  .activate = rtp_activate,
-  .deactivate = rtp_deactivate,
+  .activate = uaudio_thread_activate,
+  .deactivate = uaudio_thread_deactivate,
   .configure = rtp_configure,
 };
 

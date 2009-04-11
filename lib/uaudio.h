@@ -51,11 +51,33 @@ typedef size_t uaudio_callback(void *buffer,
 /** @brief Callback to play audio data
  * @param buffer Pointer to audio buffer
  * @param samples Number of samples to play
+ * @param flags Flags word
  * @return Number of samples played
  *
  * Used with uaudio_thread_start() etc.
+ *
+ * @p flags is a bitmap giving the current pause state and transitions:
+ * - @ref UAUDIO_PAUSE if this is the first call of a pause
+ * - @ref UAUDIO_RESUME if this is the first call of a resumse
+ * - @ref UAUDIO_PLAYING if this is outside a pause
+ * - @ref UAUDIO_PAUSED if this is in a pause
+ *
+ * During a pause, the sample data is guaranteed to be 0.
  */
-typedef size_t uaudio_playcallback(void *buffer, size_t samples);
+typedef size_t uaudio_playcallback(void *buffer, size_t samples,
+                                   unsigned flags);
+
+/** @brief Start of a pause */
+#define UAUDIO_PAUSE 0x0001
+
+/** @brief End of a pause */
+#define UAUDIO_RESUME 0x0002
+
+/** @brief Currently playing */
+#define UAUDIO_PLAYING 0x0004
+
+/** @brief Currently paused */
+#define UAUDIO_PAUSED 0x0008
 
 /** @brief Audio API definition */
 struct uaudio {
@@ -139,19 +161,11 @@ void uaudio_thread_start(uaudio_callback *callback,
                          size_t max,
                          unsigned flags);
 
-/** @brief Fake pauses
- *
- * This flag is used for audio backends that cannot sensibly be paused.
- * The thread support code will supply silence while deactivated in this
- * case.
- */
-#define UAUDIO_THREAD_FAKE_PAUSE 0x00000001
-
 void uaudio_thread_stop(void);
 void uaudio_thread_activate(void);
 void uaudio_thread_deactivate(void);
-void uaudio_schedule_synchronize(void);
-void uaudio_schedule_update(size_t written_samples);
+uint32_t uaudio_schedule_sync(void);
+void uaudio_schedule_sent(size_t nsamples);
 void uaudio_schedule_init(void);
 const struct uaudio *uaudio_find(const char *name);
 

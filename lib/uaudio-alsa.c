@@ -57,7 +57,24 @@ static long alsa_mixer_min;
 static long alsa_mixer_max;
 
 /** @brief Actually play sound via ALSA */
-static size_t alsa_play(void *buffer, size_t samples) {
+static size_t alsa_play(void *buffer, size_t samples, unsigned flags) {
+  /* If we're paused we just pretend.  We rely on snd_pcm_writei() blocking so
+   * we have to fake up a sleep here.  However it doesn't have to be all that
+   * accurate - in particular it's quite acceptable to greatly underestimate
+   * the required wait time.  For 'lengthy' waits we do this by the blunt
+   * instrument of halving it.  */
+  if(flags & UAUDIO_PAUSED) {
+    if(samples > 64)
+      samples /= 2;
+    const uint64_t ns = ((uint64_t)samples * 1000000000
+                         / (uaudio_rate * uaudio_channels));
+    struct timespec ts[1];
+    ts->tv_sec = ns / 1000000000;
+    ts->tv_nsec = ns % 1000000000;
+    while(nanosleep(ts, ts) < 0 && errno == EINTR)
+      ;
+    return samples;
+  }
   int err;
   /* ALSA wants 'frames', where frame = several concurrently played samples */
   const snd_pcm_uframes_t frames = samples / uaudio_channels;
@@ -117,14 +134,6 @@ static void alsa_open(void) {
   
 }
 
-static void alsa_activate(void) {
-  uaudio_thread_activate();
-}
-
-static void alsa_deactivate(void) {
-  uaudio_thread_deactivate();
-}
-  
 static void alsa_start(uaudio_callback *callback,
                       void *userdata) {
   if(uaudio_channels != 1 && uaudio_channels != 2)
@@ -258,8 +267,8 @@ const struct uaudio uaudio_alsa = {
   .options = alsa_options,
   .start = alsa_start,
   .stop = alsa_stop,
-  .activate = alsa_activate,
-  .deactivate = alsa_deactivate,
+  .activate = uaudio_thread_activate,
+  .deactivate = uaudio_thread_deactivate,
   .open_mixer = alsa_open_mixer,
   .close_mixer = alsa_close_mixer,
   .get_volume = alsa_get_volume,

@@ -42,6 +42,9 @@ static int command_fd;
 /** @brief Child process ID */
 static pid_t command_pid;
 
+/** @brief Whether to suspend on pause */
+static int command_suspend_on_pause;
+
 static const char *const command_options[] = {
   "command",
   "pause-mode",
@@ -92,8 +95,12 @@ static void command_open(void) {
 }
 
 /** @brief Send audio data to subprocess */
-static size_t command_play(void *buffer, size_t nsamples) {
-  uaudio_schedule_synchronize();
+static size_t command_play(void *buffer, size_t nsamples, unsigned flags) {
+  uaudio_schedule_sync();
+  /* If we're pausing and want that to be represented by stopping writing, we
+   * just pretend */
+  if((flags & UAUDIO_PAUSED) && command_suspend_on_pause)
+    return nsamples;
   const size_t bytes = nsamples * uaudio_sample_size;
   int written = write(command_fd, buffer, bytes);
   if(written < 0) {
@@ -109,8 +116,11 @@ static size_t command_play(void *buffer, size_t nsamples) {
       fatal(errno, "error writing to audio command subprocess");
     }
   }
+  /* TODO what if we write a partial sample? Actually reasonably unlikely but
+   * not impossible.  Maybe someone who actually uses this backend should sort
+   * it out. */
   const size_t written_samples = written / uaudio_sample_size;
-  uaudio_schedule_update(written_samples);
+  uaudio_schedule_sent(written_samples);
   return written_samples;
 }
 
@@ -120,9 +130,9 @@ static void command_start(uaudio_callback *callback,
   unsigned flags = 0;
 
   if(!strcmp(pausemode, "silence"))
-    flags |= UAUDIO_THREAD_FAKE_PAUSE;
+    command_suspend_on_pause = 0;
   else if(!strcmp(pausemode, "suspend"))
-    ;
+    command_suspend_on_pause = 1;
   else
     fatal(0, "unknown pause mode '%s'", pausemode);
   command_open();
@@ -140,15 +150,6 @@ static void command_stop(void) {
   command_wait();
 }
 
-static void command_activate(void) {
-  uaudio_schedule_reactivated = 1;
-  uaudio_thread_activate();
-}
-
-static void command_deactivate(void) {
-  uaudio_thread_deactivate();
-}
-
 static void command_configure(void) {
   uaudio_set("command", config->speaker_command);
   uaudio_set("pause-mode", config->pause_mode);
@@ -159,8 +160,8 @@ const struct uaudio uaudio_command = {
   .options = command_options,
   .start = command_start,
   .stop = command_stop,
-  .activate = command_activate,
-  .deactivate = command_deactivate,
+  .activate = uaudio_thread_activate,
+  .deactivate = uaudio_thread_deactivate,
   .configure = command_configure,
 };
 
