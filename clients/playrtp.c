@@ -94,14 +94,13 @@ static FILE *logfp;
 
 /** @brief Output device */
 
-/** @brief Minimum low watermark
- *
- * We'll stop playing if there's only this many samples in the buffer. */
-unsigned minbuffer = 2 * 44100 / 10;  /* 0.2 seconds */
+/** @brief Buffer low watermark in samples */
+unsigned minbuffer = 4 * (2 * 44100) / 10;  /* 0.4 seconds */
 
-/** @brief Maximum buffer size
+/** @brief Maximum buffer size in samples
  *
- * We'll stop reading from the network if we have this many samples. */
+ * We'll stop reading from the network if we have this many samples.
+ */
 static unsigned maxbuffer;
 
 /** @brief Received packets
@@ -433,11 +432,14 @@ static void *listen_thread(void attribute((unused)) *arg) {
  */
 void playrtp_fill_buffer(void) {
   /* Discard current buffer contents */
-  while(nsamples)
+  while(nsamples) {
+    //fprintf(stderr, "%8u/%u (%u) DROPPING\n", nsamples, maxbuffer, minbuffer);
     drop_first_packet();
+  }
   info("Buffering...");
   /* Wait until there's at least minbuffer samples available */
   while(nsamples < minbuffer) {
+    //fprintf(stderr, "%8u/%u (%u) FILLING\n", nsamples, maxbuffer, minbuffer);
     pthread_cond_wait(&cond, &lock);
   }
   /* Start from whatever is earliest */
@@ -531,8 +533,6 @@ static size_t playrtp_callback(void *buffer,
       *bufptr++ = (int16_t)ntohs(*ptr++);
       --i;
     }
-    /* We don't junk the packet here; a subsequent call to
-     * playrtp_next_packet() will dispose of it (if it's actually done with). */
   } else {
     /* There is no suitable packet.  We introduce 0s up to the next packet, or
      * to fill the buffer if there's no next packet or that's too many.  The
@@ -553,6 +553,8 @@ static size_t playrtp_callback(void *buffer,
   }
   /* Advance timestamp */
   next_timestamp += samples;
+  /* Junk obsolete packets */
+  playrtp_next_packet();
   pthread_mutex_unlock(&lock);
   return samples;
 }
@@ -736,6 +738,7 @@ int main(int argc, char **argv) {
            rcvbuf, target_rcvbuf);
   } else
     info("default socket receive buffer %d", rcvbuf);
+  //info("minbuffer %u maxbuffer %u", minbuffer, maxbuffer);
   if(logfp)
     info("WARNING: -L option can impact performance");
   if(control_socket) {
@@ -799,8 +802,16 @@ int main(int argc, char **argv) {
     while(nsamples >= minbuffer
 	  || (nsamples > 0
 	      && contains(pheap_first(&packets), next_timestamp))) {
+      //fprintf(stderr, "%8u/%u (%u) PLAYING\n", nsamples, maxbuffer, minbuffer);
       pthread_cond_wait(&cond, &lock);
     }
+#if 0
+    if(nsamples) {
+      struct packet *p = pheap_first(&packets);
+      fprintf(stderr, "nsamples=%u (%u) next_timestamp=%"PRIx32", first packet is [%"PRIx32",%"PRIx32")\n",
+              nsamples, minbuffer, next_timestamp,p->timestamp,p->timestamp+p->nsamples);
+    }
+#endif
     /* Stop playing for a bit until the buffer re-fills */
     pthread_mutex_unlock(&lock);
     backend->deactivate();
