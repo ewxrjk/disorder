@@ -203,6 +203,9 @@ struct queue_entry {
 
   /** @brief Owning queue (for Disobedience only) */
   struct queuelike *ql;
+  
+  /** @brief Decoder (or player) process ID */
+  pid_t pid;
 };
 
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n);

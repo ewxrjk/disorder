@@ -35,33 +35,8 @@ static void finished(ev_source *ev);
 /** @brief File descriptor of our end of the socket to the speaker */
 static int speaker_fd = -1;
 
-/** @brief Mapping of track IDs to associated decoder process IDs */
-static hash *player_pids;
-
 /** @brief Set when shutting down */
 static int shutting_down;
-
-/** @brief Remember a player's PID */
-static void store_player_pid(const char *id, pid_t pid) {
-  if(!player_pids) player_pids = hash_new(sizeof (pid_t));
-  hash_add(player_pids, id, &pid, HASH_INSERT_OR_REPLACE);
-}
-
-/** @brief Find a player's PID */
-static pid_t find_player_pid(const char *id) {
-  pid_t *pidp;
-
-  if(player_pids && (pidp = hash_find(player_pids, id))) return *pidp;
-  return -1;
-}
-
-/** @brief Discard a player's ID->PID mappin
- *
- * Used when the player terminates.
- */
-static void forget_player_pid(const char *id) {
-  if(player_pids) hash_remove(player_pids, id);
-}
 
 /** @brief Called when speaker process terminates
  *
@@ -197,7 +172,6 @@ static void finished(ev_source *ev) {
   }
   queue_played(playing);
   recent_write();
-  forget_player_pid(playing->id);
   playing = 0;
   /* Try to play something else */
   /* TODO re-support config->gap? */
@@ -225,8 +199,7 @@ static int player_finished(ev_source *ev,
   /* Record that this PID is dead.  If we killed the track we might know this
    * already, but also it might have exited or crashed.  Either way we don't
    * want to end up signalling it. */
-  if(pid == find_player_pid(q->id))
-    forget_player_pid(q->id);
+  q->pid = -1;
   switch(q->state) {
   case playing_unplayed:
   case playing_random:
@@ -309,7 +282,7 @@ static int start(ev_source *ev,
   struct timespec ts;
   const char *waitdevice = 0;
   const char *const *optv;
-  pid_t pid, npid;
+  pid_t npid;
   struct sockaddr_un addr;
   uint32_t l;
 
@@ -376,7 +349,7 @@ static int start(ev_source *ev,
     }
   }
   /* Create the subprocess */
-  switch(pid = fork()) {
+  switch(q->pid = fork()) {
   case 0:
     /* Child of disorderd */
     exitfn = _exit;
@@ -522,8 +495,6 @@ static int start(ev_source *ev,
     return START_SOFTFAIL;
   }
   /* Back in disorderd (child was created) */
-  /* Remmber the PID */
-  store_player_pid(q->id, pid);
   /* This track is prepared.  (Non-raw tracks are by implication prepared as
    * soon as they are playing, but really the question doesn't make much sense
    * for them.) */
@@ -537,10 +508,10 @@ static int start(ev_source *ev,
    * so we set it here too.  One or the other may fail but as long as one
    * succeeds that's fine.
    */
-  setpgid(pid, pid);
+  setpgid(q->pid, q->pid);
   /* Ask the event loop to tell us when the child terminates */
-  ev_child(ev, pid, 0, player_finished, q);
-  D(("player subprocess ID %lu", (unsigned long)pid));
+  ev_child(ev, q->pid, 0, player_finished, q);
+  D(("player subprocess ID %lu", (unsigned long)q->pid));
   return START_OK;
 }
 
@@ -552,8 +523,10 @@ int prepare(ev_source *ev,
 	    struct queue_entry *q) {
   int n;
 
+  /* If there's a decoder (or player!) going we do nothing */
+  if(q->pid >= 0)
+    return 0;
   /* Find the player plugin */
-  if(find_player_pid(q->id) > 0) return 0; /* Already going. */
   if((n = find_player(q)) < 0) return -1; /* No player */
   q->pl = open_plugin(config->player.s[n].s[1], 0); /* No player */
   q->type = play_get_type(q->pl);
@@ -571,14 +544,13 @@ int prepare(ev_source *ev,
 void abandon(ev_source attribute((unused)) *ev,
 	     struct queue_entry *q) {
   struct speaker_message sm;
-  pid_t pid = find_player_pid(q->id);
 
-  if(pid < 0) return;			/* Not prepared. */
+  if(q->pid < 0)
+    return;                             /* Not prepared. */
   if((q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return;				/* Not a raw player. */
   /* Terminate the player. */
-  kill(-pid, config->signal);
-  forget_player_pid(q->id);
+  kill(-q->pid, config->signal);
   /* Cancel the track. */
   memset(&sm, 0, sizeof sm);
   sm.type = SM_CANCEL;
@@ -740,7 +712,6 @@ void disable_random(const char *who) {
 void scratch(const char *who, const char *id) {
   struct queue_entry *q;
   struct speaker_message sm;
-  pid_t pid;
 
   D(("scratch playing=%p state=%d id=%s playing->id=%s",
      (void *)playing,
@@ -758,14 +729,9 @@ void scratch(const char *who, const char *id) {
     playing->state = playing_scratched;
     playing->scratched = who ? xstrdup(who) : 0;
     /* Find the player and kill the whole process group */
-    if((pid = find_player_pid(playing->id)) > 0) {
-      D(("kill -%d -%lu", config->signal, (unsigned long)pid));
-      kill(-pid, config->signal);
-      forget_player_pid(playing->id);
-    } else {
-      /* TODO if the background decoder finished and the speaker is working
-       * through buffered data this will produce a bogus log message. */
-      error(0, "could not find PID for %s", playing->id);
+    if(playing->pid >= 0) {
+      D(("kill -%d -%lu", config->signal, (unsigned long)playing->pid));
+      kill(-playing->pid, config->signal);
     }
     /* Tell the speaker, if we think it'll care */
     if((playing->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
@@ -789,33 +755,21 @@ void scratch(const char *who, const char *id) {
 /** @brief Called from quit() to tear down eveyrthing belonging to this file */
 void quitting(ev_source *ev) {
   struct queue_entry *q;
-  pid_t pid;
 
   /* Don't start anything new */
   shutting_down = 1;
   /* Shut down the current player */
   if(playing) {
-    if((pid = find_player_pid(playing->id)) > 0) {
-      kill(-pid, config->signal);
-      forget_player_pid(playing->id);
-    } else{
-      /* TODO if the background decoder finished and the speaker is working
-       * through buffered data this will produce a bogus log message. */
-      error(0, "could not find PID for %s", playing->id);
-    }
+    if(playing->pid >= 0)
+      kill(-playing->pid, config->signal);
     playing->state = playing_quitting;
     finished(0);
   }
-  /* Zap any other players */
+  /* Zap any background decoders that are going */
   for(q = qhead.next; q != &qhead; q = q->next)
-    if((pid = find_player_pid(q->id)) > 0) {
-      D(("kill -%d %lu", config->signal, (unsigned long)pid));
-      kill(-pid, config->signal);
-      forget_player_pid(q->id);
-    } else {
-      /* TODO if we never started a background decoder then this will produce a
-       * very bogus log message (see issue 32) */
-      error(0, "could not find PID for %s", q->id);
+    if(q->pid >= 0) {
+      D(("kill -%d %lu", config->signal, (unsigned long)q->pid));
+      kill(-q->pid, config->signal);
     }
   /* Don't need the speaker any more */
   ev_fd_cancel(ev, ev_read, speaker_fd);

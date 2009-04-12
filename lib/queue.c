@@ -203,6 +203,7 @@ int queue_unmarshall(struct queue_entry *q, const char *s,
   char **vec;
   int nvec;
 
+  q->pid = -1;                          /* =none */
   if(!(vec = split(s, &nvec, SPLIT_QUOTES, error_handler, u)))
     return -1;
   return queue_unmarshall_vec(q, nvec, vec, error_handler, u);
