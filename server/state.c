@@ -20,13 +20,21 @@
  */
 #include "disorder-server.h"
 
+/** @brief Current AF_UNIX socket path */
 static const char *current_unix;
+
+/** @brief Current AF_UNIX socket */
 static int current_unix_fd;
 
 /** @brief TCP listener definition */
 struct listener {
+  /** @brief Next listener */
   struct listener *next;
+
+  /** @brief Local socket address */
   struct sockaddr *sa;
+
+  /** @brief File descriptor */
   int fd;
 };
 
@@ -36,6 +44,7 @@ static struct listener *listeners;
 /** @brief Current audio API */
 const struct uaudio *api;
 
+/** @brief Quit DisOrder */
 void quit(ev_source *ev) {
   info("shutting down...");
   quitting(ev);
@@ -45,12 +54,14 @@ void quit(ev_source *ev) {
   exit(0);
 }
 
+/** @brief Create a copy of an @c addrinfo structure */
 static struct sockaddr *copy_sockaddr(const struct addrinfo *addr) {
   struct sockaddr *sa = xmalloc_noptr(addr->ai_addrlen);
   memcpy(sa, addr->ai_addr, addr->ai_addrlen);
   return sa;
 }
 
+/** @brief Create and destroy sockets to set current configuration */
 static void reset_socket(ev_source *ev) {
   const char *new_unix;
   struct addrinfo *res, *r;
@@ -123,6 +134,8 @@ static void reset_socket(ev_source *ev) {
 	l->fd = fd;
 	listeners = l;
       }
+      /* We ignore any failures (though server_start() will have
+       * logged them). */
     }
   }
   /* if res is still set it needs freeing */
@@ -130,44 +143,78 @@ static void reset_socket(ev_source *ev) {
     freeaddrinfo(res);
 }
 
+/** @brief Reconfigure the server
+ * @param reload 0 at startup, 1 for a reload
+ */
 int reconfigure(ev_source *ev, int reload) {
   int need_another_rescan = 0;
   int ret = 0;
 
   D(("reconfigure(%d)", reload));
+  /* Deconfigure the old audio API if there is one */
   if(api) {
     if(api->close_mixer)
       api->close_mixer();
     api = NULL;
   }
   if(reload) {
+    /* If there's a rescan in progress, cancel it but remember to start a fresh
+     * one after the reload */
     need_another_rescan = trackdb_rescan_cancel();
+    /* Close the track database */
     trackdb_close();
-    if(config_read(1))
+    /* (Re-)read the configuration */
+    if(config_read(1/*server*/))
       ret = -1;
     else {
       /* Tell the speaker it needs to reload its config too. */
       speaker_reload();
       info("%s: installed new configuration", configfile);
     }
+    /* Re-open track database.  We don't attempt to support database version
+     * upgrade at this point - the software hasn't changed, after all. */
     trackdb_open(TRACKDB_NO_UPGRADE);
   } else
     /* We only allow for upgrade at startup */
     trackdb_open(TRACKDB_CAN_UPGRADE);
+  /* New audio API */
   api = uaudio_find(config->api);
   if(api->configure)
     api->configure();
   if(api->open_mixer)
     api->open_mixer();
+  /* If we interrupted a rescan of all the tracks, start a new one */
   if(need_another_rescan)
     trackdb_rescan(ev, 1/*check*/, 0, 0);
   /* Arrange timeouts for schedule actions */
   schedule_init(ev);
+  /* TODO what about leftover callbacks from before the reload? */
   if(!ret) {
+    /* Read the queue back in */
     queue_read();
     recent_read();
+    /* Reset sockets */
     reset_socket(ev);
   }
+  /* TODO we need a careful think about what you can and cannot change with a
+   * reload.
+   *
+   * For instance saving and restoring the queue limits what we can usefuly
+   * keep in the queue data structure.  As a general rule, long-term state
+   * ought to be off-limits.  So 'home directory' will have to stay where it
+   * is.  (This actually means the AF_UNIX socket will never be re-opened.)
+   *
+   * Players certainly ought to be reconfigurable but this raises the ugly
+   * question of what to do about already-started background decoders.
+   *
+   * The audio API is easy to do for the server but a pain for the speaker.
+   *
+   * These two points suggest a general approach: if things that affect the
+   * speaker change, we could just restart it and any extant background
+   * decoders, at the next track change.  This would generate a bit of a gap
+   * but presumably reconfiguration is a rare event so this might be
+   * acceptable.
+   */
   return ret;
 }
 
@@ -175,5 +222,7 @@ int reconfigure(ev_source *ev, int reload) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */
