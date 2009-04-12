@@ -1466,7 +1466,7 @@ char *config_get_file(const char *name) {
 
 static int stringlist_compare(const struct stringlist *a,
                               const struct stringlist *b) {
-  int n, c;
+  int n = 0, c;
 
   while(n < a->n && n < b->n) {
     if((c = strcmp(a->s[n], b->s[n])))
@@ -1502,7 +1502,7 @@ static int namepart_compare(const struct namepart *a,
 
 static int namepartlist_compare(const struct namepartlist *a,
                                 const struct namepartlist *b) {
-  int n, c;
+  int n = 0, c;
 
   while(n < a->n && n < b->n) {
     if((c = namepart_compare(&a->s[n], &b->s[n])))
