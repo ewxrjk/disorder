@@ -57,6 +57,7 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
   q->submitter = submitter ? xstrdup(submitter) : 0;
   q->state = playing_unplayed;
   q->origin = origin;
+  q->pid = -1;
   queue_id(q);
   time(&q->when);
   switch(where) {
