@@ -18,14 +18,13 @@ bug!
 This defines how aliases are inserted into the track database.  Need
 to think about how changing it will affect things.
 
-** namepart
+** namepart (enforced at reload only)
 
 Probably affects alias construction.
 
-** stopword
+** stopword (enforced at reload only)
 
-The search database will have to be rebuilt from scratch.  This is
-do-able but AFAIK we don't detect it.
+The search database will have to be rebuilt from scratch.
 
 ** user (enforced at reload only)
 

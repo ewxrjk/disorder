@@ -70,7 +70,8 @@ struct collectionlist {
 
 struct namepart {
   char *part;				/* part */
-  pcre *re;				/* regexp */
+  pcre *re;				/* compiled regexp */
+  char *res;                            /* regexp as a string */
   char *replace;			/* replacement string */
   char *context;			/* context glob */
   unsigned reflags;			/* regexp flags */

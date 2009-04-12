@@ -109,6 +109,11 @@ struct conftype {
 /** @brief Return the value of an item */
 #define VALUE(C, TYPE) (*ADDRESS(C, TYPE))
 
+static int stringlist_compare(const struct stringlist *a,
+                              const struct stringlist *b);
+static int namepartlist_compare(const struct namepartlist *a,
+                                const struct namepartlist *b);
+
 static int set_signal(const struct config_state *cs,
 		      const struct conf *whoami,
 		      int nvec, char **vec) {
@@ -420,6 +425,7 @@ static int set_namepart(const struct config_state *cs,
   npl->s = xrealloc(npl->s, (npl->n + 1) * sizeof (struct namepart));
   npl->s[npl->n].part = xstrdup(vec[0]);
   npl->s[npl->n].re = re;
+  npl->s[npl->n].res = xstrdup(vec[1]);
   npl->s[npl->n].replace = xstrdup(vec[2]);
   npl->s[npl->n].context = xstrdup(vec[3]);
   npl->s[npl->n].reflags = reflags;
@@ -563,6 +569,7 @@ static void free_namepartlist(struct config *c,
     np = &npl->s[n];
     xfree(np->part);
     pcre_free(np->re);			/* ...whatever pcre_free is set to. */
+    xfree(np->res);
     xfree(np->replace);
     xfree(np->context);
   }
@@ -1386,8 +1393,14 @@ int config_read(int server,
       error(0, "'nice_speaker' cannot be changed without a restart");
       /* ...but we accept the new config anyway */
     }
-    /* TODO namepart */
-    /* TODO stopword */
+    if(namepartlist_compare(&c->namepart, &oldconfig->namepart)) {
+      error(0, "'namepart' settings cannot be changed without a restart");
+      failed = 1;
+    }
+    if(stringlist_compare(&c->stopword, &oldconfig->stopword)) {
+      error(0, "'stopword' settings cannot be changed without a restart");
+      failed = 1;
+    }
     if(failed) {
       error(0, "not installing incompatible new configuration");
       return -1;
@@ -1445,6 +1458,59 @@ char *config_usersysconf(const struct passwd *pw) {
 
 char *config_get_file(const char *name) {
   return config_get_file2(config, name);
+}
+
+static int stringlist_compare(const struct stringlist *a,
+                              const struct stringlist *b) {
+  int n, c;
+
+  while(n < a->n && n < b->n) {
+    if((c = strcmp(a->s[n], b->s[n])))
+      return c;
+    ++n;
+  }
+  if(a->n < b->n)
+    return -1;
+  else if(a->n > b->n)
+    return 1;
+  else
+    return 0;
+}
+
+static int namepart_compare(const struct namepart *a,
+                            const struct namepart *b) {
+  int c;
+
+  if((c = strcmp(a->part, b->part)))
+    return c;
+  if((c = strcmp(a->res, b->res)))
+    return c;
+  if((c = strcmp(a->replace, b->replace)))
+    return c;
+  if((c = strcmp(a->context, b->context)))
+    return c;
+  if(a->reflags > b->reflags)
+    return 1;
+  if(a->reflags < b->reflags)
+    return -1;
+  return 0;
+}
+
+static int namepartlist_compare(const struct namepartlist *a,
+                                const struct namepartlist *b) {
+  int n, c;
+
+  while(n < a->n && n < b->n) {
+    if((c = namepart_compare(&a->s[n], &b->s[n])))
+      return c;
+    ++n;
+  }
+  if(a->n > b->n)
+    return 1;
+  else if(a->n < b->n)
+    return -1;
+  else
+    return 0;
 }
 
 /*
