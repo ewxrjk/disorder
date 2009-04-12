@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,20 +24,30 @@
 
 #define SPEAKER "disorder-speaker"
 
+/** @brief The current playing track or NULL */
 struct queue_entry *playing;
+
+/** @brief Set when paused */
 int paused;
 
 static void finished(ev_source *ev);
 
+/** @brief File descriptor of our end of the socket to the speaker */
 static int speaker_fd = -1;
+
+/** @brief Mapping of track IDs to associated decoder process IDs */
 static hash *player_pids;
+
+/** @brief Set when shutting down */
 static int shutting_down;
 
+/** @brief Remember a player's PID */
 static void store_player_pid(const char *id, pid_t pid) {
   if(!player_pids) player_pids = hash_new(sizeof (pid_t));
   hash_add(player_pids, id, &pid, HASH_INSERT_OR_REPLACE);
 }
 
+/** @brief Find a player's PID */
 static pid_t find_player_pid(const char *id) {
   pid_t *pidp;
 
@@ -45,11 +55,20 @@ static pid_t find_player_pid(const char *id) {
   return -1;
 }
 
+/** @brief Discard a player's ID->PID mappin
+ *
+ * Used when the player terminates.
+ */
 static void forget_player_pid(const char *id) {
   if(player_pids) hash_remove(player_pids, id);
 }
 
-/* called when speaker process terminates */
+/** @brief Called when speaker process terminates
+ *
+ * Currently kills of DisOrder completely.  A future version could terminate
+ * the speaker when nothing was going on, or recover from failures, though any
+ * tracks with decoders already started would need to have them restarted.
+ */
 static int speaker_terminated(ev_source attribute((unused)) *ev,
 			      pid_t attribute((unused)) pid,
 			      int attribute((unused)) status,
@@ -59,7 +78,7 @@ static int speaker_terminated(ev_source attribute((unused)) *ev,
 	wstat(status));
 }
 
-/* called when speaker process has something to say */
+/** @brief Called when we get a message from the speaker process */
 static int speaker_readable(ev_source *ev, int fd,
 			    void attribute((unused)) *u) {
   struct speaker_message sm;
@@ -88,11 +107,12 @@ static int speaker_readable(ev_source *ev, int fd,
     playing->sofar = sm.data;
     break;
   default:
-    error(0, "unknown message type %d", sm.type);
+    error(0, "unknown speaker message type %d", sm.type);
   }
   return 0;
 }
 
+/** @brief Initialize the speaker process */
 void speaker_setup(ev_source *ev) {
   int sp[2];
   pid_t pid;
@@ -132,6 +152,7 @@ void speaker_setup(ev_source *ev) {
     fatal(0, "error registering speaker socket fd");
 }
 
+/** @brief Tell the speaker to reload its configuration */
 void speaker_reload(void) {
   struct speaker_message sm;
 
@@ -140,9 +161,21 @@ void speaker_reload(void) {
   speaker_send(speaker_fd, &sm);
 }
 
-/* Called when the currently playing track finishes playing.  This
- * might be because the player finished or because the speaker process
- * told us so. */
+/** @brief Called when the currently playing track finishes playing
+ * @param ev Event loop or NULL
+ *
+ * There are three places this is called from:
+ * 
+ * 1) speaker_readable(), when the speaker tells us the playing track finished.
+ * (Technically the speaker lies a little to arrange for gapless play.)
+ *
+ * 2) player_finished(), when the player for a non-raw track (i.e. one that
+ * does not use the speaker) finishes.
+ *
+ * 3) quitting(), after signalling the decoder or player but possible before it
+ * has actually terminated.  In this case @p ev is NULL, inhibiting any further
+ * attempt to play anything.
+ */
 static void finished(ev_source *ev) {
   D(("finished playing=%p", (void *)playing));
   if(!playing)
@@ -172,7 +205,14 @@ static void finished(ev_source *ev) {
     play(ev);
 }
 
-/* Called when a player terminates. */
+/** @brief Called when a player or decoder process terminates
+ *
+ * This is called when a decoder process terminates (which might actually be
+ * some time before the speaker reports it as finished) or when a non-raw
+ * (i.e. non-speaker) player terminates.  In the latter case it's imaginable
+ * that the OS has buffered the last few samples.
+ * 
+ */
 static int player_finished(ev_source *ev,
 			   pid_t pid,
 			   int status,
@@ -191,12 +231,15 @@ static int player_finished(ev_source *ev,
   case playing_unplayed:
   case playing_random:
     /* If this was a pre-prepared track then either it failed or we
-     * deliberately stopped it because it was removed from the queue or moved
-     * down it.  So leave it state alone for future use. */
+     * deliberately stopped it: it might have been removed from the queue, or
+     * moved down the queue, or the speaker might be on a break.  So we leave
+     * it state alone for future use.
+     */
     break;
   default:
     /* We actually started playing this track. */
     if(status) {
+      /* Don't override 'scratched' with 'failed'. */
       if(q->state != playing_scratched)
 	q->state = playing_failed;
     } else 
@@ -219,7 +262,7 @@ static int player_finished(ev_source *ev,
   return 0;
 }
 
-/* Find the player for Q */
+/** @brief Find the player for @p q */
 static int find_player(const struct queue_entry *q) {
   int n;
   
@@ -233,15 +276,23 @@ static int find_player(const struct queue_entry *q) {
 }
 
 /* Return values from start() */
-#define START_OK 0			/**< @brief Succeeded. */
-#define START_HARDFAIL 1		/**< @brief Track is broken. */
-#define START_SOFTFAIL 2	   /**< @brief Track OK, system (temporarily?) broken */
+#define START_OK 0	   /**< @brief Succeeded. */
+#define START_HARDFAIL 1   /**< @brief Track is broken. */
+#define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
 
 /** @brief Play or prepare @p q
  * @param ev Event loop
  * @param q Track to play/prepare
  * @param prepare_only If true, only prepares track
  * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFAIL
+ *
+ * TODO: probably ought to be split up into separate prepare() and start()
+ * operations, the latter calling the former if necessary and perhaps the two
+ * sharing some subprocess creation logic.
+ *
+ * "Preparing" a track means starting a background decoder and connecting it to
+ * the speaker process.  Obviously this only applies to raw-format
+ * (i.e. speaker-using) players.
  */
 static int start(ev_source *ev,
 		 struct queue_entry *q,
@@ -265,7 +316,7 @@ static int start(ev_source *ev,
   memset(&sm, 0, sizeof sm);
   D(("start %s %d", q->id, prepare_only));
   if(q->prepared) {
-    /* The track is alraedy prepared */
+    /* The track is already prepared */
     if(!prepare_only) {
       /* We want to run it, since it's prepared the answer is to tell the
        * speaker to set it off */
@@ -285,20 +336,24 @@ static int start(ev_source *ev,
   if(prepare_only
      && (q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return START_OK;
-  /* Call the prefork function. */
+  /* Call the prefork function in the player module.  None of the built-in
+   * modules use this so it's not well tested, unfortunately. */
   p = trackdb_rawpath(q->track);
   if(q->type & DISORDER_PLAYER_PREFORK)
     if(!(q->data = play_prefork(q->pl, p))) {
       error(0, "prefork function for %s failed", q->track);
       return START_HARDFAIL;
     }
-  /* Use the second arg as the tag if available (it's probably a command name),
+  /* Capture the player/decoder's stderr and feed it into our logs.
+   *
+   * Use the second arg as the tag if available (it's probably a command name),
    * otherwise the module name. */
   if(!isatty(2))
     lfd = logfd(ev, (config->player.s[n].s[2]
 		     ? config->player.s[n].s[2] : config->player.s[n].s[1]));
   else
     lfd = -1;
+  /* Parse player arguments */
   optc = config->player.s[n].n - 2;
   optv = (void *)&config->player.s[n].s[2];
   while(optc > 0 && optv[0][0] == '-') {
@@ -320,17 +375,21 @@ static int start(ev_source *ev,
       return START_HARDFAIL;
     }
   }
+  /* Create the subprocess */
   switch(pid = fork()) {
-  case 0:			/* child */
+  case 0:
+    /* Child of disorderd */
     exitfn = _exit;
     progname = "disorderd-fork";
     ev_signal_atfork(ev);
     signal(SIGPIPE, SIG_DFL);
+    /* Send our log output to DisOrder's logs */
     if(lfd != -1) {
       xdup2(lfd, 1);
       xdup2(lfd, 2);
       xclose(lfd);			/* tidy up */
     }
+    /* Create a new process group, ID = child PID */
     setpgid(0, 0);
     if((q->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       /* "Raw" format players always have their output send down a pipe
@@ -350,9 +409,12 @@ static int start(ev_source *ev,
       xshutdown(np[0], SHUT_WR);	/* normalize reads from np[0] */
       blocking(np[0]);
       blocking(np[1]);
-      /* Start disorder-normalize */
+      /* Start disorder-normalize.  We double-fork so that nothing has to wait
+       * for disorder-normalize. */
       if(!(npid = xfork())) {
+        /* Grandchild of disorderd */
 	if(!xfork()) {
+          /* Great-grandchild of disorderd */
 	  /* Connect to the speaker process */
 	  memset(&addr, 0, sizeof addr);
 	  addr.sun_family = AF_UNIX;
@@ -361,6 +423,7 @@ static int start(ev_source *ev,
 	  sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
 	  if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
 	    fatal(errno, "connecting to %s", addr.sun_path);
+          /* Send the ID, with a NATIVE-ENDIAN 32 bit length */
 	  l = strlen(q->id);
 	  if(write(sfd, &l, sizeof l) < 0
 	     || write(sfd, q->id, l) < 0)
@@ -375,7 +438,19 @@ static int start(ev_source *ev,
 	  xclose(np[1]);
 	  xclose(sfd);
 	  /* Ask the speaker to actually start playing the track; we do it here
-	   * so it's definitely after ack. */
+	   * so it's definitely after ack.
+           *
+           * This is actually insufficient.  If the track is prepared and then
+           * very shortly afterwards played, then the race we're trying to
+           * avoid here will still exist.  So either the speaker must cope with
+           * SM_PLAY before connection has arrived (in which case we might as
+           * well move the SM_PLAY somewhere saner) or we must do more work
+           * here to avoid the race.
+           *
+           * In fact the current speaker can indeed cope with SM_PLAY before
+           * the connection arrives.  So this code can probably be moved
+           * somewhere saner in due course.  TODO!
+           */
 	  if(!prepare_only) {
 	    strcpy(sm.id, q->id);
 	    sm.type = SM_PLAY;
@@ -389,12 +464,14 @@ static int start(ev_source *ev,
 		 "--config", configfile,
 		 (char *)0);
 	  fatal(errno, "executing disorder-normalize");
-	  /* end of the innermost fork */
+	  /* End of the great-grandchild of disorderd */
 	}
+        /* Back in the grandchild of disorderd */
 	_exit(0);
-	/* end of the middle fork */
+        /* End of the grandchild of disorderd */
       }
-      /* Wait for the middle fork to finish */
+      /* Back in the child of disorderd */
+      /* Wait for the grandchild of disordered to finish */
       while(waitpid(npid, &n, 0) < 0 && errno == EINTR)
 	;
       /* Pass the file descriptor to the driver in an environment
@@ -405,6 +482,8 @@ static int start(ev_source *ev,
       /* Close all the FDs we don't need */
       xclose(np[0]);
     }
+    /* Wait for a device to clear.  This ugliness is now deprecated and will
+     * eventually be removed. */
     if(waitdevice) {
       ao_initialize();
       if(*waitdevice) {
@@ -431,8 +510,10 @@ static int start(ev_source *ev,
 	       optv, optc,
 	       p,
 	       q->track);
+    /* End of child of disorderd */
     _exit(0);
-  case -1:			/* error */
+  case -1:
+    /* Back in disorderd (child could not be created) */
     error(errno, "error calling fork");
     if(q->type & DISORDER_PLAYER_PREFORK)
       play_cleanup(q->pl, q->data);	/* else would leak */
@@ -440,16 +521,33 @@ static int start(ev_source *ev,
       xclose(lfd);
     return START_SOFTFAIL;
   }
+  /* Back in disorderd (child was created) */
+  /* Remmber the PID */
   store_player_pid(q->id, pid);
+  /* This track is prepared.  (Non-raw tracks are by implication prepared as
+   * soon as they are playing, but really the question doesn't make much sense
+   * for them.) */
   q->prepared = 1;
   if(lfd != -1)
     xclose(lfd);
+  /* Set the child's process group ID.
+   *
+   * But wait, didn't we already set it in the child?  Yes, but it's possible
+   * that we'll need to address it by process group ID before it gets that far,
+   * so we set it here too.  One or the other may fail but as long as one
+   * succeeds that's fine.
+   */
   setpgid(pid, pid);
+  /* Ask the event loop to tell us when the child terminates */
   ev_child(ev, pid, 0, player_finished, q);
   D(("player subprocess ID %lu", (unsigned long)pid));
   return START_OK;
 }
 
+/** @brief Prepare a track for later play
+ *
+ * Only applies to raw-format (speaker-using) players.
+ */
 int prepare(ev_source *ev,
 	    struct queue_entry *q) {
   int n;
@@ -464,6 +562,12 @@ int prepare(ev_source *ev,
   return start(ev, q, 1/*prepare_only*/); /* Prepare it */
 }
 
+/** @brief Abandon a queue entry
+ *
+ * Called from c_remove() (but NOT when scratching a track).  Only does
+ * anything to raw-format tracks.  Terminates the background decoder and tells
+ * the speaker process to cancel the track.
+ */
 void abandon(ev_source attribute((unused)) *ev,
 	     struct queue_entry *q) {
   struct speaker_message sm;
@@ -502,6 +606,9 @@ static void chosen_random_track(ev_source *ev,
 
 /** @brief Maybe add a randomly chosen track
  * @param ev Event loop
+ *
+ * Picking can take some time so the track will only be added after this
+ * function has returned.
  */
 void add_random_track(ev_source *ev) {
   struct queue_entry *q;
@@ -518,12 +625,18 @@ void add_random_track(ev_source *ev) {
     trackdb_request_random(ev, chosen_random_track);
 }
 
-/* try to play a track */
+/** @brief Attempt to play something
+ *
+ * This is called from numerous locations - whenever it might conceivably have
+ * become possible to play something.
+ */
 void play(ev_source *ev) {
   struct queue_entry *q;
   int random_enabled = random_is_enabled();
 
   D(("play playing=%p", (void *)playing));
+  /* If we're shutting down, or there's something playing, or playing is not
+   * enabled, give up now */
   if(shutting_down || playing || !playing_is_enabled()) return;
   /* See if there's anything to play */
   if(qhead.next == &qhead) {
@@ -531,6 +644,8 @@ void play(ev_source *ev) {
      * attempts to add a random track anyway.  However they are rarer than
      * attempts to force a track so we initiate one now. */
     add_random_track(ev);
+    /* chosen_random_track() will call play() when a new random track has been
+     * added to the queue. */
     return;
   }
   /* There must be at least one track in the queue. */
@@ -556,10 +671,12 @@ void play(ev_source *ev) {
     /* We'll try the same track again shortly. */
     break;
   case START_OK:
+    /* Remove from the queue */
     if(q == qhead.next) {
       queue_remove(q, 0);
       queue_write();
     }
+    /* It's become the playing track */
     playing = q;
     time(&playing->played);
     playing->state = playing_started;
@@ -577,12 +694,14 @@ void play(ev_source *ev) {
   }
 }
 
+/** @brief Return true if play is enabled */
 int playing_is_enabled(void) {
   const char *s = trackdb_get_global("playing");
 
   return !s || !strcmp(s, "yes");
 }
 
+/** @brief Enable play */
 void enable_playing(const char *who, ev_source *ev) {
   trackdb_set_global("playing", "yes", who);
   /* Add a random track if necessary. */
@@ -590,26 +709,34 @@ void enable_playing(const char *who, ev_source *ev) {
   play(ev);
 }
 
+/** @brief Disable play */
 void disable_playing(const char *who) {
   trackdb_set_global("playing", "no", who);
 }
 
+/** @brief Return true if random play is enabled */
 int random_is_enabled(void) {
   const char *s = trackdb_get_global("random-play");
 
   return !s || !strcmp(s, "yes");
 }
 
+/** @brief Enable random play */
 void enable_random(const char *who, ev_source *ev) {
   trackdb_set_global("random-play", "yes", who);
   add_random_track(ev);
   play(ev);
 }
 
+/** @brief Disable random play */
 void disable_random(const char *who) {
   trackdb_set_global("random-play", "no", who);
 }
 
+/** @brief Scratch a track
+ * @param User responsible (or NULL)
+ * @param Track ID (or NULL for current)
+ */
 void scratch(const char *who, const char *id) {
   struct queue_entry *q;
   struct speaker_message sm;
@@ -620,19 +747,27 @@ void scratch(const char *who, const char *id) {
      playing ? playing->state : 0,
      id ? id : "(none)",
      playing ? playing->id : "(none)"));
+  /* There must be a playing track; it must be in a scratchable state; if a
+   * specific ID was mentioned it must be that track. */
   if(playing
      && (playing->state == playing_started
 	 || playing->state == playing_paused)
      && (!id
 	 || !strcmp(id, playing->id))) {
+    /* Update state (for the benefit of the 'recent' list) */
     playing->state = playing_scratched;
     playing->scratched = who ? xstrdup(who) : 0;
+    /* Find the player and kill the whole process group */
     if((pid = find_player_pid(playing->id)) > 0) {
-      D(("kill -%d %lu", config->signal, (unsigned long)pid));
+      D(("kill -%d -%lu", config->signal, (unsigned long)pid));
       kill(-pid, config->signal);
       forget_player_pid(playing->id);
-    } else
+    } else {
+      /* TODO if the background decoder finished and the speaker is working
+       * through buffered data this will produce a bogus log message. */
       error(0, "could not find PID for %s", playing->id);
+    }
+    /* Tell the speaker, if we think it'll care */
     if((playing->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       memset(&sm, 0, sizeof sm);
       sm.type = SM_CANCEL;
@@ -651,6 +786,7 @@ void scratch(const char *who, const char *id) {
   }
 }
 
+/** @brief Called from quit() to tear down eveyrthing belonging to this file */
 void quitting(ev_source *ev) {
   struct queue_entry *q;
   pid_t pid;
@@ -662,8 +798,11 @@ void quitting(ev_source *ev) {
     if((pid = find_player_pid(playing->id)) > 0) {
       kill(-pid, config->signal);
       forget_player_pid(playing->id);
-    } else
+    } else{
+      /* TODO if the background decoder finished and the speaker is working
+       * through buffered data this will produce a bogus log message. */
       error(0, "could not find PID for %s", playing->id);
+    }
     playing->state = playing_quitting;
     finished(0);
   }
@@ -673,13 +812,17 @@ void quitting(ev_source *ev) {
       D(("kill -%d %lu", config->signal, (unsigned long)pid));
       kill(-pid, config->signal);
       forget_player_pid(q->id);
-    } else
+    } else {
+      /* TODO if we never started a background decoder then this will produce a
+       * very bogus log message (see issue 32) */
       error(0, "could not find PID for %s", q->id);
+    }
   /* Don't need the speaker any more */
   ev_fd_cancel(ev, ev_read, speaker_fd);
   xclose(speaker_fd);
 }
 
+/** @brief Pause the playing track */
 int pause_playing(const char *who) {
   struct speaker_message sm;
   long played;
@@ -716,6 +859,7 @@ int pause_playing(const char *who) {
   return 0;
 }
 
+/** @brief Resume playing after a pause */
 void resume_playing(const char *who) {
   struct speaker_message sm;
 
@@ -750,5 +894,6 @@ Local Variables:
 c-basic-offset:2
 comment-column:40
 fill-column:79
+indent-tabs-mode:nil
 End:
 */

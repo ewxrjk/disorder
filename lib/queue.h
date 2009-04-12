@@ -38,9 +38,9 @@ enum playing_state {
    */
   playing_isscratch,
 
-  /** @brief Could not find a player
+  /** @brief OBSOLETE
    *
-   * Obsolete - nothing sets this any more
+   * Formerly meant that no player could be found.  Nothing sets this any more.
    */
   playing_no_player,
 
