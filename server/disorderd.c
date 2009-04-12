@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
   /* open a lockfile - we only want one copy of the server to run at once. */
-  if(config->lock) {
+  if(1) {
     const char *lockfile;
     int lockfd;
     struct flock lock;
