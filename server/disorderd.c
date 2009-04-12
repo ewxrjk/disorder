@@ -263,7 +263,15 @@ int main(int argc, char **argv) {
   trackdb_init(TRACKDB_NORMAL_RECOVER|TRACKDB_MAY_CREATE);
   trackdb_master(ev);
   /* install new config (calls trackdb_open()) */
-  reconfigure(ev, 0);
+  if(reconfigure(ev, 0))
+    fatal(0, "failed to read configuration");
+  /* Open the database */
+  trackdb_open(TRACKDB_CAN_UPGRADE);
+  /* load the queue and recently-played list */
+  queue_read();
+  recent_read();
+  /* Arrange timeouts for schedule actions */
+  schedule_init(ev);
   /* pull in old users */
   trackdb_old_users();
   /* create a root login */
