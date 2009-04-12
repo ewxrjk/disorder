@@ -25,6 +25,9 @@ but have not yet confirmed their login.  You can delete such half-created users
 with 'disorder deluser USERNAME' (as an administrative user, for instance as
 root on the server) and they can start the registration process again.
 
+The player --wait-for-device option is deprecated and will be removed in a
+future version.
+
 * 3.0 -> 4.x
 
 If you customized any of the templates, you will pretty much have to start from

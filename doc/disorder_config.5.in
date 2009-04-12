@@ -565,6 +565,10 @@ The following options are supported:
 .RS
 .TP
 .B \-\-wait\-for\-device\fR[\fB=\fIDEVICE\fR]
+\fBThis option is deprecated\fR.
+If you want gapless play use raw-format players and the speaker process instead.
+(This the default in any case.)
+.IP
 Waits (for up to a couple of seconds) for the default, or specified, libao
 device to become openable.
 .TP
