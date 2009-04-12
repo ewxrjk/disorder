@@ -1393,6 +1393,10 @@ int config_read(int server,
       error(0, "'nice_speaker' cannot be changed without a restart");
       /* ...but we accept the new config anyway */
     }
+    if(c->nice_server != oldconfig->nice_server) {
+      error(0, "'nice_server' cannot be changed without a restart");
+      /* ...but we accept the new config anyway */
+    }
     if(namepartlist_compare(&c->namepart, &oldconfig->namepart)) {
       error(0, "'namepart' settings cannot be changed without a restart");
       failed = 1;
