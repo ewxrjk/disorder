@@ -141,7 +141,7 @@ int main(int argc, char attribute((unused)) **argv) {
     default: fatal(0, "invalid option");
     }
   }
-  if(config_read(1))
+  if(config_read(1, NULL))
     fatal(0, "cannot read configuration");
   if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);

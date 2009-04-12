@@ -164,7 +164,7 @@ int reconfigure(ev_source *ev, int reload) {
     /* Close the track database */
     trackdb_close();
     /* (Re-)read the configuration */
-    if(config_read(1/*server*/))
+    if(config_read(1/*server*/, config))
       ret = -1;
     else {
       /* Tell the speaker it needs to reload its config too. */

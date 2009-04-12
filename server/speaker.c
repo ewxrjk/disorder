@@ -608,7 +608,7 @@ static void mainloop(void) {
 	  break;
 	case SM_RELOAD:
           D(("SM_RELOAD"));
-	  if(config_read(1))
+	  if(config_read(1, NULL))
             error(0, "cannot read configuration");
           info("reloaded configuration");
 	  break;
@@ -707,7 +707,7 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   config_uaudio_apis = uaudio_apis;
-  if(config_read(1)) fatal(0, "cannot read configuration");
+  if(config_read(1, NULL)) fatal(0, "cannot read configuration");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
   /* set nice value */

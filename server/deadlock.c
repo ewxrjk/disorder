@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
   info("started");
   trackdb_init(TRACKDB_NO_RECOVER);
   while(getppid() != 1) {

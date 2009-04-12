@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
   /* we'll need mixer support */
   backend = uaudio_apis[0];
   if(backend->open_mixer)

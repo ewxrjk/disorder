@@ -5,14 +5,15 @@ This is current rather vaguely defined and implemented.  This file
 will lay out what you can and cannot change over a reconfigure.  Any
 other changes will require a full server restart.
 
-I intend to improve the situation, but for now this is how it is.
+The situation is gradually improving; this file tracks the current
+state.
 
 * Options that might have to remain the same across restart
 
 Arguably if there is anything in this section then that's a serious
 bug!
 
-** alias
+** alias (enforced at reload only)
 
 This defines how aliases are inserted into the track database.  Need
 to think about how changing it will affect things.
@@ -26,7 +27,7 @@ Probably affects alias construction.
 The search database will have to be rebuilt from scratch.  This is
 do-able but AFAIK we don't detect it.
 
-** user
+** user (enforced at reload only)
 
 All the files will be owned by the wrong user!
 
@@ -36,20 +37,18 @@ Some things will just require a restart.  We should either enforce
 this (refusing to accept modified configurations that purport to
 change them) or explicitly ignore it.
 
-** home
+** home (enforced at reload)
 
-We absolutely cannot accept changing our state directory.  If this is
-attempted it must be rejected.
+We absolutely cannot accept changing our state directory.
 
-** lock
+** lock (generates a deprecation warning)
 
 Liable to be removed anyway.
 
-** nice_speaker
+** nice_speaker (generates a warning)
 
-Can't renice a running speaker to make it less nice (and we don't try
-to make it more nice).  We ought to issue an error message and
-otherwise ignore.
+You can't renice a running speaker to make it less nice (and we don't
+try to make it more nice).
 
 * Options that ought to be changable across reload but aren't
 

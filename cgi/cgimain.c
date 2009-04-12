@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   if(getenv("DISORDER_DEBUG"))
     debugging = 1;
   /* Read configuration */
-  if(config_read(0/*!server*/))
+  if(config_read(0/*!server*/, NULL))
     exit(EXIT_FAILURE);
   /* Figure out our URL.  This can still be overridden from the config file if
    * necessary but it shouldn't be necessary in ordinary installations. */

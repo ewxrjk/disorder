@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");
   /* read config */
   config_uaudio_apis = uaudio_apis;
-  if(config_read(1))
+  if(config_read(1,  NULL))
     fatal(0, "cannot read configuration");
   /* make sure the home directory exists and has suitable permissions */
   make_home();

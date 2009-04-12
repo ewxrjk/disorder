@@ -621,7 +621,7 @@ int main(int argc, char **argv) {
     default: fatal(0, "invalid option");
     }
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
   if(!maxbuffer)
     maxbuffer = 2 * minbuffer;
   argc -= optind;

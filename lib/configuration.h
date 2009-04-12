@@ -292,7 +292,8 @@ struct config {
 extern struct config *config;
 /* the current configuration */
 
-int config_read(int server);
+int config_read(int server,
+                const struct config *oldconfig);
 /* re-read config, return 0 on success or non-0 on error.
  * Only updates @config@ if the new configuration is valid. */
 

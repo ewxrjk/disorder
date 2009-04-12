@@ -1156,7 +1156,7 @@ static struct config *config_default(void) {
   logname = pw->pw_name;
   c->username = xstrdup(logname);
   c->refresh = 15;
-  c->prefsync = 3600;
+  c->prefsync = 0;
   c->signal = SIGKILL;
   c->alias = xstrdup("{/artist}{/album}{/title}{ext}");
   c->lock = 1;
@@ -1326,8 +1326,14 @@ static void config_postdefaults(struct config *c,
 
 /** @brief (Re-)read the config file
  * @param server If set, do extra checking
+ * @param oldconfig Old configuration for compatibility check
+ * @return 0 on success, non-0 on error
+ *
+ * If @p oldconfig is set, then certain compatibility checks are done between
+ * the old and new configurations.
  */
-int config_read(int server) {
+int config_read(int server,
+                const struct config *oldconfig) {
   struct config *c;
   char *privconf;
   struct passwd *pw;
@@ -1362,6 +1368,31 @@ int config_read(int server) {
   }
   /* install default namepart and transform settings */
   config_postdefaults(c, server);
+  if(oldconfig)  {
+    int failed = 0;
+    if(strcmp(c->home, oldconfig->home)) {
+      error(0, "'home' cannot be changed without a restart");
+      failed = 1;
+    }
+    if(strcmp(c->alias, oldconfig->alias)) {
+      error(0, "'alias' cannot be changed without a restart");
+      failed = 1;
+    }
+    if(strcmp(c->user, oldconfig->user)) {
+      error(0, "'user' cannot be changed without a restart");
+      failed = 1;
+    }
+    if(c->nice_speaker != oldconfig->nice_speaker) {
+      error(0, "'nice_speaker' cannot be changed without a restart");
+      /* ...but we accept the new config anyway */
+    }
+    /* TODO namepart */
+    /* TODO stopword */
+    if(failed) {
+      error(0, "not installing incompatible new configuration");
+      return -1;
+    }
+  }
   /* everything is good so we shall use the new config */
   config_free(config);
   /* warn about obsolete directives */
@@ -1371,6 +1402,12 @@ int config_read(int server) {
     error(0, "'allow' will be removed in a future version");
   if(c->trust.n)
     error(0, "'trust' will be removed in a future version");
+  if(!c->lock)
+    error(0, "'lock' will be removed in a future version");
+  if(c->gap)
+    error(0, "'gap' will be removed in a future version");
+  if(c->prefsync)
+    error(0, "'prefsync' will be removed in a future version");
   config = c;
   return 0;
 }

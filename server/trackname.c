@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   }
   if(argc - optind < 3) fatal(0, "not enough arguments");
   if(argc - optind > 3) fatal(0, "too many arguments");
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
   s = trackname_part(argv[optind], argv[optind+1], argv[optind+2]);
   if(!s) fatal(0, "trackname_part returned NULL");
   xprintf("%s\n", nullcheck(utf82mb(s)));
