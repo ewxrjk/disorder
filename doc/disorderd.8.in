@@ -112,6 +112,11 @@ automatically, and thus has relatively modest storage requirements.
 .TP 8
 .B SIGHUP
 Re-read the configuration file.
+.IP
+Not all configuration options can be modified during the lifetime of the
+server; of those that can't, some will just be ignored if they change while
+others will cause the new configuration to be rejected.
+See \fBdisorder_config\fR(5) for details.
 .TP
 .B SIGTERM
 Terminate the daemon gracefully.

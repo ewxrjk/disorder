@@ -238,6 +238,11 @@ See below for the track information syntax.
 .B reconfigure
 Request that DisOrder reconfigure itself.
 Requires the \fBadmin\fR right.
+.IP
+Not all configuration options can be modified during the lifetime of the
+server; of those that can't, some will just be ignored if they change while
+others will cause the new configuration to be rejected.
+See \fBdisorder_config\fR(5) for details.
 .TP
 .B register \fIUSERNAME PASSWORD EMAIL
 Register a new user.

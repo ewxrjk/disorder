@@ -177,7 +177,7 @@ Backslash
 Quotation mark
 .\" "
 .TP
-.B \e'
+.B \e\(aq
 Apostrophe
 .TP
 .B \en
@@ -223,6 +223,8 @@ The home directory for state files.
 Defaults to
 .IR pkgstatedir .
 The server will create this directory on startup if it does not exist.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B plugins \fIPATH\fR
 Adds a directory to the plugin path.
@@ -252,6 +254,8 @@ The pattern should not attempt to include the collection root, which is
 automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B api \fINAME\fR
 Selects the backend used to play sound and to set the volume.
@@ -376,11 +380,17 @@ It must be an absolute path and should not end with a "/".
 .B cookie_key_lifetime \fISECONDS\fR
 Lifetime of the signing key used in constructing cookies.  The default is one
 week.
+.IP
+If this is changed during the lifetime of the server, the current key doesn't
+hvave its lifetime retroactively changed.
 .TP
 .B cookie_login_lifetime \fISECONDS\fR
 Lifetime of a cookie enforced by the server.  When the cookie expires the user
 will have to log in again even if their browser has remembered the cookie that
 long.  The default is one day.
+.IP
+If this is changed during the lifetime of the server, cookies that have already
+een generated don't hvave their lifetime retroactively changed.
 .TP
 .B default_rights \fIRIGHTS\fR
 Defines the set of rights given to new users.
@@ -412,15 +422,14 @@ The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
 .TP
 .B gap \fISECONDS\fR
-Specifies the number of seconds to leave between tracks.
-The default is 0.
-.IP
-NB this option currently DOES NOT WORK.  If there is genuine demand it might be
-reinstated.
+This option no longer does anything and will be removed in a future version.
 .TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including
 failed tracks and scratches).
+.IP
+If this is changed during the lifetime of the server, it won't actually reduce
+the size of the list until it is next modified.
 .TP
 .B listen \fR[\fIFAMILY\fR] \fR[\fIHOST\fR] \fISERVICE\fR
 Listen for connections on the address specified by \fIHOST\fR and port
@@ -434,10 +443,7 @@ Note that IPv6 is not currently well tested.
 Normally the server only listens on a UNIX domain socket.
 .TP
 .B lock yes\fR|\fBno
-Determines whether the server locks against concurrent operation.
-Default is \fByes\fR.
-There is no good reason to set this to \fBno\fR and the option will
-probably be removed in a future version.
+This option no longer does anything and will be removed in a future version.
 .TP
 .B mixer \fIDEVICE\fR
 The mixer device name, if it needs to be specified separately from
@@ -498,15 +504,23 @@ namepart album  "/([^/]+)/[^/]+$"                          $1 *
 namepart artist "/([^/]+)/[^/]+/[^/]+$"                    $1 *
 namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .fi
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B new_bias \fIWEIGHT\fR
 The weight for new tracks.
 The default is 450000, i.e. recently added tracks are a fifty times as likely
 to be picked as normal.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B new_bias_age \fISECONDS\fR
 The maximum age of tracks that \fBnew_bias\fR applies to, in seconds.
 The default is one week.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B new_max \fIMAX\fR
 The maximum number of tracks to list when reporting newly noticed tracks.
@@ -528,6 +542,8 @@ by programs it executes.
 If you have limited CPU then it might help to set this to a small
 negative value.
 The default is 0.
+.IP
+Changes to this value during the lifetime of the server are ignored.
 .TP
 .B nice_speaker \fIPRIORITY\fR
 Set the speaker process priority.
@@ -538,6 +554,8 @@ standards but depends on reasonably timely scheduling.
 If you have limited CPU then it might help to set this to a small
 negative value.
 The default is 0.
+.IP
+Changes to this value during the lifetime of the server are ignored.
 .TP
 .B noticed_history
 The maximum days that a track can survive in the database of newly added
@@ -618,6 +636,10 @@ command.
 If
 .B player
 is used without arguments, the list of players is cleared.
+.IP
+Although players can be changed during the lifetime of the server, note that
+background decoders will not be stopped and restarted using changed
+configuration once they have been started.
 .TP
 .B prefsync \fISECONDS\fR
 This option no longer does anything and will be removed in a future version.
@@ -627,6 +649,11 @@ The target size of the queue.
 If random play is enabled then randomly picked tracks will be added until
 the queue is at least this big.
 The default is 10.
+.IP
+If this is reduced during the lifetime of the server, the queue won't be
+reduced in size to fit; it just won't start growing again until it is under the
+new value.
+However, if it is increased, new tracks will start being added immediately.
 .TP
 .B reminder_interval \fISECONDS\fR
 The minimum number of seconds that must elapse between password reminders.
@@ -641,6 +668,9 @@ The minimum number of seconds that must elapse after a track has been played
 before it can be picked at random.  The default is 8 hours.  If this is set to
 0 then there is no limit, though current \fBdisorder-choose\fR will not pick
 anything currently listed in the recently-played list.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).
@@ -728,6 +758,8 @@ cleared.
 .IP
 There is a default set of stopwords built in, but this option can be used to
 augment or replace that list.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B tracklength \fIPATTERN\fR \fIMODULE\fR
 Specifies the module used to calculate the length of files matching
@@ -736,10 +768,17 @@ Specifies the module used to calculate the length of files matching
 .IP
 If \fBtracklength\fR is used without arguments then the list of modules is
 cleared.
+.IP
+Track lengths are cached in the database, and changing this setting won't cause
+them to be regenerated.
 .TP
 .B user \fIUSERNAME\fR
 Specifies the user to run as.
 Only makes sense if invoked as root (or the target user).
+.IP
+This setting cannot be changed during the lifetime of the server
+(and if it is changed with a restart, you will need to adjust file permissions
+on the server's database).
 .SS "Client Configuration"
 These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
 or
@@ -825,7 +864,6 @@ longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
-.SH "GLOBAL PREFERENCES"
 .SH "LIBAO DRIVER"
 .SS "Raw Protocol Players"
 Raw protocol players are expected to use the \fBdisorder\fR libao driver.
