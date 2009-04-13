@@ -102,6 +102,8 @@ void quit(ev_source *ev) attribute((noreturn));
 int reconfigure(ev_source *ev, int reload);
 /* reconfigure.  If @reload@ is nonzero, update the configuration. */
 
+void dbparams_check(void);
+
 extern struct queue_entry qhead;
 /* queue of things yet to be played.  the head will be played
  * soonest. */

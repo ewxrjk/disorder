@@ -25,7 +25,8 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
-	schedule.c exports.c ../lib/memgc.c disorder-server.h
+	schedule.c dbparams.c \
+	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO)

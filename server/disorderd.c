@@ -276,6 +276,8 @@ int main(int argc, char **argv) {
   trackdb_old_users();
   /* create a root login */
   trackdb_create_root();
+  /* check for change to database parameters */
+  dbparams_check();
   /* re-read config if we receive a SIGHUP */
   if(ev_signal(ev, SIGHUP, handle_sighup, 0)) fatal(0, "ev_signal failed");
   /* exit on SIGINT/SIGTERM */

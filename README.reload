@@ -30,6 +30,16 @@ The search database will have to be rebuilt from scratch.
 
 All the files will be owned by the wrong user!
 
+** Alias, search database, etc
+
+Rescan can regenerate aliases and the search and tag databases but we
+rather assume that they are either empty or good.  Therefore we need
+to store anything that can affect these values and erase them if they
+change.
+
+The solution is a global pref _dbparams which contains the hash of the
+alias, stopword and namepart data.
+
 * Options that must remain the same across reload
 
 Some things will just require a restart.  We should either enforce
