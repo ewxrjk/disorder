@@ -326,6 +326,41 @@ int play_pause(const struct plugin *pl, long *playedp, void *data);
 void play_resume(const struct plugin *pl, void *data);
 /* Resume track. */
 
+/* background process support *************************************************/
+
+/** @brief Child process parameters */
+struct pbgc_params {
+  /** @brief Length of player command */
+  int argc;
+  /** @brief Player command */
+  const char **argv;
+  /** @brief Device to wait for or NULL */
+  const char *waitdevice;
+  /** @brief Raw track name */
+  const char *rawpath;
+};
+
+/** @brief Callback to play or prepare a track
+ * @param q Track to play or decode
+ * @param bgdata User data pointer
+ * @return Exit code
+ */
+typedef int play_background_child_fn(struct queue_entry *q,
+                                     const struct pbgc_params *params,
+                                     void *bgdata);
+
+int play_background(ev_source *ev,
+                    const struct stringlist *player,
+                    struct queue_entry *q,
+                    play_background_child_fn *child,
+                    void *bgdata);
+
+/* Return values from start(),  prepare() and play_background() */
+
+#define START_OK 0	   /**< @brief Succeeded. */
+#define START_HARDFAIL 1   /**< @brief Track is broken. */
+#define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
+
 #endif /* DISORDER_SERVER_H */
 
 /*

@@ -188,7 +188,14 @@ struct queue_entry {
   /** @brief How much of track has been played so far (seconds) */
   long sofar;
 
-  /** @brief True if decoder is connected to speaker */
+  /** @brief True if decoder is connected to speaker 
+   *
+   * This is not a @ref playing_state for a couple of reasons
+   * - it is orthogonal to @ref playing_started and @ref playing_unplayed
+   * - it would have to be hidden to other users of @c queue_entry
+   *
+   * For non-raw tracks this should always be zero.
+   */
   int prepared;
   /* For DISORDER_PLAYER_PAUSES only: */
 

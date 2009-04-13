@@ -558,6 +558,14 @@ static void mainloop(void) {
           D(("SM_PLAY %s fd %d", t->id, t->fd));
           if(t->fd == -1)
             error(0, "cannot play track because no connection arrived");
+          /* TODO as things stand we often report this error message but then
+           * appear to proceed successfully.  Understanding why requires a look
+           * at play.c: we call prepare() which makes the connection in a child
+           * process, and then sends the SM_PLAY in the parent process.  The
+           * latter may well be faster.  As it happens this is harmless; we'll
+           * just sit around sending silence until the decoder connects and
+           * starts sending some sample data.  But is is annoying and ought to
+           * be fixed. */
           pending_playing = t;
           /* If nothing is currently playing then we'll switch to the pending
            * track below so there's no point distinguishing the situations
