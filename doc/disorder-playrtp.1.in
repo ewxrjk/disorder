@@ -98,10 +98,12 @@ Display a usage message.
 Display version number.
 .SS "Buffer Control Options"
 You shouldn't need to use these options.
+Their effects are subject to change between version without warning.
 You should consult the source code for details of their effects.
 .TP
 .B \-\-min \fIFRAMES\fR, \fB\-m \fIFRAMES\fR
 Specifies the buffer low watermark in frames.
+This also acts as the target buffer occupancy.
 .TP
 .B \-\-max \fIFRAMES\fR, \fB\-x \fIFRAMES\fR
 Specifies the maximum buffer size in frames.
@@ -114,6 +116,12 @@ Specifies socket receive buffer size.
 The default is not to change the buffer size, i.e. you get whatever the
 local operating system chooses.
 The buffer size will not be reduced below the operating system's default.
+.TP
+.B \-\-monitor\fR, \fB\-M
+Periodically report how close to the buffer low watermark the buffer is.
+If you have trouble with poor playback quality, enable this option to see if
+the buffer is emptying out (or overfilling, though there are measures to
+prevent that from happening).
 .SH "REMOTE CONTROL"
 The
 .B \-\-socket

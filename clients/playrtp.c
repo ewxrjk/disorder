@@ -566,7 +566,40 @@ static size_t playrtp_callback(void *buffer,
   }
   /* Advance timestamp */
   next_timestamp += samples;
-  /* If we're getting behind then try to drop just silent packets */
+  /* If we're getting behind then try to drop just silent packets
+   *
+   * In theory this shouldn't be necessary.  The server is supposed to send
+   * packets at the right rate and compares the number of samples sent with the
+   * time in order to ensure this.
+   *
+   * However, various things could throw this off:
+   *
+   * - the server's clock could advance at the wrong rate.  This would cause it
+   *   to mis-estimate the right number of samples to have sent and
+   *   inappropriately throttle or speed up.
+   *
+   * - playback could happen at the wrong rate.  If the playback host's sound
+   *   card has a slightly incorrect clock then eventually it will get out
+   *   of step.
+   *
+   * So if we play back slightly slower than the server sends for either of
+   * these reasons then eventually our buffer, and the socket's buffer, will
+   * fill, and the kernel will start dropping packets.  The result is audible
+   * and not very nice.
+   *
+   * Therefore if we're getting behind, we pre-emptively drop silent packets,
+   * since a change in the duration of a silence is less noticeable than a
+   * dropped packet from the middle of continuous music.
+   *
+   * (If things go wrong the other way then eventually we run out of packets to
+   * play and are forced to play silence.  This doesn't seem to happen in
+   * practice but if it does then in the same way we can artificially extend
+   * silent packets to compensate.)
+   *
+   * Dropped packets are always logged; use 'disorder-playrtp --monitor' to
+   * track how close to target buffer occupancy we are on a once-a-minute
+   * basis.
+   */
   if(nsamples > minbuffer && silent) {
     info("dropping %zu samples (%"PRIu32" > %"PRIu32")",
          samples, nsamples, minbuffer);
