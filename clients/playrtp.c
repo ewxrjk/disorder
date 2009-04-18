@@ -64,6 +64,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include "log.h"
 #include "mem.h"
@@ -211,6 +212,7 @@ static const struct option options[] = {
   { "pause-mode", required_argument, 0, 'P' },
   { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
+  { "monitor", no_argument, 0, 'M' },
   { 0, 0, 0, 0 }
 };
 
@@ -579,6 +581,7 @@ int main(int argc, char **argv) {
   union any_sockaddr mgroup;
   const char *dumpfile = 0;
   pthread_t ltid;
+  int monitor = 0;
   static const int one = 1;
 
   static const struct addrinfo prefs = {
@@ -594,7 +597,7 @@ int main(int argc, char **argv) {
   mem_init();
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];
-  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:M:aocC:re:P:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:M", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
@@ -618,6 +621,7 @@ int main(int argc, char **argv) {
     case 'r': dumpfile = optarg; break;
     case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;
     case 'P': uaudio_set("pause-mode", optarg); break;
+    case 'M': monitor = 1; break;
     default: fatal(0, "invalid option");
     }
   }
@@ -780,6 +784,7 @@ int main(int argc, char **argv) {
   if((err = pthread_create(&ltid, 0, queue_thread, 0)))
     fatal(err, "pthread_create queue_thread");
   pthread_mutex_lock(&lock);
+  time_t lastlog = 0;
   for(;;) {
     /* Wait for the buffer to fill up a bit */
     playrtp_fill_buffer();
@@ -802,6 +807,20 @@ int main(int argc, char **argv) {
     while(nsamples >= minbuffer
 	  || (nsamples > 0
 	      && contains(pheap_first(&packets), next_timestamp))) {
+      if(monitor) {
+        time_t now = time(0);
+
+        if(now >= lastlog + 60) {
+          int offset = nsamples - minbuffer;
+          double offtime = (double)offset / (uaudio_rate * uaudio_channels);
+          info("%+d samples off (%d.%02ds, %d bytes)",
+               offset,
+               (int)fabs(offtime) * (offtime < 0 ? -1 : 1),
+               (int)(fabs(offtime) * 100) % 100,
+               offset * uaudio_bits / CHAR_BIT);
+          lastlog = now;
+        }
+      }
       //fprintf(stderr, "%8u/%u (%u) PLAYING\n", nsamples, maxbuffer, minbuffer);
       pthread_cond_wait(&cond, &lock);
     }

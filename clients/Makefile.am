@@ -36,7 +36,7 @@ disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c
 disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
-	$(LIBDB) $(LIBPTHREAD)
+	$(LIBDB) $(LIBPTHREAD) -lm
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 rtpmon_SOURCES=rtpmon.c
