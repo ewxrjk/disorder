@@ -404,7 +404,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
     }
     /* See if packet is silent */
     const uint16_t *s = p->samples_raw;
-    unsigned n = p->nsamples;
+    n = p->nsamples;
     for(; n > 0; --n)
       if(*s++)
         break;
