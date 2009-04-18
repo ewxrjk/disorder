@@ -58,10 +58,14 @@ struct packet {
    *
    * Valid values are:
    * - @ref IDLE - the idle bit was set in the RTP packet
+   * - @ref SILENT - packet is entirely silent
    */
   unsigned flags;
 /** @brief idle bit set in RTP packet*/
 #define IDLE 0x0001
+
+/** @brief RTP packet is entirely silent */
+#define SILENT 0x0002
 
   /** @brief Raw sample data
    *

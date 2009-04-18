@@ -402,6 +402,14 @@ static void *listen_thread(void attribute((unused)) *arg) {
       fatal(0, "unsupported RTP payload type %d",
             header.mpt & 0x7F);
     }
+    /* See if packet is silent */
+    const uint16_t *s = p->samples_raw;
+    unsigned n = p->nsamples;
+    for(; n > 0; --n)
+      if(*s++)
+        break;
+    if(!n)
+      p->flags |= SILENT;
     if(logfp)
       fprintf(logfp, "sequence %u timestamp %"PRIx32" length %"PRIx32" end %"PRIx32"\n",
               seq, timestamp, p->nsamples, timestamp + p->nsamples);
@@ -505,6 +513,7 @@ static size_t playrtp_callback(void *buffer,
                                size_t max_samples,
                                void attribute((unused)) *userdata) {
   size_t samples;
+  int silent = 0;
 
   pthread_mutex_lock(&lock);
   /* Get the next packet, junking any that are now in the past */
@@ -535,6 +544,7 @@ static size_t playrtp_callback(void *buffer,
       *bufptr++ = (int16_t)ntohs(*ptr++);
       --i;
     }
+    silent = !!(p->flags & SILENT);
   } else {
     /* There is no suitable packet.  We introduce 0s up to the next packet, or
      * to fill the buffer if there's no next packet or that's too many.  The
@@ -545,6 +555,7 @@ static size_t playrtp_callback(void *buffer,
       samples = max_samples;
     //info("infill by %zu", samples);
     memset(buffer, 0, samples * uaudio_sample_size);
+    silent = 1;
   }
   /* Debug dump */
   if(dump_buffer) {
@@ -555,6 +566,12 @@ static size_t playrtp_callback(void *buffer,
   }
   /* Advance timestamp */
   next_timestamp += samples;
+  /* If we're getting behind then try to drop just silent packets */
+  if(nsamples > minbuffer && silent) {
+    info("dropping %zu samples (%"PRIu32" > %"PRIu32")",
+         samples, nsamples, minbuffer);
+    samples = 0;
+  }
   /* Junk obsolete packets */
   playrtp_next_packet();
   pthread_mutex_unlock(&lock);
