@@ -763,7 +763,7 @@ void resume_playing(const char *who) {
   if(!playing) return;
   switch(playing->type & DISORDER_PLAYER_TYPEMASK) {
   case DISORDER_PLAYER_STANDALONE:
-    if(!playing->type & DISORDER_PLAYER_PAUSES) {
+    if(!(playing->type & DISORDER_PLAYER_PAUSES)) {
     default:
       /* Shouldn't happen */
       return;
