@@ -697,6 +697,25 @@ if test "x$GCC" = xyes; then
     gcc_werror=''
   fi
 
+  AC_CACHE_CHECK([checking for excessively strict -Wreturn-type],
+                 [rjk_cv_gcc44_stupidity],[
+    old_CC="$CC"
+    if test $GCC = yes; then
+      CC="$CC -Wreturn-type -Werror"
+    fi
+    AC_COMPILE_IFELSE([
+      static void *threadfn(void) {
+        for(;;)
+          ;
+      }],
+      [rjk_cv_gcc44_stupidity=no],
+      [rjk_cv_gcc44_stupidity=yes])
+    CC="$old_CC"
+  ])
+  if test $rjk_cv_gcc44_stupidity = yes; then
+    AC_DEFINE([HAVE_STUPID_GCC44],[1],[Define if your compiler has excessively strict -Wreturn-type])
+  fi
+
   # a reasonable default set of warnings
   CC="${CC} -Wall -W -Wpointer-arith -Wbad-function-cast \
 	-Wwrite-strings -Wmissing-prototypes \

@@ -324,6 +324,9 @@ static void *queue_thread(void attribute((unused)) *arg) {
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&lock);
   }
+#if HAVE_STUPID_GCC44
+  return NULL;
+#endif
 }
 
 /** @brief Background thread collecting samples
