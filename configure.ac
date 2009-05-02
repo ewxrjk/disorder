@@ -386,9 +386,9 @@ if test "x$FINK" != xnone; then
   ])
   finkdir="${rjk_cv_finkprefix}"
   finkbindir="${rjk_cv_finkprefix}/bin"
-  CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/gc -I${rjk_cv_finkprefix}/include"
+  CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/gc -isystem ${rjk_cv_finkprefix}/include"
   if test $want_server = yes; then
-    CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/db4"
+    CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/db4"
   fi
   LDFLAGS="${LDFLAGS} -L${rjk_cv_finkprefix}/lib"
 else
