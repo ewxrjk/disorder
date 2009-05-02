@@ -60,6 +60,8 @@ SENDMAIL=/usr/sbin/sendmail
 LIBTOOL=./libtool
 FAKEROOT=fakeroot
 
+SHELL=bash
+
 # ./prepare is the script that generates configure etc.  It only needs to be
 # run if building from a checkout rather than a tarball.
 build:
