@@ -165,7 +165,7 @@ void uaudio_thread_stop(void);
 void uaudio_thread_activate(void);
 void uaudio_thread_deactivate(void);
 uint32_t uaudio_schedule_sync(void);
-void uaudio_schedule_sent(size_t nsamples);
+void uaudio_schedule_sent(size_t nsamples_sent);
 void uaudio_schedule_init(void);
 const struct uaudio *uaudio_find(const char *name);
 

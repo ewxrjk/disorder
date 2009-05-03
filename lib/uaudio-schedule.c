@@ -142,8 +142,8 @@ uint32_t uaudio_schedule_sync(void) {
 /** @brief Report how many samples we actually sent
  * @param nsamples Number of samples sent
  */
-void uaudio_schedule_sent(size_t nsamples) {
-  timestamp += nsamples;
+void uaudio_schedule_sent(size_t nsamples_sent) {
+  timestamp += nsamples_sent;
 }
 
 /** @brief Initialize audio scheduling
