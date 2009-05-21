@@ -230,10 +230,8 @@ Start the daemon."""
     print " starting daemon"
     # remove the socket if it exists
     socket = "%s/home/socket" % testroot
-    try:
+    if os.path.exists(socket):
         os.remove(socket)
-    except:
-        pass
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
                                "--config", "%s/config" % testroot],
@@ -254,6 +252,10 @@ Start the daemon."""
         time.sleep(1)
     if waited > 0:
         print "  took about %ds for socket to appear" % waited
+    # Wait for root user to be created
+    command(["disorder",
+             "--config", disorder._configfile, "--no-per-user-config",
+             "--wait-for-root"])
 
 def create_user(username="fred", password="fredpass"):
     """create_user(USERNAME, PASSWORD)

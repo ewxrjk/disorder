@@ -396,7 +396,7 @@ int disorder_connect(disorder_client *c) {
   if(!password) {
     /* Oh well */
     c->last = "no password";
-    error(0, "no password configured");
+    error(0, "no password configured for user '%s'", username);
     return -1;
   }
   return disorder_connect_generic(config,
