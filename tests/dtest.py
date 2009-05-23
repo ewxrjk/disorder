@@ -1,7 +1,7 @@
 #-*-python-*-
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007, 2008 Richard Kettlewell
+# Copyright (C) 2007-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,time,unicodedata,random,socket
+import os,os.path,subprocess,sys,re,time,unicodedata,random,socket,traceback
 
 def fatal(s):
     """Write an error message and exit"""
@@ -302,7 +302,7 @@ def run(module=None, report=True):
 
     Run the test in MODULE.  This can be a string (in which case the module
     will be imported) or a module object."""
-    global tests
+    global tests, failures
     tests += 1
     # Locate the test module
     if module is None:
@@ -333,8 +333,10 @@ def run(module=None, report=True):
     stdtracks()
     try:
         module.test()
-    finally:
-        stop_daemon()
+    except:
+        traceback.print_exc(None, sys.stderr)
+        failures += 1
+    stop_daemon()
     if report:
         if failures:
             print " FAILED"
