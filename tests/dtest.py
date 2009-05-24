@@ -287,10 +287,10 @@ Stop the daemon if it has not stopped already"""
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
-        disorder.client().shutdown()
+        os.kill(daemon.pid, 15)
         print "  waiting for daemon"
         rc = daemon.wait()
-        print "  daemon has stopped"
+        print "  daemon has stopped (rc=%d)" % rc
     else:
         print "  daemon already stopped"
     daemon = None
