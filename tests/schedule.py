@@ -66,6 +66,7 @@ def test():
                                      "schedule-list"]), ""),
     p = next_playing(c)
     assert p["track"] == track, "checking right track played"
+    print " when=%d expected at least %d" % (int(p["when"]), when)
     assert int(p["when"]) >= when, "checking track played at right time"
     assert c.schedule_list() == [], "checking schedule is empty"
     wait_idle(c)
