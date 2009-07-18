@@ -62,7 +62,7 @@ static struct sockaddr *copy_sockaddr(const struct addrinfo *addr) {
 }
 
 /** @brief Create and destroy sockets to set current configuration */
-static void reset_socket(ev_source *ev) {
+void reset_sockets(ev_source *ev) {
   const char *new_unix;
   struct addrinfo *res, *r;
   struct listener *l, **ll;
@@ -144,20 +144,21 @@ static void reset_socket(ev_source *ev) {
 }
 
 /** @brief Reconfigure the server
- * @param reload 0 at startup, 1 for a reload
+ * @param flags Flags
+ * @return As config_read(); 0 on success, -1 if could not (re-)read config
  */
-int reconfigure(ev_source *ev, int reload) {
+int reconfigure(ev_source *ev, unsigned flags) {
   int need_another_rescan = 0;
   int ret = 0;
 
-  D(("reconfigure(%d)", reload));
+  D(("reconfigure(%x)", flags));
   /* Deconfigure the old audio API if there is one */
   if(api) {
     if(api->close_mixer)
       api->close_mixer();
     api = NULL;
   }
-  if(reload) {
+  if(flags & RECONFIGURE_RELOADING) {
     /* If there's a rescan in progress, cancel it but remember to start a fresh
      * one after the reload. */
     need_another_rescan = trackdb_rescan_cancel();
@@ -179,9 +180,9 @@ int reconfigure(ev_source *ev, int reload) {
   /* If we interrupted a rescan of all the tracks, start a new one */
   if(need_another_rescan)
     trackdb_rescan(ev, 1/*check*/, 0, 0);
-  if(!ret) {
-    /* Reset sockets */
-    reset_socket(ev);
+  if(!ret && !(flags & RECONFIGURE_FIRST)) {
+    /* Open/close sockets */
+    reset_sockets(ev);
   }
   return ret;
 }

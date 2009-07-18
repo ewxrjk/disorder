@@ -58,7 +58,7 @@ static int handle_sighup(ev_source attribute((unused)) *ev_,
 			 int attribute((unused)) sig,
 			 void attribute((unused)) *u) {
   info("received SIGHUP");
-  reconfigure(ev, 1);
+  reconfigure(ev, RECONFIGURE_RELOADING);
   return 0;
 }
 
@@ -262,8 +262,8 @@ int main(int argc, char **argv) {
   /* initialize database environment */
   trackdb_init(TRACKDB_NORMAL_RECOVER|TRACKDB_MAY_CREATE);
   trackdb_master(ev);
-  /* install new config (calls trackdb_open()) */
-  if(reconfigure(ev, 0))
+  /* install new config; don't create socket */
+  if(reconfigure(ev, RECONFIGURE_FIRST))
     fatal(0, "failed to read configuration");
   /* Open the database */
   trackdb_open(TRACKDB_CAN_UPGRADE);
@@ -276,6 +276,8 @@ int main(int argc, char **argv) {
   trackdb_old_users();
   /* create a root login */
   trackdb_create_root();
+  /* create sockets */
+  reset_sockets(ev);
   /* check for change to database parameters */
   dbparams_check();
   /* re-read config if we receive a SIGHUP */

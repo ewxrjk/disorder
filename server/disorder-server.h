@@ -99,8 +99,16 @@ void daemonize(const char *tag, int fac, const char *pidfile);
 void quit(ev_source *ev) attribute((noreturn));
 /* terminate the daemon */
 
-int reconfigure(ev_source *ev, int reload);
-/* reconfigure.  If @reload@ is nonzero, update the configuration. */
+int reconfigure(ev_source *ev, unsigned flags);
+/* reconfigure */
+
+void reset_sockets(ev_source *ev);
+
+/** @brief Set when starting server */
+#define RECONFIGURE_FIRST 0x0001
+
+/** @brief Set when reloading after SIGHUP etc */
+#define RECONFIGURE_RELOADING 0x0002
 
 void dbparams_check(void);
 
