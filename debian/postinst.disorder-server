@@ -46,11 +46,11 @@ restart_server() {
     else
       if [ $time -gt 30 ]; then
         echo
-        echo "Server did not stablize in a reasonable amount of time"
+        echo "Server did not stabilise in a reasonable amount of time"
         exit 1
       fi
       if $first; then
-	printf "Waiting for server to stabilize"
+	printf "Waiting for server to stabilise"
 	first=false
       fi
       printf "."
