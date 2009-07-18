@@ -202,10 +202,10 @@ def common_setup():
     os.mkdir(testroot)
     # Choose a port
     global port
-    port = random.randint(49152, 65535)
+    port = random.randint(49152, 65530)
     while not bindable(port + 1):
         print "port %d is not bindable, trying another" % (port + 1)
-        port = random.randint(49152, 65535)
+        port = random.randint(49152, 65530)
     # Log anything sent to that port
     packetlog = "%s/packetlog" % testroot
     subprocess.Popen(["disorder-udplog",
