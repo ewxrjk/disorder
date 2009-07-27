@@ -68,7 +68,7 @@ static void oss_open(void) {
 
 #if EMPEG_HOST
   if(!device || !*device || !strcmp(device, "default"))
-    device "/dev/audio";
+    device = "/dev/audio";
 #else
   if(!device || !*device || !strcmp(device, "default")) {
     if(access("/dev/dsp", W_OK) == 0)
