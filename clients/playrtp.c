@@ -762,9 +762,6 @@ int main(int argc, char **argv) {
       struct sockaddr_in *in = (struct sockaddr_in *)res->ai_addr;
       
       memset(&in->sin_addr, 0, sizeof (struct in_addr));
-      if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-        fatal(errno, "error binding socket to 0.0.0.0 port %d",
-              ntohs(in->sin_port));
       break;
     }
     case AF_INET6: {
