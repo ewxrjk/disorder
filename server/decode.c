@@ -387,13 +387,20 @@ static void decode_flac(void) {
     fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
   FLAC__file_decoder_process_until_end_of_file(fd);
 #else
-  FLAC__StreamDecoder *sd = 0;
+  FLAC__StreamDecoder *sd = FLAC__stream_decoder_new();
   FLAC__StreamDecoderInitStatus is;
+
+  if (!sd)
+	fatal(0, "FLAC__stream_decoder_new failed");
 
   if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
                                           flac_error, 0)))
     fatal(0, "FLAC__stream_decoder_init_file %s: %s",
           path, FLAC__StreamDecoderInitStatusString[is]);
+
+  FLAC__stream_decoder_process_until_end_of_stream(sd);
+  FLAC__stream_decoder_finish(sd);
+  FLAC__stream_decoder_delete(sd);
 #endif
 }
 
