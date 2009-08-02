@@ -426,8 +426,10 @@ static size_t speaker_callback(void *buffer,
       if(playing->start == sizeof playing->buffer)
         playing->start = 0;
       /* See if we've reached the end of the track */
-      if(playing->used == 0 && playing->eof)
-        write(sigpipe[1], "", 1);
+      if(playing->used == 0 && playing->eof) {
+        int ignored = write(sigpipe[1], "", 1);
+        (void) ignored;
+      }
       provided_samples = bytes / uaudio_sample_size;
       playing->played += provided_samples;
     }
@@ -634,8 +636,9 @@ static void mainloop(void) {
      * interrupted poll(). */
     if(fds[sigpipe_slot].revents & POLLIN) {
       char buffer[64];
+      int ignored; (void)ignored;
 
-      read(sigpipe[0], buffer, sizeof buffer);
+      ignored = read(sigpipe[0], buffer, sizeof buffer);
     }
     /* Send SM_FINISHED when we're near the end of the track.
      *
