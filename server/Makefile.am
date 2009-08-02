@@ -117,20 +117,38 @@ check-help: all
 	./disorder-choose --help > /dev/null
 	./disorder-choose --version > /dev/null
 
-# My sox doesn't know MP3 or FLAC unfortunately
 check-decode: disorder-decode disorder-normalize endian
 	echo "speaker_backend network" > config
 	echo "broadcast 127.255.255.255 9" > config
-	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
-	  ./disorder-normalize --config config > decoded.raw
 	oggdec -b 16 -e `./endian` -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
-	cmp decoded.raw oggdec.raw
+	@$(MAKE) check-ogg
+	@$(MAKE) check-wav
+	@if which flac >/dev/null 2>&1; then $(MAKE) check-flac; fi
+	rm -f config oggdec.raw
+
+# TODO mp3 - but sox doesn't (reliably) know how to encode to it
+
+check-ogg:
+	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
+	  ./disorder-normalize --config config > ogged.raw
+	cmp ogged.raw oggdec.raw
+	rm -f ogged.raw
+
+check-wav:
 	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
 	./disorder-decode scratch.wav | \
-	  ./disorder-normalize --config config > decoded.raw
-	ls -l *.raw
-	cmp decoded.raw oggdec.raw
-	rm -f scratch.wav config decoded.raw oggdec.raw
+	  ./disorder-normalize --config config > waved.raw
+	cmp waved.raw oggdec.raw
+	rm -rf scratch.wav waved.raw
+
+check-flac:
+	rm -f scratch.wav scratch.flac
+	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
+	flac scratch.wav
+	./disorder-decode scratch.flac | \
+	  ./disorder-normalize --config config > flacced.raw
+	cmp flacced.raw oggdec.raw
+	rm -f scratch.flac scratch.wav flacced.raw
 
 EXTRA_DIST=README.dbversions
 
