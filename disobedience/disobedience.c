@@ -463,6 +463,8 @@ int main(int argc, char **argv) {
   if(config_read(0, NULL)) fatal(0, "cannot read configuration");
   /* we'll need mixer support */
   backend = uaudio_apis[0];
+  if(backend->configure)
+    backend->configure();
   if(backend->open_mixer)
     backend->open_mixer();
   /* create the clients */
