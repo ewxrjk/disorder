@@ -22,6 +22,7 @@
 #define TIMEVAL_H
 
 #include <time.h>
+#include <sys/time.h>
 
 static inline struct timeval tvsub(const struct timeval a,
                                    const struct timeval b) {

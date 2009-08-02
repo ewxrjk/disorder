@@ -19,6 +19,7 @@
 #include "event.h"
 
 #include <time.h>
+#include <sys/time.h>
 
 static int run1, run2, run3;
 static ev_timeout_handle t1, t2, t3;
