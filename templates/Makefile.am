@@ -17,7 +17,7 @@
 #
 
 pkgdata_DATA=about.tmpl choose.tmpl playing.tmpl recent.tmpl		\
-	     about.tmpl prefs.tmpl help.tmpl error.tmpl			\
+	     prefs.tmpl help.tmpl error.tmpl			\
 	     new.tmpl login.tmpl macros.tmpl				\
 	     options options.labels					\
 	     options.columns
