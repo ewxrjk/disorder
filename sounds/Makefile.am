@@ -17,9 +17,10 @@
 #
 
 pkgdata_DATA=slap.ogg scratch.ogg
-noinst_DATA=long.ogg
 
 EXTRA_DIST=${pkgdata_DATA}
+
+check: long.ogg
 
 %.raw: %.ogg
 	oggdec -b16 -R -o $@ $<
