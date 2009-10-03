@@ -120,6 +120,9 @@ case "$host" in
   fi
   AC_MSG_RESULT([$BITS])
   CC="$CC -m$BITS"
+  # AudioHardwareGetProperty is deprecated in 10.6, but it's still _there_,
+  # so we'll just turn off the warning.
+  CC="$CC -Wno-deprecated-declarations"
   if test $want_coreaudio = yes; then
     COREAUDIO="-framework CoreFoundation -framework CoreServices -framework CoreAudio"
   fi
