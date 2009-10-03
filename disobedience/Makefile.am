@@ -30,7 +30,7 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	help.c ../lib/memgc.c settings.c users.c lookup.c choose.h      \
 	popup.h
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
-	$(LIBASOUND) $(COREAUDIO) $(LIBDB)
+	$(LIBASOUND) $(COREAUDIO) $(LIBDB) $(LIBICONV)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
 install-exec-hook:

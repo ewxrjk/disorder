@@ -25,7 +25,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=disorder.c authorize.c authorize.h \
 	../lib/memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBDB) $(LIBPTHREAD)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBICONV) $(LIBDB) $(LIBPTHREAD)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c \

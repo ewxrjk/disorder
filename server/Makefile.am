@@ -64,7 +64,7 @@ disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c	\
 			disorder-server.h
 disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
-	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBGCRYPT)
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_choose_LDFLAGS=-export-dynamic
 disorder_choose_DEPENDENCIES=../lib/libdisorder.a
 
