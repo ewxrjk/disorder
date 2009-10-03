@@ -91,8 +91,12 @@ AC_ARG_WITH([tests],
 	    [want_tests=$withval])
 AC_ARG_WITH([gtk-osx],
 	    [AS_HELP_STRING([--with-gtk-osx],
-			    [use native GTK+])],
+			    [use native GTK+ (OS X only)])],
 	    [want_gtkosx=$withval])
+AC_ARG_WITH([bits],
+            [AS_HELP_STRING([--with-bits=64],
+                            [request a 64-bit build (OS X only)])],
+            [BITS=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -110,6 +114,12 @@ case "$host" in
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
+  AC_MSG_CHECKING([bitness])
+  if test "x$BITS" = "x"; then
+    BITS=32
+  fi
+  AC_MSG_RESULT([$BITS])
+  CC="$CC -m$BITS"
   if test $want_coreaudio = yes; then
     COREAUDIO="-framework CoreFoundation -framework CoreServices -framework CoreAudio"
   fi
