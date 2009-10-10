@@ -33,6 +33,7 @@ complete -o default \
              setup-guest schedule-del schedule-list
              schedule-set-global schedule-unset-global schedule-play
              adopt
+             playlist-del playlist-get playlist-set playlists
              -h --help -H --help-commands --version -V --config -c
              --length --debug -d" \
 	 disorder

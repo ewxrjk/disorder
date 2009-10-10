@@ -243,6 +243,7 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
+  event_raise("periodic-slow", 0);
   /* Recheck RTP status too */
   check_rtp_address(0, 0, 0);
   return TRUE;                          /* don't remove me */
@@ -285,6 +286,7 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
     recheck_rights = 0;
   if(recheck_rights)
     check_rights();
+  event_raise("periodic-fast", 0);
   return TRUE;
 }
 
@@ -493,6 +495,7 @@ int main(int argc, char **argv) {
   disorder_eclient_version(client, version_completed, 0);
   event_register("log-connected", check_rtp_address, 0);
   suppress_actions = 0;
+  playlists_init();
   /* If no password is set yet pop up a login box */
   if(!config->password)
     login_box();

@@ -42,6 +42,12 @@ static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
 static void log_rights_changed(void *v, rights_type r);
 static void log_adopted(void *v, const char *id, const char *user);
+static void log_playlist_created(void *v,
+                                 const char *playlist, const char *sharing);
+static void log_playlist_modified(void *v,
+                                  const char *playlist, const char *sharing);
+static void log_playlist_deleted(void *v,
+                                 const char *playlist);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -59,7 +65,10 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .volume = log_volume,
   .rescanned = log_rescanned,
   .rights_changed = log_rights_changed,
-  .adopted = log_adopted
+  .adopted = log_adopted,
+  .playlist_created = log_playlist_created,
+  .playlist_modified = log_playlist_modified,
+  .playlist_deleted = log_playlist_deleted,
 };
 
 /** @brief Update everything */
@@ -209,6 +218,23 @@ static void log_adopted(void attribute((unused)) *v,
                         const char attribute((unused)) *id,
                         const char attribute((unused)) *who) {
   event_raise("queue-changed", 0);
+}
+
+static void log_playlist_created(void attribute((unused)) *v,
+                                 const char *playlist,
+                                 const char attribute((unused)) *sharing) {
+  event_raise("playlist-created", (void *)playlist);
+}
+
+static void log_playlist_modified(void attribute((unused)) *v,
+                                  const char *playlist,
+                                  const char attribute((unused)) *sharing) {
+  event_raise("playlist-modified", (void *)playlist);
+}
+
+static void log_playlist_deleted(void attribute((unused)) *v,
+                                 const char *playlist) {
+  event_raise("playlist-deleted", (void *)playlist);
 }
 
 /*

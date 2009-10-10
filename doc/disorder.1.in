@@ -152,6 +152,23 @@ Add \fITRACKS\fR to the end of the queue.
 .B playing
 Report the currently playing track.
 .TP
+.B playlist-del \fIPLAYLIST\fR
+Deletes playlist \fIPLAYLIST\fR.
+.TP
+.B playlist-get \fIPLAYLIST\fR
+Gets the contents of playlist \fIPLAYLIST\fR.
+.TP
+.B playlist-set \fIPLAYLIST\fR [\fIPATH\fR]
+Set the contents of playlist \fIPLAYLIST\fR.
+If an absolute path name is specified then the track list is read from
+that filename.
+Otherwise the track list is read from standard input.
+In either case, the list is terminated either by end of file or by a line
+containing a single ".".
+.TP
+.B playlists
+Lists known playlists (in no particular order).
+.TP
 .B prefs \fITRACK\fR
 Display all the preferences for \fITRACK\fR.
 See \fBdisorder_preferences\fR (5).

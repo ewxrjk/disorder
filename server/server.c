@@ -44,6 +44,34 @@ struct listener {
   int pf;
 };
 
+struct conn;
+
+/** @brief Signature for line reader callback
+ * @param c Connection
+ * @param line Line
+ * @return 0 if incomplete, 1 if complete
+ *
+ * @p line is 0-terminated and excludes the newline.  It points into the
+ * input buffer so will become invalid shortly.
+ */
+typedef int line_reader_type(struct conn *c,
+                             char *line);
+
+/** @brief Signature for with-body command callbacks
+ * @param c Connection
+ * @param body List of body lines
+ * @param nbody Number of body lines
+ * @param u As passed to fetch_body()
+ * @return 0 to suspend input, 1 if complete
+ *
+ * The body strings are allocated (so survive indefinitely) and don't include
+ * newlines.
+ */
+typedef int body_callback_type(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
+
 /** @brief One client connection */
 struct conn {
   /** @brief Read commands from here */
@@ -77,6 +105,18 @@ struct conn {
   struct conn *next;
   /** @brief True if pending rescan had 'wait' set */
   int rescan_wait;
+  /** @brief Playlist that this connection locks */
+  const char *locked_playlist;
+  /** @brief When that playlist was locked */
+  time_t locked_when;
+  /** @brief Line reader function */
+  line_reader_type *line_reader;
+  /** @brief Called when command body has been read */
+  body_callback_type *body_callback;
+  /** @brief Passed to @c body_callback */
+  void *body_u;
+  /** @brief Accumulating body */
+  struct vector body[1];
 };
 
 /** @brief Linked list of connections */
@@ -88,6 +128,15 @@ static int reader_callback(ev_source *ev,
 			   size_t bytes,
 			   int eof,
 			   void *u);
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u);
+static int body_line(struct conn *c, char *line);
+static int command(struct conn *c, char *line);
 
 static const char *noyes[] = { "no", "yes" };
 
@@ -1030,19 +1079,23 @@ static int c_resolve(struct conn *c,
   return 1;
 }
 
-static int c_tags(struct conn *c,
-		  char attribute((unused)) **vec,
-		  int attribute((unused)) nvec) {
-  char **tags = trackdb_alltags();
-  
-  sink_printf(ev_writer_sink(c->w), "253 Tag list follows\n");
-  while(*tags) {
+static int list_response(struct conn *c,
+                         const char *reply,
+                         char **list) {
+  sink_printf(ev_writer_sink(c->w), "253 %s\n", reply);
+  while(*list) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**tags == '.' ? "." : "", *tags);
-    ++tags;
+		**list == '.' ? "." : "", *list);
+    ++list;
   }
   sink_writes(ev_writer_sink(c->w), ".\n");
   return 1;				/* completed */
+}
+
+static int c_tags(struct conn *c,
+		  char attribute((unused)) **vec,
+		  int attribute((unused)) nvec) {
+  return list_response(c, "Tag list follows", trackdb_alltags());
 }
 
 static int c_set_global(struct conn *c,
@@ -1314,17 +1367,7 @@ static int c_userinfo(struct conn *c,
 static int c_users(struct conn *c,
 		   char attribute((unused)) **vec,
 		   int attribute((unused)) nvec) {
-  /* TODO de-dupe with c_tags */
-  char **users = trackdb_listusers();
-
-  sink_writes(ev_writer_sink(c->w), "253 User list follows\n");
-  while(*users) {
-    sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**users == '.' ? "." : "", *users);
-    ++users;
-  }
-  sink_writes(ev_writer_sink(c->w), ".\n");
-  return 1;				/* completed */
+  return list_response(c, "User list follows", trackdb_listusers());
 }
 
 static int c_register(struct conn *c,
@@ -1599,6 +1642,152 @@ static int c_adopt(struct conn *c,
   return 1;
 }
 
+static int playlist_response(struct conn *c,
+                             int err) {
+  switch(err) {
+  case 0:
+    assert(!"cannot cope with success");
+  case EACCES:
+    sink_writes(ev_writer_sink(c->w), "550 Access denied\n");
+    break;
+  case EINVAL:
+    sink_writes(ev_writer_sink(c->w), "550 Invalid playlist name\n");
+    break;
+  case ENOENT:
+    sink_writes(ev_writer_sink(c->w), "555 No such playlist\n");
+    break;
+  default:
+    sink_writes(ev_writer_sink(c->w), "550 Error accessing playlist\n");
+    break;
+  }
+  return 1;
+}
+
+static int c_playlist_get(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  char **tracks;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, &tracks, 0, 0)))
+    return list_response(c, "Playlist contents follows", tracks);
+  else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  return fetch_body(c, c_playlist_set_body, vec[0]);
+}
+
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u) {
+  const char *playlist = u;
+  int err;
+
+  if(!c->locked_playlist
+     || strcmp(playlist, c->locked_playlist)) {
+    sink_writes(ev_writer_sink(c->w), "550 Playlist is not locked\n");
+    return 1;
+  }
+  if(!(err = trackdb_playlist_set(playlist, c->who,
+                                  body, nbody, 0))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_get_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  char *share;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, 0, 0, &share))) {
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(share));
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  int err;
+
+  if(!(err = trackdb_playlist_set(vec[0], c->who, 0, 0, vec[1]))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlists(struct conn *c,
+                       char attribute((unused)) **vec,
+                       int attribute((unused)) nvec) {
+  char **p;
+
+  trackdb_playlist_list(c->who, &p, 0);
+  return list_response(c, "List of playlists follows", p);
+}
+
+static int c_playlist_delete(struct conn *c,
+                             char **vec,
+                             int attribute((unused)) nvec) {
+  int err;
+  
+  if(!(err = trackdb_playlist_delete(vec[0], c->who))) {
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_lock(struct conn *c,
+                           char **vec,
+                           int attribute((unused)) nvec) {
+  int err;
+  struct conn *cc;
+
+  /* Check we're allowed to modify this playlist */
+  if((err = trackdb_playlist_set(vec[0], c->who, 0, 0, 0)))
+    return playlist_response(c, err);
+  /* If we hold a lock don't allow a new one */
+  if(c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Already holding a lock\n");
+    return 1;
+  }
+  /* See if some other connection locks the same playlist */
+  for(cc = connections; cc; cc = cc->next)
+    if(cc->locked_playlist && !strcmp(cc->locked_playlist, vec[0]))
+      break;
+  if(cc) {
+    /* TODO: implement config->playlist_lock_timeout */
+    sink_writes(ev_writer_sink(c->w), "550 Already locked\n");
+    return 1;
+  }
+  c->locked_playlist = xstrdup(vec[0]);
+  time(&c->locked_when);
+  sink_writes(ev_writer_sink(c->w), "250 Acquired lock\n");
+  return 1;
+}
+
+static int c_playlist_unlock(struct conn *c,
+                             char attribute((unused)) **vec,
+                             int attribute((unused)) nvec) {
+  if(!c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Not holding a lock\n");
+    return 1;
+  }
+  c->locked_playlist = 0;
+  sink_writes(ev_writer_sink(c->w), "250 Released lock\n");
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1645,6 +1834,14 @@ static const struct command {
   { "pause",          0, 0,       c_pause,          RIGHT_PAUSE },
   { "play",           1, 1,       c_play,           RIGHT_PLAY },
   { "playing",        0, 0,       c_playing,        RIGHT_READ },
+  { "playlist-delete",    1, 1,   c_playlist_delete,    RIGHT_PLAY },
+  { "playlist-get",       1, 1,   c_playlist_get,       RIGHT_READ },
+  { "playlist-get-share", 1, 1,   c_playlist_get_share, RIGHT_READ },
+  { "playlist-lock",      1, 1,   c_playlist_lock,      RIGHT_PLAY },
+  { "playlist-set",       1, 1,   c_playlist_set,       RIGHT_PLAY },
+  { "playlist-set-share", 2, 2,   c_playlist_set_share, RIGHT_PLAY },
+  { "playlist-unlock",    0, 0,   c_playlist_unlock,    RIGHT_PLAY },
+  { "playlists",          0, 0,   c_playlists,          RIGHT_READ },
   { "prefs",          1, 1,       c_prefs,          RIGHT_READ },
   { "queue",          0, 0,       c_queue,          RIGHT_READ },
   { "random-disable", 0, 0,       c_random_disable, RIGHT_GLOBAL_PREFS },
@@ -1680,13 +1877,58 @@ static const struct command {
   { "volume",         0, 2,       c_volume,         RIGHT_READ|RIGHT_VOLUME }
 };
 
+/** @brief Fetch a command body
+ * @param c Connection
+ * @param body_callback Called with body
+ * @param u Passed to body_callback
+ * @return 1
+ */
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u) {
+  assert(c->line_reader == command);
+  c->line_reader = body_line;
+  c->body_callback = body_callback;
+  c->body_u = u;
+  vector_init(c->body);
+  return 1;
+}
+
+/** @brief @ref line_reader_type callback for command body lines
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
+static int body_line(struct conn *c,
+                     char *line) {
+  if(*line == '.') {
+    ++line;
+    if(!*line) {
+      /* That's the lot */
+      c->line_reader = command;
+      vector_terminate(c->body);
+      return c->body_callback(c, c->body->vec, c->body->nvec, c->body_u);
+    }
+  }
+  vector_append(c->body, xstrdup(line));
+  return 1;                             /* completed */
+}
+
 static void command_error(const char *msg, void *u) {
   struct conn *c = u;
 
   sink_printf(ev_writer_sink(c->w), "500 parse error: %s\n", msg);
 }
 
-/* process a command.  Return 1 if complete, 0 if incomplete. */
+/** @brief @ref line_reader_type callback for commands
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
 static int command(struct conn *c, char *line) {
   char **vec;
   int nvec, n;
@@ -1757,7 +1999,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   while((eol = memchr(ptr, '\n', bytes))) {
     *eol++ = 0;
     ev_reader_consume(reader, eol - (char *)ptr);
-    complete = command(c, ptr);
+    complete = c->line_reader(c, ptr);  /* usually command() */
     bytes -= (eol - (char *)ptr);
     ptr = eol;
     if(!complete) {
@@ -1820,6 +2062,7 @@ static int listen_callback(ev_source *ev,
   c->reader = reader_callback;
   c->l = l;
   c->rights = 0;
+  c->line_reader = command;
   connections = c;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
