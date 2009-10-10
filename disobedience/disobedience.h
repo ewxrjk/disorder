@@ -254,6 +254,7 @@ void popup_settings(void);
 
 /* Playlists */
 
+#if PLAYLISTS
 void playlists_init(void);
 void edit_playlists(gpointer callback_data,
                     guint callback_action,
@@ -263,6 +264,7 @@ extern int nplaylists;
 extern GtkWidget *playlists_widget;
 extern GtkWidget *playlists_menu;
 extern GtkWidget *editplaylists_widget;
+#endif
 
 #endif /* DISOBEDIENCE_H */
 

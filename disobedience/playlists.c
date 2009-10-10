@@ -29,6 +29,8 @@
  */
 #include "disobedience.h"
 
+#if PLAYLISTS
+
 static void playlists_updated(void *v,
                               const char *err,
                               int nvec, char **vec);
@@ -323,6 +325,8 @@ void playlists_init(void) {
   event_register("playlists-updated", menu_playlists_changed, 0);
   playlists_update(0, 0, 0);
 }
+
+#endif
 
 /*
 Local Variables:
