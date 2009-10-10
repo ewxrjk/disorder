@@ -93,10 +93,6 @@ AC_ARG_WITH([gtk-osx],
 	    [AS_HELP_STRING([--with-gtk-osx],
 			    [use native GTK+ (OS X only)])],
 	    [want_gtkosx=$withval])
-AC_ARG_WITH([bits],
-            [AS_HELP_STRING([--with-bits=64],
-                            [request a 64-bit build (OS X only)])],
-            [BITS=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -114,12 +110,6 @@ case "$host" in
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
-  AC_MSG_CHECKING([bitness])
-  if test "x$BITS" = "x"; then
-    BITS=32
-  fi
-  AC_MSG_RESULT([$BITS])
-  CC="$CC -m$BITS"
   # AudioHardwareGetProperty is deprecated in 10.6, but it's still _there_,
   # so we'll just turn off the warning.
   CC="$CC -Wno-deprecated-declarations"
@@ -394,9 +384,11 @@ AC_PATH_PROG([SENDMAIL],[sendmail],[none],[$PATH:/usr/sbin:/usr/lib])
 # Macs might have libraries under fink's root
 AC_PATH_PROG([FINK],[fink],[none],[$PATH:/sw/bin])
 if test "x$FINK" != xnone; then
+  # Find Fink prefix
   AC_CACHE_CHECK([fink install directory],[rjk_cv_finkprefix],[
     rjk_cv_finkprefix="`echo "$FINK" | sed 's,/bin/fink$,,'`"
   ])
+  # Add include and link paths
   finkdir="${rjk_cv_finkprefix}"
   finkbindir="${rjk_cv_finkprefix}/bin"
   CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/gc -isystem ${rjk_cv_finkprefix}/include"
@@ -404,6 +396,27 @@ if test "x$FINK" != xnone; then
     CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/db4"
   fi
   LDFLAGS="${LDFLAGS} -L${rjk_cv_finkprefix}/lib"
+  # Distinguish 32- and 64-bit fink
+  AC_CACHE_CHECK([whether Fink is 32-bit or 64-bit],[rjk_cv_finkbits],[
+    odata=`otool -v -h $finkbindir/dpkg`
+    case "$odata" in
+    *X86_64* )
+      rjk_cv_finkbits=64
+      ;;
+    *I386* )
+      rjk_cv_finkbits=32
+      ;;
+    * )
+      rjk_cv_finkbits=unknown
+      ;;
+    esac
+  ])
+  # Match Fink so we can use its libraries
+  case $rjk_cv_finkbits in
+  32 | 64 )
+    CC="$CC -m$rjk_cv_finkbits"
+    ;;
+  esac
 else
   finkbindir=""
 fi
