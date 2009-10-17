@@ -479,8 +479,8 @@ void trackdb_open(int flags) {
   trackdb_noticeddb = open_db("noticed.db",
                              DB_DUPSORT, DB_BTREE, dbflags, 0666);
   trackdb_scheduledb = open_db("schedule.db", 0, DB_HASH, dbflags, 0666);
-  if(!trackdb_existing_database && !(flags & TRACKDB_READ_ONLY)) {
   trackdb_playlistsdb = open_db("playlists.db", 0, DB_HASH, dbflags, 0666);
+  if(!trackdb_existing_database && !(flags & TRACKDB_READ_ONLY)) {
     /* Stash the database version */
     char buf[32];
 
