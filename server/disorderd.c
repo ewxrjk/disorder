@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   }
   info("process ID %lu", (unsigned long)getpid());
   fix_path();
-  srand(time(0));			/* don't start the same every time */
+  srand(xtime(0));			/* don't start the same every time */
   /* gcrypt initialization */
   if(!gcry_check_version(NULL))
     disorder_fatal(0, "gcry_check_version failed");

@@ -583,7 +583,7 @@ void play(ev_source *ev) {
     }
     /* It's become the playing track */
     playing = q;
-    time(&playing->played);
+    xtime(&playing->played);
     playing->state = playing_started;
     notify_play(playing->track, playing->submitter);
     eventlog("playing", playing->track,
@@ -685,7 +685,7 @@ void scratch(const char *who, const char *id) {
       q = queue_add(config->scratch.s[r], who, WHERE_START, origin_scratch);
     }
     notify_scratch(playing->track, playing->submitter, who,
-		   time(0) - playing->played);
+		   xtime(0) - playing->played);
   }
 }
 
@@ -735,7 +735,7 @@ int pause_playing(const char *who) {
       error(0, "player indicates it cannot pause");
       return -1;
     }
-    time(&playing->lastpaused);
+    xtime(&playing->lastpaused);
     playing->uptopause = played;
     playing->lastresumed = 0;
     break;
@@ -769,7 +769,7 @@ void resume_playing(const char *who) {
       return;
     }
     play_resume(playing->pl, playing->data);
-    time(&playing->lastresumed);
+    xtime(&playing->lastresumed);
     break;
   case DISORDER_PLAYER_RAW:
     memset(&sm, 0, sizeof sm);

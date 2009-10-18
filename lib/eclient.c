@@ -417,7 +417,7 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode) {
   /* Queue up a byte to send */
   if(c->state == state_log
      && c->output.nvec == 0
-     && time(&now) - c->last_prod > LOG_PROD_INTERVAL) {
+     && xtime(&now) - c->last_prod > LOG_PROD_INTERVAL) {
     put(c, "x", 1);
     c->last_prod = now;
   }

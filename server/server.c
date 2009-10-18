@@ -541,13 +541,13 @@ static int c_queue(struct conn *c,
       queue_fix_sofar(playing);
       if((l = trackdb_get(playing->track, "_length"))
 	 && (length = atol(l))) {
-	time(&when);
+	xtime(&when);
 	when += length - playing->sofar + config->gap;
       }
     } else
       /* Nothing is playing but playing is enabled, so whatever is
        * first in the queue can be expected to start immediately. */
-      time(&when);
+      xtime(&when);
   }
   for(q = qhead.next; q != &qhead; q = q->next) {
     /* fill in estimated start time */
@@ -894,7 +894,7 @@ static void logclient(const char *msg, void *user) {
       return;
   }
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" %s\n",
-	      (uintmax_t)time(0), msg);
+	      (uintmax_t)xtime(0), msg);
 }
 
 static int c_log(struct conn *c,
@@ -904,7 +904,7 @@ static int c_log(struct conn *c,
 
   sink_writes(ev_writer_sink(c->w), "254 OK\n");
   /* pump out initial state */
-  time(&now);
+  xtime(&now);
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" state %s\n",
 	      (uintmax_t)now, 
 	      playing_is_enabled() ? "enable_play" : "disable_play");
@@ -1262,7 +1262,7 @@ static int c_edituser(struct conn *c,
             if(d->lo)
               sink_printf(ev_writer_sink(d->w),
                           "%"PRIxMAX" rights_changed %s\n",
-                          (uintmax_t)time(0),
+                          (uintmax_t)xtime(0),
                           quoteutf8(new_rights));
           }
         }
@@ -1443,7 +1443,7 @@ static int c_reminder(struct conn *c,
   if(!last_reminder)
     last_reminder = hash_new(sizeof (time_t));
   last = hash_find(last_reminder, vec[0]);
-  time(&now);
+  xtime(&now);
   if(last && now < *last + config->reminder_interval) {
     error(0, "sent a password reminder to '%s' too recently", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");

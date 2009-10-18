@@ -126,7 +126,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
   time_t now;
   char date[128];
 
-  time(&now);
+  xtime(&now);
   gmtime_r(&now, &ut);
   strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S +0000", &ut);
   gcry_create_nonce(idbuf, sizeof idbuf);

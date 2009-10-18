@@ -134,9 +134,9 @@ static void rescan_collection(const struct collection *c) {
     if(n < config->player.n) {
       nnew += !!trackdb_notice(track, path);
       ++ntracks;
-      if(ntracks % 100 == 0 && time(0) > last_report + 10) {
+      if(ntracks % 100 == 0 && xtime(0) > last_report + 10) {
         info("rescanning %s, %ld tracks so far", c->root, ntracks);
-        time(&last_report);
+        xtime(&last_report);
       }
     }
   }
@@ -300,12 +300,12 @@ static void recheck_collection(const struct collection *c) {
       return;
     recheck_track(&cs, t);
     ++nrc;
-    if(nrc % 100 == 0 && time(0) > last_report + 10) {
+    if(nrc % 100 == 0 && xtime(0) > last_report + 10) {
       if(c)
         info("rechecking %s, %ld tracks so far", c->root, nrc);
       else
         info("rechecking all tracks, %ld tracks so far", nrc);
-      time(&last_report);
+      xtime(&last_report);
     }
   }
   if(c)
@@ -350,7 +350,7 @@ static void do_all(void (*fn)(const struct collection *c)) {
 static void expire_noticed(void) {
   time_t now;
 
-  time(&now);
+  xtime(&now);
   trackdb_expire_noticed(now - config->noticed_history * 86400);
 }
 

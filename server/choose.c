@@ -92,7 +92,7 @@ static unsigned long compute_weight(const char *track,
                                     struct kvp *prefs) {
   const char *s;
   char **track_tags;
-  time_t last, now = time(0);
+  time_t last, now = xtime(0);
 
   /* Reject tracks not in any collection (race between edit config and
    * rescan) */
