@@ -182,7 +182,7 @@ static int schedule_init_tid(ev_source *ev,
     }
     when.tv_usec = 0;
     /* The action might be in the past */
-    if(when.tv_sec < time(0)) {
+    if(when.tv_sec < xtime(0)) {
       const char *priority = kvp_get(actiondata, "priority");
 
       if(priority && !strcmp(priority, "junk")) {
@@ -287,7 +287,7 @@ const char *schedule_add(ev_source *ev,
   when.tv_sec = atoll(kvp_get(actiondata, "when"));
   when.tv_usec = 0;
   /* Reject events in the past */
-  if(when.tv_sec <= time(0)) {
+  if(when.tv_sec <= xtime(0)) {
     error(0, "new scheduled event is in the past");
     return 0;
   }

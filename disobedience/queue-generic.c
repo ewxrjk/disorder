@@ -129,7 +129,7 @@ const char *column_length(const struct queue_entry *q,
     else {
       if(!last_playing)
         return NULL;
-      time(&now);
+      xtime(&now);
       l = playing_track->sofar + (now - last_playing);
     }
     byte_xasprintf(&played, "%ld:%02ld/%s", l / 60, l % 60, length);

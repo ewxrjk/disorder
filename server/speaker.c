@@ -370,7 +370,7 @@ static void report(void) {
     strcpy(sm.id, playing->id);
     sm.data = playing->played / (uaudio_rate * uaudio_channels);
     speaker_send(1, &sm);
-    time(&last_report);
+    xtime(&last_report);
   }
 }
 
@@ -684,7 +684,7 @@ static void mainloop(void) {
       }
     }
     /* If we've not reported our state for a second do so now. */
-    if(force_report || time(0) > last_report)
+    if(force_report || xtime(0) > last_report)
       report();
   }
 }

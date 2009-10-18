@@ -148,6 +148,15 @@ void xgettimeofday(struct timeval *tv, struct timezone *tz) {
   mustnotbeminus1("gettimeofday", gettimeofday(tv, tz));
 }
 
+time_t xtime(time_t *whenp) {
+  struct timeval tv;
+
+  xgettimeofday(&tv, NULL);
+  if(whenp)
+    *whenp = tv.tv_sec;
+  return tv.tv_sec;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

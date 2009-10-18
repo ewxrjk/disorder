@@ -24,6 +24,7 @@
 #include "hash.h"
 #include "mem.h"
 #include "log.h"
+#include "syscalls.h"
 #include "cache.h"
 
 /** @brief The global cache */
@@ -60,7 +61,7 @@ void cache_put(const struct cache_type *type,
   c = xmalloc(sizeof *c);
   c->type = type;
   c->value = value;
-  time(&c->birth);
+  xtime(&c->birth);
   hash_add(h, key, c,  HASH_INSERT_OR_REPLACE);
 }
 
@@ -75,7 +76,7 @@ const void *cache_get(const struct cache_type *type, const char *key) {
   if(h
      && (c = hash_find(h, key))
      && c->type == type
-     && !expired(c, time(0)))
+     && !expired(c, xtime(0)))
     return c->value;
   else
     return 0;
@@ -98,7 +99,7 @@ void cache_expire(void) {
   time_t now;
 
   if(h) {
-    time(&now);
+    xtime(&now);
     hash_foreach(h, expiry_callback, &now);
   }
 }

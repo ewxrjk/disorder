@@ -50,11 +50,11 @@ void queue_fix_sofar(struct queue_entry *q) {
       if(q->uptopause == -1)		/* Don't know how far thru. */
 	sofar = -1;
       else if(q->lastresumed)		/* Has been paused and resumed. */
-	sofar = q->uptopause + time(0) - q->lastresumed;
+	sofar = q->uptopause + xtime(0) - q->lastresumed;
       else				/* Currently paused. */
 	sofar = q->uptopause;
     } else				/* Never been paused. */
-      sofar = time(0) - q->played;
+      sofar = xtime(0) - q->played;
     q->sofar = sofar;
   }
 }

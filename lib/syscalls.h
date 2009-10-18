@@ -48,6 +48,7 @@ int xprintf(const char *, ...)
 void xfclose(FILE *);
 int xnice(int);
 void xgettimeofday(struct timeval *, struct timezone *);
+time_t xtime(time_t *when);
 /* the above all call @fatal@ if the system call fails */
 
 void nonblock(int fd);

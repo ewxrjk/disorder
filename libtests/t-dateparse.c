@@ -33,7 +33,7 @@ static void check_date(time_t when,
 }
 
 static void test_dateparse(void) {
-  time_t now = time(0);
+  time_t now = xtime(0);
   check_date(now, "%Y-%m-%d %H:%M:%S", localtime);
 #if 0	       /* see dateparse.c */
   check_date(now, "%Y-%m-%d %H:%M:%S %Z", localtime);

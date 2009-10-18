@@ -51,13 +51,13 @@ static void test_event(void) {
   ev_source *ev;
 
   ev = ev_new();
-  w.tv_sec = time(0) + 2;
+  w.tv_sec = xtime(0) + 2;
   w.tv_usec = 0;
   ev_timeout(ev, &t1, &w, callback1, 0);
-  w.tv_sec = time(0) + 3;
+  w.tv_sec = xtime(0) + 3;
   w.tv_usec = 0;
   ev_timeout(ev, &t2, &w, callback2, 0);
-  w.tv_sec = time(0) + 4;
+  w.tv_sec = xtime(0) + 4;
   w.tv_usec = 0;
   ev_timeout(ev, &t3, &w, callback3, 0);
   check_integer(ev_run(ev), 1);

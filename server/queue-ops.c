@@ -59,7 +59,7 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
   q->origin = origin;
   q->pid = -1;
   queue_id(q);
-  time(&q->when);
+  xtime(&q->when);
   switch(where) {
   case WHERE_START:
     queue_insert_entry(&qhead, q);

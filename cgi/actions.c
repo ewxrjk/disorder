@@ -75,7 +75,7 @@ static void act_playing(void) {
      && length
      && dcgi_playing->sofar >= 0) {
     /* Try to put the next refresh at the start of the next track. */
-    time(&now);
+    xtime(&now);
     fin = now + length - dcgi_playing->sofar + config->gap;
     if(now + refresh > fin)
       refresh = fin - now;

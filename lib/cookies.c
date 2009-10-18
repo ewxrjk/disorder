@@ -35,6 +35,7 @@
 #include "configuration.h"
 #include "kvp.h"
 #include "trackdb.h"
+#include "syscalls.h"
 
 /** @brief Hash function used in signing HMAC */
 #define ALGO GCRY_MD_SHA1
@@ -66,7 +67,7 @@ static int revoked_cleanup_callback(const char *key, void *value,
 static void newkey(void) {
   time_t now;
 
-  time(&now);
+  xtime(&now);
   memcpy(old_signing_key, signing_key, HASHSIZE);
   gcry_randomize(signing_key, HASHSIZE, GCRY_STRONG_RANDOM);
   signing_key_validity_limit = now + config->cookie_key_lifetime;
@@ -134,7 +135,7 @@ char *make_cookie(const char *user) {
     return 0;
   }
   /* make sure we have a valid signing key */
-  time(&now);
+  xtime(&now);
   if(now >= signing_key_validity_limit)
     newkey();
   /* construct the subject */
@@ -187,7 +188,7 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
   /* Extract the username */
   user = xstrndup(c1 + 1, c2 - (c1 + 1));
   /* check expiry */
-  time(&now);
+  xtime(&now);
   if(now >= t) {
     error(0, "cookie has expired");
     return 0;

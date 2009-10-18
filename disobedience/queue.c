@@ -97,7 +97,7 @@ static void playing_completed(void attribute((unused)) *v,
   }
   actual_playing_track = q;
   queue_playing_changed();
-  time(&last_playing);
+  xtime(&last_playing);
 }
 
 /** @brief Schedule an update to the queue

@@ -123,8 +123,6 @@ static void logfp(int pri, const char *msg, void *user) {
    * sanely */
   const char *p;
   
-  if(progname)
-    fprintf(fp, "%s: ", progname);
   if(logdate) {
     char timebuf[64];
     struct tm *tm;
@@ -132,7 +130,9 @@ static void logfp(int pri, const char *msg, void *user) {
     tm = localtime(&tv.tv_sec);
     strftime(timebuf, sizeof timebuf, "%Y-%m-%d %H:%M:%S %Z", tm);
     fprintf(fp, "%s: ", timebuf);
-  }
+  } 
+ if(progname)
+    fprintf(fp, "%s: ", progname);
   if(pri <= LOG_ERR)
     fputs("ERROR: ", fp);
   else if(pri < LOG_DEBUG)

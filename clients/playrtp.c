@@ -858,7 +858,7 @@ int main(int argc, char **argv) {
 	  || (nsamples > 0
 	      && contains(pheap_first(&packets), next_timestamp))) {
       if(monitor) {
-        time_t now = time(0);
+        time_t now = xtime(0);
 
         if(now >= lastlog + 60) {
           int offset = nsamples - minbuffer;

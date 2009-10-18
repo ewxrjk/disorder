@@ -1051,7 +1051,7 @@ int trackdb_notice_tid(const char *track,
   /* this is a real track */
   t_changed += kvp_set(&t, "_alias_for", 0);
   t_changed += kvp_set(&t, "_path", path);
-  time(&now);
+  xtime(&now);
   if(ret == DB_NOTFOUND) {
     /* It's a new track; record the time */
     byte_xasprintf(&noticed, "%lld", (long long)now);
@@ -2609,7 +2609,7 @@ static int create_user(const char *user,
     kvp_set(&k, "email", email);
   if(confirmation)
     kvp_set(&k, "confirmation", confirmation);
-  snprintf(s, sizeof s, "%jd", (intmax_t)time(0));
+  snprintf(s, sizeof s, "%jd", (intmax_t)xtime(0));
   kvp_set(&k, "created", s);
   return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
 }
