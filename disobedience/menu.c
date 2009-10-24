@@ -24,6 +24,11 @@
 static GtkWidget *selectall_widget;
 static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
+#if PLAYLISTS
+GtkWidget *playlists_widget;
+GtkWidget *playlists_menu;
+GtkWidget *editplaylists_widget;
+#endif
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
@@ -113,7 +118,7 @@ static void edit_menu_show(GtkWidget attribute((unused)) *widget,
                              && t->selectnone_sensitive(t->extra));
   }
 }
-   
+
 /** @brief Fetch version in order to display the about... popup */
 static void about_popup(gpointer attribute((unused)) callback_data,
                         guint attribute((unused)) callback_action,
@@ -293,6 +298,17 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* item_type */
       0                                 /* extra_data */
     },
+#if PLAYLISTS
+    {
+      (char *)"/Edit/Edit playlists",   /* path */
+      0,                                /* accelerator */
+      edit_playlists,                   /* callback */
+      0,                                /* callback_action */
+      0,                                /* item_type */
+      0                                 /* extra_data */
+    },
+#endif
+    
     
     {
       (char *)"/Control",               /* path */
@@ -334,6 +350,16 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
+#if PLAYLISTS
+    {
+      (char *)"/Control/Activate playlist", /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+#endif
     
     {
       (char *)"/Help",                  /* path */
@@ -378,15 +404,27 @@ GtkWidget *menubar(GtkWidget *w) {
 						 "<GdisorderMain>/Edit/Deselect all tracks");
   properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
+#if PLAYLISTS
+  playlists_widget = gtk_item_factory_get_item(mainmenufactory,
+                                               "<GdisorderMain>/Control/Activate playlist");
+  playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
+                                               "<GdisorderMain>/Control/Activate playlist");
+  editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                     "<GdisorderMain>/Edit/Edit playlists");
+#endif
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
+#if PLAYLISTS
+  assert(playlists_widget != 0);
+  assert(playlists_menu != 0);
+  assert(editplaylists_widget != 0);
+#endif
 
-  
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");
   g_signal_connect(edit_widget, "show", G_CALLBACK(edit_menu_show), 0);
-  
+
   event_register("rights-changed", menu_rights_changed, 0);
   users_set_sensitive(0);
   m = gtk_item_factory_get_widget(mainmenufactory,

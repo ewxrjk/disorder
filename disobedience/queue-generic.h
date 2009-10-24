@@ -90,6 +90,18 @@ struct queuelike {
 
   /** @brief Menu callbacks */
   struct tabtype tabtype;
+
+  /** @brief Drag-drop callback, or NULL for no drag+drop
+   * @param src Row to move
+   * @param dst Destination position
+   *
+   * If the rearrangement is impossible then the displayed queue must be put
+   * back.
+   */
+  void (*drop)(int src, int dst);
+
+  /** @brief Stashed drag target row */
+  GtkTreePath *drag_target;
 };
 
 enum {

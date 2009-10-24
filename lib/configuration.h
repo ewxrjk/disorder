@@ -185,6 +185,12 @@ struct config {
   /** @brief API used to play sound */
   const char *api;
 
+  /** @brief Maximum size of a playlist */
+  long playlist_max;
+
+  /** @brief Maximum lifetime of a playlist lock */
+  long playlist_lock_timeout;
+
   /** @brief Home directory for state files */
   const char *home;
 

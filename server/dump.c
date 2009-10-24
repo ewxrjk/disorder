@@ -29,8 +29,6 @@ static const struct option options[] = {
   { "debug", no_argument, 0, 'D' },
   { "recover", no_argument, 0, 'r' },
   { "recover-fatal", no_argument, 0, 'R' },
-  { "trackdb", no_argument, 0, 't' },
-  { "searchdb", no_argument, 0, 's' },
   { "recompute-aliases", no_argument, 0, 'a' },
   { "remove-pathless", no_argument, 0, 'P' },
   { 0, 0, 0, 0 }
@@ -55,14 +53,70 @@ static void help(void) {
   exit(0);
 }
 
+/** @brief Dump one record
+ * @param s Output stream
+ * @param tag Tag for error messages
+ * @param letter Prefix leter for dumped record
+ * @param dbname Database name
+ * @param db Database handle
+ * @param tid Transaction handle
+ * @return 0 or @c DB_LOCK_DEADLOCK
+ */
+static int dump_one(struct sink *s,
+                    const char *tag,
+                    int letter,
+                    const char *dbname,
+                    DB *db,
+                    DB_TXN *tid) {
+  int err;
+  DBC *cursor;
+  DBT k, d;
+
+  /* dump the preferences */
+  cursor = trackdb_opencursor(db, tid);
+  err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                      DB_FIRST);
+  while(err == 0) {
+    if(sink_writec(s, letter) < 0
+       || urlencode(s, k.data, k.size)
+       || sink_writec(s, '\n') < 0
+       || urlencode(s, d.data, d.size)
+       || sink_writec(s, '\n') < 0)
+      fatal(errno, "error writing to %s", tag);
+    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
+                        DB_NEXT);
+  }
+  switch(err) {
+  case DB_LOCK_DEADLOCK:
+    trackdb_closecursor(cursor);
+    return err;
+  case DB_NOTFOUND:
+    return trackdb_closecursor(cursor);
+  case 0:
+    assert(!"cannot happen");
+  default:
+    fatal(0, "error reading %s: %s", dbname, db_strerror(err));
+  }
+}
+
+static struct {
+  int letter;
+  const char *dbname;
+  DB **db;
+} dbtable[] = {
+  { 'P', "prefs.db",     &trackdb_prefsdb },
+  { 'G', "global.db",    &trackdb_globaldb },
+  { 'U', "users.db",     &trackdb_usersdb },
+  { 'W', "schedule.db",  &trackdb_scheduledb },
+  { 'L', "playlists.db", &trackdb_playlistsdb },
+  /* avoid 'T' and 'S' for now */
+};
+#define NDBTABLE (sizeof dbtable / sizeof *dbtable)
+
 /* dump prefs to FP, return nonzero on error */
-static void do_dump(FILE *fp, const char *tag,
-		    int tracksdb, int searchdb) {
-  DBC *cursor = 0;
+static void do_dump(FILE *fp, const char *tag) {
   DB_TXN *tid;
   struct sink *s = sink_stdio(tag, fp);
-  int err;
-  DBT k, d;
 
   for(;;) {
     tid = trackdb_begin_transaction();
@@ -72,124 +126,18 @@ static void do_dump(FILE *fp, const char *tag,
       fatal(errno, "error calling fflush");
     if(ftruncate(fileno(fp), 0) < 0)
       fatal(errno, "error calling ftruncate");
-    if(fprintf(fp, "V%c\n", (tracksdb || searchdb) ? '1' : '0') < 0)
+    if(fprintf(fp, "V0") < 0)
       fatal(errno, "error writing to %s", tag);
-    /* dump the preferences */
-    cursor = trackdb_opencursor(trackdb_prefsdb, tid);
-    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                        DB_FIRST);
-    while(err == 0) {
-      if(fputc('P', fp) < 0
-         || urlencode(s, k.data, k.size)
-         || fputc('\n', fp) < 0
-         || urlencode(s, d.data, d.size)
-         || fputc('\n', fp) < 0)
-        fatal(errno, "error writing to %s", tag);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                          DB_NEXT);
-    }
-    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
-    cursor = 0;
-
-    /* dump the global preferences */
-    cursor = trackdb_opencursor(trackdb_globaldb, tid);
-    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                        DB_FIRST);
-    while(err == 0) {
-      if(fputc('G', fp) < 0
-         || urlencode(s, k.data, k.size)
-         || fputc('\n', fp) < 0
-         || urlencode(s, d.data, d.size)
-         || fputc('\n', fp) < 0)
-        fatal(errno, "error writing to %s", tag);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                          DB_NEXT);
-    }
-    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
-    cursor = 0;
+    for(size_t n = 0; n < NDBTABLE; ++n)
+      if(dump_one(s, tag,
+                  dbtable[n].letter, dbtable[n].dbname, *dbtable[n].db,
+                  tid))
+        goto fail;
     
-    /* dump the users */
-    cursor = trackdb_opencursor(trackdb_usersdb, tid);
-    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                        DB_FIRST);
-    while(err == 0) {
-      if(fputc('U', fp) < 0
-         || urlencode(s, k.data, k.size)
-         || fputc('\n', fp) < 0
-         || urlencode(s, d.data, d.size)
-         || fputc('\n', fp) < 0)
-        fatal(errno, "error writing to %s", tag);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                          DB_NEXT);
-    }
-    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
-    cursor = 0;
-
-    /* dump the schedule */
-    cursor = trackdb_opencursor(trackdb_scheduledb, tid);
-    err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                        DB_FIRST);
-    while(err == 0) {
-      if(fputc('W', fp) < 0
-         || urlencode(s, k.data, k.size)
-         || fputc('\n', fp) < 0
-         || urlencode(s, d.data, d.size)
-         || fputc('\n', fp) < 0)
-        fatal(errno, "error writing to %s", tag);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-                          DB_NEXT);
-    }
-    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
-    cursor = 0;
-    
-    
-    if(tracksdb) {
-      cursor = trackdb_opencursor(trackdb_tracksdb, tid);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-			  DB_FIRST);
-      while(err == 0) {
-	if(fputc('T', fp) < 0
-	   || urlencode(s, k.data, k.size)
-	   || fputc('\n', fp) < 0
-	   || urlencode(s, d.data, d.size)
-	   || fputc('\n', fp) < 0)
-	  fatal(errno, "error writing to %s", tag);
-	err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-			    DB_NEXT);
-      }
-      if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
-      cursor = 0;
-    }
-
-    if(searchdb) {
-      cursor = trackdb_opencursor(trackdb_searchdb, tid);
-      err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-			  DB_FIRST);
-      while(err == 0) {
-	if(fputc('S', fp) < 0
-	   || urlencode(s, k.data, k.size)
-	   || fputc('\n', fp) < 0
-	   || urlencode(s, d.data, d.size)
-	   || fputc('\n', fp) < 0)
-	  fatal(errno, "error writing to %s", tag);
-	err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
-			    DB_NEXT);
-      }
-      if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }      cursor = 0;
-    }
-
-    if(fputs("E\n", fp) < 0) fatal(errno, "error writing to %s", tag);
-    if(err == DB_LOCK_DEADLOCK) {
-      error(0, "c->c_get: %s", db_strerror(err));
-      goto fail;
-    }
-    if(err && err != DB_NOTFOUND)
-      fatal(0, "cursor->c_get: %s", db_strerror(err));
-    if(trackdb_closecursor(cursor)) { cursor = 0; goto fail; }
+    if(fputs("E\n", fp) < 0)
+      fatal(errno, "error writing to %s", tag);
     break;
 fail:
-    trackdb_closecursor(cursor);
-    cursor = 0;
     info("aborting transaction and retrying dump");
     trackdb_abort_transaction(tid);
   }
@@ -276,9 +224,6 @@ static int undump_dbt(FILE *fp, const char *tag, DBT *dbt) {
 /* undump from FP, return 0 or DB_LOCK_DEADLOCK */
 static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   int err, c;
-  DBT k, d;
-  const char *which_name;
-  DB *which_db;
 
   info("undumping");
   if(fseek(fp, 0, SEEK_SET) < 0)
@@ -291,6 +236,28 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   if((err = truncdb(tid, trackdb_scheduledb))) return err;
   c = getc(fp);
   while(!ferror(fp) && !feof(fp)) {
+    for(size_t n = 0; n < NDBTABLE; ++n) {
+      if(dbtable[n].letter == c) {
+	DB *db = *dbtable[n].db;
+	const char *dbname = dbtable[n].dbname;
+        DBT k, d;
+
+        if(undump_dbt(fp, tag, prepare_data(&k))
+           || undump_dbt(fp, tag, prepare_data(&d)))
+          break;
+        switch(err = db->put(db, tid, &k, &d, 0)) {
+        case 0:
+          break;
+        case DB_LOCK_DEADLOCK:
+          error(0, "error updating %s: %s", dbname, db_strerror(err));
+          return err;
+        default:
+          fatal(0, "error updating %s: %s", dbname, db_strerror(err));
+        }
+        goto next;
+      }
+    }
+    
     switch(c) {
     case 'V':
       c = getc(fp);
@@ -299,54 +266,15 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
       break;
     case 'E':
       return 0;
-    case 'P':
-    case 'G':
-    case 'U':
-    case 'W':
-      switch(c) {
-      case 'P':
-	which_db = trackdb_prefsdb;
-	which_name = "prefs.db";
-	break;
-      case 'G':
-	which_db = trackdb_globaldb;
-	which_name = "global.db";
-	break;
-      case 'U':
-	which_db = trackdb_usersdb;
-	which_name = "users.db";
-	break;
-      case 'W':				/* for 'when' */
-	which_db = trackdb_scheduledb;
-	which_name = "scheduledb.db";
-	break;
-      default:
-	abort();
-      }
-      if(undump_dbt(fp, tag, prepare_data(&k))
-         || undump_dbt(fp, tag, prepare_data(&d)))
-        break;
-      switch(err = which_db->put(which_db, tid, &k, &d, 0)) {
-      case 0:
-        break;
-      case DB_LOCK_DEADLOCK:
-        error(0, "error updating %s: %s", which_name, db_strerror(err));
-        return err;
-      default:
-        fatal(0, "error updating %s: %s", which_name, db_strerror(err));
-      }
-      break;
-    case 'T':
-    case 'S':
-      if(undump_dbt(fp, tag, prepare_data(&k))
-         || undump_dbt(fp, tag, prepare_data(&d)))
-        break;
-      /* We don't restore the tracks.db or search.db entries, instead
-       * we recompute them */
-      break;
     case '\n':
       break;
+    default:
+      if(c >= 32 && c <= 126)
+        fatal(0, "unexpected character '%c'", c);
+      else
+        fatal(0, "unexpected character 0x%02X", c);
     }
+  next:
     c = getc(fp);
   }
   if(ferror(fp))
@@ -435,13 +363,13 @@ fail:
 
 int main(int argc, char **argv) {
   int n, dump = 0, undump = 0, recover = TRACKDB_NO_RECOVER, recompute = 0;
-  int tracksdb = 0, searchdb = 0, remove_pathless = 0, fd;
+  int remove_pathless = 0, fd;
   const char *path;
   char *tmp;
   FILE *fp;
 
   mem_init();
-  while((n = getopt_long(argc, argv, "hVc:dDutsrRaP", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDurRaP", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-dump");
@@ -449,8 +377,6 @@ int main(int argc, char **argv) {
     case 'd': dump = 1; break;
     case 'u': undump = 1; break;
     case 'D': debugging = 1; break;
-    case 't': tracksdb = 1; break;
-    case 's': searchdb = 1; break;
     case 'r': recover = TRACKDB_NORMAL_RECOVER;
     case 'R': recover = TRACKDB_FATAL_RECOVER;
     case 'a': recompute = 1; break;
@@ -460,8 +386,6 @@ int main(int argc, char **argv) {
   }
   if(dump + undump + recompute != 1)
     fatal(0, "choose exactly one of --dump, --undump or --recompute-aliases");
-  if((undump || recompute) && (tracksdb || searchdb))
-    fatal(0, "--trackdb and --searchdb with --undump or --recompute-aliases");
   if(recompute) {
     if(optind != argc)
       fatal(0, "--recompute-aliases does not take a filename");
@@ -484,7 +408,7 @@ int main(int argc, char **argv) {
       fatal(errno, "error opening %s", tmp);
     if(!(fp = fdopen(fd, "w")))
       fatal(errno, "fdopen on %s", tmp);
-    do_dump(fp, tmp, tracksdb, searchdb);
+    do_dump(fp, tmp);
     if(fclose(fp) < 0) fatal(errno, "error closing %s", tmp);
     if(rename(tmp, path) < 0)
       fatal(errno, "error renaming %s to %s", tmp, path);
