@@ -50,6 +50,22 @@ void quit(ev_source *ev) {
   quitting(ev);
   trackdb_close();
   trackdb_deinit();
+  /* Shutdown subprocesses.
+   *
+   * Subprocesses that use ev_child:
+   * - the speaker
+   * - the current rescan
+   * - any decoders
+   * - ...and players
+   * - the track picker
+   * - mail sender
+   * - the deadlock manager
+   *
+   * Subprocesses that don't:
+   * - any normalizers
+   * These are not shut down currently.
+   */
+  ev_child_killall(ev);
   info("exiting");
   exit(0);
 }

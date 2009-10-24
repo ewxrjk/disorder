@@ -139,6 +139,8 @@ int ev_child_cancel(ev_source *ev,
 		    pid_t pid);
 /* cancel a child callback. */
 
+void ev_child_killall(ev_source *ev);
+
 /* socket listeners ***********************************************************/
 
 typedef int ev_listen_callback(ev_source *ev,

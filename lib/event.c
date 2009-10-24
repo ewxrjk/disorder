@@ -754,6 +754,38 @@ int ev_child_cancel(ev_source *ev,
   return 0;
 }
 
+/** @brief Terminate and wait for all child processes
+ * @param ev Event loop
+ *
+ * Does *not* call the completion callbacks.  Only used during teardown.
+ */
+void ev_child_killall(ev_source *ev) {
+  int n, rc, w;
+
+  for(n = 0; n < ev->nchildren; ++n) {
+    if(kill(ev->children[n].pid, SIGTERM) < 0) {
+      error(errno, "sending SIGTERM to pid %lu",
+	    (unsigned long)ev->children[n].pid);
+      ev->children[n].pid = -1;
+    } else
+      info("sent SIGTERM to pid %lu", (unsigned long)ev->children[n].pid);
+  }
+  for(n = 0; n < ev->nchildren; ++n) {
+    if(ev->children[n].pid == -1)
+      continue;
+    do {
+      rc = waitpid(ev->children[n].pid, &w, 0);
+    } while(rc < 0 && errno == EINTR);
+    if(rc < 0) {
+      error(errno, "waiting for pid %lu", (unsigned long)ev->children[n].pid);
+      continue;
+    }
+    info("pid %lu exited with status %#x",
+	 (unsigned long)ev->children[n].pid, w);
+  }
+  ev->nchildren = 0;
+}
+
 /* socket listeners ***********************************************************/
 
 /** @brief State for a socket listener */
