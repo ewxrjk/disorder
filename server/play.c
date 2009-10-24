@@ -310,7 +310,11 @@ static int start(ev_source *ev,
   }
 }
 
-/** @brief Child-process half of start() */
+/** @brief Child-process half of start()
+ * @return Process exit code
+ *
+ * Called in subprocess to execute non-raw-format players (via plugin).
+ */
 static int start_child(struct queue_entry *q, 
                        const struct pbgc_params *params,
                        void attribute((unused)) *bgdata) {
@@ -354,6 +358,9 @@ static int start_child(struct queue_entry *q,
 /** @brief Prepare a track for later play
  * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFAIL
  *
+ * This can be called either when we want to play the track or slightly before
+ * so that some samples are decoded and available in a buffer.
+ *
  * Only applies to raw-format (i.e. speaker-using) players; everything else
  * gets @c START_OK.
  */
@@ -382,7 +389,15 @@ int prepare(ev_source *ev,
   return rc;
 }
 
-/** @brief Child-process half of prepare() */
+/** @brief Child-process half of prepare()
+ * @return Process exit code
+ *
+ * Called in subprocess to execute the decoder for a raw-format player.
+ *
+ * @todo We currently run the normalizer from here in a double-fork.  This is
+ * unsatisfactory for many reasons: we can't prevent it outliving the main
+ * server and we don't adequately report its exit status.
+ */
 static int prepare_child(struct queue_entry *q, 
                          const struct pbgc_params *params,
                          void attribute((unused)) *bgdata) {
