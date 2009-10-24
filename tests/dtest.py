@@ -238,20 +238,23 @@ Start the daemon."""
                               stderr=errs)
     # Wait for the socket to be created
     waited = 0
+    sleep_resolution = 0.125
     while not os.path.exists(socket):
         rc = daemon.poll()
         if rc is not None:
             print "FATAL: daemon failed to start up"
             sys.exit(1)
-        waited += 1
+        waited += sleep_resolution
+        if sleep_resolution < 1:
+            sleep_resolution *= 2
         if waited == 1:
             print "  waiting for socket..."
         elif waited >= 60:
             print "FATAL: took too long for socket to appear"
             sys.exit(1)
-        time.sleep(1)
+        time.sleep(sleep_resolution)
     if waited > 0:
-        print "  took about %ds for socket to appear" % waited
+        print "  took about %ss for socket to appear" % waited
     # Wait for root user to be created
     command(["disorder",
              "--config", disorder._configfile, "--no-per-user-config",
