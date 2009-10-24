@@ -767,8 +767,7 @@ void ev_child_killall(ev_source *ev) {
       error(errno, "sending SIGTERM to pid %lu",
 	    (unsigned long)ev->children[n].pid);
       ev->children[n].pid = -1;
-    } else
-      info("sent SIGTERM to pid %lu", (unsigned long)ev->children[n].pid);
+    }
   }
   for(n = 0; n < ev->nchildren; ++n) {
     if(ev->children[n].pid == -1)
@@ -780,8 +779,6 @@ void ev_child_killall(ev_source *ev) {
       error(errno, "waiting for pid %lu", (unsigned long)ev->children[n].pid);
       continue;
     }
-    info("pid %lu exited with status %#x",
-	 (unsigned long)ev->children[n].pid, w);
   }
   ev->nchildren = 0;
 }
