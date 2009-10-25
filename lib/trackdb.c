@@ -171,6 +171,15 @@ static int initialized, opened;         /* state */
 /** @brief Current stats subprocess PIDs */
 static hash *stats_pids;
 
+static pid_t choose_pid = -1;
+static int choose_fd;
+static random_callback *choose_callback;
+static struct dynstr choose_output;
+static unsigned choose_complete;
+static int choose_status;
+#define CHOOSE_RUNNING 1
+#define CHOOSE_READING 2
+
 /* comparison function for keys */
 static int compare(DB attribute((unused)) *db_,
 		   const DBT *a, const DBT *b) {
@@ -327,6 +336,22 @@ void trackdb_master(ev_source *ev) {
   D(("started deadlock manager"));
 }
 
+static void terminate_and_wait(ev_source *ev,
+                               pid_t pid,
+                               const char *what) {
+  int err;
+
+  if(pid == -1)
+    return;
+  if(kill(pid, SIGTERM) < 0)
+    fatal(errno, "error killing %s", what);
+  /* wait for the rescanner to finish */
+  while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
+    ;
+  if(ev)
+    ev_child_cancel(ev, pid);
+}
+
 /* close environment */
 void trackdb_deinit(ev_source *ev) {
   int err;
@@ -339,44 +364,23 @@ void trackdb_deinit(ev_source *ev) {
   if((err = trackdb_env->close(trackdb_env, 0)))
     fatal(0, "trackdb_env->close: %s", db_strerror(err));
 
-  if(rescan_pid != -1) {
-    /* shut down the rescanner */
-    if(kill(rescan_pid, SIGTERM) < 0)
-      fatal(errno, "error killing rescanner");
-    /* wait for the rescanner to finish */
-    while(waitpid(rescan_pid, &err, 0) == -1 && errno == EINTR)
-      ;
-    if(ev)
-      ev_child_cancel(ev, rescan_pid);
-    rescan_pid = -1;
-  }
+  terminate_and_wait(ev, rescan_pid, "disorder-rescan");
+  rescan_pid = -1;
+  terminate_and_wait(ev, choose_pid, "disorder-choose");
+  choose_pid = -1;
 
   if(stats_pids) {
     char **ks = hash_keys(stats_pids);
 
     while(*ks) {
       pid_t pid = atoi(*ks++);
-      if(kill(pid, SIGTERM) < 0)
-        fatal(errno, "error killing stats subprocess");
-      while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
-        ;
-      if(ev)
-        ev_child_cancel(ev, pid);
-      pid = -1;
+      terminate_and_wait(ev, pid, "disorder-stats");
     }
+    stats_pids = NULL;
   }
 
-  if(db_deadlock_pid != -1) {
-    /* shut down the deadlock manager */
-    if(kill(db_deadlock_pid, SIGTERM) < 0)
-      fatal(errno, "error killing deadlock manager");
-    while(waitpid(db_deadlock_pid, &err, 0) == -1 && errno == EINTR)
-      ;
-    if(ev)
-      ev_child_cancel(ev, db_deadlock_pid);
-    db_deadlock_pid = -1;
-  }
-
+  terminate_and_wait(ev, db_deadlock_pid, "disorder-deadlock");
+  db_deadlock_pid = -1;
   D(("deinitialized database environment"));
 }
 
@@ -1717,15 +1721,6 @@ int tag_intersection(char **a, char **b) {
   }
   return 0;
 }
-
-static pid_t choose_pid = -1;
-static int choose_fd;
-static random_callback *choose_callback;
-static struct dynstr choose_output;
-static unsigned choose_complete;
-static int choose_status;
-#define CHOOSE_RUNNING 1
-#define CHOOSE_READING 2
 
 static void choose_finished(ev_source *ev, unsigned which) {
   choose_complete |= which;
