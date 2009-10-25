@@ -1910,7 +1910,7 @@ fail:
 }
 
 /** @brief Resolve an alias
- * @param Track name (might be an alias)
+ * @param track Track name (might be an alias)
  * @return Real track name (definitely not an alias) or NULL if no such track
  */
 const char *trackdb_resolve(const char *track) {
@@ -2002,6 +2002,13 @@ int trackdb_listkeys(DB *db, struct vector *v, DB_TXN *tid) {
 }
 
 /* return 1 iff sorted tag lists A and B have at least one member in common */
+/** @brief Detect intersecting tag lists
+ * @param a First list of tags (NULL-terminated)
+ * @param b Second list of tags (NULL-terminated)
+ * @return 1 if @p a and @p b have at least one member in common
+ *
+ * @p a and @p must be sorted.
+ */
 int tag_intersection(char **a, char **b) {
   int cmp;
 
@@ -2014,6 +2021,13 @@ int tag_intersection(char **a, char **b) {
   return 0;
 }
 
+/** @brief Called when disorder-choose might have completed
+ * @param ev Event loop
+ * @param which @ref CHOOSE_RUNNING or @ref CHOOSE_READING
+ *
+ * Once called with both @p which values, @ref choose_callback is called
+ * (usually chosen_random_track()).
+ */
 static void choose_finished(ev_source *ev, unsigned which) {
   choose_complete |= which;
   if(choose_complete != (CHOOSE_RUNNING|CHOOSE_READING))
@@ -2026,7 +2040,14 @@ static void choose_finished(ev_source *ev, unsigned which) {
     choose_callback(ev, 0);
 }
 
-/** @brief Called when @c disorder-choose terminates */
+/** @brief Called when @c disorder-choose terminates
+ * @param ev Event loop
+ * @param pid Process ID
+ * @param status Exit status
+ * @param rusage Resource usage
+ * @param u User data
+ * @return 0
+ */
 static int choose_exited(ev_source *ev,
                          pid_t attribute((unused)) pid,
                          int status,
@@ -2039,7 +2060,15 @@ static int choose_exited(ev_source *ev,
   return 0;
 }
 
-/** @brief Called with data from @c disorder-choose pipe */
+/** @brief Called with data from @c disorder-choose pipe
+ * @param ev Event loop
+ * @param reader Reader state
+ * @param ptr Data read
+ * @param bytes Number of bytes read
+ * @param eof Set at end of file
+ * @param u User data
+ * @return 0
+ */
 static int choose_readable(ev_source *ev,
                            ev_reader *reader,
                            void *ptr,
@@ -2053,6 +2082,12 @@ static int choose_readable(ev_source *ev,
   return 0;
 }
 
+/** @brief Called when @c disorder-choose pipe errors
+ * @param ev Event loop
+ * @param errno_value Error code
+ * @param u User data
+ * @return 0
+ */
 static int choose_read_error(ev_source *ev,
                              int errno_value,
                              void attribute((unused)) *u) {
@@ -2095,8 +2130,16 @@ int trackdb_request_random(ev_source *ev,
   return 0;
 }
 
-/* get a track name given the prefs.  Set *used_db to 1 if we got the answer
- * from the prefs. */
+/** @brief Get a track name part, using prefs
+ * @param track Track name
+ * @param context Context ("display" etc)
+ * @param part Part ("album" etc)
+ * @param p Preference
+ * @param used_db Set if a preference is used
+ * @return Name part (never NULL)
+ *
+ * Used by compute_alias() and trackdb_getpart().
+ */
 static const char *getpart(const char *track,
                            const char *context,
                            const char *part,
@@ -2114,8 +2157,14 @@ static const char *getpart(const char *track,
   return result;
 }
 
-/* get a track name part, like trackname_part(), but taking the database into
- * account. */
+/** @brief Get a track name part
+ * @param track Track name
+ * @param context Context ("display" etc)
+ * @param part Part ("album" etc)
+ * @return Name part (never NULL)
+ *
+ * This is interface used by c_part().
+ */
 const char *trackdb_getpart(const char *track,
                             const char *context,
                             const char *part) {
@@ -2139,7 +2188,12 @@ fail:
   return getpart(actual, context, part, p, &used_db);
 }
 
-/* get the raw path name for @track@ (might be an alias) */
+/** @brief Get the raw (filesystem) path for @p track
+ * @param track track Track name (can be an alias)
+ * @return Raw path (never NULL)
+ *
+ * The raw path is the actual bytes that came out of readdir() etc.
+ */
 const char *trackdb_rawpath(const char *track) {
   DB_TXN *tid;
   struct kvp *t;
@@ -2165,6 +2219,19 @@ fail:
 
 /* return true if the basename of TRACK[0..TL-1], as defined by DL, matches RE.
  * If RE is a null pointer then it matches everything. */
+/** @brief Match a track against a rgeexp
+ * @param dl Length of directory part of track
+ * @param track Track name
+ * @param tl Length of track name
+ * @param re Regular expression or NULL
+ * @return Nonzero on match
+ *
+ * @p tl is the total length of @p track, @p dl is the length of the directory
+ * part (the index of the final "/").  The subject of the regexp match is the
+ * basename, i.e. the part after @p dl.
+ *
+ * If @p re is NULL then always matches.
+ */
 static int track_matches(size_t dl, const char *track, size_t tl,
 			 const pcre *re) {
   int ovec[3], rc;
@@ -2184,6 +2251,14 @@ static int track_matches(size_t dl, const char *track, size_t tl,
   }
 }
 
+/** @brief Generate a list of tracks and/or directories in @p dir
+ * @param v Where to put results
+ * @param dir Directory to list
+ * @param what Bitmap of objects to return
+ * @param re Regexp to filter matches (or NULL to accept all)
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 static int do_list(struct vector *v, const char *dir,
                    enum trackdb_listable what, const pcre *re, DB_TXN *tid) {
   DBC *cursor;
@@ -2275,7 +2350,13 @@ deadlocked:
   return err;
 }
 
-/* return the directories or files below @dir@ */
+/** @brief Get the directories or files below @p dir
+ * @param dir Directory to list
+ * @param np Where to put number of results (or NULL)
+ * @param what Bitmap of objects to return
+ * @param re Regexp to filter matches (or NULL to accept all)
+ * @return List of tracks
+ */
 char **trackdb_list(const char *dir, int *np, enum trackdb_listable what,
                     const pcre *re) {
   DB_TXN *tid;
@@ -2305,7 +2386,12 @@ fail:
   return v.vec;
 }
 
-/* If S is tag:something, return something.  Else return 0. */
+/** @brief Detect a tag element in a search string
+ * @param s Element of search string
+ * @return Pointer to tag name (in @p s) if this is a tag: search, else NULL
+ *
+ * Tag searches take the form "tag:TAG".
+ */
 static const char *checktag(const char *s) {
   if(!strncmp(s, "tag:", 4))
     return s + 4;
@@ -2445,6 +2531,17 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
 
 /* trackdb_scan **************************************************************/
 
+/** @brief Visit every track
+ * @param root Root to scan or NULL for all
+ * @param callback Callback for each track
+ * @param u Passed to @p callback
+ * @param tid Owning transaction
+ * @return 0, DB_LOCK_DEADLOCK or EINTR
+ *
+ * Visits every track and calls @p callback.  @p callback will get the track
+ * data and preferences and should return 0 to continue scanning or EINTR to
+ * stop.
+ */
 int trackdb_scan(const char *root,
                  int (*callback)(const char *track,
                                  struct kvp *data,
@@ -2607,6 +2704,9 @@ void trackdb_rescan(ev_source *ev, int recheck,
   }
 }
 
+/** @brief Cancel a rescan
+ * @return Nonzero if a rescan was cancelled
+ */
 int trackdb_rescan_cancel(void) {
   if(rescan_pid == -1) return 0;
   if(kill(rescan_pid, SIGTERM) < 0)
@@ -2622,6 +2722,11 @@ int trackdb_rescan_underway(void) {
 
 /* global prefs **************************************************************/
 
+/** @brief Set a global preference
+ * @param name Global preference name
+ * @param value New value
+ * @param who Who is setting it
+ */
 void trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
@@ -2653,6 +2758,11 @@ void trackdb_set_global(const char *name,
   }
 }
 
+/** @brief Set a global preference
+ * @param name Global preference name
+ * @param value New value
+ * @param tid Owning transaction
+ */
 int trackdb_set_global_tid(const char *name,
                            const char *value,
                            DB_TXN *tid) {
@@ -2677,6 +2787,10 @@ int trackdb_set_global_tid(const char *name,
   return 0;
 }
 
+/** @brief Get a global preference
+ * @param name Global preference name
+ * @return Value of global preference, or NULL if it's not set
+ */
 const char *trackdb_get_global(const char *name) {
   DB_TXN *tid;
   int err;
@@ -2692,6 +2806,12 @@ const char *trackdb_get_global(const char *name) {
   return r;
 }
 
+/** @brief Get a global preference
+ * @param name Global preference name
+ * @param tid Owning transaction
+ * @param rp Where to store value (will get NULL if preference not set)
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 int trackdb_get_global_tid(const char *name,
                            DB_TXN *tid,
                            const char **rp) {
@@ -2849,6 +2969,10 @@ static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid) {
 
 /* tidying up ****************************************************************/
 
+/** @brief Do database garbage collection
+ *
+ * Called form periodic_database_gc().
+ */
 void trackdb_gc(void) {
   int err;
   char **logfiles;
@@ -2868,7 +2992,12 @@ void trackdb_gc(void) {
 
 /* user database *************************************************************/
 
-/** @brief Return true if @p user is trusted */
+/** @brief Return true if @p user is trusted
+ * @param user User to look up
+ * @return Nonzero if they are in the 'trusted' list
+ *
+ * Now used only in upgrade from old versions.
+ */
 static int trusted(const char *user) {
   int n;
 
@@ -2879,6 +3008,8 @@ static int trusted(const char *user) {
 }
 
 /** @brief Return non-zero for a valid username
+ * @param user Candidate username
+ * @return Nonzero if it's valid
  *
  * Currently we only allow the letters and digits in ASCII.  We could be more
  * liberal than this but it is a nice simple test.  It is critical that
@@ -2902,7 +3033,16 @@ int valid_username(const char *user) {
   return 1;
 }
 
-/** @brief Add a user */
+/** @brief Add a user
+ * @param user Username
+ * @param password Initial password or NULL
+ * @param rights Initial rights
+ * @param email Email address or NULL
+ * @param confirmation Confirmation string to require
+ * @param tid Owning transaction
+ * @param flags DB flags e.g. DB_NOOVERWRITE
+ * @return 0, DB_KEYEXIST or DB_LOCK_DEADLOCK
+ */
 static int create_user(const char *user,
                        const char *password,
                        const char *rights,
@@ -2935,7 +3075,14 @@ static int create_user(const char *user,
   return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
 }
 
-/** @brief Add one pre-existing user */
+/** @brief Add one pre-existing user 
+ * @param user Username
+ * @param password password
+ * @param tid Owning transaction
+ * @return 0, DB_KEYEXIST or DB_LOCK_DEADLOCK
+ *
+ * Used only in upgrade from old versions.
+ */
 static int one_old_user(const char *user, const char *password,
                         DB_TXN *tid) {
   const char *rights;
@@ -2962,6 +3109,10 @@ static int one_old_user(const char *user, const char *password,
                      tid, DB_NOOVERWRITE);
 }
 
+/** @brief Upgrade old users
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 static int trackdb_old_users_tid(DB_TXN *tid) {
   int n;
 
