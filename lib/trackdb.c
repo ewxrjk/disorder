@@ -168,6 +168,9 @@ static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
 static pid_t rescan_pid = -1;           /* rescanner PID */
 static int initialized, opened;         /* state */
 
+/** @brief Current stats subprocess PIDs */
+static hash *stats_pids;
+
 /* comparison function for keys */
 static int compare(DB attribute((unused)) *db_,
 		   const DBT *a, const DBT *b) {
@@ -348,7 +351,20 @@ void trackdb_deinit(ev_source *ev) {
     rescan_pid = -1;
   }
 
-  /* TODO kill any stats subprocesses */
+  if(stats_pids) {
+    char **ks = hash_keys(stats_pids);
+
+    while(*ks) {
+      pid_t pid = atoi(*ks++);
+      if(kill(pid, SIGTERM) < 0)
+        fatal(errno, "error killing stats subprocess");
+      while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
+        ;
+      if(ev)
+        ev_child_cancel(ev, pid);
+      pid = -1;
+    }
+  }
 
   if(db_deadlock_pid != -1) {
     /* shut down the deadlock manager */
@@ -1364,7 +1380,7 @@ static void stats_complete(struct stats_details *d) {
 }
 
 static int stats_finished(ev_source attribute((unused)) *ev,
-                          pid_t attribute((unused)) pid,
+                          pid_t pid,
                           int status,
                           const struct rusage attribute((unused)) *rusage,
                           void *u) {
@@ -1374,6 +1390,9 @@ static int stats_finished(ev_source attribute((unused)) *ev,
   if(status)
     error(0, "disorder-stats %s", wstat(status));
   stats_complete(d);
+  char *k;
+  byte_xasprintf(&k, "%lu", (unsigned long)pid);
+  hash_remove(stats_pids, k);
   return 0;
 }
 
@@ -1421,6 +1440,12 @@ void trackdb_stats_subprocess(ev_source *ev,
   if(!ev_reader_new(ev, p[0], stats_read, stats_error, d,
                     "disorder-stats reader"))
     fatal(0, "ev_reader_new for disorder-stats reader failed");
+  /* Remember the PID */
+  if(!stats_pids)
+    stats_pids = hash_new(1);
+  char *k;
+  byte_xasprintf(&k, "%lu", (unsigned long)pid);
+  hash_add(stats_pids, k, "", HASH_INSERT);
 }
 
 /** @brief Parse a track name part preference
