@@ -1774,7 +1774,12 @@ static const char *trackdb__default(const char *track, const char *name) {
   return 0;
 }
 
-/* set a pref (remove if value=0) */
+/** @brief Set a preference
+ * @param track Track to modify
+ * @param name Preference name
+ * @param value New value, or NULL to erase any existing value
+ * @return 0 on success or non-zero if not allowed to set preference
+ */
 int trackdb_set(const char *track,
                 const char *name,
                 const char *value) {
@@ -1871,13 +1876,20 @@ fail:
   return err == 0 ? 0 : -1;
 }
 
-/* get a pref */
+/** @brief Get the value of a preference
+ * @param track Track name
+ * @param name Preference name
+ * @return Preference value or NULL if it's not set
+ */
 const char *trackdb_get(const char *track,
                         const char *name) {
   return kvp_get(trackdb_get_all(track), name);
 }
 
-/* get all prefs as a 0-terminated array */
+/** @brief Get all preferences for a track
+ * @param track Track name
+ * @return Linked list of preferences
+ */
 struct kvp *trackdb_get_all(const char *track) {
   struct kvp *t, *p, **pp;
   DB_TXN *tid;
@@ -1897,7 +1909,10 @@ fail:
   return p;
 }
 
-/* resolve alias */
+/** @brief Resolve an alias
+ * @param Track name (might be an alias)
+ * @return Real track name (definitely not an alias) or NULL if no such track
+ */
 const char *trackdb_resolve(const char *track) {
   DB_TXN *tid;
   const char *actual;
@@ -1914,13 +1929,20 @@ fail:
   return actual;
 }
 
+/** @brief Detect an alias
+ * @param track Track name
+ * @return Nonzero if @p track exists and is an alias
+ */
 int trackdb_isalias(const char *track) {
   const char *actual = trackdb_resolve(track);
 
   return strcmp(actual, track);
 }
 
-/* test whether a track exists (perhaps an alias) */
+/** @brief Detect whether a track exists
+ * @param track Track name (can be an alias)
+ * @return Nonzero if @p track exists (whether or not it's an alias)
+ */
 int trackdb_exists(const char *track) {
   DB_TXN *tid;
   int err;
@@ -1938,7 +1960,9 @@ fail:
   return (err == 0);
 }
 
-/* return the list of tags */
+/** @brief Return list of all known tags
+ * @return NULL-terminated tag list
+ */
 char **trackdb_alltags(void) {
   int e;
   struct vector v[1];
