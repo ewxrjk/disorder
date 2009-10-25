@@ -160,6 +160,7 @@ void reset_sockets(ev_source *ev) {
 }
 
 /** @brief Reconfigure the server
+ * @param ev Event loop
  * @param flags Flags
  * @return As config_read(); 0 on success, -1 if could not (re-)read config
  */

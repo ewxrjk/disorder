@@ -267,7 +267,7 @@ static const struct stringlist *find_player(const struct queue_entry *q) {
  * @return @ref START_OK, @ref START_HARDFAIL or @ref START_SOFTFAIL
  *
  * This makes @p actually start playing.  It calls prepare() if necessary and
- * either sends an @ref SM_START command or invokes the player itself in a
+ * either sends an @ref SM_PLAY command or invokes the player itself in a
  * subprocess.
  *
  * It's up to the caller to set @ref playing and @c playing->state (this might
@@ -658,8 +658,8 @@ void disable_random(const char *who) {
 /* Scratching --------------------------------------------------------------- */
 
 /** @brief Scratch a track
- * @param User responsible (or NULL)
- * @param Track ID (or NULL for current)
+ * @param who User responsible (or NULL)
+ * @param id Track ID (or NULL for current)
  */
 void scratch(const char *who, const char *id) {
   struct queue_entry *q;

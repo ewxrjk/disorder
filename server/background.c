@@ -21,7 +21,8 @@
 
 #include "disorder-server.h"
 
-/** @brief Fork the player or decoder for @p q 
+/** @brief Fork the player or decoder for @p q
+ * @param ev Event loop
  * @param player Pointer to player information
  * @param q Track to play or decode
  * @param child Function to run inside fork

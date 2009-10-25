@@ -82,8 +82,14 @@ int trackdb_existing_database;
 
 /* setup and teardown ********************************************************/
 
-static const char *home;                /* home had better not change */
-DB_ENV *trackdb_env;			/* db environment */
+/** @brief Database home directory
+ *
+ * All database files live below here.  It had better never change.
+ */
+static const char *home;
+
+/** @brief Database environment */
+DB_ENV *trackdb_env;
 
 /** @brief The tracks database
  * - Keys are UTF-8(NFC(unicode(path name)))
@@ -164,23 +170,48 @@ DB *trackdb_usersdb;
  */
 DB *trackdb_playlistsdb;
 
-static pid_t db_deadlock_pid = -1;      /* deadlock manager PID */
-static pid_t rescan_pid = -1;           /* rescanner PID */
-static int initialized, opened;         /* state */
+/** @brief Deadlock manager PID */
+static pid_t db_deadlock_pid = -1;
+
+/** @brief Rescanner PID */
+static pid_t rescan_pid = -1;
+
+/** @brief Set when the database environment exists */
+static int initialized;
+
+/** @brief Set when databases are open */
+static int opened;
 
 /** @brief Current stats subprocess PIDs */
 static hash *stats_pids;
 
+/** @brief PID of current random track chooser (disorder-choose) */
 static pid_t choose_pid = -1;
+
+/** @brief Our end of pipe from disorder-choose */
 static int choose_fd;
+
+/** @brief Callback to supply random track to */
 static random_callback *choose_callback;
+
+/** @brief Accumulator for output from disorder-choose */
 static struct dynstr choose_output;
+
+/** @brief Current completion status of disorder-choose
+ * A bitmap of @ref CHOOSE_READING and @ref CHOOSE_RUNNING.
+ */
 static unsigned choose_complete;
+
+/* @brief Exit status from disorder-choose */
 static int choose_status;
+
+/** @brief disorder-choose process is running */
 #define CHOOSE_RUNNING 1
+
+/** @brief disorder-choose pipe is still open */
 #define CHOOSE_READING 2
 
-/* comparison function for keys */
+/** @brief Comparison function for filename-based keys */
 static int compare(DB attribute((unused)) *db_,
 		   const DBT *a, const DBT *b) {
   return compare_path_raw(a->data, a->size, b->data, b->size);
@@ -274,7 +305,7 @@ void trackdb_init(int flags) {
   D(("initialized database environment"));
 }
 
-/* called when deadlock manager terminates */
+/** @brief Called when deadlock manager terminates */
 static int reap_db_deadlock(ev_source attribute((unused)) *ev,
                             pid_t attribute((unused)) pid,
                             int status,
@@ -289,6 +320,18 @@ static int reap_db_deadlock(ev_source attribute((unused)) *ev,
   return 0;
 }
 
+/** @brief Start a subprogram
+ * @param ev Event loop
+ * @param outputfd File descriptor to redirect @c stdout to, or -1
+ * @param prog Program name
+ * @param ... Arguments
+ * @return PID
+ *
+ * Starts a subprocess.  Adds the following arguments:
+ * - @c --config to ensure the right config file is used
+ * - @c --debug or @c --no-debug to match debug settings
+ * - @c --syslog or @c --no-syslog to match log settings
+ */
 static pid_t subprogram(ev_source *ev, int outputfd, const char *prog,
                         ...) {
   pid_t pid;
@@ -328,7 +371,11 @@ static pid_t subprogram(ev_source *ev, int outputfd, const char *prog,
   return pid;
 }
 
-/* start deadlock manager */
+/** @brief Start deadlock manager
+ * @param ev Event loop
+ *
+ * Called from the main server (only).
+ */
 void trackdb_master(ev_source *ev) {
   assert(db_deadlock_pid == -1);
   db_deadlock_pid = subprogram(ev, -1, DEADLOCK, (char *)0);
@@ -336,6 +383,14 @@ void trackdb_master(ev_source *ev) {
   D(("started deadlock manager"));
 }
 
+/** @brief Kill a subprocess and wait for it to terminate
+ * @param ev Event loop or NULL
+ * @param pid Process ID or -1
+ * @param what Description of subprocess
+ *
+ * Used during trackdb_deinit().  This function blocks so don't use it for
+ * normal teardown as that will hang the server.
+ */
 static void terminate_and_wait(ev_source *ev,
                                pid_t pid,
                                const char *what) {
@@ -352,7 +407,9 @@ static void terminate_and_wait(ev_source *ev,
     ev_child_cancel(ev, pid);
 }
 
-/* close environment */
+/** @brief Close database environment
+ * @param ev Event loop
+ */
 void trackdb_deinit(ev_source *ev) {
   int err;
 
@@ -384,7 +441,14 @@ void trackdb_deinit(ev_source *ev) {
   D(("deinitialized database environment"));
 }
 
-/* open a specific database */
+/** @brief Open a specific database
+ * @param path Relative path to database
+ * @param dbflags Database flags: DB_DUP, DB_DUPSORT, etc
+ * @param dbtype Database type: DB_HASH, DB_BTREE, etc
+ * @param openflags Open flags: DB_RDONLY, DB_CREATE, etc
+ * @param mode Permission mask: usually 0666
+ * @return Database handle
+ */
 static DB *open_db(const char *path,
                    u_int32_t dbflags,
                    DBTYPE dbtype,
@@ -520,7 +584,7 @@ void trackdb_open(int flags) {
   D(("opened databases"));
 }
 
-/* close track databases */
+/** @brief Close track databases */
 void trackdb_close(void) {
   int err;
 
@@ -578,8 +642,14 @@ int trackdb_getdata(DB *db,
   }
 }
 
-/* encode and store a database entry.  Returns 0, DB_KEYEXIST or
- * DB_LOCK_DEADLOCK. */
+/** @brief Encode and store a database entry
+ * @param db Database
+ * @param track Track name
+ * @param k List of key/value pairs to store
+ * @param tid Owning transaction
+ * @param flags DB flags e.g. DB_NOOVERWRITE
+ * @return 0, DB_KEYEXIST or DB_LOCK_DEADLOCK
+ */
 int trackdb_putdata(DB *db,
                     const char *track,
                     const struct kvp *k,

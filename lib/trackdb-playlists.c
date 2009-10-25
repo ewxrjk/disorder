@@ -230,6 +230,7 @@ static int trackdb_playlist_get_tid(const char *name,
 
 /** @brief Modify or create a playlist
  * @param name Playlist name
+ * @param who User modifying playlist
  * @param tracks List of tracks to set, or NULL to leave alone
  * @param ntracks Length of @p tracks
  * @param share Sharing status, or NULL to leave alone
