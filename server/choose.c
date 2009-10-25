@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
   }
   trackdb_commit_transaction(global_tid);
   trackdb_close();
-  trackdb_deinit();
+  trackdb_deinit(NULL);
   D(("ntracks=%ld total_weight=%lld", ntracks, total_weight));
   if(!total_weight)
     fatal(0, "no tracks match random choice criteria");

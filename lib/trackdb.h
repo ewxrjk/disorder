@@ -61,7 +61,7 @@ extern unsigned long cache_files_hits, cache_files_misses;
 #define TRACKDB_READ_ONLY 0x0020
 
 void trackdb_init(int flags);
-void trackdb_deinit(void);
+void trackdb_deinit(ev_source *ev);
 /* close/close environment */
 
 void trackdb_master(struct ev_source *ev);

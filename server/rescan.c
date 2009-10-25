@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
         do_directory(argv[n], recheck_collection);
   }
   trackdb_close();
-  trackdb_deinit();
+  trackdb_deinit(NULL);
   info("completed");
   return 0;
 }

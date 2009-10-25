@@ -49,7 +49,7 @@ void quit(ev_source *ev) {
   info("shutting down...");
   quitting(ev);
   trackdb_close();
-  trackdb_deinit();
+  trackdb_deinit(ev);
   /* Shutdown subprocesses.
    *
    * Subprocesses that use ev_child:

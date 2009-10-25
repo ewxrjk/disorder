@@ -325,7 +325,7 @@ void trackdb_master(ev_source *ev) {
 }
 
 /* close environment */
-void trackdb_deinit(void) {
+void trackdb_deinit(ev_source *ev) {
   int err;
 
   /* sanity checks */
@@ -343,14 +343,23 @@ void trackdb_deinit(void) {
     /* wait for the rescanner to finish */
     while(waitpid(rescan_pid, &err, 0) == -1 && errno == EINTR)
       ;
+    if(ev)
+      ev_child_cancel(ev, rescan_pid);
+    rescan_pid = -1;
   }
 
   /* TODO kill any stats subprocesses */
 
-  /* finally terminate the deadlock manager */
-  if(db_deadlock_pid != -1 && kill(db_deadlock_pid, SIGTERM) < 0)
-    fatal(errno, "error killing deadlock manager");
-  db_deadlock_pid = -1;
+  if(db_deadlock_pid != -1) {
+    /* shut down the deadlock manager */
+    if(kill(db_deadlock_pid, SIGTERM) < 0)
+      fatal(errno, "error killing deadlock manager");
+    while(waitpid(db_deadlock_pid, &err, 0) == -1 && errno == EINTR)
+      ;
+    if(ev)
+      ev_child_cancel(ev, db_deadlock_pid);
+    db_deadlock_pid = -1;
+  }
 
   D(("deinitialized database environment"));
 }

@@ -831,7 +831,7 @@ static void wait_for_root(void) {
     info("waiting for root user to be created...");
     sleep(1);
   }
-  trackdb_deinit();
+  trackdb_deinit(NULL);
 }
 
 int main(int argc, char **argv) {

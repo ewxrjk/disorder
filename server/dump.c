@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
     do_recompute(remove_pathless);
   }
   trackdb_close();
-  trackdb_deinit();
+  trackdb_deinit(NULL);
   return 0;
 }
 
