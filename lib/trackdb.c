@@ -1102,8 +1102,26 @@ static int register_tag(const char *track, const char *tag, DB_TXN *tid) {
 
 /* aliases *******************************************************************/
 
-/* compute the alias and store at aliasp.  Returns 0 or DB_LOCK_DEADLOCK.  If
- * there is no alias sets *aliasp to 0. */
+/** @brief Compute an alias
+ * @param aliasp Where to put alias (gets NULL if none)
+ * @param track Track to find alias for
+ * @param p Prefs for @p track
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ *
+ * This function looks up the track name parts for @p track.  By default these
+ * amount to the original values from the track name but are overridden by
+ * preferences.
+ *
+ * These values are then substituted into the pattern defined by the @b alias
+ * command; see disorder_config(5) for the syntax.
+ *
+ * The track is only considered to have an alias if all of the following are
+ * true:
+ * - a preference was used for at least one name part
+ * - the result differs from the original track name
+ * - the result does not match any existing track or alias
+ */
 static int compute_alias(char **aliasp,
                          const char *track,
                          const struct kvp *p,
@@ -1166,15 +1184,28 @@ static int compute_alias(char **aliasp,
   }
 }
 
-/* get track and prefs data (if tp/pp not null pointers).  Returns 0 on
- * success, DB_NOTFOUND if the track does not exist or DB_LOCK_DEADLOCK.
- * Always sets the return values, even if only to null pointers. */
+/** @brief Assert that no alias is allowed for gettrackdata() */
+#define GTD_NOALIAS 0x0001
+
+/** @brief Get all track data
+ * @param track Track to look up; aliases allowed unless @ref GTD_NOALIAS
+ * @param tp Where to put track data (if not NULL)
+ * @param pp Where to put preferences (if not NULL)
+ * @param actualp Where to put real (i.e. non-alias) path (if not NULL)
+ * @param flags Flag values, see below
+ * @param tid Owning transaction
+ * @return 0, DB_NOTFOUND (track doesn't exist) or DB_LOCK_DEADLOCK
+ *
+ * Possible flags values are:
+ * - @ref GTD_NOALIAS to assert that an alias is not allowed
+ *
+ * The return values are always set (even if to NULL).
+ */
 static int gettrackdata(const char *track,
                         struct kvp **tp,
                         struct kvp **pp,
                         const char **actualp,
                         unsigned flags,
-#define GTD_NOALIAS 0x0001
                         DB_TXN *tid) {
   int err;
   const char *actual = track;
@@ -1204,8 +1235,12 @@ done:
 
 /* trackdb_notice() **********************************************************/
 
-/** @brief notice a possibly new track
+/** @brief Notice a possibly new track
+ * @param track NFC UTF-8 track name
+ * @param path Raw path name (i.e. the bytes that came out of readdir())
  * @return @c DB_NOTFOUND if new, 0 if already known
+ *
+ * @c disorder-rescan is responsible for normalizing the track name.
  */
 int trackdb_notice(const char *track,
                    const char *path) {
@@ -1224,11 +1259,13 @@ int trackdb_notice(const char *track,
   return err;
 }
 
-/** @brief notice a possibly new track
+/** @brief Notice a possibly new track
  * @param track NFC UTF-8 track name
- * @param path Raw path name
- * @param tid Transaction ID
+ * @param path Raw path name (i.e. the bytes that came out of readdir())
+ * @param tid Owning transaction
  * @return @c DB_NOTFOUND if new, 0 if already known, @c DB_LOCK_DEADLOCK also
+ *
+ * @c disorder-rescan is responsible for normalizing the track name.
  */
 int trackdb_notice_tid(const char *track,
                        const char *path,
@@ -1297,7 +1334,14 @@ int trackdb_notice_tid(const char *track,
 
 /* trackdb_obsolete() ********************************************************/
 
-/* obsolete a track */
+/** @brief Obsolete a track
+ * @param track Track name
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ *
+ * Discards a track from the database when it's known not to exist any more.
+ * Returns 0 even if it wasn't recorded.
+ */
 int trackdb_obsolete(const char *track, DB_TXN *tid) {
   int err, n;
   struct kvp *p;
@@ -1381,7 +1425,14 @@ static const struct statinfo {
   B(bt_over_pgfree),
 };
 
-/* look up stats for DB */
+/** @brief Look up DB statistics
+ * @param v Where to store stats
+ * @param database Database
+ * @param si Pointer to table of stats
+ * @param nsi Size of @p si
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 static int get_stats(struct vector *v,
                      DB *database,
                      const struct statinfo *si,
@@ -1448,7 +1499,12 @@ static int register_search_entry(struct search_entry *se,
   return nse;
 }
 
-/* find the top COUNT words in the search database */
+/** @brief Find the top @p count words in the search database
+ * @param v Where to format the result
+ * @param count Maximum number of words
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 static int search_league(struct vector *v, int count, DB_TXN *tid) {
   struct search_entry *se;
   DBT k, d;
@@ -1497,7 +1553,13 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
 #define SI(what) statinfo_##what, \
                  sizeof statinfo_##what / sizeof (struct statinfo)
 
-/* return a list of database stats */
+/** @brief Return a list of database stats
+ * @param nstatsp Where to store number of lines (or NULL)
+ * @return Database stats output
+ *
+ * This is called by @c disorder-stats.  Don't call it directly from elsewhere
+ * as it can take unreasonably long.
+ */
 char **trackdb_stats(int *nstatsp) {
   DB_TXN *tid;
   struct vector v;
@@ -1526,6 +1588,7 @@ fail:
   return v.vec;
 }
 
+/** @brief State structure tracking @c disorder-stats */
 struct stats_details {
   void (*done)(char *data, void *u);
   void *u;
@@ -1535,6 +1598,12 @@ struct stats_details {
   struct dynstr data[1];                /* data read from pipe */
 };
 
+/** @brief Called when @c disorder-stats may have completed
+ * @param d Pointer to state structure
+ *
+ * Called from stats_finished() and stats_read().  Only proceeds when the
+ * process has terminated and the output is complete.
+ */
 static void stats_complete(struct stats_details *d) {
   char *s;
 
@@ -1551,6 +1620,14 @@ static void stats_complete(struct stats_details *d) {
   d->done(d->data->vec, d->u);
 }
 
+/** @brief Called when @c disorder-stats exits
+ * @param ev Event loop
+ * @param pid Process ID
+ * @param status Exit status
+ * @param rusage Resource usage
+ * @param u Pointer to state structure (@ref stats_details)
+ * @return 0
+ */
 static int stats_finished(ev_source attribute((unused)) *ev,
                           pid_t pid,
                           int status,
@@ -1568,6 +1645,15 @@ static int stats_finished(ev_source attribute((unused)) *ev,
   return 0;
 }
 
+/** @brief Called when pipe from @c disorder-stats is readable
+ * @param ev Event loop
+ * @param reader Reader state
+ * @param ptr Pointer to bytes read
+ * @param bytes Number of bytes available
+ * @param eof Set at end of file
+ * @param u Pointer to state structure (@ref stats_details)
+ * @return 0
+ */
 static int stats_read(ev_source attribute((unused)) *ev,
                       ev_reader *reader,
                       void *ptr,
@@ -1584,6 +1670,12 @@ static int stats_read(ev_source attribute((unused)) *ev,
   return 0;
 }
 
+/** @brief Called when pipe from @c disorder-stats errors
+ * @param ev Event loop
+ * @param errno_value Error code
+ * @param u Pointer to state structure (@ref stats_details)
+ * @return 0
+ */
 static int stats_error(ev_source attribute((unused)) *ev,
                        int errno_value,
                        void *u) {
@@ -1595,6 +1687,14 @@ static int stats_error(ev_source attribute((unused)) *ev,
   return 0;
 }
 
+/** @brief Get database statistics via background process
+ * @param ev Event loop
+ * @param done Called on completion
+ * @param u Passed to @p done
+ *
+ * Within the main server use this instead of trackdb_stats(), which can take
+ * unreasonably long.
+ */
 void trackdb_stats_subprocess(ev_source *ev,
                               void (*done)(char *data, void *u),
                               void *u) {
