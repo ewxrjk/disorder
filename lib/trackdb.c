@@ -695,7 +695,11 @@ int trackdb_delkey(DB *db,
   }
 }
 
-/* open a database cursor */
+/** @brief Open a database cursor
+ * @param db Database
+ * @param tid Owning transaction
+ * @return Cursor
+ */
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid) {
   int err;
   DBC *c;
@@ -707,7 +711,10 @@ DBC *trackdb_opencursor(DB *db, DB_TXN *tid) {
   return c;
 }
 
-/* close a database cursor; returns 0 or DB_LOCK_DEADLOCK */
+/** @brief Close a database cursor
+ * @param c Cursor
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 int trackdb_closecursor(DBC *c) {
   int err;
 
@@ -723,7 +730,16 @@ int trackdb_closecursor(DBC *c) {
   }
 }
 
-/* delete a (key,data) pair.  Returns 0, DB_NOTFOUND or DB_LOCK_DEADLOCK. */
+/** @brief Delete a key/data pair
+ * @param db Database
+ * @param word Key
+ * @param track Data
+ * @param tid Owning transaction
+ * @return 0, DB_NOTFOUND or DB_LOCK_DEADLOCK
+ *
+ * Used by the search and tags databases, hence the odd parameter names.
+ * See also register_word().
+ */
 int trackdb_delkeydata(DB *db,
                        const char *word,
                        const char *track,
@@ -761,7 +777,9 @@ int trackdb_delkeydata(DB *db,
   return err;
 }
 
-/* start a transaction */
+/** @brief Start a transaction
+ * @return Transaction
+ */
 DB_TXN *trackdb_begin_transaction(void) {
   DB_TXN *tid;
   int err;
@@ -771,7 +789,11 @@ DB_TXN *trackdb_begin_transaction(void) {
   return tid;
 }
 
-/* abort transaction */
+/** @brief Abort transaction
+ * @param tid Transaction (or NULL)
+ *
+ * If @p tid is NULL then nothing happens.
+ */
 void trackdb_abort_transaction(DB_TXN *tid) {
   int err;
 
@@ -780,7 +802,9 @@ void trackdb_abort_transaction(DB_TXN *tid) {
       fatal(0, "tid->abort: %s", db_strerror(err));
 }
 
-/* commit transaction */
+/** @brief Commit transaction
+ * @param tid Transaction (must not be NULL)
+ */
 void trackdb_commit_transaction(DB_TXN *tid) {
   int err;
 
@@ -790,12 +814,26 @@ void trackdb_commit_transaction(DB_TXN *tid) {
 
 /* search/tags shared code ***************************************************/
 
-/* comparison function used by dedupe() */
+/** @brief Comparison function used by dedupe()
+ * @param a Pointer to first key
+ * @param b Pointer to second key
+ * @return -1, 0 or 1
+ *
+ * Passed to qsort().
+ */
 static int wordcmp(const void *a, const void *b) {
   return strcmp(*(const char **)a, *(const char **)b);
 }
 
-/* sort and de-dupe VEC */
+/** @brief Sort and de-duplicate @p vec
+ * @param vec Vector to sort
+ * @param nvec Length of @p vec
+ * @return @p vec
+ *
+ * The returned vector is NULL-terminated, and there must be room for this NULL
+ * even if there are no duplicates (i.e. it must have more than @p nvec
+ * elements.)
+ */
 static char **dedupe(char **vec, int nvec) {
   int m, n;
 
@@ -811,7 +849,17 @@ static char **dedupe(char **vec, int nvec) {
   return vec;
 }
 
-/* update a key/track database.  Returns 0 or DB_DEADLOCK. */
+/** @brief Store a key/data pair
+ * @param db Database
+ * @param what Description
+ * @param track Data
+ * @param word Key
+ * @param tid Owning transaction
+ * @return 0 or DB_DEADLOCK
+ *
+ * Used by the search and tags databases, hence the odd parameter names.
+ * See also trackdb_delkeydata().
+ */
 static int register_word(DB *db, const char *what,
                          const char *track, const char *word,
                          DB_TXN *tid) {
@@ -833,13 +881,22 @@ static int register_word(DB *db, const char *what,
 
 /* search primitives *********************************************************/
 
-/* return true iff NAME is a trackname_display_ pref */
+/** @brief Return true iff @p name is a trackname_display_ pref
+ * @param name Preference name
+ * @return Non-zero iff @p name is a trackname_display_ pref
+ */
 static int is_display_pref(const char *name) {
   static const char prefix[] = "trackname_display_";
   return !strncmp(name, prefix, (sizeof prefix) - 1);
 }
 
-/** @brief Word_Break property tailor that treats underscores as spaces */
+/** @brief Word_Break property tailor that treats underscores as spaces
+ * @param c Code point
+ * @return Tailored property or -1 to use standard value
+ *
+ * Passed to utf32_word_split() when splitting a track name into words.
+ * See word_split() and @ref unicode_property_tailor.
+ */
 static int tailor_underscore_Word_Break_Other(uint32_t c) {
   switch(c) {
   default:
@@ -865,7 +922,20 @@ static size_t remove_combining_chars(uint32_t *s, size_t ns) {
   return t - start;
 }
 
-/** @brief Normalize and split a string using a given tailoring */
+/** @brief Normalize and split a string using a given tailoring
+ * @param v Where to store words from string
+ * @param s Input string
+ * @param pt Word_Break property tailor, or NULL
+ *
+ * The output words will be:
+ * - case-folded
+ * - have any combination characters stripped
+ * - not include any word break code points (as tailored)
+ *
+ * Used by track_to_words(), with @p pt set to @ref
+ * tailor_underscore_Word_Break_Other, and by normalize_tag() with no
+ * tailoring.
+ */
 static void word_split(struct vector *v,
                        const char *s,
                        unicode_property_tailor *pt) {
@@ -921,7 +991,11 @@ static char *normalize_tag(const char *s, size_t ns) {
   return d->vec;
 }
 
-/* compute the words of a track name */
+/** @brief Compute the words of a track name
+ * @param track Track name
+ * @param p Preferences (for display prefs)
+ * @return NULL-terminated, de-duplicated list or words
+ */
 static char **track_to_words(const char *track,
                              const struct kvp *p) {
   struct vector v;
@@ -939,7 +1013,10 @@ static char **track_to_words(const char *track,
   return dedupe(v.vec, v.nvec);
 }
 
-/* return nonzero iff WORD is a stopword */
+/** @brief Test for a stopword
+ * @param word Word
+ * @return Non-zero if @p word is a stopword
+ */
 static int stopword(const char *word) {
   int n;
 
@@ -949,7 +1026,12 @@ static int stopword(const char *word) {
   return n < config->stopword.n;
 }
 
-/* record that WORD appears in TRACK.  Returns 0 or DB_LOCK_DEADLOCK. */
+/** @brief Register a search term
+ * @param track Track name
+ * @param word A word that appears in the name of @p track
+ * @param tid Owning transaction
+ * @return  0 or DB_LOCK_DEADLOCK
+ */
 static int register_search_word(const char *track, const char *word,
                                 DB_TXN *tid) {
   if(stopword(word)) return 0;
@@ -958,7 +1040,13 @@ static int register_search_word(const char *track, const char *word,
 
 /* Tags **********************************************************************/
 
-/* Return nonzero if C is a valid tag character */
+/** @brief Test for tag characters
+ * @param c Character
+ * @return Non-zero if @p c is a tag character
+ *
+ * The current rule is that commas and the control characters 0-31 are not
+ * allowed but anything else is permitted.  This is arguably a bit loose.
+ */
 static int tagchar(int c) {
   switch(c) {
   case ',':
@@ -968,7 +1056,12 @@ static int tagchar(int c) {
   }
 }
 
-/* Parse and de-dupe a tag list.  If S=0 then assumes "". */
+/** @brief Parse a tag list
+ * @param s Tag list or NULL (equivalent to "")
+ * @return Parsed tag list
+ *
+ * The tags will be normalized (as per normalize_tag()) and de-duplicated.
+ */
 char **parsetags(const char *s) {
   const char *t;
   struct vector v;
@@ -997,7 +1090,12 @@ char **parsetags(const char *s) {
   return dedupe(v.vec, v.nvec);
 }
 
-/* Record that TRACK has TAG.  Returns 0 or DB_LOCK_DEADLOCK. */
+/** @brief Register a tag
+ * @param track Track name
+ * @param tag Tag name
+ * @param tid Owning transaction
+ * @return 0 or DB_LOCK_DEADLOCK
+ */
 static int register_tag(const char *track, const char *tag, DB_TXN *tid) {
   return register_word(trackdb_tagsdb, "tags", track, tag, tid);
 }
