@@ -72,8 +72,10 @@ const struct uaudio *const *config_uaudio_apis;
 struct config_state {
   /** @brief Filename */
   const char *path;
+
   /** @brief Line number */
   int line;
+
   /** @brief Configuration object under construction */
   struct config *config;
 };
@@ -85,22 +87,42 @@ struct config *config;
 struct conf {
   /** @brief Name as it appears in the config file */
   const char *name;
+
   /** @brief Offset in @ref config structure */
   size_t offset;
+
   /** @brief Pointer to item type */
   const struct conftype *type;
-  /** @brief Pointer to item-specific validation routine */
+
+  /** @brief Pointer to item-specific validation routine
+   * @param cs Configuration state
+   * @param nvec Length of (proposed) new value
+   * @param vec Elements of new value
+   * @return 0 on success, non-0 on error
+   *
+   * The validate function should report any error it detects.
+   */
   int (*validate)(const struct config_state *cs,
 		  int nvec, char **vec);
 };
 
 /** @brief Type of a configuration item */
 struct conftype {
-  /** @brief Pointer to function to set item */
+  /** @brief Pointer to function to set item
+   * @param cs Configuration state
+   * @param whoami Configuration item to set
+   * @param nvec Length of new value
+   * @param vec New value
+   * @return 0 on success, non-0 on error
+   */
   int (*set)(const struct config_state *cs,
 	     const struct conf *whoami,
 	     int nvec, char **vec);
-  /** @brief Pointer to function to free item */
+
+  /** @brief Pointer to function to free item
+   * @param c Configuration structure to free an item of
+   * @param whoami Configuration item to free
+   */
   void (*free)(struct config *c, const struct conf *whoami);
 };
 
@@ -619,6 +641,13 @@ static const struct conftype
 
 /* specific validation routine */
 
+/** @brief Perform a test on a filename
+ * @param test Test function to call on mode bits
+ * @param what Type of file sought
+ *
+ * If @p test returns 0 then the file is not a @p what and an error
+ * is reported and -1 is returned.
+ */
 #define VALIDATE_FILE(test, what) do {				\
   struct stat sb;						\
   int n;							\
@@ -636,6 +665,12 @@ static const struct conftype
   }								\
 } while(0)
 
+/** @brief Validate an absolute path
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_isabspath(const struct config_state *cs,
 			      int nvec, char **vec) {
   int n;
@@ -649,18 +684,36 @@ static int validate_isabspath(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate an existing directory
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_isdir(const struct config_state *cs,
 			  int nvec, char **vec) {
   VALIDATE_FILE(S_ISDIR, "directory");
   return 0;
 }
 
+/** @brief Validate an existing regular file
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_isreg(const struct config_state *cs,
 			  int nvec, char **vec) {
   VALIDATE_FILE(S_ISREG, "regular file");
   return 0;
 }
 
+/** @brief Validate a player pattern
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_player(const struct config_state *cs,
 			   int nvec,
 			   char attribute((unused)) **vec) {
@@ -672,6 +725,12 @@ static int validate_player(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a track length pattern
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_tracklength(const struct config_state *cs,
 				int nvec,
 				char attribute((unused)) **vec) {
@@ -683,6 +742,14 @@ static int validate_tracklength(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate an allow directive
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ *
+ * Obsolete - only used for parsing legacy configuration.
+ */
 static int validate_allow(const struct config_state *cs,
 			  int nvec,
 			  char attribute((unused)) **vec) {
@@ -693,6 +760,12 @@ static int validate_allow(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a non-negative (@c long) integer
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_non_negative(const struct config_state *cs,
 				 int nvec, char **vec) {
   long n;
@@ -716,6 +789,12 @@ static int validate_non_negative(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a positive (@c long) integer
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_positive(const struct config_state *cs,
 			  int nvec, char **vec) {
   long n;
@@ -739,6 +818,12 @@ static int validate_positive(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a system username
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_isauser(const struct config_state *cs,
 			    int attribute((unused)) nvec,
 			    char **vec) {
@@ -751,18 +836,38 @@ static int validate_isauser(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a sample format string
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_sample_format(const struct config_state *cs,
 				  int attribute((unused)) nvec,
 				  char **vec) {
   return parse_sample_format(cs, 0, nvec, vec);
 }
 
+/** @brief Validate anything
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0
+ */
 static int validate_any(const struct config_state attribute((unused)) *cs,
 			int attribute((unused)) nvec,
 			char attribute((unused)) **vec) {
   return 0;
 }
 
+/** @brief Validate a URL
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ *
+ * Rather cursory.
+ */
 static int validate_url(const struct config_state attribute((unused)) *cs,
 			int attribute((unused)) nvec,
 			char **vec) {
@@ -790,6 +895,12 @@ static int validate_url(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+/** @brief Validate an alias pattern
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_alias(const struct config_state *cs,
 			  int nvec,
 			  char **vec) {
@@ -841,6 +952,12 @@ static int validate_alias(const struct config_state *cs,
   return 0;
 }
 
+/** @brief Validate a hash algorithm name
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_algo(const struct config_state attribute((unused)) *cs,
 			 int nvec,
 			 char **vec) {
@@ -855,6 +972,12 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+/** @brief Validate a playback backend name
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_backend(const struct config_state attribute((unused)) *cs,
                             int nvec,
                             char **vec) {
@@ -878,6 +1001,12 @@ static int validate_backend(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+/** @brief Validate a pause mode string
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
 static int validate_pausemode(const struct config_state attribute((unused)) *cs,
                               int nvec,
                               char **vec) {
@@ -887,6 +1016,15 @@ static int validate_pausemode(const struct config_state attribute((unused)) *cs,
   return -1;
 }
 
+/** @brief Validate a destination network address
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ *
+ * By a destination address, it is meant that it must not be a wildcard
+ * address.
+ */
 static int validate_destaddr(const struct config_state attribute((unused)) *cs,
 			     int nvec,
 			     char **vec) {
@@ -986,7 +1124,14 @@ static const struct conf *find(const char *key) {
   return &conf[n];
 }
 
-/** @brief Set a new configuration value */
+/** @brief Set a new configuration value
+ * @param cs Configuration state
+ * @param nvec Length of @p vec
+ * @param vec Name and new value
+ * @return 0 on success, non-0 on error.
+ *
+ * @c vec[0] is the name, the rest is the value.
+ */
 static int config_set(const struct config_state *cs,
 		      int nvec, char **vec) {
   const struct conf *which;
@@ -1001,6 +1146,12 @@ static int config_set(const struct config_state *cs,
 	  || which->type->set(cs, which, nvec - 1, vec + 1));
 }
 
+/** @brief Set a configuration item from parameters
+ * @param cs Configuration state
+ * @param which Item to set
+ * @param ... Value as strings, terminated by (char *)NULL
+ * @return 0 on success, non-0 on error
+ */
 static int config_set_args(const struct config_state *cs,
 			   const char *which, ...) {
   va_list ap;
@@ -1017,14 +1168,21 @@ static int config_set_args(const struct config_state *cs,
   return config_set(cs, v->nvec, v->vec);
 }
 
-/** @brief Error callback used by config_include() */
+/** @brief Error callback used by config_include()
+ * @param msg Error message
+ * @param u User data (@ref config_state)
+ */
 static void config_error(const char *msg, void *u) {
   const struct config_state *cs = u;
 
   error(0, "%s:%d: %s", cs->path, cs->line, msg);
 }
 
-/** @brief Include a file by name */
+/** @brief Include a file by name
+ * @param c Configuration to update
+ * @param path Path to read
+ * @return 0 on success, non-0 on error
+ */
 static int config_include(struct config *c, const char *path) {
   FILE *fp;
   char *buffer, *inputbuffer, **vec;
@@ -1055,6 +1213,7 @@ static int config_include(struct config *c, const char *path) {
       continue;
     }
     if(n) {
+      /* 'include' is special-cased */
       if(!strcmp(vec[0], "include")) {
 	if(n != 2) {
 	  error(0, "%s:%d: must be 'include PATH'", cs.path, cs.line);
@@ -1076,6 +1235,7 @@ static int config_include(struct config *c, const char *path) {
   return ret;
 }
 
+/** @brief Default stopword setting */
 static const char *const default_stopwords[] = {
   "stopword",
 
@@ -1137,6 +1297,7 @@ static const char *const default_stopwords[] = {
 };
 #define NDEFAULT_STOPWORDS (sizeof default_stopwords / sizeof *default_stopwords)
 
+/** @brief Default player patterns */
 static const char *const default_players[] = {
   "*.ogg",
   "*.flac",
@@ -1145,7 +1306,9 @@ static const char *const default_players[] = {
 };
 #define NDEFAULT_PLAYERS (sizeof default_players / sizeof *default_players)
 
-/** @brief Make a new default configuration */
+/** @brief Make a new default configuration
+ * @return New configuration
+ */
 static struct config *config_default(void) {
   struct config *c = xmalloc(sizeof *c);
   const char *logname;
@@ -1218,6 +1381,13 @@ static struct config *config_default(void) {
   return c;
 }
 
+/** @brief Construct a filename
+ * @param c Configuration
+ * @param name Base filename
+ * @return Full filename
+ *
+ * Usually use config_get_file() instead.
+ */
 char *config_get_file2(struct config *c, const char *name) {
   char *s;
 
@@ -1231,7 +1401,11 @@ static void set_configfile(void) {
     byte_xasprintf(&configfile, "%s/config", pkgconfdir);
 }
 
-/** @brief Free a configuration object */
+/** @brief Free a configuration object
+ * @param c Configuration to free
+ *
+ * @p c is indeterminate after this function is called.
+ */
 static void config_free(struct config *c) {
   int n;
 
@@ -1245,7 +1419,13 @@ static void config_free(struct config *c) {
   }
 }
 
-/** @brief Set post-parse defaults */
+/** @brief Set post-parse defaults
+ * @param c Configuration to update
+ * @param server True when running in the server
+ *
+ * If @p server is set then certain parts of the configuration are more
+ * strictly validated.
+ */
 static void config_postdefaults(struct config *c,
 				int server) {
   struct config_state cs;
@@ -1464,10 +1644,19 @@ char *config_usersysconf(const struct passwd *pw) {
     return 0;
 }
 
+/** @brief Get a filename within the home directory
+ * @param name Relative name
+ * @return Full path
+ */
 char *config_get_file(const char *name) {
   return config_get_file2(config, name);
 }
 
+/** @brief Order two stringlists
+ * @param a First stringlist
+ * @param b Second stringlist
+ * @return <0, 0 or >0 if a<b, a=b or a>b
+ */
 static int stringlist_compare(const struct stringlist *a,
                               const struct stringlist *b) {
   int n = 0, c;
@@ -1485,6 +1674,11 @@ static int stringlist_compare(const struct stringlist *a,
     return 0;
 }
 
+/** @brief Order two namepart definitions
+ * @param a First namepart definition
+ * @param b Second namepart definition
+ * @return <0, 0 or >0 if a<b, a=b or a>b
+ */
 static int namepart_compare(const struct namepart *a,
                             const struct namepart *b) {
   int c;
@@ -1504,6 +1698,11 @@ static int namepart_compare(const struct namepart *a,
   return 0;
 }
 
+/** @brief Order two lists of namepart definitions
+ * @param a First list of namepart definitions
+ * @param b Second list of namepart definitions
+ * @return <0, 0 or >0 if a<b, a=b or a>b
+ */
 static int namepartlist_compare(const struct namepartlist *a,
                                 const struct namepartlist *b) {
   int n = 0, c;

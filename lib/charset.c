@@ -65,28 +65,47 @@ static void *convert(const char *from, const char *to,
   return buf;
 }
 
-/** @brief Convert from the local multibyte encoding to UTF-8 */
+/** @brief Convert from the local multibyte encoding to UTF-8
+ * @param mb String in current locale's multibyte encoding
+ * @return Same string in UTF-8
+ */
 char *mb2utf8(const char *mb) {
   return convert(nl_langinfo(CODESET), "UTF-8", mb, strlen(mb) + 1);
 }
 
-/** @brief Convert from UTF-8 to the local multibyte encoding */
+/** @brief Convert from UTF-8 to the local multibyte encoding
+ * @param utf8 String in UTF-8
+ * @return Same string in current locale's multibyte encoding
+ */
 char *utf82mb(const char *utf8) {
   return convert("UTF-8", nl_langinfo(CODESET), utf8, strlen(utf8) + 1);
 }
 
-/** @brief Convert from encoding @p from to UTF-8 */
+/** @brief Convert from encoding @p from to UTF-8
+ * @param from Source encoding
+ * @param any String in encoding @p from
+ * @return @p any converted to UTF-8
+ */
 char *any2utf8(const char *from, const char *any) {
   return convert(from, "UTF-8", any, strlen(any) + 1);
 }
 
-/** @brief Convert from encoding @p from to the local multibyte encoding */
+/** @brief Convert from encoding @p from to the local multibyte encoding
+ * @param from Source encoding
+ * @param any String in encoding @p from
+ * @return @p any converted to current locale's multibyte encoding
+ */
 char *any2mb(const char *from, const char *any) {
   if(from) return convert(from, nl_langinfo(CODESET), any, strlen(any) + 1);
   else return xstrdup(any);
 }
 
-/** @brief Convert from encoding @p from to encoding @p to */
+/** @brief Convert from encoding @p from to encoding @p to
+ * @param from Source encoding
+ * @param to Destination encoding
+ * @param any String in encoding @p from
+ * @return @p any converted to encoding @p to
+ */
 char *any2any(const char *from,
 	      const char *to,
 	      const char *any) {
