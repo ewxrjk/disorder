@@ -29,7 +29,7 @@
 #include "event.h"
 #include "log.h"
 
-/* called when bytes are available and at eof */
+/** @brief Called when a log FD is readable */
 static int logfd_readable(ev_source attribute((unused)) *ev,
 			  ev_reader *reader,
 			  void *ptr,
@@ -54,7 +54,7 @@ static int logfd_readable(ev_source attribute((unused)) *ev,
   return 0;
 }
 
-/* called when a read error occurs */
+/** @brief Called when a log FD errors */
 static int logfd_error(ev_source attribute((unused)) *ev,
 		       int errno_value,
 		       void *u) {

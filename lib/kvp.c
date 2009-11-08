@@ -63,6 +63,11 @@ int urldecode(struct sink *sink, const char *ptr, size_t n) {
   return 0;
 }
 
+/** @brief URL-decode a string
+ * @param ptr Start of URL-encoded string
+ * @param n Length of @p ptr
+ * @return Decoded string (0-terminated)
+ */
 static char *decode(const char *ptr, size_t n) {
   struct dynstr d;
   struct sink *s;

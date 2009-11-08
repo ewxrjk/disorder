@@ -69,6 +69,11 @@ extern const char *debug_filename;
 extern int debug_lineno;
 extern int logdate;
 
+/** @brief Issue a debug message if debugging is turned on
+ * @param x Parenthesized debug arguments
+ *
+ * Use in the format: D(("format string", arg, arg, ...));
+ */
 #define D(x) do {				\
   if(debugging) {				\
     debug_filename=__FILE__;			\

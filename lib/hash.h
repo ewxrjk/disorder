@@ -22,6 +22,10 @@
 #ifndef HASH_H
 #define HASH_H
 
+/** @brief Hash structure
+ *
+ * A hash table has string keys and byte blocks of fixed size as values.
+ */
 typedef struct hash hash;
 struct kvp;
 
