@@ -41,7 +41,7 @@ void trackdb_open(int attribute((unused)) flags) {
 void trackdb_init(int attribute((unused)) flags) {
 }
 
-void trackdb_deinit(void) {
+void trackdb_deinit(ev_source attribute((unused)) *ev) {
 }
 
 int trackdb_readable(void) {
