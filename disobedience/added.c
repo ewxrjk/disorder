@@ -66,7 +66,7 @@ static void added_changed(const char attribute((unused)) *event,
 }
 
 /** @brief Called at startup */
-static void added_init(void) {
+static void added_init(struct queuelike attribute((unused)) *ql) {
   event_register("rescan-complete", added_changed, 0);
 }
 

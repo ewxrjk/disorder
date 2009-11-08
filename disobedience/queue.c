@@ -139,7 +139,7 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
 }
 
 /** @brief Called at startup */
-static void queue_init(void) {
+static void queue_init(struct queuelike attribute((unused)) *ql) {
   /* Arrange a callback whenever the playing state changes */ 
   event_register("playing-changed", playing_changed, 0);
   /* We reget both playing track and queue at pause/resume so that start times
@@ -162,7 +162,8 @@ static void queue_move_completed(void attribute((unused)) *v,
 }
 
 /** @brief Called when drag+drop completes */
-static void queue_drop(int src, int dst) {
+static void queue_drop(struct queuelike attribute((unused)) *ql,
+                       int src, int dst) {
   struct queue_entry *sq, *dq;
   int n;
 

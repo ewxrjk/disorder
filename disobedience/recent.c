@@ -61,7 +61,7 @@ static void recent_changed(const char attribute((unused)) *event,
 }
 
 /** @brief Called at startup */
-static void recent_init(void) {
+static void recent_init(struct queuelike attribute((unused)) *ql) {
   /* Whenever the recent list changes on the server, re-fetch it */
   event_register("recent-changed", recent_changed, 0);
 }

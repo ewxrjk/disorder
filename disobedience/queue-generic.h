@@ -55,7 +55,7 @@ struct queuelike {
   const char *name;
   
   /** @brief Initialization function */
-  void (*init)(void);
+  void (*init)(struct queuelike *ql);
 
   /** @brief Columns */
   const struct queue_column *columns;
@@ -98,7 +98,7 @@ struct queuelike {
    * If the rearrangement is impossible then the displayed queue must be put
    * back.
    */
-  void (*drop)(int src, int dst);
+  void (*drop)(struct queuelike *ql, int src, int dst);
 
   /** @brief Stashed drag target row */
   GtkTreePath *drag_target;

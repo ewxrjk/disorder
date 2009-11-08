@@ -508,7 +508,7 @@ static void ql_row_deleted(GtkTreeModel attribute((unused)) *treemodel,
       --srcrow;
 
     /* Tell the queue implementation */
-    ql->drop(srcrow, dstrow);
+    ql->drop(ql, srcrow, dstrow);
 
     /* Dispose of stashed data */
     gtk_tree_path_free(ql->drag_target);
@@ -574,7 +574,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   
   /* TODO style? */
 
-  ql->init();
+  ql->init(ql);
 
   /* Update display text when lookups complete */
   event_register("lookups-completed", queue_lookups_completed, ql);
