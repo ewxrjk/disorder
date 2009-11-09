@@ -41,11 +41,6 @@
 #include "popup.h"
 #include "queue-generic.h"
 
-static struct queuelike *const queuelikes[] = {
-  &ql_queue, &ql_recent, &ql_added
-};
-#define NQUEUELIKES (sizeof queuelikes / sizeof *queuelikes)
-
 /* Track detail lookup ----------------------------------------------------- */
 
 static void queue_lookups_completed(const char attribute((unused)) *event,
