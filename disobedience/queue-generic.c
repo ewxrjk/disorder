@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,14 @@ static struct queuelike *const queuelikes[] = {
   &ql_queue, &ql_recent, &ql_added
 };
 #define NQUEUELIKES (sizeof queuelikes / sizeof *queuelikes)
+
+static const GtkTargetEntry queuelike_targets[] = {
+  {
+    (char *)"text/x-disorder-track-data", /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement only for now */
+    0                                   /* ID value */
+  },
+};
 
 /* Track detail lookup ----------------------------------------------------- */
 
@@ -155,6 +163,19 @@ struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
   struct queue_entry *const q = g_value_get_pointer(v);
   g_value_unset(v);
   return q;
+}
+
+/** @brief Return the @ref queue_entry corresponding to @p path
+ * @param model Model to query
+ * @param path Path into tree
+ * @return Pointer to queue entry or NULL
+ */
+struct queue_entry *ql_path_to_q(GtkTreeModel *model,
+                                 GtkTreePath *path) {
+  GtkTreeIter iter[1];
+  if(!gtk_tree_model_get_iter(model, iter, path))
+    return NULL;
+  return ql_iter_to_q(model, iter);
 }
 
 /** @brief Update one row of a list store
@@ -402,118 +423,159 @@ void ql_new_queue(struct queuelike *ql,
   --suppress_actions;
 }
 
-/* Drag and drop has to be figured out experimentally, because it is not well
- * documented.
- *
- * First you get a row-inserted.  The path argument points to the destination
- * row but this will not yet have had its values set.  The source row is still
- * present.  AFAICT the iter argument points to the same place.
- *
- * Then you get a row-deleted.  The path argument identifies the row that was
- * deleted.  By this stage the row inserted above has acquired its values.
- *
- * A complication is that the deletion will move the inserted row.  For
- * instance, if you do a drag that moves row 1 down to after the track that was
- * formerly on row 9, in the row-inserted call it will show up as row 10, but
- * in the row-deleted call, row 1 will have been deleted thus making the
- * inserted row be row 9.
- *
- * So when we see the row-inserted we have no idea what track to move.
- * Therefore we stash it until we see a row-deleted.
+/** @brief Called when a drag operation from this queuelike begins
+ * @param w Source widget (the tree view)
+ * @param dc Drag context
+ * @param user_data The queuelike
  */
+static void ql_drag_begin(GtkWidget attribute((unused)) *w,
+                          GdkDragContext attribute((unused)) *dc,
+                          gpointer user_data) {
+  struct queuelike *const attribute((unused)) ql = user_data;
 
-/** @brief row-inserted callback */
-static void ql_row_inserted(GtkTreeModel attribute((unused)) *treemodel,
-                            GtkTreePath *path,
-                            GtkTreeIter attribute((unused)) *iter,
-                            gpointer user_data) {
-  struct queuelike *const ql = user_data;
-  if(!suppress_actions) {
-#if 0
-    char *ps = gtk_tree_path_to_string(path);
-    GtkTreeIter piter[1];
-    gboolean pi = gtk_tree_model_get_iter(treemodel, piter, path);
-    struct queue_entry *pq = pi ? ql_iter_to_q(treemodel, piter) : 0;
-    struct queue_entry *iq = ql_iter_to_q(treemodel, iter);
-
-    fprintf(stderr, "row-inserted %s path=%s pi=%d pq=%p path=%s iq=%p iter=%s\n",
-            ql->name,
-            ps,
-            pi,
-            pq,
-            (pi
-             ? (pq ? pq->track : "(pq=0)")
-             : "(pi=FALSE)"),
-            iq,
-            iq ? iq->track : "(iq=0)");
-
-    GtkTreeIter j[1];
-    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
-    int row = 0;
-    while(jt) {
-      struct queue_entry *q = ql_iter_to_q(treemodel, j);
-      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
-      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), j);
-    }
-    g_free(ps);
-#endif
-    /* Remember an iterator pointing at the insertion target */
-    if(ql->drag_target)
-      gtk_tree_path_free(ql->drag_target);
-    ql->drag_target = gtk_tree_path_copy(path);
-  }
+  fprintf(stderr, "drag-begin\n");
+  // TODO call gtk_drag_source_set_icon() to set a suitably informative
+  // drag icon
 }
 
-/** @brief row-deleted callback */
-static void ql_row_deleted(GtkTreeModel attribute((unused)) *treemodel,
-                           GtkTreePath *path,
-                           gpointer user_data) {
+/** @brief Callback to add selected tracks to the selection data
+ *
+ * Called from ql_drag_data_get().
+ */
+static void ql_drag_data_get_collect(GtkTreeModel *model,
+                                     GtkTreePath attribute((unused)) *path,
+                                     GtkTreeIter *iter,
+                                     gpointer data) {
+  struct dynstr *const result = data;
+  struct queue_entry *const q = ql_iter_to_q(model, iter);
+
+  dynstr_append_string(result, q->id);
+  dynstr_append(result, '\n');
+  dynstr_append_string(result, q->track);
+  dynstr_append(result, '\n');
+}
+
+/** @brief Called to extract the dragged data from the source queuelike
+ * @param w Source widget (the tree view)
+ * @param dc Drag context
+ * @param data Where to put the answer
+ * @param info_ Target @c info parameter
+ * @param time_ Time data requested (for some reason not a @c time_t)
+ * @param user_data The queuelike
+ */
+static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
+                             GdkDragContext attribute((unused)) *dc,
+                             GtkSelectionData *data,
+                             guint attribute((unused)) info_,
+                             guint attribute((unused)) time_,
+                             gpointer user_data) {
   struct queuelike *const ql = user_data;
+  struct dynstr result[1];
 
-  if(!suppress_actions) {
-#if 0
-    char *ps = gtk_tree_path_to_string(path);
-    fprintf(stderr, "row-deleted %s path=%s ql->drag_target=%s\n",
-            ql->name, ps, gtk_tree_path_to_string(ql->drag_target));
-    GtkTreeIter j[1];
-    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
-    int row = 0;
-    while(jt) {
-      struct queue_entry *q = ql_iter_to_q(treemodel, j);
-      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
-      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), j);
-    }
-    g_free(ps);
-#endif
-    if(!ql->drag_target) {
-      error(0, "%s: unsuppressed row-deleted with no row-inserted",
-            ql->name);
-      return;
-    }
+  /* The list of tracks is converted into a single string, consisting of IDs
+   * and track names.  Each is terminated by a newline.  Including both ID and
+   * track name means that the receiver can use whichever happens to be more
+   * convenient. */
+  dynstr_init(result);
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      ql_drag_data_get_collect,
+                                      result);
+  //fprintf(stderr, "drag-data-get: %.*s\n",
+  //        result->nvec, result->vec);
+  /* gtk_selection_data_set_text() insists that data->target is one of a
+   * variety of stringy atoms.  TODO: where does this value actually come
+   * from?  */
+  gtk_selection_data_set(data,
+                         GDK_TARGET_STRING,
+                         8, (guchar *)result->vec, result->nvec);
+}
 
-    /* Get the source and destination row numbers. */
-    int srcrow = gtk_tree_path_get_indices(path)[0];
-    int dstrow = gtk_tree_path_get_indices(ql->drag_target)[0];
-    //fprintf(stderr, "srcrow=%d dstrow=%d\n", srcrow, dstrow);
+/** @brief Called when drag data is received
+ * @param w Target widget (the tree view)
+ * @param dc Drag context
+ * @param x The drop location
+ * @param y The drop location
+ * @param data The selection data
+ * @param info_ The target type that was chosen
+ * @param time_ Time data received (for some reason not a @c time_t)
+ * @param user_data The queuelike
+ */
+static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
+                                  GdkDragContext attribute((unused)) *dc,
+                                  gint x,
+                                  gint y,
+                                  GtkSelectionData *data,
+                                  guint attribute((unused)) info_,
+                                  guint attribute((unused)) time_,
+                                  gpointer user_data) {
+  struct queuelike *const ql = user_data;
+  char *result, *p;
+  struct vector ids[1], tracks[1];
+  int parity = 0;
 
-    /* Note that the source row is computed AFTER the destination has been
-     * inserted, since GTK+ does the insert before the delete.  Therefore if
-     * the source row is south (higher row number) of the destination, it will
-     * be one higher than expected.
-     *
-     * For instance if we drag row 1 to before row 0 we will see row-inserted
-     * for row 0 but then a row-deleted for row 2.
-     */
-    if(srcrow > dstrow)
-      --srcrow;
-
-    /* Tell the queue implementation */
-    ql->drop(ql, srcrow, dstrow);
-
-    /* Dispose of stashed data */
-    gtk_tree_path_free(ql->drag_target);
-    ql->drag_target = 0;
+  //fprintf(stderr, "drag-data-received: %d,%d\n", x, y);
+  /* Get the selection string */
+  p = result = (char *)gtk_selection_data_get_text(data);
+  if(!result) {
+    //fprintf(stderr, "gtk_selection_data_get_text() returned NULL\n");
+    return;
   }
+  //fprintf(stderr, "%s--\n", result);
+  /* Parse it back into IDs and track names */
+  vector_init(ids);
+  vector_init(tracks);
+  while(*p) {
+    char *nl = strchr(p, '\n');
+    if(!nl)
+      break;
+    *nl = 0;
+    //fprintf(stderr, "  %s\n", p);
+    vector_append(parity++ & 1 ? tracks : ids, xstrdup(p));
+    p = nl + 1;
+  }
+  g_free(result);
+  if(ids->nvec != tracks->nvec) {
+    //fprintf(stderr, "  inconsistent drag data!\n");
+    return;
+  }
+  vector_terminate(ids);
+  vector_terminate(tracks);
+  /* Figure out which row the drop precedes (if any) */
+  GtkTreePath *path;
+  GtkTreeViewDropPosition pos;
+  struct queue_entry *q;
+  if(!gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(ql->view), x, y,
+                                        &path, &pos)) {
+    //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos returned FALSE\n");
+    /* This generally means a drop past the end of the queue.  We find the last
+     * element in the queue and ask to move after that. */
+    for(q = ql->q; q && q->next; q = q->next)
+      ;
+  } else {
+    /* Convert the path to a queue entry pointer. */
+    q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
+    //fprintf(stderr, "  tree view likes to drop near %s\n",
+    //        q->id ? q->id : "NULL");
+    /* TODO interpretation of q=NULL */
+    /* Q should point to the entry just before the insertion point, so that
+     * moveafter works, or NULL to insert right at the start.  We don't support
+     * dropping into a row, since that doesn't make sense for us. */
+    switch(pos) {
+    case GTK_TREE_VIEW_DROP_BEFORE:
+    case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+      if(q) {
+        q = q->prev;
+        //fprintf(stderr, "  ...but we like to drop near %s\n",
+        //        q ? q->id : "NULL");
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  /* Note that q->id can match one of ids[].  This doesn't matter for
+   * moveafter but TODO may matter for playlist support. */
+  ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
 }
 
 /** @brief Initialize a @ref queuelike */
@@ -563,13 +625,49 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
 
   /* Drag+drop*/
   if(ql->drop) {
-    gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ql->view), TRUE);
-    g_signal_connect(ql->store,
-                     "row-inserted",
-                     G_CALLBACK(ql_row_inserted), ql);
-    g_signal_connect(ql->store,
-                     "row-deleted",
-                     G_CALLBACK(ql_row_deleted), ql);
+    /* Originally this was:
+     *
+     *   gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ql->view), TRUE);
+     *
+     * However this has a two deficiencies:
+     *
+     *   1) Only one row can be dragged at once.  It would be nice
+     *      to be able to do bulk rearrangements since the server
+     *      can cope with that well.
+     *   2) Dragging between windows is not possible.  When playlist
+     *      support appears, it should be possible to drag tracks
+     *      from the choose tag into the playlist.
+     *
+     * At the time of writing neither of these problems are fully solved, the
+     * code as it stands is just a stepping stone in that direction.
+     */
+
+    /* This view will act as a drag source */
+    gtk_drag_source_set(ql->view,
+                        GDK_BUTTON1_MASK,
+                        queuelike_targets,
+                        sizeof queuelike_targets / sizeof *queuelike_targets,
+                        GDK_ACTION_MOVE);
+    /* This view will act as a drag destination
+     *
+     * GTK_DEST_DEFAULT_ALL is going to have to change; GTK_DEST_DEFAULT_DROP
+     * does not allow us to detect illegal drops up front.  However it will do
+     * for now.
+     */
+    gtk_drag_dest_set(ql->view,
+                      GTK_DEST_DEFAULT_ALL,
+                      queuelike_targets,
+                      sizeof queuelike_targets / sizeof *queuelike_targets,
+                      GDK_ACTION_MOVE);
+    g_signal_connect(ql->view, "drag-begin",
+                     G_CALLBACK(ql_drag_begin), ql);
+    g_signal_connect(ql->view, "drag-data-get",
+                     G_CALLBACK(ql_drag_data_get), ql);
+    g_signal_connect(ql->view, "drag-data-received",
+                     G_CALLBACK(ql_drag_data_received), ql);
+  } else {
+    /* TODO: support copy-dragging out of non-rearrangeable queues.  Will need
+     * to support copy dropping into the rearrangeable ones. */
   }
   
   /* TODO style? */

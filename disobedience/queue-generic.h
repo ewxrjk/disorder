@@ -92,13 +92,17 @@ struct queuelike {
   struct tabtype tabtype;
 
   /** @brief Drag-drop callback, or NULL for no drag+drop
-   * @param src Row to move
-   * @param dst Destination position
+   * @param ql Owning queuelike
+   * @param ntracks Number of tracks to be dropped
+   * @param tracks List of track names
+   * @param ids List of track IDs
+   * @param after_me Drop after this or NULL to drop at head
    *
    * If the rearrangement is impossible then the displayed queue must be put
    * back.
    */
-  void (*drop)(struct queuelike *ql, int src, int dst);
+  void (*drop)(struct queuelike *ql, int ntracks, char **tracks, char **ids,
+               struct queue_entry *after_me);
 
   /** @brief Stashed drag target row */
   GtkTreePath *drag_target;
@@ -169,6 +173,8 @@ const char *column_length(const struct queue_entry *q,
 struct tabtype *ql_tabtype(struct queuelike *ql);
 struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
                                  GtkTreeIter *iter);
+struct queue_entry *ql_path_to_q(GtkTreeModel *model,
+                                 GtkTreePath *path);
 
 #endif /* QUEUE_GENERIC_H */
 
