@@ -501,6 +501,77 @@ static void ql_drag_begin(GtkWidget attribute((unused)) *w,
                            NULL);
 }
 
+static gboolean ql_drag_motion(GtkWidget *w,
+                               GdkDragContext *dc,
+                               gint x,
+                               gint y,
+                               guint time_,
+                               gpointer attribute((unused)) user_data) {
+  //struct queuelike *const ql = user_data;
+  GdkDragAction action = 0;
+  
+  // GTK_DEST_DEFAULT_MOTION vets actions as follows:
+  // 1) if dc->suggested_action is in the gtk_drag_dest_set actions
+  //    then dc->suggested_action is taken as the action.
+  // 2) otherwise if dc->actions intersects the gtk_drag_dest_set actions
+  //    then the lowest-numbered member of the intersection is chosen.
+  // 3) otherwise no member is chosen and gdk_drag_status() is called
+  //    with action=0 to refuse the drop.
+  // Currently we can only accept _MOVE.  But in the future we will
+  // need to accept _COPY in some cases.
+  if(dc->suggested_action) {
+    if(dc->suggested_action == GDK_ACTION_MOVE)
+      action = dc->suggested_action;
+  } else if(dc->actions & GDK_ACTION_MOVE)
+    action = dc->actions;
+  /*fprintf(stderr, "suggested %#x actions %#x result %#x\n",
+    dc->suggested_action, dc->actions, action);*/
+  if(action) {
+    // If the action is acceptable then we see if this widget is acceptable
+    if(!gtk_drag_dest_find_target(w, dc, NULL))
+      action = 0;
+  }
+  // Report the status
+  gdk_drag_status(dc, action, time_);
+  if(action) {
+    // Highlight the drop area
+    GtkTreePath *path;
+    GtkTreeViewDropPosition pos;
+
+    if(gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(w),
+                                         x, y,
+                                         &path,
+                                         &pos)) {
+      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> TRUE\n");
+      // Normalize drop position
+      switch(pos) {
+      case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+        pos = GTK_TREE_VIEW_DROP_BEFORE;
+        break;
+      case GTK_TREE_VIEW_DROP_INTO_OR_AFTER:
+        pos = GTK_TREE_VIEW_DROP_AFTER;
+        break;
+      default: break;
+      }
+      // Highlight drop target
+      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), path, pos);
+    } else {
+      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> FALSE\n");
+      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
+    }
+  }
+  return TRUE;
+}
+
+static void ql_drag_leave(GtkWidget *w,
+                          GdkDragContext attribute((unused)) *dc,
+                          guint attribute((unused)) time_,
+                          gpointer attribute((unused)) user_data) {
+  //struct queuelike *const ql = user_data;
+
+  gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
+}
+
 /** @brief Callback to add selected tracks to the selection data
  *
  * Called from ql_drag_data_get().
@@ -711,19 +782,18 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                         queuelike_targets,
                         sizeof queuelike_targets / sizeof *queuelike_targets,
                         GDK_ACTION_MOVE);
-    /* This view will act as a drag destination
-     *
-     * GTK_DEST_DEFAULT_ALL is going to have to change; GTK_DEST_DEFAULT_DROP
-     * does not allow us to detect illegal drops up front.  However it will do
-     * for now.
-     */
+    /* This view will act as a drag destination */
     gtk_drag_dest_set(ql->view,
-                      GTK_DEST_DEFAULT_ALL,
+                      GTK_DEST_DEFAULT_HIGHLIGHT|GTK_DEST_DEFAULT_DROP,
                       queuelike_targets,
                       sizeof queuelike_targets / sizeof *queuelike_targets,
                       GDK_ACTION_MOVE);
     g_signal_connect(ql->view, "drag-begin",
                      G_CALLBACK(ql_drag_begin), ql);
+    g_signal_connect(ql->view, "drag-motion",
+                     G_CALLBACK(ql_drag_motion), ql);
+    g_signal_connect(ql->view, "drag-leave",
+                     G_CALLBACK(ql_drag_leave), ql);
     g_signal_connect(ql->view, "drag-data-get",
                      G_CALLBACK(ql_drag_data_get), ql);
     g_signal_connect(ql->view, "drag-data-received",
