@@ -501,6 +501,15 @@ static void ql_drag_begin(GtkWidget attribute((unused)) *w,
                            NULL);
 }
 
+/** @brief Called when a drag moves within a candidate destination
+ * @param w Destination widget
+ * @param dc Drag context
+ * @param x Current pointer location
+ * @param y Current pointer location
+ * @param time_ Current time
+ * @param user_data Pointer to queuelike
+ * @return TRUE in a dropzone, otherwise FALSE
+ */
 static gboolean ql_drag_motion(GtkWidget *w,
                                GdkDragContext *dc,
                                gint x,
@@ -563,6 +572,12 @@ static gboolean ql_drag_motion(GtkWidget *w,
   return TRUE;
 }
 
+/** @brief Called when a drag moves leaves a candidate destination
+ * @param w Destination widget
+ * @param dc Drag context
+ * @param time_ Current time
+ * @param user_data Pointer to queuelike
+ */
 static void ql_drag_leave(GtkWidget *w,
                           GdkDragContext attribute((unused)) *dc,
                           guint attribute((unused)) time_,
