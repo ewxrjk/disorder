@@ -798,6 +798,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                      G_CALLBACK(ql_drag_data_get), ql);
     g_signal_connect(ql->view, "drag-data-received",
                      G_CALLBACK(ql_drag_data_received), ql);
+    make_treeview_multidrag(ql->view);
   } else {
     /* TODO: support copy-dragging out of non-rearrangeable queues.  Will need
      * to support copy dropping into the rearrangeable ones. */
