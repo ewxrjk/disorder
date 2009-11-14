@@ -492,6 +492,8 @@ static void ql_drag_begin(GtkWidget attribute((unused)) *w,
                       0, y,             /* dest coords */
                       pxw, pxh);        /* size */
     y += pxh;
+    gdk_drawable_unref(qdbs->pixmaps[n]);
+    qdbs->pixmaps[n] = NULL;
   }
   // TODO scale down a bit, the resulting icons are currently a bit on the
   // large side.
