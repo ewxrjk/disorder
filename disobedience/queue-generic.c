@@ -41,12 +41,16 @@
 #include "popup.h"
 #include "queue-generic.h"
 
-
 static const GtkTargetEntry queuelike_targets[] = {
   {
-    (char *)"text/x-disorder-track-data", /* drag type */
-    GTK_TARGET_SAME_WIDGET,             /* rearrangement only for now */
+    (char *)"text/x-disorder-queued-tracks", /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
     0                                   /* ID value */
+  },
+  {
+    (char *)"text/x-disorder-playable-tracks", /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    1                                     /* ID value */
   },
 };
 
@@ -522,18 +526,18 @@ static gboolean ql_drag_motion(GtkWidget *w,
   //    then the lowest-numbered member of the intersection is chosen.
   // 3) otherwise no member is chosen and gdk_drag_status() is called
   //    with action=0 to refuse the drop.
-  // Currently we can only accept _MOVE.  But in the future we will
-  // need to accept _COPY in some cases.
   if(dc->suggested_action) {
-    if(dc->suggested_action == GDK_ACTION_MOVE)
+    if(dc->suggested_action & (GDK_ACTION_MOVE|GDK_ACTION_COPY))
       action = dc->suggested_action;
   } else if(dc->actions & GDK_ACTION_MOVE)
-    action = dc->actions;
+    action = GDK_ACTION_MOVE;
+  else if(dc->actions & GDK_ACTION_COPY)
+    action = GDK_ACTION_COPY;
   /*fprintf(stderr, "suggested %#x actions %#x result %#x\n",
     dc->suggested_action, dc->actions, action);*/
   if(action) {
     // If the action is acceptable then we see if this widget is acceptable
-    if(!gtk_drag_dest_find_target(w, dc, NULL))
+    if(gtk_drag_dest_find_target(w, dc, NULL) == GDK_NONE)
       action = 0;
   }
   // Report the status
@@ -625,6 +629,7 @@ static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_drag_data_get_collect,
                                       result);
+  // TODO must not be able to drag playing track!
   //fprintf(stderr, "drag-data-get: %.*s\n",
   //        result->nvec, result->vec);
   /* gtk_selection_data_set_text() insists that data->target is one of a
@@ -658,7 +663,7 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   struct vector ids[1], tracks[1];
   int parity = 0;
 
-  //fprintf(stderr, "drag-data-received: %d,%d\n", x, y);
+  //fprintf(stderr, "drag-data-received: %d,%d info_=%u\n", x, y, info_);
   /* Get the selection string */
   p = result = (char *)gtk_selection_data_get_text(data);
   if(!result) {
@@ -718,9 +723,21 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
       break;
     }
   }
+  /* Guarantee we never drop an empty list */
+  if(!tracks->nvec)
+    return;
   /* Note that q->id can match one of ids[].  This doesn't matter for
    * moveafter but TODO may matter for playlist support. */
-  ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
+  switch(info_) {
+  case 0:
+    /* Rearrangement.  Send ID and track data. */
+    ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
+    break;
+  case 1:
+    /* Copying between widgets.  IDs mean nothing so don't send them. */
+    ql->drop(ql, tracks->nvec, tracks->vec, NULL, q);
+    break;
+  }
 }
 
 /** @brief Initialize a @ref queuelike */
@@ -798,7 +815,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                       GTK_DEST_DEFAULT_HIGHLIGHT|GTK_DEST_DEFAULT_DROP,
                       queuelike_targets,
                       sizeof queuelike_targets / sizeof *queuelike_targets,
-                      GDK_ACTION_MOVE);
+                      GDK_ACTION_MOVE|GDK_ACTION_COPY);
     g_signal_connect(ql->view, "drag-begin",
                      G_CALLBACK(ql_drag_begin), ql);
     g_signal_connect(ql->view, "drag-motion",
@@ -811,8 +828,17 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                      G_CALLBACK(ql_drag_data_received), ql);
     make_treeview_multidrag(ql->view);
   } else {
-    /* TODO: support copy-dragging out of non-rearrangeable queues.  Will need
-     * to support copy dropping into the rearrangeable ones. */
+    /* For queues that cannot accept a drop we still accept a copy out */
+    gtk_drag_source_set(ql->view,
+                        GDK_BUTTON1_MASK,
+                        queuelike_targets,
+                        sizeof queuelike_targets / sizeof *queuelike_targets,
+                        GDK_ACTION_COPY);
+    g_signal_connect(ql->view, "drag-begin",
+                     G_CALLBACK(ql_drag_begin), ql);
+    g_signal_connect(ql->view, "drag-data-get",
+                     G_CALLBACK(ql_drag_data_get), ql);
+    make_treeview_multidrag(ql->view);
   }
   
   /* TODO style? */
