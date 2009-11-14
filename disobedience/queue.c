@@ -163,48 +163,32 @@ static void queue_move_completed(void attribute((unused)) *v,
 
 /** @brief Called when drag+drop completes */
 static void queue_drop(struct queuelike attribute((unused)) *ql,
-                       int src, int dst) {
-  struct queue_entry *sq, *dq;
+                       int ntracks,
+                       char attribute((unused)) **tracks, char **ids,
+                       struct queue_entry *after_me) {
   int n;
-
-  //fprintf(stderr, "queue_drop %d -> %d\n", src, dst);
+  
   if(playing_track) {
     /* If there's a playing track then you can't drag it anywhere  */
-    if(src == 0) {
-      //fprintf(stderr, "cannot drag playing track\n");
-      queue_playing_changed();
-      return;
+    for(n = 0; n < ntracks; ++n) {
+      if(!strcmp(playing_track->id, ids[n])) {
+        fprintf(stderr, "cannot drag playing track\n");
+        return;
+      }
     }
-    /* If you try to drop before the playing track we assume you missed and
-     * mean after instead */
-    if(!dst)
-      dst = 1;
-    //fprintf(stderr, "...adjusted to %d -> %d\n\n", src, dst);
+    /* You can't tell the server to drag after the playing track by ID, you
+     * have to send "". */
+    if(after_me == playing_track)
+      after_me = NULL;
+    /* If you try to drag before the playing track (i.e. after_me=NULL on
+     * input) then the effect is just to drag after it, although there's no
+     * longer code to explicitly implement this. */
   }
-  /* Find the entry to move */
-  for(n = 0, sq = ql_queue.q; n < src; ++n)
-    sq = sq->next;
-  /*fprintf(stderr, "source=%s (%s)\n",
-          sq->id, sq->track);*/
-  const int after = dst - 1;
-  if(after == -1)
-    dq = 0;
-  else
-    /* Find the entry to insert after */
-    for(n = 0, dq = ql_queue.q; n < after; ++n)
-      dq = dq->next;
-  if(dq == playing_track)
-    dq = 0;
-#if 0
-  if(dq)
-    fprintf(stderr, "after=%s (%s)\n",
-            dq->id, dq->track);
-  else
-    fprintf(stderr, "after=NULL\n");
-#endif
+  /* Tell the server to move them.  The log will tell us about the change (if
+   * indeed it succeeds!), so no need to rearrange the model now. */
   disorder_eclient_moveafter(client,
-                             dq ? dq->id : "",
-                             1, &sq->id,
+                             after_me ? after_me->id : "",
+                             ntracks, (const char **)ids,
                              queue_move_completed, NULL);
 }
 
