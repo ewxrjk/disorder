@@ -134,10 +134,12 @@ void recent_write(void);
 /* write the recently played list out.  Calls @fatal@ on error. */
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where, enum track_origin origin);
+			      int where, const char *target,
+                              enum track_origin origin);
 #define WHERE_START 0			/* Add to head of queue */
 #define WHERE_END 1			/* Add to end of queue */
 #define WHERE_BEFORE_RANDOM 2		/* End, or before random track */
+#define WHERE_AFTER 3                   /* After the target */
 /* add an entry to the queue.  Return a pointer to the new entry. */
 
 void queue_remove(struct queue_entry *q, const char *who);

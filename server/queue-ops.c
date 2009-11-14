@@ -48,9 +48,23 @@ static void queue_id(struct queue_entry *q) {
   q->id = id;
 }
 
+/** @brief Add a track to the queue
+ * @param track Track to add
+ * @param submitter Who added it, or NULL
+ * @param where Where to add it
+ * @param target ID to add after for @ref WHERE_AFTER
+ * @param origin Track origin
+ * @return New queue entry or NULL
+ *
+ * The queue is NOT saved to disk.
+ *
+ * NULL can only be returned if @ref WHERE_AFTER is used with an invalid
+ * queue ID.
+ */
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where, enum track_origin origin) {
-  struct queue_entry *q, *beforeme;
+			      int where, const char *target,
+                              enum track_origin origin) {
+  struct queue_entry *q, *beforeme, *afterme;
 
   q = xmalloc(sizeof *q);
   q->track = xstrdup(track);
@@ -75,6 +89,20 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
 	  && beforeme->prev->origin == origin_random)
       beforeme = beforeme->prev;
     queue_insert_entry(beforeme->prev, q);
+    break;
+  case WHERE_AFTER:
+    if(!*target)
+      /* Insert at start of queue */
+      afterme = &qhead;
+    else {
+      /* Insert after a specific track */
+      afterme = qhead.next;
+      while(afterme != &qhead && strcmp(afterme->id, target))
+        afterme = afterme->next;
+      if(afterme == &qhead)
+        return NULL;
+    }
+    queue_insert_entry(afterme, q);
     break;
   }
   /* submitter will be a null pointer for a scratch */

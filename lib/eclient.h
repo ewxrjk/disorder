@@ -325,6 +325,14 @@ int disorder_eclient_play(disorder_eclient *c,
                           void *v);
 /* add a track to the queue */
 
+int disorder_eclient_playafter(disorder_eclient *c,
+                               const char *target,
+                               int ntracks,
+                               const char **tracks,
+                               disorder_eclient_no_response *completed,
+                               void *v);
+/* insert multiple tracks to an arbitrary point in the queue */
+
 int disorder_eclient_pause(disorder_eclient *c,
                            disorder_eclient_no_response *completed,
                            void *v);

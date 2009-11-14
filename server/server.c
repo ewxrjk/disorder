@@ -242,17 +242,57 @@ static int c_play(struct conn *c, char **vec,
     sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
     return 1;
   }
-  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, origin_picked);
+  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, NULL, origin_picked);
   queue_write();
-  /* If we added the first track, and something is playing, then prepare the
-   * new track.  If nothing is playing then we don't bother as it wouldn't gain
-   * anything. */
-  if(q == qhead.next && playing)
-    prepare(c->ev, q);
   sink_printf(ev_writer_sink(c->w), "252 %s\n", q->id);
+  /* We make sure the track at the head of the queue is prepared, just in case
+   * we added it.  We could be more subtle but prepare() will ensure we don't
+   * prepare the same track twice so there's no point. */
+  if(qhead.next != &qhead)
+    prepare(c->ev, qhead.next);
   /* If the queue was empty but we are for some reason paused then
    * unpause. */
   if(!playing) resume_playing(0);
+  play(c->ev);
+  return 1;			/* completed */
+}
+
+static int c_playafter(struct conn *c, char **vec,
+		  int attribute((unused)) nvec) {
+  const char *track;
+  struct queue_entry *q;
+  const char *afterme = vec[0];
+
+  for(int n = 1; n < nvec; ++n) {
+    if(!trackdb_exists(vec[n])) {
+      sink_writes(ev_writer_sink(c->w), "550 track is not in database\n");
+      return 1;
+    }
+    if(!(track = trackdb_resolve(vec[n]))) {
+      sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+      return 1;
+    }
+    q = queue_add(track, c->who, WHERE_AFTER, afterme, origin_picked);
+    if(!q) {
+      sink_printf(ev_writer_sink(c->w), "550 No such ID\n");
+      return 1;
+    }
+    info("added %s as %s after %s", track, q->id, afterme);
+    afterme = q->id;
+  }
+  queue_write();
+  sink_printf(ev_writer_sink(c->w), "252 OK\n");
+  /* We make sure the track at the head of the queue is prepared, just in case
+   * we added it.  We could be more subtle but prepare() will ensure we don't
+   * prepare the same track twice so there's no point. */
+  if(qhead.next != &qhead) {
+    prepare(c->ev, qhead.next);
+    info("prepared %s", qhead.next->id);
+  }
+  /* If the queue was empty but we are for some reason paused then
+   * unpause. */
+  if(!playing)
+    resume_playing(0);
   play(c->ev);
   return 1;			/* completed */
 }
@@ -1833,6 +1873,7 @@ static const struct command {
   { "part",           3, 3,       c_part,           RIGHT_READ },
   { "pause",          0, 0,       c_pause,          RIGHT_PAUSE },
   { "play",           1, 1,       c_play,           RIGHT_PLAY },
+  { "playafter",      2, INT_MAX, c_playafter,      RIGHT_PLAY },
   { "playing",        0, 0,       c_playing,        RIGHT_READ },
   { "playlist-delete",    1, 1,   c_playlist_delete,    RIGHT_PLAY },
   { "playlist-get",       1, 1,   c_playlist_get,       RIGHT_READ },

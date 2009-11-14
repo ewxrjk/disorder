@@ -515,7 +515,7 @@ static void chosen_random_track(ev_source *ev,
   if(!track)
     return;
   /* Add the track to the queue */
-  q = queue_add(track, 0, WHERE_END, origin_random);
+  q = queue_add(track, 0, WHERE_END, NULL, origin_random);
   D(("picked %p (%s) at random", (void *)q, q->track));
   queue_write();
   /* Maybe a track can now be played */
@@ -697,7 +697,8 @@ void scratch(const char *who, const char *id) {
      * bother if playing is disabled) */
     if(playing_is_enabled() && config->scratch.n) {
       int r = rand() * (double)config->scratch.n / (RAND_MAX + 1.0);
-      q = queue_add(config->scratch.s[r], who, WHERE_START, origin_scratch);
+      q = queue_add(config->scratch.s[r], who, WHERE_START, NULL, 
+                    origin_scratch);
     }
     notify_scratch(playing->track, playing->submitter, who,
 		   xtime(0) - playing->played);

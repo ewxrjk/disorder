@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,10 @@ const char *const track_origins[] = {
 
 #define VALUE(q, offset, type) *(type *)((char *)q + offset)
 
-/* add new entry @n@ to a doubly linked list just after @b@ */
+/** @brief Insert queue entry @p n just after @p b
+ * @param b Insert after this entry
+ * @param n New entry to insert
+ */
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n) {
   n->prev = b;
   n->next = b->next;

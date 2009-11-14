@@ -207,6 +207,16 @@ Add a track to the queue.
 The response contains the queue ID of the track.
 Requires the \fBplay\fR right.
 .TP
+.B playafter \fITARGET\fR \fITRACK\fR ...
+Add all the tracks in the \fITRACK\fR list to the queue after \fITARGET\fR
+(which should be a track ID).
+If \fITARGET\fR is the empty string then the listed tracks are put
+at the head of the queue.
+.IP
+Currently the success result does \fInot\fR include the new track IDs.
+.IP
+Requires the \fBplay\fR right.
+.TP
 .B playing
 Report what track is playing.
 .IP

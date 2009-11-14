@@ -374,7 +374,7 @@ static void schedule_play(ev_source *ev,
     return;
   }
   info("scheduled event %s: %s play %s", id,  who, track);
-  q = queue_add(track, who, WHERE_START, origin_scheduled);
+  q = queue_add(track, who, WHERE_START, NULL, origin_scheduled);
   queue_write();
   if(q == qhead.next && playing)
     prepare(ev, q);

@@ -1132,6 +1132,28 @@ int disorder_eclient_play(disorder_eclient *c,
                 "play", track, (char *)0);
 }
 
+int disorder_eclient_playafter(disorder_eclient *c,
+                               const char *target,
+                               int ntracks,
+                               const char **tracks,
+                               disorder_eclient_no_response *completed,
+                               void *v) {
+  struct vector vec;
+  int n;
+
+  if(!target)
+    target = "";
+  vector_init(&vec);
+  vector_append(&vec, (char *)"playafter");
+  vector_append(&vec, (char *)target);
+  for(n = 0; n < ntracks; ++n)
+    vector_append(&vec, (char *)tracks[n]);
+  stash_command_vector(c, 0/*queuejump*/, no_response_opcallback, completed, v,
+                       -1, 0, vec.nvec, vec.vec);
+  disorder_eclient_polled(c, 0);
+  return 0;
+}
+
 int disorder_eclient_pause(disorder_eclient *c,
                            disorder_eclient_no_response *completed,
                            void *v) {

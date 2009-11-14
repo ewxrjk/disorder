@@ -439,6 +439,16 @@ class client:
     res, details = self._simple("play", track)
     return unicode(details)             # because it's unicode in queue() output
 
+  def playafter(self, target, tracks):
+    """Insert tracks into a specific point in the queue.
+
+    Arguments:
+    target -- target ID or None to insert at start of queue
+    tracks -- a list of tracks to play"""
+    if target is None:
+      target = ''
+    self._simple("playafter", target, *tracks)
+
   def remove(self, track):
     """Remove a track from the queue.
 
