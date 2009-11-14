@@ -20,7 +20,7 @@ noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
 
 if SERVER
-TRACKDB=trackdb.c
+TRACKDB=trackdb.c trackdb-playlists.c
 else
 TRACKDB=trackdb-stub.c
 endif
@@ -78,7 +78,6 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	table.c table.h					\
 	timeval.h					\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
-	trackdb-playlists.c				\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
 	uaudio.c uaudio-thread.c uaudio.h uaudio-apis.c	\
