@@ -41,6 +41,7 @@
 #include "popup.h"
 #include "queue-generic.h"
 #include "multidrag.h"
+#include "autoscroll.h"
 
 static const GtkTargetEntry queuelike_targets[] = {
   {
@@ -432,6 +433,8 @@ void ql_new_queue(struct queuelike *ql,
  * @param time_ Current time
  * @param user_data Pointer to queuelike
  * @return TRUE in a dropzone, otherwise FALSE
+ *
+ * This is the handler for the "drag-motion" signal.
  */
 static gboolean ql_drag_motion(GtkWidget *w,
                                GdkDragContext *dc,
@@ -500,6 +503,7 @@ static gboolean ql_drag_motion(GtkWidget *w,
    * As the code stands the drop works but the visual feedback is not quite
    * right.
    */
+  autoscroll_add(GTK_TREE_VIEW(w));
   return TRUE;                          /* We are (always) in a drop zone */
 }
 
@@ -508,6 +512,13 @@ static gboolean ql_drag_motion(GtkWidget *w,
  * @param dc Drag context
  * @param time_ Current time
  * @param user_data Pointer to queuelike
+ *
+ * This is the handler for the "drag-leave" signal.
+ *
+ * It turns out that we get a drag-leave event when the data is dropped, too
+ * (See _gtk_drag_dest_handle_event).  This seems logically consistent and is
+ * convenient too - for instance it's why autoscroll_remove() gets called at
+ * the end of a drag+drop sequence.
  */
 static void ql_drag_leave(GtkWidget *w,
                           GdkDragContext attribute((unused)) *dc,
@@ -516,6 +527,7 @@ static void ql_drag_leave(GtkWidget *w,
   //struct queuelike *const ql = user_data;
 
   gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
+  autoscroll_remove(GTK_TREE_VIEW(w));
 }
 
 /** @brief Callback to add selected tracks to the selection data
@@ -549,6 +561,8 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
  * convenient.
  *
  * If there are no IDs for rows in this widget then the ID half is undefined.
+ *
+ * This is the handler for the "drag-data-get" signal.
  */
 static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
                              GdkDragContext attribute((unused)) *dc,
@@ -583,6 +597,8 @@ static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
  * @param info_ The target type that was chosen
  * @param time_ Time data received (for some reason not a @c time_t)
  * @param user_data The queuelike
+ *
+ * This is the handler for the "drag-data-received" signal.
  */
 static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
                                   GdkDragContext attribute((unused)) *dc,
