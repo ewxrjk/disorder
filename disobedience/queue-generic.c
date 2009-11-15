@@ -425,6 +425,69 @@ void ql_new_queue(struct queuelike *ql,
   --suppress_actions;
 }
 
+/* Drag and drop ------------------------------------------------------------ */
+
+/** @brief Identify the drop path
+ * @param w Destination tree view widget
+ * @param model Underlying tree model
+ * @param wx X coordinate
+ * @param wy Y coordinate
+ * @param posp Where to store relative position
+ * @return Target path or NULL
+ *
+ * This is used by ql_drag_motion() and ql_drag_data_received() to identify a
+ * drop would or does land.  It's important that they use the same code since
+ * otherwise the visual feedback can be inconsistent with the actual effect!
+ */
+static GtkTreePath *ql_drop_path(GtkWidget *w,
+                                 GtkTreeModel *model,
+                                 int wx, int wy,
+                                 GtkTreeViewDropPosition *posp) {
+  GtkTreePath *path = NULL;
+  GtkTreeViewDropPosition pos;
+  GtkTreeIter iter[1], last[1];
+  int tx, ty;
+
+  gtk_tree_view_convert_widget_to_tree_coords(GTK_TREE_VIEW(w),
+                                              wx, wy, &tx, &ty);
+  if(gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(w),
+                                       wx, wy,
+                                       &path,
+                                       &pos)) {
+    //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> TRUE\n");
+    // Normalize drop position
+    switch(pos) {
+    case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+      pos = GTK_TREE_VIEW_DROP_BEFORE;
+      break;
+    case GTK_TREE_VIEW_DROP_INTO_OR_AFTER:
+      pos = GTK_TREE_VIEW_DROP_AFTER;
+      break;
+    default: break;
+    }
+  } else if(gtk_tree_model_get_iter_first(model, iter)) {
+    /* If the pointer isn't over any particular row then either it's below
+     * the last row, in which case we want the dropzone to be below that row;
+     * or it's above the first row (in the column headings) in which case we
+     * want the dropzone to be above that row. */
+    if(ty >= 0) {
+      /* Find the last row */
+      do {
+        *last = *iter;
+      } while(gtk_tree_model_iter_next(model, iter));
+      /* The drop target is just after it */
+      pos = GTK_TREE_VIEW_DROP_AFTER;
+      *iter = *last;
+    } else {
+      /* The drop target will be just before the first row */
+      pos = GTK_TREE_VIEW_DROP_BEFORE;
+    }
+    path = gtk_tree_model_get_path(model, iter);
+  }
+  *posp = pos;
+  return path;
+}
+
 /** @brief Called when a drag moves within a candidate destination
  * @param w Destination widget
  * @param dc Drag context
@@ -441,10 +504,10 @@ static gboolean ql_drag_motion(GtkWidget *w,
                                gint x,
                                gint y,
                                guint time_,
-                               gpointer attribute((unused)) user_data) {
-  //struct queuelike *const ql = user_data;
+                               gpointer user_data) {
+  struct queuelike *const ql = user_data;
   GdkDragAction action = 0;
-  
+
   // GTK_DEST_DEFAULT_MOTION vets actions as follows:
   // 1) if dc->suggested_action is in the gtk_drag_dest_set actions
   //    then dc->suggested_action is taken as the action.
@@ -467,33 +530,17 @@ static gboolean ql_drag_motion(GtkWidget *w,
       action = 0;
   }
   // Report the status
+  //fprintf(stderr, "drag action: %u\n", action);
   gdk_drag_status(dc, action, time_);
   if(action) {
-    // Highlight the drop area
-    GtkTreePath *path;
     GtkTreeViewDropPosition pos;
 
-    if(gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(w),
-                                         x, y,
-                                         &path,
-                                         &pos)) {
-      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> TRUE\n");
-      // Normalize drop position
-      switch(pos) {
-      case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
-        pos = GTK_TREE_VIEW_DROP_BEFORE;
-        break;
-      case GTK_TREE_VIEW_DROP_INTO_OR_AFTER:
-        pos = GTK_TREE_VIEW_DROP_AFTER;
-        break;
-      default: break;
-      }
-      // Highlight drop target
-      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), path, pos);
-    } else {
-      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> FALSE\n");
-      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
-    }
+    // Find the drop target
+    GtkTreePath *path = ql_drop_path(w, GTK_TREE_MODEL(ql->store), x, y, &pos);
+    // Highlight drop target
+    gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), path, pos);
+    if(path)
+      gtk_tree_path_free(path);
   }
   /* TODO _something_ is not quite right here.  Supposedly if action=0 we
    * should probably be returning FALSE; _but_ actually we always want to
@@ -641,37 +688,28 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   vector_terminate(ids);
   vector_terminate(tracks);
   /* Figure out which row the drop precedes (if any) */
-  GtkTreePath *path;
   GtkTreeViewDropPosition pos;
   struct queue_entry *q;
-  if(!gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(ql->view), x, y,
-                                        &path, &pos)) {
-    //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos returned FALSE\n");
+  GtkTreePath *path = ql_drop_path(w, GTK_TREE_MODEL(ql->store), x, y, &pos);
+  if(path) {
+    q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
+  } else {
     /* This generally means a drop past the end of the queue.  We find the last
      * element in the queue and ask to move after that. */
     for(q = ql->q; q && q->next; q = q->next)
       ;
-  } else {
-    /* Convert the path to a queue entry pointer. */
-    q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
-    //fprintf(stderr, "  tree view likes to drop near %s\n",
-    //        q->id ? q->id : "NULL");
-    /* TODO interpretation of q=NULL */
-    /* Q should point to the entry just before the insertion point, so that
-     * moveafter works, or NULL to insert right at the start.  We don't support
-     * dropping into a row, since that doesn't make sense for us. */
-    switch(pos) {
-    case GTK_TREE_VIEW_DROP_BEFORE:
-    case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
-      if(q) {
-        q = q->prev;
-        //fprintf(stderr, "  ...but we like to drop near %s\n",
-        //        q ? q->id : "NULL");
-      }
-      break;
-    default:
-      break;
+  }
+  switch(pos) {
+  case GTK_TREE_VIEW_DROP_BEFORE:
+  case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+    if(q) {
+      q = q->prev;
+      //fprintf(stderr, "  ...but we like to drop near %s\n",
+      //        q ? q->id : "NULL");
     }
+    break;
+  default:
+    break;
   }
   /* Guarantee we never drop an empty list */
   if(!tracks->nvec)
