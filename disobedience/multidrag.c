@@ -35,7 +35,11 @@
  * href="http://code.google.com/p/quodlibet/">Quodlibet</a> (another software
  * jukebox, albeit as far as I can see a single-user one).
  */
-#include "disobedience.h"
+#include <config.h>
+#include <glib.h>
+#include <gtk/gtk.h>
+
+#include "multidrag.h"
 
 static gboolean multidrag_selection_block(GtkTreeSelection attribute((unused)) *selection,
 					  GtkTreeModel attribute((unused)) *model,

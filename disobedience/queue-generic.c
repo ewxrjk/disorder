@@ -40,6 +40,7 @@
 #include "disobedience.h"
 #include "popup.h"
 #include "queue-generic.h"
+#include "multidrag.h"
 
 static const GtkTargetEntry queuelike_targets[] = {
   {

@@ -266,8 +266,6 @@ extern GtkWidget *playlists_menu;
 extern GtkWidget *editplaylists_widget;
 #endif
 
-void make_treeview_multidrag(GtkWidget *w);
-
 #endif /* DISOBEDIENCE_H */
 
 /*
