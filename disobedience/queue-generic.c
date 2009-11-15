@@ -542,14 +542,6 @@ static gboolean ql_drag_motion(GtkWidget *w,
     if(path)
       gtk_tree_path_free(path);
   }
-  /* TODO _something_ is not quite right here.  Supposedly if action=0 we
-   * should probably be returning FALSE; _but_ actually we always want to
-   * support dropping, as dropping into the big empty space at the bottom
-   * should be the same as dropping at the end of the last row.
-   *
-   * As the code stands the drop works but the visual feedback is not quite
-   * right.
-   */
   autoscroll_add(GTK_TREE_VIEW(w));
   return TRUE;                          /* We are (always) in a drop zone */
 }
