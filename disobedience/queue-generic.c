@@ -438,6 +438,8 @@ void ql_new_queue(struct queuelike *ql,
  * This is used by ql_drag_motion() and ql_drag_data_received() to identify a
  * drop would or does land.  It's important that they use the same code since
  * otherwise the visual feedback can be inconsistent with the actual effect!
+ *
+ * Remember to free the returned path.
  */
 static GtkTreePath *ql_drop_path(GtkWidget *w,
                                  GtkTreeModel *model,
@@ -718,6 +720,8 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
     ql->drop(ql, tracks->nvec, tracks->vec, NULL, q);
     break;
   }
+  if(path)
+    gtk_tree_path_free(path);
 }
 
 /** @brief Initialize a @ref queuelike */
