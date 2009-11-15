@@ -40,13 +40,19 @@
 #include "disobedience.h"
 #include "popup.h"
 #include "queue-generic.h"
-
+#include "multidrag.h"
+#include "autoscroll.h"
 
 static const GtkTargetEntry queuelike_targets[] = {
   {
-    (char *)"text/x-disorder-track-data", /* drag type */
-    GTK_TARGET_SAME_WIDGET,             /* rearrangement only for now */
+    (char *)"text/x-disorder-queued-tracks", /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
     0                                   /* ID value */
+  },
+  {
+    (char *)"text/x-disorder-playable-tracks", /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    1                                     /* ID value */
   },
 };
 
@@ -419,82 +425,67 @@ void ql_new_queue(struct queuelike *ql,
   --suppress_actions;
 }
 
-/** @brief State for ql_drag_begin() and its callbacks */
-struct ql_drag_begin_state {
-  struct queuelike *ql;
-  int rows;
-  int index;
-  GdkPixmap **pixmaps;
-};
+/* Drag and drop ------------------------------------------------------------ */
 
-/** @brief Callback to construct a row pixmap */
-static void ql_drag_make_row_pixmaps(GtkTreeModel attribute((unused)) *model,
-                                     GtkTreePath *path,
-                                     GtkTreeIter attribute((unused)) *iter,
-                                     gpointer data) {
-  struct ql_drag_begin_state *qdbs = data;
-
-  qdbs->pixmaps[qdbs->index++]
-    = gtk_tree_view_create_row_drag_icon(GTK_TREE_VIEW(qdbs->ql->view),
-                                         path);
-}
-
-/** @brief Called when a drag operation from this queuelike begins
- * @param w Source widget (the tree view)
- * @param dc Drag context
- * @param user_data The queuelike
+/** @brief Identify the drop path
+ * @param w Destination tree view widget
+ * @param model Underlying tree model
+ * @param wx X coordinate
+ * @param wy Y coordinate
+ * @param posp Where to store relative position
+ * @return Target path or NULL
+ *
+ * This is used by ql_drag_motion() and ql_drag_data_received() to identify a
+ * drop would or does land.  It's important that they use the same code since
+ * otherwise the visual feedback can be inconsistent with the actual effect!
  */
-static void ql_drag_begin(GtkWidget attribute((unused)) *w,
-                          GdkDragContext attribute((unused)) *dc,
-                          gpointer user_data) {
-  struct queuelike *const ql = user_data;
-  struct ql_drag_begin_state qdbs[1];
-  GdkPixmap *icon;
+static GtkTreePath *ql_drop_path(GtkWidget *w,
+                                 GtkTreeModel *model,
+                                 int wx, int wy,
+                                 GtkTreeViewDropPosition *posp) {
+  GtkTreePath *path = NULL;
+  GtkTreeViewDropPosition pos;
+  GtkTreeIter iter[1], last[1];
+  int tx, ty;
 
-  //fprintf(stderr, "drag-begin\n");
-  memset(qdbs, 0, sizeof *qdbs);
-  qdbs->ql = ql;
-  /* Find out how many rows there are */
-  if(!(qdbs->rows = gtk_tree_selection_count_selected_rows(ql->selection)))
-    return;                             /* doesn't make sense */
-  /* Generate a pixmap for each row */
-  qdbs->pixmaps = xcalloc(qdbs->rows, sizeof *qdbs->pixmaps);
-  gtk_tree_selection_selected_foreach(ql->selection,
-                                      ql_drag_make_row_pixmaps,
-                                      qdbs);
-  /* Determine the size of the final icon */
-  int height = 0, width = 0;
-  for(int n = 0; n < qdbs->rows; ++n) {
-    int pxw, pxh;
-    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
-    if(pxw > width)
-      width = pxw;
-    height += pxh;
+  gtk_tree_view_convert_widget_to_tree_coords(GTK_TREE_VIEW(w),
+                                              wx, wy, &tx, &ty);
+  if(gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(w),
+                                       wx, wy,
+                                       &path,
+                                       &pos)) {
+    //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> TRUE\n");
+    // Normalize drop position
+    switch(pos) {
+    case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+      pos = GTK_TREE_VIEW_DROP_BEFORE;
+      break;
+    case GTK_TREE_VIEW_DROP_INTO_OR_AFTER:
+      pos = GTK_TREE_VIEW_DROP_AFTER;
+      break;
+    default: break;
+    }
+  } else if(gtk_tree_model_get_iter_first(model, iter)) {
+    /* If the pointer isn't over any particular row then either it's below
+     * the last row, in which case we want the dropzone to be below that row;
+     * or it's above the first row (in the column headings) in which case we
+     * want the dropzone to be above that row. */
+    if(ty >= 0) {
+      /* Find the last row */
+      do {
+        *last = *iter;
+      } while(gtk_tree_model_iter_next(model, iter));
+      /* The drop target is just after it */
+      pos = GTK_TREE_VIEW_DROP_AFTER;
+      *iter = *last;
+    } else {
+      /* The drop target will be just before the first row */
+      pos = GTK_TREE_VIEW_DROP_BEFORE;
+    }
+    path = gtk_tree_model_get_path(model, iter);
   }
-  if(!width || !height)
-    return;                             /* doesn't make sense */
-  /* Construct the icon */
-  icon = gdk_pixmap_new(qdbs->pixmaps[0], width, height, -1);
-  GdkGC *gc = gdk_gc_new(icon);
-  gdk_gc_set_colormap(gc, gtk_widget_get_colormap(ql->view));
-  int y = 0;
-  for(int n = 0; n < qdbs->rows; ++n) {
-    int pxw, pxh;
-    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
-    gdk_draw_drawable(icon,
-                      gc,
-                      qdbs->pixmaps[n],
-                      0, 0,             /* source coords */
-                      0, y,             /* dest coords */
-                      pxw, pxh);        /* size */
-    y += pxh;
-  }
-  // TODO scale down a bit, the resulting icons are currently a bit on the
-  // large side.
-  gtk_drag_source_set_icon(ql->view,
-                           gtk_widget_get_colormap(ql->view),
-                           icon,
-                           NULL);
+  *posp = pos;
+  return path;
 }
 
 /** @brief Called when a drag moves within a candidate destination
@@ -505,16 +496,18 @@ static void ql_drag_begin(GtkWidget attribute((unused)) *w,
  * @param time_ Current time
  * @param user_data Pointer to queuelike
  * @return TRUE in a dropzone, otherwise FALSE
+ *
+ * This is the handler for the "drag-motion" signal.
  */
 static gboolean ql_drag_motion(GtkWidget *w,
                                GdkDragContext *dc,
                                gint x,
                                gint y,
                                guint time_,
-                               gpointer attribute((unused)) user_data) {
-  //struct queuelike *const ql = user_data;
+                               gpointer user_data) {
+  struct queuelike *const ql = user_data;
   GdkDragAction action = 0;
-  
+
   // GTK_DEST_DEFAULT_MOTION vets actions as follows:
   // 1) if dc->suggested_action is in the gtk_drag_dest_set actions
   //    then dc->suggested_action is taken as the action.
@@ -522,50 +515,35 @@ static gboolean ql_drag_motion(GtkWidget *w,
   //    then the lowest-numbered member of the intersection is chosen.
   // 3) otherwise no member is chosen and gdk_drag_status() is called
   //    with action=0 to refuse the drop.
-  // Currently we can only accept _MOVE.  But in the future we will
-  // need to accept _COPY in some cases.
   if(dc->suggested_action) {
-    if(dc->suggested_action == GDK_ACTION_MOVE)
+    if(dc->suggested_action & (GDK_ACTION_MOVE|GDK_ACTION_COPY))
       action = dc->suggested_action;
   } else if(dc->actions & GDK_ACTION_MOVE)
-    action = dc->actions;
+    action = GDK_ACTION_MOVE;
+  else if(dc->actions & GDK_ACTION_COPY)
+    action = GDK_ACTION_COPY;
   /*fprintf(stderr, "suggested %#x actions %#x result %#x\n",
     dc->suggested_action, dc->actions, action);*/
   if(action) {
     // If the action is acceptable then we see if this widget is acceptable
-    if(!gtk_drag_dest_find_target(w, dc, NULL))
+    if(gtk_drag_dest_find_target(w, dc, NULL) == GDK_NONE)
       action = 0;
   }
   // Report the status
+  //fprintf(stderr, "drag action: %u\n", action);
   gdk_drag_status(dc, action, time_);
   if(action) {
-    // Highlight the drop area
-    GtkTreePath *path;
     GtkTreeViewDropPosition pos;
 
-    if(gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(w),
-                                         x, y,
-                                         &path,
-                                         &pos)) {
-      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> TRUE\n");
-      // Normalize drop position
-      switch(pos) {
-      case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
-        pos = GTK_TREE_VIEW_DROP_BEFORE;
-        break;
-      case GTK_TREE_VIEW_DROP_INTO_OR_AFTER:
-        pos = GTK_TREE_VIEW_DROP_AFTER;
-        break;
-      default: break;
-      }
-      // Highlight drop target
-      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), path, pos);
-    } else {
-      //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos() -> FALSE\n");
-      gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
-    }
+    // Find the drop target
+    GtkTreePath *path = ql_drop_path(w, GTK_TREE_MODEL(ql->store), x, y, &pos);
+    // Highlight drop target
+    gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), path, pos);
+    if(path)
+      gtk_tree_path_free(path);
   }
-  return TRUE;
+  autoscroll_add(GTK_TREE_VIEW(w));
+  return TRUE;                          /* We are (always) in a drop zone */
 }
 
 /** @brief Called when a drag moves leaves a candidate destination
@@ -573,6 +551,13 @@ static gboolean ql_drag_motion(GtkWidget *w,
  * @param dc Drag context
  * @param time_ Current time
  * @param user_data Pointer to queuelike
+ *
+ * This is the handler for the "drag-leave" signal.
+ *
+ * It turns out that we get a drag-leave event when the data is dropped, too
+ * (See _gtk_drag_dest_handle_event).  This seems logically consistent and is
+ * convenient too - for instance it's why autoscroll_remove() gets called at
+ * the end of a drag+drop sequence.
  */
 static void ql_drag_leave(GtkWidget *w,
                           GdkDragContext attribute((unused)) *dc,
@@ -581,6 +566,7 @@ static void ql_drag_leave(GtkWidget *w,
   //struct queuelike *const ql = user_data;
 
   gtk_tree_view_set_drag_dest_row(GTK_TREE_VIEW(w), NULL, 0);
+  autoscroll_remove(GTK_TREE_VIEW(w));
 }
 
 /** @brief Callback to add selected tracks to the selection data
@@ -607,6 +593,15 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
  * @param info_ Target @c info parameter
  * @param time_ Time data requested (for some reason not a @c time_t)
  * @param user_data The queuelike
+ *
+ * The list of tracks is converted into a single string, consisting of IDs
+ * and track names.  Each is terminated by a newline.  Including both ID and
+ * track name means that the receiver can use whichever happens to be more
+ * convenient.
+ *
+ * If there are no IDs for rows in this widget then the ID half is undefined.
+ *
+ * This is the handler for the "drag-data-get" signal.
  */
 static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
                              GdkDragContext attribute((unused)) *dc,
@@ -617,14 +612,11 @@ static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
   struct queuelike *const ql = user_data;
   struct dynstr result[1];
 
-  /* The list of tracks is converted into a single string, consisting of IDs
-   * and track names.  Each is terminated by a newline.  Including both ID and
-   * track name means that the receiver can use whichever happens to be more
-   * convenient. */
   dynstr_init(result);
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_drag_data_get_collect,
                                       result);
+  // TODO must not be able to drag playing track!
   //fprintf(stderr, "drag-data-get: %.*s\n",
   //        result->nvec, result->vec);
   /* gtk_selection_data_set_text() insists that data->target is one of a
@@ -644,6 +636,8 @@ static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
  * @param info_ The target type that was chosen
  * @param time_ Time data received (for some reason not a @c time_t)
  * @param user_data The queuelike
+ *
+ * This is the handler for the "drag-data-received" signal.
  */
 static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
                                   GdkDragContext attribute((unused)) *dc,
@@ -658,7 +652,7 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   struct vector ids[1], tracks[1];
   int parity = 0;
 
-  //fprintf(stderr, "drag-data-received: %d,%d\n", x, y);
+  //fprintf(stderr, "drag-data-received: %d,%d info_=%u\n", x, y, info_);
   /* Get the selection string */
   p = result = (char *)gtk_selection_data_get_text(data);
   if(!result) {
@@ -686,41 +680,44 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   vector_terminate(ids);
   vector_terminate(tracks);
   /* Figure out which row the drop precedes (if any) */
-  GtkTreePath *path;
   GtkTreeViewDropPosition pos;
   struct queue_entry *q;
-  if(!gtk_tree_view_get_dest_row_at_pos(GTK_TREE_VIEW(ql->view), x, y,
-                                        &path, &pos)) {
-    //fprintf(stderr, "gtk_tree_view_get_dest_row_at_pos returned FALSE\n");
+  GtkTreePath *path = ql_drop_path(w, GTK_TREE_MODEL(ql->store), x, y, &pos);
+  if(path) {
+    q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
+  } else {
     /* This generally means a drop past the end of the queue.  We find the last
      * element in the queue and ask to move after that. */
     for(q = ql->q; q && q->next; q = q->next)
       ;
-  } else {
-    /* Convert the path to a queue entry pointer. */
-    q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
-    //fprintf(stderr, "  tree view likes to drop near %s\n",
-    //        q->id ? q->id : "NULL");
-    /* TODO interpretation of q=NULL */
-    /* Q should point to the entry just before the insertion point, so that
-     * moveafter works, or NULL to insert right at the start.  We don't support
-     * dropping into a row, since that doesn't make sense for us. */
-    switch(pos) {
-    case GTK_TREE_VIEW_DROP_BEFORE:
-    case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
-      if(q) {
-        q = q->prev;
-        //fprintf(stderr, "  ...but we like to drop near %s\n",
-        //        q ? q->id : "NULL");
-      }
-      break;
-    default:
-      break;
-    }
   }
+  switch(pos) {
+  case GTK_TREE_VIEW_DROP_BEFORE:
+  case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
+    if(q) {
+      q = q->prev;
+      //fprintf(stderr, "  ...but we like to drop near %s\n",
+      //        q ? q->id : "NULL");
+    }
+    break;
+  default:
+    break;
+  }
+  /* Guarantee we never drop an empty list */
+  if(!tracks->nvec)
+    return;
   /* Note that q->id can match one of ids[].  This doesn't matter for
    * moveafter but TODO may matter for playlist support. */
-  ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
+  switch(info_) {
+  case 0:
+    /* Rearrangement.  Send ID and track data. */
+    ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
+    break;
+  case 1:
+    /* Copying between widgets.  IDs mean nothing so don't send them. */
+    ql->drop(ql, tracks->nvec, tracks->vec, NULL, q);
+    break;
+  }
 }
 
 /** @brief Initialize a @ref queuelike */
@@ -798,9 +795,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                       GTK_DEST_DEFAULT_HIGHLIGHT|GTK_DEST_DEFAULT_DROP,
                       queuelike_targets,
                       sizeof queuelike_targets / sizeof *queuelike_targets,
-                      GDK_ACTION_MOVE);
-    g_signal_connect(ql->view, "drag-begin",
-                     G_CALLBACK(ql_drag_begin), ql);
+                      GDK_ACTION_MOVE|GDK_ACTION_COPY);
     g_signal_connect(ql->view, "drag-motion",
                      G_CALLBACK(ql_drag_motion), ql);
     g_signal_connect(ql->view, "drag-leave",
@@ -809,10 +804,18 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                      G_CALLBACK(ql_drag_data_get), ql);
     g_signal_connect(ql->view, "drag-data-received",
                      G_CALLBACK(ql_drag_data_received), ql);
-    make_treeview_multidrag(ql->view);
+    make_treeview_multidrag(ql->view, NULL);
+    // TODO playing track should be refused by predicate arg
   } else {
-    /* TODO: support copy-dragging out of non-rearrangeable queues.  Will need
-     * to support copy dropping into the rearrangeable ones. */
+    /* For queues that cannot accept a drop we still accept a copy out */
+    gtk_drag_source_set(ql->view,
+                        GDK_BUTTON1_MASK,
+                        queuelike_targets,
+                        sizeof queuelike_targets / sizeof *queuelike_targets,
+                        GDK_ACTION_COPY);
+    g_signal_connect(ql->view, "drag-data-get",
+                     G_CALLBACK(ql_drag_data_get), ql);
+    make_treeview_multidrag(ql->view, NULL);
   }
   
   /* TODO style? */

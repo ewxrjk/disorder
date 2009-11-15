@@ -152,7 +152,7 @@ static void queue_init(struct queuelike attribute((unused)) *ql) {
   g_timeout_add(1000/*ms*/, playing_periodic, 0);
 }
 
-static void queue_move_completed(void attribute((unused)) *v,
+static void queue_drop_completed(void attribute((unused)) *v,
                                  const char *err) {
   if(err) {
     popup_protocol_error(0, err);
@@ -164,32 +164,45 @@ static void queue_move_completed(void attribute((unused)) *v,
 /** @brief Called when drag+drop completes */
 static void queue_drop(struct queuelike attribute((unused)) *ql,
                        int ntracks,
-                       char attribute((unused)) **tracks, char **ids,
+                       char **tracks, char **ids,
                        struct queue_entry *after_me) {
   int n;
-  
-  if(playing_track) {
-    /* If there's a playing track then you can't drag it anywhere  */
-    for(n = 0; n < ntracks; ++n) {
-      if(!strcmp(playing_track->id, ids[n])) {
-        fprintf(stderr, "cannot drag playing track\n");
-        return;
+
+  if(ids) {
+    /* Rearrangement */
+    if(playing_track) {
+      /* If there's a playing track then you can't drag it anywhere  */
+      for(n = 0; n < ntracks; ++n) {
+        if(!strcmp(playing_track->id, ids[n])) {
+          fprintf(stderr, "cannot drag playing track\n");
+          return;
+        }
       }
+      /* You can't tell the server to drag after the playing track by ID, you
+       * have to send "". */
+      if(after_me == playing_track)
+        after_me = NULL;
+      /* If you try to drag before the playing track (i.e. after_me=NULL on
+       * input) then the effect is just to drag after it, although there's no
+       * longer code to explicitly implement this. */
     }
-    /* You can't tell the server to drag after the playing track by ID, you
+    /* Tell the server to move them.  The log will tell us about the change (if
+     * indeed it succeeds!), so no need to rearrange the model now. */
+    disorder_eclient_moveafter(client,
+                               after_me ? after_me->id : "",
+                               ntracks, (const char **)ids,
+                               queue_drop_completed, NULL);
+  } else {
+    /* You can't tell the server to insert after the playing track by ID, you
      * have to send "". */
     if(after_me == playing_track)
       after_me = NULL;
-    /* If you try to drag before the playing track (i.e. after_me=NULL on
-     * input) then the effect is just to drag after it, although there's no
-     * longer code to explicitly implement this. */
+    /* Play the tracks */
+    disorder_eclient_playafter(client,
+                               after_me ? after_me->id : "",
+                               ntracks, (const char **)tracks,
+                               queue_drop_completed, NULL);
   }
-  /* Tell the server to move them.  The log will tell us about the change (if
-   * indeed it succeeds!), so no need to rearrange the model now. */
-  disorder_eclient_moveafter(client,
-                             after_me ? after_me->id : "",
-                             ntracks, (const char **)ids,
-                             queue_move_completed, NULL);
 }
 
 /** @brief Columns for the queue */

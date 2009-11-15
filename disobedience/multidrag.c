@@ -1,19 +1,27 @@
 /*
- * This file is part of DisOrder
  * Copyright (C) 2009 Richard Kettlewell
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Note that this license ONLY applies to multidrag.c and multidrag.h, not to
+ * the rest of DisOrder.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation files
+ * (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 /** @file disobedience/multidrag.c
  * @brief Drag multiple rows of a GtkTreeView
@@ -22,20 +30,31 @@
  * you dragged from (because it can't cope with dragging more than one row at a
  * time).
  *
- * Disobedience needs more.  To implement this it intercepts button-press-event
- * and button-release event and for clicks that might be the start of drags,
- * suppresses changes to the selection.  A consequence of this is that it needs
- * to intercept button-release-event too, to restore the effect of the click,
- * if it turns out not to be drag after all.
+ * Disobedience needs more.
+ *
+ * Firstly it intercepts button-press-event and button-release event and for
+ * clicks that might be the start of drags, suppresses changes to the
+ * selection.  A consequence of this is that it needs to intercept
+ * button-release-event too, to restore the effect of the click, if it turns
+ * out not to be drag after all.
  *
  * The location of the initial click is stored in object data called @c
  * multidrag-where.
+ *
+ * Secondly it intercepts drag-begin and constructs an icon from the rows to be
+ * dragged.
  *
  * Inspired by similar code in <a
  * href="http://code.google.com/p/quodlibet/">Quodlibet</a> (another software
  * jukebox, albeit as far as I can see a single-user one).
  */
-#include "disobedience.h"
+#include <config.h>
+
+#include <string.h>
+#include <glib.h>
+#include <gtk/gtk.h>
+
+#include "multidrag.h"
 
 static gboolean multidrag_selection_block(GtkTreeSelection attribute((unused)) *selection,
 					  GtkTreeModel attribute((unused)) *model,
@@ -124,16 +143,120 @@ static gboolean multidrag_button_release_event(GtkWidget *w,
   return FALSE;			/* propagate */
 }
 
+/** @brief State for multidrag_begin() and its callbacks */
+struct multidrag_begin_state {
+  GtkTreeView *view;
+  multidrag_row_predicate *predicate;
+  int rows;
+  int index;
+  GdkPixmap **pixmaps;
+};
+
+/** @brief Callback to construct a row pixmap */
+static void multidrag_make_row_pixmaps(GtkTreeModel attribute((unused)) *model,
+				       GtkTreePath *path,
+				       GtkTreeIter *iter,
+				       gpointer data) {
+  struct multidrag_begin_state *qdbs = data;
+
+  if(qdbs->predicate(path, iter)) {
+    qdbs->pixmaps[qdbs->index++]
+      = gtk_tree_view_create_row_drag_icon(qdbs->view, path);
+  }
+}
+
+/** @brief Called when a drag operation starts
+ * @param w Source widget (the tree view)
+ * @param dc Drag context
+ * @param user_data Row predicate
+ */
+static void multidrag_drag_begin(GtkWidget *w,
+				 GdkDragContext attribute((unused)) *dc,
+				 gpointer user_data) {
+  struct multidrag_begin_state qdbs[1];
+  GdkPixmap *icon;
+  GtkTreeSelection *sel;
+
+  //fprintf(stderr, "drag-begin\n");
+  memset(qdbs, 0, sizeof *qdbs);
+  qdbs->view = GTK_TREE_VIEW(w);
+  qdbs->predicate = (multidrag_row_predicate *)user_data;
+  sel = gtk_tree_view_get_selection(qdbs->view);
+  /* Find out how many rows there are */
+  if(!(qdbs->rows = gtk_tree_selection_count_selected_rows(sel)))
+    return;                             /* doesn't make sense */
+  /* Generate a pixmap for each row */
+  qdbs->pixmaps = g_new(GdkPixmap *, qdbs->rows);
+  gtk_tree_selection_selected_foreach(sel,
+                                      multidrag_make_row_pixmaps,
+                                      qdbs);
+  /* Might not have used all rows */
+  qdbs->rows = qdbs->index;
+  /* Determine the size of the final icon */
+  int height = 0, width = 0;
+  for(int n = 0; n < qdbs->rows; ++n) {
+    int pxw, pxh;
+    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
+    if(pxw > width)
+      width = pxw;
+    height += pxh;
+  }
+  if(!width || !height)
+    return;                             /* doesn't make sense */
+  /* Construct the icon */
+  icon = gdk_pixmap_new(qdbs->pixmaps[0], width, height, -1);
+  GdkGC *gc = gdk_gc_new(icon);
+  gdk_gc_set_colormap(gc, gtk_widget_get_colormap(w));
+  int y = 0;
+  for(int n = 0; n < qdbs->rows; ++n) {
+    int pxw, pxh;
+    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
+    gdk_draw_drawable(icon,
+                      gc,
+                      qdbs->pixmaps[n],
+                      0, 0,             /* source coords */
+                      0, y,             /* dest coords */
+                      pxw, pxh);        /* size */
+    y += pxh;
+    gdk_drawable_unref(qdbs->pixmaps[n]);
+    qdbs->pixmaps[n] = NULL;
+  }
+  g_free(qdbs->pixmaps);
+  qdbs->pixmaps = NULL;
+  // TODO scale down a bit, the resulting icons are currently a bit on the
+  // large side.
+  gtk_drag_source_set_icon(w,
+                           gtk_widget_get_colormap(w),
+                           icon,
+                           NULL);
+}
+
+static gboolean multidrag_default_predicate(GtkTreePath attribute((unused)) *path,
+					    GtkTreeIter attribute((unused)) *iter) {
+  return TRUE;
+}
+
 /** @brief Allow multi-row drag for @p w
  * @param w A GtkTreeView widget
+ * @param predicate Function called to test rows for draggability, or NULL
  *
- * Suppresses the restriction of selections when a drag is started.
+ * Suppresses the restriction of selections when a drag is started, and
+ * intercepts drag-begin to construct an icon.
+ *
+ * @p predicate should return TRUE for draggable rows and FALSE otherwise, to
+ * control what goes in the icon.  If NULL, equivalent to a function that
+ * always returns TRUE.
  */
-void make_treeview_multidrag(GtkWidget *w) {
+void make_treeview_multidrag(GtkWidget *w,
+			     multidrag_row_predicate *predicate) {
+  if(!predicate)
+    predicate = multidrag_default_predicate;
   g_signal_connect(w, "button-press-event",
 		   G_CALLBACK(multidrag_button_press_event), NULL);
   g_signal_connect(w, "button-release-event",
 		   G_CALLBACK(multidrag_button_release_event), NULL);
+  g_signal_connect(w, "drag-begin",
+                   G_CALLBACK(multidrag_drag_begin), predicate);
 }
 
 /*
