@@ -187,6 +187,9 @@ If they are playing or in the queue then a notes icon appears next to them.
 Left clicking on a file will select it.
 As with the queue tab you can use SHIFT and CTRL to select multiple files.
 .PP
+Files may be played by dragging them to the queue tab and thence to a
+destination position in the queue.
+.PP
 The text box at the bottom is a search form.
 If you enter search terms here then tracks containing all those words will be
 highlighted.
