@@ -138,6 +138,7 @@ static gboolean multidrag_button_release_event(GtkWidget *w,
 /** @brief State for multidrag_begin() and its callbacks */
 struct multidrag_begin_state {
   GtkTreeView *view;
+  multidrag_row_predicate *predicate;
   int rows;
   int index;
   GdkPixmap **pixmaps;
@@ -146,22 +147,24 @@ struct multidrag_begin_state {
 /** @brief Callback to construct a row pixmap */
 static void multidrag_make_row_pixmaps(GtkTreeModel attribute((unused)) *model,
 				       GtkTreePath *path,
-				       GtkTreeIter attribute((unused)) *iter,
+				       GtkTreeIter *iter,
 				       gpointer data) {
   struct multidrag_begin_state *qdbs = data;
 
-  qdbs->pixmaps[qdbs->index++]
-    = gtk_tree_view_create_row_drag_icon(qdbs->view, path);
+  if(qdbs->predicate(path, iter)) {
+    qdbs->pixmaps[qdbs->index++]
+      = gtk_tree_view_create_row_drag_icon(qdbs->view, path);
+  }
 }
 
 /** @brief Called when a drag operation starts
  * @param w Source widget (the tree view)
  * @param dc Drag context
- * @param user_data Not used
+ * @param user_data Row predicate
  */
 static void multidrag_drag_begin(GtkWidget *w,
 				 GdkDragContext attribute((unused)) *dc,
-				 gpointer attribute((unused)) user_data) {
+				 gpointer user_data) {
   struct multidrag_begin_state qdbs[1];
   GdkPixmap *icon;
   GtkTreeSelection *sel;
@@ -169,6 +172,7 @@ static void multidrag_drag_begin(GtkWidget *w,
   //fprintf(stderr, "drag-begin\n");
   memset(qdbs, 0, sizeof *qdbs);
   qdbs->view = GTK_TREE_VIEW(w);
+  qdbs->predicate = (multidrag_row_predicate *)user_data;
   sel = gtk_tree_view_get_selection(qdbs->view);
   /* Find out how many rows there are */
   if(!(qdbs->rows = gtk_tree_selection_count_selected_rows(sel)))
@@ -178,6 +182,8 @@ static void multidrag_drag_begin(GtkWidget *w,
   gtk_tree_selection_selected_foreach(sel,
                                       multidrag_make_row_pixmaps,
                                       qdbs);
+  /* Might not have used all rows */
+  qdbs->rows = qdbs->index;
   /* Determine the size of the final icon */
   int height = 0, width = 0;
   for(int n = 0; n < qdbs->rows; ++n) {
@@ -217,18 +223,32 @@ static void multidrag_drag_begin(GtkWidget *w,
                            NULL);
 }
 
+static gboolean multidrag_default_predicate(GtkTreePath attribute((unused)) *path,
+					    GtkTreeIter attribute((unused)) *iter) {
+  return TRUE;
+}
+
 /** @brief Allow multi-row drag for @p w
  * @param w A GtkTreeView widget
+ * @param predicate Function called to test rows for draggability, or NULL
  *
- * Suppresses the restriction of selections when a drag is started.
+ * Suppresses the restriction of selections when a drag is started, and
+ * intercepts drag-begin to construct an icon.
+ *
+ * @p predicate should return TRUE for draggable rows and FALSE otherwise, to
+ * control what goes in the icon.  If NULL, equivalent to a function that
+ * always returns TRUE.
  */
-void make_treeview_multidrag(GtkWidget *w) {
+void make_treeview_multidrag(GtkWidget *w,
+			     multidrag_row_predicate *predicate) {
+  if(!predicate)
+    predicate = multidrag_default_predicate;
   g_signal_connect(w, "button-press-event",
 		   G_CALLBACK(multidrag_button_press_event), NULL);
   g_signal_connect(w, "button-release-event",
 		   G_CALLBACK(multidrag_button_release_event), NULL);
   g_signal_connect(w, "drag-begin",
-                   G_CALLBACK(multidrag_drag_begin), NULL);
+                   G_CALLBACK(multidrag_drag_begin), predicate);
 }
 
 /*

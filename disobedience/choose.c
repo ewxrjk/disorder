@@ -32,7 +32,17 @@
 
 #include "disobedience.h"
 #include "choose.h"
+#include "multidrag.h"
 #include <gdk/gdkkeysyms.h>
+
+/** @brief Drag types */
+static const GtkTargetEntry choose_targets[] = {
+  {
+    (char *)"text/x-disorder-playable-tracks", /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    1                                     /* ID value */
+  },
+};
 
 /** @brief The current selection tree */
 GtkTreeStore *choose_store;
@@ -538,6 +548,60 @@ static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
   return TRUE;                          /* Handled it */
 }
 
+static gboolean choose_multidrag_predicate(GtkTreePath attribute((unused)) *path,
+                                           GtkTreeIter *iter) {
+  return choose_is_file(iter);
+}
+
+
+/** @brief Callback to add selected tracks to the selection data
+ *
+ * Called from choose_drag_data_get().
+ */
+static void choose_drag_data_get_collect(GtkTreeModel attribute((unused)) *model,
+                                         GtkTreePath attribute((unused)) *path,
+                                         GtkTreeIter *iter,
+                                         gpointer data) {
+  struct dynstr *const result = data;
+
+  if(choose_is_file(iter)) {            /* no diretories */
+    dynstr_append_string(result, "");   /* no ID */
+    dynstr_append(result, '\n');
+    dynstr_append_string(result, choose_get_track(iter));
+    dynstr_append(result, '\n');
+  }
+}
+
+/** @brief Called to extract the dragged data from the choose view
+ * @param w Source widget (the tree view)
+ * @param dc Drag context
+ * @param data Where to put the answer
+ * @param info_ Target @c info parameter
+ * @param time_ Time data requested (for some reason not a @c time_t)
+ * @param user_data The queuelike
+ *
+ * Closely analogous to ql_drag_data_get(), and uses the same data format.
+ * IDs are sent as empty strings.
+ */
+static void choose_drag_data_get(GtkWidget *w,
+                                 GdkDragContext attribute((unused)) *dc,
+                                 GtkSelectionData *data,
+                                 guint attribute((unused)) info_,
+                                 guint attribute((unused)) time_,
+                                 gpointer attribute((unused)) user_data) {
+  struct dynstr result[1];
+  GtkTreeSelection *sel;
+
+  sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(w));
+  dynstr_init(result);
+  gtk_tree_selection_selected_foreach(sel,
+                                      choose_drag_data_get_collect,
+                                      result);
+  gtk_selection_data_set(data,
+                         GDK_TARGET_STRING,
+                         8, (guchar *)result->vec, result->nvec);
+}
+
 /** @brief Create the choose tab */
 GtkWidget *choose_widget(void) {
   /* Create the tree store. */
@@ -642,6 +706,17 @@ GtkWidget *choose_widget(void) {
                    G_CALLBACK(choose_key_event), choose_search_entry);
   g_signal_connect(choose_view, "key-release-event",
                    G_CALLBACK(choose_key_event), choose_search_entry);
+
+  /* Enable dragging of tracks out */
+  gtk_drag_source_set(choose_view,
+                      GDK_BUTTON1_MASK,
+                      choose_targets,
+                      sizeof choose_targets / sizeof *choose_targets,
+                      GDK_ACTION_COPY);
+  g_signal_connect(choose_view, "drag-data-get",
+                   G_CALLBACK(choose_drag_data_get), NULL);
+  make_treeview_multidrag(choose_view,
+                          choose_multidrag_predicate);
 
   return vbox;
 }

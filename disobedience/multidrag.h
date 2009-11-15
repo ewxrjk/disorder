@@ -21,7 +21,16 @@
 #ifndef MULTIDRAG_H
 #define MULTIDRAG_H
 
-void make_treeview_multidrag(GtkWidget *w);
+/** @brief Predicate type for rows to drag
+ * @param path Path to row
+ * @param iter Iterator pointing at row
+ * @return TRUE if row is draggable else FALSE
+ */
+typedef gboolean multidrag_row_predicate(GtkTreePath *path,
+					 GtkTreeIter *iter);
+
+void make_treeview_multidrag(GtkWidget *w,
+			     multidrag_row_predicate *predicate);
 
 #endif /* MULTIDRAG_H */
 

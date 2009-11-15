@@ -534,6 +534,13 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
  * @param info_ Target @c info parameter
  * @param time_ Time data requested (for some reason not a @c time_t)
  * @param user_data The queuelike
+ *
+ * The list of tracks is converted into a single string, consisting of IDs
+ * and track names.  Each is terminated by a newline.  Including both ID and
+ * track name means that the receiver can use whichever happens to be more
+ * convenient.
+ *
+ * If there are no IDs for rows in this widget then the ID half is undefined.
  */
 static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
                              GdkDragContext attribute((unused)) *dc,
@@ -544,10 +551,6 @@ static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
   struct queuelike *const ql = user_data;
   struct dynstr result[1];
 
-  /* The list of tracks is converted into a single string, consisting of IDs
-   * and track names.  Each is terminated by a newline.  Including both ID and
-   * track name means that the receiver can use whichever happens to be more
-   * convenient. */
   dynstr_init(result);
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_drag_data_get_collect,
@@ -747,7 +750,8 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                      G_CALLBACK(ql_drag_data_get), ql);
     g_signal_connect(ql->view, "drag-data-received",
                      G_CALLBACK(ql_drag_data_received), ql);
-    make_treeview_multidrag(ql->view);
+    make_treeview_multidrag(ql->view, NULL);
+    // TODO playing track should be refused by predicate arg
   } else {
     /* For queues that cannot accept a drop we still accept a copy out */
     gtk_drag_source_set(ql->view,
@@ -757,7 +761,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                         GDK_ACTION_COPY);
     g_signal_connect(ql->view, "drag-data-get",
                      G_CALLBACK(ql_drag_data_get), ql);
-    make_treeview_multidrag(ql->view);
+    make_treeview_multidrag(ql->view, NULL);
   }
   
   /* TODO style? */
