@@ -22,20 +22,27 @@
  * you dragged from (because it can't cope with dragging more than one row at a
  * time).
  *
- * Disobedience needs more.  To implement this it intercepts button-press-event
- * and button-release event and for clicks that might be the start of drags,
- * suppresses changes to the selection.  A consequence of this is that it needs
- * to intercept button-release-event too, to restore the effect of the click,
- * if it turns out not to be drag after all.
+ * Disobedience needs more.
+ *
+ * Firstly it intercepts button-press-event and button-release event and for
+ * clicks that might be the start of drags, suppresses changes to the
+ * selection.  A consequence of this is that it needs to intercept
+ * button-release-event too, to restore the effect of the click, if it turns
+ * out not to be drag after all.
  *
  * The location of the initial click is stored in object data called @c
  * multidrag-where.
+ *
+ * Secondly it intercepts drag-begin and constructs an icon from the rows to be
+ * dragged.
  *
  * Inspired by similar code in <a
  * href="http://code.google.com/p/quodlibet/">Quodlibet</a> (another software
  * jukebox, albeit as far as I can see a single-user one).
  */
 #include <config.h>
+
+#include <string.h>
 #include <glib.h>
 #include <gtk/gtk.h>
 
@@ -128,6 +135,88 @@ static gboolean multidrag_button_release_event(GtkWidget *w,
   return FALSE;			/* propagate */
 }
 
+/** @brief State for multidrag_begin() and its callbacks */
+struct multidrag_begin_state {
+  GtkTreeView *view;
+  int rows;
+  int index;
+  GdkPixmap **pixmaps;
+};
+
+/** @brief Callback to construct a row pixmap */
+static void multidrag_make_row_pixmaps(GtkTreeModel attribute((unused)) *model,
+				       GtkTreePath *path,
+				       GtkTreeIter attribute((unused)) *iter,
+				       gpointer data) {
+  struct multidrag_begin_state *qdbs = data;
+
+  qdbs->pixmaps[qdbs->index++]
+    = gtk_tree_view_create_row_drag_icon(qdbs->view, path);
+}
+
+/** @brief Called when a drag operation starts
+ * @param w Source widget (the tree view)
+ * @param dc Drag context
+ * @param user_data Not used
+ */
+static void multidrag_drag_begin(GtkWidget *w,
+				 GdkDragContext attribute((unused)) *dc,
+				 gpointer attribute((unused)) user_data) {
+  struct multidrag_begin_state qdbs[1];
+  GdkPixmap *icon;
+  GtkTreeSelection *sel;
+
+  //fprintf(stderr, "drag-begin\n");
+  memset(qdbs, 0, sizeof *qdbs);
+  qdbs->view = GTK_TREE_VIEW(w);
+  sel = gtk_tree_view_get_selection(qdbs->view);
+  /* Find out how many rows there are */
+  if(!(qdbs->rows = gtk_tree_selection_count_selected_rows(sel)))
+    return;                             /* doesn't make sense */
+  /* Generate a pixmap for each row */
+  qdbs->pixmaps = g_new(GdkPixmap *, qdbs->rows);
+  gtk_tree_selection_selected_foreach(sel,
+                                      multidrag_make_row_pixmaps,
+                                      qdbs);
+  /* Determine the size of the final icon */
+  int height = 0, width = 0;
+  for(int n = 0; n < qdbs->rows; ++n) {
+    int pxw, pxh;
+    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
+    if(pxw > width)
+      width = pxw;
+    height += pxh;
+  }
+  if(!width || !height)
+    return;                             /* doesn't make sense */
+  /* Construct the icon */
+  icon = gdk_pixmap_new(qdbs->pixmaps[0], width, height, -1);
+  GdkGC *gc = gdk_gc_new(icon);
+  gdk_gc_set_colormap(gc, gtk_widget_get_colormap(w));
+  int y = 0;
+  for(int n = 0; n < qdbs->rows; ++n) {
+    int pxw, pxh;
+    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
+    gdk_draw_drawable(icon,
+                      gc,
+                      qdbs->pixmaps[n],
+                      0, 0,             /* source coords */
+                      0, y,             /* dest coords */
+                      pxw, pxh);        /* size */
+    y += pxh;
+    gdk_drawable_unref(qdbs->pixmaps[n]);
+    qdbs->pixmaps[n] = NULL;
+  }
+  g_free(qdbs->pixmaps);
+  qdbs->pixmaps = NULL;
+  // TODO scale down a bit, the resulting icons are currently a bit on the
+  // large side.
+  gtk_drag_source_set_icon(w,
+                           gtk_widget_get_colormap(w),
+                           icon,
+                           NULL);
+}
+
 /** @brief Allow multi-row drag for @p w
  * @param w A GtkTreeView widget
  *
@@ -138,6 +227,8 @@ void make_treeview_multidrag(GtkWidget *w) {
 		   G_CALLBACK(multidrag_button_press_event), NULL);
   g_signal_connect(w, "button-release-event",
 		   G_CALLBACK(multidrag_button_release_event), NULL);
+  g_signal_connect(w, "drag-begin",
+                   G_CALLBACK(multidrag_drag_begin), NULL);
 }
 
 /*

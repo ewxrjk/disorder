@@ -424,86 +424,6 @@ void ql_new_queue(struct queuelike *ql,
   --suppress_actions;
 }
 
-/** @brief State for ql_drag_begin() and its callbacks */
-struct ql_drag_begin_state {
-  struct queuelike *ql;
-  int rows;
-  int index;
-  GdkPixmap **pixmaps;
-};
-
-/** @brief Callback to construct a row pixmap */
-static void ql_drag_make_row_pixmaps(GtkTreeModel attribute((unused)) *model,
-                                     GtkTreePath *path,
-                                     GtkTreeIter attribute((unused)) *iter,
-                                     gpointer data) {
-  struct ql_drag_begin_state *qdbs = data;
-
-  qdbs->pixmaps[qdbs->index++]
-    = gtk_tree_view_create_row_drag_icon(GTK_TREE_VIEW(qdbs->ql->view),
-                                         path);
-}
-
-/** @brief Called when a drag operation from this queuelike begins
- * @param w Source widget (the tree view)
- * @param dc Drag context
- * @param user_data The queuelike
- */
-static void ql_drag_begin(GtkWidget attribute((unused)) *w,
-                          GdkDragContext attribute((unused)) *dc,
-                          gpointer user_data) {
-  struct queuelike *const ql = user_data;
-  struct ql_drag_begin_state qdbs[1];
-  GdkPixmap *icon;
-
-  //fprintf(stderr, "drag-begin\n");
-  memset(qdbs, 0, sizeof *qdbs);
-  qdbs->ql = ql;
-  /* Find out how many rows there are */
-  if(!(qdbs->rows = gtk_tree_selection_count_selected_rows(ql->selection)))
-    return;                             /* doesn't make sense */
-  /* Generate a pixmap for each row */
-  qdbs->pixmaps = xcalloc(qdbs->rows, sizeof *qdbs->pixmaps);
-  gtk_tree_selection_selected_foreach(ql->selection,
-                                      ql_drag_make_row_pixmaps,
-                                      qdbs);
-  /* Determine the size of the final icon */
-  int height = 0, width = 0;
-  for(int n = 0; n < qdbs->rows; ++n) {
-    int pxw, pxh;
-    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
-    if(pxw > width)
-      width = pxw;
-    height += pxh;
-  }
-  if(!width || !height)
-    return;                             /* doesn't make sense */
-  /* Construct the icon */
-  icon = gdk_pixmap_new(qdbs->pixmaps[0], width, height, -1);
-  GdkGC *gc = gdk_gc_new(icon);
-  gdk_gc_set_colormap(gc, gtk_widget_get_colormap(ql->view));
-  int y = 0;
-  for(int n = 0; n < qdbs->rows; ++n) {
-    int pxw, pxh;
-    gdk_drawable_get_size(qdbs->pixmaps[n], &pxw, &pxh);
-    gdk_draw_drawable(icon,
-                      gc,
-                      qdbs->pixmaps[n],
-                      0, 0,             /* source coords */
-                      0, y,             /* dest coords */
-                      pxw, pxh);        /* size */
-    y += pxh;
-    gdk_drawable_unref(qdbs->pixmaps[n]);
-    qdbs->pixmaps[n] = NULL;
-  }
-  // TODO scale down a bit, the resulting icons are currently a bit on the
-  // large side.
-  gtk_drag_source_set_icon(ql->view,
-                           gtk_widget_get_colormap(ql->view),
-                           icon,
-                           NULL);
-}
-
 /** @brief Called when a drag moves within a candidate destination
  * @param w Destination widget
  * @param dc Drag context
@@ -819,8 +739,6 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                       queuelike_targets,
                       sizeof queuelike_targets / sizeof *queuelike_targets,
                       GDK_ACTION_MOVE|GDK_ACTION_COPY);
-    g_signal_connect(ql->view, "drag-begin",
-                     G_CALLBACK(ql_drag_begin), ql);
     g_signal_connect(ql->view, "drag-motion",
                      G_CALLBACK(ql_drag_motion), ql);
     g_signal_connect(ql->view, "drag-leave",
@@ -837,8 +755,6 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
                         queuelike_targets,
                         sizeof queuelike_targets / sizeof *queuelike_targets,
                         GDK_ACTION_COPY);
-    g_signal_connect(ql->view, "drag-begin",
-                     G_CALLBACK(ql_drag_begin), ql);
     g_signal_connect(ql->view, "drag-data-get",
                      G_CALLBACK(ql_drag_data_get), ql);
     make_treeview_multidrag(ql->view);
