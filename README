@@ -38,8 +38,8 @@ Build dependencies:
   GNU Make         3.81        } Non-GNU versions will NOT work
   GNU Sed          4.1.5       }
   Python           2.5.2       (optional; 2.4 won't work)
-  GTK+             2.8.20      (if you want the GTK+ client)
-  GLIB             2.12.4      (if you want the GTK+ client)
+  GTK+             2.12.12     (for the GTK+ client; 2.10 & older will NOT work)
+  GLIB             2.16.6      (for the GTK+ client)
 
 "Tested" means I've built against that version; earlier or later versions will
 often work too.
