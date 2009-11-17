@@ -24,22 +24,22 @@ It could probably be ported to some other UNIX variants without too much
 effort.
 
 Build dependencies:
-  Name             Tested              Notes
-  libdb            4.3.29              not 4.2/4.6; 4.[457] seem to be ok
+  Name             Tested      Notes
+  libdb            4.3.29      not 4.2/4.6; 4.[457] seem to be ok
   libgc            6.8
   libvorbisfile    1.1.2
-  libpcre          6.7                 need UTF-8 support
+  libpcre          6.7         need UTF-8 support
   libmad           0.15.1b
   libgcrypt        1.2.3
   libao            0.8.6
   libasound        1.0.13
   libFLAC          1.1.2
-  GNU C            4.1.2               }
-  GNU Make         3.81                } Non-GNU versions will NOT work
-  GNU Sed          4.1.5               }
-  Python           2.5.2               (optional; 2.4 won't work)
-  GTK+             2.8.20              (if you want the GTK+ client)
-  GLIB             2.12.4              (if you want the GTK+ client)
+  GNU C            4.1.2       }
+  GNU Make         3.81        } Non-GNU versions will NOT work
+  GNU Sed          4.1.5       }
+  Python           2.5.2       (optional; 2.4 won't work)
+  GTK+             2.8.20      (if you want the GTK+ client)
+  GLIB             2.12.4      (if you want the GTK+ client)
 
 "Tested" means I've built against that version; earlier or later versions will
 often work too.
