@@ -76,11 +76,11 @@ static void block_selection(GtkWidget *w, gboolean block,
   int *where = g_object_get_data(G_OBJECT(w), "multidrag-where");
   if(!where) {
     where = g_malloc(2 * sizeof (int));
-    g_object_set_data(G_OBJECT(w), "multidrag-where", where);
+    g_object_set_data_full(G_OBJECT(w), "multidrag-where", where,
+                           g_free);
   }
   where[0] = x;
   where[1] = y;
-  // TODO release 'where' when object is destroyed
 }
 
 static gboolean multidrag_button_press_event(GtkWidget *w,
@@ -96,21 +96,22 @@ static gboolean multidrag_button_press_event(GtkWidget *w,
   if(event->state & GDK_MODIFIER_MASK)
     return FALSE;
   /* We are only interested if a well-defined path is clicked */
-  GtkTreePath *path;
+  GtkTreePath *path = NULL;
   if(!gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(w),
 				    event->x, event->y,
 				    &path,
 				    NULL,
 				    NULL, NULL))
     return FALSE;
-  //gtk_widget_grab_focus(w);    // TODO why??
   /* We are only interested if a selected row is clicked */
   GtkTreeSelection *s = gtk_tree_view_get_selection(GTK_TREE_VIEW(w));
-  if(!gtk_tree_selection_path_is_selected(s, path))
-    return FALSE;
-  /* We block subsequent selection changes and remember where the
-   * click was */
-  block_selection(w, FALSE, event->x, event->y);
+  if(gtk_tree_selection_path_is_selected(s, path)) {
+    /* We block subsequent selection changes and remember where the
+     * click was */
+    block_selection(w, FALSE, event->x, event->y);
+  }
+  if(path)
+    gtk_tree_path_free(path);
   return FALSE;			/* propagate */
 }
 
@@ -129,7 +130,7 @@ static gboolean multidrag_button_release_event(GtkWidget *w,
     if(x == event->x && y == event->y) {
       // If the up-click is at the same location as the down-click,
       // it's not a drag.
-      GtkTreePath *path;
+      GtkTreePath *path = NULL;
       GtkTreeViewColumn *col;
       if(gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(w),
 				       event->x, event->y,
@@ -138,6 +139,8 @@ static gboolean multidrag_button_release_event(GtkWidget *w,
 				       NULL, NULL)) {
 	gtk_tree_view_set_cursor(GTK_TREE_VIEW(w), path, col, FALSE);
       }
+      if(path)
+        gtk_tree_path_free(path);
     }
   }
   return FALSE;			/* propagate */
