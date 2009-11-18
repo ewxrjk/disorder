@@ -286,7 +286,7 @@ if test $want_cgi = yes; then
         fi
       done
     ])
-    if test "$rjk_cv_cgiexecdir" = "not found"; then
+    if test "$rjk_cv_httpdir" = "not found"; then
       AC_MSG_ERROR([cannot identify httpd documentroot.  Set httpdir on configure command line])
     fi
     httpdir="$rjk_cv_httpdir"
