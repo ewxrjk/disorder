@@ -105,17 +105,17 @@ void resample_close(struct resampler *rs) {
  * @param where Where to store result
  * @return Number of bytes consumed
  */
-static size_t resample_get_sample(struct resampler *rs,
+static size_t resample_get_sample(const struct resampler *rs,
                                   const uint8_t *bytes,
                                   float *where) {
   switch(rs->input_bits + rs->input_signed + rs->input_endian) {
   case 8+ENDIAN_BIG:
   case 8+ENDIAN_LITTLE:
-    *where = (bytes[0] - 128)/ 128;
+    *where = (bytes[0] - 128)/ 128.0;
     return 1;
   case 8+SIGNED+ENDIAN_BIG:
   case 8+SIGNED+ENDIAN_LITTLE:
-    *where = (int8_t)bytes[0] / 128;
+    *where = (int8_t)bytes[0] / 128.0;
     return 1;
   case 16+ENDIAN_BIG:
     *where = (bytes[0] * 256 + bytes[1] - 32768)/ 32768.0;
@@ -156,11 +156,11 @@ static inline int clip(int n, int min, int max) {
  *
  * The value is clipped naively if it will not fit.
  */
-static size_t resample_put_sample(struct resampler *rs,
+static size_t resample_put_sample(const struct resampler *rs,
                                   float sample,
                                   uint8_t *bytes) {
   unsigned value;
-  switch(rs->input_bits + rs->input_signed + rs->input_endian) {
+  switch(rs->output_bits + rs->output_signed + rs->output_endian) {
   case 8+ENDIAN_BIG:
   case 8+ENDIAN_LITTLE:
     *bytes = clip(sample * 128.0 + 128, 0, 255);
@@ -210,7 +210,7 @@ static size_t resample_put_sample(struct resampler *rs,
  * the input either mono or stereo, so the result isn't actually going to be
  * too bad.
  */
-static void resample_prepare_input(struct resampler *rs,
+static void resample_prepare_input(const struct resampler *rs,
                                    const uint8_t *bytes,
                                    size_t nbytes,
                                    float *floats) {
@@ -233,6 +233,7 @@ static void resample_prepare_input(struct resampler *rs,
         ++floats;
       }
     }
+    --nframes;
   }
 }
 
@@ -242,14 +243,17 @@ static void resample_prepare_input(struct resampler *rs,
  * @param nbytes Number of bytes to convert
  * @param eof Set an end of input stream
  * @param converted Called with converted data (possibly more than once)
+ * @param cd Passed to @p cd
  * @return Number of bytes consumed
  */
-size_t resample_convert(struct resampler *rs,
+size_t resample_convert(const struct resampler *rs,
                         const uint8_t *bytes,
                         size_t nbytes,
                         int eof,
                         void (*converted)(uint8_t *bytes,
-                                          size_t nbytes)) {
+                                          size_t nbytes,
+                                          void *cd),
+                        void *cd) {
   size_t nframesin = nbytes / (rs->input_bytes_per_frame);
   size_t nsamplesout;
   float *input = xcalloc(nframesin * rs->output_channels, sizeof (float));
@@ -290,7 +294,7 @@ size_t resample_convert(struct resampler *rs,
       bufused += resample_put_sample(rs, *op++, buffer + bufused);
       --nsamplesout;
     }
-    converted(buffer, bufused);
+    converted(buffer, bufused, cd);
   }
   if(output != input)
     xfree(output);

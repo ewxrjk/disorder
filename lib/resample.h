@@ -47,12 +47,14 @@ void resample_init(struct resampler *rs,
                    int output_bits, int output_channels, 
                    int output_rate, int output_signed,
                    int output_endian);
-size_t resample_convert(struct resampler *rs,
+size_t resample_convert(const struct resampler *rs,
                         const uint8_t *bytes,
                         size_t nbytes,
                         int eof,
                         void (*converted)(uint8_t *bytes,
-                                          size_t nbytes));
+                                          size_t nbytes,
+                                          void *cd),
+                        void *cd);
 void resample_close(struct resampler *rs);
 
 #endif /* RESAMPLE_H */
