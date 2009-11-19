@@ -52,8 +52,20 @@ static const uint8_t simple_bytes_u[] = {
   0, 127, 128, 255,
 };
 
+static const uint8_t simple_bytes_u2[] = {
+  0, 0, 127, 127, 128, 128, 255, 255,
+};
+
 static const uint8_t simple_bytes_s[] = {
   -128, -1, 0, 127,
+};
+
+static const uint8_t simple_words_u_le[] = {
+  0, 1,  0, 255,  1, 0,  1, 255
+};
+
+static const uint8_t simple_words_u_be[] = {
+  1, 0,  255, 0,  0, 1,  255, 1
 };
 
 static const struct {
@@ -83,6 +95,16 @@ static const struct {
     "sign flip",
     8, 1, 8000, 0, ENDIAN_LITTLE, simple_bytes_u, 4,
     8, 1, 8000, 1, ENDIAN_LITTLE, simple_bytes_s, 4
+  },
+  {
+    "mono to stereo",
+    8, 1, 8000, 0, ENDIAN_LITTLE, simple_bytes_u, 4,
+    8, 2, 8000, 0, ENDIAN_LITTLE, simple_bytes_u2, 8
+  },
+  {
+    "endian flip",
+    16, 1, 8000, 0, ENDIAN_LITTLE, simple_words_u_le, 8,
+    16, 1, 8000, 0, ENDIAN_BIG, simple_words_u_be, 8,
   },
 #if HAVE_SAMPLERATE_H
   /* Conversions that do change the sample rate */
