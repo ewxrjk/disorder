@@ -14,8 +14,6 @@ Dependencies:
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
 		     libflac-dev vorbis-tools wget
 
-     (Use the bzr from backports, the one in etch is obsolete.)
-
      On lenny use libdb4.5-deb.  libdb4.6 does not work (and configure will
      refuse to use it).
 
@@ -32,6 +30,10 @@ Dependencies:
          libgcrypt
          wget
          vorbis-tools
+
+   * On OS X with Fink:
+
+     fink install gtk+2-dev gc libgrypt pcre flac vorbis-tools libmad wget sed
 
    * Please report unstated dependencies (here, README or debian/control).
 
