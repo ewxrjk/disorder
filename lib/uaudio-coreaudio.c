@@ -138,14 +138,14 @@ static void coreaudio_start(uaudio_callback *callback,
   if(status)
     coreaudio_fatal(status, "AudioHardwareGetProperty");
   D(("mSampleRate       %f", asbd.mSampleRate));
-  D(("mFormatID         %08"PRIx32, asbd.mFormatID));
-  D(("mFormatFlags      %08"PRIx32, asbd.mFormatFlags));
-  D(("mBytesPerPacket   %08"PRIx32, asbd.mBytesPerPacket));
-  D(("mFramesPerPacket  %08"PRIx32, asbd.mFramesPerPacket));
-  D(("mBytesPerFrame    %08"PRIx32, asbd.mBytesPerFrame));
-  D(("mChannelsPerFrame %08"PRIx32, asbd.mChannelsPerFrame));
-  D(("mBitsPerChannel   %08"PRIx32, asbd.mBitsPerChannel));
-  D(("mReserved         %08"PRIx32, asbd.mReserved));
+  D(("mFormatID         %08"PRIx32, (uint32_t)asbd.mFormatID));
+  D(("mFormatFlags      %08"PRIx32, (uint32_t)asbd.mFormatFlags));
+  D(("mBytesPerPacket   %08"PRIx32, (uint32_t)asbd.mBytesPerPacket));
+  D(("mFramesPerPacket  %08"PRIx32, (uint32_t)asbd.mFramesPerPacket));
+  D(("mBytesPerFrame    %08"PRIx32, (uint32_t)asbd.mBytesPerFrame));
+  D(("mChannelsPerFrame %08"PRIx32, (uint32_t)asbd.mChannelsPerFrame));
+  D(("mBitsPerChannel   %08"PRIx32, (uint32_t)asbd.mBitsPerChannel));
+  D(("mReserved         %08"PRIx32, (uint32_t)asbd.mReserved));
   /* Check that everything adds up */
   if(asbd.mFormatID != kAudioFormatLinearPCM)
     disorder_fatal(0, "audio device does not support kAudioFormatLinearPCM");
