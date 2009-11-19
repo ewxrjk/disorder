@@ -438,6 +438,8 @@ if test $want_alsa = yes; then
   AC_CHECK_LIB([asound], [snd_pcm_open],
                [AC_SUBST(LIBASOUND,[-lasound])])
 fi
+AC_CHECK_LIB([samplerate],[src_new],
+             [AC_SUBST([LIBSAMPLERATE],[-lsamplerate])])
 if test $want_server = yes; then
   RJK_CHECK_LIB(db, db_create, [#include <db.h>],
 	       [AC_SUBST(LIBDB,[-ldb])],
@@ -523,6 +525,7 @@ AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 	         syslog.h unistd.h],[:],[
   missing_headers="$missing_headers $ac_header"
 ])
+AC_CHECK_HEADERS([samplerate.h])
 
 if test ! -z "$missing_headers"; then
   AC_MSG_ERROR([missing headers:$missing_headers])
