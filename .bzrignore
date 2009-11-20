@@ -203,3 +203,5 @@ doc/disorder-choose.8.html
 config.aux/compile
 server/endian
 clients/rtpmon
+libtests/t-resample
+clients/resample

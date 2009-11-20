@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,15 @@
 /** @file server/normalize.c
  * @brief Convert "raw" format output to the configured format
  *
- * Currently we invoke sox even for trivial conversions such as byte-swapping.
- * Ideally we would do all conversion including resampling in this one process
- * and eliminate the dependency on sox.
+ * If libsamplerate is available then resample_convert() is used to do all
+ * conversions.  If not then we invoke sox (even for trivial conversions such
+ * as byte-swapping).  The sox support might be removed in a future version.
  */
 
 #include "disorder-server.h"
+#include "resample.h"
+
+static char buffer[1024 * 1024];
 
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
@@ -59,7 +62,6 @@ static void help(void) {
  * @param n Number of bytes to copy
  */
 static void copy(int infd, int outfd, size_t n) {
-  char buffer[4096];
   ssize_t written;
 
   while(n > 0) {
@@ -84,6 +86,7 @@ static void copy(int infd, int outfd, size_t n) {
   }
 }
 
+#if !HAVE_SAMPLERATE_H
 static void soxargs(const char ***pp, char **qq,
                     const struct stream_header *header) {
   *(*pp)++ = "-t.raw";
@@ -120,11 +123,30 @@ static void soxargs(const char ***pp, char **qq,
     disorder_fatal(0, "unknown sox_generation %ld", config->sox_generation);
   }
 }
+#else
+static void converted(uint8_t *bytes,
+                      size_t nbytes,
+                      void attribute((unused)) *cd) {
+  /*syslog(LOG_INFO, "out: %02x %02x %02x %02x",
+         bytes[0],
+         bytes[1],
+         bytes[2],
+         bytes[3]);*/
+  while(nbytes > 0) {
+    ssize_t n = write(1, bytes, nbytes);
+    if(n < 0)
+      disorder_fatal(errno, "writing to stdout");
+    bytes += n;
+    nbytes -= n;
+  }
+}
+#endif
 
 int main(int argc, char attribute((unused)) **argv) {
   struct stream_header header, latest_format;
-  int n, p[2], outfd = -1, logsyslog = !isatty(2);
+  int n, outfd = -1, logsyslog = !isatty(2), rs_in_use = 0;
   pid_t pid = -1;
+  struct resampler rs[1];
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, ""))
@@ -149,6 +171,7 @@ int main(int argc, char attribute((unused)) **argv) {
   }
   memset(&latest_format, 0, sizeof latest_format);
   for(;;) {
+    /* Read one header */
     n = 0;
     while((size_t)n < sizeof header) {
       int r = read(0, (char *)&header + n, sizeof header - n);
@@ -174,11 +197,86 @@ int main(int argc, char attribute((unused)) **argv) {
     if(header.bits % 8 || !header.bits || header.bits > 64)
       disorder_fatal(0, "unsupported sample size %d bits", header.bits);
     if(header.endian != ENDIAN_BIG && header.endian != ENDIAN_LITTLE)
-      disorder_fatal(0, "unsupported byte order %x", header.bits);
+      disorder_fatal(0, "unsupported byte order %d", header.endian);
     /* Skip empty chunks regardless of their alleged format */
     if(header.nbytes == 0)
       continue;
     /* If the format has changed we stop/start the converter */
+#if HAVE_SAMPLERATE_H
+    /* We have libsamplerate */
+    if(formats_equal(&header, &config->sample_format))
+      /* If the format is already correct then we just write out the data */
+      copy(0, 1, header.nbytes);
+    else {
+      /* If we have a resampler active already check it is suitable and destroy
+       * it if not */
+      if(!formats_equal(&header, &latest_format) && rs_in_use) {
+        resample_close(rs);
+        rs_in_use = 0;
+      }
+      /*syslog(LOG_INFO, "%d/%d/%d/%d/%d -> %d/%d/%d/%d/%d",
+             header.bits,
+             header.channels, 
+             header.rate,
+             1,
+             header.endian,
+             config->sample_format.bits,
+             config->sample_format.channels, 
+             config->sample_format.rate,
+             1,
+             config->sample_format.endian);*/
+      if(!rs_in_use) {
+        /* Create a suitable resampler. */
+        resample_init(rs,
+                      header.bits,
+                      header.channels, 
+                      header.rate,
+                      1,                /* signed */
+                      header.endian,
+                      config->sample_format.bits,
+                      config->sample_format.channels, 
+                      config->sample_format.rate,
+                      1,                /* signed */
+                      config->sample_format.endian);
+        latest_format = header;
+        rs_in_use = 1;
+        /* TODO speaker protocol does not record signedness of samples.  It's
+         * assumed that they are always signed.  This should be fixed in the
+         * future (and the sample format syntax extended in a compatible
+         * way). */
+      }
+      /* Feed data through the resampler */
+      size_t used = 0, left = header.nbytes;
+      while(used || left) {
+        if(left) {
+          size_t limit = (sizeof buffer) - used;
+          if(limit > left)
+            limit = left;
+          ssize_t r = read(0, buffer + used, limit);
+          if(r < 0)
+            disorder_fatal(errno, "reading from stdin");
+          if(r == 0)
+            disorder_fatal(0, "unexpected EOF");
+          left -= r;
+          used += r;
+          //syslog(LOG_INFO, "read %zd bytes", r);
+        }
+        /*syslog(LOG_INFO, " in: %02x %02x %02x %02x",
+               (uint8_t)buffer[0],
+               (uint8_t)buffer[1], 
+               (uint8_t)buffer[2],
+               (uint8_t)buffer[3]);*/
+        const size_t consumed = resample_convert(rs,
+                                                 (uint8_t *)buffer, used,
+                                                 !left,
+                                                 converted, 0);
+        //syslog(LOG_INFO, "used=%zu consumed=%zu", used, consumed);
+        memmove(buffer, buffer + consumed, used - consumed);
+        used -= consumed;
+      }
+    }
+#else
+    /* We do not have libsamplerate.  We will use sox instead. */
     if(!formats_equal(&header, &latest_format)) {
       if(pid != -1) {
         /* There's a running converter, stop it */
@@ -202,6 +300,7 @@ int main(int argc, char attribute((unused)) **argv) {
         *pp++ = "-";                  /* stdout */
         *pp = 0;
         /* This pipe will be sox's stdin */
+        int p[2];
         xpipe(p);
         if(!(pid = xfork())) {
           exitfn = _exit;
@@ -221,6 +320,7 @@ int main(int argc, char attribute((unused)) **argv) {
     }
     /* Convert or copy this chunk */
     copy(0, outfd, header.nbytes);
+#endif
   }
   if(outfd != -1)
     xclose(outfd);
@@ -231,6 +331,8 @@ int main(int argc, char attribute((unused)) **argv) {
     if(n)
       disorder_fatal(0, "sox failed: %#x", n);
   }
+  if(rs_in_use)
+    resample_close(rs);
   return 0;
 }
 

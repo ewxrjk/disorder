@@ -17,7 +17,7 @@
 #
 
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
-noinst_PROGRAMS=filename-bytes rtpmon
+noinst_PROGRAMS=filename-bytes rtpmon resample
 noinst_SCRIPTS=dump2wav
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -43,6 +43,9 @@ rtpmon_SOURCES=rtpmon.c
 rtpmon_LDADD=$(LIBOBJS) ../lib/libdisorder.a
 
 filename_bytes_SOURCES=filename-bytes.c
+
+resample_SOURCES=resample.c
+resample_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBSAMPLERATE)
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)

@@ -51,7 +51,7 @@ disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_normalize_SOURCES=normalize.c disorder-server.h
 disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(LIBSAMPLERATE)
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
