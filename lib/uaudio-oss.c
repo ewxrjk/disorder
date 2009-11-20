@@ -93,7 +93,7 @@ static void oss_open(void) {
   if(ioctl(oss_fd, SNDCTL_DSP_SPEED, &rate) < 0)
     disorder_fatal(errno, "error calling ioctl SNDCTL_DSP_SPEED %d", rate);
   if(rate != uaudio_rate)
-    error(0, "asked for %dHz, got %dHz", uaudio_rate, rate);
+    disorder_error(0, "asked for %dHz, got %dHz", uaudio_rate, rate);
 #endif
 }
 

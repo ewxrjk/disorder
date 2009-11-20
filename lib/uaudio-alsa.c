@@ -84,7 +84,7 @@ static size_t alsa_play(void *buffer, size_t samples, unsigned flags) {
     switch(rc) {
     case -EPIPE:
       if((err = snd_pcm_prepare(alsa_pcm)))
-	fatal(0, "error calling snd_pcm_prepare: %d", err);
+	disorder_fatal(0, "error calling snd_pcm_prepare: %d", err);
       return 0;
     case -EAGAIN:
       return 0;
