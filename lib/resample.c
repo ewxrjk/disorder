@@ -214,10 +214,8 @@ static size_t resample_put_sample(const struct resampler *rs,
  */
 static void resample_prepare_input(const struct resampler *rs,
                                    const uint8_t *bytes,
-                                   size_t nbytes,
+                                   size_t nframes,
                                    float *floats) {
-  size_t nframes = nbytes / (rs->input_bytes_per_frame);
-
   while(nframes > 0) {
     int n;
 
@@ -261,7 +259,7 @@ size_t resample_convert(const struct resampler *rs,
   float *input = xcalloc(nframesin * rs->output_channels, sizeof (float));
   float *output = 0;
 
-  resample_prepare_input(rs, bytes, nbytes, input);
+  resample_prepare_input(rs, bytes, nframesin, input);
 #if HAVE_SAMPLERATE_H
   if(rs->state) {
     /* A sample-rate conversion must be performed */
