@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -116,6 +116,7 @@ int main(int argc, char **argv) {
       case 'n': case 'N': input_endian = ENDIAN_NATIVE; break;
       default: disorder_fatal(0, "unknown endianness '%s'", optarg);
       }
+      break;
     case 'B': output_bits = atoi(optarg); break;
     case 'C': output_channels = atoi(optarg); break;
     case 'R': output_rate = atoi(optarg); break;
@@ -128,6 +129,7 @@ int main(int argc, char **argv) {
       case 'n': case 'N': output_endian = ENDIAN_NATIVE; break;
       default: disorder_fatal(0, "unknown endianness '%s'", optarg);
       }
+      break;
     default: fatal(0, "invalid option");
     }
   }
