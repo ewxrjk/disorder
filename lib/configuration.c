@@ -142,12 +142,12 @@ static int set_signal(const struct config_state *cs,
   int n;
   
   if(nvec != 1) {
-    error(0, "%s:%d: '%s' requires one argument",
+    disorder_error(0, "%s:%d: '%s' requires one argument",
 	  cs->path, cs->line, whoami->name);
     return -1;
   }
   if((n = find_signal(vec[0])) == -1) {
-    error(0, "%s:%d: unknown signal '%s'",
+    disorder_error(0, "%s:%d: unknown signal '%s'",
 	  cs->path, cs->line, vec[0]);
     return -1;
   }
@@ -178,23 +178,23 @@ static int set_collections(const struct config_state *cs,
     root = vec[2];
     break;
   case 0:
-    error(0, "%s:%d: '%s' requires at least one argument",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' requires at least one argument",
+		   cs->path, cs->line, whoami->name);
     return -1;
   default:
-    error(0, "%s:%d: '%s' requires at most three arguments",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' requires at most three arguments",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   /* Sanity check root */
   if(root[0] != '/') {
-    error(0, "%s:%d: collection root must start with '/'",
-	  cs->path, cs->line);
+    disorder_error(0, "%s:%d: collection root must start with '/'",
+		   cs->path, cs->line);
     return -1;
   }
   if(root[1] && root[strlen(root)-1] == '/') {
-    error(0, "%s:%d: collection root must not end with '/'",
-	  cs->path, cs->line);
+    disorder_error(0, "%s:%d: collection root must not end with '/'",
+		   cs->path, cs->line);
     return -1;
   }
   /* Defaults */
@@ -217,15 +217,15 @@ static int set_boolean(const struct config_state *cs,
   int state;
   
   if(nvec != 1) {
-    error(0, "%s:%d: '%s' takes only one argument",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' takes only one argument",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   if(!strcmp(vec[0], "yes")) state = 1;
   else if(!strcmp(vec[0], "no")) state = 0;
   else {
-    error(0, "%s:%d: argument to '%s' must be 'yes' or 'no'",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: argument to '%s' must be 'yes' or 'no'",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   VALUE(cs->config, int) = state;
@@ -236,8 +236,8 @@ static int set_string(const struct config_state *cs,
 		      const struct conf *whoami,
 		      int nvec, char **vec) {
   if(nvec != 1) {
-    error(0, "%s:%d: '%s' takes only one argument",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' takes only one argument",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   VALUE(cs->config, char *) = xstrdup(vec[0]);
@@ -266,16 +266,16 @@ static int set_integer(const struct config_state *cs,
   char *e;
 
   if(nvec != 1) {
-    error(0, "%s:%d: '%s' takes only one argument",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' takes only one argument",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   if(xstrtol(ADDRESS(cs->config, long), vec[0], &e, 0)) {
-    error(errno, "%s:%d: converting integer", cs->path, cs->line);
+    disorder_error(errno, "%s:%d: converting integer", cs->path, cs->line);
     return -1;
   }
   if(*e) {
-    error(0, "%s:%d: invalid integer syntax", cs->path, cs->line);
+    disorder_error(0, "%s:%d: invalid integer syntax", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -339,8 +339,8 @@ static int set_restrict(const struct config_state *cs,
 
   for(n = 0; n < nvec; ++n) {
     if((i = TABLE_FIND(restrictions, name, vec[n])) < 0) {
-      error(0, "%s:%d: invalid restriction '%s'",
-	    cs->path, cs->line, vec[n]);
+      disorder_error(0, "%s:%d: invalid restriction '%s'",
+		     cs->path, cs->line, vec[n]);
       return -1;
     }
     r |= restrictions[i].bit;
@@ -356,15 +356,17 @@ static int parse_sample_format(const struct config_state *cs,
   long t;
 
   if(nvec != 1) {
-    error(0, "%s:%d: wrong number of arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: wrong number of arguments", cs->path, cs->line);
     return -1;
   }
   if(xstrtol(&t, p, &p, 0)) {
-    error(errno, "%s:%d: converting bits-per-sample", cs->path, cs->line);
+    disorder_error(errno, "%s:%d: converting bits-per-sample",
+		   cs->path, cs->line);
     return -1;
   }
   if(t != 8 && t != 16) {
-    error(0, "%s:%d: bad bite-per-sample (%ld)", cs->path, cs->line, t);
+    disorder_error(0, "%s:%d: bad bite-per-sample (%ld)",
+		   cs->path, cs->line, t);
     return -1;
   }
   if(format) format->bits = t;
@@ -375,37 +377,38 @@ static int parse_sample_format(const struct config_state *cs,
   }
   if(format) format->endian = t;
   if(*p != '/') {
-    error(errno, "%s:%d: expected `/' after bits-per-sample",
+    disorder_error(errno, "%s:%d: expected `/' after bits-per-sample",
 	  cs->path, cs->line);
     return -1;
   }
   p++;
   if(xstrtol(&t, p, &p, 0)) {
-    error(errno, "%s:%d: converting sample-rate", cs->path, cs->line);
+    disorder_error(errno, "%s:%d: converting sample-rate", cs->path, cs->line);
     return -1;
   }
   if(t < 1 || t > INT_MAX) {
-    error(0, "%s:%d: silly sample-rate (%ld)", cs->path, cs->line, t);
+    disorder_error(0, "%s:%d: silly sample-rate (%ld)", cs->path, cs->line, t);
     return -1;
   }
   if(format) format->rate = t;
   if(*p != '/') {
-    error(0, "%s:%d: expected `/' after sample-rate",
-	  cs->path, cs->line);
+    disorder_error(0, "%s:%d: expected `/' after sample-rate",
+		   cs->path, cs->line);
     return -1;
   }
   p++;
   if(xstrtol(&t, p, &p, 0)) {
-    error(errno, "%s:%d: converting channels", cs->path, cs->line);
+    disorder_error(errno, "%s:%d: converting channels", cs->path, cs->line);
     return -1;
   }
   if(t < 1 || t > 8) {
-    error(0, "%s:%d: silly number (%ld) of channels", cs->path, cs->line, t);
+    disorder_error(0, "%s:%d: silly number (%ld) of channels",
+		   cs->path, cs->line, t);
     return -1;
   }
   if(format) format->channels = t;
   if(*p) {
-    error(0, "%s:%d: junk after channels", cs->path, cs->line);
+    disorder_error(0, "%s:%d: junk after channels", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -428,11 +431,13 @@ static int set_namepart(const struct config_state *cs,
   pcre *re;
 
   if(nvec < 3) {
-    error(0, "%s:%d: namepart needs at least 3 arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: namepart needs at least 3 arguments",
+		   cs->path, cs->line);
     return -1;
   }
   if(nvec > 5) {
-    error(0, "%s:%d: namepart needs at most 5 arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: namepart needs at most 5 arguments",
+		   cs->path, cs->line);
     return -1;
   }
   reflags = nvec >= 5 ? regsub_flags(vec[4]) : 0;
@@ -440,8 +445,8 @@ static int set_namepart(const struct config_state *cs,
 			 PCRE_UTF8
 			 |regsub_compile_options(reflags),
 			 &errstr, &erroffset, 0))) {
-    error(0, "%s:%d: error compiling regexp /%s/: %s (offset %d)",
-	  cs->path, cs->line, vec[1], errstr, erroffset);
+    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %d)",
+		   cs->path, cs->line, vec[1], errstr, erroffset);
     return -1;
   }
   npl->s = xrealloc(npl->s, (npl->n + 1) * sizeof (struct namepart));
@@ -474,11 +479,13 @@ static int set_transform(const struct config_state *cs,
   int erroffset;
 
   if(nvec < 3) {
-    error(0, "%s:%d: transform needs at least 3 arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: transform needs at least 3 arguments",
+		   cs->path, cs->line);
     return -1;
   }
   if(nvec > 5) {
-    error(0, "%s:%d: transform needs at most 5 arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: transform needs at most 5 arguments",
+		   cs->path, cs->line);
     return -1;
   }
   reflags = (nvec >= 5 ? regsub_flags(vec[4]) : 0);
@@ -486,8 +493,8 @@ static int set_transform(const struct config_state *cs,
 			 PCRE_UTF8
 			 |regsub_compile_options(reflags),
 			 &errstr, &erroffset, 0))) {
-    error(0, "%s:%d: error compiling regexp /%s/: %s (offset %d)",
-	  cs->path, cs->line, vec[1], errstr, erroffset);
+    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %d)",
+		   cs->path, cs->line, vec[1], errstr, erroffset);
     return -1;
   }
   tl->t = xrealloc(tl->t, (tl->n + 1) * sizeof (struct namepart));
@@ -504,13 +511,13 @@ static int set_rights(const struct config_state *cs,
 		      const struct conf *whoami,
 		      int nvec, char **vec) {
   if(nvec != 1) {
-    error(0, "%s:%d: '%s' requires one argument",
-	  cs->path, cs->line, whoami->name);
+    disorder_error(0, "%s:%d: '%s' requires one argument",
+		   cs->path, cs->line, whoami->name);
     return -1;
   }
   if(parse_rights(vec[0], 0, 1)) {
-    error(0, "%s:%d: invalid rights string '%s'",
-	  cs->path, cs->line, vec[0]);
+    disorder_error(0, "%s:%d: invalid rights string '%s'",
+		   cs->path, cs->line, vec[0]);
     return -1;
   }
   *ADDRESS(cs->config, char *) = vec[0];
@@ -523,7 +530,7 @@ static int set_netaddress(const struct config_state *cs,
   struct netaddress *na = ADDRESS(cs->config, struct netaddress);
 
   if(netaddress_parse(na, nvec, vec)) {
-    error(0, "%s:%d: invalid network address", cs->path, cs->line);
+    disorder_error(0, "%s:%d: invalid network address", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -648,21 +655,22 @@ static const struct conftype
  * If @p test returns 0 then the file is not a @p what and an error
  * is reported and -1 is returned.
  */
-#define VALIDATE_FILE(test, what) do {				\
-  struct stat sb;						\
-  int n;							\
-								\
-  for(n = 0; n < nvec; ++n) {					\
-    if(stat(vec[n], &sb) < 0) {					\
-      error(errno, "%s:%d: %s", cs->path, cs->line, vec[n]);	\
-      return -1;						\
-    }								\
-    if(!test(sb.st_mode)) {					\
-      error(0, "%s:%d: %s is not a %s",				\
-	    cs->path, cs->line, vec[n], what);			\
-      return -1;						\
-    }								\
-  }								\
+#define VALIDATE_FILE(test, what) do {			\
+  struct stat sb;					\
+  int n;						\
+							\
+  for(n = 0; n < nvec; ++n) {				\
+    if(stat(vec[n], &sb) < 0) {				\
+      disorder_error(errno, "%s:%d: %s",		\
+                     cs->path, cs->line, vec[n]);	\
+      return -1;					\
+    }							\
+    if(!test(sb.st_mode)) {				\
+      disorder_error(0, "%s:%d: %s is not a %s",	\
+	             cs->path, cs->line, vec[n], what);	\
+      return -1;					\
+    }							\
+  }							\
 } while(0)
 
 /** @brief Validate an absolute path
@@ -677,8 +685,8 @@ static int validate_isabspath(const struct config_state *cs,
 
   for(n = 0; n < nvec; ++n)
     if(vec[n][0] != '/') {
-      error(errno, "%s:%d: %s: not an absolute path", 
-	    cs->path, cs->line, vec[n]);
+      disorder_error(errno, "%s:%d: %s: not an absolute path", 
+		     cs->path, cs->line, vec[n]);
       return -1;
     }
   return 0;
@@ -718,8 +726,8 @@ static int validate_player(const struct config_state *cs,
 			   int nvec,
 			   char attribute((unused)) **vec) {
   if(nvec < 2) {
-    error(0, "%s:%d: should be at least 'player PATTERN MODULE'",
-	  cs->path, cs->line);
+    disorder_error(0, "%s:%d: should be at least 'player PATTERN MODULE'",
+		   cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -735,8 +743,8 @@ static int validate_tracklength(const struct config_state *cs,
 				int nvec,
 				char attribute((unused)) **vec) {
   if(nvec < 2) {
-    error(0, "%s:%d: should be at least 'tracklength PATTERN MODULE'",
-	  cs->path, cs->line);
+    disorder_error(0, "%s:%d: should be at least 'tracklength PATTERN MODULE'",
+		   cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -754,7 +762,7 @@ static int validate_allow(const struct config_state *cs,
 			  int nvec,
 			  char attribute((unused)) **vec) {
   if(nvec != 2) {
-    error(0, "%s:%d: must be 'allow NAME PASS'", cs->path, cs->line);
+    disorder_error(0, "%s:%d: must be 'allow NAME PASS'", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -771,19 +779,19 @@ static int validate_non_negative(const struct config_state *cs,
   long n;
 
   if(nvec < 1) {
-    error(0, "%s:%d: missing argument", cs->path, cs->line);
+    disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
     return -1;
   }
   if(nvec > 1) {
-    error(0, "%s:%d: too many arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: too many arguments", cs->path, cs->line);
     return -1;
   }
   if(xstrtol(&n, vec[0], 0, 0)) {
-    error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
+    disorder_error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
     return -1;
   }
   if(n < 0) {
-    error(0, "%s:%d: must not be negative", cs->path, cs->line);
+    disorder_error(0, "%s:%d: must not be negative", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -800,19 +808,19 @@ static int validate_positive(const struct config_state *cs,
   long n;
 
   if(nvec < 1) {
-    error(0, "%s:%d: missing argument", cs->path, cs->line);
+    disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
     return -1;
   }
   if(nvec > 1) {
-    error(0, "%s:%d: too many arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: too many arguments", cs->path, cs->line);
     return -1;
   }
   if(xstrtol(&n, vec[0], 0, 0)) {
-    error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
+    disorder_error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
     return -1;
   }
   if(n <= 0) {
-    error(0, "%s:%d: must be positive", cs->path, cs->line);
+    disorder_error(0, "%s:%d: must be positive", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -830,7 +838,7 @@ static int validate_isauser(const struct config_state *cs,
   struct passwd *pw;
 
   if(!(pw = getpwnam(vec[0]))) {
-    error(0, "%s:%d: no such user as '%s'", cs->path, cs->line, vec[0]);
+    disorder_error(0, "%s:%d: no such user as '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
   return 0;
@@ -880,7 +888,7 @@ static int validate_url(const struct config_state attribute((unused)) *cs,
 		 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		 "0123456789"));
   if(s[n] != ':') {
-    error(0, "%s:%d: invalid url '%s'", cs->path, cs->line, vec[0]);
+    disorder_error(0, "%s:%d: invalid url '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
   if(!strncmp(s, "http:", 5)
@@ -888,7 +896,7 @@ static int validate_url(const struct config_state attribute((unused)) *cs,
     s += n + 1;
     /* we only do a rather cursory check */
     if(strncmp(s, "//", 2)) {
-      error(0, "%s:%d: invalid url '%s'", cs->path, cs->line, vec[0]);
+      disorder_error(0, "%s:%d: invalid url '%s'", cs->path, cs->line, vec[0]);
       return -1;
     }
   }
@@ -908,11 +916,11 @@ static int validate_alias(const struct config_state *cs,
   int in_brackets = 0, c;
 
   if(nvec < 1) {
-    error(0, "%s:%d: missing argument", cs->path, cs->line);
+    disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
     return -1;
   }
   if(nvec > 1) {
-    error(0, "%s:%d: too many arguments", cs->path, cs->line);
+    disorder_error(0, "%s:%d: too many arguments", cs->path, cs->line);
     return -1;
   }
   s = vec[0];
@@ -921,8 +929,8 @@ static int validate_alias(const struct config_state *cs,
       if(c == '}')
 	in_brackets = 0;
       else if(!isalnum(c)) {
-	error(0, "%s:%d: invalid part name in alias expansion in '%s'",
-	      cs->path, cs->line, vec[0]);
+	disorder_error(0, "%s:%d: invalid part name in alias expansion in '%s'",
+		       cs->path, cs->line, vec[0]);
 	  return -1;
       }
     } else {
@@ -932,12 +940,12 @@ static int validate_alias(const struct config_state *cs,
 	  ++s;
       } else if(c == '\\') {
 	if(!(c = (unsigned char)*s++)) {
-	  error(0, "%s:%d: unterminated escape in alias expansion in '%s'",
-		cs->path, cs->line, vec[0]);
+	  disorder_error(0, "%s:%d: unterminated escape in alias expansion in '%s'",
+			 cs->path, cs->line, vec[0]);
 	  return -1;
 	} else if(c != '\\' && c != '{') {
-	  error(0, "%s:%d: invalid escape in alias expansion in '%s'",
-		cs->path, cs->line, vec[0]);
+	  disorder_error(0, "%s:%d: invalid escape in alias expansion in '%s'",
+			 cs->path, cs->line, vec[0]);
 	  return -1;
 	}
       }
@@ -945,8 +953,9 @@ static int validate_alias(const struct config_state *cs,
     ++s;
   }
   if(in_brackets) {
-    error(0, "%s:%d: unterminated part name in alias expansion in '%s'",
-	  cs->path, cs->line, vec[0]);
+    disorder_error(0,
+		   "%s:%d: unterminated part name in alias expansion in '%s'",
+		   cs->path, cs->line, vec[0]);
     return -1;
   }
   return 0;
@@ -962,11 +971,11 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
 			 int nvec,
 			 char **vec) {
   if(nvec != 1) {
-    error(0, "%s:%d: invalid algorithm specification", cs->path, cs->line);
+    disorder_error(0, "%s:%d: invalid algorithm specification", cs->path, cs->line);
     return -1;
   }
   if(!valid_authhash(vec[0])) {
-    error(0, "%s:%d: unsuported algorithm '%s'", cs->path, cs->line, vec[0]);
+    disorder_error(0, "%s:%d: unsuported algorithm '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
   return 0;
@@ -983,18 +992,18 @@ static int validate_backend(const struct config_state attribute((unused)) *cs,
                             char **vec) {
   int n;
   if(nvec != 1) {
-    error(0, "%s:%d: invalid sound API specification", cs->path, cs->line);
+    disorder_error(0, "%s:%d: invalid sound API specification", cs->path, cs->line);
     return -1;
   }
   if(!strcmp(vec[0], "network")) {
-    error(0, "'api network' is deprecated; use 'api rtp'");
+    disorder_error(0, "'api network' is deprecated; use 'api rtp'");
     return 0;
   }
   if(config_uaudio_apis) {
     for(n = 0; config_uaudio_apis[n]; ++n)
       if(!strcmp(vec[0], config_uaudio_apis[n]->name))
         return 0;
-    error(0, "%s:%d: unrecognized sound API '%s'", cs->path, cs->line, vec[0]);
+    disorder_error(0, "%s:%d: unrecognized sound API '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
   /* In non-server processes we have no idea what's valid */
@@ -1012,7 +1021,7 @@ static int validate_pausemode(const struct config_state attribute((unused)) *cs,
                               char **vec) {
   if(nvec == 1 && (!strcmp(vec[0], "silence") || !strcmp(vec[0], "suspend")))
     return 0;
-  error(0, "%s:%d: invalid pause mode", cs->path, cs->line);
+  disorder_error(0, "%s:%d: invalid pause mode", cs->path, cs->line);
   return -1;
 }
 
@@ -1031,11 +1040,11 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
   struct netaddress na[1];
 
   if(netaddress_parse(na, nvec, vec)) {
-    error(0, "%s:%d: invalid network address", cs->path, cs->line);
+    disorder_error(0, "%s:%d: invalid network address", cs->path, cs->line);
     return -1;
   }
   if(!na->address) {
-    error(0, "%s:%d: destination address required", cs->path, cs->line);
+    disorder_error(0, "%s:%d: destination address required", cs->path, cs->line);
     return -1;
   }
   return 0;
@@ -1138,7 +1147,7 @@ static int config_set(const struct config_state *cs,
 
   D(("config_set %s", vec[0]));
   if(!(which = find(vec[0]))) {
-    error(0, "%s:%d: unknown configuration key '%s'",
+    disorder_error(0, "%s:%d: unknown configuration key '%s'",
 	  cs->path, cs->line, vec[0]);
     return -1;
   }
@@ -1175,7 +1184,7 @@ static int config_set_args(const struct config_state *cs,
 static void config_error(const char *msg, void *u) {
   const struct config_state *cs = u;
 
-  error(0, "%s:%d: %s", cs->path, cs->line, msg);
+  disorder_error(0, "%s:%d: %s", cs->path, cs->line, msg);
 }
 
 /** @brief Include a file by name
@@ -1194,13 +1203,13 @@ static int config_include(struct config *c, const char *path) {
   cs.config = c;
   D(("%s: reading configuration", path));
   if(!(fp = fopen(path, "r"))) {
-    error(errno, "error opening %s", path);
+    disorder_error(errno, "error opening %s", path);
     return -1;
   }
   while(!inputline(path, fp, &inputbuffer, '\n')) {
     ++cs.line;
     if(!(buffer = mb2utf8(inputbuffer))) {
-      error(errno, "%s:%d: cannot convert to UTF-8", cs.path, cs.line);
+      disorder_error(errno, "%s:%d: cannot convert to UTF-8", cs.path, cs.line);
       ret = -1;
       xfree(inputbuffer);
       continue;
@@ -1216,7 +1225,7 @@ static int config_include(struct config *c, const char *path) {
       /* 'include' is special-cased */
       if(!strcmp(vec[0], "include")) {
 	if(n != 2) {
-	  error(0, "%s:%d: must be 'include PATH'", cs.path, cs.line);
+	  disorder_error(0, "%s:%d: must be 'include PATH'", cs.path, cs.line);
 	  ret = -1;
 	} else
 	  config_include(c, vec[1]);
@@ -1228,7 +1237,7 @@ static int config_include(struct config *c, const char *path) {
     xfree(buffer);
   }
   if(ferror(fp)) {
-    error(errno, "error reading %s", path);
+    disorder_error(errno, "error reading %s", path);
     ret = -1;
   }
   fclose(fp);
@@ -1324,7 +1333,7 @@ static struct config *config_default(void) {
   c->history = 60;
   c->home = xstrdup(pkgstatedir);
   if(!(pw = getpwuid(getuid())))
-    fatal(0, "cannot determine our username");
+    disorder_fatal(0, "cannot determine our username");
   logname = pw->pw_name;
   c->username = xstrdup(logname);
   c->refresh = 15;
@@ -1477,9 +1486,9 @@ static void config_postdefaults(struct config *c,
     c->api = xstrdup("rtp");
   if(server) {
     if(!strcmp(c->api, "command") && !c->speaker_command)
-      fatal(0, "'api command' but speaker_command is not set");
+      disorder_fatal(0, "'api command' but speaker_command is not set");
     if((!strcmp(c->api, "rtp")) && c->broadcast.af == -1)
-      fatal(0, "'api rtp' but broadcast is not set");
+      disorder_fatal(0, "'api rtp' but broadcast is not set");
   }
   /* Override sample format */
   if(!strcmp(c->api, "rtp")) {
@@ -1544,7 +1553,7 @@ int config_read(int server,
   /* if there's a per-user system config file for this user, read it */
   if(config_per_user) {
     if(!(pw = getpwuid(getuid())))
-      fatal(0, "cannot determine our username");
+      disorder_fatal(0, "cannot determine our username");
     if((privconf = config_usersysconf(pw))
        && access(privconf, F_OK) == 0
        && config_include(c, privconf))
@@ -1562,35 +1571,35 @@ int config_read(int server,
   if(oldconfig)  {
     int failed = 0;
     if(strcmp(c->home, oldconfig->home)) {
-      error(0, "'home' cannot be changed without a restart");
+      disorder_error(0, "'home' cannot be changed without a restart");
       failed = 1;
     }
     if(strcmp(c->alias, oldconfig->alias)) {
-      error(0, "'alias' cannot be changed without a restart");
+      disorder_error(0, "'alias' cannot be changed without a restart");
       failed = 1;
     }
     if(strcmp(c->user, oldconfig->user)) {
-      error(0, "'user' cannot be changed without a restart");
+      disorder_error(0, "'user' cannot be changed without a restart");
       failed = 1;
     }
     if(c->nice_speaker != oldconfig->nice_speaker) {
-      error(0, "'nice_speaker' cannot be changed without a restart");
+      disorder_error(0, "'nice_speaker' cannot be changed without a restart");
       /* ...but we accept the new config anyway */
     }
     if(c->nice_server != oldconfig->nice_server) {
-      error(0, "'nice_server' cannot be changed without a restart");
+      disorder_error(0, "'nice_server' cannot be changed without a restart");
       /* ...but we accept the new config anyway */
     }
     if(namepartlist_compare(&c->namepart, &oldconfig->namepart)) {
-      error(0, "'namepart' settings cannot be changed without a restart");
+      disorder_error(0, "'namepart' settings cannot be changed without a restart");
       failed = 1;
     }
     if(stringlist_compare(&c->stopword, &oldconfig->stopword)) {
-      error(0, "'stopword' settings cannot be changed without a restart");
+      disorder_error(0, "'stopword' settings cannot be changed without a restart");
       failed = 1;
     }
     if(failed) {
-      error(0, "not installing incompatible new configuration");
+      disorder_error(0, "not installing incompatible new configuration");
       return -1;
     }
   }
@@ -1598,17 +1607,17 @@ int config_read(int server,
   config_free(config);
   /* warn about obsolete directives */
   if(c->restrictions)
-    error(0, "'restrict' will be removed in a future version");
+    disorder_error(0, "'restrict' will be removed in a future version");
   if(c->allow.n)
-    error(0, "'allow' will be removed in a future version");
+    disorder_error(0, "'allow' will be removed in a future version");
   if(c->trust.n)
-    error(0, "'trust' will be removed in a future version");
+    disorder_error(0, "'trust' will be removed in a future version");
   if(!c->lock)
-    error(0, "'lock' will be removed in a future version");
+    disorder_error(0, "'lock' will be removed in a future version");
   if(c->gap)
-    error(0, "'gap' will be removed in a future version");
+    disorder_error(0, "'gap' will be removed in a future version");
   if(c->prefsync)
-    error(0, "'prefsync' will be removed in a future version");
+    disorder_error(0, "'prefsync' will be removed in a future version");
   config = c;
   return 0;
 }
@@ -1627,7 +1636,7 @@ char *config_userconf(const char *home, const struct passwd *pw) {
   char *s;
 
   if(!home && !pw && !(pw = getpwuid(getuid())))
-    fatal(0, "cannot determine our username");
+    disorder_fatal(0, "cannot determine our username");
   byte_xasprintf(&s, "%s/.disorder/passwd", home ? home : pw->pw_dir);
   return s;
 }

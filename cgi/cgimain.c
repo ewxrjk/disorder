@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   mx_search_path(pkgdatadir);
   /* Never cache anythging */
   if(printf("Cache-Control: no-cache\n") < 0)
-    fatal(errno, "error writing to stdout");
+    disorder_fatal(errno, "error writing to stdout");
   /* Create the initial connection, trying the cookie if we found a suitable
    * one. */
   dcgi_login();
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   /* In practice if a write fails that probably means the web server went away,
    * but we log it anyway. */
   if(fclose(stdout) < 0)
-    fatal(errno, "error closing stdout");
+    disorder_fatal(errno, "error closing stdout");
   return 0;
 }
 

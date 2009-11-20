@@ -108,14 +108,14 @@ GdkPixbuf *find_image(const char *name) {
     if((n = TABLE_FIND(images, name, name)) >= 0) {
       /* Use the built-in copy */
       if(!(pb = gdk_pixbuf_new_from_inline(-1, images[n].data, FALSE, &err))) {
-        error(0, "%s", err->message);
+        disorder_error(0, "%s", err->message);
         return 0;
       }
     } else {
       /* See if there's a copy on disk */
       byte_xasprintf(&path, "%s/static/%s", pkgdatadir, name);
       if(!(pb = gdk_pixbuf_new_from_file(path, &err))) {
-        error(0, "%s", err->message);
+        disorder_error(0, "%s", err->message);
         return 0;
       }
     }

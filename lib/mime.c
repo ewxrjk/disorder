@@ -328,7 +328,7 @@ const char *mime_parse(const char *s,
       return mime_qp(s);
     if(!strcmp(cte, "7bit") || !strcmp(cte, "8bit"))
       return s;
-    error(0, "unknown content-transfer-encoding '%s'", cte);
+    disorder_error(0, "unknown content-transfer-encoding '%s'", cte);
     return 0;
   }
   return s;
@@ -376,7 +376,7 @@ int mime_multipart(const char *s,
 
   /* We must start with a boundary string */
   if(!isboundary(s, boundary, bl)) {
-    error(0, "mime_multipart: first line is not the boundary string");
+    disorder_error(0, "mime_multipart: first line is not the boundary string");
     return -1;
   }
   /* Keep going until we hit a final boundary */
@@ -385,7 +385,7 @@ int mime_multipart(const char *s,
     start = s;
     while(!isboundary(s, boundary, bl)) {
       if(!(e = strstr(s, "\r\n"))) {
-	error(0, "mime_multipart: line does not end CRLF");
+	disorder_error(0, "mime_multipart: line does not end CRLF");
 	return -1;
       }
       s = e + 2;
@@ -566,17 +566,17 @@ int parse_cookie(const char *s,
       continue;
     }
     if(!(s = parsetoken(s, &n, cookie_separator))) {
-      error(0, "parse_cookie: cannot parse attribute name");
+      disorder_error(0, "parse_cookie: cannot parse attribute name");
       return -1;
-    }      
+    }
     s = skipwhite(s, 0);
     if(*s++ != '=') {
-      error(0, "parse_cookie: did not find expected '='");
+      disorder_error(0, "parse_cookie: did not find expected '='");
       return -1;
     }
     s = skipwhite(s, 0);
     if(!(s = mime_parse_word(s, &v, cookie_value_separator))) {
-      error(0, "parse_cookie: cannot parse value for '%s'", n);
+      disorder_error(0, "parse_cookie: cannot parse value for '%s'", n);
       return -1;
     }
     if(n[0] == '$') {
@@ -587,14 +587,14 @@ int parse_cookie(const char *s,
 	if(cd->ncookies > 0 && cd->cookies[cd->ncookies-1].path == 0)
 	  cd->cookies[cd->ncookies-1].path = v;
 	else {
-	  error(0, "redundant $Path in Cookie: header");
+	  disorder_error(0, "redundant $Path in Cookie: header");
 	  return -1;
 	}
       } else if(!strcmp(n, "$Domain")) {
 	if(cd->ncookies > 0 && cd->cookies[cd->ncookies-1].domain == 0)
 	  cd->cookies[cd->ncookies-1].domain = v;
 	else {
-	  error(0, "redundant $Domain in Cookie: header");
+	  disorder_error(0, "redundant $Domain in Cookie: header");
 	  return -1;
 	}
       }
@@ -610,7 +610,7 @@ int parse_cookie(const char *s,
     }
     s = skipwhite(s, 0);
     if(*s && (*s != ',' && *s != ';')) {
-      error(0, "missing separator in Cookie: header");
+      disorder_error(0, "missing separator in Cookie: header");
       return -1;
     }
   }

@@ -102,7 +102,8 @@ uint32_t *ucs4parse(const char *s) {
   while(*s) {
     errno = 0;
     dynstr_ucs4_append(&d, strtoul(s, &e, 0));
-    if(errno) fatal(errno, "strtoul (%s)", s);
+    if(errno)
+      disorder_fatal(errno, "strtoul (%s)", s);
     s = e;
   }
   dynstr_ucs4_terminate(&d);

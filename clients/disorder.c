@@ -162,7 +162,8 @@ static void cf_shutdown(char attribute((unused)) **argv) {
 
 static void cf_reconfigure(char attribute((unused)) **argv) {
   /* Re-check configuration for server */
-  if(config_read(1, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(1, NULL))
+    disorder_fatal(0, "cannot read configuration");
   if(disorder_reconfigure(getclient())) exit(EXIT_FAILURE);
 }
 
@@ -328,9 +329,9 @@ static void cf_move(char **argv) {
   int e;
   
   if((e = xstrtol(&n, argv[1], 0, 10)))
-    fatal(e, "cannot convert '%s'", argv[1]);
+    disorder_fatal(e, "cannot convert '%s'", argv[1]);
   if(n > INT_MAX || n < INT_MIN)
-    fatal(e, "%ld out of range", n);
+    disorder_fatal(e, "%ld out of range", n);
   if(disorder_move(getclient(), argv[0], (int)n)) exit(EXIT_FAILURE);
 }
 
@@ -487,11 +488,11 @@ static void cf_setup_guest(char **argv) {
     case 'h': help_setup_guest();
     case 'r': online_registration = 1; break;
     case 'R': online_registration = 0; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(online_registration && !config->mail_sender)
-    fatal(0, "you MUST set mail_sender if you want online registration");
+    disorder_fatal(0, "you MUST set mail_sender if you want online registration");
   if(disorder_adduser(getclient(), "guest", "",
 		      online_registration ? "read,register" : "read"))
     exit(EXIT_FAILURE);
@@ -638,7 +639,7 @@ static void cf_playlist_set(char **argv) {
   if(argv[1]) {
     // Read track list from file
     if(!(input = fopen(argv[1], "r")))
-      fatal(errno, "opening %s", argv[1]);
+      disorder_fatal(errno, "opening %s", argv[1]);
     tag = argv[1];
   } else {
     // Read track list from standard input
@@ -652,7 +653,7 @@ static void cf_playlist_set(char **argv) {
     vector_append(v, l);
   }
   if(ferror(input))
-    fatal(errno, "reading %s", tag);
+    disorder_fatal(errno, "reading %s", tag);
   if(input != stdin)
     fclose(input);
   if(disorder_playlist_lock(getclient(), argv[0])
@@ -818,7 +819,7 @@ static void wait_for_root(void) {
   const char *password;
 
   while(!trackdb_readable()) {
-    info("waiting for trackdb...");
+    disorder_info("waiting for trackdb...");
     sleep(1);
   }
   trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
@@ -828,7 +829,7 @@ static void wait_for_root(void) {
     trackdb_close();
     if(password)
       break;
-    info("waiting for root user to be created...");
+    disorder_info("waiting for root user to be created...");
     sleep(1);
   }
   trackdb_deinit(NULL);
@@ -844,8 +845,8 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  if(!setlocale(LC_TIME, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:W", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -858,10 +859,10 @@ int main(int argc, char **argv) {
     case 'u': user = optarg; break;
     case 'p': password = optarg; break;
     case 'W': wfr = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
-  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   if(user) {
     config->username = user;
     config->password = 0;
@@ -882,9 +883,9 @@ int main(int argc, char **argv) {
   /* accumulate command args */
   while(n < argc) {
     if((i = TABLE_FIND(commands, name, argv[n])) < 0)
-      fatal(0, "unknown command '%s'", argv[n]);
+      disorder_fatal(0, "unknown command '%s'", argv[n]);
     if(n + commands[i].min >= argc)
-      fatal(0, "missing arguments to '%s'", argv[n]);
+      disorder_fatal(0, "missing arguments to '%s'", argv[n]);
     vector_init(&args);
     /* Include the command name in the args, but at element -1, for
      * the benefit of subcommand getopt calls */
@@ -901,7 +902,7 @@ int main(int argc, char **argv) {
     n += j;
   }
   if(client && disorder_close(client)) exit(EXIT_FAILURE);
-  if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
+  if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
   return status;
 }
 

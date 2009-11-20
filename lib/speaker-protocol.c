@@ -40,7 +40,7 @@ void speaker_send(int fd, const struct speaker_message *sm) {
     ret = write(fd, sm, sizeof *sm);
   } while(ret < 0 && errno == EINTR);
   if(ret < 0)
-    fatal(errno, "write");
+    disorder_fatal(errno, "write");
 }
 
 /** @brief Receive a speaker message
@@ -55,7 +55,8 @@ int speaker_recv(int fd, struct speaker_message *sm) {
     ret = read(fd, sm, sizeof *sm);
   } while(ret < 0 && errno == EINTR);
   if(ret < 0) {
-    if(errno != EAGAIN) fatal(errno, "recvmsg");
+    if(errno != EAGAIN)
+      disorder_fatal(errno, "recvmsg");
     return -1;
   }
   return ret;

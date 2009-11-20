@@ -114,7 +114,8 @@ static int schedule_parse(const DBT *k,
 
   /* Reject bogus keys */
   if(!k->size || k->size > 128) {
-    error(0, "bogus schedule.db key (%lu bytes)", (unsigned long)k->size);
+    disorder_error(0, "bogus schedule.db key (%lu bytes)",
+                   (unsigned long)k->size);
     return -1;
   }
   id = xstrndup(k->data, k->size);
@@ -122,8 +123,8 @@ static int schedule_parse(const DBT *k,
   /* Reject items without the required fields */
   for(n = 0; n < NREQUIRED; ++n) {
     if(!kvp_get(actiondata, schedule_required[n])) {
-      error(0, "scheduled event %s: missing required field '%s'",
-	    id, schedule_required[n]);
+      disorder_error(0, "scheduled event %s: missing required field '%s'",
+                     id, schedule_required[n]);
       return -1;
     }
   }
@@ -146,10 +147,10 @@ static int cdel(DBC *cursor) {
   case 0:
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error deleting from schedule.db: %s", db_strerror(err));
+    disorder_error(0, "error deleting from schedule.db: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "error deleting from schedule.db: %s", db_strerror(err));
+    disorder_fatal(0, "error deleting from schedule.db: %s", db_strerror(err));
   }
   return err;
 }
@@ -188,7 +189,7 @@ static int schedule_init_tid(ev_source *ev,
       if(priority && !strcmp(priority, "junk")) {
         /* Junk actions that are in the past are discarded during startup */
 	/* TODO recurring events should be handled differently here */
-        info("junk event %s is in the past, discarding", id);
+        disorder_info("junk event %s is in the past, discarding", id);
 	if(cdel(cursor))
 	  goto deadlocked;
         /* Skip this time */
@@ -203,10 +204,10 @@ static int schedule_init_tid(ev_source *ev,
     err = 0;
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error querying schedule.db: %s", db_strerror(err));
+    disorder_error(0, "error querying schedule.db: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "error querying schedule.db: %s", db_strerror(err));
+    disorder_fatal(0, "error querying schedule.db: %s", db_strerror(err));
   }
 deadlocked:
   if(trackdb_closecursor(cursor))
@@ -247,12 +248,12 @@ static int schedule_add_tid(const char *id,
   case 0:
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error updating schedule.db: %s", db_strerror(err));
+    disorder_error(0, "error updating schedule.db: %s", db_strerror(err));
     return err;
   case DB_KEYEXIST:
     return err;
   default:
-    fatal(0, "error updating schedule.db: %s", db_strerror(err));
+    disorder_fatal(0, "error updating schedule.db: %s", db_strerror(err));
   }
   return 0;
 }
@@ -276,8 +277,8 @@ const char *schedule_add(ev_source *ev,
   /* Check that the required field are present */
   for(n = 0; n < NREQUIRED; ++n) {
     if(!kvp_get(actiondata, schedule_required[n])) {
-      error(0, "new scheduled event is missing required field '%s'",
-	    schedule_required[n]);
+      disorder_error(0, "new scheduled event is missing required field '%s'",
+                     schedule_required[n]);
       return 0;
     }
   }
@@ -288,7 +289,7 @@ const char *schedule_add(ev_source *ev,
   when.tv_usec = 0;
   /* Reject events in the past */
   if(when.tv_sec <= xtime(0)) {
-    error(0, "new scheduled event is in the past");
+    disorder_error(0, "new scheduled event is in the past");
     return 0;
   }
   do {
@@ -313,8 +314,8 @@ struct kvp *schedule_get(const char *id) {
   /* Check that the required field are present */
   for(n = 0; n < NREQUIRED; ++n) {
     if(!kvp_get(actiondata, schedule_required[n])) {
-      error(0, "scheduled event %s is missing required field '%s'",
-	    id, schedule_required[n]);
+      disorder_error(0, "scheduled event %s is missing required field '%s'",
+                     id, schedule_required[n]);
       return 0;
     }
   }
@@ -362,18 +363,18 @@ static void schedule_play(ev_source *ev,
 
   /* This stuff has rather a lot in common with c_play() */
   if(!track) {
-    error(0, "scheduled event %s: no track field", id);
+    disorder_error(0, "scheduled event %s: no track field", id);
     return;
   }
   if(!trackdb_exists(track)) {
-    error(0, "scheduled event %s: no such track as %s", id, track);
+    disorder_error(0, "scheduled event %s: no such track as %s", id, track);
     return;
   }
   if(!(track = trackdb_resolve(track))) {
-    error(0, "scheduled event %s: cannot resolve track %s", id, track);
+    disorder_error(0, "scheduled event %s: cannot resolve track %s", id, track);
     return;
   }
-  info("scheduled event %s: %s play %s", id,  who, track);
+  disorder_info("scheduled event %s: %s play %s", id,  who, track);
   q = queue_add(track, who, WHERE_START, NULL, origin_scheduled);
   queue_write();
   if(q == qhead.next && playing)
@@ -389,18 +390,19 @@ static void schedule_set_global(ev_source attribute((unused)) *ev,
   const char *value = kvp_get(actiondata, "value");
 
   if(!key) {
-    error(0, "scheduled event %s: no key field", id);
+    disorder_error(0, "scheduled event %s: no key field", id);
     return;
   }
   if(key[0] == '_') {
-    error(0, "scheduled event %s: cannot set internal global preferences (%s)",
-	  id, key);
+    disorder_error(0, "scheduled event %s: cannot set internal global preferences (%s)",
+                   id, key);
     return;
   }
   if(value)
-    info("scheduled event %s: %s set-global %s=%s", id, who, key, value);
+    disorder_info("scheduled event %s: %s set-global %s=%s",
+                  id, who, key, value);
   else
-    info("scheduled event %s: %s set-global %s unset", id,  who, key);
+    disorder_info("scheduled event %s: %s set-global %s unset", id,  who, key);
   trackdb_set_global(key, value, who);
 }
 
@@ -438,27 +440,28 @@ static int schedule_lookup(const char *id,
   /* Look up the action */
   n = TABLE_FIND(schedule_actions, name, action);
   if(n < 0) {
-    error(0, "scheduled event %s: unrecognized action '%s'", id, action);
+    disorder_error(0, "scheduled event %s: unrecognized action '%s'",
+                   id, action);
     return -1;
   }
   /* Find the user */
   if(!(userinfo = trackdb_getuserinfo(who))) {
-    error(0, "scheduled event %s: user '%s' does not exist", id, who);
+    disorder_error(0, "scheduled event %s: user '%s' does not exist", id, who);
     return -1;
   }
   /* Check that they have suitable rights */
   if(!(rights = kvp_get(userinfo, "rights"))) {
-    error(0, "scheduled event %s: user %s' has no rights???", id, who);
+    disorder_error(0, "scheduled event %s: user %s' has no rights???", id, who);
     return -1;
   }
   if(parse_rights(rights, &r, 1)) {
-    error(0, "scheduled event %s: user %s has invalid rights '%s'",
-	  id, who, rights);
+    disorder_error(0, "scheduled event %s: user %s has invalid rights '%s'",
+                   id, who, rights);
     return -1;
   }
   if(!(r & schedule_actions[n].right)) {
-    error(0, "scheduled event %s: user %s lacks rights for action %s",
-	  id, who, action);
+    disorder_error(0, "scheduled event %s: user %s lacks rights for action %s",
+                   id, who, action);
     return -1;
   }
   return n;

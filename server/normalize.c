@@ -69,16 +69,16 @@ static void copy(int infd, int outfd, size_t n) {
       if(errno == EINTR)
 	continue;
       else
-	fatal(errno, "read error");
+	disorder_fatal(errno, "read error");
     }
     if(readden == 0)
-      fatal(0, "unexpected EOF");
+      disorder_fatal(0, "unexpected EOF");
     n -= readden;
     written = 0;
     while(written < readden) {
       const ssize_t w = write(outfd, buffer + written, readden - written);
       if(w < 0)
-	fatal(errno, "write error");
+	disorder_fatal(errno, "write error");
       written += w;
     }
   }
@@ -102,7 +102,7 @@ static void soxargs(const char ***pp, char **qq,
     case 16: *(*pp)++ = "-w"; break;
     case 32: *(*pp)++ = "-l"; break;
     case 64: *(*pp)++ = "-d"; break;
-    default: fatal(0, "cannot handle sample size %d", header->bits);
+    default: disorder_fatal(0, "cannot handle sample size %d", header->bits);
     }
     break;
   case 1:
@@ -113,11 +113,11 @@ static void soxargs(const char ***pp, char **qq,
       case ENDIAN_LITTLE: *(*pp)++ = "-L"; break;
       }
     if(header->bits % 8)
-      fatal(0, "cannot handle sample size %d", header->bits);
+      disorder_fatal(0, "cannot handle sample size %d", header->bits);
     *qq += sprintf((char *)(*(*pp)++ = *qq), "-%d", header->bits / 8) + 1;
     break;
   default:
-    fatal(0, "unknown sox_generation %ld", config->sox_generation);
+    disorder_fatal(0, "unknown sox_generation %ld", config->sox_generation);
   }
 }
 
@@ -128,7 +128,7 @@ int main(int argc, char attribute((unused)) **argv) {
 
   set_progname(argv);
   if(!setlocale(LC_CTYPE, ""))
-    fatal(errno, "error calling setlocale");
+    disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -138,11 +138,11 @@ int main(int argc, char attribute((unused)) **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(config_read(1, NULL))
-    fatal(0, "cannot read configuration");
+    disorder_fatal(0, "cannot read configuration");
   if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
@@ -155,10 +155,10 @@ int main(int argc, char attribute((unused)) **argv) {
 
       if(r < 0) {
         if(errno != EINTR)
-          fatal(errno, "error reading header");
+          disorder_fatal(errno, "error reading header");
       } else if(r == 0) {
         if(n)
-          fatal(0, "EOF reading header");
+          disorder_fatal(0, "EOF reading header");
         break;
       } else
         n += r;
@@ -167,14 +167,14 @@ int main(int argc, char attribute((unused)) **argv) {
       break;
     /* Sanity check the header */
     if(header.rate < 100 || header.rate > 1000000)
-      fatal(0, "implausible rate %"PRId32"Hz (%#"PRIx32")",
-            header.rate, header.rate);
+      disorder_fatal(0, "implausible rate %"PRId32"Hz (%#"PRIx32")",
+                     header.rate, header.rate);
     if(header.channels < 1 || header.channels > 2)
-      fatal(0, "unsupported channel count %d", header.channels);
+      disorder_fatal(0, "unsupported channel count %d", header.channels);
     if(header.bits % 8 || !header.bits || header.bits > 64)
-      fatal(0, "unsupported sample size %d bits", header.bits);
+      disorder_fatal(0, "unsupported sample size %d bits", header.bits);
     if(header.endian != ENDIAN_BIG && header.endian != ENDIAN_LITTLE)
-      fatal(0, "unsupported byte order %x", header.bits);
+      disorder_fatal(0, "unsupported byte order %x", header.bits);
     /* Skip empty chunks regardless of their alleged format */
     if(header.nbytes == 0)
       continue;
@@ -184,9 +184,9 @@ int main(int argc, char attribute((unused)) **argv) {
         /* There's a running converter, stop it */
         xclose(outfd);
         if(waitpid(pid, &n, 0) < 0)
-          fatal(errno, "error calling waitpid");
+          disorder_fatal(errno, "error calling waitpid");
         if(n)
-          fatal(0, "sox failed: %#x", n);
+          disorder_fatal(0, "sox failed: %#x", n);
         pid = -1;
         outfd = -1;
       }
@@ -209,7 +209,7 @@ int main(int argc, char attribute((unused)) **argv) {
           xclose(p[0]);
           xclose(p[1]);
           execvp(av[0], (char **)av);
-          fatal(errno, "sox");
+          disorder_fatal(errno, "sox");
         }
         xclose(p[0]);
         outfd = p[1];
@@ -227,9 +227,9 @@ int main(int argc, char attribute((unused)) **argv) {
   if(pid != -1) {
     /* There's still a converter running */
     if(waitpid(pid, &n, 0) < 0)
-      fatal(errno, "error calling waitpid");
+      disorder_fatal(errno, "error calling waitpid");
     if(n)
-      fatal(0, "sox failed: %#x", n);
+      disorder_fatal(0, "sox failed: %#x", n);
   }
   return 0;
 }

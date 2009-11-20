@@ -129,7 +129,7 @@ static void frames(const struct timeval *when, size_t n) {
               rate((ringtail - RINGSIZE / 2) % RINGSIZE,
                    (ringtail - 1) % RINGSIZE)) < 0
        || fflush(stdout) < 0)
-      fatal(errno, "stdout");
+      disorder_fatal(errno, "stdout");
   }
 }
 
@@ -159,13 +159,13 @@ int main(int argc, char **argv) {
 
   mem_init();
   if(!setlocale(LC_CTYPE, "")) 
-    fatal(errno, "error calling setlocale");
+    disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVb:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("rtpmon");
     case 'b': bpf = atoi(optarg); break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   argc -= optind;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
     sl.s = argv;
     break;
   default:
-    fatal(0, "usage: rtpmon [OPTIONS] [ADDRESS] PORT");
+    disorder_fatal(0, "usage: rtpmon [OPTIONS] [ADDRESS] PORT");
   }
   if(!(res = get_address(&sl, &prefs, &sockname)))
     exit(1);
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
   if((rtpfd = socket(res->ai_family,
                      res->ai_socktype,
                      res->ai_protocol)) < 0)
-    fatal(errno, "error creating socket");
+    disorder_fatal(errno, "error creating socket");
   /* Allow multiple listeners */
   xsetsockopt(rtpfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   is_multicast = multicast(res->ai_addr);
@@ -204,11 +204,12 @@ int main(int argc, char **argv) {
       mgroup.in6.sin6_port = 0;
       break;
     default:
-      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+      disorder_fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
     }
     /* Bind to to the multicast group address */
     if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+      disorder_fatal(errno, "error binding socket to %s",
+                     format_sockaddr(res->ai_addr));
     /* Add multicast group membership */
     switch(mgroup.sa.sa_family) {
     case PF_INET:
@@ -216,21 +217,21 @@ int main(int argc, char **argv) {
       mreq.imr_interface.s_addr = 0;      /* use primary interface */
       if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                     &mreq, sizeof mreq) < 0)
-        fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
+        disorder_fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
       break;
     case PF_INET6:
       mreq6.ipv6mr_multiaddr = mgroup.in6.sin6_addr;
       memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
       if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                     &mreq6, sizeof mreq6) < 0)
-        fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
+        disorder_fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
       break;
     default:
-      fatal(0, "unsupported address family %d", res->ai_family);
+      disorder_fatal(0, "unsupported address family %d", res->ai_family);
     }
     /* Report what we did */
-    info("listening on %s multicast group %s",
-         format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
+    disorder_info("listening on %s multicast group %s",
+                  format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
   } else {
     /* Bind to 0/port */
     switch(res->ai_addr->sa_family) {
@@ -239,8 +240,8 @@ int main(int argc, char **argv) {
       
       memset(&in->sin_addr, 0, sizeof (struct in_addr));
       if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-        fatal(errno, "error binding socket to 0.0.0.0 port %d",
-              ntohs(in->sin_port));
+        disorder_fatal(errno, "error binding socket to 0.0.0.0 port %d",
+                       ntohs(in->sin_port));
       break;
     }
     case AF_INET6: {
@@ -250,12 +251,13 @@ int main(int argc, char **argv) {
       break;
     }
     default:
-      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+      disorder_fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
     }
     if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+      disorder_fatal(errno, "error binding socket to %s",
+                     format_sockaddr(res->ai_addr));
     /* Report what we did */
-    info("listening on %s", format_sockaddr(res->ai_addr));
+    disorder_info("listening on %s", format_sockaddr(res->ai_addr));
   }
   for(;;) {
     struct rtp_header header;
@@ -274,11 +276,11 @@ int main(int argc, char **argv) {
       case EINTR:
         continue;
       default:
-        fatal(errno, "error reading from socket");
+        disorder_fatal(errno, "error reading from socket");
       }
     }
     if((size_t)n <= sizeof (struct rtp_header)) {
-      info("ignored a short packet");
+      disorder_info("ignored a short packet");
       continue;
     }
     frames(&when, (n - sizeof header) / bpf);

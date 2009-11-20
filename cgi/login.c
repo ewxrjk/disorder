@@ -82,7 +82,7 @@ void dcgi_get_cookie(void) {
       if(best_cookie != -1)
 	dcgi_cookie = cd.cookies[best_cookie].value;
     } else
-      error(0, "could not parse cookie field '%s'", cookie_env);
+      disorder_error(0, "could not parse cookie field '%s'", cookie_env);
   }
 }
 

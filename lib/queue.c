@@ -89,9 +89,9 @@ static const char *marshall_long(const struct queue_entry *q, size_t offset) {
 
   n = byte_snprintf(buffer, sizeof buffer, "%ld", VALUE(q, offset, long));
   if(n < 0)
-    fatal(errno, "error converting int");
+    disorder_fatal(errno, "error converting int");
   else if((size_t)n >= sizeof buffer)
-    fatal(0, "long converted to decimal is too long");
+    disorder_fatal(0, "long converted to decimal is too long");
   return xstrdup(buffer);
 }
 
@@ -128,9 +128,9 @@ static const char *marshall_time_t(const struct queue_entry *q, size_t offset) {
   n = byte_snprintf(buffer, sizeof buffer,
 		    "%"PRIdMAX, (intmax_t)VALUE(q, offset, time_t));
   if(n < 0)
-    fatal(errno, "error converting time");
+    disorder_fatal(errno, "error converting time");
   else if((size_t)n >= sizeof buffer)
-    fatal(0, "time converted to decimal is too long");
+    disorder_fatal(0, "time converted to decimal is too long");
   return xstrdup(buffer);
 }
 

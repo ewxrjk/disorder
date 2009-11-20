@@ -43,12 +43,12 @@ static int logfd_readable(ev_source attribute((unused)) *ev,
   while((nl = memchr(ptr, '\n', bytes))) {
     len = nl - (char *)ptr;
     ev_reader_consume(reader, len + 1);
-    info("%s: %.*s", tag, len, (char *)ptr);
+    disorder_info("%s: %.*s", tag, len, (char *)ptr);
     ptr = nl + 1;
     bytes -= len + 1;
   }
   if(eof && bytes) {
-    info("%s: %.*s", tag, (int)bytes, (char *)ptr);
+    disorder_info("%s: %.*s", tag, (int)bytes, (char *)ptr);
     ev_reader_consume(reader, bytes);
   }
   return 0;
@@ -60,7 +60,7 @@ static int logfd_error(ev_source attribute((unused)) *ev,
 		       void *u) {
   const char *tag = u;
   
-  error(errno_value, "error reading log pipe from %s", tag);
+  disorder_error(errno_value, "error reading log pipe from %s", tag);
   return 0;
 }
 
@@ -74,7 +74,7 @@ static int logfd_error(ev_source attribute((unused)) *ev,
  * it in the parent).
  *
  * Any lines written to this fd (i.e. by the subprocess) will be logged via
- * info(), with @p tag included.
+ * disorder_info(), with @p tag included.
  */
 int logfd(ev_source *ev, const char *tag) {
   int p[2];
@@ -84,7 +84,7 @@ int logfd(ev_source *ev, const char *tag) {
   nonblock(p[0]);
   if(!ev_reader_new(ev, p[0], logfd_readable, logfd_error, (void *)tag,
                     "logfd"))
-    fatal(errno, "error calling ev_reader_new");
+    disorder_fatal(errno, "error calling ev_reader_new");
   return p[1];
 }
 

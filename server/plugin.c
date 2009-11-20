@@ -54,7 +54,7 @@ const struct plugin *open_plugin(const char *name,
     if(access(p, R_OK) == 0) {
       h = dlopen(p, RTLD_NOW);
       if(!h) {
-	error(0, "error opening %s: %s", p, dlerror());
+	disorder_error(0, "error opening %s: %s", p, dlerror());
 	continue;
       }
       pl = xmalloc(sizeof *pl);
@@ -65,7 +65,8 @@ const struct plugin *open_plugin(const char *name,
       return pl;
     }
   }
-  (flags & PLUGIN_FATAL ? fatal : error)(0, "cannot find plugin '%s'", name);
+  (flags & PLUGIN_FATAL ? disorder_fatal : disorder_error)
+    (0, "cannot find plugin '%s'", name);
   return 0;
 }
 
@@ -75,8 +76,8 @@ function_t *get_plugin_function(const struct plugin *pl,
 
   f = (function_t *)dlsym(pl->dlhandle, symbol);
   if(!f)
-    fatal(0, "error looking up function '%s' in '%s': %s",
-	  symbol, pl->name, dlerror());
+    disorder_fatal(0, "error looking up function '%s' in '%s': %s",
+		   symbol, pl->name, dlerror());
   return f;
 }
 
@@ -86,8 +87,8 @@ const void *get_plugin_object(const struct plugin *pl,
 
   o = dlsym(pl->dlhandle, symbol);
   if(!o)
-    fatal(0, "error looking up object '%s' in '%s': %s",
-	  symbol, pl->name, dlerror());
+    disorder_fatal(0, "error looking up object '%s' in '%s': %s",
+		   symbol, pl->name, dlerror());
   return o;
 }
 

@@ -34,20 +34,21 @@
 
 int mustnotbeminus1(const char *what, int ret) {
   if(ret == -1)
-    fatal(errno, "error calling %s", what);
+    disorder_fatal(errno, "error calling %s", what);
   return ret;
 }
 
 pid_t xfork(void) {
   pid_t pid;
 
-  if((pid = fork()) < 0) fatal(errno, "error calling fork");
+  if((pid = fork()) < 0)
+    disorder_fatal(errno, "error calling fork");
   return pid;
 }
 
 void xclose_guts(const char *path, int line, int fd) {
   if(close(fd) < 0)
-    fatal(errno, "%s:%d: close %d", path, line, fd);
+    disorder_fatal(errno, "%s:%d: close %d", path, line, fd);
 }
 
 void xdup2(int fd1, int fd2) {
@@ -140,7 +141,8 @@ int xnice(int inc) {
    * be -1 */
   errno = 0;
   ret = nice(inc);
-  if(errno) fatal(errno, "error calling nice");
+  if(errno)
+    disorder_fatal(errno, "error calling nice");
   return ret;
 }
 

@@ -55,7 +55,7 @@ const struct uaudio *uaudio_find(const char *name) {
       return uaudio_apis[n];
   if(!strcmp(name, "network"))
     return &uaudio_rtp;
-  fatal(0, "cannot find audio API '%s'", name);
+  disorder_fatal(0, "cannot find audio API '%s'", name);
 }
 
 /*

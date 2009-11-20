@@ -978,7 +978,7 @@ static int exp_breadcrumbs(int attribute((unused)) nargs,
     return rc;
   /* Reject relative paths */
   if(dir[0] != '/') {
-    error(0, "breadcrumbs: '%s' is a relative path", dir);
+    disorder_error(0, "breadcrumbs: '%s' is a relative path", dir);
     return 0;
   }
   /* Skip the root */

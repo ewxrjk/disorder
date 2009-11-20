@@ -88,7 +88,7 @@ void *xmalloc(size_t n) {
   void *ptr;
 
   if(!(ptr = do_malloc(n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -102,7 +102,7 @@ void *xmalloc(size_t n) {
  */
 void *xrealloc(void *ptr, size_t n) {
   if(!(ptr = do_realloc(ptr, n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -116,7 +116,7 @@ void *xrealloc(void *ptr, size_t n) {
  */
 void *xcalloc(size_t count, size_t size) {
   if(count > SIZE_MAX / size)
-    fatal(0, "excessively large calloc");
+    disorder_fatal(0, "excessively large calloc");
   return xmalloc(count * size);
 }
 
@@ -132,7 +132,7 @@ void *xmalloc_noptr(size_t n) {
   void *ptr;
 
   if(!(ptr = do_malloc_atomic(n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -146,7 +146,7 @@ void *xmalloc_noptr(size_t n) {
  */
 void *xcalloc_noptr(size_t count, size_t size) {
   if(count > SIZE_MAX / size)
-    fatal(0, "excessively large calloc");
+    disorder_fatal(0, "excessively large calloc");
   return xmalloc_noptr(count * size);
 }
 
@@ -163,7 +163,7 @@ void *xrealloc_noptr(void *ptr, size_t n) {
   if(ptr == 0)
     return xmalloc_noptr(n);
   if(!(ptr = do_realloc(ptr, n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -177,7 +177,7 @@ char *xstrdup(const char *s) {
   char *t;
 
   if(!(t = do_malloc_atomic(strlen(s) + 1)))
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return strcpy(t, s);
 }
 
@@ -193,7 +193,7 @@ char *xstrndup(const char *s, size_t n) {
   char *t;
 
   if(!(t = do_malloc_atomic(n + 1)))
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   memcpy(t, s, n);
   t[n] = 0;
   return t;

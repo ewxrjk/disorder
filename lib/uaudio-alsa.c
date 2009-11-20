@@ -89,7 +89,7 @@ static size_t alsa_play(void *buffer, size_t samples, unsigned flags) {
     case -EAGAIN:
       return 0;
     default:
-      fatal(0, "error calling snd_pcm_writei: %d", (int)rc);
+      disorder_fatal(0, "error calling snd_pcm_writei: %d", (int)rc);
     }
   }
   return rc * uaudio_channels;
@@ -104,14 +104,14 @@ static void alsa_open(void) {
 			 device,
 			 SND_PCM_STREAM_PLAYBACK,
 			 0)))
-    fatal(0, "error from snd_pcm_open: %d", err);
+    disorder_fatal(0, "error from snd_pcm_open: %d", err);
   snd_pcm_hw_params_t *hwparams;
   snd_pcm_hw_params_alloca(&hwparams);
   if((err = snd_pcm_hw_params_any(alsa_pcm, hwparams)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_any: %d", err);
+    disorder_fatal(0, "error from snd_pcm_hw_params_any: %d", err);
   if((err = snd_pcm_hw_params_set_access(alsa_pcm, hwparams,
                                          SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
+    disorder_fatal(0, "error from snd_pcm_hw_params_set_access: %d", err);
   int sample_format;
   if(uaudio_bits == 16)
     sample_format = uaudio_signed ? SND_PCM_FORMAT_S16 : SND_PCM_FORMAT_U16;
@@ -119,28 +119,28 @@ static void alsa_open(void) {
     sample_format = uaudio_signed ? SND_PCM_FORMAT_S8 : SND_PCM_FORMAT_U8;
   if((err = snd_pcm_hw_params_set_format(alsa_pcm, hwparams,
                                          sample_format)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
+    disorder_fatal(0, "error from snd_pcm_hw_params_set_format (%d): %d",
           sample_format, err);
   unsigned rate = uaudio_rate;
   if((err = snd_pcm_hw_params_set_rate_near(alsa_pcm, hwparams, &rate, 0)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_rate_near (%d): %d",
+    disorder_fatal(0, "error from snd_pcm_hw_params_set_rate_near (%d): %d",
           rate, err);
   if((err = snd_pcm_hw_params_set_channels(alsa_pcm, hwparams,
                                            uaudio_channels)) < 0)
-    fatal(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
+    disorder_fatal(0, "error from snd_pcm_hw_params_set_channels (%d): %d",
           uaudio_channels, err);
   if((err = snd_pcm_hw_params(alsa_pcm, hwparams)) < 0)
-    fatal(0, "error calling snd_pcm_hw_params: %d", err);
+    disorder_fatal(0, "error calling snd_pcm_hw_params: %d", err);
   
 }
 
 static void alsa_start(uaudio_callback *callback,
                       void *userdata) {
   if(uaudio_channels != 1 && uaudio_channels != 2)
-    fatal(0, "asked for %d channels but only support 1 or 2",
+    disorder_fatal(0, "asked for %d channels but only support 1 or 2",
           uaudio_channels); 
   if(uaudio_bits != 8 && uaudio_bits != 16)
-    fatal(0, "asked for %d bits/channel but only support 8 or 16",
+    disorder_fatal(0, "asked for %d bits/channel but only support 8 or 16",
           uaudio_bits); 
   alsa_open();
   uaudio_thread_start(callback, userdata, alsa_play,
@@ -174,23 +174,24 @@ static void alsa_open_mixer(void) {
 
   snd_mixer_selem_id_alloca(&id);
   if((err = snd_mixer_open(&alsa_mixer_handle, 0)))
-    fatal(0, "snd_mixer_open: %s", snd_strerror(err));
+    disorder_fatal(0, "snd_mixer_open: %s", snd_strerror(err));
   if((err = snd_mixer_attach(alsa_mixer_handle, device)))
-    fatal(0, "snd_mixer_attach %s: %s", device, snd_strerror(err));
+    disorder_fatal(0, "snd_mixer_attach %s: %s", device, snd_strerror(err));
   if((err = snd_mixer_selem_register(alsa_mixer_handle,
                                      0/*options*/, 0/*classp*/)))
-    fatal(0, "snd_mixer_selem_register %s: %s",
+    disorder_fatal(0, "snd_mixer_selem_register %s: %s",
           device, snd_strerror(err));
   if((err = snd_mixer_load(alsa_mixer_handle)))
-    fatal(0, "snd_mixer_load %s: %s", device, snd_strerror(err));
+    disorder_fatal(0, "snd_mixer_load %s: %s", device, snd_strerror(err));
   snd_mixer_selem_id_set_name(id, channel);
   snd_mixer_selem_id_set_index(id, atoi(mixer));
   if(!(alsa_mixer_elem = snd_mixer_find_selem(alsa_mixer_handle, id)))
-    fatal(0, "device '%s' mixer control '%s,%s' does not exist",
-	  device, channel, mixer);
+    disorder_fatal(0, "device '%s' mixer control '%s,%s' does not exist",
+                   device, channel, mixer);
   if(!snd_mixer_selem_has_playback_volume(alsa_mixer_elem))
-    fatal(0, "device '%s' mixer control '%s,%s' has no playback volume",
-	  device, channel, mixer);
+    disorder_fatal(0,
+                   "device '%s' mixer control '%s,%s' has no playback volume",
+                   device, channel, mixer);
   if(snd_mixer_selem_is_playback_mono(alsa_mixer_elem)) {
     alsa_mixer_left = alsa_mixer_right = SND_MIXER_SCHN_MONO;
   } else {
@@ -201,8 +202,8 @@ static void alsa_open_mixer(void) {
                                            alsa_mixer_left)
      || !snd_mixer_selem_has_playback_channel(alsa_mixer_elem,
                                               alsa_mixer_right))
-    fatal(0, "device '%s' mixer control '%s,%s' lacks required playback channels",
-	  device, channel, mixer);
+    disorder_fatal(0, "device '%s' mixer control '%s,%s' lacks required playback channels",
+                   device, channel, mixer);
   snd_mixer_selem_get_playback_volume_range(alsa_mixer_elem,
                                             &alsa_mixer_min, &alsa_mixer_max);
 
@@ -222,7 +223,8 @@ static void alsa_get_volume(int *left, int *right) {
                                                 alsa_mixer_left, &l))
      || (err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
                                                    alsa_mixer_right, &r)))
-    fatal(0, "snd_mixer_selem_get_playback_volume: %s", snd_strerror(err));
+    disorder_fatal(0, "snd_mixer_selem_get_playback_volume: %s",
+                   snd_strerror(err));
   *left = to_percent(l);
   *right = to_percent(r);
 }
@@ -237,21 +239,24 @@ static void alsa_set_volume(int *left, int *right) {
     if((err = snd_mixer_selem_set_playback_volume
 	(alsa_mixer_elem, alsa_mixer_left,
 	 from_percent(*left > *right ? *left : *right))))
-      fatal(0, "snd_mixer_selem_set_playback_volume: %s", snd_strerror(err));
+      disorder_fatal(0, "snd_mixer_selem_set_playback_volume: %s",
+                     snd_strerror(err));
   } else {
     /* Stereo output */
     if((err = snd_mixer_selem_set_playback_volume
 	(alsa_mixer_elem, alsa_mixer_left, from_percent(*left)))
        || (err = snd_mixer_selem_set_playback_volume
 	   (alsa_mixer_elem, alsa_mixer_right, from_percent(*right))))
-      fatal(0, "snd_mixer_selem_set_playback_volume: %s", snd_strerror(err));
+      disorder_fatal(0, "snd_mixer_selem_set_playback_volume: %s",
+                     snd_strerror(err));
   }
   /* Read it back to see what we ended up at */
   if((err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
                                                 alsa_mixer_left, &l))
      || (err = snd_mixer_selem_get_playback_volume(alsa_mixer_elem,
                                                    alsa_mixer_right, &r)))
-    fatal(0, "snd_mixer_selem_get_playback_volume: %s", snd_strerror(err));
+    disorder_fatal(0, "snd_mixer_selem_get_playback_volume: %s",
+                   snd_strerror(err));
   *left = to_percent(l);
   *right = to_percent(r);
 }

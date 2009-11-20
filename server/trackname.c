@@ -45,23 +45,24 @@ int main(int argc, char **argv) {
   int n;
   const char *s;
 
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, ""))
+    disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:d", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("trackname");
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
-  if(argc - optind < 3) fatal(0, "not enough arguments");
-  if(argc - optind > 3) fatal(0, "too many arguments");
-  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
+  if(argc - optind < 3) disorder_fatal(0, "not enough arguments");
+  if(argc - optind > 3) disorder_fatal(0, "too many arguments");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   s = trackname_part(argv[optind], argv[optind+1], argv[optind+2]);
-  if(!s) fatal(0, "trackname_part returned NULL");
+  if(!s) disorder_fatal(0, "trackname_part returned NULL");
   xprintf("%s\n", nullcheck(utf82mb(s)));
-  if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
+  if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
   return 0;
 }
 

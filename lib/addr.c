@@ -63,23 +63,24 @@ struct addrinfo *get_address(const struct stringlist *a,
   case 1:
     byte_xasprintf(&name, "host * service %s", a->s[0]);
     if((rc = getaddrinfo(0, a->s[0], pref, &res))) {
-      error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
+      disorder_error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
       return 0;
     }
     break;
   case 2:
     byte_xasprintf(&name, "host %s service %s", a->s[0], a->s[1]);
     if((rc = getaddrinfo(a->s[0], a->s[1], pref, &res))) {
-      error(0, "getaddrinfo %s %s: %s", a->s[0], a->s[1], gai_strerror(rc));
+      disorder_error(0, "getaddrinfo %s %s: %s",
+		     a->s[0], a->s[1], gai_strerror(rc));
       return 0;
     }
     break;
   default:
-    error(0, "invalid network address specification (n=%d)", a->n);
+    disorder_error(0, "invalid network address specification (n=%d)", a->n);
     return 0;
   }
   if(!res || (pref && res->ai_socktype != pref->ai_socktype)) {
-    error(0, "getaddrinfo didn't give us a suitable socket address");
+    disorder_error(0, "getaddrinfo didn't give us a suitable socket address");
     if(res)
       freeaddrinfo(res);
     return 0;
@@ -126,7 +127,7 @@ int sockaddrcmp(const struct sockaddr *a,
     return memcmp(&in6a->sin6_addr, &in6b->sin6_addr,
 		  sizeof (struct in6_addr));
   default:
-    fatal(0, "unsupported protocol family %d", a->sa_family);
+    disorder_fatal(0, "unsupported protocol family %d", a->sa_family);
   }
 }
 
@@ -334,9 +335,9 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
   snprintf(service, sizeof service, "%d", na->port);
   rc = getaddrinfo(na->address, service, hints, &res);
   if(rc) {
-    error(0, "getaddrinfo %s %d: %s",
-	  na->address ? na->address : "*",
-	  na->port, gai_strerror(rc));
+    disorder_error(0, "getaddrinfo %s %d: %s",
+		   na->address ? na->address : "*",
+		   na->port, gai_strerror(rc));
     return NULL;
   }
   return res;

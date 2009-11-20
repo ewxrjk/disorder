@@ -85,7 +85,7 @@ int parse_rights(const char *s, rights_type *rp, int report) {
   if(!*s) {
     /* You can't have no rights */
     if(report)
-      error(0, "empty rights string");
+      disorder_error(0, "empty rights string");
     return -1;
   }
   while(*s) {
@@ -102,7 +102,7 @@ int parse_rights(const char *s, rights_type *rp, int report) {
 	  break;
       if(n >= NRIGHTS) {
 	if(report)
-          error(0, "unknown user right '%.*s'", (int)l, s);
+          disorder_error(0, "unknown user right '%.*s'", (int)l, s);
 	return -1;
       }
       r |= rights_names[n].bit;

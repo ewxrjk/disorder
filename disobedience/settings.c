@@ -219,25 +219,25 @@ void load_settings(void) {
       if(!strcmp(vec[0], "color")) {
         GdkColor *color;
         if(nvec != 7) {
-          error(0, "%s: malformed '%s' command", path, vec[0]);
+          disorder_error(0, "%s: malformed '%s' command", path, vec[0]);
           continue;
         }
         for(n = 0; n < NSTYLES && strcmp(styles[n].name, vec[1]); ++n)
           ;
         if(n >= NSTYLES) {
-          error(0, "%s: unknown style '%s'", path, vec[1]);
+          disorder_error(0, "%s: unknown style '%s'", path, vec[1]);
           continue;
         }
         for(m = 0; m < NSTATES && strcmp(states[m], vec[2]); ++m)
           ;
         if(m >= NSTATES) {
-          error(0, "%s: unknown state '%s'", path, vec[2]);
+          disorder_error(0, "%s: unknown state '%s'", path, vec[2]);
           continue;
         }
         for(c = 0; c < NCOLORS && strcmp(colors[c].name, vec[3]); ++c)
           ;
         if(c >= NCOLORS) {
-          error(0, "%s: unknown color '%s'", path, vec[3]);
+          disorder_error(0, "%s: unknown color '%s'", path, vec[3]);
           continue;
         }
         color = (GdkColor *)((char *)styles[n].style + colors[c].offset) + m;
@@ -246,13 +246,13 @@ void load_settings(void) {
         color->blue = strtoul(vec[6], 0, 0);
       } else if(!strcmp(vec[0], "browser")) {
         if(nvec != 2) {
-          error(0, "%s: malformed '%s' command", path, vec[0]);
+          disorder_error(0, "%s: malformed '%s' command", path, vec[0]);
           continue;
         }
         browser = vec[1];
       } else
         /* mention errors but otherwise ignore them */
-        error(0, "%s: unknown command '%s'", path, vec[0]);
+        disorder_error(0, "%s: unknown command '%s'", path, vec[0]);
     }
     if(ferror(fp)) {
       fpopup_msg(GTK_MESSAGE_ERROR, "error reading %s: %s",

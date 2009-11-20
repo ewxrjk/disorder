@@ -45,7 +45,7 @@ static void *convert(const char *from, const char *to,
   size_t bufsize = 0, sl, dl;
 
   if((i = iconv_open(to, from)) == (iconv_t)-1)
-    fatal(errno, "error calling iconv_open");
+    disorder_fatal(errno, "error calling iconv_open");
   do {
     bufsize = bufsize ? 2 * bufsize : 32;
     buf = xrealloc_noptr(buf, bufsize);
@@ -59,7 +59,7 @@ static void *convert(const char *from, const char *to,
   } while(len == (size_t)-1 && errno == E2BIG);
   iconv_close(i);
   if(len == (size_t)-1) {
-    error(errno, "error converting from %s to %s", from, to);
+    disorder_error(errno, "error converting from %s to %s", from, to);
     return 0;
   }
   return buf;

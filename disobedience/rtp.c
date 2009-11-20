@@ -107,30 +107,30 @@ void start_rtp(void) {
   /* double-fork so we don't have to wait() later */
   if(!(pid = xfork())) {
     if(setsid() < 0)
-      fatal(errno, "error calling setsid");
+      disorder_fatal(errno, "error calling setsid");
     if(!(pid = xfork())) {
       /* grandchild */
       exitfn = _exit;
       /* log errors and output somewhere reasonably sane.  rtp_running()
        * will have made sure the directory exists. */
       if((fd = open(rtp_log, O_WRONLY|O_CREAT|O_TRUNC, 0600)) < 0)
-	fatal(errno, "creating %s", rtp_log);
+	disorder_fatal(errno, "creating %s", rtp_log);
       if(dup2(fd, 1) < 0
 	 || dup2(fd, 2) < 0)
-	fatal(errno, "dup2");
+	disorder_fatal(errno, "dup2");
       if(close(fd) < 0)
-	fatal(errno, "close");
+	disorder_fatal(errno, "close");
       /* We don't want to hang onto whatever stdin was */
       if((fd = open("/dev/null", O_RDONLY)) < 0)
-        fatal(errno, "opening /dev/null");
+        disorder_fatal(errno, "opening /dev/null");
       if(dup2(fd, 0) < 0)
-        fatal(errno, "dup2");
+        disorder_fatal(errno, "dup2");
       if(close(fd) < 0)
-	fatal(errno, "close");
+	disorder_fatal(errno, "close");
       /* execute the player */
       execlp("disorder-playrtp",
 	     "disorder-playrtp", "--socket", rtp_socket, (char *)0);
-      fatal(errno, "disorder-playrtp");
+      disorder_fatal(errno, "disorder-playrtp");
     } else {
       /* child */
       _exit(0);

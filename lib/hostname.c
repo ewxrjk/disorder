@@ -40,9 +40,9 @@ const char *local_hostname(void) {
     struct hostent *he;
 
     if(uname(&u) < 0)
-      fatal(errno, "error calling uname");
+      disorder_fatal(errno, "error calling uname");
     if(!(he = gethostbyname(u.nodename)))
-      fatal(0, "cannot resolve '%s'", u.nodename);
+      disorder_fatal(0, "cannot resolve '%s'", u.nodename);
     hostname = xstrdup(he->h_name);
   }
   return hostname;

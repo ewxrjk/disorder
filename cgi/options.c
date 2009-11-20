@@ -72,7 +72,7 @@ static void option__split_error(const char *msg,
 			       void *u) {
   struct read_options_state *cs = u;
   
-  error(0, "%s:%d: %s", cs->name, cs->line, msg);
+  disorder_error(0, "%s:%d: %s", cs->name, cs->line, msg);
 }
 
 static void option__readfile(const char *name) {
@@ -84,7 +84,7 @@ static void option__readfile(const char *name) {
   if(!(cs.name = mx_find(name, 1/*report*/)))
     return;
   if(!(fp = fopen(cs.name, "r")))
-    fatal(errno, "error opening %s", cs.name);
+    disorder_fatal(errno, "error opening %s", cs.name);
   cs.line = 0;
   while(!inputline(cs.name, fp, &buffer, '\n')) {
     ++cs.line;
@@ -94,17 +94,17 @@ static void option__readfile(const char *name) {
     if(!n)
       continue;
     if((i = TABLE_FIND(options, name, vec[0])) == -1) {
-      error(0, "%s:%d: unknown option '%s'", cs.name, cs.line, vec[0]);
+      disorder_error(0, "%s:%d: unknown option '%s'", cs.name, cs.line, vec[0]);
       continue;
     }
     ++vec;
     --n;
     if(n < options[i].minargs) {
-      error(0, "%s:%d: too few arguments to '%s'", cs.name, cs.line, vec[-1]);
+      disorder_error(0, "%s:%d: too few arguments to '%s'", cs.name, cs.line, vec[-1]);
       continue;
     }
     if(n > options[i].maxargs) {
-      error(0, "%s:%d: too many arguments to '%s'", cs.name, cs.line, vec[-1]);
+      disorder_error(0, "%s:%d: too many arguments to '%s'", cs.name, cs.line, vec[-1]);
       continue;
     }
     options[i].handler(n, vec);
