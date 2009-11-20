@@ -48,26 +48,6 @@ static uint8_t *convert(const struct resampler *rs,
   return (uint8_t *)d->vec;
 }
 
-static const uint8_t simple_bytes_u[] = {
-  0, 127, 128, 255,
-};
-
-static const uint8_t simple_bytes_u2[] = {
-  0, 0, 127, 127, 128, 128, 255, 255,
-};
-
-static const uint8_t simple_bytes_s[] = {
-  -128, -1, 0, 127,
-};
-
-static const uint8_t simple_words_u_le[] = {
-  0, 1,  0, 255,  1, 0,  1, 255
-};
-
-static const uint8_t simple_words_u_be[] = {
-  1, 0,  255, 0,  0, 1,  255, 1
-};
-
 static const struct {
   const char *description;
   int input_bits;
@@ -75,36 +55,61 @@ static const struct {
   int input_rate;
   int input_signed;
   int input_endian;
-  const uint8_t *input;
+  const char *input;
   size_t input_bytes;
   int output_bits;
   int output_channels;
   int output_rate;
   int output_signed;
   int output_endian;
-  const uint8_t *output;
+  const char *output;
   size_t output_bytes;
 } conversions[] = {
   /* Conversions that don't change the sample rate */
   {
     "empty input",
-    8, 1, 8000, 0, ENDIAN_LITTLE, (const uint8_t *)"", 0,
-    8, 1, 8000, 0, ENDIAN_LITTLE, (const uint8_t *)"", 0
+    8, 1, 8000, 0, ENDIAN_LITTLE, "", 0,
+    8, 1, 8000, 0, ENDIAN_LITTLE, "", 0
   },
   {
-    "sign flip",
-    8, 1, 8000, 0, ENDIAN_LITTLE, simple_bytes_u, 4,
-    8, 1, 8000, 1, ENDIAN_LITTLE, simple_bytes_s, 4
+    "sign flip 8-bit unsigned->signed",
+    8, 1, 8000, 0, ENDIAN_LITTLE, "\x00\x7F\x80\xFF", 4,
+    8, 1, 8000, 1, ENDIAN_LITTLE, "\x80\xFF\x00\x7F", 4
+  },
+  {
+    "sign flip 8-bit signed->unsigned",
+    8, 1, 8000, 1, ENDIAN_BIG, "\x80\xFF\x00\x7F", 4,
+    8, 1, 8000, 0, ENDIAN_BIG, "\x00\x7F\x80\xFF", 4
   },
   {
     "mono to stereo",
-    8, 1, 8000, 0, ENDIAN_LITTLE, simple_bytes_u, 4,
-    8, 2, 8000, 0, ENDIAN_LITTLE, simple_bytes_u2, 8
+    8, 1, 8000, 0, ENDIAN_LITTLE, "\x00\x7F\x80\xFF", 4,
+    8, 2, 8000, 0, ENDIAN_LITTLE, "\x00\x00\x7F\x7F\x80\x80\xFF\xFF", 8
   },
   {
-    "endian flip",
-    16, 1, 8000, 0, ENDIAN_LITTLE, simple_words_u_le, 8,
-    16, 1, 8000, 0, ENDIAN_BIG, simple_words_u_be, 8,
+    "stereo to mono",
+    8, 2, 8000, 0, ENDIAN_LITTLE, "\x00\x01\x7F\x02\x80\x03\xFF\x04", 8,
+    8, 1, 8000, 0, ENDIAN_LITTLE, "\x00\x7F\x80\xFF", 4
+  },
+  {
+    "endian flip little->big",
+    16, 1, 8000, 0, ENDIAN_LITTLE, "\x00\x01\x00\xFF\x01\x00\x01\xFF", 8,
+    16, 1, 8000, 0, ENDIAN_BIG, "\x01\x00\xFF\x00\x00\x01\xFF\x01", 8,
+  },
+  {
+    "endian flip big->little",
+    16, 1, 8000, 0, ENDIAN_BIG, "\x01\x00\xFF\x00\x00\x01\xFF\x01", 8,
+    16, 1, 8000, 0, ENDIAN_LITTLE, "\x00\x01\x00\xFF\x01\x00\x01\xFF", 8,
+  },
+  {
+    "8-bit to 16-bit",
+    8, 1, 8000, 0, ENDIAN_BIG, "\x00\x7F\x80\xFF", 4,
+    16, 1, 8000, 0, ENDIAN_BIG, "\x00\x00\x7F\x00\x80\x00\xFF\x00", 8
+  },
+  {
+    "16-bit to 8-bit",
+    16, 1, 8000, 0, ENDIAN_BIG, "\x00\x00\x7F\xFF\x80\x00\xFF\xFF", 8,
+    8, 1, 8000, 0, ENDIAN_BIG, "\x00\x7F\x80\xFF", 4
   },
 #if HAVE_SAMPLERATE_H
   /* Conversions that do change the sample rate */
@@ -130,7 +135,7 @@ static void test_resample(void) {
                   conversions[n].output_endian);
     size_t output_bytes;
     const uint8_t *output = convert(rs,
-                                    conversions[n].input, 
+                                    (const uint8_t *)conversions[n].input, 
                                     conversions[n].input_bytes, 
                                     &output_bytes);
     if(output_bytes != conversions[n].output_bytes
