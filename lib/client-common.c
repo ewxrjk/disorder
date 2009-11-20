@@ -55,7 +55,7 @@ socklen_t find_server(struct config *c,
   } else {
     name = config_get_file2(c, "socket");
     if(strlen(name) >= sizeof su.sun_path) {
-      error(errno, "socket path is too long");
+      disorder_error(errno, "socket path is too long");
       return -1;
     }
     memset(&su, 0, sizeof su);

@@ -41,18 +41,6 @@ void disorder_debug(const char *msg, ...)
 /* report a message of the given class.  @errno_value@ if present an
  * non-zero is included.  @fatal@ terminates the process. */
 
-/** @brief Backward-compatibility alias for disorder_fatal() */
-#define fatal disorder_fatal
-
-/** @brief Backward-compatibility alias for disorder_error() */
-#define error disorder_error
-
-/** @brief Backward-compatibility alias for disorder_info() */
-#define info disorder_info
-
-/** @brief Backward-compatibility alias for disorder_debug() */
-#define debug disorder_debug
-
 extern int debugging;
 /* set when debugging enabled */
 
@@ -78,7 +66,7 @@ extern int logdate;
   if(debugging) {				\
     debug_filename=__FILE__;			\
     debug_lineno=__LINE__;			\
-    debug x;					\
+    disorder_debug x;				\
   }						\
 } while(0)
 

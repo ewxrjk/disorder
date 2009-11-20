@@ -160,7 +160,7 @@ int trackdb_playlist_get(const char *name,
   int e;
 
   if(playlist_parse_name(name, 0, 0)) {
-    error(0, "invalid playlist name '%s'", name);
+    disorder_error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }
   WITH_TRANSACTION(trackdb_playlist_get_tid(name, who,
@@ -186,7 +186,7 @@ static int trackdb_playlist_get_tid(const char *name,
     return e;
   /* Get sharability */
   if(!(s = kvp_get(k, "sharing"))) {
-    error(0, "playlist '%s' has no 'sharing' key", name);
+    disorder_error(0, "playlist '%s' has no 'sharing' key", name);
     s = "private";
   }
   /* Check the read is allowed */
@@ -197,12 +197,12 @@ static int trackdb_playlist_get_tid(const char *name,
     *sharep = xstrdup(s);
   /* Get track count */
   if(!(s = kvp_get(k, "count"))) {
-    error(0, "playlist '%s' has no 'count' key", name);
+    disorder_error(0, "playlist '%s' has no 'count' key", name);
     s = "0";
   }
   ntracks = atoi(s);
   if(ntracks < 0) {
-    error(0, "playlist '%s' has negative count", name);
+    disorder_error(0, "playlist '%s' has negative count", name);
     ntracks = 0;
   }
   /* Return track count */
@@ -216,7 +216,7 @@ static int trackdb_playlist_get_tid(const char *name,
     for(int n = 0; n < ntracks; ++n) {
       snprintf(b, sizeof b, "%d", n);
       if(!(s = kvp_get(k, b))) {
-        error(0, "playlist '%s' lacks track %d", name, n);
+        disorder_error(0, "playlist '%s' lacks track %d", name, n);
         s = "unknown";
       }
       tracks[n] = xstrdup(s);
@@ -260,7 +260,7 @@ int trackdb_playlist_set(const char *name,
   char *owner;
   
   if(playlist_parse_name(name, &owner, 0)) {
-    error(0, "invalid playlist name '%s'", name);
+    disorder_error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }
   /* Check valid share types */
@@ -269,13 +269,13 @@ int trackdb_playlist_set(const char *name,
       /* Playlists with an owner must be public or private */
       if(strcmp(share, "public")
          && strcmp(share, "private")) {
-        error(0, "playlist '%s' must be public or private", name);
+        disorder_error(0, "playlist '%s' must be public or private", name);
         return EINVAL;
       }
     } else {
       /* Playlists with no owner must be shared */
       if(strcmp(share, "shared")) {
-        error(0, "playlist '%s' must be shared", name);
+        disorder_error(0, "playlist '%s' must be shared", name);
         return EINVAL;
       }
     }        
@@ -318,7 +318,7 @@ static int trackdb_playlist_set_tid(const char *name,
   }
   /* Check that the modification is allowed */
   if(!(s = kvp_get(k, "sharing"))) {
-    error(0, "playlist '%s' has no 'sharing' key", name);
+    disorder_error(0, "playlist '%s' has no 'sharing' key", name);
     s = "private";
   }
   if(!playlist_may_write(name, who, s))
@@ -335,7 +335,7 @@ static int trackdb_playlist_set_tid(const char *name,
 
     /* Sanity check track count */
     if(ntracks < 0 || ntracks > config->playlist_max) {
-      error(0, "invalid track count %d", ntracks);
+      disorder_error(0, "invalid track count %d", ntracks);
       return EINVAL;
     }
     /* Set the tracks */
@@ -398,11 +398,11 @@ static int trackdb_playlist_list_tid(const char *who,
 
     /* Extract owner; malformed names are skipped */
     if(playlist_parse_name(name, &owner, 0)) {
-      error(0, "invalid playlist name '%s' found in database", name);
+      disorder_error(0, "invalid playlist name '%s' found in database", name);
       continue;
     }
     if(!share) {
-      error(0, "playlist '%s' has no 'sharing' key", name);
+      disorder_error(0, "playlist '%s' has no 'sharing' key", name);
       continue;
     }
     /* Always list public and shared playlists
@@ -422,7 +422,7 @@ static int trackdb_playlist_list_tid(const char *who,
   case DB_LOCK_DEADLOCK:
     return e;
   default:
-    fatal(0, "c->c_get: %s", db_strerror(e));
+    disorder_fatal(0, "c->c_get: %s", db_strerror(e));
   }
   vector_terminate(v);
   if(playlistsp)
@@ -449,7 +449,7 @@ int trackdb_playlist_delete(const char *name,
   char *owner;
   
   if(playlist_parse_name(name, &owner, 0)) {
-    error(0, "invalid playlist name '%s'", name);
+    disorder_error(0, "invalid playlist name '%s'", name);
     return EINVAL;
   }
   /* We've checked as much as we can for now, now go and attempt the change */
@@ -470,7 +470,7 @@ static int trackdb_playlist_delete_tid(const char *name,
     return e;
   /* Check that modification is allowed */
   if(!(s = kvp_get(k, "sharing"))) {
-    error(0, "playlist '%s' has no 'sharing' key", name);
+    disorder_error(0, "playlist '%s' has no 'sharing' key", name);
     s = "private";
   }
   if(!playlist_may_write(name, who, s))

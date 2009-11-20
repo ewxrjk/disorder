@@ -60,11 +60,11 @@ int inputline(const char *tag, FILE *fp, char **lp, int newline) {
     }
   }
   if(ferror(fp)) {
-    error(errno, "error reading %s", tag);
+    disorder_error(errno, "error reading %s", tag);
     return -1;
   } else if(feof(fp)) {
     if(d.nvec != 0)
-      error(0, "error reading %s: unexpected EOF", tag);
+      disorder_error(0, "error reading %s: unexpected EOF", tag);
     return -1;
   }
   dynstr_terminate(&d);

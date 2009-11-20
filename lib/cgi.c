@@ -43,7 +43,7 @@ static struct kvp *cgi__init_get(void) {
 
   if((q = getenv("QUERY_STRING")))
     return kvp_urldecode(q, strlen(q));
-  error(0, "QUERY_STRING not set, assuming empty");
+  disorder_error(0, "QUERY_STRING not set, assuming empty");
   return NULL;
 }
 
@@ -55,26 +55,26 @@ static void cgi__input(char **ptrp, size_t *np) {
   int r;
 
   if(!(cl = getenv("CONTENT_LENGTH")))
-    fatal(0, "CONTENT_LENGTH not set");
+    disorder_fatal(0, "CONTENT_LENGTH not set");
   n = atol(cl);
   /* We check for overflow and also limit the input to 16MB. Lower
    * would probably do.  */
   if(!(n+1) || n > 16 * 1024 * 1024)
-    fatal(0, "input is much too large");
+    disorder_fatal(0, "input is much too large");
   q = xmalloc_noptr(n + 1);
   while(m < n) {
     r = read(0, q + m, n - m);
     if(r > 0)
       m += r;
     else if(r == 0)
-      fatal(0, "unexpected end of file reading request body");
+      disorder_fatal(0, "unexpected end of file reading request body");
     else switch(errno) {
     case EINTR: break;
-    default: fatal(errno, "error reading request body");
+    default: disorder_fatal(errno, "error reading request body");
     }
   }
   if(memchr(q, 0, n))
-    fatal(0, "null character in request body");
+    disorder_fatal(0, "null character in request body");
   q[n + 1] = 0;
   *ptrp = q;
   if(np)
@@ -92,12 +92,12 @@ static int cgi__field_callback(const char *name, const char *value,
 					&disposition,
 					&pname,
 					&pvalue))
-      fatal(0, "error parsing Content-Disposition field");
+      disorder_fatal(0, "error parsing Content-Disposition field");
     if(!strcmp(disposition, "form-data")
        && pname
        && !strcmp(pname, "name")) {
       if(*namep)
-	fatal(0, "duplicate Content-Disposition field");
+	disorder_fatal(0, "duplicate Content-Disposition field");
       *namep = pvalue;
     }
   }
@@ -109,11 +109,11 @@ static int cgi__part_callback(const char *s,
 			      void *u) {
   char *name = 0;
   struct kvp *k, **head = u;
-  
+
   if(!(s = mime_parse(s, cgi__field_callback, &name)))
-    fatal(0, "error parsing part header");
+    disorder_fatal(0, "error parsing part header");
   if(!name)
-    fatal(0, "no name found");
+    disorder_fatal(0, "no name found");
   k = xmalloc(sizeof *k);
   k->next = *head;
   k->name = name;
@@ -129,7 +129,7 @@ static struct kvp *cgi__init_multipart(const char *boundary) {
   
   cgi__input(&q, 0);
   if(mime_multipart(q, cgi__part_callback, boundary, &head))
-    fatal(0, "invalid multipart object");
+    disorder_fatal(0, "invalid multipart object");
   return head;
 }
 
@@ -143,17 +143,17 @@ static struct kvp *cgi__init_post(void) {
   if(!(ct = getenv("CONTENT_TYPE")))
     ct = "application/x-www-form-urlencoded";
   if(mime_content_type(ct, &type, &k))
-    fatal(0, "invalid content type '%s'", ct);
+    disorder_fatal(0, "invalid content type '%s'", ct);
   if(!strcmp(type, "application/x-www-form-urlencoded")) {
     cgi__input(&q, &n);
     return kvp_urldecode(q, n);
   }
   if(!strcmp(type, "multipart/form-data")) {
     if(!(boundary = kvp_get(k, "boundary")))
-      fatal(0, "no boundary parameter found");
+      disorder_fatal(0, "no boundary parameter found");
     return cgi__init_multipart(boundary);
   }
-  fatal(0, "unrecognized content type '%s'", type);
+  disorder_fatal(0, "unrecognized content type '%s'", type);
 }
 
 /** @brief Initialize CGI arguments
@@ -171,18 +171,18 @@ void cgi_init(void) {
 
   cgi_args = hash_new(sizeof (char *));
   if(!(p = getenv("REQUEST_METHOD")))
-    error(0, "REQUEST_METHOD not set, assuming GET");
+    disorder_error(0, "REQUEST_METHOD not set, assuming GET");
   if(!p || !strcmp(p, "GET"))
     k = cgi__init_get();
   else if(!strcmp(p, "POST"))
     k = cgi__init_post();
   else
-    fatal(0, "unknown request method %s", p);
+    disorder_fatal(0, "unknown request method %s", p);
   /* Validate the arguments and put them in a hash */
   for(; k; k = k->next) {
     if(!utf8_valid(k->name, strlen(k->name))
        || !utf8_valid(k->value, strlen(k->value)))
-      error(0, "invalid UTF-8 sequence in cgi argument %s", k->name);
+      disorder_error(0, "invalid UTF-8 sequence in cgi argument %s", k->name);
     else
       hash_add(cgi_args, k->name, &k->value, HASH_INSERT_OR_REPLACE);
     /* We just drop bogus arguments. */

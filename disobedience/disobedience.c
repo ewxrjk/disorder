@@ -437,7 +437,7 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
@@ -446,11 +446,11 @@ int main(int argc, char **argv) {
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 't': goesupto = 11; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(!gtkok)
-    fatal(0, "failed to initialize GTK+");
+    disorder_fatal(0, "failed to initialize GTK+");
   /* gcrypt initialization */
   if(!gcry_check_version(NULL))
     disorder_fatal(0, "gcry_check_version failed");
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
-  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   /* we'll need mixer support */
   backend = uaudio_apis[0];
   if(backend->configure)

@@ -34,7 +34,7 @@ void popup_help(void) {
     exitfn = _exit;
     if(!xfork()) {
       execlp(browser, browser, path, (char *)0);
-      fatal(errno, "error executing %s", browser);
+      disorder_fatal(errno, "error executing %s", browser);
     }
     _exit(0);
   }

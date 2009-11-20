@@ -247,10 +247,10 @@ static void *control_thread(void attribute((unused)) *arg) {
   strcpy(sa.sun_path, control_socket);
   sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
   if(bind(sfd, (const struct sockaddr *)&sa, sizeof sa) < 0)
-    fatal(errno, "error binding to %s", control_socket);
+    disorder_fatal(errno, "error binding to %s", control_socket);
   if(listen(sfd, 128) < 0)
-    fatal(errno, "error calling listen on %s", control_socket);
-  info("listening on %s", control_socket);
+    disorder_fatal(errno, "error calling listen on %s", control_socket);
+  disorder_info("listening on %s", control_socket);
   for(;;) {
     salen = sizeof sa;
     cfd = accept(sfd, (struct sockaddr *)&sa, &salen);
@@ -260,17 +260,17 @@ static void *control_thread(void attribute((unused)) *arg) {
       case EAGAIN:
         break;
       default:
-        fatal(errno, "error calling accept on %s", control_socket);
+        disorder_fatal(errno, "error calling accept on %s", control_socket);
       }
     }
     if(!(fp = fdopen(cfd, "r+"))) {
-      error(errno, "error calling fdopen for %s connection", control_socket);
+      disorder_error(errno, "error calling fdopen for %s connection", control_socket);
       close(cfd);
       continue;
     }
     if(!inputline(control_socket, fp, &line, '\n')) {
       if(!strcmp(line, "stop")) {
-        info("stopped via %s", control_socket);
+        disorder_info("stopped via %s", control_socket);
         exit(0);                          /* terminate immediately */
       }
       if(!strcmp(line, "query"))
@@ -278,7 +278,7 @@ static void *control_thread(void attribute((unused)) *arg) {
       xfree(line);
     }
     if(fclose(fp) < 0)
-      error(errno, "error closing %s connection", control_socket);
+      disorder_error(errno, "error closing %s connection", control_socket);
   }
 }
 
@@ -371,19 +371,19 @@ static void *listen_thread(void attribute((unused)) *arg) {
       case EINTR:
         continue;
       default:
-        fatal(errno, "error reading from socket");
+        disorder_fatal(errno, "error reading from socket");
       }
     }
     /* Ignore too-short packets */
     if((size_t)n <= sizeof (struct rtp_header)) {
-      info("ignored a short packet");
+      disorder_info("ignored a short packet");
       continue;
     }
     timestamp = htonl(header.timestamp);
     seq = htons(header.seq);
     /* Ignore packets in the past */
     if(active && lt(timestamp, next_timestamp)) {
-      info("dropping old packet, timestamp=%"PRIx32" < %"PRIx32,
+      disorder_info("dropping old packet, timestamp=%"PRIx32" < %"PRIx32,
            timestamp, next_timestamp);
       continue;
     }
@@ -402,8 +402,7 @@ static void *listen_thread(void attribute((unused)) *arg) {
       break;
       /* TODO support other RFC3551 media types (when the speaker does) */
     default:
-      fatal(0, "unsupported RTP payload type %d",
-            header.mpt & 0x7F);
+      disorder_fatal(0, "unsupported RTP payload type %d", header.mpt & 0x7F);
     }
     /* See if packet is silent */
     const uint16_t *s = p->samples_raw;
@@ -449,7 +448,7 @@ void playrtp_fill_buffer(void) {
     //fprintf(stderr, "%8u/%u (%u) DROPPING\n", nsamples, maxbuffer, minbuffer);
     drop_first_packet();
   }
-  info("Buffering...");
+  disorder_info("Buffering...");
   /* Wait until there's at least minbuffer samples available */
   while(nsamples < minbuffer) {
     //fprintf(stderr, "%8u/%u (%u) FILLING\n", nsamples, maxbuffer, minbuffer);
@@ -604,8 +603,8 @@ static size_t playrtp_callback(void *buffer,
    * basis.
    */
   if(nsamples > minbuffer && silent) {
-    info("dropping %zu samples (%"PRIu32" > %"PRIu32")",
-         samples, nsamples, minbuffer);
+    disorder_info("dropping %zu samples (%"PRIu32" > %"PRIu32")",
+                  samples, nsamples, minbuffer);
     samples = 0;
   }
   /* Junk obsolete packets */
@@ -648,7 +647,7 @@ int main(int argc, char **argv) {
    * timestamps in the logs */
   logdate = 1;
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   backend = uaudio_apis[0];
   while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:M", options, 0)) >= 0) {
     switch(n) {
@@ -675,10 +674,10 @@ int main(int argc, char **argv) {
     case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;
     case 'P': uaudio_set("pause-mode", optarg); break;
     case 'M': monitor = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
-  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   if(!maxbuffer)
     maxbuffer = 2 * minbuffer;
   argc -= optind;
@@ -701,7 +700,7 @@ int main(int argc, char **argv) {
     sl.s = argv;
     break;
   default:
-    fatal(0, "usage: disorder-playrtp [OPTIONS] [[ADDRESS] PORT]");
+    disorder_fatal(0, "usage: disorder-playrtp [OPTIONS] [[ADDRESS] PORT]");
   }
   /* Look up address and port */
   if(!(res = get_address(&sl, &prefs, &sockname)))
@@ -710,7 +709,7 @@ int main(int argc, char **argv) {
   if((rtpfd = socket(res->ai_family,
                      res->ai_socktype,
                      res->ai_protocol)) < 0)
-    fatal(errno, "error creating socket");
+    disorder_fatal(errno, "error creating socket");
   /* Allow multiple listeners */
   xsetsockopt(rtpfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   is_multicast = multicast(res->ai_addr);
@@ -728,11 +727,13 @@ int main(int argc, char **argv) {
       mgroup.in6.sin6_port = 0;
       break;
     default:
-      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+      disorder_fatal(0, "unsupported address family %d",
+                     (int)res->ai_addr->sa_family);
     }
     /* Bind to to the multicast group address */
     if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+      disorder_fatal(errno, "error binding socket to %s",
+                     format_sockaddr(res->ai_addr));
     /* Add multicast group membership */
     switch(mgroup.sa.sa_family) {
     case PF_INET:
@@ -740,21 +741,21 @@ int main(int argc, char **argv) {
       mreq.imr_interface.s_addr = 0;      /* use primary interface */
       if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                     &mreq, sizeof mreq) < 0)
-        fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
+        disorder_fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
       break;
     case PF_INET6:
       mreq6.ipv6mr_multiaddr = mgroup.in6.sin6_addr;
       memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
       if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                     &mreq6, sizeof mreq6) < 0)
-        fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
+        disorder_fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
       break;
     default:
-      fatal(0, "unsupported address family %d", res->ai_family);
+      disorder_fatal(0, "unsupported address family %d", res->ai_family);
     }
     /* Report what we did */
-    info("listening on %s multicast group %s",
-         format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
+    disorder_info("listening on %s multicast group %s",
+                  format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
   } else {
     /* Bind to 0/port */
     switch(res->ai_addr->sa_family) {
@@ -771,35 +772,36 @@ int main(int argc, char **argv) {
       break;
     }
     default:
-      fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
+      disorder_fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
     }
     if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      fatal(errno, "error binding socket to %s", format_sockaddr(res->ai_addr));
+      disorder_fatal(errno, "error binding socket to %s",
+                     format_sockaddr(res->ai_addr));
     /* Report what we did */
-    info("listening on %s", format_sockaddr(res->ai_addr));
+    disorder_info("listening on %s", format_sockaddr(res->ai_addr));
   }
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
-    fatal(errno, "error calling getsockopt SO_RCVBUF");
+    disorder_fatal(errno, "error calling getsockopt SO_RCVBUF");
   if(target_rcvbuf > rcvbuf) {
     if(setsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF,
                   &target_rcvbuf, sizeof target_rcvbuf) < 0)
-      error(errno, "error calling setsockopt SO_RCVBUF %d", 
-            target_rcvbuf);
+      disorder_error(errno, "error calling setsockopt SO_RCVBUF %d", 
+                     target_rcvbuf);
       /* We try to carry on anyway */
     else
-      info("changed socket receive buffer from %d to %d",
-           rcvbuf, target_rcvbuf);
+      disorder_info("changed socket receive buffer from %d to %d",
+                    rcvbuf, target_rcvbuf);
   } else
-    info("default socket receive buffer %d", rcvbuf);
+    disorder_info("default socket receive buffer %d", rcvbuf);
   //info("minbuffer %u maxbuffer %u", minbuffer, maxbuffer);
   if(logfp)
-    info("WARNING: -L option can impact performance");
+    disorder_info("WARNING: -L option can impact performance");
   if(control_socket) {
     pthread_t tid;
 
     if((err = pthread_create(&tid, 0, control_thread, 0)))
-      fatal(err, "pthread_create control_thread");
+      disorder_fatal(err, "pthread_create control_thread");
   }
   if(dumpfile) {
     int fd;
@@ -807,20 +809,20 @@ int main(int argc, char **argv) {
     size_t written;
 
     if((fd = open(dumpfile, O_RDWR|O_TRUNC|O_CREAT, 0666)) < 0)
-      fatal(errno, "opening %s", dumpfile);
+      disorder_fatal(errno, "opening %s", dumpfile);
     /* Fill with 0s to a suitable size */
     memset(buffer, 0, sizeof buffer);
     for(written = 0; written < dump_size * sizeof(int16_t);
         written += sizeof buffer) {
       if(write(fd, buffer, sizeof buffer) < 0)
-        fatal(errno, "clearing %s", dumpfile);
+        disorder_fatal(errno, "clearing %s", dumpfile);
     }
     /* Map the buffer into memory for convenience */
     dump_buffer = mmap(0, dump_size * sizeof(int16_t), PROT_READ|PROT_WRITE,
                        MAP_SHARED, fd, 0);
     if(dump_buffer == (void *)-1)
-      fatal(errno, "mapping %s", dumpfile);
-    info("dumping to %s", dumpfile);
+      disorder_fatal(errno, "mapping %s", dumpfile);
+    disorder_info("dumping to %s", dumpfile);
   }
   /* Set up output.  Currently we only support L16 so there's no harm setting
    * the format before we know what it is! */
@@ -829,17 +831,17 @@ int main(int argc, char **argv) {
   backend->start(playrtp_callback, NULL);
   /* We receive and convert audio data in a background thread */
   if((err = pthread_create(&ltid, 0, listen_thread, 0)))
-    fatal(err, "pthread_create listen_thread");
+    disorder_fatal(err, "pthread_create listen_thread");
   /* We have a second thread to add received packets to the queue */
   if((err = pthread_create(&ltid, 0, queue_thread, 0)))
-    fatal(err, "pthread_create queue_thread");
+    disorder_fatal(err, "pthread_create queue_thread");
   pthread_mutex_lock(&lock);
   time_t lastlog = 0;
   for(;;) {
     /* Wait for the buffer to fill up a bit */
     playrtp_fill_buffer();
     /* Start playing now */
-    info("Playing...");
+    disorder_info("Playing...");
     next_timestamp = pheap_first(&packets)->timestamp;
     active = 1;
     pthread_mutex_unlock(&lock);
@@ -863,11 +865,11 @@ int main(int argc, char **argv) {
         if(now >= lastlog + 60) {
           int offset = nsamples - minbuffer;
           double offtime = (double)offset / (uaudio_rate * uaudio_channels);
-          info("%+d samples off (%d.%02ds, %d bytes)",
-               offset,
-               (int)fabs(offtime) * (offtime < 0 ? -1 : 1),
-               (int)(fabs(offtime) * 100) % 100,
-               offset * uaudio_bits / CHAR_BIT);
+          disorder_info("%+d samples off (%d.%02ds, %d bytes)",
+                        offset,
+                        (int)fabs(offtime) * (offtime < 0 ? -1 : 1),
+                        (int)(fabs(offtime) * 100) % 100,
+                        offset * uaudio_bits / CHAR_BIT);
           lastlog = now;
         }
       }

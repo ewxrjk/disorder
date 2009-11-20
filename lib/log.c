@@ -17,17 +17,18 @@
  */
 /** @file lib/log.c @brief Errors and logging
  *
- * All messages are initially emitted by one of the four functions below.
- * debug() is generally invoked via D() so that mostly you just do a test
- * rather than a complete subroutine call.
+ * All messages are initially emitted by one of the four functions
+ * below.  disorder_debug() is generally invoked via D() so that
+ * mostly you just do a test rather than a complete subroutine call.
  *
  * Messages are dispatched via @ref log_default.  This defaults to @ref
  * log_stderr.  daemonize() will turn off @ref log_stderr and use @ref
  * log_syslog instead.
  *
- * fatal() will call exitfn() with a nonzero status.  The default value is
- * exit(), but it should be set to _exit() anywhere but the 'main line' of the
- * program, to guarantee that exit() gets called at most once.
+ * disorder_fatal() will call exitfn() with a nonzero status.  The
+ * default value is exit(), but it should be set to _exit() anywhere
+ * but the 'main line' of the program, to guarantee that exit() gets
+ * called at most once.
  */
 
 #define NO_MEMORY_ALLOCATION

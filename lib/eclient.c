@@ -741,7 +741,7 @@ static void process_line(disorder_eclient *c, char *line) {
          && line[1] >= '0' && line[1] <= '9'
          && line[2] >= '0' && line[2] <= '9'
          && line[3] == ' '))
-      fatal(0, "invalid response from server: %s", line);
+      disorder_fatal(0, "invalid response from server: %s", line);
     c->rc = (line[0] * 10 + line[1]) * 10 + line[2] - 111 * '0';
     c->line = line;
     switch(c->rc % 10) {

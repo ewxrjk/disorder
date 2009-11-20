@@ -51,11 +51,11 @@ void dbparams_check(void) {
   for(;;) {
     DB_TXN *tid;
     if(oldparams)
-      info("database parameter string changed from %s to %s - removing old data",
+      disorder_info("database parameter string changed from %s to %s - removing old data",
            oldparams, newparams);
     else {
-      info("new database parameter string %s - removing old data",
-           newparams);
+      disorder_info("new database parameter string %s - removing old data",
+                    newparams);
       /* This is a slightly annoying case; the global pref wasn't present.  In
        * practice this is almost certainly either an upgrade (with no change to
        * any relevant parameters) or a new installation (with no tracks).
@@ -75,14 +75,14 @@ void dbparams_check(void) {
     switch(err) {
     case 0:
       trackdb_commit_transaction(tid);
-      info("removed old data OK, will regenerate on rescan");
+      disorder_info("removed old data OK, will regenerate on rescan");
       return;
     case DB_LOCK_DEADLOCK:
       /* Deadlocked, try again */
       trackdb_abort_transaction(tid);
       break;
     default:
-      fatal(0, "error updating database: %s", db_strerror(err));
+      disorder_fatal(0, "error updating database: %s", db_strerror(err));
     }
   }
 }
@@ -94,7 +94,7 @@ static int dbparams_cleanup(DB_TXN *tid) {
 
   /* We'll regenerate search.db based on the new set of stopwords */
   if((err = trackdb_searchdb->truncate(trackdb_searchdb, tid, &count, 0))) {
-    error(err, "truncating search.db: %s", db_strerror(err));
+    disorder_error(err, "truncating search.db: %s", db_strerror(err));
     return err;
   }
   /* We'll regenerate aliases based on the new alias/namepart settings, so
@@ -107,25 +107,25 @@ static int dbparams_cleanup(DB_TXN *tid) {
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
   if((err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                           DB_FIRST)) == DB_LOCK_DEADLOCK) {
-    error(0, "cursor->c_get: %s", db_strerror(err));
+    disorder_error(0, "cursor->c_get: %s", db_strerror(err));
     goto done;
   }
   while(err == 0) {
     struct kvp *data = kvp_urldecode(d.data, d.size);
     if(kvp_get(data, "_alias_for")) {
       if((err = cursor->c_del(cursor, 0))) {
-        error(0, "cursor->c_del: %s", db_strerror(err));
+        disorder_error(0, "cursor->c_del: %s", db_strerror(err));
         goto done;
       }
     }
     err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d), DB_NEXT);
   }
   if(err == DB_LOCK_DEADLOCK) {
-    error(0, "cursor operation: %s", db_strerror(err));
+    disorder_error(0, "cursor operation: %s", db_strerror(err));
     goto done;
   }
   if(err != DB_NOTFOUND) 
-    fatal(0, "cursor->c_get: %s", db_strerror(err));
+    disorder_fatal(0, "cursor->c_get: %s", db_strerror(err));
   err = 0;
 done:
   if(trackdb_closecursor(cursor) && !err) err = DB_LOCK_DEADLOCK;
@@ -151,7 +151,7 @@ static char *compute_dbparams(void) {
   gcrypt_hash_handle h;
 
   if((e = gcry_md_open(&h, GCRY_MD_SHA256, 0)))
-    fatal(0, "gcry_md_open: %s", gcry_strerror(e));
+    disorder_fatal(0, "gcry_md_open: %s", gcry_strerror(e));
   h_write_string(h, "alias");
   h_write_string(h, config->alias);
   for(int n = 0; n < config->stopword.n; ++n) {

@@ -318,7 +318,7 @@ static int speaker_fill(struct track *t) {
     pthread_mutex_lock(&lock);
     if(n < 0) {
       if(errno != EAGAIN)
-        fatal(errno, "error reading sample stream");
+        disorder_fatal(errno, "error reading sample stream");
       rc = 0;
     } else if(n == 0) {
       D(("fill %s: eof detected", t->id));
@@ -440,9 +440,10 @@ static size_t speaker_callback(void *buffer,
     memset(buffer, 0, max_bytes);
     provided_samples = max_samples;
     if(playing)
-      info("%zu samples silence, playing->used=%zu", provided_samples, playing->used);
+      disorder_info("%zu samples silence, playing->used=%zu",
+                    provided_samples, playing->used);
     else
-      info("%zu samples silence, playing=NULL", provided_samples);
+      disorder_info("%zu samples silence, playing=NULL", provided_samples);
   }
   pthread_mutex_unlock(&lock);
   return provided_samples;
@@ -495,7 +496,7 @@ static void mainloop(void) {
     pthread_mutex_lock(&lock);
     if(n < 0) {
       if(errno == EINTR) continue;
-      fatal(errno, "error calling poll");
+      disorder_fatal(errno, "error calling poll");
     }
     /* Perhaps a connection has arrived */
     if(fds[listen_slot].revents & POLLIN) {
@@ -507,22 +508,22 @@ static void mainloop(void) {
       if((fd = accept(listenfd, (struct sockaddr *)&addr, &addrlen)) >= 0) {
         blocking(fd);
         if(read(fd, &l, sizeof l) < 4) {
-          error(errno, "reading length from inbound connection");
+          disorder_error(errno, "reading length from inbound connection");
           xclose(fd);
         } else if(l >= sizeof id) {
-          error(0, "id length too long");
+          disorder_error(0, "id length too long");
           xclose(fd);
         } else if(read(fd, id, l) < (ssize_t)l) {
-          error(errno, "reading id from inbound connection");
+          disorder_error(errno, "reading id from inbound connection");
           xclose(fd);
         } else {
           id[l] = 0;
           D(("id %s fd %d", id, fd));
           t = findtrack(id, 1/*create*/);
           if (write(fd, "", 1) < 0)             /* write an ack */
-			error(errno, "writing ack to inbound connection");
+            disorder_error(errno, "writing ack to inbound connection");
           if(t->fd != -1) {
-            error(0, "%s: already got a connection", id);
+            disorder_error(0, "%s: already got a connection", id);
             xclose(fd);
           } else {
             nonblock(fd);
@@ -530,7 +531,7 @@ static void mainloop(void) {
           }
         }
       } else
-        error(errno, "accept");
+        disorder_error(errno, "accept");
     }
     /* Perhaps we have a command to process */
     if(fds[stdin_slot].revents & POLLIN) {
@@ -550,16 +551,17 @@ static void mainloop(void) {
             /* If finished isn't set then the server can't believe that this
              * track has finished */
             if(!playing->finished)
-              fatal(0, "got SM_PLAY but already playing something");
+              disorder_fatal(0, "got SM_PLAY but already playing something");
             /* If pending_playing is set then the server must believe that that
              * is playing */
             if(pending_playing)
-              fatal(0, "got SM_PLAY but have a pending playing track");
+              disorder_fatal(0, "got SM_PLAY but have a pending playing track");
           }
 	  t = findtrack(sm.id, 1);
           D(("SM_PLAY %s fd %d", t->id, t->fd));
           if(t->fd == -1)
-            error(0, "cannot play track because no connection arrived");
+            disorder_error(0,
+                           "cannot play track because no connection arrived");
           /* TODO as things stand we often report this error message but then
            * appear to proceed successfully.  Understanding why requires a look
            * at play.c: we call prepare() which makes the connection in a child
@@ -602,7 +604,7 @@ static void mainloop(void) {
                * log more because there's been a bug here recently than because
                * it's particularly interesting; the log message will be removed
                * if no further problems show up. */
-              info("SM_CANCEL for nonplaying track %s", sm.id);
+              disorder_info("SM_CANCEL for nonplaying track %s", sm.id);
               sm.type = SM_STILLBORN;
             }
             strcpy(sm.id, t->id);
@@ -611,7 +613,7 @@ static void mainloop(void) {
             /* Probably scratching the playing track well before it's got
              * going, but could indicate a bug, so we log this as an error. */
             sm.type = SM_UNKNOWN;
-	    error(0, "SM_CANCEL for unknown track %s", sm.id);
+	    disorder_error(0, "SM_CANCEL for unknown track %s", sm.id);
           }
           speaker_send(1, &sm);
           force_report = 1;
@@ -619,11 +621,11 @@ static void mainloop(void) {
 	case SM_RELOAD:
           D(("SM_RELOAD"));
 	  if(config_read(1, NULL))
-            error(0, "cannot read configuration");
-          info("reloaded configuration");
+            disorder_error(0, "cannot read configuration");
+          disorder_info("reloaded configuration");
 	  break;
 	default:
-	  error(0, "unknown message type %d", sm.type);
+	  disorder_error(0, "unknown message type %d", sm.type);
         }
     }
     /* Read in any buffered data */
@@ -699,7 +701,7 @@ int main(int argc, char **argv) {
   struct rlimit rl[1];
 
   set_progname(argv);
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -709,7 +711,7 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if((d = getenv("DISORDER_DEBUG_SPEAKER"))) debugging = atoi(d);
@@ -718,7 +720,7 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   config_uaudio_apis = uaudio_apis;
-  if(config_read(1, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(1, NULL)) disorder_fatal(0, "cannot read configuration");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
   /* set nice value */
@@ -727,19 +729,19 @@ int main(int argc, char **argv) {
   become_mortal();
   /* make sure we're not root, whatever the config says */
   if(getuid() == 0 || geteuid() == 0)
-    fatal(0, "do not run as root");
+    disorder_fatal(0, "do not run as root");
   /* Make sure we can't have more than NFDS files open (it would bust our
    * poll() array) */
   if(getrlimit(RLIMIT_NOFILE, rl) < 0)
-    fatal(errno, "getrlimit RLIMIT_NOFILE");
+    disorder_fatal(errno, "getrlimit RLIMIT_NOFILE");
   if(rl->rlim_cur > NFDS) {
     rl->rlim_cur = NFDS;
     if(setrlimit(RLIMIT_NOFILE, rl) < 0)
-      fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
+      disorder_fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
             (unsigned long)rl->rlim_cur);
-    info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
+    disorder_info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
   } else
-    info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
+    disorder_info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
   /* gcrypt initialization */
   if(!gcry_check_version(NULL))
     disorder_fatal(0, "gcry_check_version failed");
@@ -764,7 +766,7 @@ int main(int argc, char **argv) {
   byte_xasprintf(&dir, "%s/speaker", config->home);
   unlink(dir);                          /* might be a leftover socket */
   if(mkdir(dir, 0700) < 0 && errno != EEXIST)
-    fatal(errno, "error creating %s", dir);
+    disorder_fatal(errno, "error creating %s", dir);
   /* set up the listen socket */
   listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
   memset(&addr, 0, sizeof addr);
@@ -772,18 +774,18 @@ int main(int argc, char **argv) {
   snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker/socket",
            config->home);
   if(unlink(addr.sun_path) < 0 && errno != ENOENT)
-    error(errno, "removing %s", addr.sun_path);
+    disorder_error(errno, "removing %s", addr.sun_path);
   xsetsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   if(bind(listenfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
-    fatal(errno, "error binding socket to %s", addr.sun_path);
+    disorder_fatal(errno, "error binding socket to %s", addr.sun_path);
   xlisten(listenfd, 128);
   nonblock(listenfd);
-  info("listening on %s", addr.sun_path);
+  disorder_info("listening on %s", addr.sun_path);
   memset(&sm, 0, sizeof sm);
   sm.type = SM_READY;
   speaker_send(1, &sm);
   mainloop();
-  info("stopped (parent terminated)");
+  disorder_info("stopped (parent terminated)");
   exit(0);
 }
 

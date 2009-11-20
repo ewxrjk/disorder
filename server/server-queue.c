@@ -61,7 +61,7 @@ void queue_fix_sofar(struct queue_entry *q) {
 
 static void queue_read_error(const char *msg,
 			     void *u) {
-  fatal(0, "error parsing queue %s: %s", (const char *)u, msg);
+  disorder_fatal(0, "error parsing queue %s: %s", (const char *)u, msg);
 }
 
 static void queue_do_read(struct queue_entry *head, const char *path) {
@@ -73,7 +73,7 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   if(!(fp = fopen(path, "r"))) {
     if(errno == ENOENT)
       return;			/* no queue */
-    fatal(errno, "error opening %s", path);
+    disorder_fatal(errno, "error opening %s", path);
   }
   head->next = head->prev = head;
   while(!inputline(path, fp, &buffer, '\n')) {
@@ -105,10 +105,11 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
     if(head == &qhead
        && (!q->track
 	   || !q->when))
-      fatal(0, "incomplete queue entry in %s", path);
+      disorder_fatal(0, "incomplete queue entry in %s", path);
     queue_insert_entry(head->prev, q);
   }
-  if(ferror(fp)) fatal(errno, "error reading %s", path);
+  if(ferror(fp))
+    disorder_fatal(errno, "error reading %s", path);
   fclose(fp);
 }
 
@@ -135,15 +136,15 @@ static void queue_do_write(const struct queue_entry *head, const char *path) {
   struct queue_entry *q;
 
   byte_xasprintf(&tmp, "%s.new", path);
-  if(!(fp = fopen(tmp, "w"))) fatal(errno, "error opening %s", tmp);
+  if(!(fp = fopen(tmp, "w"))) disorder_fatal(errno, "error opening %s", tmp);
   /* Save version indicator */
   if(fprintf(fp, "#1\n") < 0)
-    fatal(errno, "error writing %s", tmp);
+    disorder_fatal(errno, "error writing %s", tmp);
   for(q = head->next; q != head; q = q->next)
     if(fprintf(fp, "%s\n", queue_marshall(q)) < 0)
-      fatal(errno, "error writing %s", tmp);
-  if(fclose(fp) < 0) fatal(errno, "error closing %s", tmp);
-  if(rename(tmp, path) < 0) fatal(errno, "error replacing %s", path);
+      disorder_fatal(errno, "error writing %s", tmp);
+  if(fclose(fp) < 0) disorder_fatal(errno, "error closing %s", tmp);
+  if(rename(tmp, path) < 0) disorder_fatal(errno, "error replacing %s", path);
 }
 
 void queue_write(void) {

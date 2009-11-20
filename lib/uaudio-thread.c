@@ -245,12 +245,12 @@ void uaudio_thread_start(uaudio_callback *callback,
                          NULL,
                          uaudio_collect_thread_fn,
                          NULL)))
-    fatal(e, "pthread_create");
+    disorder_fatal(e, "pthread_create");
   if((e = pthread_create(&uaudio_play_thread,
                          NULL,
                          uaudio_play_thread_fn,
                          NULL)))
-    fatal(e, "pthread_create");
+    disorder_fatal(e, "pthread_create");
 }
 
 /** @brief Shut down background threads for audio processing */

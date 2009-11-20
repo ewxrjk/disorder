@@ -61,10 +61,10 @@ static void command_wait(void) {
   while((rc = waitpid(command_pid, &w, 0) < 0 && errno == EINTR))
     ;
   if(rc < 0)
-    fatal(errno, "waitpid");
+    disorder_fatal(errno, "waitpid");
   if(w) {
     ws = wstat(w);
-    error(0, "command subprocess %s", ws);
+    disorder_error(0, "command subprocess %s", ws);
     xfree(ws);
   }
 }
@@ -75,7 +75,7 @@ static void command_open(void) {
   const char *command;
 
   if(!(command = uaudio_get("command", NULL)))
-    fatal(0, "'command' not set");
+    disorder_fatal(0, "'command' not set");
   xpipe(pfd);
   command_pid = xfork();
   if(!command_pid) {
@@ -88,7 +88,7 @@ static void command_open(void) {
      * format.  The original intended model is that you adapt DisOrder to the
      * command you run but it'd be nice to support the opposite. */
     execl("/bin/sh", "sh", "-c", command, (char *)0);
-    fatal(errno, "error executing /bin/sh");
+    disorder_fatal(errno, "error executing /bin/sh");
   }
   close(pfd[0]);
   command_fd = pfd[1];
@@ -108,12 +108,12 @@ static size_t command_play(void *buffer, size_t nsamples, unsigned flags) {
     case EINTR:
       return 0;			/* will retry */
     case EPIPE:
-      error(0, "audio command subprocess terminated");
+      disorder_error(0, "audio command subprocess terminated");
       command_wait();
       command_open();
       return 0;			/* will retry */
     default:
-      fatal(errno, "error writing to audio command subprocess");
+      disorder_fatal(errno, "error writing to audio command subprocess");
     }
   }
   /* TODO what if we write a partial sample? Actually reasonably unlikely but
@@ -134,7 +134,7 @@ static void command_start(uaudio_callback *callback,
   else if(!strcmp(pausemode, "suspend"))
     command_suspend_on_pause = 1;
   else
-    fatal(0, "unknown pause mode '%s'", pausemode);
+    disorder_fatal(0, "unknown pause mode '%s'", pausemode);
   command_open();
   uaudio_schedule_init();
   uaudio_thread_start(callback,

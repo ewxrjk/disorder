@@ -47,7 +47,7 @@ char *infer_url(int include_path_info) {
   /* Figure out the server.  'MUST' be set and we don't cope if it
    * is not. */
   if(!(server = getenv("SERVER_NAME")))
-    fatal(0, "SERVER_NAME is not set");
+    disorder_fatal(0, "SERVER_NAME is not set");
   server = xstrdup(server);
   
   /* Figure out the port.  'MUST' be set but we cope if it is not. */
@@ -67,7 +67,7 @@ char *infer_url(int include_path_info) {
   } else {
     /* RFC3875 s4.1.13 */
     if(!(script = getenv("SCRIPT_NAME")))
-      fatal(0, "SCRIPT_NAME is not set");
+      disorder_fatal(0, "SCRIPT_NAME is not set");
     /* SCRIPT_NAME may be "" */
     if(!*script)
       script = "/";
@@ -78,7 +78,7 @@ char *infer_url(int include_path_info) {
                      script, urlencodestring(path_info));
   }
   if(script[0] != '/')
-    fatal(0, "SCRIPT_NAME does not start with a '/'");
+    disorder_fatal(0, "SCRIPT_NAME does not start with a '/'");
   script = xstrdup(script);
   
   if(port == 80)

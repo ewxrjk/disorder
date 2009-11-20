@@ -143,7 +143,7 @@ const char *regsub(const pcre *re, const char *subject, const char *replace,
       break;
   }
   if(rc <= 0 && rc != PCRE_ERROR_NOMATCH) {
-    error(0, "pcre_exec returned %d, subject '%s'", rc, subject);
+    disorder_error(0, "pcre_exec returned %d, subject '%s'", rc, subject);
     return 0;
   }
   if((flags & REGSUB_MUST_MATCH) && matches == 0)

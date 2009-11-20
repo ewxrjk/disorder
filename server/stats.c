@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(logsyslog) {
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   if(config_read(0, NULL))
-    fatal(0, "cannot read configuration");
+    disorder_fatal(0, "cannot read configuration");
   trackdb_init(TRACKDB_NO_RECOVER);
   trackdb_open(TRACKDB_NO_UPGRADE);
   stats = trackdb_stats(0);

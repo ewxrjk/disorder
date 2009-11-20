@@ -46,7 +46,7 @@ const struct uaudio *api;
 
 /** @brief Quit DisOrder */
 void quit(ev_source *ev) {
-  info("shutting down...");
+  disorder_info("shutting down...");
   quitting(ev);
   trackdb_close();
   trackdb_deinit(ev);
@@ -66,7 +66,7 @@ void quit(ev_source *ev) {
    * These are not shut down currently.
    */
   ev_child_killall(ev);
-  info("exiting");
+  disorder_info("exiting");
   exit(0);
 }
 
@@ -92,22 +92,22 @@ void reset_sockets(ev_source *ev) {
       /* stop the old one and remove it from the filesystem */
       server_stop(ev, current_unix_fd);
       if(unlink(current_unix) < 0)
-	fatal(errno, "unlink %s", current_unix);
+	disorder_fatal(errno, "unlink %s", current_unix);
     }
     /* start the new one */
     if(strlen(new_unix) >= sizeof sun.sun_path)
-      fatal(0, "socket path %s is too long", new_unix);
+      disorder_fatal(0, "socket path %s is too long", new_unix);
     memset(&sun, 0, sizeof sun);
     sun.sun_family = AF_UNIX;
     strcpy(sun.sun_path, new_unix);
     if(unlink(new_unix) < 0 && errno != ENOENT)
-      fatal(errno, "unlink %s", new_unix);
+      disorder_fatal(errno, "unlink %s", new_unix);
     if((current_unix_fd = server_start(ev, PF_UNIX, sizeof sun,
 				       (const struct sockaddr *)&sun,
 				       new_unix)) >= 0) {
       current_unix = new_unix;
       if(chmod(new_unix, 0777) < 0)
-	fatal(errno, "error calling chmod %s", new_unix);
+	disorder_fatal(errno, "error calling chmod %s", new_unix);
     } else
       current_unix = 0;
   }
@@ -185,7 +185,7 @@ int reconfigure(ev_source *ev, unsigned flags) {
     else {
       /* Tell the speaker it needs to reload its config too. */
       speaker_reload();
-      info("%s: installed new configuration", configfile);
+      disorder_info("%s: installed new configuration", configfile);
     }
   }
   /* New audio API */

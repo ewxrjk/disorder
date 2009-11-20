@@ -50,7 +50,7 @@ int play_background(ev_source *ev,
    * modules use this so it's not well tested, unfortunately. */
   if(q->type & DISORDER_PLAYER_PREFORK)
     if(!(q->data = play_prefork(q->pl, q->track))) {
-      error(0, "prefork function for %s failed", q->track);
+      disorder_error(0, "prefork function for %s failed", q->track);
       return START_HARDFAIL;
     }
   /* Capture the player/decoder's stderr and feed it into our logs.
@@ -80,7 +80,7 @@ int play_background(ev_source *ev,
       ++optv;
       --optc;
     } else {
-      error(0, "unknown option %s", optv[0]);
+      disorder_error(0, "unknown option %s", optv[0]);
       return START_HARDFAIL;
     }
   }
@@ -105,7 +105,7 @@ int play_background(ev_source *ev,
     _exit(child(q, params, bgdata));
   case -1:
     /* Back in disorderd (child could not be created) */
-    error(errno, "error calling fork");
+    disorder_error(errno, "error calling fork");
     if(q->type & DISORDER_PLAYER_PREFORK)
       play_cleanup(q->pl, q->data);	/* else would leak */
     if(lfd != -1)

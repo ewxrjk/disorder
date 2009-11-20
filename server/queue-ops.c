@@ -154,7 +154,7 @@ int queue_move(struct queue_entry *q, int delta, const char *who) {
   }
 
   if(moved) {
-    info("user %s moved %s", who, q->id);
+    disorder_info("user %s moved %s", who, q->id);
     notify_queue_move(q->track, who);
     sprintf(buffer, "%d", moved);
     eventlog("moved", who, (char *)0);
@@ -182,7 +182,7 @@ void queue_moveafter(struct queue_entry *target,
     queue_insert_entry(target, q);
     target = q;
     /* Log the individual tracks */
-    info("user %s moved %s", who, q->id);
+    disorder_info("user %s moved %s", who, q->id);
     notify_queue_move(q->track, who);
   }
   /* Report that the queue changed to the event log */
@@ -191,7 +191,7 @@ void queue_moveafter(struct queue_entry *target,
 
 void queue_remove(struct queue_entry *which, const char *who) {
   if(who) {
-    info("user %s removed %s", who, which->id);
+    disorder_info("user %s removed %s", who, which->id);
     notify_queue_move(which->track, who);
   }
   eventlog("removed", which->id, who, (const char *)0);

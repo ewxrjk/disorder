@@ -78,22 +78,22 @@ static void oss_open(void) {
   }
 #endif
   if((oss_fd = open(device, O_WRONLY, 0)) < 0)
-    fatal(errno, "error opening %s", device);
+    disorder_fatal(errno, "error opening %s", device);
 #if !EMPEG_HOST
   int stereo = (uaudio_channels == 2), format;
   if(ioctl(oss_fd, SNDCTL_DSP_STEREO, &stereo) < 0)
-    fatal(errno, "error calling ioctl SNDCTL_DSP_STEREO %d", stereo);
+    disorder_fatal(errno, "error calling ioctl SNDCTL_DSP_STEREO %d", stereo);
   if(uaudio_bits == 16)
     format = uaudio_signed ? AFMT_S16_NE : AFMT_U16_NE;
   else
     format = uaudio_signed ? AFMT_S8 : AFMT_U8;
   if(ioctl(oss_fd, SNDCTL_DSP_SETFMT, &format) < 0)
-    fatal(errno, "error calling ioctl SNDCTL_DSP_SETFMT %#x", format);
+    disorder_fatal(errno, "error calling ioctl SNDCTL_DSP_SETFMT %#x", format);
   int rate = uaudio_rate;
   if(ioctl(oss_fd, SNDCTL_DSP_SPEED, &rate) < 0)
-    fatal(errno, "error calling ioctl SNDCTL_DSP_SPEED %d", rate);
+    disorder_fatal(errno, "error calling ioctl SNDCTL_DSP_SPEED %d", rate);
   if(rate != uaudio_rate)
-    error(0, "asked for %dHz, got %dHz", uaudio_rate, rate);
+    disorder_error(0, "asked for %dHz, got %dHz", uaudio_rate, rate);
 #endif
 }
 
@@ -127,17 +127,17 @@ static size_t oss_play(void *buffer, size_t samples, unsigned flags) {
   const size_t bytes = samples * uaudio_sample_size;
   int rc = write(oss_fd, buffer, bytes);
   if(rc < 0)
-    fatal(errno, "error writing to sound device");
+    disorder_fatal(errno, "error writing to sound device");
   return rc / uaudio_sample_size;
 }
 
 static void oss_start(uaudio_callback *callback,
                       void *userdata) {
   if(uaudio_channels != 1 && uaudio_channels != 2)
-    fatal(0, "asked for %d channels but only support 1 or 2",
+    disorder_fatal(0, "asked for %d channels but only support 1 or 2",
           uaudio_channels); 
   if(uaudio_bits != 8 && uaudio_bits != 16)
-    fatal(0, "asked for %d bits/channel but only support 8 or 16",
+    disorder_fatal(0, "asked for %d bits/channel but only support 8 or 16",
           uaudio_bits); 
 #if EMPEG_HOST
   /* Very specific buffer size requirements here apparently */
@@ -178,11 +178,11 @@ static void oss_open_mixer(void) {
   const char *mixer = uaudio_get("mixer-device", "/dev/mixer");
   /* TODO infer mixer-device from device */
   if((oss_mixer_fd = open(mixer, O_RDWR, 0)) < 0)
-    fatal(errno, "error opening %s", mixer);
+    disorder_fatal(errno, "error opening %s", mixer);
   const char *channel = uaudio_get("mixer-channel", "pcm");
   oss_mixer_channel = oss_mixer_find_channel(channel);
   if(oss_mixer_channel < 0)
-    fatal(0, "no such channel as '%s'", channel);
+    disorder_fatal(0, "no such channel as '%s'", channel);
 }
 
 static void oss_close_mixer(void) {
@@ -195,7 +195,7 @@ static void oss_get_volume(int *left, int *right) {
 
   *left = *right = 0;
   if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
-    error(errno, "error getting volume");
+    disorder_error(errno, "error getting volume");
   else {
     *left = r & 0xff;
     *right = (r >> 8) & 0xff;
@@ -205,9 +205,9 @@ static void oss_get_volume(int *left, int *right) {
 static void oss_set_volume(int *left, int *right) {
   int r =  (*left & 0xff) + (*right & 0xff) * 256;
   if(ioctl(oss_mixer_fd, SOUND_MIXER_WRITE(oss_mixer_channel), &r) == -1)
-    error(errno, "error setting volume");
+    disorder_error(errno, "error setting volume");
   else if(ioctl(oss_mixer_fd, SOUND_MIXER_READ(oss_mixer_channel), &r) < 0)
-    error(errno, "error getting volume");
+    disorder_error(errno, "error getting volume");
   else {
     *left = r & 0xff;
     *right = (r >> 8) & 0xff;

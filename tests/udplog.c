@@ -92,20 +92,20 @@ int main(int argc, char **argv) {
   
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVo:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version();
     case 'o':
       if(!freopen(optarg, "w", stdout))
-	fatal(errno, "%s", optarg);
+	disorder_fatal(errno, "%s", optarg);
       break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(optind + 2 != argc)
-    fatal(0, "missing arguments");
+    disorder_fatal(0, "missing arguments");
   a.n = 2;
   a.s = &argv[optind];
   if(!(ai = get_address(&a, &pref, &name)))
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   fd = xsocket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
   nonblock(fd);
   if(bind(fd, ai->ai_addr, ai->ai_addrlen) < 0)
-    fatal(errno, "error binding to %s", name);
+    disorder_fatal(errno, "error binding to %s", name);
   while(getppid() != 1) {
     /* Wait for something to happen.  We don't just block forever in recvfrom()
      * as otherwise we'd never die if the parent terminated uncontrolledly. */
@@ -127,11 +127,11 @@ int main(int argc, char **argv) {
     if(n < 0) {
       if(errno == EINTR || errno == EAGAIN)
 	continue;
-      fatal(errno, "%s: recvfrom", name);
+      disorder_fatal(errno, "%s: recvfrom", name);
     }
     if((err = getnameinfo(&sa.sa, len, h, sizeof h, s, sizeof s,
 			  NI_NUMERICHOST|NI_NUMERICSERV|NI_DGRAM)))
-      fatal(0, "getnameinfo: %s", gai_strerror(err));
+      disorder_fatal(0, "getnameinfo: %s", gai_strerror(err));
     xprintf("from host %s service %s: %d bytes\n", h, s, n);
     for(i = 0; i < n; i += 16) {
       for(j = i; j < n && j < i + 16; ++j)
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 	xprintf("%c", buffer[j] < 128 && isprint(buffer[j]) ? buffer[j] : '.');
       xprintf("\n");
       if(fflush(stdout) < 0)
-	fatal(errno, "stdout");
+	disorder_fatal(errno, "stdout");
     }
   }
   return 0;

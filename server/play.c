@@ -59,8 +59,7 @@ static int speaker_terminated(ev_source attribute((unused)) *ev,
 			      int attribute((unused)) status,
 			      const struct rusage attribute((unused)) *rusage,
 			      void attribute((unused)) *u) {
-  fatal(0, "speaker subprocess %s",
-	wstat(status));
+  disorder_fatal(0, "speaker subprocess %s", wstat(status));
 }
 
 /** @brief Called when we get a message from the speaker process */
@@ -92,7 +91,7 @@ static int speaker_readable(ev_source *ev, int fd,
     playing->sofar = sm.data;
     break;
   default:
-    error(0, "unknown speaker message type %d", sm.type);
+    disorder_error(0, "unknown speaker message type %d", sm.type);
   }
   return 0;
 }
@@ -104,7 +103,7 @@ void speaker_setup(ev_source *ev) {
   struct speaker_message sm;
 
   if(socketpair(PF_UNIX, SOCK_DGRAM, 0, sp) < 0)
-    fatal(errno, "error calling socketpair");
+    disorder_fatal(errno, "error calling socketpair");
   if(!(pid = xfork())) {
     exitfn = _exit;
     ev_signal_atfork(ev);
@@ -124,7 +123,7 @@ void speaker_setup(ev_source *ev) {
 	   log_default == &log_syslog ? "--syslog" : "--no-syslog",
 	   (char *)0);
 #endif
-    fatal(errno, "error invoking %s", SPEAKER);
+    disorder_fatal(errno, "error invoking %s", SPEAKER);
   }
   ev_child(ev, pid, 0, speaker_terminated, 0);
   speaker_fd = sp[1];
@@ -134,7 +133,7 @@ void speaker_setup(ev_source *ev) {
   speaker_recv(speaker_fd, &sm);
   nonblock(speaker_fd);
   if(ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0, "speaker read") < 0)
-    fatal(0, "error registering speaker socket fd");
+    disorder_fatal(0, "error registering speaker socket fd");
 }
 
 /** @brief Tell the speaker to reload its configuration */
@@ -233,7 +232,7 @@ static int player_finished(ev_source *ev,
   /* Regardless we always report and record the status and do cleanup for
    * prefork calls. */
   if(status)
-    error(0, "player for %s %s", q->track, wstat(status));
+    disorder_error(0, "player for %s %s", q->track, wstat(status));
   if(q->type & DISORDER_PLAYER_PREFORK)
     play_cleanup(q->pl, q->data);
   q->wstat = status;
@@ -327,7 +326,7 @@ static int start_child(struct queue_entry *q,
     if(*params->waitdevice) {
       n = ao_driver_id(params->waitdevice);
       if(n == -1)
-        fatal(0, "invalid libao driver: %s", params->waitdevice);
+        disorder_fatal(0, "invalid libao driver: %s", params->waitdevice);
     } else
       n = ao_default_driver_id();
     /* Make up a format. */
@@ -404,7 +403,7 @@ static int prepare_child(struct queue_entry *q,
   /* np will be the pipe to disorder-normalize */
   int np[2];
   if(socketpair(PF_UNIX, SOCK_STREAM, 0, np) < 0)
-    fatal(errno, "error calling socketpair");
+    disorder_fatal(errno, "error calling socketpair");
   /* Beware of the Leopard!  On OS X 10.5.x, the order of the shutdown
    * calls here DOES MATTER.  If you do the SHUT_WR first then the SHUT_RD
    * fails with "Socket is not connected".  I think this is a bug but
@@ -430,15 +429,15 @@ static int prepare_child(struct queue_entry *q,
                "%s/speaker/socket", config->home);
       int sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
       if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
-        fatal(errno, "connecting to %s", addr.sun_path);
+        disorder_fatal(errno, "connecting to %s", addr.sun_path);
       /* Send the ID, with a NATIVE-ENDIAN 32 bit length */
       uint32_t l = strlen(q->id);
       if(write(sfd, &l, sizeof l) < 0
          || write(sfd, q->id, l) < 0)
-        fatal(errno, "writing to %s", addr.sun_path);
+        disorder_fatal(errno, "writing to %s", addr.sun_path);
       /* Await the ack */
       if (read(sfd, &l, 1) < 0) 
-        fatal(errno, "reading ack from %s", addr.sun_path);
+        disorder_fatal(errno, "reading ack from %s", addr.sun_path);
       /* Plumbing */
       xdup2(np[0], 0);
       xdup2(sfd, 1);
@@ -451,7 +450,7 @@ static int prepare_child(struct queue_entry *q,
              log_default == &log_syslog ? "--syslog" : "--no-syslog",
              "--config", configfile,
              (char *)0);
-      fatal(errno, "executing disorder-normalize");
+      disorder_fatal(errno, "executing disorder-normalize");
       /* End of the great-grandchild of disorderd */
     }
     /* Back in the grandchild of disorderd */
@@ -468,7 +467,7 @@ static int prepare_child(struct queue_entry *q,
   char buffer[64];
   snprintf(buffer, sizeof buffer, "DISORDER_RAW_FD=%d", np[1]);
   if(putenv(buffer) < 0)
-    fatal(errno, "error calling putenv");
+    disorder_fatal(errno, "error calling putenv");
   /* Close all the FDs we don't need */
   xclose(np[0]);
   /* Start the decoder itself */
@@ -744,11 +743,11 @@ int pause_playing(const char *who) {
   case DISORDER_PLAYER_STANDALONE:
     if(!(playing->type & DISORDER_PLAYER_PAUSES)) {
     default:
-      error(0,  "cannot pause because player is not powerful enough");
+      disorder_error(0,  "cannot pause because player is not powerful enough");
       return -1;
     }
     if(play_pause(playing->pl, &played, playing->data)) {
-      error(0, "player indicates it cannot pause");
+      disorder_error(0, "player indicates it cannot pause");
       return -1;
     }
     xtime(&playing->lastpaused);
@@ -761,7 +760,8 @@ int pause_playing(const char *who) {
     speaker_send(speaker_fd, &sm);
     break;
   }
-  if(who) info("paused by %s", who);
+  if(who)
+    disorder_info("paused by %s", who);
   notify_pause(playing->track, who);
   paused = 1;
   if(playing->state == playing_started)
@@ -793,7 +793,7 @@ void resume_playing(const char *who) {
     speaker_send(speaker_fd, &sm);
     break;
   }
-  if(who) info("resumed by %s", who);
+  if(who) disorder_info("resumed by %s", who);
   notify_resume(playing->track, who);
   if(playing->state == playing_paused)
     playing->state = playing_started;

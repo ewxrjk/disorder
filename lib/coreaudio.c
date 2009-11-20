@@ -96,7 +96,7 @@ static int coreaudio_find_device(AudioObjectPropertySelector selector,
                      '?', FALSE, output, sizeof output,
                      &used);
     output[used] = 0;
-    info("device %u %s: %s", n, description, (char *)output);
+    disorder_info("device %u %s: %s", n, description, (char *)output);
 #endif
     if(CFStringCompare(dev, name,
                        kCFCompareCaseInsensitive|kCFCompareNonliteral)

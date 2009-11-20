@@ -97,7 +97,7 @@ static void rtp_get_netconfig(const char *af,
     na->af = -1;
   else
     if(netaddress_parse(na, 3, vec))
-      fatal(0, "invalid RTP address");
+      disorder_fatal(0, "invalid RTP address");
 }
 
 static void rtp_set_netconfig(const char *af,
@@ -174,10 +174,10 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
     written_bytes = writev(rtp_fd, vec, 2);
   } while(written_bytes < 0 && errno == EINTR);
   if(written_bytes < 0) {
-    error(errno, "error transmitting audio data");
+    disorder_error(errno, "error transmitting audio data");
     ++rtp_errors;
     if(rtp_errors == 10)
-      fatal(0, "too many audio tranmission errors");
+      disorder_fatal(0, "too many audio tranmission errors");
     return 0;
   } else
     rtp_errors /= 2;                    /* gradual decay */
@@ -219,7 +219,7 @@ static void rtp_open(void) {
   if((rtp_fd = socket(res->ai_family,
                       res->ai_socktype,
                       res->ai_protocol)) < 0)
-    fatal(errno, "error creating broadcast socket");
+    disorder_fatal(errno, "error creating broadcast socket");
   if(multicast(res->ai_addr)) {
     /* Enable multicast options */
     const int ttl = atoi(uaudio_get("multicast-ttl", "1"));
@@ -228,31 +228,31 @@ static void rtp_open(void) {
     case PF_INET: {
       if(setsockopt(rtp_fd, IPPROTO_IP, IP_MULTICAST_TTL,
                     &ttl, sizeof ttl) < 0)
-        fatal(errno, "error setting IP_MULTICAST_TTL on multicast socket");
+        disorder_fatal(errno, "error setting IP_MULTICAST_TTL on multicast socket");
       if(setsockopt(rtp_fd, IPPROTO_IP, IP_MULTICAST_LOOP,
                     &loop, sizeof loop) < 0)
-        fatal(errno, "error setting IP_MULTICAST_LOOP on multicast socket");
+        disorder_fatal(errno, "error setting IP_MULTICAST_LOOP on multicast socket");
       break;
     }
     case PF_INET6: {
       if(setsockopt(rtp_fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
                     &ttl, sizeof ttl) < 0)
-        fatal(errno, "error setting IPV6_MULTICAST_HOPS on multicast socket");
+        disorder_fatal(errno, "error setting IPV6_MULTICAST_HOPS on multicast socket");
       if(setsockopt(rtp_fd, IPPROTO_IP, IPV6_MULTICAST_LOOP,
                     &loop, sizeof loop) < 0)
-        fatal(errno, "error setting IPV6_MULTICAST_LOOP on multicast socket");
+        disorder_fatal(errno, "error setting IPV6_MULTICAST_LOOP on multicast socket");
       break;
     }
     default:
-      fatal(0, "unsupported address family %d", res->ai_family);
+      disorder_fatal(0, "unsupported address family %d", res->ai_family);
     }
-    info("multicasting on %s TTL=%d loop=%s", 
-         format_sockaddr(res->ai_addr), ttl, loop ? "yes" : "no");
+    disorder_info("multicasting on %s TTL=%d loop=%s", 
+                  format_sockaddr(res->ai_addr), ttl, loop ? "yes" : "no");
   } else {
     struct ifaddrs *ifs;
 
     if(getifaddrs(&ifs) < 0)
-      fatal(errno, "error calling getifaddrs");
+      disorder_fatal(errno, "error calling getifaddrs");
     while(ifs) {
       /* (At least on Darwin) IFF_BROADCAST might be set but ifa_broadaddr
        * still a null pointer.  It turns out that there's a subsequent entry
@@ -265,35 +265,34 @@ static void rtp_open(void) {
     }
     if(ifs) {
       if(setsockopt(rtp_fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-        fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-      info("broadcasting on %s (%s)", 
+        disorder_fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+      disorder_info("broadcasting on %s (%s)", 
            format_sockaddr(res->ai_addr), ifs->ifa_name);
     } else
-      info("unicasting on %s", format_sockaddr(res->ai_addr));
+      disorder_info("unicasting on %s", format_sockaddr(res->ai_addr));
   }
   /* Enlarge the socket buffer */
   len = sizeof sndbuf;
   if(getsockopt(rtp_fd, SOL_SOCKET, SO_SNDBUF,
                 &sndbuf, &len) < 0)
-    fatal(errno, "error getting SO_SNDBUF");
+    disorder_fatal(errno, "error getting SO_SNDBUF");
   if(target_sndbuf > sndbuf) {
     if(setsockopt(rtp_fd, SOL_SOCKET, SO_SNDBUF,
                   &target_sndbuf, sizeof target_sndbuf) < 0)
-      error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
+      disorder_error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
     else
-      info("changed socket send buffer size from %d to %d",
+      disorder_info("changed socket send buffer size from %d to %d",
            sndbuf, target_sndbuf);
   } else
-    info("default socket send buffer is %d",
-         sndbuf);
+    disorder_info("default socket send buffer is %d", sndbuf);
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
   if(sres && bind(rtp_fd, sres->ai_addr, sres->ai_addrlen) < 0)
-    fatal(errno, "error binding broadcast socket to %s", 
-          format_sockaddr(sres->ai_addr));
+    disorder_fatal(errno, "error binding broadcast socket to %s", 
+                   format_sockaddr(sres->ai_addr));
   if(connect(rtp_fd, res->ai_addr, res->ai_addrlen) < 0)
-    fatal(errno, "error connecting broadcast socket to %s", 
-          format_sockaddr(res->ai_addr));
+    disorder_fatal(errno, "error connecting broadcast socket to %s", 
+                   format_sockaddr(res->ai_addr));
 }
 
 static void rtp_start(uaudio_callback *callback,
@@ -308,8 +307,8 @@ static void rtp_start(uaudio_callback *callback,
      && uaudio_rate == 44100)
     rtp_payload = 11;
   else
-    fatal(0, "asked for %d/%d/%d 16/44100/1 and 16/44100/2",
-          uaudio_bits, uaudio_rate, uaudio_channels); 
+    disorder_fatal(0, "asked for %d/%d/%d 16/44100/1 and 16/44100/2",
+                   uaudio_bits, uaudio_rate, uaudio_channels); 
   /* Various fields are required to have random initial values by RFC3550.  The
    * packet contents are highly public so there's no point asking for very
    * strong randomness. */

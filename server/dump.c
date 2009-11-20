@@ -82,7 +82,7 @@ static int dump_one(struct sink *s,
        || sink_writec(s, '\n') < 0
        || urlencode(s, d.data, d.size)
        || sink_writec(s, '\n') < 0)
-      fatal(errno, "error writing to %s", tag);
+      disorder_fatal(errno, "error writing to %s", tag);
     err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                         DB_NEXT);
   }
@@ -95,7 +95,7 @@ static int dump_one(struct sink *s,
   case 0:
     assert(!"cannot happen");
   default:
-    fatal(0, "error reading %s: %s", dbname, db_strerror(err));
+    disorder_fatal(0, "error reading %s: %s", dbname, db_strerror(err));
   }
 }
 
@@ -121,13 +121,13 @@ static void do_dump(FILE *fp, const char *tag) {
   for(;;) {
     tid = trackdb_begin_transaction();
     if(fseek(fp, 0, SEEK_SET) < 0)
-      fatal(errno, "error calling fseek");
+      disorder_fatal(errno, "error calling fseek");
     if(fflush(fp) < 0)
-      fatal(errno, "error calling fflush");
+      disorder_fatal(errno, "error calling fflush");
     if(ftruncate(fileno(fp), 0) < 0)
-      fatal(errno, "error calling ftruncate");
+      disorder_fatal(errno, "error calling ftruncate");
     if(fprintf(fp, "V0") < 0)
-      fatal(errno, "error writing to %s", tag);
+      disorder_fatal(errno, "error writing to %s", tag);
     for(size_t n = 0; n < NDBTABLE; ++n)
       if(dump_one(s, tag,
                   dbtable[n].letter, dbtable[n].dbname, *dbtable[n].db,
@@ -135,16 +135,16 @@ static void do_dump(FILE *fp, const char *tag) {
         goto fail;
     
     if(fputs("E\n", fp) < 0)
-      fatal(errno, "error writing to %s", tag);
+      disorder_fatal(errno, "error writing to %s", tag);
     break;
 fail:
-    info("aborting transaction and retrying dump");
+    disorder_info("aborting transaction and retrying dump");
     trackdb_abort_transaction(tid);
   }
   trackdb_commit_transaction(tid);
-  if(fflush(fp) < 0) fatal(errno, "error writing to %s", tag);
+  if(fflush(fp) < 0) disorder_fatal(errno, "error writing to %s", tag);
   /* caller might not be paranoid so we are paranoid on their behalf */
-  if(fsync(fileno(fp)) < 0) fatal(errno, "error syncing %s", tag);
+  if(fsync(fileno(fp)) < 0) disorder_fatal(errno, "error syncing %s", tag);
 }
 
 /* delete all aliases prefs, return 0 or DB_LOCK_DEADLOCK */
@@ -155,11 +155,11 @@ static int remove_aliases(DB_TXN *tid, int remove_pathless) {
   struct kvp *data;
   int alias, pathless;
 
-  info("removing aliases");
+  disorder_info("removing aliases");
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
   if((err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                           DB_FIRST)) == DB_LOCK_DEADLOCK) {
-    error(0, "cursor->c_get: %s", db_strerror(err));
+    disorder_error(0, "cursor->c_get: %s", db_strerror(err));
     goto done;
   }
   while(err == 0) {
@@ -167,24 +167,25 @@ static int remove_aliases(DB_TXN *tid, int remove_pathless) {
     alias = !!kvp_get(data, "_alias_for");
     pathless = !kvp_get(data, "_path");
     if(pathless && !remove_pathless)
-      info("no _path for %s", utf82mb(xstrndup(k.data, k.size)));
+      disorder_info("no _path for %s", utf82mb(xstrndup(k.data, k.size)));
     if(alias || (remove_pathless && pathless)) {
       switch(err = cursor->c_del(cursor, 0)) {
       case 0: break;
       case DB_LOCK_DEADLOCK:
-        error(0, "cursor->c_get: %s", db_strerror(err));
+        disorder_error(0, "cursor->c_get: %s", db_strerror(err));
         goto done;
       default:
-        fatal(0, "cursor->c_del: %s", db_strerror(err));
+        disorder_fatal(0, "cursor->c_del: %s", db_strerror(err));
       }
     }
     err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d), DB_NEXT);
   }
   if(err == DB_LOCK_DEADLOCK) {
-    error(0, "cursor operation: %s", db_strerror(err));
+    disorder_error(0, "cursor operation: %s", db_strerror(err));
     goto done;
   }
-  if(err != DB_NOTFOUND) fatal(0, "cursor->c_get: %s", db_strerror(err));
+  if(err != DB_NOTFOUND)
+    disorder_fatal(0, "cursor->c_get: %s", db_strerror(err));
   err = 0;
 done:
   if(trackdb_closecursor(cursor) && !err) err = DB_LOCK_DEADLOCK;
@@ -199,10 +200,10 @@ static int truncdb(DB_TXN *tid, DB *db) {
   switch(err = db->truncate(db, tid, &count, 0)) {
   case 0: break;
   case DB_LOCK_DEADLOCK:
-    error(0, "db->truncate: %s", db_strerror(err));
+    disorder_error(0, "db->truncate: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "db->truncate: %s", db_strerror(err));
+    disorder_fatal(0, "db->truncate: %s", db_strerror(err));
   }
   return err;
 }
@@ -215,7 +216,7 @@ static int undump_dbt(FILE *fp, const char *tag, DBT *dbt) {
   if(inputline(tag, fp, &s, '\n')) return -1;
   dynstr_init(&d);
   if(urldecode(sink_dynstr(&d), s, strlen(s)))
-    fatal(0, "invalid URL-encoded data in %s", tag);
+    disorder_fatal(0, "invalid URL-encoded data in %s", tag);
   dbt->data = d.vec;
   dbt->size = d.nvec;
   return 0;
@@ -225,9 +226,9 @@ static int undump_dbt(FILE *fp, const char *tag, DBT *dbt) {
 static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
   int err, c;
 
-  info("undumping");
+  disorder_info("undumping");
   if(fseek(fp, 0, SEEK_SET) < 0)
-    fatal(errno, "error calling fseek on %s", tag);
+    disorder_fatal(errno, "error calling fseek on %s", tag);
   if((err = truncdb(tid, trackdb_prefsdb))) return err;
   if((err = truncdb(tid, trackdb_globaldb))) return err;
   if((err = truncdb(tid, trackdb_searchdb))) return err;
@@ -249,10 +250,10 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
         case 0:
           break;
         case DB_LOCK_DEADLOCK:
-          error(0, "error updating %s: %s", dbname, db_strerror(err));
+          disorder_error(0, "error updating %s: %s", dbname, db_strerror(err));
           return err;
         default:
-          fatal(0, "error updating %s: %s", dbname, db_strerror(err));
+          disorder_fatal(0, "error updating %s: %s", dbname, db_strerror(err));
         }
         goto next;
       }
@@ -262,7 +263,7 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
     case 'V':
       c = getc(fp);
       if(c != '0')
-        fatal(0, "unknown version '%c'", c);
+        disorder_fatal(0, "unknown version '%c'", c);
       break;
     case 'E':
       return 0;
@@ -270,17 +271,17 @@ static int undump_from_fp(DB_TXN *tid, FILE *fp, const char *tag) {
       break;
     default:
       if(c >= 32 && c <= 126)
-        fatal(0, "unexpected character '%c'", c);
+        disorder_fatal(0, "unexpected character '%c'", c);
       else
-        fatal(0, "unexpected character 0x%02X", c);
+        disorder_fatal(0, "unexpected character 0x%02X", c);
     }
   next:
     c = getc(fp);
   }
   if(ferror(fp))
-    fatal(errno, "error reading %s", tag);
+    disorder_fatal(errno, "error reading %s", tag);
   else
-    fatal(0, "unexpected EOF reading %s", tag);
+    disorder_fatal(0, "unexpected EOF reading %s", tag);
   return 0;
 }
 
@@ -293,7 +294,7 @@ static int recompute_aliases(DB_TXN *tid) {
   struct kvp *data;
   const char *path, *track;
 
-  info("recomputing aliases");
+  disorder_info("recomputing aliases");
   cursor = trackdb_opencursor(trackdb_tracksdb, tid);
   if((err = cursor->c_get(cursor, prepare_data(&k), prepare_data(&d),
                           DB_FIRST)) == DB_LOCK_DEADLOCK) goto done;
@@ -302,7 +303,7 @@ static int recompute_aliases(DB_TXN *tid) {
     track = xstrndup(k.data, k.size);
     if(!kvp_get(data, "_alias_for")) {
       if(!(path = kvp_get(data, "_path")))
-	error(0, "%s is not an alias but has no path", utf82mb(track));
+	disorder_error(0, "%s is not an alias but has no path", utf82mb(track));
       else
 	if((err = trackdb_notice_tid(track, path, tid)) == DB_LOCK_DEADLOCK)
 	  goto done;
@@ -319,7 +320,7 @@ static int recompute_aliases(DB_TXN *tid) {
   case DB_LOCK_DEADLOCK:
     break;
   default:
-    fatal(0, "cursor->c_get: %s", db_strerror(err));
+    disorder_fatal(0, "cursor->c_get: %s", db_strerror(err));
   }
 done:
   if(trackdb_closecursor(cursor) && !err) err = DB_LOCK_DEADLOCK;
@@ -337,10 +338,10 @@ static void do_undump(FILE *fp, const char *tag, int remove_pathless) {
        || recompute_aliases(tid)) goto fail;
     break;
 fail:
-    info("aborting transaction and retrying undump");
+    disorder_info("aborting transaction and retrying undump");
     trackdb_abort_transaction(tid);
   }
-  info("committing undump");
+  disorder_info("committing undump");
   trackdb_commit_transaction(tid);
 }
 
@@ -354,10 +355,10 @@ static void do_recompute(int remove_pathless) {
        || recompute_aliases(tid)) goto fail;
     break;
 fail:
-    info("aborting transaction and retrying recomputation");
+    disorder_info("aborting transaction and retrying recomputation");
     trackdb_abort_transaction(tid);
   }
-  info("committing recomputed aliases");
+  disorder_info("committing recomputed aliases");
   trackdb_commit_transaction(tid);
 }
 
@@ -381,23 +382,24 @@ int main(int argc, char **argv) {
     case 'R': recover = TRACKDB_FATAL_RECOVER;
     case 'a': recompute = 1; break;
     case 'P': remove_pathless = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(dump + undump + recompute != 1)
-    fatal(0, "choose exactly one of --dump, --undump or --recompute-aliases");
+    disorder_fatal(0, "choose exactly one of --dump, --undump or --recompute-aliases");
   if(recompute) {
     if(optind != argc)
-      fatal(0, "--recompute-aliases does not take a filename");
+      disorder_fatal(0, "--recompute-aliases does not take a filename");
     path = 0;
   } else {
     if(optind >= argc)
-      fatal(0, "missing dump file name");
+      disorder_fatal(0, "missing dump file name");
     if(optind + 1 < argc)
-      fatal(0, "specify only a dump file name");
+      disorder_fatal(0, "specify only a dump file name");
     path = argv[optind];
   }
-  if(config_read(0, NULL)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL))
+    disorder_fatal(0, "cannot read configuration");
   trackdb_init(recover|TRACKDB_MAY_CREATE);
   trackdb_open(TRACKDB_NO_UPGRADE);
   if(dump) {
@@ -405,18 +407,20 @@ int main(int argc, char **argv) {
      * sure the permissions are tight from the start. */
     byte_xasprintf(&tmp, "%s.%lx.tmp", path, (unsigned long)getpid());
     if((fd = open(tmp, O_CREAT|O_TRUNC|O_WRONLY, 0600)) < 0)
-      fatal(errno, "error opening %s", tmp);
+      disorder_fatal(errno, "error opening %s", tmp);
     if(!(fp = fdopen(fd, "w")))
-      fatal(errno, "fdopen on %s", tmp);
+      disorder_fatal(errno, "fdopen on %s", tmp);
     do_dump(fp, tmp);
-    if(fclose(fp) < 0) fatal(errno, "error closing %s", tmp);
+    if(fclose(fp) < 0) disorder_fatal(errno, "error closing %s", tmp);
     if(rename(tmp, path) < 0)
-      fatal(errno, "error renaming %s to %s", tmp, path);
+      disorder_fatal(errno, "error renaming %s to %s", tmp, path);
   } else if(undump) {
     /* the databases or logfiles might end up with wrong permissions
      * if new ones are created */
-    if(getuid() == 0) info("you might need to chown database files");
-    if(!(fp = fopen(path, "r"))) fatal(errno, "error opening %s", path);
+    if(getuid() == 0)
+      disorder_info("you might need to chown database files");
+    if(!(fp = fopen(path, "r")))
+      disorder_fatal(errno, "error opening %s", path);
     do_undump(fp, path, remove_pathless);
     xfclose(fp);
   } else if(recompute) {

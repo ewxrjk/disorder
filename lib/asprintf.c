@@ -99,7 +99,7 @@ int byte_xvasprintf(char **ptrp,
   int n;
 
   if((n = byte_vasprintf(ptrp, fmt, ap)) < 0)
-    fatal(errno, "error calling byte_vasprintf");
+    disorder_fatal(errno, "error calling byte_vasprintf");
   return n;
 }
 

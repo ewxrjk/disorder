@@ -62,11 +62,11 @@ time_t dateparse(const char *s) {
   case 0:
     return mktime(&t);
   case 7:
-    fatal(0, "date string '%s' not in a recognized format", s);
+    disorder_fatal(0, "date string '%s' not in a recognized format", s);
   case 8:
-    fatal(0, "date string '%s' not representable", s);
+    disorder_fatal(0, "date string '%s' not representable", s);
   default:
-    fatal(0, "date string '%s' produced unexpected error %d", s, rc);
+    disorder_fatal(0, "date string '%s' produced unexpected error %d", s, rc);
   }
 }
 

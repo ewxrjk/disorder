@@ -165,7 +165,7 @@ static int writer_error(ev_source attribute((unused)) *ev,
     D(("S%x writer completed", c->tag));
   } else {
     if(errno_value != EPIPE)
-      error(errno_value, "S%x write error on socket", c->tag);
+      disorder_error(errno_value, "S%x write error on socket", c->tag);
     if(c->r) {
       D(("cancel reader"));
       ev_reader_cancel(c->r);
@@ -189,7 +189,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
   struct conn *c = u;
 
   D(("server reader_error S%x %d", c->tag, errno_value));
-  error(errno_value, "S%x read error on socket", c->tag);
+  disorder_error(errno_value, "S%x read error on socket", c->tag);
   if(c->w)
     ev_writer_close(c->w);
   c->w = 0;
@@ -277,7 +277,7 @@ static int c_playafter(struct conn *c, char **vec,
       sink_printf(ev_writer_sink(c->w), "550 No such ID\n");
       return 1;
     }
-    info("added %s as %s after %s", track, q->id, afterme);
+    disorder_info("added %s as %s after %s", track, q->id, afterme);
     afterme = q->id;
   }
   queue_write();
@@ -287,7 +287,7 @@ static int c_playafter(struct conn *c, char **vec,
    * prepare the same track twice so there's no point. */
   if(qhead.next != &qhead) {
     prepare(c->ev, qhead.next);
-    info("prepared %s", qhead.next->id);
+    disorder_info("prepared %s", qhead.next->id);
   }
   /* If the queue was empty but we are for some reason paused then
    * unpause. */
@@ -306,7 +306,7 @@ static int c_remove(struct conn *c, char **vec,
     return 1;
   }
   if(!right_removable(c->rights, c->who, q)) {
-    error(0, "%s attempted remove but lacks required rights", c->who);
+    disorder_error(0, "%s attempted remove but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to remove that track\n");
     return 1;
@@ -335,7 +335,7 @@ static int c_scratch(struct conn *c,
    * playing track then you will get 550 if you weren't authorized to scratch
    * the currently playing track. */
   if(!right_scratchable(c->rights, c->who, playing)) {
-    error(0, "%s attempted scratch but lacks required rights", c->who);
+    disorder_error(0, "%s attempted scratch but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to scratch that track\n");
     return 1;
@@ -380,7 +380,7 @@ static int c_resume(struct conn *c,
 static int c_shutdown(struct conn *c,
 		      char attribute((unused)) **vec,
 		      int attribute((unused)) nvec) {
-  info("S%x shut down by %s", c->tag, c->who);
+  disorder_info("S%x shut down by %s", c->tag, c->who);
   sink_writes(ev_writer_sink(c->w), "250 shutting down\n");
   ev_writer_flush(c->w);
   quit(c->ev);
@@ -389,7 +389,7 @@ static int c_shutdown(struct conn *c,
 static int c_reconfigure(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
-  info("S%x reconfigure by %s", c->tag, c->who);
+  disorder_info("S%x reconfigure by %s", c->tag, c->who);
   if(reconfigure(c->ev, 1))
     sink_writes(ev_writer_sink(c->w), "550 error reading new config\n");
   else
@@ -457,9 +457,9 @@ static int c_rescan(struct conn *c,
     }
   }
   /* Report what was requested */
-  info("S%x rescan by %s (%s %s)", c->tag, c->who,
-       flag_wait ? "wait" : "",
-       flag_fresh ? "fresh" : "");
+  disorder_info("S%x rescan by %s (%s %s)", c->tag, c->who,
+		flag_wait ? "wait" : "",
+		flag_fresh ? "fresh" : "");
   if(trackdb_rescan_underway()) {
     if(flag_fresh) {
       /* We want a fresh rescan but there is already one underway.  Arrange a
@@ -533,13 +533,14 @@ static const char *connection_host(struct conn *c) {
   /* get connection data */
   l = sizeof u;
   if(getpeername(c->fd, &u.sa, &l) < 0) {
-    error(errno, "S%x error calling getpeername", c->tag);
+    disorder_error(errno, "S%x error calling getpeername", c->tag);
     return 0;
   }
   if(c->l->pf != PF_UNIX) {
     if((n = getnameinfo(&u.sa, l,
 			host, sizeof host, 0, 0, NI_NUMERICHOST))) {
-      error(0, "S%x error calling getnameinfo: %s", c->tag, gai_strerror(n));
+      disorder_error(0, "S%x error calling getnameinfo: %s",
+		     c->tag, gai_strerror(n));
       return 0;
     }
     return xstrdup(host);
@@ -567,20 +568,21 @@ static int c_user(struct conn *c,
   k = trackdb_getuserinfo(vec[0]);
   /* reject nonexistent users */
   if(!k) {
-    error(0, "S%x unknown user '%s' from %s", c->tag, vec[0], host);
+    disorder_error(0, "S%x unknown user '%s' from %s", c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
   /* reject unconfirmed users */
   if(kvp_get(k, "confirmation")) {
-    error(0, "S%x unconfirmed user '%s' from %s", c->tag, vec[0], host);
+    disorder_error(0, "S%x unconfirmed user '%s' from %s",
+		   c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
   password = kvp_get(k, "password");
   if(!password) password = "";
   if(parse_rights(kvp_get(k, "rights"), &rights, 1)) {
-    error(0, "error parsing rights for %s", vec[0]);
+    disorder_error(0, "error parsing rights for %s", vec[0]);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
@@ -592,14 +594,15 @@ static int c_user(struct conn *c,
     c->rights = rights;
     /* currently we only bother logging remote connections */
     if(strcmp(host, "local"))
-      info("S%x %s connected from %s", c->tag, vec[0], host);
+      disorder_info("S%x %s connected from %s", c->tag, vec[0], host);
     else
       c->rights |= RIGHT__LOCAL;
     sink_writes(ev_writer_sink(c->w), "230 OK\n");
     return 1;
   }
   /* oops, response was wrong */
-  info("S%x authentication failure for %s from %s", c->tag, vec[0], host);
+  disorder_info("S%x authentication failure for %s from %s",
+		c->tag, vec[0], host);
   sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
   return 1;
 }
@@ -915,7 +918,8 @@ static int c_volume(struct conn *c,
   }
   rights = set ? RIGHT_VOLUME : RIGHT_READ;
   if(!(c->rights & rights)) {
-    error(0, "%s attempted to set volume but lacks required rights", c->who);
+    disorder_error(0, "%s attempted to set volume but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
@@ -1044,7 +1048,7 @@ static int c_move(struct conn *c,
     return 1;
   }
   if(!has_move_rights(c, &q, 1)) {
-    error(0, "%s attempted move but lacks required rights", c->who);
+    disorder_error(0, "%s attempted move but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move that track\n");
     return 1;
@@ -1079,7 +1083,8 @@ static int c_moveafter(struct conn *c,
       return 1;
     }
   if(!has_move_rights(c, qs, nvec)) {
-    error(0, "%s attempted moveafter but lacks required rights", c->who);
+    disorder_error(0, "%s attempted moveafter but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move those tracks\n");
     return 1;
@@ -1237,7 +1242,7 @@ static int c_cookie(struct conn *c,
   c->cookie = vec[0];
   c->rights = rights;
   if(strcmp(host, "local"))
-    info("S%x %s connected with cookie from %s", c->tag, user, host);
+    disorder_info("S%x %s connected with cookie from %s", c->tag, user, host);
   else
     c->rights |= RIGHT__LOCAL;
   /* Response contains username so client knows who they are acting as */
@@ -1274,7 +1279,7 @@ static int c_adduser(struct conn *c,
   const char *rights;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote adduser", c->tag);
+    disorder_error(0, "S%x: remote adduser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1300,7 +1305,7 @@ static int c_deluser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote deluser", c->tag);
+    disorder_error(0, "S%x: remote deluser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1322,7 +1327,7 @@ static int c_edituser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote edituser", c->tag);
+    disorder_error(0, "S%x: remote edituser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1363,7 +1368,8 @@ static int c_edituser(struct conn *c,
     }
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
-    error(0, "%s attempted edituser but lacks required rights", c->who);
+    disorder_error(0, "%s attempted edituser but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   }
   return 1;
@@ -1380,7 +1386,7 @@ static int c_userinfo(struct conn *c,
   if(!config->remote_userman
      && !(c->rights & RIGHT__LOCAL)
      && strcmp(vec[1], "rights")) {
-    error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
+    disorder_error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1398,7 +1404,8 @@ static int c_userinfo(struct conn *c,
     else
       sink_writes(ev_writer_sink(c->w), "550 No such user\n");
   } else {
-    error(0, "%s attempted userinfo but lacks required rights", c->who);
+    disorder_error(0, "%s attempted userinfo but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   }
   return 1;
@@ -1423,7 +1430,7 @@ static int c_register(struct conn *c,
    * letters and digits, minimizing the chance of the URL being mispasted. */
   gcry_randomize(nonce, sizeof nonce, GCRY_STRONG_RANDOM);
   if(basen(nonce, CONFIRM_SIZE, nonce_str, sizeof nonce_str, 62)) {
-    error(0, "buffer too small encoding confirmation string");
+    disorder_error(0, "buffer too small encoding confirmation string");
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   }
   byte_xasprintf(&cs, "%s/%s", vec[0], nonce_str);
@@ -1459,7 +1466,7 @@ static int c_confirm(struct conn *c,
     c->cookie = 0;
     c->rights = rights;
     if(strcmp(host, "local"))
-      info("S%x %s confirmed from %s", c->tag, user, host);
+      disorder_info("S%x %s confirmed from %s", c->tag, user, host);
     else
       c->rights |= RIGHT__LOCAL;
     /* Response contains username so client knows who they are acting as */
@@ -1479,7 +1486,7 @@ static int sent_reminder(ev_source attribute((unused)) *ev,
   if(!status) {
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
-    error(0, "reminder subprocess %s", wstat(status));
+    disorder_error(0, "reminder subprocess %s", wstat(status));
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
   }
   /* Re-enable this connection */
@@ -1499,24 +1506,24 @@ static int c_reminder(struct conn *c,
   static hash *last_reminder;
 
   if(!config->mail_sender) {
-    error(0, "cannot send password reminders because mail_sender not set");
+    disorder_error(0, "cannot send password reminders because mail_sender not set");
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(k = trackdb_getuserinfo(vec[0]))) {
-    error(0, "reminder for user '%s' who does not exist", vec[0]);
+    disorder_error(0, "reminder for user '%s' who does not exist", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(email = kvp_get(k, "email"))
      || !email_valid(email)) {
-    error(0, "user '%s' has no valid email address", vec[0]);
+    disorder_error(0, "user '%s' has no valid email address", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(password = kvp_get(k, "password"))
      || !*password) {
-    error(0, "user '%s' has no password", vec[0]);
+    disorder_error(0, "user '%s' has no password", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
@@ -1528,7 +1535,7 @@ static int c_reminder(struct conn *c,
   last = hash_find(last_reminder, vec[0]);
   xtime(&now);
   if(last && now < *last + config->reminder_interval) {
-    error(0, "sent a password reminder to '%s' too recently", vec[0]);
+    disorder_error(0, "sent a password reminder to '%s' too recently", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
@@ -1541,7 +1548,7 @@ static int c_reminder(struct conn *c,
 "\n"
 "  %s\n", password);
   if(!(text = mime_encode_text(text, &charset, &encoding)))
-    fatal(0, "cannot encode email");
+    disorder_fatal(0, "cannot encode email");
   byte_xasprintf((char **)&content_type, "text/plain;charset=%s",
 		 quote822(charset, 0));
   pid = sendmail_subprocess("", config->mail_sender, email,
@@ -1552,7 +1559,7 @@ static int c_reminder(struct conn *c,
     return 1;
   }
   hash_add(last_reminder, vec[0], &now, HASH_INSERT_OR_REPLACE);
-  info("sending a passsword reminder to user '%s'", vec[0]);
+  disorder_info("sending a passsword reminder to user '%s'", vec[0]);
   /* We can only continue when the subprocess finishes */
   ev_child(c->ev, pid, 0, sent_reminder, c);
   return 0;
@@ -1993,7 +2000,8 @@ static int command(struct conn *c, char *line) {
   else {
     if(commands[n].rights
        && !(c->rights & commands[n].rights)) {
-      error(0, "%s attempted %s but lacks required rights", c->who ? c->who : "NULL",
+      disorder_error(0, "%s attempted %s but lacks required rights",
+		     c->who ? c->who : "NULL",
 	    commands[n].name);
       sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
       return 1;
@@ -2056,7 +2064,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   }
   if(eof) {
     if(bytes)
-      error(0, "S%x unterminated line", c->tag);
+      disorder_error(0, "S%x unterminated line", c->tag);
     D(("normal reader close"));
     c->r = 0;
     if(c->w) {
@@ -2087,7 +2095,7 @@ static int listen_callback(ev_source *ev,
   c->w = ev_writer_new(ev, fd, writer_error, c,
 		       "client writer");
   if(!c->w) {
-    error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
+    disorder_error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
           fd);
     close(fd);
     return 0;
@@ -2097,7 +2105,9 @@ static int listen_callback(ev_source *ev,
   if(!c->r)
     /* Main reason for failure is the FD is too big and that will already have
      * been handled */
-    fatal(0, "ev_reader_new for file inbound connection (fd=%d) failed", fd);
+    disorder_fatal(0,
+		   "ev_reader_new for file inbound connection (fd=%d) failed",
+		   fd);
   ev_tie(c->r, c->w);
   c->fd = fd;
   c->reader = reader_callback;
@@ -2124,7 +2134,7 @@ int server_start(ev_source *ev, int pf,
   fd = xsocket(pf, SOCK_STREAM, 0);
   xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   if(bind(fd, sa, socklen) < 0) {
-    error(errno, "error binding to %s", name);
+    disorder_error(errno, "error binding to %s", name);
     return -1;
   }
   xlisten(fd, 128);
@@ -2134,7 +2144,7 @@ int server_start(ev_source *ev, int pf,
   l->pf = pf;
   if(ev_listen(ev, fd, listen_callback, l, "server listener"))
     exit(EXIT_FAILURE);
-  info("listening on %s", name);
+  disorder_info("listening on %s", name);
   return fd;
 }
 

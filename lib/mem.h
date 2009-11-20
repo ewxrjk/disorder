@@ -35,7 +35,7 @@ void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
 void *xcalloc(size_t count, size_t size);
 /* As malloc/realloc/calloc, but
- * 1) succeed or call fatal
+ * 1) succeed or call disorder_fatal
  * 2) always clear (the unused part of) the new allocation
  * 3) are garbage-collected
  */
@@ -46,7 +46,7 @@ void *xcalloc_noptr(size_t count, size_t size);
 char *xstrdup(const char *);
 char *xstrndup(const char *, size_t);
 /* As malloc/realloc/strdup, but
- * 1) succeed or call fatal
+ * 1) succeed or call disorder_fatal
  * 2) are garbage-collected
  * 3) allocated space must not contain any pointers
  *

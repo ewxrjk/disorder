@@ -246,7 +246,7 @@ void trackdb_init(int flags) {
   ++initialized;
   if(home) {
     if(strcmp(home, config->home))
-      fatal(0, "cannot change db home without server restart");
+      disorder_fatal(0, "cannot change db home without server restart");
     home = config->home;
   }
 
@@ -264,14 +264,14 @@ void trackdb_init(int flags) {
      * The socket, not being a regular file, is excepted.
      */
     if(!(dp = opendir(config->home)))
-      fatal(errno, "error reading %s", config->home);
+      disorder_fatal(errno, "error reading %s", config->home);
     while((de = readdir(dp))) {
       byte_xasprintf(&p, "%s/%s", config->home, de->d_name);
       if(lstat(p, &st) == 0
          && S_ISREG(st.st_mode)
          && (st.st_mode & 077)) {
         if(chmod(p, st.st_mode & 07700) < 0)
-          fatal(errno, "cannot chmod %s", p);
+          disorder_fatal(errno, "cannot chmod %s", p);
       }
       xfree(p);
     }
@@ -279,15 +279,15 @@ void trackdb_init(int flags) {
   }
 
   /* create environment */
-  if((err = db_env_create(&trackdb_env, 0))) fatal(0, "db_env_create: %s",
-                                                   db_strerror(err));
+  if((err = db_env_create(&trackdb_env, 0)))
+    disorder_fatal(0, "db_env_create: %s", db_strerror(err));
   if((err = trackdb_env->set_alloc(trackdb_env,
                                    xmalloc_noptr, xrealloc_noptr, xfree)))
-    fatal(0, "trackdb_env->set_alloc: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->set_alloc: %s", db_strerror(err));
   if((err = trackdb_env->set_lk_max_locks(trackdb_env, 10000)))
-    fatal(0, "trackdb_env->set_lk_max_locks: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->set_lk_max_locks: %s", db_strerror(err));
   if((err = trackdb_env->set_lk_max_objects(trackdb_env, 10000)))
-    fatal(0, "trackdb_env->set_lk_max_objects: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->set_lk_max_objects: %s", db_strerror(err));
   if((err = trackdb_env->open(trackdb_env, config->home,
                               DB_INIT_LOG
                               |DB_INIT_LOCK
@@ -296,7 +296,8 @@ void trackdb_init(int flags) {
                               |DB_CREATE
                               |recover_type[recover],
                               0600)))
-    fatal(0, "trackdb_env->open %s: %s", config->home, db_strerror(err));
+    disorder_fatal(0, "trackdb_env->open %s: %s",
+                   config->home, db_strerror(err));
   trackdb_env->set_errpfx(trackdb_env, "DB");
   trackdb_env->set_errfile(trackdb_env, stderr);
   trackdb_env->set_verbose(trackdb_env, DB_VERB_DEADLOCK, 1);
@@ -313,8 +314,8 @@ static int reap_db_deadlock(ev_source attribute((unused)) *ev,
                             void attribute((unused)) *u) {
   db_deadlock_pid = -1;
   if(initialized)
-    fatal(0, "deadlock manager unexpectedly terminated: %s",
-          wstat(status));
+    disorder_fatal(0, "deadlock manager unexpectedly terminated: %s",
+                   wstat(status));
   else
     D(("deadlock manager terminated: %s", wstat(status)));
   return 0;
@@ -361,12 +362,12 @@ static pid_t subprogram(ev_source *ev, int outputfd, const char *prog,
     }
     /* ensure we don't leak privilege anywhere */
     if(setuid(geteuid()) < 0)
-      fatal(errno, "error calling setuid");
+      disorder_fatal(errno, "error calling setuid");
     /* If we were negatively niced, undo it.  We don't bother checking for 
     * error, it's not that important. */
     setpriority(PRIO_PROCESS, 0, 0);
     execvp(prog, (char **)args);
-    fatal(errno, "error invoking %s", prog);
+    disorder_fatal(errno, "error invoking %s", prog);
   }
   return pid;
 }
@@ -399,7 +400,7 @@ static void terminate_and_wait(ev_source *ev,
   if(pid == -1)
     return;
   if(kill(pid, SIGTERM) < 0)
-    fatal(errno, "error killing %s", what);
+    disorder_fatal(errno, "error killing %s", what);
   /* wait for the rescanner to finish */
   while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
     ;
@@ -419,7 +420,7 @@ void trackdb_deinit(ev_source *ev) {
 
   /* close the environment */
   if((err = trackdb_env->close(trackdb_env, 0)))
-    fatal(0, "trackdb_env->close: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->close: %s", db_strerror(err));
 
   terminate_and_wait(ev, rescan_pid, "disorder-rescan");
   rescan_pid = -1;
@@ -460,22 +461,22 @@ static DB *open_db(const char *path,
   D(("open %s", path));
   path = config_get_file(path);
   if((err = db_create(&db, trackdb_env, 0)))
-    fatal(0, "db_create %s: %s", path, db_strerror(err));
+    disorder_fatal(0, "db_create %s: %s", path, db_strerror(err));
   if(dbflags)
     if((err = db->set_flags(db, dbflags)))
-      fatal(0, "db->set_flags %s: %s", path, db_strerror(err));
+      disorder_fatal(0, "db->set_flags %s: %s", path, db_strerror(err));
   if(dbtype == DB_BTREE)
     if((err = db->set_bt_compare(db, compare)))
-      fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
+      disorder_fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
   if((err = db->open(db, 0, path, 0, dbtype,
                      openflags | DB_AUTO_COMMIT, mode))) {
     if((openflags & DB_CREATE) || errno != ENOENT) {
       if((err2 = db->close(db, 0)))
-        error(0, "db->close: %s", db_strerror(err2));
+        disorder_error(0, "db->close: %s", db_strerror(err2));
       trackdb_close();
       trackdb_env->close(trackdb_env,0);
       trackdb_env = 0;
-      fatal(0, "db->open %s: %s", path, db_strerror(err));
+      disorder_fatal(0, "db->open %s: %s", path, db_strerror(err));
     }
     db->close(db, 0);
     db = 0;
@@ -511,32 +512,32 @@ void trackdb_open(int flags) {
     s = trackdb_get_global("_dbversion");
     /* Close the database again,  we'll open it property below */
     if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
-      fatal(0, "error closing global.db: %s", db_strerror(err));
+      disorder_fatal(0, "error closing global.db: %s", db_strerror(err));
     trackdb_globaldb = 0;
     /* Convert version string to an integer */
     oldversion = s ? atol(s) : 1;
     if(oldversion > config->dbversion) {
       /* Database is from the future; we never allow this. */
-      fatal(0, "this version of DisOrder is too old for database version %ld",
-            oldversion);
+      disorder_fatal(0, "this version of DisOrder is too old for database version %ld",
+                     oldversion);
     }
     if(oldversion < config->dbversion) {
       /* Database version is out of date */
       switch(flags & TRACKDB_UPGRADE_MASK) {
       case TRACKDB_NO_UPGRADE:
         /* This database needs upgrading but this is not permitted */
-        fatal(0, "database needs upgrading from %ld to %ld",
-              oldversion, config->dbversion);
+        disorder_fatal(0, "database needs upgrading from %ld to %ld",
+                       oldversion, config->dbversion);
       case TRACKDB_CAN_UPGRADE:
         /* This database needs upgrading */
-        info("invoking disorder-dbupgrade to upgrade from %ld to %ld",
+        disorder_info("invoking disorder-dbupgrade to upgrade from %ld to %ld",
              oldversion, config->dbversion);
         pid = subprogram(0, -1, "disorder-dbupgrade", (char *)0);
         while(waitpid(pid, &err, 0) == -1 && errno == EINTR)
           ;
         if(err)
-          fatal(0, "disorder-dbupgrade %s", wstat(err));
-        info("disorder-dbupgrade succeeded");
+          disorder_fatal(0, "disorder-dbupgrade %s", wstat(err));
+        disorder_info("disorder-dbupgrade succeeded");
         break;
       case TRACKDB_OPEN_FOR_UPGRADE:
         break;
@@ -546,13 +547,13 @@ void trackdb_open(int flags) {
     }
     if(oldversion == config->dbversion && (flags & TRACKDB_OPEN_FOR_UPGRADE)) {
       /* This doesn't make any sense */
-      fatal(0, "database is already at current version");
+      disorder_fatal(0, "database is already at current version");
     }
     trackdb_existing_database = 1;
   } else {
     if(flags & TRACKDB_OPEN_FOR_UPGRADE) {
       /* Cannot upgrade a new database */
-      fatal(0, "cannot upgrade a database that does not exist");
+      disorder_fatal(0, "cannot upgrade a database that does not exist");
     }
     /* This is a brand new database */
     trackdb_existing_database = 0;
@@ -560,7 +561,7 @@ void trackdb_open(int flags) {
   /* open the databases */
   if(!(trackdb_usersdb = open_db("users.db",
                                  0, DB_HASH, dbflags, 0600)))
-    fatal(0, "cannot open users.db");
+    disorder_fatal(0, "cannot open users.db");
   trackdb_tracksdb = open_db("tracks.db",
                              DB_RECNUM, DB_BTREE, dbflags, 0666);
   trackdb_searchdb = open_db("search.db",
@@ -591,10 +592,10 @@ void trackdb_close(void) {
   /* sanity checks */
   assert(opened == 1);
   --opened;
-#define CLOSE(N, V) do {                                        \
-  if(V && (err = V->close(V, 0)))                               \
-    fatal(0, "error closing %s: %s", N, db_strerror(err));      \
-  V = 0;                                                        \
+#define CLOSE(N, V) do {                                                \
+  if(V && (err = V->close(V, 0)))                                       \
+    disorder_fatal(0, "error closing %s: %s", N, db_strerror(err));     \
+  V = 0;                                                                \
 } while(0)
   CLOSE("tracks.db", trackdb_tracksdb);
   CLOSE("search.db", trackdb_searchdb);
@@ -635,10 +636,10 @@ int trackdb_getdata(DB *db,
       *kp = 0;
     return err;
   case DB_LOCK_DEADLOCK:
-    error(0, "error querying database: %s", db_strerror(err));
+    disorder_error(0, "error querying database: %s", db_strerror(err));
     return err;
   default:
-    fatal(0, "error querying database: %s", db_strerror(err));
+    disorder_fatal(0, "error querying database: %s", db_strerror(err));
   }
 }
 
@@ -664,10 +665,10 @@ int trackdb_putdata(DB *db,
   case DB_KEYEXIST:
     return err;
   case DB_LOCK_DEADLOCK:
-    error(0, "error updating database: %s", db_strerror(err));
+    disorder_error(0, "error updating database: %s", db_strerror(err));
     return err;
   default:
-    fatal(0, "error updating database: %s", db_strerror(err));
+    disorder_fatal(0, "error updating database: %s", db_strerror(err));
   }
 }
 
@@ -688,10 +689,10 @@ int trackdb_delkey(DB *db,
   case DB_NOTFOUND:
     return 0;
   case DB_LOCK_DEADLOCK:
-    error(0, "error updating database: %s", db_strerror(err));
+    disorder_error(0, "error updating database: %s", db_strerror(err));
     return err;
   default:
-    fatal(0, "error updating database: %s", db_strerror(err));
+    disorder_fatal(0, "error updating database: %s", db_strerror(err));
   }
 }
 
@@ -706,7 +707,7 @@ DBC *trackdb_opencursor(DB *db, DB_TXN *tid) {
 
   switch(err = db->cursor(db, tid, &c, 0)) {
   case 0: break;
-  default: fatal(0, "error creating cursor: %s", db_strerror(err));
+  default: disorder_fatal(0, "error creating cursor: %s", db_strerror(err));
   }
   return c;
 }
@@ -723,10 +724,10 @@ int trackdb_closecursor(DBC *c) {
   case 0:
     return err;
   case DB_LOCK_DEADLOCK:
-    error(0, "error closing cursor: %s", db_strerror(err));
+    disorder_error(0, "error closing cursor: %s", db_strerror(err));
     return err;
   default:
-    fatal(0, "error closing cursor: %s", db_strerror(err));
+    disorder_fatal(0, "error closing cursor: %s", db_strerror(err));
   }
 }
 
@@ -759,19 +760,19 @@ int trackdb_delkeydata(DB *db,
       err = 0;
       break;
     case DB_LOCK_DEADLOCK:
-      error(0, "error updating database: %s", db_strerror(err));
+      disorder_error(0, "error updating database: %s", db_strerror(err));
       break;
     default:
-      fatal(0, "c->c_del: %s", db_strerror(err));
+      disorder_fatal(0, "c->c_del: %s", db_strerror(err));
     }
     break;
   case DB_NOTFOUND:
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error updating database: %s", db_strerror(err));
+    disorder_error(0, "error updating database: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "c->c_get: %s", db_strerror(err));
+    disorder_fatal(0, "c->c_get: %s", db_strerror(err));
   }
   if(trackdb_closecursor(c)) err = DB_LOCK_DEADLOCK;
   return err;
@@ -785,7 +786,7 @@ DB_TXN *trackdb_begin_transaction(void) {
   int err;
 
   if((err = trackdb_env->txn_begin(trackdb_env, 0, &tid, 0)))
-    fatal(0, "trackdb_env->txn_begin: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->txn_begin: %s", db_strerror(err));
   return tid;
 }
 
@@ -799,7 +800,7 @@ void trackdb_abort_transaction(DB_TXN *tid) {
 
   if(tid)
     if((err = tid->abort(tid)))
-      fatal(0, "tid->abort: %s", db_strerror(err));
+      disorder_fatal(0, "tid->abort: %s", db_strerror(err));
 }
 
 /** @brief Commit transaction
@@ -809,7 +810,7 @@ void trackdb_commit_transaction(DB_TXN *tid) {
   int err;
 
   if((err = tid->commit(tid, 0)))
-    fatal(0, "tid->commit: %s", db_strerror(err));
+    disorder_fatal(0, "tid->commit: %s", db_strerror(err));
 }
 
 /* search/tags shared code ***************************************************/
@@ -872,10 +873,10 @@ static int register_word(DB *db, const char *what,
   case DB_KEYEXIST:
     return 0;
   case DB_LOCK_DEADLOCK:
-    error(0, "error updating %s.db: %s", what, db_strerror(err));
+    disorder_error(0, "error updating %s.db: %s", what, db_strerror(err));
     return err;
   default:
-    fatal(0, "error updating %s.db: %s", what,  db_strerror(err));
+    disorder_fatal(0, "error updating %s.db: %s", what,  db_strerror(err));
   }
 }
 
@@ -1214,7 +1215,8 @@ static int gettrackdata(const char *track,
   if((err = trackdb_getdata(trackdb_tracksdb, track, &t, tid))) goto done;
   if((actual = kvp_get(t, "_alias_for"))) {
     if(flags & GTD_NOALIAS) {
-      error(0, "alias passed to gettrackdata where real path required");
+      disorder_error(0,
+                     "alias passed to gettrackdata where real path required");
       abort();
     }
     if((err = trackdb_getdata(trackdb_tracksdb, actual, &t, tid))) goto done;
@@ -1326,7 +1328,8 @@ int trackdb_notice_tid(const char *track,
                                         make_key(&data, track), 0)) {
     case 0: break;
     case DB_LOCK_DEADLOCK: return err;
-    default: fatal(0, "error updating noticed.db: %s", db_strerror(err));
+    default:
+      disorder_fatal(0, "error updating noticed.db: %s", db_strerror(err));
     }
   }
   return ret;
@@ -1448,10 +1451,10 @@ static int get_stats(struct vector *v,
     case 0:
       break;
     case DB_LOCK_DEADLOCK:
-      error(0, "error querying database: %s", db_strerror(err));
+      disorder_error(0, "error querying database: %s", db_strerror(err));
       return err;
     default:
-      fatal(0, "error querying database: %s", db_strerror(err));
+      disorder_fatal(0, "error querying database: %s", db_strerror(err));
     }
     for(n = 0; n < nsi; ++n) {
       byte_xasprintf(&str, "%s=%"PRIuMAX, si[n].name,
@@ -1533,10 +1536,10 @@ static int search_league(struct vector *v, int count, DB_TXN *tid) {
     err = 0;
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error querying search database: %s", db_strerror(err));
+    disorder_error(0, "error querying search database: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "error querying search database: %s", db_strerror(err));
+    disorder_fatal(0, "error querying search database: %s", db_strerror(err));
   }
   if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
   if(err) return err;
@@ -1637,7 +1640,7 @@ static int stats_finished(ev_source attribute((unused)) *ev,
 
   d->exited = 1;
   if(status)
-    error(0, "disorder-stats %s", wstat(status));
+    disorder_error(0, "disorder-stats %s", wstat(status));
   stats_complete(d);
   char *k;
   byte_xasprintf(&k, "%lu", (unsigned long)pid);
@@ -1681,7 +1684,7 @@ static int stats_error(ev_source attribute((unused)) *ev,
                        void *u) {
   struct stats_details *const d = u;
 
-  error(errno_value, "error reading from pipe to disorder-stats");
+  disorder_error(errno_value, "error reading from pipe to disorder-stats");
   d->closed = 1;
   stats_complete(d);
   return 0;
@@ -1711,7 +1714,7 @@ void trackdb_stats_subprocess(ev_source *ev,
   ev_child(ev, pid, 0, stats_finished, d);
   if(!ev_reader_new(ev, p[0], stats_read, stats_error, d,
                     "disorder-stats reader"))
-    fatal(0, "ev_reader_new for disorder-stats reader failed");
+    disorder_fatal(0, "ev_reader_new for disorder-stats reader failed");
   /* Remember the PID */
   if(!stats_pids)
     stats_pids = hash_new(1);
@@ -1993,7 +1996,7 @@ int trackdb_listkeys(DB *db, struct vector *v, DB_TXN *tid) {
   case DB_LOCK_DEADLOCK:
     return e;
   default:
-    fatal(0, "c->c_get: %s", db_strerror(e));
+    disorder_fatal(0, "c->c_get: %s", db_strerror(e));
   }
   if((e = trackdb_closecursor(c)))
     return e;
@@ -2054,7 +2057,7 @@ static int choose_exited(ev_source *ev,
                          const struct rusage attribute((unused)) *rusage,
                          void attribute((unused)) *u) {
   if(status)
-    error(0, "disorder-choose %s", wstat(status));
+    disorder_error(0, "disorder-choose %s", wstat(status));
   choose_status = status;
   choose_finished(ev, CHOOSE_RUNNING);
   return 0;
@@ -2091,7 +2094,7 @@ static int choose_readable(ev_source *ev,
 static int choose_read_error(ev_source *ev,
                              int errno_value,
                              void attribute((unused)) *u) {
-  error(errno_value, "error reading disorder-choose pipe");
+  disorder_error(errno_value, "error reading disorder-choose pipe");
   choose_finished(ev, CHOOSE_READING);
   return 0;
 }
@@ -2125,7 +2128,7 @@ int trackdb_request_random(ev_source *ev,
   choose_complete = 0;
   if(!ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
                     "disorder-choose reader")) /* owns p[0] */
-    fatal(0, "ev_reader_new for disorder-choose reader failed");
+    disorder_fatal(0, "ev_reader_new for disorder-choose reader failed");
   ev_child(ev, choose_pid, 0, choose_exited, 0); /* owns the subprocess */
   return 0;
 }
@@ -2244,7 +2247,7 @@ static int track_matches(size_t dl, const char *track, size_t tl,
   case PCRE_ERROR_NOMATCH: return 0;
   default:
     if(rc < 0) {
-      error(0, "pcre_exec returned %d, subject '%s'", rc, track);
+      disorder_error(0, "pcre_exec returned %d, subject '%s'", rc, track);
       return 0;
     }
     return 1;
@@ -2340,10 +2343,10 @@ static int do_list(struct vector *v, const char *dir,
     err = 0;
     break;
   case DB_LOCK_DEADLOCK:
-    error(0, "error querying database: %s", db_strerror(err));
+    disorder_error(0, "error querying database: %s", db_strerror(err));
     break;
   default:
-    fatal(0, "error querying database: %s", db_strerror(err));
+    disorder_fatal(0, "error querying database: %s", db_strerror(err));
   }
 deadlocked:
   if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
@@ -2480,10 +2483,12 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
       err = 0;
       break;
     case DB_LOCK_DEADLOCK:
-      error(0, "error querying %s database: %s", dbname, db_strerror(err));
+      disorder_error(0, "error querying %s database: %s",
+                     dbname, db_strerror(err));
       break;
     default:
-      fatal(0, "error querying %s database: %s", dbname, db_strerror(err));
+      disorder_fatal(0, "error querying %s database: %s",
+                     dbname, db_strerror(err));
     }
     if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
     cursor = 0;
@@ -2493,7 +2498,8 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
       if((err = gettrackdata(v.vec[n], 0, &p, 0, 0, tid) == DB_LOCK_DEADLOCK))
         goto fail;
       else if(err) {
-        error(0, "track %s unexpected error: %s", v.vec[n], db_strerror(err));
+        disorder_error(0, "track %s unexpected error: %s",
+                       v.vec[n], db_strerror(err));
         continue;
       }
       twords = track_to_words(v.vec[n], p);
@@ -2520,7 +2526,7 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
     trackdb_closecursor(cursor);
     cursor = 0;
     trackdb_abort_transaction(tid);
-    info("retrying search");
+    disorder_info("retrying search");
   }
   trackdb_commit_transaction(tid);
   vector_terminate(&u);
@@ -2591,11 +2597,11 @@ int trackdb_scan(const char *root,
           prefs = 0;
           break;
         case DB_LOCK_DEADLOCK:
-          error(0, "getting prefs: %s", db_strerror(err));
+          disorder_error(0, "getting prefs: %s", db_strerror(err));
           trackdb_closecursor(cursor);
           return err;
         default:
-          fatal(0, "getting prefs: %s", db_strerror(err));
+          disorder_fatal(0, "getting prefs: %s", db_strerror(err));
         }
         /* Advance to the next track before the callback so that the callback
          * may safely delete the track */
@@ -2617,10 +2623,10 @@ int trackdb_scan(const char *root,
   case DB_NOTFOUND:
     return 0;
   case DB_LOCK_DEADLOCK:
-    error(0, "c->c_get: %s", db_strerror(err));
+    disorder_error(0, "c->c_get: %s", db_strerror(err));
     return err;
   default:
-    fatal(0, "c->c_get: %s", db_strerror(err));
+    disorder_fatal(0, "c->c_get: %s", db_strerror(err));
   }
 }
 
@@ -2656,7 +2662,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
                        void attribute((unused)) *u) {
   if(pid == rescan_pid) rescan_pid = -1;
   if(status)
-    error(0, RESCAN": %s", wstat(status));
+    disorder_error(0, RESCAN": %s", wstat(status));
   else
     D((RESCAN" terminated: %s", wstat(status)));
   /* Our cache of file lookups is out of date now */
@@ -2686,7 +2692,7 @@ void trackdb_rescan(ev_source *ev, int recheck,
 
   if(rescan_pid != -1) {
     trackdb_add_rescanned(rescanned, ru);
-    error(0, "rescan already underway");
+    disorder_error(0, "rescan already underway");
     return;
   }
   rescan_pid = subprogram(ev, -1, RESCAN,
@@ -2710,7 +2716,7 @@ void trackdb_rescan(ev_source *ev, int recheck,
 int trackdb_rescan_cancel(void) {
   if(rescan_pid == -1) return 0;
   if(kill(rescan_pid, SIGTERM) < 0)
-    fatal(errno, "error killing rescanner");
+    disorder_fatal(errno, "error killing rescanner");
   rescan_pid = -1;
   return 1;
 }
@@ -2744,16 +2750,16 @@ void trackdb_set_global(const char *name,
   /* log important state changes */
   if(!strcmp(name, "playing")) {
     state = !value || !strcmp(value, "yes");
-    info("playing %s by %s",
-         state ? "enabled" : "disabled",
-         who ? who : "-");
+    disorder_info("playing %s by %s",
+                  state ? "enabled" : "disabled",
+                  who ? who : "-");
     eventlog("state", state ? "enable_play" : "disable_play", (char *)0);
   }
   if(!strcmp(name, "random-play")) {
     state = !value || !strcmp(value, "yes");
-    info("random play %s by %s",
-         state ? "enabled" : "disabled",
-         who ? who : "-");
+    disorder_info("random play %s by %s",
+                  state ? "enabled" : "disabled",
+                  who ? who : "-");
     eventlog("state", state ? "enable_random" : "disable_random", (char *)0);
   }
 }
@@ -2783,7 +2789,7 @@ int trackdb_set_global_tid(const char *name,
     err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
   if(err == DB_LOCK_DEADLOCK) return err;
   if(err)
-    fatal(0, "error updating database: %s", db_strerror(err));
+    disorder_fatal(0, "error updating database: %s", db_strerror(err));
   return 0;
 }
 
@@ -2832,7 +2838,7 @@ int trackdb_get_global_tid(const char *name,
   case DB_LOCK_DEADLOCK:
     return err;
   default:
-    fatal(0, "error reading database: %s", db_strerror(err));
+    disorder_fatal(0, "error reading database: %s", db_strerror(err));
   }
 }
 
@@ -2900,7 +2906,7 @@ static char **trackdb_new_tid(int *ntracksp,
     trackdb_closecursor(c);
     return 0;
   default:
-    fatal(0, "error reading noticed.db: %s", db_strerror(err));
+    disorder_fatal(0, "error reading noticed.db: %s", db_strerror(err));
   }
   if((err = trackdb_closecursor(c)))
     return 0;                           /* deadlock */
@@ -2946,8 +2952,8 @@ static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid) {
       break;
     if((err = c->c_del(c, 0))) {
       if(err != DB_LOCK_DEADLOCK)
-        fatal(0, "error deleting expired noticed.db entry: %s",
-              db_strerror(err));
+        disorder_fatal(0, "error deleting expired noticed.db entry: %s",
+                       db_strerror(err));
       break;
     }
     ++count;
@@ -2955,15 +2961,15 @@ static int trackdb_expire_noticed_tid(time_t earliest, DB_TXN *tid) {
   if(err == DB_NOTFOUND)
     err = 0;
   if(err && err != DB_LOCK_DEADLOCK)
-    fatal(0, "error expiring noticed.db: %s", db_strerror(err));
+    disorder_fatal(0, "error expiring noticed.db: %s", db_strerror(err));
   ret = err;
   if((err = trackdb_closecursor(c))) {
     if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "error closing cursor: %s", db_strerror(err));
+      disorder_fatal(0, "error closing cursor: %s", db_strerror(err));
     ret = err;
   }
   if(!ret && count)
-    info("expired %d tracks from noticed.db", count);
+    disorder_info("expired %d tracks from noticed.db", count);
   return ret;
 }
 
@@ -2981,9 +2987,9 @@ void trackdb_gc(void) {
                                         config->checkpoint_kbyte,
                                         config->checkpoint_min,
                                         0)))
-    fatal(0, "trackdb_env->txn_checkpoint: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->txn_checkpoint: %s", db_strerror(err));
   if((err = trackdb_env->log_archive(trackdb_env, &logfiles, DB_ARCH_REMOVE)))
-    fatal(0, "trackdb_env->log_archive: %s", db_strerror(err));
+    disorder_fatal(0, "trackdb_env->log_archive: %s", db_strerror(err));
   /* This makes catastrophic recovery impossible.  However, the user can still
    * preserve the important data by using disorder-dump to snapshot their
    * prefs, and later to restore it.  This is likely to have much small
@@ -3055,11 +3061,11 @@ static int create_user(const char *user,
 
   /* sanity check user */
   if(!valid_username(user)) {
-    error(0, "invalid username '%s'", user);
+    disorder_error(0, "invalid username '%s'", user);
     return -1;
   }
   if(parse_rights(rights, 0, 1)) {
-    error(0, "invalid rights string");
+    disorder_error(0, "invalid rights string");
     return -1;
   }
   /* data for this user */
@@ -3089,7 +3095,7 @@ static int one_old_user(const char *user, const char *password,
 
   /* www-data doesn't get added */
   if(!strcmp(user, "www-data")) {
-    info("not adding www-data to user database");
+    disorder_info("not adding www-data to user database");
     return 0;
   }
   /* pick rights */
@@ -3120,10 +3126,11 @@ static int trackdb_old_users_tid(DB_TXN *tid) {
     switch(one_old_user(config->allow.s[n].s[0], config->allow.s[n].s[1],
                         tid)) {
     case 0:
-      info("created user %s from 'allow' directive", config->allow.s[n].s[0]);
+      disorder_info("created user %s from 'allow' directive",
+                    config->allow.s[n].s[0]);
       break;
     case DB_KEYEXIST:
-      error(0, "user %s already exists, delete 'allow' directive",
+      disorder_error(0, "user %s already exists, delete 'allow' directive",
             config->allow.s[n].s[0]);
           /* This won't ever become fatal - eventually 'allow' will be
            * disabled. */
@@ -3157,7 +3164,7 @@ void trackdb_create_root(void) {
                                0/*email*/, 0/*confirmation*/,
                                tid, DB_NOOVERWRITE));
   if(e == 0)
-    info("created root user");
+    disorder_info("created root user");
 }
 
 /** @brief Find a user's password from the database
@@ -3198,14 +3205,15 @@ int trackdb_adduser(const char *user,
   WITH_TRANSACTION(create_user(user, password, rights, email, confirmation,
                                tid, DB_NOOVERWRITE));
   if(e) {
-    error(0, "cannot create user '%s' because they already exist", user);
+    disorder_error(0, "cannot create user '%s' because they already exist",
+                   user);
     return -1;
   } else {
     if(email)
-      info("created user '%s' with rights '%s' and email address '%s'",
-           user, rights, email);
+      disorder_info("created user '%s' with rights '%s' and email address '%s'",
+                    user, rights, email);
     else
-      info("created user '%s' with rights '%s'", user, rights);
+      disorder_info("created user '%s' with rights '%s'", user, rights);
     eventlog("user_add", user, (char *)0);
     return 0;
   }
@@ -3220,10 +3228,11 @@ int trackdb_deluser(const char *user) {
 
   WITH_TRANSACTION(trackdb_delkey(trackdb_usersdb, user, tid));
   if(e) {
-    error(0, "cannot delete user '%s' because they do not exist", user);
+    disorder_error(0, "cannot delete user '%s' because they do not exist",
+                   user);
     return -1;
   }
-  info("deleted user '%s'", user);
+  disorder_info("deleted user '%s'", user);
   eventlog("user_delete", user, (char *)0);
   return 0;
 }
@@ -3277,32 +3286,33 @@ int trackdb_edituserinfo(const char *user,
 
   if(!strcmp(key, "rights")) {
     if(!value) {
-      error(0, "cannot remove 'rights' key from user '%s'", user);
+      disorder_error(0, "cannot remove 'rights' key from user '%s'", user);
       return -1;
     }
     if(parse_rights(value, 0, 1)) {
-      error(0, "invalid rights string");
+      disorder_error(0, "invalid rights string");
       return -1;
     }
   } else if(!strcmp(key, "email")) {
     if(*value) {
       if(!email_valid(value)) {
-        error(0, "invalid email address '%s' for user '%s'", value, user);
+        disorder_error(0, "invalid email address '%s' for user '%s'",
+                       value, user);
         return -1;
       }
     } else
       value = 0;                        /* no email -> remove key */
   } else if(!strcmp(key, "created")) {
-    error(0, "cannot change creation date for user '%s'", user);
+    disorder_error(0, "cannot change creation date for user '%s'", user);
     return -1;
   } else if(strcmp(key, "password")
             && !strcmp(key, "confirmation")) {
-    error(0, "unknown user info key '%s' for user '%s'", key, user);
+    disorder_error(0, "unknown user info key '%s' for user '%s'", key, user);
     return -1;
   }
   WITH_TRANSACTION(trackdb_edituserinfo_tid(user, key, value, tid));
   if(e) {
-    error(0, "unknown user '%s'", user);
+    disorder_error(0, "unknown user '%s'", user);
     return -1;
   } else {
     eventlog("user_edit", user, key, (char *)0);
@@ -3340,18 +3350,18 @@ static int trackdb_confirm_tid(const char *user, const char *confirmation,
   if((e = trackdb_getdata(trackdb_usersdb, user, &k, tid)))
     return e;
   if(!(stored_confirmation = kvp_get(k, "confirmation"))) {
-    error(0, "already confirmed user '%s'", user);
+    disorder_error(0, "already confirmed user '%s'", user);
     /* DB claims -30,800 to -30,999 so -1 should be a safe bet */
     return -1;
   }
   if(!(rights = kvp_get(k, "rights"))) {
-    error(0, "no rights for unconfirmed user '%s'", user);
+    disorder_error(0, "no rights for unconfirmed user '%s'", user);
     return -1;
   }
   if(parse_rights(rights, rightsp, 1))
     return -1;
   if(strcmp(confirmation, stored_confirmation)) {
-    error(0, "wrong confirmation string for user '%s'", user);
+    disorder_error(0, "wrong confirmation string for user '%s'", user);
     return -1;
   }
   /* 'sall good */
@@ -3372,11 +3382,11 @@ int trackdb_confirm(const char *user, const char *confirmation,
   WITH_TRANSACTION(trackdb_confirm_tid(user, confirmation, rightsp, tid));
   switch(e) {
   case 0:
-    info("registration confirmed for user '%s'", user);
+    disorder_info("registration confirmed for user '%s'", user);
     eventlog("user_confirm", user, (char *)0);
     return 0;
   case DB_NOTFOUND:
-    error(0, "confirmation for nonexistent user '%s'", user);
+    disorder_error(0, "confirmation for nonexistent user '%s'", user);
     return -1;
   default:                              /* already reported */
     return -1;

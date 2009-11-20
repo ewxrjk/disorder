@@ -85,7 +85,7 @@ const char *authhash(const void *challenge, size_t nchallenge,
     gcry_error_t e;
     
     if((e = gcry_md_open(&h, id, 0))) {
-      error(0, "gcry_md_open: %s", gcry_strerror(e));
+      disorder_error(0, "gcry_md_open: %s", gcry_strerror(e));
       return 0;
     }
   }
