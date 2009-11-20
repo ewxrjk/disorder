@@ -58,7 +58,6 @@ void resample_init(struct resampler *rs,
                     int output_bits, int output_channels,
                     int output_rate, int output_signed,
                     int output_endian) {
-  int error_;
   memset(rs, 0, sizeof *rs);
   assert(input_bits == 8 || input_bits == 16);
   assert(output_bits == 8 || output_bits == 16);
@@ -80,6 +79,7 @@ void resample_init(struct resampler *rs,
   rs->input_bytes_per_frame = rs->input_channels * rs->input_bytes_per_sample;
   if(rs->input_rate != rs->output_rate) {
 #if HAVE_SAMPLERATE_H
+    int error_;
     rs->state = src_new(SRC_SINC_BEST_QUALITY, rs->output_channels, &error_);
     if(!rs->state)
       fatal(0, "calling src_new: %s", src_strerror(error_));
@@ -96,6 +96,8 @@ void resample_close(struct resampler *rs) {
 #if HAVE_SAMPLERATE_H
   if(rs->state)
     src_delete(rs->state);
+#else
+  rs = 0;                               /* quieten compiler */
 #endif
 }
 
@@ -299,6 +301,7 @@ size_t resample_convert(const struct resampler *rs,
   if(output != input)
     xfree(output);
   xfree(input);
+  eof = 0;             /* quieten compiler */
   /* Report how many input bytes were actually consumed */
   return nframesin * rs->input_bytes_per_frame;
 }
