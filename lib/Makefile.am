@@ -32,6 +32,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	basen.c basen.h					\
 	base64.c base64.h				\
 	bits.c bits.h					\
+	byte-order.h					\
 	cache.c cache.h					\
 	cgi.c cgi.h					\
 	client.c client.h				\

@@ -204,3 +204,4 @@ config.aux/compile
 server/endian
 clients/rtpmon
 libtests/t-resample
+clients/resample

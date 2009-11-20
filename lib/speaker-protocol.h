@@ -25,6 +25,8 @@
 #ifndef SPEAKER_PROTOCOL_H
 #define SPEAKER_PROTOCOL_H
 
+#include "byte-order.h"
+
 /** @brief A message from the main server to the speaker, or vica versa */
 struct speaker_message {
   /** @brief Message type
@@ -123,13 +125,6 @@ struct stream_header {
 
   /** @brief Endianness */
   uint8_t endian;
-#define ENDIAN_BIG 1
-#define ENDIAN_LITTLE 2
-#ifdef WORDS_BIGENDIAN
-# define ENDIAN_NATIVE ENDIAN_BIG
-#else
-# define ENDIAN_NATIVE ENDIAN_LITTLE
-#endif
 } attribute((packed));
 
 static inline int formats_equal(const struct stream_header *a,

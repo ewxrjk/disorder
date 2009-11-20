@@ -274,7 +274,7 @@ size_t resample_convert(const struct resampler *rs,
     data.input_frames = nframesin;
     data.output_frames = maxframesout;
     data.end_of_input = eof;
-    data.src_ratio = rs->output_rate / rs->input_rate;
+    data.src_ratio = (double)rs->output_rate / rs->input_rate;
     int error_ = src_process(rs->state, &data);
     if(error_)
       disorder_fatal(0, "calling src_process: %s", src_strerror(error_));
@@ -303,6 +303,7 @@ size_t resample_convert(const struct resampler *rs,
   xfree(input);
   eof = 0;             /* quieten compiler */
   /* Report how many input bytes were actually consumed */
+  //fprintf(stderr, "converted %zu frames\n", nframesin);
   return nframesin * rs->input_bytes_per_frame;
 }
 

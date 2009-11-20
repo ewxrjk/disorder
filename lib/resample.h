@@ -27,8 +27,7 @@
 #include <samplerate.h>
 #endif
 
-#define ENDIAN_BIG 1
-#define ENDIAN_LITTLE 2
+#include "byte-order.h"
 
 struct resampler {
   int input_bits, input_channels, input_rate, input_signed, input_endian;
