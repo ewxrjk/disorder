@@ -82,9 +82,9 @@ void resample_init(struct resampler *rs,
     int error_;
     rs->state = src_new(SRC_SINC_BEST_QUALITY, rs->output_channels, &error_);
     if(!rs->state)
-      fatal(0, "calling src_new: %s", src_strerror(error_));
+      disorder_fatal(0, "calling src_new: %s", src_strerror(error_));
 #else
-    fatal(0, "need to resample audio data but libsamplerate not available");
+    disorder_fatal(0, "need to resample audio data but libsamplerate not available");
 #endif
   }
 }
@@ -277,7 +277,7 @@ size_t resample_convert(const struct resampler *rs,
     data.src_ratio = rs->output_rate / rs->input_rate;
     int error_ = src_process(rs->state, &data);
     if(error_)
-      fatal(0, "calling src_process: %s", src_strerror(error_));
+      disorder_fatal(0, "calling src_process: %s", src_strerror(error_));
     nframesin = data.input_frames_used;
     nsamplesout = data.output_frames_gen * rs->output_channels;
   }
