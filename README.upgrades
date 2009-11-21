@@ -48,7 +48,13 @@ The player --wait-for-device option is deprecated and will be removed in a
 future version.
 
 The 'lock' option no longer does anything.  You must delete it from any
-configuration files that contain it.
+configuration files that contain it.  The full set of deprecated options is:
+  allow
+  gap
+  lock
+  prefsync
+  restrict
+  trust
 
 * 3.0 -> 4.x
 
