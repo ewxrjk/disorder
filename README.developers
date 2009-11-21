@@ -5,7 +5,7 @@ Dependencies:
      Autoconf         2.61           Slightly older might work too
      Libtool          1.5.22         1.4 is no good
      Bazaar (bzr)                    You might be able to manage without
-     Python           2.4
+     Python           2.5.2          2.4 won't work
 
    * On Debian and derivatives this should work:
 
