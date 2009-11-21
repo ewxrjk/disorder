@@ -117,39 +117,33 @@ check-help: all
 	./disorder-choose --help > /dev/null
 	./disorder-choose --version > /dev/null
 
-check-decode: disorder-decode disorder-normalize endian
-	echo "speaker_backend network" > config
-	echo "broadcast 127.255.255.255 9" > config
-	oggdec -b 16 -e `./endian` -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
-	@$(MAKE) check-ogg
-	@$(MAKE) check-wav
-	@if which flac >/dev/null 2>&1; then $(MAKE) check-flac; fi
-	rm -f config oggdec.raw
+check-decode: check-ogg check-wav check-flac
 
-# TODO mp3 - but sox doesn't (reliably) know how to encode to it
+# TODO!
+check-mp3: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
+	  ./disorder-normalize --config test-config > mp3ed.raw
+	cmp mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
+	rm -f mp3ed.raw
 
-check-ogg:
+check-ogg: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
-	  ./disorder-normalize --config config > ogged.raw
-	cmp ogged.raw oggdec.raw
+	  ./disorder-normalize --config test-config > ogged.raw
+	cmp ogged.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f ogged.raw
 
-check-wav:
-	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
-	./disorder-decode scratch.wav | \
-	  ./disorder-normalize --config config > waved.raw
-	cmp waved.raw oggdec.raw
-	rm -rf scratch.wav waved.raw
+check-wav: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.wav | \
+	  ./disorder-normalize --config test-config > waved.raw
+	cmp waved.raw ${top_srcdir}/sounds/scratch.raw
+	rm -rf waved.raw
 
-check-flac:
-	rm -f scratch.wav scratch.flac
-	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
-	flac scratch.wav
-	./disorder-decode scratch.flac | \
-	  ./disorder-normalize --config config > flacced.raw
-	cmp flacced.raw oggdec.raw
-	rm -f scratch.flac scratch.wav flacced.raw
+check-flac: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.flac | \
+	  ./disorder-normalize --config test-config > flacced.raw
+	cmp flacced.raw ${top_srcdir}/sounds/scratch.raw
+	rm -f flacced.raw
 
-EXTRA_DIST=README.dbversions
+EXTRA_DIST=README.dbversions test-config
 
 CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

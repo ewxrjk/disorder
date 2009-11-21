@@ -18,16 +18,5 @@
 
 pkgdata_DATA=slap.ogg scratch.ogg
 
-EXTRA_DIST=${pkgdata_DATA}
-
-check: long.ogg
-
-%.raw: %.ogg
-	oggdec -b16 -R -o $@ $<
-
-long.ogg: slap.raw
-	cat slap.raw slap.raw slap.raw slap.raw slap.raw slap.raw \
-		slap.raw slap.raw | oggenc -r -o $@ -
-
-clean-local:
-	rm -f long.ogg slap.raw
+EXTRA_DIST=${pkgdata_DATA} \
+	scratch.wav scratch.flac scratch.mp3 scratch.raw long.ogg
