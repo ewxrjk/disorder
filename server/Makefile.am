@@ -117,9 +117,8 @@ check-help: all
 	./disorder-choose --help > /dev/null
 	./disorder-choose --version > /dev/null
 
-check-decode: check-ogg check-wav check-flac
+check-decode: check-ogg check-wav check-flac check-mp3
 
-# TODO!
 check-mp3: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
 	  ./disorder-normalize --config test-config > mp3ed.raw
