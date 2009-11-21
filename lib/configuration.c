@@ -365,7 +365,7 @@ static int parse_sample_format(const struct config_state *cs,
     return -1;
   }
   if(t != 8 && t != 16) {
-    disorder_error(0, "%s:%d: bad bite-per-sample (%ld)",
+    disorder_error(0, "%s:%d: bad bits-per-sample (%ld)",
 		   cs->path, cs->line, t);
     return -1;
   }
