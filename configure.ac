@@ -841,6 +841,9 @@ fi
 if test $want_python = no; then
   AC_MSG_WARN([cannot run the test suit without Python])
 fi
+if test $want_server = yes && test "$ac_cv_lib_samplerate_src_new" != yes; then
+  AC_MSG_WARN([libsamplerate will be required in a future version])
+fi
 
 # Local Variables:
 # indent-tabs-mode:nil
