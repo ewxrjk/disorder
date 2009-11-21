@@ -117,7 +117,7 @@ check-help: all
 	./disorder-choose --help > /dev/null
 	./disorder-choose --version > /dev/null
 
-check-decode: check-ogg check-wav check-flac check-mp3
+check-decode: check-wav check-flac check-mp3
 
 check-mp3: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
@@ -125,6 +125,8 @@ check-mp3: disorder-decode disorder-normalize
 	cmp mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
 	rm -f mp3ed.raw
 
+# TODO ogg decoding comes out OK but different depending on platform, version
+# or something.  Makes it tricky to test!
 check-ogg: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
 	  ./disorder-normalize --config test-config > ogged.raw
