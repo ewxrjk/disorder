@@ -232,6 +232,7 @@ Requires permission to modify that playlist and the \fBplay\fR right.
 .B playlist-get \fIPLAYLIST\fR
 Get the contents of a playlist, in a response body.
 Requires permission to read that playlist and the \fBread\fR right.
+If the playlist does not exist the response is 555.
 .TP
 .B playlist-get-share \fIPLAYLIST\fR
 Get the sharing status of a playlist.
