@@ -25,9 +25,9 @@ static GtkWidget *selectall_widget;
 static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
 #if PLAYLISTS
-GtkWidget *playlists_widget;
+GtkWidget *menu_playlists_widget;
 GtkWidget *playlists_menu;
-GtkWidget *editplaylists_widget;
+GtkWidget *menu_editplaylists_widget;
 #endif
 
 /** @brief Main menu widgets */
@@ -416,9 +416,9 @@ GtkWidget *menubar(GtkWidget *w) {
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
 #if PLAYLISTS
-  assert(playlists_widget != 0);
+  assert(menu_playlists_widget != 0);
   assert(playlists_menu != 0);
-  assert(editplaylists_widget != 0);
+  assert(menu_editplaylists_widget != 0);
 #endif
 
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
