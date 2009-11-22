@@ -85,9 +85,6 @@ static int rights_lookup_in_flight;
 /** @brief Current rights bitmap */
 rights_type last_rights;
 
-/** @brief Global tooltip group */
-GtkTooltips *tips;
-
 /** @brief True if RTP play is available
  *
  * This is a bit of a bodge...
@@ -476,8 +473,6 @@ int main(int argc, char **argv) {
   /* periodic operations (e.g. expiring the cache, checking local volume) */
   g_timeout_add(600000/*milliseconds*/, periodic_slow, 0);
   g_timeout_add(1000/*milliseconds*/, periodic_fast, 0);
-  /* global tooltips */
-  tips = gtk_tooltips_new();
   make_toplevel_window();
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));

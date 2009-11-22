@@ -172,7 +172,7 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
   gtk_widget_set_style(content, tool_style);
   gtk_container_add(GTK_CONTAINER(button), content);
   if(tip)
-    gtk_tooltips_set_tip(tips, button, tip, "");
+    gtk_widget_set_tooltip_text(button, tip);
   return button;
 }
 
@@ -188,7 +188,7 @@ GtkWidget *create_buttons_box(struct button *buttons,
     g_signal_connect(G_OBJECT(buttons[n].widget), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
     gtk_box_pack_start(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
-    gtk_tooltips_set_tip(tips, buttons[n].widget, buttons[n].tip, "");
+    gtk_widget_set_tooltip_text(buttons[n].widget, buttons[n].tip);
   }
   return box;
 }

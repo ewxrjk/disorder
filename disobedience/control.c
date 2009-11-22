@@ -289,8 +289,8 @@ GtkWidget *control_widget(void) {
   gtk_scale_set_digits(GTK_SCALE(balance_widget), 10);
   gtk_widget_set_size_request(volume_widget, 192, -1);
   gtk_widget_set_size_request(balance_widget, 192, -1);
-  gtk_tooltips_set_tip(tips, volume_widget, "Volume", "");
-  gtk_tooltips_set_tip(tips, balance_widget, "Balance", "");
+  gtk_widget_set_tooltip_text(volume_widget, "Volume");
+  gtk_widget_set_tooltip_text(balance_widget, "Balance");
   gtk_box_pack_start(GTK_BOX(hbox), volume_widget, FALSE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), balance_widget, FALSE, TRUE, 0);
   /* space updates rather than hammering the server */
@@ -374,8 +374,8 @@ static void icon_changed(const char attribute((unused)) *event,
    * state is immediately displayed.  sensitive and GTK_WIDGET_SENSITIVE show
    * it to be in the correct state, so I think this is may be a GTK+ bug. */
   if(icon->tip_on)
-    gtk_tooltips_set_tip(tips, icon->button,
-                           on ? icon->tip_on : icon->tip_off, "");
+    gtk_widget_set_tooltip_text(icon->button,
+                                on ? icon->tip_on : icon->tip_off);
   gtk_widget_set_sensitive(icon->button, sensitive);
   /* Icons with an associated menu item */
   if(icon->item) {

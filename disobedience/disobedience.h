@@ -101,7 +101,6 @@ extern int playing;                     /* true if playing some track */
 extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
 extern int choosealpha;                 /* break up choose by letter */
-extern GtkTooltips *tips;
 extern int rtp_supported;
 extern int rtp_is_running;
 extern GtkItemFactory *mainmenufactory;

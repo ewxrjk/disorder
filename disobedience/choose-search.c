@@ -515,15 +515,15 @@ GtkWidget *choose_search_widget(void) {
   gtk_widget_set_style(choose_search_entry, tool_style);
   g_signal_connect(choose_search_entry, "changed",
                    G_CALLBACK(choose_search_entry_changed), 0);
-  gtk_tooltips_set_tip(tips, choose_search_entry,
-                       "Enter search terms here; search is automatic", "");
+  gtk_widget_set_tooltip_text(choose_search_entry,
+                              "Enter search terms here; search is automatic");
 
   /* Cancel button to clear the search */
   choose_clear = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
   gtk_widget_set_style(choose_clear, tool_style);
   g_signal_connect(G_OBJECT(choose_clear), "clicked",
                    G_CALLBACK(choose_clear_clicked), 0);
-  gtk_tooltips_set_tip(tips, choose_clear, "Clear search terms", "");
+  gtk_widget_set_tooltip_text(choose_clear, "Clear search terms");
 
   /* Up and down buttons to find previous/next results; initially they are not
    * usable as there are no search results. */
