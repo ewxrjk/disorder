@@ -113,6 +113,12 @@ static void menu_activate_playlist(GtkMenuItem *menuitem,
   const char *playlist = gtk_label_get_text(label);
 
   fprintf(stderr, "activate playlist %s\n", playlist); /* TODO */
+  /* We need to:
+   * - unlock any currently locked playlist
+   * - throw away the current editing widget
+   * - create a new editing widget
+   * - populate it
+   */
 }
 
 /** @brief Called when the playlists change */
@@ -123,7 +129,9 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
     return;                             /* OMG too soon */
   GtkMenuShell *menu = GTK_MENU_SHELL(playlists_menu);
   /* TODO: we could be more sophisticated and only insert/remove widgets as
-   * needed.  For now that's too much effort. */
+   * needed.  The current logic trashes the selection which is not acceptable
+   * and interacts badly with one playlist being currently locked and
+   * edited. */
   while(menu->children)
     gtk_container_remove(GTK_CONTAINER(menu), GTK_WIDGET(menu->children->data));
   /* NB nplaylists can be -1 as well as 0 */
@@ -188,11 +196,17 @@ static void playlists_add(GtkButton attribute((unused)) *button,
   /* Unselect whatever is selected */
   gtk_tree_selection_unselect_all(playlists_selection);
   fprintf(stderr, "playlists_add\n");/* TODO */
+  /* We need to pop up a window asking for:
+   * - the name for the playlist
+   * - whether it is to be a public, private or shared playlist
+   * Moreover we should keep track of the known playlists and grey out OK
+   * if the name is a clash (as well as if it's actually invalid).
+   */
 }
 
 /** @brief Called when the 'Delete' button is pressed */
 static void playlists_delete(GtkButton attribute((unused)) *button,
-			 gpointer attribute((unused)) userdata) {
+                             gpointer attribute((unused)) userdata) {
   GtkWidget *yesno;
   int res;
 
@@ -202,7 +216,7 @@ static void playlists_delete(GtkButton attribute((unused)) *button,
                                  GTK_DIALOG_MODAL,
                                  GTK_MESSAGE_QUESTION,
                                  GTK_BUTTONS_YES_NO,
-                                 "Do you really want to delete user %s?"
+                                 "Do you really want to delete playlist %s?"
                                  " This action cannot be undone.",
                                  playlists_selected);
   res = gtk_dialog_run(GTK_DIALOG(yesno));
