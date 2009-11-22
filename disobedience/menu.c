@@ -405,11 +405,11 @@ GtkWidget *menubar(GtkWidget *w) {
   properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
 #if PLAYLISTS
-  playlists_widget = gtk_item_factory_get_item(mainmenufactory,
+  menu_playlists_widget = gtk_item_factory_get_item(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
   playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
-  editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
+  menu_editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                      "<GdisorderMain>/Edit/Edit playlists");
 #endif
   assert(selectall_widget != 0);

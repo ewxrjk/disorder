@@ -157,9 +157,9 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
     gtk_widget_show(w);
     gtk_menu_shell_append(menu, w);
   }
-  gtk_widget_set_sensitive(playlists_widget,
+  gtk_widget_set_sensitive(menu_playlists_widget,
                            nplaylists > 0);
-  gtk_widget_set_sensitive(editplaylists_widget,
+  gtk_widget_set_sensitive(menu_editplaylists_widget,
                            nplaylists >= 0);
 }
 

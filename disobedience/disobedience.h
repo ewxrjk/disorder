@@ -262,9 +262,9 @@ void edit_playlists(gpointer callback_data,
                     GtkWidget  *menu_item);
 extern char **playlists;
 extern int nplaylists;
-extern GtkWidget *playlists_widget;
+extern GtkWidget *menu_playlists_widget;
 extern GtkWidget *playlists_menu;
-extern GtkWidget *editplaylists_widget;
+extern GtkWidget *menu_editplaylists_widget;
 #endif
 
 #endif /* DISOBEDIENCE_H */
