@@ -22,6 +22,8 @@
 #ifndef DISOBEDIENCE_H
 #define DISOBEDIENCE_H
 
+#define PLAYLISTS 1
+
 #include "common.h"
 
 #include <time.h>
