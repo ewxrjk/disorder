@@ -365,7 +365,7 @@ static void playlists_window_destroyed(GtkWidget attribute((unused)) *widget,
   *widget_pointer = NULL;
 }
 
-/** @BRIEF Pop up the playlists window
+/** @brief Pop up the playlists window
  *
  * Called when the playlists menu item is selected
  */
