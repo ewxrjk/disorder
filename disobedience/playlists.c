@@ -166,7 +166,9 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
 /* Playlists window (list of playlists) ------------------------------------- */
 
 /** @brief (Re-)populate the playlist tree model */
-static void playlists_fill(void) {
+static void playlists_fill(const char attribute((unused)) *event,
+                           void attribute((unused)) *eventdata,
+                           void attribute((unused)) *callbackdata) {
   GtkTreeIter iter[1];
 
   if(!playlists_list)
@@ -264,6 +266,49 @@ static struct button playlists_buttons[] = {
 };
 #define NPLAYLISTS_BUTTONS (sizeof playlists_buttons / sizeof *playlists_buttons)
 
+/** @brief Create the list of playlists for the edit playlists window */
+static GtkWidget *playlists_window_list(void) {
+  /* Create the list of playlist and populate it */
+  playlists_fill(NULL, NULL, NULL);
+  /* Create the tree view */
+  GtkWidget *tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(playlists_list));
+  /* ...and the renderers for it */
+  GtkCellRenderer *cr = gtk_cell_renderer_text_new();
+  GtkTreeViewColumn *col = gtk_tree_view_column_new_with_attributes("Playlist",
+                                                                    cr,
+                                                                    "text", 0,
+                                                                    NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree), col);
+  /* Get the selection for the view; set its mode; arrange for a callback when
+   * it changes */
+  playlists_selected = NULL;
+  playlists_selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+  gtk_tree_selection_set_mode(playlists_selection, GTK_SELECTION_BROWSE);
+  g_signal_connect(playlists_selection, "changed",
+                   G_CALLBACK(playlists_selection_changed), NULL);
+
+  /* Create the control buttons */
+  GtkWidget *buttons = create_buttons_box(playlists_buttons,
+                                          NPLAYLISTS_BUTTONS,
+                                          gtk_hbox_new(FALSE, 1));
+  playlists_delete_button = playlists_buttons[1].widget;
+
+  /* Buttons live below the list */
+  GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), scroll_widget(tree), TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
+
+  return vbox;
+}
+
+/* Playlists window (edit current playlist) --------------------------------- */
+
+static GtkWidget *playlists_window_edit(void) {
+  return NULL;
+}
+
+/* Playlists window --------------------------------------------------------- */
+
 /** @brief Keypress handler */
 static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
                                    GdkEventKey *event,
@@ -279,8 +324,6 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
   }
 }
 
-/* Playlists window --------------------------------------------------------- */
-
 /** @brief Pop up the playlists window
  *
  * Called when the playlists menu item is selected
@@ -288,10 +331,6 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
 void edit_playlists(gpointer attribute((unused)) callback_data,
                      guint attribute((unused)) callback_action,
                      GtkWidget attribute((unused)) *menu_item) {
-  GtkWidget *tree, *hbox, *vbox, *buttons;
-  GtkCellRenderer *cr;
-  GtkTreeViewColumn *col;
-
   /* If the window already exists, raise it */
   if(playlists_window) {
     gtk_window_present(GTK_WINDOW(playlists_window));
@@ -310,41 +349,15 @@ void edit_playlists(gpointer attribute((unused)) callback_data,
                    G_CALLBACK(playlists_keypress), 0);
   /* default size is too small */
   gtk_window_set_default_size(GTK_WINDOW(playlists_window), 240, 240);
-  /* Create the list of playlist and populate it */
-  playlists_fill();
-  /* Create the tree view */
-  tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(playlists_list));
-  /* ...and the renderers for it */
-  cr = gtk_cell_renderer_text_new();
-  col = gtk_tree_view_column_new_with_attributes("Playlist",
-						 cr,
-						 "text", 0,
-						 NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(tree), col);
-  /* Get the selection for the view; set its mode; arrange for a callback when
-   * it changes */
-  playlists_selected = NULL;
-  playlists_selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-  gtk_tree_selection_set_mode(playlists_selection, GTK_SELECTION_BROWSE);
-  g_signal_connect(playlists_selection, "changed",
-                   G_CALLBACK(playlists_selection_changed), NULL);
 
-  /* Create the control buttons */
-  buttons = create_buttons_box(playlists_buttons,
-			       NPLAYLISTS_BUTTONS,
-			       gtk_hbox_new(FALSE, 1));
-  playlists_delete_button = playlists_buttons[1].widget;
+  GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), playlists_window_list(),
+                     FALSE/*expand*/, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), gtk_event_box_new(),
+                     FALSE/*expand*/, FALSE, 2);
+  gtk_box_pack_start(GTK_BOX(hbox), playlists_window_edit(),
+                     TRUE/*expand*/, TRUE/*fill*/, 0);
 
-  /* Buttons live below the list */
-  vbox = gtk_vbox_new(FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), scroll_widget(tree), TRUE/*expand*/, TRUE/*fill*/, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
-
-  hbox = gtk_hbox_new(FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE/*expand*/, FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(hbox), gtk_event_box_new(), FALSE/*expand*/, FALSE, 2);
-  // TODO something to edit the playlist in
-  //gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE/*expand*/, TRUE/*fill*/, 0);
   gtk_container_add(GTK_CONTAINER(playlists_window), frame_widget(hbox, NULL));
   gtk_widget_show_all(playlists_window);
 }
