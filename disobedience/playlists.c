@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008, 2009 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,6 +56,8 @@ char **playlists;
 /** @brief Count of playlists */
 int nplaylists;
 
+/* Maintianng the list of playlists ----------------------------------------- */
+
 /** @brief Schedule an update to the list of playlists */
 static void playlists_update(const char attribute((unused)) *event,
                              void attribute((unused)) *eventdata,
@@ -106,19 +108,33 @@ static void playlists_updated(void attribute((unused)) *v,
   event_raise("playlists-updated", 0);
 }
 
-/** @brief Called to activate a playlist */
+/* Playlists menu ----------------------------------------------------------- */
+
+/** @brief Play received playlist contents
+ *
+ * Passed as a completion callback by menu_activate_playlist().
+ */
+static void playlist_play_content(void attribute((unused)) *v,
+                                  const char *err,
+                                  int nvec, char **vec) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  for(int n = 0; n < nvec; ++n)
+    disorder_eclient_play(client, vec[n], NULL, NULL);
+}
+
+/** @brief Called to activate a playlist
+ *
+ * Called when the menu item for a playlist is clicked.
+ */
 static void menu_activate_playlist(GtkMenuItem *menuitem,
                                    gpointer attribute((unused)) user_data) {
   GtkLabel *label = GTK_LABEL(GTK_BIN(menuitem)->child);
   const char *playlist = gtk_label_get_text(label);
 
-  fprintf(stderr, "activate playlist %s\n", playlist); /* TODO */
-  /* We need to:
-   * - unlock any currently locked playlist
-   * - throw away the current editing widget
-   * - create a new editing widget
-   * - populate it
-   */
+  disorder_eclient_playlist_get(client, playlist_play_content, playlist, NULL);
 }
 
 /** @brief Called when the playlists change */
@@ -146,6 +162,8 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
   gtk_widget_set_sensitive(editplaylists_widget,
                            nplaylists >= 0);
 }
+
+/* Playlists window (list of playlists) ------------------------------------- */
 
 /** @brief (Re-)populate the playlist tree model */
 static void playlists_fill(void) {
@@ -261,6 +279,12 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
   }
 }
 
+/* Playlists window --------------------------------------------------------- */
+
+/** @brief Pop up the playlists window
+ *
+ * Called when the playlists menu item is selected
+ */
 void edit_playlists(gpointer attribute((unused)) callback_data,
                      guint attribute((unused)) callback_action,
                      GtkWidget attribute((unused)) *menu_item) {
