@@ -763,6 +763,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
 
   /* The selection should support multiple things being selected */
   ql->selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(ql->view));
+  g_object_ref(ql->selection);
   gtk_tree_selection_set_mode(ql->selection, GTK_SELECTION_MULTIPLE);
 
   /* Catch button presses */
@@ -824,7 +825,8 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   
   /* TODO style? */
 
-  ql->init(ql);
+  if(ql->init)
+    ql->init(ql);
 
   /* Update display text when lookups complete */
   event_register("lookups-completed", queue_lookups_completed, ql);
@@ -832,6 +834,31 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
   GtkWidget *scrolled = scroll_widget(ql->view);
   g_object_set_data(G_OBJECT(scrolled), "type", (void *)ql_tabtype(ql));
   return scrolled;
+}
+
+/** @brief Destroy a queuelike
+ * @param ql Queuelike to destroy
+ *
+ * Returns @p ql to its initial state.
+ */
+void destroy_queuelike(struct queuelike *ql) {
+  if(ql->store) {
+    g_object_unref(ql->store);
+    ql->store = NULL;
+  }
+  if(ql->view) {
+    gtk_object_destroy(GTK_OBJECT(ql->view));
+    ql->view = NULL;
+  }
+  if(ql->menu) {
+    gtk_object_destroy(GTK_OBJECT(ql->menu));
+    ql->menu = NULL;
+  }
+  if(ql->selection) {
+    g_object_unref(ql->selection);
+    ql->selection = NULL;
+  }
+  ql->q = NULL;
 }
 
 /*

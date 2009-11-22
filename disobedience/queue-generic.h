@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,8 +104,6 @@ struct queuelike {
   void (*drop)(struct queuelike *ql, int ntracks, char **tracks, char **ids,
                struct queue_entry *after_me);
 
-  /** @brief Stashed drag target row */
-  GtkTreePath *drag_target;
 };
 
 enum {
@@ -157,6 +155,7 @@ gboolean ql_button_release(GtkWidget *widget,
                            GdkEventButton *event,
                            gpointer user_data);
 GtkWidget *init_queuelike(struct queuelike *ql);
+void destroy_queuelike(struct queuelike *ql);
 void ql_update_list_store(struct queuelike *ql) ;
 void ql_update_row(struct queue_entry *q,
                    GtkTreeIter *iter);

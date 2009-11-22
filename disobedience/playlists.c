@@ -28,6 +28,8 @@
  * - a close button
  */
 #include "disobedience.h"
+#include "queue-generic.h"
+#include "popup.h"
 
 #if PLAYLISTS
 
@@ -55,6 +57,35 @@ char **playlists;
 
 /** @brief Count of playlists */
 int nplaylists;
+
+/** @brief Columns for the playlist editor */
+static const struct queue_column playlist_columns[] = {
+  { "Artist", column_namepart, "artist", COL_EXPAND|COL_ELLIPSIZE },
+  { "Album",  column_namepart, "album",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Title",  column_namepart, "title",  COL_EXPAND|COL_ELLIPSIZE },
+  { "Length", column_length,   0,        COL_RIGHT }
+};
+
+/** @brief Pop-up menu for playlist editor */
+// TODO some of these may not be generic enough yet - check!
+static struct menuitem playlist_menuitems[] = {
+  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
+  //{ "Play playlist", ql_playall_activate, ql_playall_sensitive, 0, 0 },
+  { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+};
+
+/** @brief Queuelike for editing a playlist */
+static struct queuelike ql_playlist = {
+  .name = "playlist",
+  .columns = playlist_columns,
+  .ncolumns = sizeof playlist_columns / sizeof *playlist_columns,
+  .menuitems = playlist_menuitems,
+  .nmenuitems = sizeof playlist_menuitems / sizeof *playlist_menuitems,
+  //.drop = playlist_drop  //TODO
+};
 
 /* Maintaining the list of playlists ---------------------------------------- */
 
@@ -304,7 +335,9 @@ static GtkWidget *playlists_window_list(void) {
 /* Playlists window (edit current playlist) --------------------------------- */
 
 static GtkWidget *playlists_window_edit(void) {
-  return NULL;
+  assert(ql_playlist.view == NULL);     /* better not be set up already */
+  GtkWidget *w = init_queuelike(&ql_playlist);
+  return w;
 }
 
 /* Playlists window --------------------------------------------------------- */
@@ -324,7 +357,15 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
   }
 }
 
-/** @brief Pop up the playlists window
+/** @brief Called when the playlist window is destroyed */
+static void playlists_window_destroyed(GtkWidget attribute((unused)) *widget,
+                                       GtkWidget **widget_pointer) {
+  fprintf(stderr, "playlists_window_destroy\n");
+  destroy_queuelike(&ql_playlist);
+  *widget_pointer = NULL;
+}
+
+/** @BRIEF Pop up the playlists window
  *
  * Called when the playlists menu item is selected
  */
@@ -340,7 +381,7 @@ void edit_playlists(gpointer attribute((unused)) callback_data,
   playlists_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_style(playlists_window, tool_style);
   g_signal_connect(playlists_window, "destroy",
-		   G_CALLBACK(gtk_widget_destroyed), &playlists_window);
+		   G_CALLBACK(playlists_window_destroyed), &playlists_window);
   gtk_window_set_title(GTK_WINDOW(playlists_window), "Playlists Management");
   /* TODO loads of this is very similar to (copied from!) users.c - can we
    * de-dupe? */
