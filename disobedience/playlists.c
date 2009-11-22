@@ -30,6 +30,7 @@
 #include "disobedience.h"
 #include "queue-generic.h"
 #include "popup.h"
+#include "validity.h"
 
 #if PLAYLISTS
 
@@ -194,6 +195,167 @@ static void menu_playlists_changed(const char attribute((unused)) *event,
                            nplaylists >= 0);
 }
 
+/* Popup to create a new playlist ------------------------------------------- */
+
+/** @brief New-playlist popup */
+static GtkWidget *playlist_new_window;
+
+/** @brief Text entry in new-playlist popup */
+static GtkWidget *playlist_new_entry;
+
+static GtkWidget *playlist_new_info;
+
+static GtkWidget *playlist_new_shared;
+static GtkWidget *playlist_new_public;
+static GtkWidget *playlist_new_private;
+
+/** @brief Called when 'ok' is clicked in new-playlist popup */
+static void playlist_new_ok(GtkButton attribute((unused)) *button,
+                            gpointer attribute((unused)) userdata) {
+}
+
+/** @brief Called when 'cancel' is clicked in new-playlist popup */
+static void playlist_new_cancel(GtkButton attribute((unused)) *button,
+                                gpointer attribute((unused)) userdata) {
+  gtk_widget_destroy(playlist_new_window);
+}
+
+/** @brief Buttons for new-playlist popup */
+static struct button playlist_new_buttons[] = {
+  {
+    .stock = GTK_STOCK_OK,
+    .clicked = playlist_new_ok,
+    .tip = "Create new playlist"
+  },
+  {
+    .stock = GTK_STOCK_CANCEL,
+    .clicked = playlist_new_cancel,
+    .tip = "Do not create new plalist"
+  }
+};
+#define NPLAYLIST_NEW_BUTTONS (sizeof playlist_new_buttons / sizeof *playlist_new_buttons)
+
+/** @brief Test whether the new-playlist window settings are valid */
+static const char *playlist_new_valid(void) {
+  gboolean shared, public, private;
+  g_object_get(playlist_new_shared, "active", &shared, (char *)NULL);
+  g_object_get(playlist_new_public, "active", &public, (char *)NULL);
+  g_object_get(playlist_new_private, "active", &private, (char *)NULL);
+  if(!(shared || public || private))
+    return "No type set.";
+  char *name = gtk_editable_get_chars(GTK_EDITABLE(playlist_new_entry),
+                                            0, -1);
+  if(!*name)
+    return "";
+  if(!valid_username(name))
+    return "Not a valid playlist name.";
+  /* Construct the full form of the name */
+  char *fullname;
+  if(shared)
+    fullname = name;
+  else
+    byte_xasprintf(&fullname, "%s.%s", config->username, name);
+  /* See if the result is valid */
+  if(playlist_parse_name(fullname, NULL, NULL))
+    return "Not a valid playlist name.";
+  /* See if the result clashes with an existing name */
+  for(int n = 0; n < nplaylists; ++n)
+    if(!strcmp(playlists[n], fullname)) {
+      if(shared)
+        return "A shared playlist with that name already exists.";
+      else
+        return "You already have a playlist with that name.";
+    }
+  /* As far as we can tell creation would work */
+  return NULL;
+}
+
+/** @brief Called when anything in the new-playlist popup changes
+ *
+ * We use this to set the activation state of the OK button.
+ */
+static void playlist_new_changed(void) {
+  const char *reason = playlist_new_valid();
+  gtk_widget_set_sensitive(playlist_new_buttons[0].widget,
+                           !reason);
+  gtk_label_set_text(GTK_LABEL(playlist_new_info), reason);
+}
+
+/** @brief Called when some radio button in the new-playlist popup changes */
+static void playlist_new_button_toggled(GtkToggleButton attribute((unused)) tb,
+                                        gpointer attribute((unused)) userdata) {
+  playlist_new_changed();
+}
+
+/** @brief Called when the text entry field in the new-playlist popup changes */
+static void playlist_new_entry_edited(GtkEditable attribute((unused)) *editable,
+                                      gpointer attribute((unused)) user_data) {
+  playlist_new_changed();
+}
+
+/** @brief Pop up a new window to enter the playlist name and details */
+static void playlist_new(void) {
+  assert(playlist_new_window == NULL);
+  playlist_new_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  g_signal_connect(playlist_new_window, "destroy",
+		   G_CALLBACK(gtk_widget_destroyed), &playlist_new_window);
+  gtk_window_set_title(GTK_WINDOW(playlist_new_window), "Create new playlist");
+  /* Window will be modal, suppressing access to other windows */
+  gtk_window_set_modal(GTK_WINDOW(playlist_new_window), TRUE);
+
+  /* Window contents will use a table (grid) layout */
+  GtkWidget *table = gtk_table_new(3, 3, FALSE/*!homogeneous*/);
+
+  /* First row: playlist name */
+  gtk_table_attach_defaults(GTK_TABLE(table),
+                            gtk_label_new("Playlist name"),
+                            0, 1, 0, 1);
+  playlist_new_entry = gtk_entry_new();
+  g_signal_connect(playlist_new_entry, "changed",
+                   G_CALLBACK(playlist_new_entry_edited), NULL);
+  gtk_table_attach_defaults(GTK_TABLE(table),
+                            playlist_new_entry,
+                            1, 3, 0, 1);
+
+  /* Second row: radio buttons to choose type */
+  playlist_new_shared = gtk_radio_button_new_with_label(NULL, "shared");
+  playlist_new_public
+    = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(playlist_new_shared),
+                                                  "public");
+  playlist_new_private
+    = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(playlist_new_shared),
+                                                  "private");
+  g_signal_connect(playlist_new_shared, "toggled",
+                   G_CALLBACK(playlist_new_button_toggled), NULL);
+  g_signal_connect(playlist_new_public, "toggled",
+                   G_CALLBACK(playlist_new_button_toggled), NULL);
+  g_signal_connect(playlist_new_private, "toggled",
+                   G_CALLBACK(playlist_new_button_toggled), NULL);
+  gtk_table_attach_defaults(GTK_TABLE(table), playlist_new_shared, 0, 1, 1, 2);
+  gtk_table_attach_defaults(GTK_TABLE(table), playlist_new_public, 1, 2, 1, 2);
+  gtk_table_attach_defaults(GTK_TABLE(table), playlist_new_private, 2, 3, 1, 2);
+
+  /* Third row: info bar saying why not */
+  playlist_new_info = gtk_label_new("");
+  gtk_table_attach_defaults(GTK_TABLE(table), playlist_new_info,
+                            0, 3, 2, 3);
+
+  /* Fourth row: ok/cancel buttons */
+  GtkWidget *hbox = create_buttons_box(playlist_new_buttons,
+                                       NPLAYLIST_NEW_BUTTONS,
+                                       gtk_hbox_new(FALSE, 0));
+  gtk_table_attach_defaults(GTK_TABLE(table), hbox, 0, 3, 3, 4);
+
+  gtk_container_add(GTK_CONTAINER(playlist_new_window),
+                    frame_widget(table, NULL));
+
+  /* Set initial state of OK button */
+  playlist_new_changed();
+
+  /* Display the window */
+  gtk_widget_show_all(playlist_new_window);
+}
+
 /* Playlists window (list of playlists) ------------------------------------- */
 
 /** @brief (Re-)populate the playlist tree model */
@@ -247,12 +409,7 @@ static void playlists_add(GtkButton attribute((unused)) *button,
   /* Unselect whatever is selected */
   gtk_tree_selection_unselect_all(playlists_selection);
   fprintf(stderr, "playlists_add\n");/* TODO */
-  /* We need to pop up a window asking for:
-   * - the name for the playlist
-   * - whether it is to be a public, private or shared playlist
-   * Moreover we should keep track of the known playlists and grey out OK
-   * if the name is a clash (as well as if it's actually invalid).
-   */
+  playlist_new();
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -360,7 +517,6 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
 /** @brief Called when the playlist window is destroyed */
 static void playlists_window_destroyed(GtkWidget attribute((unused)) *widget,
                                        GtkWidget **widget_pointer) {
-  fprintf(stderr, "playlists_window_destroy\n");
   destroy_queuelike(&ql_playlist);
   *widget_pointer = NULL;
 }
@@ -389,7 +545,7 @@ void edit_playlists(gpointer attribute((unused)) callback_data,
   g_signal_connect(playlists_window, "key-press-event",
                    G_CALLBACK(playlists_keypress), 0);
   /* default size is too small */
-  gtk_window_set_default_size(GTK_WINDOW(playlists_window), 240, 240);
+  gtk_window_set_default_size(GTK_WINDOW(playlists_window), 512, 240);
 
   GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), playlists_window_list(),

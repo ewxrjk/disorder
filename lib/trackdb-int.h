@@ -153,7 +153,6 @@ int trackdb_get_global_tid(const char *name,
 
 char **parsetags(const char *s);
 int tag_intersection(char **a, char **b);
-int valid_username(const char *user);
 
 #endif /* TRACKDB_INT_H */
 

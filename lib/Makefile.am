@@ -91,6 +91,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	unicode.h unicode.c				\
 	unidata.h unidata.c				\
 	vacopy.h					\
+	validity.c validity.h				\
 	vector.c vector.h				\
 	version.c version.h				\
 	wav.h wav.c					\

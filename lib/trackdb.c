@@ -59,6 +59,7 @@
 #include "unidata.h"
 #include "base64.h"
 #include "sendmail.h"
+#include "validity.h"
 
 #define RESCAN "disorder-rescan"
 #define DEADLOCK "disorder-deadlock"
@@ -3011,32 +3012,6 @@ static int trusted(const char *user) {
 	      && strcmp(config->trust.s[n], user)); ++n)
     ;
   return n < config->trust.n;
-}
-
-/** @brief Return non-zero for a valid username
- * @param user Candidate username
- * @return Nonzero if it's valid
- *
- * Currently we only allow the letters and digits in ASCII.  We could be more
- * liberal than this but it is a nice simple test.  It is critical that
- * semicolons are never allowed.
- *
- * NB also used by playlist_parse_name() to validate playlist names!
- */
-int valid_username(const char *user) {
-  if(!*user)
-    return 0;
-  while(*user) {
-    const uint8_t c = *user++;
-    /* For now we are very strict */
-    if((c >= 'a' && c <= 'z')
-       || (c >= 'A' && c <= 'Z')
-       || (c >= '0' && c <= '9'))
-      /* ok */;
-    else
-      return 0;
-  }
-  return 1;
 }
 
 /** @brief Add a user
