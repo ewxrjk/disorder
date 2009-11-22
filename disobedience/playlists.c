@@ -56,7 +56,7 @@ char **playlists;
 /** @brief Count of playlists */
 int nplaylists;
 
-/* Maintianng the list of playlists ----------------------------------------- */
+/* Maintaining the list of playlists ---------------------------------------- */
 
 /** @brief Schedule an update to the list of playlists */
 static void playlists_update(const char attribute((unused)) *event,
