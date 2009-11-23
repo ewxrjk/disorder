@@ -86,6 +86,12 @@ static gboolean playlist_window_keypress(GtkWidget *widget,
                                          GdkEventKey *event,
                                          gpointer user_data);
 static int playlistcmp(const void *ap, const void *bp);
+static void playlist_remove_locked(void *v, const char *err);
+void playlist_remove_retrieved(void *v, const char *err,
+                               int nvec,
+                               char **vec);
+static void playlist_remove_updated(void *v, const char *err);
+static void playlist_remove_unlocked(void *v, const char *err);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -793,11 +799,86 @@ static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
   /* To safely remove rows we must:
    * - take a lock
    * - fetch the playlist
-   * - delete the selected rows
+   * - verify it's not changed
+   * - delete the selected rows from the retrieved version
    * - store the playlist
    * - release the lock
+   *
+   * In addition we careful check that the selected playlist hasn't changed
+   * underfoot, and avoid leaving the playlist locked if we bail out at any
+   * point.
    */
-  fprintf(stderr, "remove tracks\n");   /* TODO */
+  disorder_eclient_playlist_lock(client, playlist_remove_locked,
+                                 playlist_picker_selected,
+                                 (void *)playlist_picker_selected);
+}
+
+static void playlist_remove_locked(void *v, const char *err) {
+  char *playlist = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  if(!playlist_picker_selected || strcmp(playlist, playlist_picker_selected)) {
+    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
+    return;
+  }
+  disorder_eclient_playlist_get(client, playlist_remove_retrieved,
+                                playlist, playlist);
+}
+
+void playlist_remove_retrieved(void *v, const char *err,
+                               int nvec,
+                               char **vec) {
+  char *playlist = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
+    return;
+  }
+  if(!playlist_picker_selected || strcmp(playlist, playlist_picker_selected)) {
+    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
+    return;
+  }
+  /* We check that the contents haven't changed.  If they have we just abandon
+   * the operation.  The user will have to try again. */
+  struct queue_entry *q;
+  int n, m;
+  for(n = 0, q = ql_playlist.q; q && n < nvec; ++n, q = q->next)
+    if(strcmp(q->track, vec[n]))
+      break;
+  if(n != nvec || q != NULL)  {
+    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
+    return;
+  }
+  /* Edit the selected items out */
+  GtkTreeIter iter[1];
+  gboolean it = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql_playlist.store),
+                                              iter);
+  n = m = 0;
+  while(it) {
+    if(!gtk_tree_selection_iter_is_selected(ql_playlist.selection, iter))
+      vec[m++] = vec[n++];
+    else
+      n++;
+    it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_playlist.store), iter);
+  }
+  /* Store the new value */
+  disorder_eclient_playlist_set(client, playlist_remove_updated, playlist,
+                                vec, m, playlist);
+}
+
+static void playlist_remove_updated(void attribute((unused)) *v,
+                                    const char *err) {
+  if(err) 
+    popup_protocol_error(0, err);
+  disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
+}
+
+static void playlist_remove_unlocked(void attribute((unused)) *v,
+                                     const char *err) {
+  if(err) 
+    popup_protocol_error(0, err);
 }
 
 /* Playlists window --------------------------------------------------------- */
