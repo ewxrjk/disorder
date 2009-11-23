@@ -51,6 +51,9 @@ static void playlist_editor_fill(const char *event,
 static int playlist_playall_sensitive(void *extra);
 static void playlist_playall_activate(GtkMenuItem *menuitem,
                                       gpointer user_data);
+static int playlist_remove_sensitive(void *extra) ;
+static void playlist_remove_activate(GtkMenuItem *menuitem,
+                                     gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -63,13 +66,19 @@ static const struct queue_column playlist_columns[] = {
   { "Length", column_length,   0,        COL_RIGHT }
 };
 
-/** @brief Pop-up menu for playlist editor */
-// TODO some of these may not be generic enough yet - check!
+/** @brief Pop-up menu for playlist editor
+ *
+ * Status:
+ * - track properties works but, bizarrely, raises the main window
+ * - play track works
+ * - play playlist works
+ * - select/deselect all work
+ */
 static struct menuitem playlist_menuitems[] = {
   { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
   { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
   { "Play playlist", playlist_playall_activate, playlist_playall_sensitive, 0, 0 },
-  { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Remove track from queue", playlist_remove_activate, playlist_remove_sensitive, 0, 0 },
   { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
@@ -730,6 +739,33 @@ static void playlist_playall_activate(GtkMenuItem attribute((unused)) *menuitem,
   /* Re-use the menu-based activation callback */
   disorder_eclient_playlist_get(client, playlist_menu_received_content,
                                 playlist_picker_selected, NULL);
+}
+
+/** @brief Called to determine whether the playlist is playable */
+static int playlist_remove_sensitive(void attribute((unused)) *extra) {
+  /* If there's no playlist obviously we can't remove from it */
+  if(!playlist_picker_selected)
+    return FALSE;
+  /* If no tracks are selected we cannot remove them */
+  if(!gtk_tree_selection_count_selected_rows(ql_playlist.selection))
+    return FALSE;
+  /* We're good to go */
+  return TRUE;
+}
+
+/** @brief Called to play the selected playlist */
+static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
+                                     gpointer attribute((unused)) user_data) {
+  if(!playlist_picker_selected)
+    return;
+  /* To safely remove rows we must:
+   * - take a lock
+   * - fetch the playlist
+   * - delete the selected rows
+   * - store the playlist
+   * - release the lock
+   */
+  fprintf(stderr, "remove tracks\n");   /* TODO */
 }
 
 /* Playlists window --------------------------------------------------------- */
