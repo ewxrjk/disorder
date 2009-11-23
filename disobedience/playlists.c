@@ -37,6 +37,9 @@
 static void playlists_updated(void *v,
                               const char *err,
                               int nvec, char **vec);
+static void playlists_fill_tracks(const char *event,
+                                  void *eventdata,
+                                  void *callbackdata);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlists_window;
@@ -444,6 +447,8 @@ static void playlist_new(void) {
   /* Set initial state of OK button */
   playlist_new_changed(0,0,0);
 
+  /* TODO: return should = OK, escape should = cancel */
+  
   /* Display the window */
   gtk_widget_show_all(playlist_new_window);
 }
@@ -498,6 +503,9 @@ static void playlists_selection_changed(GtkTreeSelection attribute((unused)) *tr
     return;
   /* Record the new state */
   playlists_selected = selected;
+  /* Re-initalize the queue */
+  ql_new_queue(&ql_playlist, NULL);
+  playlists_fill_tracks(NULL, (void *)playlists_selected, NULL);
 }
 
 /** @brief Called when the 'add' button is pressed */
@@ -597,9 +605,60 @@ static GtkWidget *playlists_window_list(void) {
 
 /* Playlists window (edit current playlist) --------------------------------- */
 
+/** @brief Called with new tracks for the playlist */
+static void playlists_got_new_tracks(void attribute((unused)) *v,
+                                     const char *err,
+                                     int nvec, char **vec) {
+  fprintf(stderr, "playlists_got_new_tracks\n");
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  if(nvec == -1)
+    /* No such playlist, presumably we'll get a deleted event shortly */
+    return;
+  /* Translate the list of tracks into queue entries */
+  struct queue_entry *newq, **qq = &newq;
+  hash *h = hash_new(sizeof(int));
+  for(int n = 0; n < nvec; ++n) {
+    struct queue_entry *q = xmalloc(sizeof *q);
+    q->track = vec[n];
+    /* Synthesize a unique ID so that the selection survives updates.  Tracks
+     * can appear more than once in the queue so we can't use raw track names,
+     * so we add a serial number to the start. */
+    /* TODO but this doesn't work for some reason */
+    int *serialp = hash_find(h, vec[n]), serial = serialp ? *serialp : 0;
+    byte_xasprintf((char **)&q->id, "%d-%s", serial++, vec[n]);
+    fprintf(stderr, "%s\n", q->id);
+    hash_add(h, vec[0], &serial, HASH_INSERT_OR_REPLACE);
+    *qq = q;
+    qq = &q->next;
+  }
+  *qq = NULL;
+  fprintf(stderr, "calling ql_new_queue\n");
+  ql_new_queue(&ql_playlist, newq);
+  fprintf(stderr, "back form ql_new_queue\n");
+}
+
+/** @brief (Re-)populate the playlist tree model */
+static void playlists_fill_tracks(const char attribute((unused)) *event,
+                                  void *eventdata,
+                                  void attribute((unused)) *callbackdata) {
+  const char *modified_playlist = eventdata;
+  fprintf(stderr, "playlists_fill_tracks: %s\n", modified_playlist);
+  if(!playlists_window)
+    return;
+  if(!playlists_selected)
+    return;
+  if(!strcmp(playlists_selected, modified_playlist))
+    disorder_eclient_playlist_get(client, playlists_got_new_tracks,
+                                  playlists_selected, NULL);
+}
+
 static GtkWidget *playlists_window_edit(void) {
   assert(ql_playlist.view == NULL);     /* better not be set up already */
   GtkWidget *w = init_queuelike(&ql_playlist);
+  /* Initially empty */
   return w;
 }
 
@@ -683,6 +742,8 @@ void playlists_init(void) {
   event_register("playlists-updated", playlist_new_changed, 0);
   /* Update the list of playlists in the edit window when the set changes */
   event_register("playlists-updated", playlists_fill, 0);
+  /* Update the displayed playlist when it is modified */
+  event_register("playlist-modified", playlists_fill_tracks, 0);
   playlists_update(0, 0, 0);
 }
 
