@@ -506,6 +506,8 @@ static void playlist_picker_fill(const char attribute((unused)) *event,
     if(was_selected && !strcmp(was_selected, playlists[n]))
       gtk_tree_selection_select_iter(playlist_picker_selection, iter);
   }
+  /* TODO deselecting then reselecting the current playlist resets the playlist
+   * editor, which trashes the user's selection. */
 }
 
 /** @brief Called when the selection might have changed */
