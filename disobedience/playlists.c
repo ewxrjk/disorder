@@ -86,12 +86,21 @@ static gboolean playlist_window_keypress(GtkWidget *widget,
                                          GdkEventKey *event,
                                          gpointer user_data);
 static int playlistcmp(const void *ap, const void *bp);
-static void playlist_remove_locked(void *v, const char *err);
-void playlist_remove_retrieved(void *v, const char *err,
+static void playlist_modify_locked(void *v, const char *err);
+void playlist_modify_retrieved(void *v, const char *err,
                                int nvec,
                                char **vec);
-static void playlist_remove_updated(void *v, const char *err);
-static void playlist_remove_unlocked(void *v, const char *err);
+static void playlist_modify_updated(void *v, const char *err);
+static void playlist_modify_unlocked(void *v, const char *err);
+static void playlist_drop(struct queuelike *ql,
+                          int ntracks,
+                          char **tracks, char **ids,
+                          struct queue_entry *after_me);
+struct playlist_modify_data;
+static void playlist_drop_modify(struct playlist_modify_data *mod,
+                                 int nvec, char **vec);
+static void playlist_remove_modify(struct playlist_modify_data *mod,
+                                 int nvec, char **vec);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -128,7 +137,7 @@ static struct queuelike ql_playlist = {
   .ncolumns = sizeof playlist_columns / sizeof *playlist_columns,
   .menuitems = playlist_menuitems,
   .nmenuitems = sizeof playlist_menuitems / sizeof *playlist_menuitems,
-  //.drop = playlist_drop  //TODO
+  .drop = playlist_drop
 };
 
 /* Maintaining the list of playlists ---------------------------------------- */
@@ -755,6 +764,157 @@ static void playlists_editor_received_tracks(void *v,
   ql_new_queue(&ql_playlist, newq);
 }
 
+/* Playlist mutation -------------------------------------------------------- */
+
+/** @brief State structure for guarded playlist modification
+ *
+ * To kick things off create one of these and disorder_eclient_playlist_lock()
+ * with playlist_modify_locked() as its callback.  @c modify will be called; it
+ * should disorder_eclient_playlist_set() to set the new state with
+ * playlist_modify_updated() as its callback.
+ */
+struct playlist_modify_data {
+  /** @brief Affected playlist */
+  const char *playlist;
+  /** @brief Modification function
+   * @param mod Pointer back to state structure
+   * @param ntracks Length of playlist
+   * @param tracks Tracks in playlist
+   */
+  void (*modify)(struct playlist_modify_data *mod,
+                int ntracks, char **tracks);
+
+  /** @brief Number of tracks dropped */
+  int ntracks;
+  /** @brief Track names dropped */
+  char **tracks;
+  /** @brief Track IDs dropped */
+  char **ids;
+  /** @brief Drop after this point */
+  struct queue_entry *after_me;
+};
+
+/** @brief Called with playlist locked
+ *
+ * This is the entry point for guarded modification ising @ref
+ * playlist_modify_data.
+ */
+static void playlist_modify_locked(void *v, const char *err) {
+  struct playlist_modify_data *mod = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  disorder_eclient_playlist_get(client, playlist_modify_retrieved,
+                                mod->playlist, mod);
+}
+
+/** @brief Called with current playlist contents
+ * Checks that the playlist is still current and has not changed.
+ */
+void playlist_modify_retrieved(void *v, const char *err,
+                               int nvec,
+                               char **vec) {
+  struct playlist_modify_data *mod = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
+    return;
+  }
+  if(nvec < 0
+     || !playlist_picker_selected
+     || strcmp(mod->playlist, playlist_picker_selected)) {
+    disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
+    return;
+  }
+  /* We check that the contents haven't changed.  If they have we just abandon
+   * the operation.  The user will have to try again. */
+  struct queue_entry *q;
+  int n;
+  for(n = 0, q = ql_playlist.q; q && n < nvec; ++n, q = q->next)
+    if(strcmp(q->track, vec[n]))
+      break;
+  if(n != nvec || q != NULL)  {
+    disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
+    return;
+  }
+  mod->modify(mod, nvec, vec);
+}
+
+/** @brief Called when the playlist has been updated */
+static void playlist_modify_updated(void attribute((unused)) *v,
+                                    const char *err) {
+  if(err) 
+    popup_protocol_error(0, err);
+  disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
+}
+
+/** @brief Called when the playlist has been unlocked */
+static void playlist_modify_unlocked(void attribute((unused)) *v,
+                                     const char *err) {
+  if(err) 
+    popup_protocol_error(0, err);
+}
+
+/* Drop tracks into a playlist ---------------------------------------------- */
+
+static void playlist_drop(struct queuelike attribute((unused)) *ql,
+                          int ntracks,
+                          char **tracks, char **ids,
+                          struct queue_entry *after_me) {
+  struct playlist_modify_data *mod = xmalloc(sizeof *mod);
+
+  mod->playlist = playlist_picker_selected;
+  mod->modify = playlist_drop_modify;
+  mod->ntracks = ntracks;
+  mod->tracks = tracks;
+  mod->ids = ids;
+  mod->after_me = after_me;
+  /* To safely move or insert rows we must:
+   * - take a lock
+   * - fetch the playlist
+   * - verify it's not changed
+   * - update the playlist contents
+   * - store the playlist
+   * - release the lock
+   *
+   */
+  disorder_eclient_playlist_lock(client, playlist_modify_locked,
+                                 mod->playlist, mod);
+}
+
+static void playlist_drop_modify(struct playlist_modify_data *mod,
+                                 int nvec, char **vec) {
+  char **newvec;
+  int nnewvec;
+  if(mod->ids) {
+    /* This is a rearrangement */
+    /* TODO what if it's a drag from the queue? */
+    abort();
+  } else {
+    /* This is an insertion */
+    struct queue_entry *q = ql_playlist.q;
+    int ins = 0;
+    if(mod->after_me) {
+      ++ins;
+      while(q && q != mod->after_me) {
+        q = q->next;
+        ++ins;
+      }
+    }
+    nnewvec = nvec + mod->ntracks;
+    newvec = xcalloc(nnewvec, sizeof (char *));
+    memcpy(newvec, vec,
+           ins * sizeof (char *));
+    memcpy(newvec + ins, mod->tracks,
+           mod->ntracks * sizeof (char *));
+    memcpy(newvec + ins + mod->ntracks, vec + ins,
+           (nvec - ins) * sizeof (char *));
+  }
+  disorder_eclient_playlist_set(client, playlist_modify_updated, mod->playlist,
+                                newvec, nnewvec, mod);
+}
+
 /* Playlist editor right-click menu ---------------------------------------- */
 
 /** @brief Called to determine whether the playlist is playable */
@@ -808,54 +968,20 @@ static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
    * underfoot, and avoid leaving the playlist locked if we bail out at any
    * point.
    */
-  disorder_eclient_playlist_lock(client, playlist_remove_locked,
-                                 playlist_picker_selected,
-                                 (void *)playlist_picker_selected);
+  struct playlist_modify_data *mod = xmalloc(sizeof *mod);
+
+  mod->playlist = playlist_picker_selected;
+  mod->modify = playlist_remove_modify;
+  disorder_eclient_playlist_lock(client, playlist_modify_locked,
+                                 mod->playlist, mod);
 }
 
-static void playlist_remove_locked(void *v, const char *err) {
-  char *playlist = v;
-  if(err) {
-    popup_protocol_error(0, err);
-    return;
-  }
-  if(!playlist_picker_selected || strcmp(playlist, playlist_picker_selected)) {
-    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
-    return;
-  }
-  disorder_eclient_playlist_get(client, playlist_remove_retrieved,
-                                playlist, playlist);
-}
-
-void playlist_remove_retrieved(void *v, const char *err,
-                               int nvec,
-                               char **vec) {
-  char *playlist = v;
-  if(err) {
-    popup_protocol_error(0, err);
-    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
-    return;
-  }
-  if(!playlist_picker_selected || strcmp(playlist, playlist_picker_selected)) {
-    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
-    return;
-  }
-  /* We check that the contents haven't changed.  If they have we just abandon
-   * the operation.  The user will have to try again. */
-  struct queue_entry *q;
-  int n, m;
-  for(n = 0, q = ql_playlist.q; q && n < nvec; ++n, q = q->next)
-    if(strcmp(q->track, vec[n]))
-      break;
-  if(n != nvec || q != NULL)  {
-    disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
-    return;
-  }
-  /* Edit the selected items out */
+static void playlist_remove_modify(struct playlist_modify_data *mod,
+                                   int attribute((unused)) nvec, char **vec) {
   GtkTreeIter iter[1];
   gboolean it = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(ql_playlist.store),
                                               iter);
-  n = m = 0;
+  int n = 0, m = 0;
   while(it) {
     if(!gtk_tree_selection_iter_is_selected(ql_playlist.selection, iter))
       vec[m++] = vec[n++];
@@ -863,22 +989,8 @@ void playlist_remove_retrieved(void *v, const char *err,
       n++;
     it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_playlist.store), iter);
   }
-  /* Store the new value */
-  disorder_eclient_playlist_set(client, playlist_remove_updated, playlist,
-                                vec, m, playlist);
-}
-
-static void playlist_remove_updated(void attribute((unused)) *v,
-                                    const char *err) {
-  if(err) 
-    popup_protocol_error(0, err);
-  disorder_eclient_playlist_unlock(client, playlist_remove_unlocked, NULL);
-}
-
-static void playlist_remove_unlocked(void attribute((unused)) *v,
-                                     const char *err) {
-  if(err) 
-    popup_protocol_error(0, err);
+  disorder_eclient_playlist_set(client, playlist_modify_updated, mod->playlist,
+                                vec, m, mod);
 }
 
 /* Playlists window --------------------------------------------------------- */
