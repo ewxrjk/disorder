@@ -48,6 +48,9 @@ static void playlist_list_received_playlists(void *v,
 static void playlist_editor_fill(const char *event,
                                  void *eventdata,
                                  void *callbackdata);
+static int playlist_playall_sensitive(void *extra);
+static void playlist_playall_activate(GtkMenuItem *menuitem,
+                                      gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -65,7 +68,7 @@ static const struct queue_column playlist_columns[] = {
 static struct menuitem playlist_menuitems[] = {
   { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
   { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
-  //{ "Play playlist", ql_playall_activate, ql_playall_sensitive, 0, 0 },
+  { "Play playlist", playlist_playall_activate, playlist_playall_sensitive, 0, 0 },
   { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
   { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
@@ -144,6 +147,12 @@ static void playlist_list_received_playlists(void attribute((unused)) *v,
 
 /* Playlists menu ----------------------------------------------------------- */
 
+static void playlist_menu_playing(void attribute((unused)) *v,
+                                  const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+}
+
 /** @brief Play received playlist contents
  *
  * Passed as a completion callback by menu_activate_playlist().
@@ -156,7 +165,7 @@ static void playlist_menu_received_content(void attribute((unused)) *v,
     return;
   }
   for(int n = 0; n < nvec; ++n)
-    disorder_eclient_play(client, vec[n], NULL, NULL);
+    disorder_eclient_play(client, vec[n], playlist_menu_playing, NULL);
 }
 
 /** @brief Called to activate a playlist
@@ -667,7 +676,6 @@ static void playlists_editor_received_tracks(void *v,
     /* Synthesize a unique ID so that the selection survives updates.  Tracks
      * can appear more than once in the queue so we can't use raw track names,
      * so we add a serial number to the start. */
-    /* TODO but this doesn't work for some reason */
     int *serialp = hash_find(h, vec[n]), serial = serialp ? *serialp : 0;
     byte_xasprintf((char **)&q->id, "%d-%s", serial++, vec[n]);
     hash_add(h, vec[0], &serial, HASH_INSERT_OR_REPLACE);
@@ -698,6 +706,30 @@ static GtkWidget *playlists_editor_create(void) {
   GtkWidget *w = init_queuelike(&ql_playlist);
   /* Initially empty */
   return w;
+}
+
+/* Playlist editor right-click menu ---------------------------------------- */
+
+/** @brief Called to determine whether the playlist is playable */
+static int playlist_playall_sensitive(void attribute((unused)) *extra) {
+  /* If there's no playlist obviously we can't play it */
+  if(!playlist_picker_selected)
+    return FALSE;
+  /* If it's empty we can't play it */
+  if(!ql_playlist.q)
+    return FALSE;
+  /* Otherwise we can */
+  return TRUE;
+}
+
+/** @brief Called to play the selected playlist */
+static void playlist_playall_activate(GtkMenuItem attribute((unused)) *menuitem,
+                                      gpointer attribute((unused)) user_data) {
+  if(!playlist_picker_selected)
+    return;
+  /* Re-use the menu-based activation callback */
+  disorder_eclient_playlist_get(client, playlist_menu_received_content,
+                                playlist_picker_selected, NULL);
 }
 
 /* Playlists window --------------------------------------------------------- */
