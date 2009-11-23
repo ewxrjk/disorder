@@ -54,6 +54,38 @@ static void playlist_playall_activate(GtkMenuItem *menuitem,
 static int playlist_remove_sensitive(void *extra) ;
 static void playlist_remove_activate(GtkMenuItem *menuitem,
                                      gpointer user_data);
+static void playlist_new_locked(void *v, const char *err);
+static void playlist_new_retrieved(void *v, const char *err,
+                                   int nvec,
+                                   char **vec);
+static void playlist_new_created(void *v, const char *err);
+static void playlist_new_unlocked(void *v, const char *err);
+static void playlist_new_entry_edited(GtkEditable *editable,
+                                      gpointer user_data);
+static void playlist_new_button_toggled(GtkToggleButton *tb,
+                                        gpointer userdata);
+static void playlist_new_changed(const char *event,
+                                 void *eventdata,
+                                 void *callbackdata);
+static const char *playlist_new_valid(void);
+static void playlist_new_details(char **namep,
+                                 char **fullnamep,
+                                 gboolean *sharedp,
+                                 gboolean *publicp,
+                                 gboolean *privatep);
+static void playlist_new_ok(GtkButton *button,
+                            gpointer userdata);
+static void playlist_new_cancel(GtkButton *button,
+                                gpointer userdata);
+static void playlists_editor_received_tracks(void *v,
+                                             const char *err,
+                                             int nvec, char **vec);
+static void playlist_window_destroyed(GtkWidget *widget,
+                                      GtkWidget **widget_pointer);
+static gboolean playlist_window_keypress(GtkWidget *widget,
+                                         GdkEventKey *event,
+                                         gpointer user_data);
+static int playlistcmp(const void *ap, const void *bp);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -111,6 +143,23 @@ static void playlist_list_update(const char attribute((unused)) *event,
   disorder_eclient_playlists(client, playlist_list_received_playlists, 0);
 }
 
+/** @brief Called with a new list of playlists */
+static void playlist_list_received_playlists(void attribute((unused)) *v,
+                                             const char *err,
+                                             int nvec, char **vec) {
+  if(err) {
+    playlists = 0;
+    nplaylists = -1;
+    /* Probably means server does not support playlists */
+  } else {
+    playlists = vec;
+    nplaylists = nvec;
+    qsort(playlists, nplaylists, sizeof (char *), playlistcmp);
+  }
+  /* Tell our consumers */
+  event_raise("playlists-updated", 0);
+}
+
 /** @brief qsort() callback for playlist name comparison */
 static int playlistcmp(const void *ap, const void *bp) {
   const char *a = *(char **)ap, *b = *(char **)bp;
@@ -135,23 +184,6 @@ static int playlistcmp(const void *ap, const void *bp) {
 
   /* Lexical order of shared playlists */
   return strcmp(a, b);
-}
-
-/** @brief Called with a new list of playlists */
-static void playlist_list_received_playlists(void attribute((unused)) *v,
-                                             const char *err,
-                                             int nvec, char **vec) {
-  if(err) {
-    playlists = 0;
-    nplaylists = -1;
-    /* Probably means server does not support playlists */
-  } else {
-    playlists = vec;
-    nplaylists = nvec;
-    qsort(playlists, nplaylists, sizeof (char *), playlistcmp);
-  }
-  /* Tell our consumers */
-  event_raise("playlists-updated", 0);
 }
 
 /* Playlists menu ----------------------------------------------------------- */
@@ -236,116 +268,6 @@ static GtkWidget *playlist_new_public;
 /** @brief "Private" radio button */
 static GtkWidget *playlist_new_private;
 
-/** @brief Get entered new-playlist details
- * @param namep Where to store entered name (or NULL)
- * @param fullnamep Where to store computed full name (or NULL)
- * @param sharep Where to store 'shared' flag (or NULL)
- * @param publicp Where to store 'public' flag (or NULL)
- * @param privatep Where to store 'private' flag (or NULL)
- */
-static void playlist_new_details(char **namep,
-                                 char **fullnamep,
-                                 gboolean *sharedp,
-                                 gboolean *publicp,
-                                 gboolean *privatep) {
-  gboolean shared, public, private;
-  g_object_get(playlist_new_shared, "active", &shared, (char *)NULL);
-  g_object_get(playlist_new_public, "active", &public, (char *)NULL);
-  g_object_get(playlist_new_private, "active", &private, (char *)NULL);
-  char *gname = gtk_editable_get_chars(GTK_EDITABLE(playlist_new_entry),
-                                       0, -1); /* name owned by calle */
-  char *name = xstrdup(gname);
-  g_free(gname);
-  if(sharedp) *sharedp = shared;
-  if(publicp) *publicp = public;
-  if(privatep) *privatep = private;
-  if(namep) *namep = name;
-  if(fullnamep) {
-    if(*sharedp) *fullnamep = *namep;
-    else byte_xasprintf(fullnamep, "%s.%s", config->username, name);
-  }
-}
-
-/** @brief Called when the newly created playlist has unlocked */
-static void playlist_new_unlocked(void attribute((unused)) *v, const char *err) {
-  if(err)
-    popup_protocol_error(0, err);
-  /* Pop down the creation window */
-  gtk_widget_destroy(playlist_new_window);
-}
-
-/** @brief Called when the new playlist has been created */
-static void playlist_new_created(void attribute((unused)) *v, const char *err) {
-  if(err) {
-    popup_protocol_error(0, err);
-    return;
-  }
-  disorder_eclient_playlist_unlock(client, playlist_new_unlocked, NULL);
-  // TODO arrange for the new playlist to be selected
-}
-
-/** @brief Called when the proposed new playlist's contents have been retrieved
- *
- * ...or rather, normally, when it's been reported that it does not exist.
- */
-static void playlist_new_retrieved(void *v, const char *err,
-                                   int nvec,
-                                   char attribute((unused)) **vec) {
-  char *fullname = v;
-  if(!err && nvec != -1)
-    /* A rare case but not in principle impossible */
-    err = "A playlist with that name already exists.";
-  if(err) {
-    popup_protocol_error(0, err);
-    disorder_eclient_playlist_unlock(client, playlist_new_unlocked, fullname);
-    return;
-  }
-  gboolean shared, public, private;
-  playlist_new_details(0, 0, &shared, &public, &private);
-  disorder_eclient_playlist_set_share(client, playlist_new_created, fullname,
-                                      public ? "public"
-                                      : private ? "private"
-                                      : "shared",
-                                      fullname);
-}
-
-/** @brief Called when the proposed new playlist has been locked */
-static void playlist_new_locked(void *v, const char *err) {
-  char *fullname = v;
-  if(err) {
-    popup_protocol_error(0, err);
-    return;
-  }
-  disorder_eclient_playlist_get(client, playlist_new_retrieved,
-                                fullname, fullname);
-}
-
-/** @brief Called when 'ok' is clicked in new-playlist popup */
-static void playlist_new_ok(GtkButton attribute((unused)) *button,
-                            gpointer attribute((unused)) userdata) {
-  gboolean shared, public, private;
-  char *name, *fullname;
-  playlist_new_details(&name, &fullname, &shared, &public, &private);
-
-  /* We need to:
-   * - lock the playlist
-   * - check it doesn't exist
-   * - set sharing (which will create it empty
-   * - unlock it
-   *
-   * TODO we should freeze the window while this is going on to stop a second
-   * click.
-   */
-  disorder_eclient_playlist_lock(client, playlist_new_locked, fullname,
-                                 fullname);
-}
-
-/** @brief Called when 'cancel' is clicked in new-playlist popup */
-static void playlist_new_cancel(GtkButton attribute((unused)) *button,
-                                gpointer attribute((unused)) userdata) {
-  gtk_widget_destroy(playlist_new_window);
-}
-
 /** @brief Buttons for new-playlist popup */
 static struct button playlist_new_buttons[] = {
   {
@@ -360,67 +282,6 @@ static struct button playlist_new_buttons[] = {
   }
 };
 #define NPLAYLIST_NEW_BUTTONS (sizeof playlist_new_buttons / sizeof *playlist_new_buttons)
-
-/** @brief Test whether the new-playlist window settings are valid
- * @return NULL on success or an error string if not
- */
-static const char *playlist_new_valid(void) {
-  gboolean shared, public, private;
-  char *name, *fullname;
-  playlist_new_details(&name, &fullname, &shared, &public, &private);
-  if(!(shared || public || private))
-    return "No type set.";
-  if(!*name)
-    return "";
-  /* See if the result is valid */
-  if(!valid_username(name)
-     || playlist_parse_name(fullname, NULL, NULL))
-    return "Not a valid playlist name.";
-  /* See if the result clashes with an existing name.  This is not a perfect
-   * check, the playlist might be created after this point but before we get a
-   * chance to disable the "OK" button.  However when we try to create the
-   * playlist we will first try to retrieve it, with a lock held, so we
-   * shouldn't end up overwriting anything. */
-  for(int n = 0; n < nplaylists; ++n)
-    if(!strcmp(playlists[n], fullname)) {
-      if(shared)
-        return "A shared playlist with that name already exists.";
-      else
-        return "You already have a playlist with that name.";
-    }
-  /* As far as we can tell creation would work */
-  return NULL;
-}
-
-/** @brief Called to update new playlist window state
- *
- * This is called whenever one the text entry or radio buttons changed, and
- * also when the set of known playlists changes.  It determines whether the new
- * playlist would be creatable and sets the sensitivity of the OK button
- * and info display accordingly.
- */
-static void playlist_new_changed(const char attribute((unused)) *event,
-                                 void attribute((unused)) *eventdata,
-                                 void attribute((unused)) *callbackdata) {
-  if(!playlist_new_window)
-    return;
-  const char *reason = playlist_new_valid();
-  gtk_widget_set_sensitive(playlist_new_buttons[0].widget,
-                           !reason);
-  gtk_label_set_text(GTK_LABEL(playlist_new_info), reason);
-}
-
-/** @brief Called when some radio button in the new-playlist popup changes */
-static void playlist_new_button_toggled(GtkToggleButton attribute((unused)) tb,
-                                        gpointer attribute((unused)) userdata) {
-  playlist_new_changed(0,0,0);
-}
-
-/** @brief Called when the text entry field in the new-playlist popup changes */
-static void playlist_new_entry_edited(GtkEditable attribute((unused)) *editable,
-                                      gpointer attribute((unused)) user_data) {
-  playlist_new_changed(0,0,0);
-}
 
 /** @brief Pop up a new window to enter the playlist name and details */
 static void playlist_new_playlist(void) {
@@ -487,6 +348,177 @@ static void playlist_new_playlist(void) {
   
   /* Display the window */
   gtk_widget_show_all(playlist_new_window);
+}
+
+/** @brief Called when 'ok' is clicked in new-playlist popup */
+static void playlist_new_ok(GtkButton attribute((unused)) *button,
+                            gpointer attribute((unused)) userdata) {
+  gboolean shared, public, private;
+  char *name, *fullname;
+  playlist_new_details(&name, &fullname, &shared, &public, &private);
+
+  /* We need to:
+   * - lock the playlist
+   * - check it doesn't exist
+   * - set sharing (which will create it empty
+   * - unlock it
+   *
+   * TODO we should freeze the window while this is going on to stop a second
+   * click.
+   */
+  disorder_eclient_playlist_lock(client, playlist_new_locked, fullname,
+                                 fullname);
+}
+
+/** @brief Called when the proposed new playlist has been locked */
+static void playlist_new_locked(void *v, const char *err) {
+  char *fullname = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  disorder_eclient_playlist_get(client, playlist_new_retrieved,
+                                fullname, fullname);
+}
+
+/** @brief Called when the proposed new playlist's contents have been retrieved
+ *
+ * ...or rather, normally, when it's been reported that it does not exist.
+ */
+static void playlist_new_retrieved(void *v, const char *err,
+                                   int nvec,
+                                   char attribute((unused)) **vec) {
+  char *fullname = v;
+  if(!err && nvec != -1)
+    /* A rare case but not in principle impossible */
+    err = "A playlist with that name already exists.";
+  if(err) {
+    popup_protocol_error(0, err);
+    disorder_eclient_playlist_unlock(client, playlist_new_unlocked, fullname);
+    return;
+  }
+  gboolean shared, public, private;
+  playlist_new_details(0, 0, &shared, &public, &private);
+  disorder_eclient_playlist_set_share(client, playlist_new_created, fullname,
+                                      public ? "public"
+                                      : private ? "private"
+                                      : "shared",
+                                      fullname);
+}
+
+/** @brief Called when the new playlist has been created */
+static void playlist_new_created(void attribute((unused)) *v, const char *err) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  disorder_eclient_playlist_unlock(client, playlist_new_unlocked, NULL);
+  // TODO arrange for the new playlist to be selected
+}
+
+/** @brief Called when the newly created playlist has unlocked */
+static void playlist_new_unlocked(void attribute((unused)) *v, const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+  /* Pop down the creation window */
+  gtk_widget_destroy(playlist_new_window);
+}
+
+/** @brief Called when 'cancel' is clicked in new-playlist popup */
+static void playlist_new_cancel(GtkButton attribute((unused)) *button,
+                                gpointer attribute((unused)) userdata) {
+  gtk_widget_destroy(playlist_new_window);
+}
+
+/** @brief Called when some radio button in the new-playlist popup changes */
+static void playlist_new_button_toggled(GtkToggleButton attribute((unused)) *tb,
+                                        gpointer attribute((unused)) userdata) {
+  playlist_new_changed(0,0,0);
+}
+
+/** @brief Called when the text entry field in the new-playlist popup changes */
+static void playlist_new_entry_edited(GtkEditable attribute((unused)) *editable,
+                                      gpointer attribute((unused)) user_data) {
+  playlist_new_changed(0,0,0);
+}
+
+/** @brief Called to update new playlist window state
+ *
+ * This is called whenever one the text entry or radio buttons changed, and
+ * also when the set of known playlists changes.  It determines whether the new
+ * playlist would be creatable and sets the sensitivity of the OK button
+ * and info display accordingly.
+ */
+static void playlist_new_changed(const char attribute((unused)) *event,
+                                 void attribute((unused)) *eventdata,
+                                 void attribute((unused)) *callbackdata) {
+  if(!playlist_new_window)
+    return;
+  const char *reason = playlist_new_valid();
+  gtk_widget_set_sensitive(playlist_new_buttons[0].widget,
+                           !reason);
+  gtk_label_set_text(GTK_LABEL(playlist_new_info), reason);
+}
+
+/** @brief Test whether the new-playlist window settings are valid
+ * @return NULL on success or an error string if not
+ */
+static const char *playlist_new_valid(void) {
+  gboolean shared, public, private;
+  char *name, *fullname;
+  playlist_new_details(&name, &fullname, &shared, &public, &private);
+  if(!(shared || public || private))
+    return "No type set.";
+  if(!*name)
+    return "";
+  /* See if the result is valid */
+  if(!valid_username(name)
+     || playlist_parse_name(fullname, NULL, NULL))
+    return "Not a valid playlist name.";
+  /* See if the result clashes with an existing name.  This is not a perfect
+   * check, the playlist might be created after this point but before we get a
+   * chance to disable the "OK" button.  However when we try to create the
+   * playlist we will first try to retrieve it, with a lock held, so we
+   * shouldn't end up overwriting anything. */
+  for(int n = 0; n < nplaylists; ++n)
+    if(!strcmp(playlists[n], fullname)) {
+      if(shared)
+        return "A shared playlist with that name already exists.";
+      else
+        return "You already have a playlist with that name.";
+    }
+  /* As far as we can tell creation would work */
+  return NULL;
+}
+
+/** @brief Get entered new-playlist details
+ * @param namep Where to store entered name (or NULL)
+ * @param fullnamep Where to store computed full name (or NULL)
+ * @param sharep Where to store 'shared' flag (or NULL)
+ * @param publicp Where to store 'public' flag (or NULL)
+ * @param privatep Where to store 'private' flag (or NULL)
+ */
+static void playlist_new_details(char **namep,
+                                 char **fullnamep,
+                                 gboolean *sharedp,
+                                 gboolean *publicp,
+                                 gboolean *privatep) {
+  gboolean shared, public, private;
+  g_object_get(playlist_new_shared, "active", &shared, (char *)NULL);
+  g_object_get(playlist_new_public, "active", &public, (char *)NULL);
+  g_object_get(playlist_new_private, "active", &private, (char *)NULL);
+  char *gname = gtk_editable_get_chars(GTK_EDITABLE(playlist_new_entry),
+                                       0, -1); /* name owned by calle */
+  char *name = xstrdup(gname);
+  g_free(gname);
+  if(sharedp) *sharedp = shared;
+  if(publicp) *publicp = public;
+  if(privatep) *privatep = private;
+  if(namep) *namep = name;
+  if(fullnamep) {
+    if(*sharedp) *fullnamep = *namep;
+    else byte_xasprintf(fullnamep, "%s.%s", config->username, name);
+  }
 }
 
 /* Playlist picker ---------------------------------------------------------- */
@@ -657,6 +689,28 @@ static GtkWidget *playlist_picker_create(void) {
 
 /* Playlist editor ---------------------------------------------------------- */
 
+static GtkWidget *playlists_editor_create(void) {
+  assert(ql_playlist.view == NULL);     /* better not be set up already */
+  GtkWidget *w = init_queuelike(&ql_playlist);
+  /* Initially empty */
+  return w;
+}
+
+/** @brief (Re-)populate the playlist tree model */
+static void playlist_editor_fill(const char attribute((unused)) *event,
+                                 void *eventdata,
+                                 void attribute((unused)) *callbackdata) {
+  const char *modified_playlist = eventdata;
+  if(!playlist_window)
+    return;
+  if(!playlist_picker_selected)
+    return;
+  if(!strcmp(playlist_picker_selected, modified_playlist))
+    disorder_eclient_playlist_get(client, playlists_editor_received_tracks,
+                                  playlist_picker_selected,
+                                  (void *)playlist_picker_selected);
+}
+
 /** @brief Called with new tracks for the playlist */
 static void playlists_editor_received_tracks(void *v,
                                              const char *err,
@@ -693,28 +747,6 @@ static void playlists_editor_received_tracks(void *v,
   }
   *qq = NULL;
   ql_new_queue(&ql_playlist, newq);
-}
-
-/** @brief (Re-)populate the playlist tree model */
-static void playlist_editor_fill(const char attribute((unused)) *event,
-                                 void *eventdata,
-                                 void attribute((unused)) *callbackdata) {
-  const char *modified_playlist = eventdata;
-  if(!playlist_window)
-    return;
-  if(!playlist_picker_selected)
-    return;
-  if(!strcmp(playlist_picker_selected, modified_playlist))
-    disorder_eclient_playlist_get(client, playlists_editor_received_tracks,
-                                  playlist_picker_selected,
-                                  (void *)playlist_picker_selected);
-}
-
-static GtkWidget *playlists_editor_create(void) {
-  assert(ql_playlist.view == NULL);     /* better not be set up already */
-  GtkWidget *w = init_queuelike(&ql_playlist);
-  /* Initially empty */
-  return w;
 }
 
 /* Playlist editor right-click menu ---------------------------------------- */
@@ -770,28 +802,6 @@ static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
 
 /* Playlists window --------------------------------------------------------- */
 
-/** @brief Keypress handler */
-static gboolean playlist_window_keypress(GtkWidget attribute((unused)) *widget,
-                                         GdkEventKey *event,
-                                         gpointer attribute((unused)) user_data) {
-  if(event->state)
-    return FALSE;
-  switch(event->keyval) {
-  case GDK_Escape:
-    gtk_widget_destroy(playlist_window);
-    return TRUE;
-  default:
-    return FALSE;
-  }
-}
-
-/** @brief Called when the playlist window is destroyed */
-static void playlist_window_destroyed(GtkWidget attribute((unused)) *widget,
-                                      GtkWidget **widget_pointer) {
-  destroy_queuelike(&ql_playlist);
-  *widget_pointer = NULL;
-}
-
 /** @brief Pop up the playlists window
  *
  * Called when the playlists menu item is selected
@@ -828,6 +838,28 @@ void playlist_window_create(gpointer attribute((unused)) callback_data,
 
   gtk_container_add(GTK_CONTAINER(playlist_window), frame_widget(hbox, NULL));
   gtk_widget_show_all(playlist_window);
+}
+
+/** @brief Keypress handler */
+static gboolean playlist_window_keypress(GtkWidget attribute((unused)) *widget,
+                                         GdkEventKey *event,
+                                         gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Escape:
+    gtk_widget_destroy(playlist_window);
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+/** @brief Called when the playlist window is destroyed */
+static void playlist_window_destroyed(GtkWidget attribute((unused)) *widget,
+                                      GtkWidget **widget_pointer) {
+  destroy_queuelike(&ql_playlist);
+  *widget_pointer = NULL;
 }
 
 /** @brief Initialize playlist support */
