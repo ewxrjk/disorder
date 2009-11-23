@@ -638,11 +638,19 @@ static GtkWidget *playlist_picker_create(void) {
 /* Playlist editor ---------------------------------------------------------- */
 
 /** @brief Called with new tracks for the playlist */
-static void playlists_editor_received_tracks(void attribute((unused)) *v,
+static void playlists_editor_received_tracks(void *v,
                                              const char *err,
                                              int nvec, char **vec) {
+  const char *playlist = v;
   if(err) {
     popup_protocol_error(0, err);
+    return;
+  }
+  if(!playlist_picker_selected
+     || strcmp(playlist, playlist_picker_selected)) {
+    /* The tracks are for the wrong playlist - something must have changed
+     * while the fetch command was in flight.  We just ignore this callback,
+     * the right answer will be requested and arrive in due course. */
     return;
   }
   if(nvec == -1)
@@ -660,7 +668,6 @@ static void playlists_editor_received_tracks(void attribute((unused)) *v,
     /* TODO but this doesn't work for some reason */
     int *serialp = hash_find(h, vec[n]), serial = serialp ? *serialp : 0;
     byte_xasprintf((char **)&q->id, "%d-%s", serial++, vec[n]);
-    fprintf(stderr, "%s\n", q->id);
     hash_add(h, vec[0], &serial, HASH_INSERT_OR_REPLACE);
     *qq = q;
     qq = &q->next;
@@ -680,7 +687,8 @@ static void playlist_editor_fill(const char attribute((unused)) *event,
     return;
   if(!strcmp(playlist_picker_selected, modified_playlist))
     disorder_eclient_playlist_get(client, playlists_editor_received_tracks,
-                                  playlist_picker_selected, NULL);
+                                  playlist_picker_selected,
+                                  (void *)playlist_picker_selected);
 }
 
 static GtkWidget *playlists_editor_create(void) {
@@ -718,9 +726,9 @@ static void playlist_window_destroyed(GtkWidget attribute((unused)) *widget,
  *
  * Called when the playlists menu item is selected
  */
-void edit_playlists(gpointer attribute((unused)) callback_data,
-                    guint attribute((unused)) callback_action,
-                    GtkWidget attribute((unused)) *menu_item) {
+void playlist_window_create(gpointer attribute((unused)) callback_data,
+                            guint attribute((unused)) callback_action,
+                            GtkWidget attribute((unused)) *menu_item) {
   /* If the window already exists, raise it */
   if(playlist_window) {
     gtk_window_present(GTK_WINDOW(playlist_window));
@@ -756,7 +764,6 @@ void edit_playlists(gpointer attribute((unused)) callback_data,
 void playlists_init(void) {
   /* We re-get all playlists upon any change... */
   event_register("playlist-created", playlist_list_update, 0);
-  event_register("playlist-modified", playlist_list_update, 0); /* TODO why? */
   event_register("playlist-deleted", playlist_list_update, 0);
   /* ...and on reconnection */
   event_register("log-connected", playlist_list_update, 0);

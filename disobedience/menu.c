@@ -302,7 +302,7 @@ GtkWidget *menubar(GtkWidget *w) {
     {
       (char *)"/Edit/Edit playlists",   /* path */
       0,                                /* accelerator */
-      edit_playlists,                   /* callback */
+      playlist_window_create,           /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
