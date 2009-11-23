@@ -456,15 +456,20 @@ static void playlists_fill(const char attribute((unused)) *event,
                            void attribute((unused)) *callbackdata) {
   GtkTreeIter iter[1];
 
+  if(!playlists_window)
+    return;
   if(!playlists_list)
     playlists_list = gtk_list_store_new(1, G_TYPE_STRING);
-  gtk_list_store_clear(playlists_list);
-  for(int n = 0; n < nplaylists; ++n)
+  const char *was_selected = playlists_selected;
+  gtk_list_store_clear(playlists_list); /* clears playlists_selected */
+  for(int n = 0; n < nplaylists; ++n) {
     gtk_list_store_insert_with_values(playlists_list, iter, n/*position*/,
                                       0, playlists[n],        /* column 0 */
                                       -1);                    /* no more cols */
-  // TODO reselect whatever was formerly selected if possible, if not then
-  // zap the contents view
+    /* Reselect the selected playlist */
+    if(was_selected && !strcmp(was_selected, playlists[n]))
+      gtk_tree_selection_select_iter(playlists_selection, iter);
+  }
 }
 
 /** @brief Called when the selection might have changed */
