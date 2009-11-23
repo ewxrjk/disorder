@@ -481,7 +481,8 @@ static void playlists_selection_changed(GtkTreeSelection attribute((unused)) *tr
     g_free(gselected);
   } else
     selected = 0;
-  if(playlists_selected)
+  /* Set button sensitivity according to the new state */
+  if(selected)
     gtk_widget_set_sensitive(playlists_delete_button, 1);
   else
     gtk_widget_set_sensitive(playlists_delete_button, 0);
@@ -490,7 +491,8 @@ static void playlists_selection_changed(GtkTreeSelection attribute((unused)) *tr
     return;
   if(selected && playlists_selected && !strcmp(selected, playlists_selected))
     return;
-  /* There's been a change */
+  /* Record the new state */
+  playlists_selected = selected;
 }
 
 /** @brief Called when the 'add' button is pressed */
@@ -499,6 +501,13 @@ static void playlists_add(GtkButton attribute((unused)) *button,
   /* Unselect whatever is selected TODO why?? */
   gtk_tree_selection_unselect_all(playlists_selection);
   playlist_new();
+}
+
+/** @brief Called when playlist deletion completes */
+static void playlists_delete_completed(void attribute((unused)) *v,
+                                       const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -521,7 +530,7 @@ static void playlists_delete(GtkButton attribute((unused)) *button,
   gtk_widget_destroy(yesno);
   if(res == GTK_RESPONSE_YES) {
     disorder_eclient_playlist_delete(client,
-                                     NULL/*playlists_delete_completed*/,
+                                     playlists_delete_completed,
                                      playlists_selected,
                                      NULL);
   }
@@ -667,6 +676,8 @@ void playlists_init(void) {
   event_register("playlists-updated", menu_playlists_changed, 0);
   /* Update the new-playlist OK button when the set of playlists changes */
   event_register("playlists-updated", playlist_new_changed, 0);
+  /* Update the list of playlists in the edit window when the set changes */
+  event_register("playlists-updated", playlists_fill, 0);
   playlists_update(0, 0, 0);
 }
 
