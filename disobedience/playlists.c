@@ -24,7 +24,7 @@
  * - the playlist picker (a list of all playlists) TODO should be a tree!
  * - an add button
  * - a delete button
- * - the playlist view (a drag+drop capable view of the currently picked playlist)
+ * - the playlist editor (a d+d-capable view of the currently picked playlist)
  * - a close button   TODO
  *
  * This file also maintains the playlist menu, allowing playlists to be
@@ -45,12 +45,12 @@
 static void playlist_list_received_playlists(void *v,
                                              const char *err,
                                              int nvec, char **vec);
-static void playlists_fill_tracks(const char *event,
-                                  void *eventdata,
-                                  void *callbackdata);
+static void playlist_editor_fill(const char *event,
+                                 void *eventdata,
+                                 void *callbackdata);
 
 /** @brief Playlist editing window */
-static GtkWidget *playlists_window;
+static GtkWidget *playlist_window;
 
 /** @brief Columns for the playlist editor */
 static const struct queue_column playlist_columns[] = {
@@ -414,7 +414,7 @@ static void playlist_new_playlist(void) {
   /* Window will be modal, suppressing access to other windows */
   gtk_window_set_modal(GTK_WINDOW(playlist_new_window), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(playlist_new_window),
-                               GTK_WINDOW(playlists_window));
+                               GTK_WINDOW(playlist_window));
 
   /* Window contents will use a table (grid) layout */
   GtkWidget *table = gtk_table_new(3, 3, FALSE/*!homogeneous*/);
@@ -491,7 +491,7 @@ static void playlist_picker_fill(const char attribute((unused)) *event,
                                  void attribute((unused)) *callbackdata) {
   GtkTreeIter iter[1];
 
-  if(!playlists_window)
+  if(!playlist_window)
     return;
   if(!playlist_picker_list)
     playlist_picker_list = gtk_list_store_new(1, G_TYPE_STRING);
@@ -538,7 +538,7 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
   playlist_picker_selected = selected;
   /* Re-initalize the queue */
   ql_new_queue(&ql_playlist, NULL);
-  playlists_fill_tracks(NULL, (void *)playlist_picker_selected, NULL);
+  playlist_editor_fill(NULL, (void *)playlist_picker_selected, NULL);
 }
 
 /** @brief Called when the 'add' button is pressed */
@@ -564,7 +564,7 @@ static void playlist_picker_delete(GtkButton attribute((unused)) *button,
 
   if(!playlist_picker_selected)
     return;                             /* shouldn't happen */
-  yesno = gtk_message_dialog_new(GTK_WINDOW(playlists_window),
+  yesno = gtk_message_dialog_new(GTK_WINDOW(playlist_window),
                                  GTK_DIALOG_MODAL,
                                  GTK_MESSAGE_QUESTION,
                                  GTK_BUTTONS_YES_NO,
@@ -635,13 +635,12 @@ static GtkWidget *playlist_picker_create(void) {
   return vbox;
 }
 
-/* Playlists window (edit current playlist) --------------------------------- */
+/* Playlist editor ---------------------------------------------------------- */
 
 /** @brief Called with new tracks for the playlist */
-static void playlists_got_new_tracks(void attribute((unused)) *v,
-                                     const char *err,
-                                     int nvec, char **vec) {
-  fprintf(stderr, "playlists_got_new_tracks\n");
+static void playlists_editor_received_tracks(void attribute((unused)) *v,
+                                             const char *err,
+                                             int nvec, char **vec) {
   if(err) {
     popup_protocol_error(0, err);
     return;
@@ -667,27 +666,24 @@ static void playlists_got_new_tracks(void attribute((unused)) *v,
     qq = &q->next;
   }
   *qq = NULL;
-  fprintf(stderr, "calling ql_new_queue\n");
   ql_new_queue(&ql_playlist, newq);
-  fprintf(stderr, "back form ql_new_queue\n");
 }
 
 /** @brief (Re-)populate the playlist tree model */
-static void playlists_fill_tracks(const char attribute((unused)) *event,
-                                  void *eventdata,
-                                  void attribute((unused)) *callbackdata) {
+static void playlist_editor_fill(const char attribute((unused)) *event,
+                                 void *eventdata,
+                                 void attribute((unused)) *callbackdata) {
   const char *modified_playlist = eventdata;
-  fprintf(stderr, "playlists_fill_tracks: %s\n", modified_playlist);
-  if(!playlists_window)
+  if(!playlist_window)
     return;
   if(!playlist_picker_selected)
     return;
   if(!strcmp(playlist_picker_selected, modified_playlist))
-    disorder_eclient_playlist_get(client, playlists_got_new_tracks,
+    disorder_eclient_playlist_get(client, playlists_editor_received_tracks,
                                   playlist_picker_selected, NULL);
 }
 
-static GtkWidget *playlists_window_edit(void) {
+static GtkWidget *playlists_editor_create(void) {
   assert(ql_playlist.view == NULL);     /* better not be set up already */
   GtkWidget *w = init_queuelike(&ql_playlist);
   /* Initially empty */
@@ -697,14 +693,14 @@ static GtkWidget *playlists_window_edit(void) {
 /* Playlists window --------------------------------------------------------- */
 
 /** @brief Keypress handler */
-static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
-                                   GdkEventKey *event,
-                                   gpointer attribute((unused)) user_data) {
+static gboolean playlist_window_keypress(GtkWidget attribute((unused)) *widget,
+                                         GdkEventKey *event,
+                                         gpointer attribute((unused)) user_data) {
   if(event->state)
     return FALSE;
   switch(event->keyval) {
   case GDK_Escape:
-    gtk_widget_destroy(playlists_window);
+    gtk_widget_destroy(playlist_window);
     return TRUE;
   default:
     return FALSE;
@@ -712,8 +708,8 @@ static gboolean playlists_keypress(GtkWidget attribute((unused)) *widget,
 }
 
 /** @brief Called when the playlist window is destroyed */
-static void playlists_window_destroyed(GtkWidget attribute((unused)) *widget,
-                                       GtkWidget **widget_pointer) {
+static void playlist_window_destroyed(GtkWidget attribute((unused)) *widget,
+                                      GtkWidget **widget_pointer) {
   destroy_queuelike(&ql_playlist);
   *widget_pointer = NULL;
 }
@@ -726,34 +722,34 @@ void edit_playlists(gpointer attribute((unused)) callback_data,
                     guint attribute((unused)) callback_action,
                     GtkWidget attribute((unused)) *menu_item) {
   /* If the window already exists, raise it */
-  if(playlists_window) {
-    gtk_window_present(GTK_WINDOW(playlists_window));
+  if(playlist_window) {
+    gtk_window_present(GTK_WINDOW(playlist_window));
     return;
   }
   /* Create the window */
-  playlists_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_widget_set_style(playlists_window, tool_style);
-  g_signal_connect(playlists_window, "destroy",
-		   G_CALLBACK(playlists_window_destroyed), &playlists_window);
-  gtk_window_set_title(GTK_WINDOW(playlists_window), "Playlists Management");
+  playlist_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_style(playlist_window, tool_style);
+  g_signal_connect(playlist_window, "destroy",
+		   G_CALLBACK(playlist_window_destroyed), &playlist_window);
+  gtk_window_set_title(GTK_WINDOW(playlist_window), "Playlists Management");
   /* TODO loads of this is very similar to (copied from!) users.c - can we
    * de-dupe? */
   /* Keyboard shortcuts */
-  g_signal_connect(playlists_window, "key-press-event",
-                   G_CALLBACK(playlists_keypress), 0);
+  g_signal_connect(playlist_window, "key-press-event",
+                   G_CALLBACK(playlist_window_keypress), 0);
   /* default size is too small */
-  gtk_window_set_default_size(GTK_WINDOW(playlists_window), 512, 240);
+  gtk_window_set_default_size(GTK_WINDOW(playlist_window), 512, 240);
 
   GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), playlist_picker_create(),
                      FALSE/*expand*/, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), gtk_event_box_new(),
                      FALSE/*expand*/, FALSE, 2);
-  gtk_box_pack_start(GTK_BOX(hbox), playlists_window_edit(),
+  gtk_box_pack_start(GTK_BOX(hbox), playlists_editor_create(),
                      TRUE/*expand*/, TRUE/*fill*/, 0);
 
-  gtk_container_add(GTK_CONTAINER(playlists_window), frame_widget(hbox, NULL));
-  gtk_widget_show_all(playlists_window);
+  gtk_container_add(GTK_CONTAINER(playlist_window), frame_widget(hbox, NULL));
+  gtk_widget_show_all(playlist_window);
 }
 
 /** @brief Initialize playlist support */
@@ -776,7 +772,7 @@ void playlists_init(void) {
   /* Update the list of playlists in the edit window when the set changes */
   event_register("playlists-updated", playlist_picker_fill, 0);
   /* Update the displayed playlist when it is modified */
-  event_register("playlist-modified", playlists_fill_tracks, 0);
+  event_register("playlist-modified", playlist_editor_fill, 0);
 }
 
 #endif
