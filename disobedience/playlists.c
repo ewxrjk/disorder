@@ -929,6 +929,7 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
   char **newvec;
   int nnewvec;
 
+  fprintf(stderr, "\nplaylist_drop_modify\n");
   /* after_me is the queue_entry to insert after, or NULL to insert at the
    * beginning (including the case when the playlist is empty) */
   fprintf(stderr, "after_me = %s\n",
@@ -946,39 +947,52 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
    * and so equal to nvec to append. */
   fprintf(stderr, "ins = %d = %s\n",
           ins, ins < nvec ? vec[ins] : "NULL");
+  for(int n = 0; n < nvec; ++n)
+    fprintf(stderr, "%d: %s %s\n", n, n == ins ? "->" : "  ", vec[n]);
   fprintf(stderr, "nvec = %d\n", nvec);
   if(mod->ids) {
     /* This is a rearrangement */
-    nnewvec = nvec;
-    newvec = xcalloc(nnewvec, sizeof (char *));
-    int i = 0;
-    /* For each destination slot decide what will go there */
-    for(int n = 0; n < nnewvec; ++n) {
-      fprintf(stderr, "n=%d i=%d\n", n, i);
-      if(n >= ins && n < ins + mod->ntracks) {
-        fprintf(stderr, "inside insertion range\n");
-        newvec[n] = mod->tracks[n - ins];
-      } else {
-        /* Pick the next track from vec[] that is not mentioned in mod->ids[] */
-        while(playlist_drop_is_moved(mod, i)) {
-          ++i;
-          --ins;
-          fprintf(stderr, "now:  i=%d ins=%d\n", i, ins);
-        }
-        newvec[n] = vec[i++];
+    /* We have:
+     * - vec[], the current layout
+     * - ins, pointing into vec
+     * - mod->tracks[], a subset of vec[] which is to be moved
+     *
+     * ins is the insertion point BUT it is in terms of the whole
+     * array, i.e. before mod->tracks[] have been removed.  The first
+     * step then is to remove everything in mod->tracks[] and adjust
+     * ins downwards as necessary.
+     */
+    /* First zero out anything that's moved */
+    int before_ins = 0;
+    for(int n = 0; n < nvec; ++n) {
+      if(playlist_drop_is_moved(mod, n)) {
+        vec[n] = NULL;
+        if(n < ins)
+          ++before_ins;
       }
     }
-  } else {
-    /* This is an insertion */
-    nnewvec = nvec + mod->ntracks;
-    newvec = xcalloc(nnewvec, sizeof (char *));
-    memcpy(newvec, vec,
-           ins * sizeof (char *));
-    memcpy(newvec + ins, mod->tracks,
-           mod->ntracks * sizeof (char *));
-    memcpy(newvec + ins + mod->ntracks, vec + ins,
-           (nvec - ins) * sizeof (char *));
+    /* Now collapse down the array */
+    int i = 0;
+    for(int n = 0; n < nvec; ++n) {
+      if(vec[n])
+        vec[i++] = vec[n];
+    }
+    assert(i + mod->ntracks == nvec);
+    nvec = i;
+    /* Adjust the insertion point to take account of things moved from before
+     * it */
+    ins -= before_ins;
+    /* The effect is now the same as an insertion */
   }
+  /* This is (now) an insertion */
+  nnewvec = nvec + mod->ntracks;
+  newvec = xcalloc(nnewvec, sizeof (char *));
+  memcpy(newvec, vec,
+         ins * sizeof (char *));
+  memcpy(newvec + ins, mod->tracks,
+         mod->ntracks * sizeof (char *));
+  memcpy(newvec + ins + mod->ntracks, vec + ins,
+         (nvec - ins) * sizeof (char *));
   disorder_eclient_playlist_set(client, playlist_modify_updated, mod->playlist,
                                 newvec, nnewvec, mod);
 }
