@@ -18,22 +18,13 @@ Dependencies:
      refuse to use it).
 
    * On FreeBSD you'll need at least these packages:
-	 autotools
-	 bash
-	 flac
-	 mad
-         boehm-gc
-         db43
-         gmake
-         gsed
-         libao
-         libgcrypt
-         wget
-         vorbis-tools
+       autotools bash flac mad boehm-gc db43 gmake gsed libao libgcrypt wget
+       vorbis-tools
 
    * On OS X with Fink:
 
-     fink install gtk+2-dev gc libgrypt pcre flac vorbis-tools libmad wget sed
+     fink install gtk+2-dev gc libgrypt pcre flac vorbis-tools libmad wget \
+                  sed libsamplerate0-dev
 
    * Please report unstated dependencies (here, README or debian/control).
 
