@@ -766,10 +766,11 @@ static void playlists_editor_received_tracks(void *v,
     /* No such playlist, presumably we'll get a deleted event shortly */
     return;
   /* Translate the list of tracks into queue entries */
-  struct queue_entry *newq, **qq = &newq;
+  struct queue_entry *newq, **qq = &newq, *qprev;
   hash *h = hash_new(sizeof(int));
   for(int n = 0; n < nvec; ++n) {
     struct queue_entry *q = xmalloc(sizeof *q);
+    q->prev = qprev;
     q->track = vec[n];
     /* Synthesize a unique ID so that the selection survives updates.  Tracks
      * can appear more than once in the queue so we can't use raw track names,
@@ -779,6 +780,7 @@ static void playlists_editor_received_tracks(void *v,
     hash_add(h, vec[n], &serial, HASH_INSERT_OR_REPLACE);
     *qq = q;
     qq = &q->next;
+    qprev = q;
   }
   *qq = NULL;
   ql_new_queue(&ql_playlist, newq);
@@ -909,18 +911,13 @@ static int playlist_drop_is_moved(struct playlist_modify_data *mod,
                                   int i) {
   struct queue_entry *q;
 
-  fprintf(stderr, "is %d moved?\n", i);
   /* Find the q corresponding to i, so we can get the ID */
   for(q = ql_playlist.q; i; q = q->next, --i)
     ;
-  fprintf(stderr, "id is %s\n", q->id);
   /* See if track i matches any of the moved set by ID */
   for(int n = 0; n < mod->ntracks; ++n)
-    if(!strcmp(q->id, mod->ids[n])) {
-      fprintf(stderr, "YES, it was moved.\n");
+    if(!strcmp(q->id, mod->ids[n]))
       return 1;
-    }
-  fprintf(stderr, "NO it was not.\n");
   return 0;
 }
 
@@ -945,11 +942,13 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
   }
   /* Now ins is the index to insert at; equivalently, the row to insert before,
    * and so equal to nvec to append. */
+#if 0
   fprintf(stderr, "ins = %d = %s\n",
           ins, ins < nvec ? vec[ins] : "NULL");
   for(int n = 0; n < nvec; ++n)
     fprintf(stderr, "%d: %s %s\n", n, n == ins ? "->" : "  ", vec[n]);
   fprintf(stderr, "nvec = %d\n", nvec);
+#endif
   if(mod->ids) {
     /* This is a rearrangement */
     /* We have:
