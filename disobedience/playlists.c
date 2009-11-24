@@ -756,7 +756,7 @@ static void playlists_editor_received_tracks(void *v,
      * so we add a serial number to the start. */
     int *serialp = hash_find(h, vec[n]), serial = serialp ? *serialp : 0;
     byte_xasprintf((char **)&q->id, "%d-%s", serial++, vec[n]);
-    hash_add(h, vec[0], &serial, HASH_INSERT_OR_REPLACE);
+    hash_add(h, vec[n], &serial, HASH_INSERT_OR_REPLACE);
     *qq = q;
     qq = &q->next;
   }
@@ -767,6 +767,16 @@ static void playlists_editor_received_tracks(void *v,
 /* Playlist mutation -------------------------------------------------------- */
 
 /** @brief State structure for guarded playlist modification
+ *
+ * To safely move, insert or delete rows we must:
+ * - take a lock
+ * - fetch the playlist
+ * - verify it's not changed
+ * - update the playlist contents
+ * - store the playlist
+ * - release the lock
+ *
+ * The playlist_modify_ functions do just that.
  *
  * To kick things off create one of these and disorder_eclient_playlist_lock()
  * with playlist_modify_locked() as its callback.  @c modify will be called; it
@@ -870,15 +880,6 @@ static void playlist_drop(struct queuelike attribute((unused)) *ql,
   mod->tracks = tracks;
   mod->ids = ids;
   mod->after_me = after_me;
-  /* To safely move or insert rows we must:
-   * - take a lock
-   * - fetch the playlist
-   * - verify it's not changed
-   * - update the playlist contents
-   * - store the playlist
-   * - release the lock
-   *
-   */
   disorder_eclient_playlist_lock(client, playlist_modify_locked,
                                  mod->playlist, mod);
 }
@@ -887,6 +888,9 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
                                  int nvec, char **vec) {
   char **newvec;
   int nnewvec;
+
+  fprintf(stderr, "after_me = %s\n",
+          mod->after_me ? mod->after_me->track : "NULL");
   if(mod->ids) {
     /* This is a rearrangement */
     /* TODO what if it's a drag from the queue? */
@@ -902,6 +906,8 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
         ++ins;
       }
     }
+    fprintf(stderr, "ins = %d = %s\n",
+            ins, ins < nvec ? vec[ins] : "NULL");
     nnewvec = nvec + mod->ntracks;
     newvec = xcalloc(nnewvec, sizeof (char *));
     memcpy(newvec, vec,
@@ -954,20 +960,9 @@ static int playlist_remove_sensitive(void attribute((unused)) *extra) {
 /** @brief Called to play the selected playlist */
 static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
                                      gpointer attribute((unused)) user_data) {
+  /* TODO backspace should work too */
   if(!playlist_picker_selected)
     return;
-  /* To safely remove rows we must:
-   * - take a lock
-   * - fetch the playlist
-   * - verify it's not changed
-   * - delete the selected rows from the retrieved version
-   * - store the playlist
-   * - release the lock
-   *
-   * In addition we careful check that the selected playlist hasn't changed
-   * underfoot, and avoid leaving the playlist locked if we bail out at any
-   * point.
-   */
   struct playlist_modify_data *mod = xmalloc(sizeof *mod);
 
   mod->playlist = playlist_picker_selected;

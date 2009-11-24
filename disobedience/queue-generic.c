@@ -426,6 +426,8 @@ void ql_new_queue(struct queuelike *ql,
         nit = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), next);
         ++searches;
       }
+      /* Note that this assertion will fail in the face of duplicate IDs.
+       * q->id really does need to be unique. */
       assert(nit);
       gtk_list_store_swap(ql->store, iter, next);
       *iter = *next;
