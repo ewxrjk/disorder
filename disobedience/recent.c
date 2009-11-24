@@ -91,6 +91,8 @@ struct queuelike ql_recent = {
   .ncolumns = sizeof recent_columns / sizeof *recent_columns,
   .menuitems = recent_menuitems,
   .nmenuitems = sizeof recent_menuitems / sizeof *recent_menuitems,
+  .drag_source_targets = choose_targets,
+  .drag_source_actions = GDK_ACTION_COPY,
 };
 
 GtkWidget *recent_widget(void) {

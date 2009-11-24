@@ -214,6 +214,8 @@ void choose_update(void);
 void play_completed(void *v,
                     const char *err);
 
+extern const GtkTargetEntry choose_targets[];
+
 /* Login details */
 
 void login_box(void);

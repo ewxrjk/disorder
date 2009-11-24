@@ -130,6 +130,22 @@ static struct menuitem playlist_menuitems[] = {
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
 
+static const GtkTargetEntry playlist_targets[] = {
+  {
+    PLAYLIST_TRACKS,                    /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
+    PLAYLIST_TRACKS_ID                  /* ID value */
+  },
+  {
+    PLAYABLE_TRACKS,                             /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    PLAYABLE_TRACKS_ID,                          /* ID value */
+  },
+  {
+    .target = NULL
+  }
+};
+
 /** @brief Queuelike for editing a playlist */
 static struct queuelike ql_playlist = {
   .name = "playlist",
@@ -137,7 +153,11 @@ static struct queuelike ql_playlist = {
   .ncolumns = sizeof playlist_columns / sizeof *playlist_columns,
   .menuitems = playlist_menuitems,
   .nmenuitems = sizeof playlist_menuitems / sizeof *playlist_menuitems,
-  .drop = playlist_drop
+  .drop = playlist_drop,
+  .drag_source_targets = playlist_targets,
+  .drag_source_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
+  .drag_dest_targets = playlist_targets,
+  .drag_dest_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
 };
 
 /* Maintaining the list of playlists ---------------------------------------- */
@@ -884,30 +904,72 @@ static void playlist_drop(struct queuelike attribute((unused)) *ql,
                                  mod->playlist, mod);
 }
 
+/** @brief Return true if track @p i is in the moved set */
+static int playlist_drop_is_moved(struct playlist_modify_data *mod,
+                                  int i) {
+  struct queue_entry *q;
+
+  fprintf(stderr, "is %d moved?\n", i);
+  /* Find the q corresponding to i, so we can get the ID */
+  for(q = ql_playlist.q; i; q = q->next, --i)
+    ;
+  fprintf(stderr, "id is %s\n", q->id);
+  /* See if track i matches any of the moved set by ID */
+  for(int n = 0; n < mod->ntracks; ++n)
+    if(!strcmp(q->id, mod->ids[n])) {
+      fprintf(stderr, "YES, it was moved.\n");
+      return 1;
+    }
+  fprintf(stderr, "NO it was not.\n");
+  return 0;
+}
+
 static void playlist_drop_modify(struct playlist_modify_data *mod,
                                  int nvec, char **vec) {
   char **newvec;
   int nnewvec;
 
+  /* after_me is the queue_entry to insert after, or NULL to insert at the
+   * beginning (including the case when the playlist is empty) */
   fprintf(stderr, "after_me = %s\n",
           mod->after_me ? mod->after_me->track : "NULL");
+  struct queue_entry *q = ql_playlist.q;
+  int ins = 0;
+  if(mod->after_me) {
+    ++ins;
+    while(q && q != mod->after_me) {
+      q = q->next;
+      ++ins;
+    }
+  }
+  /* Now ins is the index to insert at; equivalently, the row to insert before,
+   * and so equal to nvec to append. */
+  fprintf(stderr, "ins = %d = %s\n",
+          ins, ins < nvec ? vec[ins] : "NULL");
+  fprintf(stderr, "nvec = %d\n", nvec);
   if(mod->ids) {
     /* This is a rearrangement */
-    /* TODO what if it's a drag from the queue? */
-    abort();
-  } else {
-    /* This is an insertion */
-    struct queue_entry *q = ql_playlist.q;
-    int ins = 0;
-    if(mod->after_me) {
-      ++ins;
-      while(q && q != mod->after_me) {
-        q = q->next;
-        ++ins;
+    nnewvec = nvec;
+    newvec = xcalloc(nnewvec, sizeof (char *));
+    int i = 0;
+    /* For each destination slot decide what will go there */
+    for(int n = 0; n < nnewvec; ++n) {
+      fprintf(stderr, "n=%d i=%d\n", n, i);
+      if(n >= ins && n < ins + mod->ntracks) {
+        fprintf(stderr, "inside insertion range\n");
+        newvec[n] = mod->tracks[n - ins];
+      } else {
+        /* Pick the next track from vec[] that is not mentioned in mod->ids[] */
+        while(playlist_drop_is_moved(mod, i)) {
+          ++i;
+          --ins;
+          fprintf(stderr, "now:  i=%d ins=%d\n", i, ins);
+        }
+        newvec[n] = vec[i++];
       }
     }
-    fprintf(stderr, "ins = %d = %s\n",
-            ins, ins < nvec ? vec[ins] : "NULL");
+  } else {
+    /* This is an insertion */
     nnewvec = nvec + mod->ntracks;
     newvec = xcalloc(nnewvec, sizeof (char *));
     memcpy(newvec, vec,

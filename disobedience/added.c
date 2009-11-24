@@ -93,6 +93,8 @@ struct queuelike ql_added = {
   .ncolumns = sizeof added_columns / sizeof *added_columns,
   .menuitems = added_menuitems,
   .nmenuitems = sizeof added_menuitems / sizeof *added_menuitems,
+  .drag_source_targets = choose_targets,
+  .drag_source_actions = GDK_ACTION_COPY,
 };
 
 GtkWidget *added_widget(void) {

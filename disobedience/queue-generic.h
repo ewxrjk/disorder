@@ -104,7 +104,29 @@ struct queuelike {
   void (*drop)(struct queuelike *ql, int ntracks, char **tracks, char **ids,
                struct queue_entry *after_me);
 
+  /** @brief Source target list */
+  const GtkTargetEntry *drag_source_targets;
+
+  /** @brief Drag source actions */
+  GdkDragAction drag_source_actions;
+  
+  /** @brief Destination target list */
+  const GtkTargetEntry *drag_dest_targets;
+
+  /** @brief Drag destination actions */
+  GdkDragAction drag_dest_actions;
+  
 };
+
+enum {
+  PLAYABLE_TRACKS_ID,
+  QUEUED_TRACKS_ID,
+  PLAYLIST_TRACKS_ID
+};
+
+#define PLAYABLE_TRACKS (char *)"text/x-disorder-playable-tracks"
+#define QUEUED_TRACKS (char *)"text/x-disorder-queued-tracks"
+#define PLAYLIST_TRACKS (char *)"text/x-disorder-playlist-tracks"
 
 enum {
   QUEUEPOINTER_COLUMN,

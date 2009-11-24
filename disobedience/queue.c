@@ -225,6 +225,22 @@ static struct menuitem queue_menuitems[] = {
   { "Adopt track", ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
 };
 
+static const GtkTargetEntry queue_targets[] = {
+  {
+    QUEUED_TRACKS,                      /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
+    QUEUED_TRACKS_ID                    /* ID value */
+  },
+  {
+    PLAYABLE_TRACKS,                             /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    PLAYABLE_TRACKS_ID,                          /* ID value */
+  },
+  {
+    .target = NULL
+  }
+};
+
 struct queuelike ql_queue = {
   .name = "queue",
   .init = queue_init,
@@ -232,7 +248,11 @@ struct queuelike ql_queue = {
   .ncolumns = sizeof queue_columns / sizeof *queue_columns,
   .menuitems = queue_menuitems,
   .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems,
-  .drop = queue_drop
+  .drop = queue_drop,
+  .drag_source_targets = queue_targets,
+  .drag_source_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
+  .drag_dest_targets = queue_targets,
+  .drag_dest_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
 };
 
 /** @brief Called when a key is pressed in the queue tree view */

@@ -43,19 +43,6 @@
 #include "multidrag.h"
 #include "autoscroll.h"
 
-static const GtkTargetEntry queuelike_targets[] = {
-  {
-    (char *)"text/x-disorder-queued-tracks", /* drag type */
-    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
-    0                                   /* ID value */
-  },
-  {
-    (char *)"text/x-disorder-playable-tracks", /* drag type */
-    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
-    1                                     /* ID value */
-  },
-};
-
 /* Track detail lookup ----------------------------------------------------- */
 
 static void queue_lookups_completed(const char attribute((unused)) *event,
@@ -518,6 +505,28 @@ static GtkTreePath *ql_drop_path(GtkWidget *w,
   return path;
 }
 
+#if 0
+static const char *act(GdkDragAction action) {
+  struct dynstr d[1];
+
+  dynstr_init(d);
+  if(action & GDK_ACTION_DEFAULT)
+    dynstr_append_string(d, "|DEFAULT");
+  if(action & GDK_ACTION_COPY)
+    dynstr_append_string(d, "|COPY");
+  if(action & GDK_ACTION_MOVE)
+    dynstr_append_string(d, "|MOVE");
+  if(action & GDK_ACTION_LINK)
+    dynstr_append_string(d, "|LINK");
+  if(action & GDK_ACTION_PRIVATE)
+    dynstr_append_string(d, "|PRIVATE");
+  if(action & GDK_ACTION_ASK)
+    dynstr_append_string(d, "|ASK");
+  dynstr_terminate(d);
+  return d->nvec ? d->vec + 1 : "";
+}
+#endif
+
 /** @brief Called when a drag moves within a candidate destination
  * @param w Destination widget
  * @param dc Drag context
@@ -552,8 +561,13 @@ static gboolean ql_drag_motion(GtkWidget *w,
     action = GDK_ACTION_MOVE;
   else if(dc->actions & GDK_ACTION_COPY)
     action = GDK_ACTION_COPY;
-  /*fprintf(stderr, "suggested %#x actions %#x result %#x\n",
-    dc->suggested_action, dc->actions, action);*/
+  /* TODO this comes up with the wrong answer sometimes.  If we are in the
+   * middle of a rearrange then the suggested action will be COPY, which we'll
+   * take, even though MOVE would actually be appropriate.  The drag still
+   * seems to work, but it _is_ wrong.  The answer is to take the target into
+   * account. */
+  /*fprintf(stderr, "suggested %s actions %s result %s\n",
+          act(dc->suggested_action), act(dc->actions), act(action));*/
   if(action) {
     // If the action is acceptable then we see if this widget is acceptable
     if(gtk_drag_dest_find_target(w, dc, NULL) == GDK_NONE)
@@ -636,12 +650,13 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
 static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
                              GdkDragContext attribute((unused)) *dc,
                              GtkSelectionData *data,
-                             guint attribute((unused)) info_,
+                             guint info,
                              guint attribute((unused)) time_,
                              gpointer user_data) {
   struct queuelike *const ql = user_data;
   struct dynstr result[1];
 
+  fprintf(stderr, "ql_drag_data_get %s info=%d\n", ql->name, info);
   dynstr_init(result);
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_drag_data_get_collect,
@@ -674,7 +689,7 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
                                   gint x,
                                   gint y,
                                   GtkSelectionData *data,
-                                  guint attribute((unused)) info_,
+                                  guint info_,
                                   guint attribute((unused)) time_,
                                   gpointer user_data) {
   struct queuelike *const ql = user_data;
@@ -682,7 +697,7 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   struct vector ids[1], tracks[1];
   int parity = 0;
 
-  //fprintf(stderr, "drag-data-received: %d,%d info_=%u\n", x, y, info_);
+  fprintf(stderr, "drag-data-received: %d,%d info_=%u\n", x, y, info_);
   /* Get the selection string */
   p = result = (char *)gtk_selection_data_get_text(data);
   if(!result) {
@@ -739,17 +754,26 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   /* Note that q->id can match one of ids[].  This doesn't matter for
    * moveafter but TODO may matter for playlist support. */
   switch(info_) {
-  case 0:
-    /* Rearrangement.  Send ID and track data. */
+  case QUEUED_TRACKS_ID:
+  case PLAYLIST_TRACKS_ID:
+    /* Rearrangement within some widget.  Send ID and track data. */
     ql->drop(ql, tracks->nvec, tracks->vec, ids->vec, q);
     break;
-  case 1:
+  case PLAYABLE_TRACKS_ID:
     /* Copying between widgets.  IDs mean nothing so don't send them. */
     ql->drop(ql, tracks->nvec, tracks->vec, NULL, q);
     break;
   }
   if(path)
     gtk_tree_path_free(path);
+}
+
+static int count_drag_targets(const GtkTargetEntry *targets) {
+  const GtkTargetEntry *t = targets;
+
+  while(t->target)
+    ++t;
+  return t - targets;
 }
 
 /** @brief Initialize a @ref queuelike */
@@ -820,15 +844,15 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
     /* This view will act as a drag source */
     gtk_drag_source_set(ql->view,
                         GDK_BUTTON1_MASK,
-                        queuelike_targets,
-                        sizeof queuelike_targets / sizeof *queuelike_targets,
-                        GDK_ACTION_MOVE);
+                        ql->drag_source_targets,
+                        count_drag_targets(ql->drag_source_targets),
+                        ql->drag_dest_actions);
     /* This view will act as a drag destination */
     gtk_drag_dest_set(ql->view,
                       GTK_DEST_DEFAULT_HIGHLIGHT|GTK_DEST_DEFAULT_DROP,
-                      queuelike_targets,
-                      sizeof queuelike_targets / sizeof *queuelike_targets,
-                      GDK_ACTION_MOVE|GDK_ACTION_COPY);
+                      ql->drag_dest_targets,
+                      count_drag_targets(ql->drag_dest_targets),
+                      ql->drag_dest_actions);
     g_signal_connect(ql->view, "drag-motion",
                      G_CALLBACK(ql_drag_motion), ql);
     g_signal_connect(ql->view, "drag-leave",
@@ -843,9 +867,9 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
     /* For queues that cannot accept a drop we still accept a copy out */
     gtk_drag_source_set(ql->view,
                         GDK_BUTTON1_MASK,
-                        queuelike_targets,
-                        sizeof queuelike_targets / sizeof *queuelike_targets,
-                        GDK_ACTION_COPY);
+                        ql->drag_source_targets,
+                        count_drag_targets(ql->drag_source_targets),
+                        ql->drag_source_actions);
     g_signal_connect(ql->view, "drag-data-get",
                      G_CALLBACK(ql_drag_data_get), ql);
     make_treeview_multidrag(ql->view, NULL);
