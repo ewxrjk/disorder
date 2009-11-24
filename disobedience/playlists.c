@@ -926,11 +926,11 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
   char **newvec;
   int nnewvec;
 
-  fprintf(stderr, "\nplaylist_drop_modify\n");
+  //fprintf(stderr, "\nplaylist_drop_modify\n");
   /* after_me is the queue_entry to insert after, or NULL to insert at the
    * beginning (including the case when the playlist is empty) */
-  fprintf(stderr, "after_me = %s\n",
-          mod->after_me ? mod->after_me->track : "NULL");
+  //fprintf(stderr, "after_me = %s\n",
+  //        mod->after_me ? mod->after_me->track : "NULL");
   struct queue_entry *q = ql_playlist.q;
   int ins = 0;
   if(mod->after_me) {

@@ -650,13 +650,13 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
 static void ql_drag_data_get(GtkWidget attribute((unused)) *w,
                              GdkDragContext attribute((unused)) *dc,
                              GtkSelectionData *data,
-                             guint info,
+                             guint attribute((unused)) info,
                              guint attribute((unused)) time_,
                              gpointer user_data) {
   struct queuelike *const ql = user_data;
   struct dynstr result[1];
 
-  fprintf(stderr, "ql_drag_data_get %s info=%d\n", ql->name, info);
+  //fprintf(stderr, "ql_drag_data_get %s info=%d\n", ql->name, info);
   dynstr_init(result);
   gtk_tree_selection_selected_foreach(ql->selection,
                                       ql_drag_data_get_collect,
@@ -697,7 +697,7 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   struct vector ids[1], tracks[1];
   int parity = 0;
 
-  fprintf(stderr, "drag-data-received: %d,%d info_=%u\n", x, y, info_);
+  //fprintf(stderr, "drag-data-received: %d,%d info=%u\n", x, y, info_);
   /* Get the selection string */
   p = result = (char *)gtk_selection_data_get_text(data);
   if(!result) {
@@ -730,18 +730,21 @@ static void ql_drag_data_received(GtkWidget attribute((unused)) *w,
   GtkTreePath *path = ql_drop_path(w, GTK_TREE_MODEL(ql->store), x, y, &pos);
   if(path) {
     q = ql_path_to_q(GTK_TREE_MODEL(ql->store), path);
+    //fprintf(stderr, "  drop path: %s q=%p pos=%d\n",
+    //        gtk_tree_path_to_string(path), q, pos);
   } else {
     /* This generally means a drop past the end of the queue.  We find the last
      * element in the queue and ask to move after that. */
     for(q = ql->q; q && q->next; q = q->next)
       ;
+    //fprintf(stderr, "  after end.  q=%p.  pos=%d\n", q, pos);
   }
   switch(pos) {
   case GTK_TREE_VIEW_DROP_BEFORE:
   case GTK_TREE_VIEW_DROP_INTO_OR_BEFORE:
     if(q) {
       q = q->prev;
-      //fprintf(stderr, "  ...but we like to drop near %s\n",
+      //fprintf(stderr, "  but we like to drop near %s\n",
       //        q ? q->id : "NULL");
     }
     break;
