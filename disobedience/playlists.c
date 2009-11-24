@@ -766,7 +766,7 @@ static void playlists_editor_received_tracks(void *v,
     /* No such playlist, presumably we'll get a deleted event shortly */
     return;
   /* Translate the list of tracks into queue entries */
-  struct queue_entry *newq, **qq = &newq, *qprev;
+  struct queue_entry *newq, **qq = &newq, *qprev = NULL;
   hash *h = hash_new(sizeof(int));
   for(int n = 0; n < nvec; ++n) {
     struct queue_entry *q = xmalloc(sizeof *q);
