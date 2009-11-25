@@ -722,6 +722,14 @@ static GtkWidget *playlist_picker_create(void) {
   return vbox;
 }
 
+static void playlist_picker_destroy(void) {
+  playlist_picker_delete_button = NULL;
+  g_object_unref(playlist_picker_list);
+  playlist_picker_list = NULL;
+  playlist_picker_selection = NULL;
+  playlist_picker_selected = NULL;
+}
+
 /* Playlist editor ---------------------------------------------------------- */
 
 static GtkWidget *playlists_editor_create(void) {
@@ -1122,6 +1130,7 @@ static gboolean playlist_window_keypress(GtkWidget attribute((unused)) *widget,
 static void playlist_window_destroyed(GtkWidget attribute((unused)) *widget,
                                       GtkWidget **widget_pointer) {
   destroy_queuelike(&ql_playlist);
+  playlist_picker_destroy();
   *widget_pointer = NULL;
 }
 
