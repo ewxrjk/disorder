@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2006, 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,10 +64,10 @@ static const struct algorithm algorithms[] = {
  * Computes H(challenge|password) and returns it as a newly allocated hex
  * string, or returns NULL on error.
  */
-const char *authhash(const void *challenge, size_t nchallenge,
-		     const char *password, const char *algo) {
+char *authhash(const void *challenge, size_t nchallenge,
+               const char *password, const char *algo) {
   gcrypt_hash_handle h;
-  const char *res;
+  char *res;
   size_t n;
   int id;
 

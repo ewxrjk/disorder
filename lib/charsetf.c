@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007-2009 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,45 +15,52 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file lib/vector.c
- * @brief Dynamic array utilities
- */
+/** @file lib/charsetf.c @brief Character set conversion with free() */
+
 #include "common.h"
 
-#include <stddef.h>
-
+#include "charset.h"
 #include "mem.h"
-#include "log.h"
-#include "vector.h"
 
-void vector_append_many(struct vector *v, char **vec, int nvec) {
-  while(nvec-- > 0)
-    vector_append(v, *vec++);
+char *mb2utf8_f(char *mb) {
+  char *s = mb2utf8(mb);
+  xfree(mb);
+  return s;
 }
 
-void dynstr_append_bytes(struct dynstr *v, const char *ptr, size_t n) {
-  while(n > 0) {
-    dynstr_append(v, *ptr++);
-    n--;
-  }
+char *utf82mb_f(char *utf8) {
+  char *s = utf82mb(utf8);
+  xfree(utf8);
+  return s;
 }
 
-/** @brief Free a string list */
-void free_strings(int nvec, char **vec) {
-  for(int n = 0; n < nvec; ++n)
-    xfree(vec[n]);
-  xfree(vec);
+char *any2utf8_f(const char *from,
+                 char *any) {
+  char *s = any2utf8(from, any);
+  xfree(any);
+  return s;
 }
 
-/** @brief Free and re-initialize a vector */
-void vector_clear(struct vector *v) {
-  free_strings(v->nvec, v->vec);
-  vector_init(v);
+char *any2mb_f(const char *from,
+               char *any) {
+  char *s = any2mb(from, any);
+  xfree(any);
+  return s;
+}
+
+char *any2any_f(const char *from,
+                const char *to,
+                char *any) {
+  char *s = any2any(from, to, any);
+  xfree(any);
+  return s;
 }
 
 /*
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

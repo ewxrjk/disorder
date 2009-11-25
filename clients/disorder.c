@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,7 +98,9 @@ static void cf_version(char attribute((unused)) **argv) {
   char *v;
 
   if(disorder_version(getclient(), &v)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(v)));
+  v = nullcheck(utf82mb_f(v));
+  xprintf("%s\n", v);
+  xfree(v);
 }
 
 static void print_queue_entry(const struct queue_entry *q) {
@@ -257,7 +259,7 @@ static void cf_get(char **argv) {
   char *value;
 
   if(disorder_get(getclient(), argv[0], argv[1], &value)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(value)));
+  xprintf("%s\n", nullcheck(utf82mb_f(value)));
 }
 
 static void cf_length(char **argv) {
@@ -339,7 +341,7 @@ static void cf_part(char **argv) {
   char *s;
 
   if(disorder_part(getclient(), &s, argv[0], argv[1], argv[2])) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(s)));
+  xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
 static int isarg_filename(const char *s) {
@@ -354,7 +356,7 @@ static void cf_resolve(char **argv) {
   char *track;
 
   if(disorder_resolve(getclient(), &track, argv[0])) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(track)));
+  xprintf("%s\n", nullcheck(utf82mb_f(track)));
 }
 
 static void cf_pause(char attribute((unused)) **argv) {
@@ -385,7 +387,7 @@ static void cf_get_global(char **argv) {
   char *value;
 
   if(disorder_get_global(getclient(), argv[0], &value)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(value)));
+  xprintf("%s\n", nullcheck(utf82mb_f(value)));
 }
 
 static void cf_set_global(char **argv) {
@@ -446,7 +448,7 @@ static void cf_userinfo(char **argv) {
 
   if(disorder_userinfo(getclient(), argv[0], argv[1], &s))
     exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(s)));
+  xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
 static int isarg_option(const char *arg) {
