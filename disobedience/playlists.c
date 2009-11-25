@@ -110,7 +110,6 @@ static const struct queue_column playlist_columns[] = {
   { "Artist", column_namepart, "artist", COL_EXPAND|COL_ELLIPSIZE },
   { "Album",  column_namepart, "album",  COL_EXPAND|COL_ELLIPSIZE },
   { "Title",  column_namepart, "title",  COL_EXPAND|COL_ELLIPSIZE },
-  { "Length", column_length,   0,        COL_RIGHT }
 };
 
 /** @brief Pop-up menu for playlist editor
@@ -1097,7 +1096,7 @@ void playlist_window_create(gpointer attribute((unused)) callback_data,
   g_signal_connect(playlist_window, "key-press-event",
                    G_CALLBACK(playlist_window_keypress), 0);
   /* default size is too small */
-  gtk_window_set_default_size(GTK_WINDOW(playlist_window), 512, 240);
+  gtk_window_set_default_size(GTK_WINDOW(playlist_window), 640, 320);
 
   GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), playlist_picker_create(),
