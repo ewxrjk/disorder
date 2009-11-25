@@ -294,6 +294,7 @@ static void cf_search(char **argv) {
   if(disorder_search(getclient(), *argv, &results, &nresults)) exit(EXIT_FAILURE);
   for(n = 0; n < nresults; ++n)
     xprintf("%s\n", nullcheck(utf82mb(results[n])));
+  free_strings(nresults, results);
 }
 
 static void cf_random_disable(char attribute((unused)) **argv) {
@@ -306,10 +307,12 @@ static void cf_random_enable(char attribute((unused)) **argv) {
 
 static void cf_stats(char attribute((unused)) **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_stats(getclient(), &vec, 0)) exit(EXIT_FAILURE);
-  while(*vec)
-      xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  if(disorder_stats(getclient(), &vec, &nvec)) exit(EXIT_FAILURE);
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_get_volume(char attribute((unused)) **argv) {
@@ -612,11 +615,13 @@ static void cf_adopt(char **argv) {
 
 static void cf_playlists(char attribute((unused)) **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_playlists(getclient(), &vec, 0))
+  if(disorder_playlists(getclient(), &vec, &nvec))
     exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_playlist_del(char **argv) {
@@ -626,11 +631,13 @@ static void cf_playlist_del(char **argv) {
 
 static void cf_playlist_get(char **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_playlist_get(getclient(), argv[0], &vec, 0))
+  if(disorder_playlist_get(getclient(), argv[0], &vec, &nvec))
     exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_playlist_set(char **argv) {
