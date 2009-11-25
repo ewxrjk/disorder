@@ -38,6 +38,19 @@ void dynstr_append_bytes(struct dynstr *v, const char *ptr, size_t n) {
   }
 }
 
+/** @brief Free a string list */
+void free_strings(int nvec, char **vec) {
+  for(int n = 0; n < nvec; ++n)
+    xfree(vec[n]);
+  xfree(vec);
+}
+
+/** @brief Free and re-initialize a vector */
+void vector_clear(struct vector *v) {
+  free_strings(v->nvec, v->vec);
+  vector_init(v);
+}
+
 /*
 Local Variables:
 c-basic-offset:2

@@ -38,11 +38,15 @@
 int byte_vasprintf(char **ptrp,
 		   const char *fmt,
 		   va_list ap) {
+  struct sink *s;
   struct dynstr d;
   int n;
 
   dynstr_init(&d);
-  if((n = byte_vsinkprintf(sink_dynstr(&d), fmt, ap)) >= 0) {
+  s = sink_dynstr(&d);
+  n = byte_vsinkprintf(s, fmt, ap);
+  xfree(s);
+  if(n >= 0) {
     dynstr_terminate(&d);
     *ptrp = d.vec;
   }

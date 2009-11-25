@@ -120,11 +120,13 @@ static void set_service(struct config *c, const char *s) {
 }
 
 static void set_username(struct config *c, const char *s) {
-  c->username = s;
+  xfree(c->username);
+  c->username = xstrdup(s);
 }
 
 static void set_password(struct config *c, const char *s) {
-  c->password = s;
+  xfree(c->password);
+  c->password = xstrdup(s);
 }
 
 /** @brief Table used to generate the form */

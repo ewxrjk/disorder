@@ -864,11 +864,14 @@ int main(int argc, char **argv) {
   }
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   if(user) {
-    config->username = user;
+    xfree(config->username);
+    config->username = xstrdup(user);
     config->password = 0;
   }
-  if(password)
-    config->password = password;
+  if(password) {
+    xfree(config->password);
+    config->password = xstrdup(password);
+  }
   if(local)
     config->connect.af = -1;
   if(wfr)
@@ -899,10 +902,12 @@ int main(int argc, char **argv) {
       vector_append(&args, nullcheck(mb2utf8(argv[n + j])));
     vector_terminate(&args);
     commands[i].fn(args.vec + 1);
+    xfree(args.vec);
     n += j;
   }
   if(client && disorder_close(client)) exit(EXIT_FAILURE);
   if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
+  config_free(config);
   return status;
 }
 

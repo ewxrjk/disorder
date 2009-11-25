@@ -94,6 +94,9 @@ static inline void dynstr_append_string(struct dynstr *v, const char *ptr) {
   dynstr_append_bytes(v, ptr, strlen(ptr));
 }
 
+void free_strings(int nvec, char **vec);
+void vector_clear(struct vector *v);
+
 #endif /* VECTOR_H */
 
 /*

@@ -240,6 +240,7 @@ static int set_string(const struct config_state *cs,
 		   cs->path, cs->line, whoami->name);
     return -1;
   }
+  xfree(VALUE(cs->config, char *));
   VALUE(cs->config, char *) = xstrdup(vec[0]);
   return 0;
 }
@@ -520,8 +521,7 @@ static int set_rights(const struct config_state *cs,
 		   cs->path, cs->line, vec[0]);
     return -1;
   }
-  *ADDRESS(cs->config, char *) = vec[0];
-  return 0;
+  return set_string(cs, whoami, nvec, vec);
 }
 
 static int set_netaddress(const struct config_state *cs,
@@ -644,7 +644,7 @@ static const struct conftype
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
   type_netaddress = { set_netaddress, free_netaddress },
-  type_rights = { set_rights, free_none };
+  type_rights = { set_rights, free_string };
 
 /* specific validation routine */
 
@@ -1047,6 +1047,7 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
     disorder_error(0, "%s:%d: destination address required", cs->path, cs->line);
     return -1;
   }
+  xfree(na->address);
   return 0;
 }
 
@@ -1174,7 +1175,9 @@ static int config_set_args(const struct config_state *cs,
     vector_append(v, s);
   va_end(ap);
   vector_terminate(v);
-  return config_set(cs, v->nvec, v->vec);
+  int rc = config_set(cs, v->nvec, v->vec);
+  xfree(v->vec);
+  return rc;
 }
 
 /** @brief Error callback used by config_include()
@@ -1415,7 +1418,7 @@ static void set_configfile(void) {
  *
  * @p c is indeterminate after this function is called.
  */
-static void config_free(struct config *c) {
+void config_free(struct config *c) {
   int n;
 
   if(c) {
