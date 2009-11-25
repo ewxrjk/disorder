@@ -101,6 +101,12 @@ static void playlist_drop_modify(struct playlist_modify_data *mod,
                                  int nvec, char **vec);
 static void playlist_remove_modify(struct playlist_modify_data *mod,
                                  int nvec, char **vec);
+static gboolean playlist_new_keypress(GtkWidget *widget,
+                                      GdkEventKey *event,
+                                      gpointer user_data);
+static gboolean playlist_picker_keypress(GtkWidget *widget,
+                                         GdkEventKey *event,
+                                         gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -378,15 +384,36 @@ static void playlist_new_playlist(void) {
   /* Set initial state of OK button */
   playlist_new_changed(0,0,0);
 
-  /* TODO: return should = OK, escape should = cancel */
+  g_signal_connect(playlist_new_window, "key-press-event",
+                   G_CALLBACK(playlist_new_keypress), 0);
   
   /* Display the window */
   gtk_widget_show_all(playlist_new_window);
 }
 
+/** @brief Keypress handler */
+static gboolean playlist_new_keypress(GtkWidget attribute((unused)) *widget,
+                                      GdkEventKey *event,
+                                      gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Return:
+    playlist_new_ok(NULL, NULL);
+    return TRUE;
+  case GDK_Escape:
+    gtk_widget_destroy(playlist_new_window);
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 /** @brief Called when 'ok' is clicked in new-playlist popup */
 static void playlist_new_ok(GtkButton attribute((unused)) *button,
                             gpointer attribute((unused)) userdata) {
+  if(playlist_new_valid())
+    return;
   gboolean shared, public, private;
   char *name, *fullname;
   playlist_new_details(&name, &fullname, &shared, &public, &private);
@@ -613,6 +640,8 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
     gtk_widget_set_sensitive(playlist_picker_delete_button, 1);
   else
     gtk_widget_set_sensitive(playlist_picker_delete_button, 0);
+  /* TODO delete should not be sensitive for public playlists owned by other
+   * users */
   /* Eliminate no-change cases */
   if(!selected && !playlist_picker_selected)
     return;
@@ -649,7 +678,7 @@ static void playlist_picker_delete(GtkButton attribute((unused)) *button,
   int res;
 
   if(!playlist_picker_selected)
-    return;                             /* shouldn't happen */
+    return;
   yesno = gtk_message_dialog_new(GTK_WINDOW(playlist_window),
                                  GTK_DIALOG_MODAL,
                                  GTK_MESSAGE_QUESTION,
@@ -718,7 +747,25 @@ static GtkWidget *playlist_picker_create(void) {
   gtk_box_pack_start(GTK_BOX(vbox), scroll_widget(tree), TRUE/*expand*/, TRUE/*fill*/, 0);
   gtk_box_pack_start(GTK_BOX(vbox), buttons, FALSE/*expand*/, FALSE, 0);
 
+  g_signal_connect(tree, "key-press-event",
+                   G_CALLBACK(playlist_picker_keypress), 0);
+
   return vbox;
+}
+
+static gboolean playlist_picker_keypress(GtkWidget attribute((unused)) *widget,
+                                         GdkEventKey *event,
+                                         gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_BackSpace:
+  case GDK_Delete:
+    playlist_picker_delete(NULL, NULL);
+    return TRUE;
+  default:
+    return FALSE;
+  }
 }
 
 static void playlist_picker_destroy(void) {
@@ -1039,10 +1086,9 @@ static int playlist_remove_sensitive(void attribute((unused)) *extra) {
   return TRUE;
 }
 
-/** @brief Called to play the selected playlist */
+/** @brief Called to remove the selected playlist */
 static void playlist_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
                                      gpointer attribute((unused)) user_data) {
-  /* TODO backspace should work too */
   if(!playlist_picker_selected)
     return;
   struct playlist_modify_data *mod = xmalloc(sizeof *mod);
