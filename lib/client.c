@@ -869,7 +869,9 @@ int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
     k->name = pvec[0];
     k->value = pvec[1];
     kp = &k->next;
+    xfree(pvec);
   }
+  free_strings(nvec, vec);
   *kp = 0;
   return 0;
 }

@@ -278,12 +278,13 @@ static void cf_unset(char **argv) {
 }
 
 static void cf_prefs(char **argv) {
-  struct kvp *k;
+  struct kvp *k, *base;
 
-  if(disorder_prefs(getclient(), argv[0], &k)) exit(EXIT_FAILURE);
-  for(; k; k = k->next)
+  if(disorder_prefs(getclient(), argv[0], &base)) exit(EXIT_FAILURE);
+  for(k = base; k; k = k->next)
     xprintf("%s = %s\n",
 	    nullcheck(utf82mb(k->name)), nullcheck(utf82mb(k->value)));
+  kvp_free(base);
 }
 
 static void cf_search(char **argv) {
