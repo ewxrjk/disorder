@@ -175,13 +175,12 @@ static void cf_rescan(char attribute((unused)) **argv) {
 
 static void cf_somequeue(int (*fn)(disorder_client *c,
 				   struct queue_entry **qp)) {
-  struct queue_entry *q;
+  struct queue_entry *q, *qbase;
 
-  if(fn(getclient(), &q)) exit(EXIT_FAILURE);
-  while(q) {
+  if(fn(getclient(), &qbase)) exit(EXIT_FAILURE);
+  for(q = qbase; q; q = q->next)
     print_queue_entry(q);
-    q = q->next;
-  }
+  queue_free(qbase, 1);
 }
 
 static void cf_recent(char attribute((unused)) **argv) {

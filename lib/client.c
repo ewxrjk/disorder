@@ -653,6 +653,7 @@ static int disorder_somequeue(disorder_client *c,
     if(!strcmp(l, ".")) {
       *qt = 0;
       *qp = qh;
+      xfree(l);
       return 0;
     }
     q = xmalloc(sizeof *q);
@@ -660,6 +661,7 @@ static int disorder_somequeue(disorder_client *c,
       *qt = q;
       qt = &q->next;
     }
+    xfree(l);
   }
   if(ferror(c->fpin)) {
     byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
