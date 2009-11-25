@@ -119,7 +119,8 @@ void popup_protocol_error(int code,
                           const char *msg);
 /* Report an error */
 
-void properties(int ntracks, const char **tracks);
+void properties(int ntracks, const char **tracks,
+                GtkWidget *parent);
 /* Pop up a properties window for a list of tracks */
 
 GtkWidget *scroll_widget(GtkWidget *child);
@@ -136,7 +137,8 @@ void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg);
 
 void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 
-struct progress_window *progress_window_new(const char *title);
+struct progress_window *progress_window_new(const char *title,
+                                            GtkWidget *parent);
 /* Pop up a progress window */
 
 void progress_window_progress(struct progress_window *pw,
