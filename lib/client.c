@@ -712,9 +712,11 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
       if(nvecp)
 	*nvecp = v.nvec;
       *vecp = v.vec;
+      xfree(l);
       return 0;
     }
-    vector_append(&v, l + (*l == '.'));
+    vector_append(&v, xstrdup(l + (*l == '.')));
+    xfree(l);
   }
   if(ferror(c->fpin)) {
     byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));

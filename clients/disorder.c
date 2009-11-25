@@ -227,16 +227,17 @@ static void cf_somelist(char **argv,
 			int (*fn)(disorder_client *c,
 				  const char *arg, const char *re,
 				  char ***vecp, int *nvecp)) {
-  char **vec;
+  char **vec, **base;
   const char *re;
 
   if(argv[1])
     re = xstrdup(argv[1] + 1);
   else
     re = 0;
-  if(fn(getclient(), argv[0], re, &vec, 0)) exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  if(fn(getclient(), argv[0], re, &base, 0)) exit(EXIT_FAILURE);
+  for(vec = base; *vec; ++vec)
+    xprintf("%s\n", nullcheck(utf82mb_f(*vec)));
+  xfree(base);
 }
 
 static int isarg_regexp(const char *s) {
@@ -894,7 +895,7 @@ int main(int argc, char **argv) {
     vector_init(&args);
     /* Include the command name in the args, but at element -1, for
      * the benefit of subcommand getopt calls */
-    vector_append(&args, argv[n]);
+    vector_append(&args, xstrdup(argv[n]));
     n++;
     for(j = 0; j < commands[i].min; ++j)
       vector_append(&args, nullcheck(mb2utf8(argv[n + j])));
@@ -904,12 +905,13 @@ int main(int argc, char **argv) {
       vector_append(&args, nullcheck(mb2utf8(argv[n + j])));
     vector_terminate(&args);
     commands[i].fn(args.vec + 1);
-    xfree(args.vec);
+    vector_clear(&args);
     n += j;
   }
   if(client && disorder_close(client)) exit(EXIT_FAILURE);
   if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
   config_free(config);
+  xfree(client);
   return status;
 }
 
