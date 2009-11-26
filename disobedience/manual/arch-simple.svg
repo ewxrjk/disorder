@@ -15,7 +15,10 @@
    inkscape:version="0.46"
    version="1.0"
    sodipodi:docname="arch-simple.svg"
-   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="/home/richard/src/disorder.dmanual/disobedience/manual/arch-simple.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
   <defs
      id="defs4">
     <inkscape:perspective
@@ -36,7 +39,7 @@
      objecttolerance="10"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.165"
+     inkscape:zoom="1"
      inkscape:cx="151.50215"
      inkscape:cy="200"
      inkscape:document-units="px"
@@ -138,13 +141,13 @@
     <text
        xml:space="preserve"
        style="font-size:20px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"
-       x="29.54406"
-       y="184.17706"
+       x="25.344841"
+       y="182.23859"
        id="text3180"><tspan
          sodipodi:role="line"
          id="tspan3182"
-         x="29.54406"
-         y="184.17706">RTP client</tspan></text>
+         x="25.344841"
+         y="182.23859">RTP player</tspan></text>
     <rect
        style="fill:#00ff00;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect3184"
