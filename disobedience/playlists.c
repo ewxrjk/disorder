@@ -652,8 +652,6 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
       deletable = TRUE;
   }
   gtk_widget_set_sensitive(playlist_picker_delete_button, deletable);
-  /* TODO delete should not be sensitive for public playlists owned by other
-   * users */
   /* Eliminate no-change cases */
   if(!selected && !playlist_picker_selected)
     return;
