@@ -26,11 +26,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  <body>
    <h1>Appendix</h1>
 
+   <h2><a name=netplay>Network Play</a></h2>
+
+   <p>Network play uses a background copy
+   of <tt>disorder-playrtp</tt>.  If you quit Disobedience the
+   player will continue playing and can be disabled from a later
+   run of Disobedience.</p>
+
+   <p>The player will log to <tt>~/.disorder/HOSTNAME-rtp.log</tt> so
+   look there if it does not seem to be working.</p>
+
+   <p>You can stop it without running Disobedience by the command
+   <tt>killall disorder-playrtp</tt>.</p>
+
    <h2><a name=bugs>Reporting Bugs</a></h2>
 
    <p>Please report bugs using
    DisOrder's <a href="http://code.google.com/p/disorder/issues/list">bug
    tracker</a>.</p>
+
+   <p>Known problems include:</p>
+
+   <ul>
+
+     <li>There is no particular provision for multiple users of the
+     same computer sharing a single <tt>disorder-playrtp</tt> process.
+     This shouldn't be too much of a problem in practice but something
+     could perhaps be done given demand.</li>
+
+     <li>Try to do remote user management when the server is
+     configured to refuse this produces rather horrible error
+     behavior.</li>
+
+     <li>Resizing columns doesn't work very well.  This is a GTK+
+     bug.</li>
+
+   </ul>
 
    <h2><a name=copyright>Copyright Notice</a></h2>
 

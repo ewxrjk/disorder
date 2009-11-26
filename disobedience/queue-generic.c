@@ -323,6 +323,8 @@ void ql_new_queue(struct queuelike *ql,
                          ql->ncolumns + QUEUEPOINTER_COLUMN, nqd->new,
                          -1);
       it = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
+      /* We'll need the new start time */
+      nqd->new->when = q->when;
       ++kept;
     } else {
       /* Delete this row (and move iter to the next one) */

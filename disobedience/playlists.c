@@ -238,7 +238,7 @@ static int playlistcmp(const void *ap, const void *bp) {
 static void playlist_menu_playing(void attribute((unused)) *v,
                                   const char *err) {
   if(err)
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
 }
 
 /** @brief Play received playlist contents
@@ -249,7 +249,7 @@ static void playlist_menu_received_content(void attribute((unused)) *v,
                                            const char *err,
                                            int nvec, char **vec) {
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     return;
   }
   for(int n = 0; n < nvec; ++n)
@@ -442,7 +442,7 @@ static void playlist_new_ok(GtkButton attribute((unused)) *button,
 static void playlist_new_locked(void *v, const char *err) {
   char *fullname = v;
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     return;
   }
   disorder_eclient_playlist_get(client, playlist_new_retrieved,
@@ -461,7 +461,7 @@ static void playlist_new_retrieved(void *v, const char *err,
     /* A rare case but not in principle impossible */
     err = "A playlist with that name already exists.";
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     disorder_eclient_playlist_unlock(client, playlist_new_unlocked, fullname);
     return;
   }
@@ -477,7 +477,7 @@ static void playlist_new_retrieved(void *v, const char *err,
 /** @brief Called when the new playlist has been created */
 static void playlist_new_created(void attribute((unused)) *v, const char *err) {
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     return;
   }
   disorder_eclient_playlist_unlock(client, playlist_new_unlocked, NULL);
@@ -487,7 +487,7 @@ static void playlist_new_created(void attribute((unused)) *v, const char *err) {
 /** @brief Called when the newly created playlist has unlocked */
 static void playlist_new_unlocked(void attribute((unused)) *v, const char *err) {
   if(err)
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
   /* Pop down the creation window */
   gtk_widget_destroy(playlist_new_window);
 }
@@ -643,12 +643,15 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
   } else
     selected = 0;
   /* Set button sensitivity according to the new state */
-  if(selected)
-    gtk_widget_set_sensitive(playlist_picker_delete_button, 1);
-  else
-    gtk_widget_set_sensitive(playlist_picker_delete_button, 0);
-  /* TODO delete should not be sensitive for public playlists owned by other
-   * users */
+  int deletable = FALSE;
+  if(selected) {
+    if(strchr(selected, '.')) {
+      if(!strncmp(selected, config->username, strlen(config->username)))
+        deletable = TRUE;
+    } else
+      deletable = TRUE;
+  }
+  gtk_widget_set_sensitive(playlist_picker_delete_button, deletable);
   /* Eliminate no-change cases */
   if(!selected && !playlist_picker_selected)
     return;
@@ -676,7 +679,7 @@ static void playlist_picker_add(GtkButton attribute((unused)) *button,
 static void playlists_picker_delete_completed(void attribute((unused)) *v,
                                               const char *err) {
   if(err)
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
 }
 
 /** @brief Called when the 'Delete' button is pressed */
@@ -839,7 +842,7 @@ static void playlist_editor_button_toggled(GtkToggleButton *tb,
 static void playlist_editor_share_set(void attribute((unused)) *v,
                                       const attribute((unused)) char *err) {
   if(err)
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
 }
   
 /** @brief Set the editor button state and sensitivity */
@@ -870,7 +873,7 @@ static void playlist_editor_got_share(void *v,
                                       const char *value) {
   const char *playlist = v;
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     value = NULL;
   }
   /* Set the currently active button */
@@ -913,7 +916,7 @@ static void playlists_editor_received_tracks(void *v,
                                              int nvec, char **vec) {
   const char *playlist = v;
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     return;
   }
   if(!playlist_picker_selected
@@ -995,7 +998,7 @@ struct playlist_modify_data {
 static void playlist_modify_locked(void *v, const char *err) {
   struct playlist_modify_data *mod = v;
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     return;
   }
   disorder_eclient_playlist_get(client, playlist_modify_retrieved,
@@ -1010,7 +1013,7 @@ void playlist_modify_retrieved(void *v, const char *err,
                                char **vec) {
   struct playlist_modify_data *mod = v;
   if(err) {
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
     disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
     return;
   }
@@ -1038,7 +1041,7 @@ void playlist_modify_retrieved(void *v, const char *err,
 static void playlist_modify_updated(void attribute((unused)) *v,
                                     const char *err) {
   if(err) 
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
   disorder_eclient_playlist_unlock(client, playlist_modify_unlocked, NULL);
 }
 
@@ -1046,7 +1049,7 @@ static void playlist_modify_updated(void attribute((unused)) *v,
 static void playlist_modify_unlocked(void attribute((unused)) *v,
                                      const char *err) {
   if(err) 
-    popup_protocol_error(0, err);
+    popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
 }
 
 /* Drop tracks into a playlist ---------------------------------------------- */
