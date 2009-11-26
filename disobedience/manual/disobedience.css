@@ -61,3 +61,16 @@ h2 {
   font-variant: normal;
   display: block
 }
+
+td {
+  vertical-align: top;
+  padding: 8px
+}
+
+table {
+  margin-left: 2em
+}
+
+p.image {
+  text-align: center
+}
