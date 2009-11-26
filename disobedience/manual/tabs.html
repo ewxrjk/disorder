@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+ <head>
+   <title>Disobedience: Tabs</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disobedience.css">
+ </head>
+ <body>
+   <h1>3. Tabs</h1>
+
+   <p>The chaper contains detailed descriptions of the Queue, Recent,
+   Choose and Added tabs.</p>
+
+   <h2><a name=queue>3.1 The Queue</a></h2>
+
+   <p>The <b>Queue</b> tab has already
+   been <a href="window.html#main">briefly described</a>, but there
+   are some more things to say about.  To start with, the meaning of
+   the columns:</p>
+
+   <table>
+     <tr>
+       <td><b>When</b></td>
+       <td>This is the server's estimate of when the track will start.
+       If play is disabled but the queue isn't empty, then it is based
+       on the assumption that play is about to be enabled.</td>
+     </tr>
+     <tr>
+       <td><b>Who</b></td>
+       <td>This is the person who selected the track.  If the track
+       was picked at random by the server it is empty.  You can
+       &ldquo;adopt&rdquo; a randomly picked track; see below.</td>
+     </tr>
+     <tr>
+       <td><b>Artist</b></td>
+       <td>The artist responsible for the track.  Like the other track
+       name columns, this depends on the server's logic for parsing
+       filename, so can be a bit wrong.  You can edit the track
+       properties to correct it.</td>
+     </tr>
+     <tr>
+       <td><b>Album</b></td>
+       <td>The album that the track came from.</td>
+     </tr>
+     <tr>
+       <td><b>Title</b></td>
+       <td>The title of the track.</td>
+     </tr>
+     <tr>
+       <td><b>Length</b></td>
+       <td>The length the track will play for.  For the playing track
+       this will include the amount of time it's been playing so
+       far.</td>
+     </tr>
+   </table>
+
+   <p>You can select tracks in the queue by clicking on them.  You can
+   select multiple tracks by clicking in a second location with SHIFT
+   depressed (to select all tracks between the first and second click)
+   or with CTRL depressed (to add a single track to the selection).</p>
+
+   <p>Having selected tracks you can drag them to a new location in
+   the queue.  Of course, you can't drag the playing track, nor can
+   you drag other tracks before it.</p>
+
+   <p>Right-clicking in the queue will create a pop-up menu:</p>
+
+   <p class=image><img src="queue-menu.png"></p>
+
+   <p><b>Track Properties</b> will create a window with editable
+   properties of each selected track.  <b>Scratch playing track</b>
+   only works if the playing track is the selected track and will stop
+   it playing.  <b>Remove track from queue</b> will remove the
+   selected (non-playing) tracks from the queue.</p>
+
+   <p><b>Adopt track</b> will apply your name to one without an entry
+   in the <b>Who</b> column, i.e. one that was randomly picked by the
+   server.  The reason you might do this is to signal to other users
+   that you did want this track to play.  (For instance, it might be
+   an accepted convention that randomly picked tracks were fair game
+   for removal but that tracks picked by a human should normally be
+   left alone.)</p>
+
+   <h2><a name=recent>3.2 Recently Played Tracks</a></h2>
+
+   <p class=image><img src="recent.png"></p>
+
+   <p>The <b>Recent</b> tab is similar in structure to the queue but
+   it shows tracks that have played recently.  The <b>When</b> column
+   indicates when the track played rather than when it will
+   played.</p>
+
+   <p>Right clicking will create a pop-up menu with similar options to
+   those found in the queue's equivalent menu.  The one additional
+   option is <b>Play track</b>, which allows a recently played track
+   to be added back to the queue.</p>
+
+   <p>The other way of adding tracks from this tab back to the queue
+   is to drag them to the queue tab and then to the desired point into
+   the queue.</p>
+
+   <h2><a name=choose>3.3 Choosing Tracks</a></h2>
+
+   <p>The <b>Choose</b> tab contains all the tracks known to the
+   server, organized into a hierarchical structure based on the
+   underlying file and directory structure.</p>
+
+   <p class=image><img src="choose.png"></p>
+
+   <p>The boxes in the <b>Queued</b> column are ticked if the track is
+   somewhere in the queue.  You can click on an unticked box to add
+   the track to the queue, but clicking an already-ticked one will
+   have no effect.</p>
+
+   <p>Directories can be expanded or collapsed by clicking on the
+   triangular signs left of their names.  Tracks can be selected and
+   deselected by clicking on them.  You can select multiple tracks by
+   clicking in a second location with SHIFT depressed (to select all
+   tracks between the first and second click) or with CTRL depressed
+   (to add a single track to the selection).</p>
+
+   <p>Right clicking will create a pop-up menu with what are hopefuly
+   now familiar options.  <b>Play track</b> will add the selected
+   track(s) to the queue and <b>Track Properties</b> will create a
+   window with editable properties of each selected track.</p>
+
+   <p>Note that when tracks are added to the queue these ways they
+   will be added before any tracks picked at random by the server, so
+   that users don't have to wait for them to play out.</p>
+
+   <p>Selected tracks can also be dragged to the queue, by dragging
+   first to the <b>Queue</b> tab itself and then to the desired
+   location in the queue.</p>
+
+   <p class=image><img src="choose-search.png"></p>
+
+   <p>To do a word search over all tracks, you can just start typing.
+   Your search terms will appear in the input box at the bottom of the
+   window.  Directories containing matching tracks are automatically
+   opened and the matches highlighted in yellow.  You can jump to the
+   previous or next search result with the up and down arrows at the
+   bottom right of the screen (or jump to the next one by pressing
+   CTRL+G).</p>
+
+   <p>To clear the search, press the <b>Cancel</b> button.</p>
+
+   <h2><a name=added>3.4 Newly Added Tracks</a></h2>
+
+   <p>The <b>Added</b> tab shows tracks that have been newly detected
+   by the server, in order to allow those tracks to be conveniently
+   played.  In behavior it is the same as the
+   recently <a href="#recent">played tracks list</a>.</p>
+
+ </body>
+</html>
