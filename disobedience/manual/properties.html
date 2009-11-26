@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+ <head>
+   <title>Disobedience: Track Properties</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disobedience.css">
+ </head>
+ <body>
+   <h1>4. Track Properties</h1>
+
+   <p>The chapter describes how to edit track properties.</p>
+
+   <p class=image><img src="track-properties.png"></p>
+
+   <p>This window can be invoked from any of the four tabs by
+   selecting one or more tracks and then either selected <b>Edit >
+   Track Properties</b> or via the right-click pop-up menu.</p>
+
+   <h2><a name=names>4.1 Track Name Parts</a></h2>
+
+   <p>The first three fields for each track are the parts of its name:
+   the artist, album and title.  These control what appear in the
+   similarly named columns in the queue and other tabs.  If they are
+   wrong then you can edit them here to correct them.</p>
+
+   <p>The double-headed arrow at the right of each field will copy the
+   current field value to all the other tracks in the window.  For
+   instance if an album name is mis-spelled or wrong then you could
+   follow the following procedure to correct it for all its
+   tracks:</p>
+
+   <ol>
+
+     <li>In the <b>Choose</b> tab, select all the tracks in the album.</li>
+
+     <li>Select <b>Edit > Track Properties</b> to bring up the track
+     properties window.</li>
+
+     <li>Edit the album name in the first track.</li>
+
+     <li>Click the arrow button to the right of the corrected version.</li>
+
+     <li>Click the <b>OK</b> button.</li>
+
+   </ol>
+
+   <h2><a name=tags>4.2 Tags</a></h2>
+
+   <p>Each track has an associated collection of tags.  These can used
+   when searching for tracks in the <b>Choose</b> tab or to control
+   which tracks are picked at random (although this functionality is
+   not readily available in current versions of Disobedience).</p>
+
+   <p>To add tags to a track enter the tags you want to apply to it in
+   the <b>Tags</b> field, separated by commas.  Tags cannot contain
+   commas and are compared without regard to whitespace.</p>
+
+   <h2><a name=weight>4.3 Track Weight</a></h2>
+
+   <p>Every track has an associated weight.  A higher weight makes the
+   track more likely to be picked at random and lower weight makes it
+   less likely to be picked at random.  (In the simplest case the
+   probability that it will be picked is equal to its weight divided
+   by the total weight of all tracks, although there are a number of
+   other factors that modify this.)</p>
+
+   <p>If no weight has been explicitly set then the track gets a
+   default weight of 90,000.</p>
+
+   <p>One way to prevent a track being picked at random would be to
+   set its weight to zero, but in fact there is a box you can untick
+   to suppress random selection of tracks too.</p>
+
+ </body>
+</html>
