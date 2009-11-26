@@ -16,12 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-dochtml_DATA=index.html intro.html tabs.html window.html		\
-	disobedience.css						\
+dochtml_DATA=index.html intro.html misc.html playlists.html		\
+	properties.html tabs.html window.html disobedience.css		\
 	arch-simple.png button-pause.png button-playing.png		\
 	button-random.png button-rtp.png button-scratch.png		\
 	choose-search.png choose.png disobedience-debian-menu.png	\
 	disobedience-terminal.png disorder-email-confirm.png		\
 	disorder-web-login.png login.png menu-control.png		\
 	menu-edit.png menu-help.png menu-server.png queue-menu.png	\
-	queue.png queue2.png recent.png volume-slider.png
+	queue.png queue2.png recent.png track-properties.png		\
+	volume-slider.png
