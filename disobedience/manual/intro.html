@@ -32,10 +32,15 @@
      scripting.</li>
 
      <li>It has a web interface, usable with graphical web browsers
-     (Firefox, Opera, Internet Explorer etc).</li>
+     (Firefox, Internet Explorer etc).</li>
 
      <li>It has a graphical client called Disobedience.</li>
    </ul>
+
+   <p>This manual is about Disobedience, so it does not really cover
+   installation or management issues.  However in this chapter it will
+   cover a few such topics as they are necessary to getting up and
+   running with Disobedience.</p>
 
    <p>This diagram shows an overview of one possible setup.</p>
 
@@ -48,8 +53,10 @@
 
    <p>Many other configurations are possible.  For instance the server
    could play directly to a local soundcard.  Also if Disobedience
-   runs on the same computer as the RTP player then it can be used to stop
-   and start the player.</p>
+   runs on the same computer as the RTP player then it can be used to
+   stop and start the player.  Of course Disobedience can also be run
+   on the same computer as the server provided it can run X11
+   applications.</p>
 
    <h2>1.2 Getting DisOrder</h2>
 
@@ -84,7 +91,8 @@
 
    <p>If you have another kind of Linux system, or a Mac, you must
    build from source code.  See the <tt>README</tt> file included in
-   the source distribution for more details.</p>
+   the source distribution for more details.  Note that to use
+   Disobedience on a Mac, you will need X11.app.</p>
 
    <p>There is no Windows support (although the web interface can be
    used from Windows computers).</p>
@@ -111,8 +119,13 @@
    <p>Your login won't be active until you click on this URL.</p>
 
    <p>(It might be that your installation isn't set up to automatic
-   registration.  In that case the system administrator will have to
+   registration.  In that case the local sysadmin will have to
    create your login and set your initial password by hand.)</p>
+
+   <p>Having done this you could of course just use the web interface.
+   But since this is the manual for Disobedience, it is assumed that
+   you want to take advantage of its more convenient design and extra
+   features.</p>
 
    <h2>1.4 Starting Disobedience</h2>
 
@@ -126,6 +139,38 @@
    an <tt>&amp;</tt> suffix to stop it tying up your terminal.</p>
 
    <p align=middle><img src="disobedience-terminal.png"></p>
+
+   <p>(Please note that Disobedience shouldn't write any messages to
+   the terminal.  If it does that probably indicates a bug, which
+   should <a href="http://code.google.com/p/disorder/issues/list">be
+   reported</a>.)</p>
+
+   <h2>1.5 Initial Login</h2>
+
+   <p>The first time you run Disobedience it won't know what server to
+   connect to, your username or your password, and will therefore
+   display a login box.</p>
+
+   <p align=middle><img src="login.png"></p>
+
+   <p>If Disobedience is running on a different computer to the
+   server, then you should make sure the <b>Remote</b> box is ticked
+   and fill in the host name (or IP address) and port number
+   (&ldquo;Service&rdquo;).  If you don't know what values to use
+   here, ask your local sysadmin.  If, on the other hand, Disobedience
+   is running on the <i>same</i> computer as the server then you can
+   leave the <b>Remote</b> box clear and it should be able to connect
+   to it without using the network.</p>
+
+   <p>In any case, you will need to enter your username and
+   password, as set up earlier.</p>
+
+   <p>Once you have logged in successfuly, Disobedience will remember
+   these login settings, so it should not be necessary to enter them
+   again.  If you need to change them for any reason, you can either
+   select the Server > Login option to bring the login window back, or
+   (if you prefer), edit the file <tt>~/.disorder/passwd</tt>
+   directly.</p>
 
  </body>
 </html>
