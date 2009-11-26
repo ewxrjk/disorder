@@ -17,7 +17,7 @@
 #
 
 bin_PROGRAMS=disobedience
-pkgdata_DATA=disobedience.html
+SUBDIRS=manual
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
@@ -38,12 +38,6 @@ install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
 
 check: check-help
-
-disobedience.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
-	rm -f $@.new
-	$(top_srcdir)/scripts/htmlman $< >$@.new
-	chmod 444 $@.new
-	mv -f $@.new $@
 
 misc.o: images.h
 
@@ -67,7 +61,7 @@ check-help: all
 	unset DISPLAY;./disobedience --version > /dev/null
 	unset DISPLAY;./disobedience --help > /dev/null
 
-CLEANFILES=disobedience.html images.h \
+CLEANFILES=images.h \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
 export GNUSED

@@ -29,7 +29,7 @@ void popup_help(void) {
   pid_t pid;
   int w;
 
-  byte_xasprintf(&path, "%s/disobedience.html", pkgdatadir);
+  byte_xasprintf(&path, "%s/index.html", dochtmldir);
   if(!(pid = xfork())) {
     exitfn = _exit;
     if(!xfork()) {

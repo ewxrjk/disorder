@@ -326,6 +326,11 @@ if test -z "$pkghttpdir"; then
 fi
 AC_SUBST([pkghttpdir])
 
+if test -z "$dochtmldir"; then
+  dochtmldir='$(docdir)/html'
+fi
+AC_SUBST([dochtmldir])
+
 subdirs="scripts lib"
 if test $want_tests = yes; then
   subdirs="${subdirs} libtests"
@@ -823,6 +828,7 @@ AC_CONFIG_FILES([Makefile
 		 cgi/Makefile
 		 clients/Makefile
 		 disobedience/Makefile
+		 disobedience/manual/Makefile
 		 doc/Makefile
 		 templates/Makefile
 		 plugins/Makefile

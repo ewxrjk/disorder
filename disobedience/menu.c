@@ -364,7 +364,7 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     {
-      (char *)"/Help/Manual page",      /* path */
+      (char *)"/Help/Manual",           /* path */
       0,                                /* accelerator */
       manual_popup,                     /* callback */
       0,                                /* callback_action */
