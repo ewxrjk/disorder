@@ -49,6 +49,12 @@ Edit the details of the selected tracks.
 See
 .B "Properties Window"
 below.
+.TP
+.B "Edit Playlists"
+Edit playlists.
+See
+.B "Playlists Window"
+below.
 .SS "Control Menu"
 This has the following options:
 .TP
@@ -67,6 +73,10 @@ Enables or disables network play.
 See
 .B "NETWORK PLAY"
 below.
+.TP
+.B "Activate Playlist"
+This submenu has the selection of playlists which you are able to play.
+Picking one will add its contents to the queue.
 .SS "Help Menu"
 This has only one option, "About DisOrder", which pops up a box giving the
 name, author and version number of the software.
@@ -331,6 +341,39 @@ configuration (but this may be changed in the future).  As above, click on
 .PP
 The "Delete" button deletes the selected user.  This operation cannot be
 undone.
+.SS "Playlists Window"
+A playlist is a collection of tracks that can be prepared in advance and then
+played as a unit.
+Playlists come in three kinds:
+.TP
+.B shared
+A playlist that anyone can edit.
+These are not owned by any user.
+.TP
+.B public
+A playlist that only one user (its owner) can edit,
+but that anyone can see the contents of.
+.TP
+.B private
+A playlist that is entirely private to one user.
+.PP
+Public and private playlists start with the owner's username.
+.PP
+The left side of the playlist window is a list of all playlists that you can
+see: all shared and public playlists plus your private playlists.
+Selecting one will bring it up in the right hand side of the window,
+allowing it to be reviewed or edited.
+You can drag tracks from the choose tab in the main window into it and
+rearrange tracks already in the playlist by selecting and dragging them.
+.PP
+The add button creates a new playlist.
+You must selected whether it will be a shared, public or private playlist.
+.PP
+At the bottom of the window are radio buttons showing which kind of playlist it
+is.
+If you own the playlist you can use these to switch it between public and
+private, but if it is shared or owned by someone else these buttons will be
+greyed out.
 .SH "KEYBOARD SHORTCUTS"
 .TP
 .B CTRL+A
