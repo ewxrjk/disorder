@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+   <title>Disobedience: Introduction</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disorder.css">
+ </head>
+ <body>
+   <h1>1. Introduction</h1>
+
+   <p>This chapter covers the following topics:</p>
+
+   <ul>
+     <li>What DisOrder and Disobedience are, and how to get them</li>
+     <li>How to get a DisOrder login</li>
+     <li>How to start Disobedience</li>
+   </ul>
+
+   <h2>1.1 What is DisOrder?</h2>
+
+   <p><a href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>
+   is a multi-user software jukebox.  It allows MP3s, OGGs, etc to be
+   played either using a single sound card or over a network to many
+   different computers, with multiple different people controlling
+   what is played.</p>
+
+   <p>DisOrder has three main user interfaces.</p>
+
+   <ul>
+     <li>It has a command-line interface, suitable for ad-hoc use and
+     scripting.</li>
+
+     <li>It has a web interface, usable with graphical web browsers
+     (Firefox, Opera, Internet Explorer etc).</li>
+
+     <li>It has a graphical client called Disobedience.</li>
+   </ul>
+
+   <p>This diagram shows an overview of one possible setup.</p>
+
+   <p align=middle><img src="arch-simple.png"></p>
+
+   <p>The server and web interface run on one computer.  Disobedience
+   runs on a desktop computer and accesses the server via the network.
+   On another system the RTP player runs and plays sound received from
+   the server via its local sound card.</p>
+
+   <p>Many other configurations are possible.  For instance the server
+   could play directly to a local soundcard.  Also if Disobedience
+   runs on the same computer as the RTP player then it can be used to stop
+   and start the player.</p>
+
+   <h2>1.2 Getting DisOrder</h2>
+
+   <p>There are two ways to get DisOrder.</p>
+
+   <p>If you have a Debian system you can download the <tt>.deb</tt>
+   files <a href="http://www.greenend.org.uk/rjk/disorder/">from
+   DisOrder's home page</a> and install those.  There are four
+   packages to choose from:</p>
+
+   <ul>
+     <li><tt>disorder.deb</tt> - the base package.  You should always
+     install this.  It contains the command-line client.</li>
+
+     <li><tt>disorder-server.deb</tt> - the server and web interface.
+     Only install this if you are setting up a totally new DisOrder
+     installation.  If you just want to access an existing one, you
+     don't need this package.</li>
+
+     <li><tt>disobedience.deb</tt> - the graphical client.  If you are
+     reading this manual you want this package!</li>
+
+     <li><tt>disorder-rtp.deb</tt> - the network play client.  If your
+     server is set up to transmit sound over the network you will need
+     this.  If it uses a local sound card then this package won't be
+     useful to you.</li>
+
+   </ul>
+
+   <p>(At the time of writing, DisOrder is not included as part of
+   Debian.)</p>
+
+   <p>If you have another kind of Linux system, or a Mac, you must
+   build from source code.  See the <tt>README</tt> file included in
+   the source distribution for more details.</p>
+
+   <p>There is no Windows support (although the web interface can be
+   used from Windows computers).</p>
+
+   <h2>1.3 Getting a DisOrder login</h2>
+
+   <p>The easiest way to get a DisOrder login is to access the web
+   interface and set one up using that.  To do this,
+   visit <tt>http://HOSTNAME/cgi-bin/disorder</tt>,
+   where <tt>HOSTNAME</tt> is the name of the server where DisOrder is
+   installed.  You should then be able to select the <b>Login</b>
+   option at the top of the screen.</p>
+
+   <p align=middle><img src="disorder-web-login.png"></p>
+
+   <p>Go to the <b>New Users</b> form and enter the username you want
+   to use, your email address, and a password.  The password must be
+   entered twice to verify you did not mistype it (since it won't be
+   displayed on the screen).  When you press <b>Register</b>, you will
+   be sent an email requiring you to confirm your registration.</p>
+
+   <p align=middle><img src="disorder-email-confirm.png"></p>
+
+   <p>Your login won't be active until you click on this URL.</p>
+
+   <p>(It might be that your installation isn't set up to automatic
+   registration.  In that case the system administrator will have to
+   create your login and set your initial password by hand.)</p>
+
+   <h2>1.4 Starting Disobedience</h2>
+
+   <p>On Debian systems it should be possible to find Disobedience in
+   the menu system:</p>
+
+   <p align=middle><img src="disobedience-debian-menu.png"></p>
+
+   <p>On other systems you will have to start it from the command line
+   by typing its name at a command prompt.  You can (optionally) use
+   an <tt>&amp;</tt> suffix to stop it tying up your terminal.</p>
+
+   <p align=middle><img src="disobedience-terminal.png"></p>
+
+ </body>
+</html>
