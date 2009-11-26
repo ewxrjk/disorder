@@ -24,11 +24,9 @@
 static GtkWidget *selectall_widget;
 static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
-#if PLAYLISTS
 GtkWidget *menu_playlists_widget;
 GtkWidget *playlists_menu;
 GtkWidget *menu_editplaylists_widget;
-#endif
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
@@ -298,7 +296,6 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* item_type */
       0                                 /* extra_data */
     },
-#if PLAYLISTS
     {
       (char *)"/Edit/Edit playlists",   /* path */
       0,                                /* accelerator */
@@ -307,7 +304,6 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* item_type */
       0                                 /* extra_data */
     },
-#endif
     
     
     {
@@ -350,7 +346,6 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
-#if PLAYLISTS
     {
       (char *)"/Control/Activate playlist", /* path */
       0,                                /* accelerator */
@@ -359,8 +354,7 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<Branch>",               /* item_type */
       0                                 /* extra_data */
     },
-#endif
-    
+
     {
       (char *)"/Help",                  /* path */
       0,                                /* accelerator */
@@ -404,22 +398,18 @@ GtkWidget *menubar(GtkWidget *w) {
 						 "<GdisorderMain>/Edit/Deselect all tracks");
   properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
-#if PLAYLISTS
   menu_playlists_widget = gtk_item_factory_get_item(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
   playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
   menu_editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                      "<GdisorderMain>/Edit/Edit playlists");
-#endif
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
-#if PLAYLISTS
   assert(menu_playlists_widget != 0);
   assert(playlists_menu != 0);
   assert(menu_editplaylists_widget != 0);
-#endif
 
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");

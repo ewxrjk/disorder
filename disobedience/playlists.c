@@ -40,8 +40,6 @@
 #include "popup.h"
 #include "validity.h"
 
-#if PLAYLISTS
-
 static void playlist_list_received_playlists(void *v,
                                              const char *err,
                                              int nvec, char **vec);
@@ -1311,8 +1309,6 @@ void playlists_init(void) {
   /* Update the shared/public/etc buttons when a playlist is modified */
   event_register("playlist-modified", playlist_editor_set_buttons, 0);
 }
-
-#endif
 
 /*
 Local Variables:

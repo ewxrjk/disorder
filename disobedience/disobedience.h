@@ -22,8 +22,6 @@
 #ifndef DISOBEDIENCE_H
 #define DISOBEDIENCE_H
 
-#define PLAYLISTS 1
-
 #include "common.h"
 
 #include <time.h>
@@ -259,7 +257,6 @@ void popup_settings(void);
 
 /* Playlists */
 
-#if PLAYLISTS
 void playlists_init(void);
 void playlist_window_create(gpointer callback_data,
                             guint callback_action,
@@ -269,7 +266,6 @@ extern int nplaylists;
 extern GtkWidget *menu_playlists_widget;
 extern GtkWidget *playlists_menu;
 extern GtkWidget *menu_editplaylists_widget;
-#endif
 
 #endif /* DISOBEDIENCE_H */
 
