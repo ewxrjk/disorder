@@ -107,6 +107,15 @@ static gboolean playlist_new_keypress(GtkWidget *widget,
 static gboolean playlist_picker_keypress(GtkWidget *widget,
                                          GdkEventKey *event,
                                          gpointer user_data);
+static void playlist_editor_button_toggled(GtkToggleButton *tb,
+                                           gpointer userdata);
+static void playlist_editor_set_buttons(const char *event,
+                                        void *eventdata,
+                                        void *callbackdata);
+static void playlist_editor_got_share(void *v,
+                                      const char *err,
+                                      const char *value);
+static void playlist_editor_share_set(void *v, const char *err);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -653,7 +662,8 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
   playlist_picker_selected = selected;
   /* Re-initalize the queue */
   ql_new_queue(&ql_playlist, NULL);
-  playlist_editor_fill(NULL, (void *)playlist_picker_selected, NULL);
+  /* Synthesize a playlist-modified to re-initialize the editor etc */
+  event_raise("playlist-modified", (void *)playlist_picker_selected);
 }
 
 /** @brief Called when the 'add' button is pressed */
@@ -778,11 +788,110 @@ static void playlist_picker_destroy(void) {
 
 /* Playlist editor ---------------------------------------------------------- */
 
+static GtkWidget *playlist_editor_shared;
+static GtkWidget *playlist_editor_public;
+static GtkWidget *playlist_editor_private;
+static int playlist_editor_setting_buttons;
+
 static GtkWidget *playlists_editor_create(void) {
   assert(ql_playlist.view == NULL);     /* better not be set up already */
-  GtkWidget *w = init_queuelike(&ql_playlist);
-  /* Initially empty */
-  return w;
+
+  GtkWidget *hbox = gtk_hbox_new(FALSE, 0);
+  playlist_editor_shared = gtk_radio_button_new_with_label(NULL, "shared");
+  playlist_editor_public
+    = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(playlist_editor_shared),
+                                                  "public");
+  playlist_editor_private
+    = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(playlist_editor_shared),
+                                                  "private");
+  g_signal_connect(playlist_editor_public, "toggled",
+                   G_CALLBACK(playlist_editor_button_toggled),
+                   (void *)"public");
+  g_signal_connect(playlist_editor_private, "toggled",
+                   G_CALLBACK(playlist_editor_button_toggled),
+                   (void *)"private");
+  gtk_box_pack_start(GTK_BOX(hbox), playlist_editor_shared,
+                     FALSE/*expand*/, FALSE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), playlist_editor_public,
+                     FALSE/*expand*/, FALSE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), playlist_editor_private,
+                     FALSE/*expand*/, FALSE/*fill*/, 0);
+  playlist_editor_set_buttons(0,0,0);
+
+  GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), init_queuelike(&ql_playlist),
+                     TRUE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox,
+                     FALSE/*expand*/, FALSE/*fill*/, 0);
+  return vbox;
+}
+
+/** @brief Called when the public/private buttons are set */
+static void playlist_editor_button_toggled(GtkToggleButton *tb,
+                                           gpointer userdata) {
+  const char *state = userdata;
+  if(!gtk_toggle_button_get_active(tb)
+     || !playlist_picker_selected
+     || playlist_editor_setting_buttons)
+    return;
+  disorder_eclient_playlist_set_share(client, playlist_editor_share_set,
+                                      playlist_picker_selected, state, NULL);
+}
+
+static void playlist_editor_share_set(void attribute((unused)) *v,
+                                      const attribute((unused)) char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+}
+  
+/** @brief Set the editor button state and sensitivity */
+static void playlist_editor_set_buttons(const char attribute((unused)) *event,
+                                        void *eventdata,
+                                        void attribute((unused)) *callbackdata) {
+  /* If this event is for a non-selected playlist do nothing */
+  if(eventdata
+     && playlist_picker_selected
+     && strcmp(eventdata, playlist_picker_selected))
+    return;
+  if(playlist_picker_selected) {
+    if(strchr(playlist_picker_selected, '.'))
+      disorder_eclient_playlist_get_share(client,
+                                          playlist_editor_got_share,
+                                          playlist_picker_selected,
+                                          (void *)playlist_picker_selected);
+    else
+      playlist_editor_got_share((void *)playlist_picker_selected, NULL,
+                                "shared");
+  } else
+    playlist_editor_got_share(NULL, NULL, NULL);
+}
+
+/** @brief Called with playlist sharing details */
+static void playlist_editor_got_share(void *v,
+                                      const char *err,
+                                      const char *value) {
+  const char *playlist = v;
+  if(err) {
+    popup_protocol_error(0, err);
+    value = NULL;
+  }
+  /* Set the currently active button */
+  ++playlist_editor_setting_buttons;
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(playlist_editor_shared),
+                               value && !strcmp(value, "shared"));
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(playlist_editor_public),
+                               value && !strcmp(value, "public"));
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(playlist_editor_private),
+                               value && !strcmp(value, "private"));
+  /* Set button sensitivity */
+  gtk_widget_set_sensitive(playlist_editor_shared, FALSE);
+  int sensitive = (playlist
+                   && strchr(playlist, '.')
+                   && !strncmp(playlist, config->username,
+                               strlen(config->username)));
+  gtk_widget_set_sensitive(playlist_editor_public, sensitive);
+  gtk_widget_set_sensitive(playlist_editor_private, sensitive);
+  --playlist_editor_setting_buttons;
 }
 
 /** @brief (Re-)populate the playlist tree model */
@@ -1199,6 +1308,8 @@ void playlists_init(void) {
   event_register("playlists-updated", playlist_picker_fill, 0);
   /* Update the displayed playlist when it is modified */
   event_register("playlist-modified", playlist_editor_fill, 0);
+  /* Update the shared/public/etc buttons when a playlist is modified */
+  event_register("playlist-modified", playlist_editor_set_buttons, 0);
 }
 
 #endif
