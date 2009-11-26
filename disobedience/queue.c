@@ -135,6 +135,21 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
   /* If there's a track playing, update its row */
   if(playing_track)
     ql_update_row(playing_track, 0);
+  /* If the first (nonplaying) track starts in the past, update the queue to
+   * get new expected start times; but rate limit this checking.  (If we only
+   * do it once a minute then the rest of the queue can get out of date too
+   * easily.) */
+  struct queue_entry *q = ql_queue.q;
+  if(q) {
+    if(q == playing_track)
+      q = q->next;
+    if(q) {
+      time_t now;
+      time(&now);
+      if(q->expected / 15 < now / 15)
+        queue_changed(0,0,0);
+    }
+  }
   return TRUE;
 }
 
