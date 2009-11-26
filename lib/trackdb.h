@@ -184,9 +184,6 @@ void trackdb_add_rescanned(void (*rescanned)(void *ru),
                            void *ru);
 int trackdb_rescan_underway(void);
 
-int playlist_parse_name(const char *name,
-                        char **ownerp,
-                        char **sharep);
 int trackdb_playlist_get(const char *name,
                          const char *who,
                          char ***tracksp,

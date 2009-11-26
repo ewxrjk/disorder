@@ -186,7 +186,8 @@ static gboolean properties_keypress(GtkWidget attribute((unused)) *widget,
   }
 }
 
-void properties(int ntracks, const char **tracks) {
+void properties(int ntracks, const char **tracks,
+                GtkWidget *parent) {
   int n, m;
   struct prefdata *f;
   GtkWidget *buttonbox, *vbox, *label, *entry, *propagate;
@@ -299,7 +300,9 @@ void properties(int ntracks, const char **tracks) {
   if(pw)
     progress_window_progress(pw, 0, 0);
   /* Pop up a progress bar while we're waiting */
-  pw = progress_window_new("Fetching Track Properties");
+  while(parent->parent)
+    parent = parent->parent;
+  pw = progress_window_new("Fetching Track Properties", parent);
 }
 
 /* Everything is filled in now */

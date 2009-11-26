@@ -117,7 +117,8 @@ void popup_protocol_error(int code,
                           const char *msg);
 /* Report an error */
 
-void properties(int ntracks, const char **tracks);
+void properties(int ntracks, const char **tracks,
+                GtkWidget *parent);
 /* Pop up a properties window for a list of tracks */
 
 GtkWidget *scroll_widget(GtkWidget *child);
@@ -134,7 +135,8 @@ void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg);
 
 void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 
-struct progress_window *progress_window_new(const char *title);
+struct progress_window *progress_window_new(const char *title,
+                                            GtkWidget *parent);
 /* Pop up a progress window */
 
 void progress_window_progress(struct progress_window *pw,
@@ -212,6 +214,8 @@ void choose_update(void);
 void play_completed(void *v,
                     const char *err);
 
+extern const GtkTargetEntry choose_targets[];
+
 /* Login details */
 
 void login_box(void);
@@ -253,17 +257,15 @@ void popup_settings(void);
 
 /* Playlists */
 
-#if PLAYLISTS
 void playlists_init(void);
-void edit_playlists(gpointer callback_data,
-                    guint callback_action,
-                    GtkWidget  *menu_item);
+void playlist_window_create(gpointer callback_data,
+                            guint callback_action,
+                            GtkWidget  *menu_item);
 extern char **playlists;
 extern int nplaylists;
-extern GtkWidget *playlists_widget;
+extern GtkWidget *menu_playlists_widget;
 extern GtkWidget *playlists_menu;
-extern GtkWidget *editplaylists_widget;
-#endif
+extern GtkWidget *menu_editplaylists_widget;
 
 #endif /* DISOBEDIENCE_H */
 

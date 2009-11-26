@@ -89,9 +89,6 @@ platform, please get in touch.
      --without-gtk          Don't build GTK+ client (Disobedience)
      --without-python       Don't build Python support
 
-   On a Mac you can use --with-bits=64 to request a 64-bit build.  The default
-   is 32 bits.  You will need suitable versions of all the libraries used.
-
    If configure cannot guess where your web server keeps its HTML documents and
    CGI programs, you may have to tell it, for instance:
 

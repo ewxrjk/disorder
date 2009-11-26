@@ -68,12 +68,11 @@ static gboolean autoscroll_timeout(gpointer data) {
 
   /* see if we are near the edge. */
   offset = ty - (visible_rect.y + 2 * SCROLL_EDGE_SIZE);
-  if (offset > 0)
-    {
-      offset = ty - (visible_rect.y + visible_rect.height - 2 * SCROLL_EDGE_SIZE);
-      if (offset < 0)
-	return TRUE;
-    }
+  if (offset > 0) {
+    offset = ty - (visible_rect.y + visible_rect.height - 2 * SCROLL_EDGE_SIZE);
+    if (offset < 0)
+      return TRUE;
+  }
 
   GtkAdjustment *vadjustment = gtk_tree_view_get_vadjustment(tree_view);
 

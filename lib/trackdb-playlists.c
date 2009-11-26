@@ -33,6 +33,7 @@
 #include "configuration.h"
 #include "vector.h"
 #include "eventlog.h"
+#include "validity.h"
 
 static int trackdb_playlist_get_tid(const char *name,
                                     const char *who,
@@ -53,43 +54,6 @@ static int trackdb_playlist_list_tid(const char *who,
 static int trackdb_playlist_delete_tid(const char *name,
                                        const char *who,
                                        DB_TXN *tid);
-
-/** @brief Parse a playlist name
- * @param name Playlist name
- * @param ownerp Where to put owner, or NULL
- * @param sharep Where to put default sharing, or NULL
- * @return 0 on success, -1 on error
- *
- * Playlists take the form USER.PLAYLIST or just PLAYLIST.  The PLAYLIST part
- * is alphanumeric and nonempty.  USER is a username (see valid_username()).
- */
-int playlist_parse_name(const char *name,
-                        char **ownerp,
-                        char **sharep) {
-  const char *dot = strchr(name, '.'), *share;
-  char *owner;
-
-  if(dot) {
-    /* Owned playlist */
-    owner = xstrndup(name, dot - name);
-    if(!valid_username(owner))
-      return -1;
-    if(!valid_username(dot + 1))
-      return -1;
-    share = "private";
-  } else {
-    /* Shared playlist */
-    if(!valid_username(name))
-      return -1;
-    owner = 0;
-    share = "shared";
-  }
-  if(ownerp)
-    *ownerp = owner;
-  if(sharep)
-    *sharep = xstrdup(share);
-  return 0;
-}
 
 /** @brief Check read access rights
  * @param name Playlist name

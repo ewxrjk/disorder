@@ -121,7 +121,7 @@ static void choose_properties_activate(GtkMenuItem attribute((unused)) *item,
   gtk_tree_selection_selected_foreach(choose_selection,
                                       choose_gather_selected_files_callback,
                                       v);
-  properties(v->nvec, (const char **)v->vec);
+  properties(v->nvec, (const char **)v->vec, toplevel);
 }
 
 /** @brief Set sensitivity for select children

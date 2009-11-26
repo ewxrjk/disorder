@@ -33,15 +33,19 @@
 #include "disobedience.h"
 #include "choose.h"
 #include "multidrag.h"
+#include "queue-generic.h"
 #include <gdk/gdkkeysyms.h>
 
 /** @brief Drag types */
-static const GtkTargetEntry choose_targets[] = {
+const GtkTargetEntry choose_targets[] = {
   {
-    (char *)"text/x-disorder-playable-tracks", /* drag type */
+    PLAYABLE_TRACKS,                             /* drag type */
     GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
-    1                                     /* ID value */
+    PLAYABLE_TRACKS_ID                           /* ID value */
   },
+  {
+    .target = NULL
+  }
 };
 
 /** @brief The current selection tree */
@@ -711,7 +715,7 @@ GtkWidget *choose_widget(void) {
   gtk_drag_source_set(choose_view,
                       GDK_BUTTON1_MASK,
                       choose_targets,
-                      sizeof choose_targets / sizeof *choose_targets,
+                      1,
                       GDK_ACTION_COPY);
   g_signal_connect(choose_view, "drag-data-get",
                    G_CALLBACK(choose_drag_data_get), NULL);
