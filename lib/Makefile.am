@@ -122,6 +122,7 @@ definitions.h: Makefile
 	echo "#define PKGCONFDIR \"${sysconfdir}/\"PACKAGE" >> $@.new
 	echo "#define PKGSTATEDIR \"${localstatedir}/\"PACKAGE" >> $@.new
 	echo "#define PKGDATADIR \"${pkgdatadir}/\"" >> $@.new
+	echo "#define DOCHTMLDIR \"${dochtmldir}\"" >> $@.new
 	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
 	echo "#define BINDIR \"${bindir}/\"" >> $@.new
 	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new

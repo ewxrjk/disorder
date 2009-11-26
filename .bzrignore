@@ -203,3 +203,4 @@ server/endian
 clients/rtpmon
 libtests/t-resample
 clients/resample
+disobedience/manual/Makefile
