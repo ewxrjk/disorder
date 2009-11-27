@@ -188,6 +188,8 @@ int main(int argc, char attribute((unused)) **argv) {
     }
     if(!n)
       break;
+    D(("NEW HEADER: %"PRIu32" bytes %"PRIu32"Hz %"PRIu8" channels %"PRIu8" bits %"PRIu8" endian",
+       header.nbytes, header.rate, header.channels, header.bits, header.endian));
     /* Sanity check the header */
     if(header.rate < 100 || header.rate > 1000000)
       disorder_fatal(0, "implausible rate %"PRId32"Hz (%#"PRIx32")",
@@ -210,7 +212,8 @@ int main(int argc, char attribute((unused)) **argv) {
     else {
       /* If we have a resampler active already check it is suitable and destroy
        * it if not */
-      if(!formats_equal(&header, &latest_format) && rs_in_use) {
+      if(rs_in_use) {
+        D(("call resample_close"));
         resample_close(rs);
         rs_in_use = 0;
       }
@@ -227,6 +230,7 @@ int main(int argc, char attribute((unused)) **argv) {
              config->sample_format.endian);*/
       if(!rs_in_use) {
         /* Create a suitable resampler. */
+        D(("call resample_init"));
         resample_init(rs,
                       header.bits,
                       header.channels, 
@@ -260,17 +264,21 @@ int main(int argc, char attribute((unused)) **argv) {
           left -= r;
           used += r;
           //syslog(LOG_INFO, "read %zd bytes", r);
+          D(("read %zd bytes", r));
         }
         /*syslog(LOG_INFO, " in: %02x %02x %02x %02x",
                (uint8_t)buffer[0],
                (uint8_t)buffer[1], 
                (uint8_t)buffer[2],
                (uint8_t)buffer[3]);*/
+        D(("calling resample_convert used=%zu !left=%d", used, !left));
         const size_t consumed = resample_convert(rs,
                                                  (uint8_t *)buffer, used,
                                                  !left,
                                                  converted, 0);
         //syslog(LOG_INFO, "used=%zu consumed=%zu", used, consumed);
+        D(("consumed=%zu", consumed));
+        assert(consumed != 0);
         memmove(buffer, buffer + consumed, used - consumed);
         used -= consumed;
       }
