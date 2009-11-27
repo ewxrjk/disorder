@@ -264,6 +264,7 @@ size_t resample_convert(const struct resampler *rs,
   if(rs->state) {
     /* A sample-rate conversion must be performed */
     SRC_DATA data;
+    memset(&data, 0, sizeof data);
     /* Compute how many frames are expected to come out. */
     size_t maxframesout = nframesin * rs->output_rate / rs->input_rate + 1;
     output = xcalloc(maxframesout * rs->output_channels, sizeof(float));
@@ -273,11 +274,16 @@ size_t resample_convert(const struct resampler *rs,
     data.output_frames = maxframesout;
     data.end_of_input = eof;
     data.src_ratio = (double)rs->output_rate / rs->input_rate;
+    D(("nframesin=%zu maxframesout=%zu eof=%d ratio=%d.%06d",
+       nframesin, maxframesout, eof,
+       (int)data.src_ratio,
+       ((int)(data.src_ratio * 1000000) % 1000000)));
     int error_ = src_process(rs->state, &data);
     if(error_)
       disorder_fatal(0, "calling src_process: %s", src_strerror(error_));
     nframesin = data.input_frames_used;
     nsamplesout = data.output_frames_gen * rs->output_channels;
+    D(("new nframesin=%zu nsamplesout=%zu", nframesin, nsamplesout));
   }
 #endif
   if(!output) {
