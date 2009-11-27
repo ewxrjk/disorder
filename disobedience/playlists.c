@@ -114,6 +114,18 @@ static void playlist_editor_got_share(void *v,
                                       const char *err,
                                       const char *value);
 static void playlist_editor_share_set(void *v, const char *err);
+static void playlist_picker_update_section(const char *title, const char *key,
+                                           int start, int end);
+static gboolean playlist_picker_find(GtkTreeIter *parent,
+                                     const char *title, const char *key,
+                                     GtkTreeIter iter[1],
+                                     gboolean create);
+static void playlist_picker_delete_obsolete(GtkTreeIter parent[1],
+                                            char **exists,
+                                            int nexists);
+static gboolean playlist_picker_button(GtkWidget *widget,
+                                       GdkEventButton *event,
+                                       gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -594,8 +606,13 @@ static void playlist_new_details(char **namep,
 /** @brief Delete button */
 static GtkWidget *playlist_picker_delete_button;
 
-/** @brief Tree model for list of playlists */
-static GtkListStore *playlist_picker_list;
+/** @brief Tree model for list of playlists
+ *
+ * This has two columns:
+ * - column 0 will be the display name
+ * - column 1 will be the sort key/playlist name (and will not be displayed)
+ */
+static GtkTreeStore *playlist_picker_list;
 
 /** @brief Selection for list of playlists */
 static GtkTreeSelection *playlist_picker_selection;
@@ -607,25 +624,169 @@ static const char *playlist_picker_selected;
 static void playlist_picker_fill(const char attribute((unused)) *event,
                                  void attribute((unused)) *eventdata,
                                  void attribute((unused)) *callbackdata) {
-  GtkTreeIter iter[1];
-
   if(!playlist_window)
     return;
   if(!playlist_picker_list)
-    playlist_picker_list = gtk_list_store_new(1, G_TYPE_STRING);
-  const char *was_selected = playlist_picker_selected;
-  gtk_list_store_clear(playlist_picker_list); /* clears playlists_selected */
-  for(int n = 0; n < nplaylists; ++n) {
-    gtk_list_store_insert_with_values(playlist_picker_list, iter,
-                                      n                /*position*/,
-                                      0, playlists[n], /* column 0 */
-                                      -1);             /* no more cols */
-    /* Reselect the selected playlist */
-    if(was_selected && !strcmp(was_selected, playlists[n]))
-      gtk_tree_selection_select_iter(playlist_picker_selection, iter);
+    playlist_picker_list = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+  /* We will accumulate a list of all the sections that exist */
+  char **sections = xcalloc(nplaylists, sizeof (char *));
+  int nsections = 0;
+  /* Make sure shared playlists are there */
+  int start = 0, end;
+  for(end = start; end < nplaylists && !strchr(playlists[end], '.'); ++end)
+    ;
+  if(start != end) {
+    playlist_picker_update_section("Shared playlists", "",
+                                   start, end);
+    sections[nsections++] = (char *)"";
   }
-  /* TODO deselecting then reselecting the current playlist resets the playlist
-   * editor, which trashes the user's selection. */
+  /* Make sure owned playlists are there */
+  while((start = end) < nplaylists) {
+    const int nl = strchr(playlists[start], '.') - playlists[start];
+    char *name = xstrndup(playlists[start], nl);
+    for(end = start;
+        end < nplaylists
+          && playlists[end][nl] == '.'
+          && !strncmp(playlists[start], playlists[end], nl);
+        ++end)
+      ;
+    playlist_picker_update_section(name, name, start, end);
+    sections[nsections++] = name;
+  }
+  /* Delete obsolete sections */
+  playlist_picker_delete_obsolete(NULL, sections, nsections);
+}
+
+/** @brief Update a section in the picker tree model
+ * @param section Section name
+ * @param start First entry in @ref playlists
+ * @param end Past last entry in @ref playlists
+ */
+static void playlist_picker_update_section(const char *title, const char *key,
+                                           int start, int end) {
+  /* Find the section, creating it if necessary */
+  GtkTreeIter section_iter[1];
+  playlist_picker_find(NULL, title, key, section_iter, TRUE);
+  /* Add missing rows */
+  for(int n = start; n < end; ++n) {
+    GtkTreeIter child[1];
+    char *name;
+    if((name = strchr(playlists[n], '.')))
+      ++name;
+    else
+      name = playlists[n];
+    playlist_picker_find(section_iter,
+                         name, playlists[n],
+                         child,
+                         TRUE);
+  }
+  /* Delete anything that shouldn't exist. */
+  playlist_picker_delete_obsolete(section_iter, playlists + start, end - start);
+}
+
+/** @brief Find and maybe create a row in the picker tree model
+ * @param parent Parent iterator (or NULL for top level)
+ * @param title Display name of section
+ * @param key Key to search for
+ * @param iter Iterator to point at key
+ * @param create If TRUE, key will be created if it doesn't exist
+ * @param compare Row comparison function
+ * @return TRUE if key exists else FALSE
+ *
+ * If the @p key exists then @p iter will point to it and TRUE will be
+ * returned.
+ *
+ * If the @p key does not exist and @p create is TRUE then it will be created.
+ * @p iter wil point to it and TRUE will be returned.
+ *
+ * If the @p key does not exist and @p create is FALSE then FALSE will be
+ * returned.
+ */
+static gboolean playlist_picker_find(GtkTreeIter *parent,
+                                     const char *title,
+                                     const char *key,
+                                     GtkTreeIter iter[1],
+                                     gboolean create) {
+  gchar *candidate;
+  GtkTreeIter next[1];
+  gboolean it;
+  int row = 0;
+
+  it = gtk_tree_model_iter_children(GTK_TREE_MODEL(playlist_picker_list),
+                                    next,
+                                    parent);
+  while(it) {
+    /* Find the value at row 'next' */
+    gtk_tree_model_get(GTK_TREE_MODEL(playlist_picker_list),
+                       next,
+                       1, &candidate,
+                       -1);
+    /* See how it compares with @p key */
+    int c = strcmp(key, candidate);
+    g_free(candidate);
+    if(!c) {
+      *iter = *next;
+      return TRUE;                      /* we found our key */
+    }
+    if(c < 0) {
+      /* @p key belongs before row 'next' */
+      if(create) {
+        gtk_tree_store_insert_with_values(playlist_picker_list,
+                                          iter,
+                                          parent,
+                                          row,     /* insert here */
+                                          0, title, 1, key, -1);
+        return TRUE;
+      } else
+        return FALSE;
+      ++row;
+    }
+    it = gtk_tree_model_iter_next(GTK_TREE_MODEL(playlist_picker_list), next);
+  }
+  /* We have reached the end and not found a row that should be later than @p
+   * key. */
+  if(create) {
+    gtk_tree_store_insert_with_values(playlist_picker_list,
+                                      iter,
+                                      parent,
+                                      INT_MAX, /* insert at end */
+                                      0, title, 1, key, -1);
+    return TRUE;
+  } else
+    return FALSE;
+}
+
+/** @brief Delete obsolete rows
+ * @param parent Parent or NULL
+ * @param exists List of rows that should exist (by key)
+ * @param nexists Length of @p exists
+ */
+static void playlist_picker_delete_obsolete(GtkTreeIter parent[1],
+                                            char **exists,
+                                            int nexists) {
+  /* Delete anything that shouldn't exist. */
+  GtkTreeIter iter[1];
+  gboolean it = gtk_tree_model_iter_children(GTK_TREE_MODEL(playlist_picker_list),
+                                             iter,
+                                             parent);
+  while(it) {
+    /* Find the value at row 'next' */
+    gchar *candidate;
+    gtk_tree_model_get(GTK_TREE_MODEL(playlist_picker_list),
+                       iter,
+                       1, &candidate,
+                       -1);
+    gboolean found = FALSE;
+    for(int n = 0; n < nexists; ++n)
+      if((found = !strcmp(candidate, exists[n])))
+        break;
+    if(!found)
+      it = gtk_tree_store_remove(playlist_picker_list, iter);
+    else
+      it = gtk_tree_model_iter_next(GTK_TREE_MODEL(playlist_picker_list),
+                                    iter);
+    g_free(candidate);
+  }
 }
 
 /** @brief Called when the selection might have changed */
@@ -635,9 +796,10 @@ static void playlist_picker_selection_changed(GtkTreeSelection attribute((unused
   char *gselected, *selected;
   
   /* Identify the current selection */
-  if(gtk_tree_selection_get_selected(playlist_picker_selection, 0, &iter)) {
+  if(gtk_tree_selection_get_selected(playlist_picker_selection, 0, &iter)
+     && gtk_tree_store_iter_depth(playlist_picker_list, &iter) > 0) {
     gtk_tree_model_get(GTK_TREE_MODEL(playlist_picker_list), &iter,
-                       0, &gselected, -1);
+                       1, &gselected, -1);
     selected = xstrdup(gselected);
     g_free(gselected);
   } else
@@ -760,6 +922,8 @@ static GtkWidget *playlist_picker_create(void) {
 
   g_signal_connect(tree, "key-press-event",
                    G_CALLBACK(playlist_picker_keypress), 0);
+  g_signal_connect(tree, "button-press-event",
+                   G_CALLBACK(playlist_picker_button), 0);
 
   return vbox;
 }
@@ -777,6 +941,93 @@ static gboolean playlist_picker_keypress(GtkWidget attribute((unused)) *widget,
   default:
     return FALSE;
   }
+}
+
+static void playlist_picker_select_activate(GtkMenuItem attribute((unused)) *item,
+                                            gpointer attribute((unused)) userdata) {
+  /* nothing */
+}
+
+static int playlist_picker_select_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  return gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0;
+}
+
+static void playlist_picker_play_activate(GtkMenuItem attribute((unused)) *item,
+                                          gpointer attribute((unused)) userdata) {
+  /* Re-use the menu-based activation callback */
+  disorder_eclient_playlist_get(client, playlist_menu_received_content,
+                                playlist_picker_selected, NULL);
+}
+
+static int playlist_picker_play_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  return gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0;
+}
+
+static void playlist_picker_remove_activate(GtkMenuItem attribute((unused)) *item,
+                                            gpointer attribute((unused)) userdata) {
+  /* Re-use the 'Remove' button' */
+  playlist_picker_delete(NULL, NULL);
+}
+
+static int playlist_picker_remove_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  if(gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0) {
+    if(strchr(playlist_picker_selected, '.')) {
+      if(!strncmp(playlist_picker_selected, config->username,
+                  strlen(config->username)))
+        return TRUE;
+    } else
+      return TRUE;
+  }
+  return FALSE;
+}
+
+/** @brief Pop-up menu for picker */
+static struct menuitem playlist_picker_menuitems[] = {
+  {
+    "Select playlist",
+    playlist_picker_select_activate,
+    playlist_picker_select_sensitive,
+    0,
+    0
+  },
+  {
+    "Play playlist",
+    playlist_picker_play_activate,
+    playlist_picker_play_sensitive,
+    0,
+    0
+  },
+  {
+    "Remove playlist",
+    playlist_picker_remove_activate,
+    playlist_picker_remove_sensitive,
+    0,
+    0
+  },
+};
+
+static gboolean playlist_picker_button(GtkWidget *widget,
+                                       GdkEventButton *event,
+                                       gpointer attribute((unused)) user_data) {
+  if(event->type == GDK_BUTTON_PRESS && event->button == 3) {
+    static GtkWidget *playlist_picker_menu;
+
+    /* Right click press pops up a menu */
+    ensure_selected(GTK_TREE_VIEW(widget), event);
+    /* Find the selected row */
+    GtkTreeIter iter[1];
+    if(!gtk_tree_selection_get_selected(playlist_picker_selection, 0, iter))
+      return TRUE;
+    popup(&playlist_picker_menu, event,
+          playlist_picker_menuitems,
+          sizeof playlist_picker_menuitems / sizeof *playlist_picker_menuitems,
+          iter);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 static void playlist_picker_destroy(void) {
