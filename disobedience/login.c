@@ -254,13 +254,15 @@ static struct button buttons[] = {
     "Login",
     login_ok,
     "(Re-)connect using these settings",
-    0
+    0,
+    NULL,
   },
   {
     GTK_STOCK_CLOSE,
     login_cancel,
     "Discard changes and close window",
-    0
+    0,
+    NULL,
   },
 };
 

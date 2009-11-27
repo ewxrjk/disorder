@@ -187,7 +187,14 @@ GtkWidget *create_buttons_box(struct button *buttons,
     gtk_widget_set_style(buttons[n].widget, tool_style);
     g_signal_connect(G_OBJECT(buttons[n].widget), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
-    gtk_box_pack_start(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
+    void (*pack)(GtkBox *box,
+                 GtkWidget *child,
+                 gboolean expand,
+                 gboolean fill,
+                 guint padding);
+    if(!(pack = buttons[n].pack))
+      pack = gtk_box_pack_start;
+    pack(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
     gtk_widget_set_tooltip_text(buttons[n].widget, buttons[n].tip);
   }
   return box;

@@ -129,6 +129,8 @@ static gboolean playlist_picker_button(GtkWidget *widget,
 static gboolean playlist_editor_keypress(GtkWidget *widget,
                                          GdkEventKey *event,
                                          gpointer user_data);
+static void playlist_editor_ok(GtkButton *button, gpointer userdata);
+static void playlist_editor_help(GtkButton *button, gpointer userdata);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -878,13 +880,15 @@ static struct button playlist_picker_buttons[] = {
     GTK_STOCK_ADD,
     playlist_picker_add,
     "Create a new playlist",
-    0
+    0,
+    NULL,
   },
   {
     GTK_STOCK_REMOVE,
     playlist_picker_delete,
     "Delete a playlist",
-    0
+    0,
+    NULL,
   },
 };
 #define NPLAYLIST_PICKER_BUTTONS (sizeof playlist_picker_buttons / sizeof *playlist_picker_buttons)
@@ -1048,6 +1052,26 @@ static GtkWidget *playlist_editor_public;
 static GtkWidget *playlist_editor_private;
 static int playlist_editor_setting_buttons;
 
+/** @brief Buttons for the playlist window */
+static struct button playlist_editor_buttons[] = {
+  {
+    GTK_STOCK_OK,
+    playlist_editor_ok,
+    "Close window",
+    0,
+    gtk_box_pack_end,
+  },
+  {
+    GTK_STOCK_HELP,
+    playlist_editor_help,
+    "Go to manual",
+    0,
+    gtk_box_pack_end,
+  },
+};
+
+#define NPLAYLIST_EDITOR_BUTTONS (int)(sizeof playlist_editor_buttons / sizeof *playlist_editor_buttons)
+
 static GtkWidget *playlists_editor_create(void) {
   assert(ql_playlist.view == NULL);     /* better not be set up already */
 
@@ -1072,6 +1096,9 @@ static GtkWidget *playlists_editor_create(void) {
   gtk_box_pack_start(GTK_BOX(hbox), playlist_editor_private,
                      FALSE/*expand*/, FALSE/*fill*/, 0);
   playlist_editor_set_buttons(0,0,0);
+  create_buttons_box(playlist_editor_buttons,
+                     NPLAYLIST_EDITOR_BUTTONS,
+                     hbox);
 
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
   GtkWidget *view = init_queuelike(&ql_playlist);
@@ -1220,6 +1247,16 @@ static void playlists_editor_received_tracks(void *v,
   }
   *qq = NULL;
   ql_new_queue(&ql_playlist, newq);
+}
+
+static void playlist_editor_ok(GtkButton attribute((unused)) *button, 
+                               gpointer attribute((unused)) userdata) {
+  gtk_widget_destroy(playlist_window);
+}
+
+static void playlist_editor_help(GtkButton attribute((unused)) *button, 
+                                 gpointer attribute((unused)) userdata) {
+  popup_help("playlists.html");
 }
 
 /* Playlist mutation -------------------------------------------------------- */
