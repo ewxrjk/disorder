@@ -149,7 +149,7 @@ static struct menuitem playlist_menuitems[] = {
   { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
   { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
   { "Play playlist", playlist_playall_activate, playlist_playall_sensitive, 0, 0 },
-  { "Remove track from queue", playlist_remove_activate, playlist_remove_sensitive, 0, 0 },
+  { "Remove track from playlist", playlist_remove_activate, playlist_remove_sensitive, 0, 0 },
   { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
