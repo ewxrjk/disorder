@@ -51,6 +51,9 @@ static void icon_changed(const char *event,
 static void volume_changed(const char *event,
                            void *eventdata,
                            void *callbackdata);
+static void control_minimode(const char *event,
+                             void *eventdata,
+                             void *callbackdata);
 
 /* Control bar ------------------------------------------------------------- */
 
@@ -308,7 +311,16 @@ GtkWidget *control_widget(void) {
                    G_CALLBACK(format_balance), 0);
   event_register("volume-changed", volume_changed, 0);
   event_register("rtp-changed", volume_changed, 0);
+  event_register("mini-mode-changed", control_minimode, 0);
   return hbox;
+}
+
+/** @brief Return TRUE if volume setting is supported */
+static int volume_supported(void) {
+  /* TODO: if the server doesn't know how to set the volume [but isn't using
+   * network play] then we should have volume_supported = FALSE */
+  return (!rtp_supported
+          || (rtp_supported && backend && backend->set_volume));
 }
 
 /** @brief Update the volume control when it changes */
@@ -316,19 +328,11 @@ static void volume_changed(const char attribute((unused)) *event,
                            void attribute((unused)) *eventdata,
                            void attribute((unused)) *callbackdata) {
   double l, r;
-  gboolean volume_supported;
 
   D(("volume_changed"));
   ++suppress_actions;
   /* Only display volume/balance controls if they will work */
-  if(!rtp_supported
-     || (rtp_supported && backend && backend->set_volume))
-    volume_supported = TRUE;
-  else
-    volume_supported = FALSE;
-  /* TODO: if the server doesn't know how to set the volume [but isn't using
-   * network play] then we should have volume_supported = FALSE */
-  if(volume_supported) {
+  if(volume_supported()) {
     gtk_widget_show(volume_widget);
     gtk_widget_show(balance_widget);
     l = volume_l / 100.0;
@@ -557,6 +561,15 @@ static int disable_rtp(disorder_eclient attribute((unused)) *c,
                        void attribute((unused)) *v) {
   stop_rtp();
   return 0;
+}
+
+static void control_minimode(const char attribute((unused)) *event,
+                             void attribute((unused)) *evendata,
+                             void attribute((unused)) *callbackdata) {
+  if(full_mode && volume_supported())
+    gtk_widget_show(balance_widget);
+  else
+    gtk_widget_hide(balance_widget);
 }
 
 /*
