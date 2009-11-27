@@ -134,7 +134,7 @@ static void manual_popup(gpointer attribute((unused)) callback_data,
                        GtkWidget attribute((unused)) *menu_item) {
   D(("manual_popup"));
 
-  popup_help();
+  popup_help(NULL);
 }
 
 /** @brief Called when version arrives, displays about... popup */

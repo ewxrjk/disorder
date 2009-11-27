@@ -24,12 +24,14 @@
 #include <unistd.h>
 
 /** @brief Display the manual page */
-void popup_help(void) {
+void popup_help(const char *what) {
   char *path;
   pid_t pid;
   int w;
 
-  byte_xasprintf(&path, "%s/index.html", dochtmldir);
+  if(!what)
+    what = "index.html";
+  byte_xasprintf(&path, "%s/%s", dochtmldir, what);
   if(!(pid = xfork())) {
     exitfn = _exit;
     if(!xfork()) {

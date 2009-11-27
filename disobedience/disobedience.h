@@ -85,6 +85,11 @@ struct button {
   void (*clicked)(GtkButton *button, gpointer userdata);
   const char *tip;
   GtkWidget *widget;
+  void (*pack)(GtkBox *box,
+               GtkWidget *child,
+               gboolean expand,
+               gboolean fill,
+               guint padding);
 };
 
 /* Variables --------------------------------------------------------------- */
@@ -228,7 +233,7 @@ void manage_users(void);
 
 /* Help */
 
-void popup_help(void);
+void popup_help(const char *what);
 
 /* RTP */
 
