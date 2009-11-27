@@ -31,7 +31,16 @@ void popup_help(const char *what) {
 
   if(!what)
     what = "index.html";
-  byte_xasprintf(&path, "%s/%s", dochtmldir, what);
+#if __APPLE__
+  if(!strcmp(browser, "open"))
+    /* Apple's open(1) isn't really a web browser so needs some extra hints
+     * that it should see the argument as a URL.  Otherwise it doesn't treat #
+     * specially.  A better answer would be to identify the system web browser
+     * and invoke it directly. */
+    byte_xasprintf(&path, "file:///%s/%s", dochtmldir, what);
+  else
+#endif
+    byte_xasprintf(&path, "%s/%s", dochtmldir, what);
   if(!(pid = xfork())) {
     exitfn = _exit;
     if(!xfork()) {

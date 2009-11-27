@@ -230,6 +230,12 @@ static void login_cancel(GtkButton attribute((unused)) *button,
   gtk_widget_destroy(login_window);
 }
 
+/** @brief User pressed cancel in the login window */
+static void login_help(GtkButton attribute((unused)) *button,
+                       gpointer attribute((unused)) userdata) {
+  popup_help("intro.html#login");
+}
+
 /** @brief Keypress handler */
 static gboolean login_keypress(GtkWidget attribute((unused)) *widget,
                                GdkEventKey *event,
@@ -251,18 +257,25 @@ static gboolean login_keypress(GtkWidget attribute((unused)) *widget,
 /* Buttons that appear at the bottom of the window */
 static struct button buttons[] = {
   {
-    "Login",
-    login_ok,
-    "(Re-)connect using these settings",
+    GTK_STOCK_HELP,
+    login_help,
+    "Go to manual",
     0,
-    NULL,
+    gtk_box_pack_start,
   },
   {
     GTK_STOCK_CLOSE,
     login_cancel,
     "Discard changes and close window",
     0,
-    NULL,
+    gtk_box_pack_end,
+  },
+  {
+    "Login",
+    login_ok,
+    "(Re-)connect using these settings",
+    0,
+    gtk_box_pack_end,
   },
 };
 
