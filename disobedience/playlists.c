@@ -123,6 +123,9 @@ static gboolean playlist_picker_find(GtkTreeIter *parent,
 static void playlist_picker_delete_obsolete(GtkTreeIter parent[1],
                                             char **exists,
                                             int nexists);
+static gboolean playlist_picker_button(GtkWidget *widget,
+                                       GdkEventButton *event,
+                                       gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -919,6 +922,8 @@ static GtkWidget *playlist_picker_create(void) {
 
   g_signal_connect(tree, "key-press-event",
                    G_CALLBACK(playlist_picker_keypress), 0);
+  g_signal_connect(tree, "button-press-event",
+                   G_CALLBACK(playlist_picker_button), 0);
 
   return vbox;
 }
@@ -936,6 +941,93 @@ static gboolean playlist_picker_keypress(GtkWidget attribute((unused)) *widget,
   default:
     return FALSE;
   }
+}
+
+static void playlist_picker_select_activate(GtkMenuItem attribute((unused)) *item,
+                                            gpointer attribute((unused)) userdata) {
+  /* nothing */
+}
+
+static int playlist_picker_select_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  return gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0;
+}
+
+static void playlist_picker_play_activate(GtkMenuItem attribute((unused)) *item,
+                                          gpointer attribute((unused)) userdata) {
+  /* Re-use the menu-based activation callback */
+  disorder_eclient_playlist_get(client, playlist_menu_received_content,
+                                playlist_picker_selected, NULL);
+}
+
+static int playlist_picker_play_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  return gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0;
+}
+
+static void playlist_picker_remove_activate(GtkMenuItem attribute((unused)) *item,
+                                            gpointer attribute((unused)) userdata) {
+  /* Re-use the 'Remove' button' */
+  playlist_picker_delete(NULL, NULL);
+}
+
+static int playlist_picker_remove_sensitive(void *extra) {
+  GtkTreeIter *iter = extra;
+  if(gtk_tree_store_iter_depth(playlist_picker_list, iter) > 0) {
+    if(strchr(playlist_picker_selected, '.')) {
+      if(!strncmp(playlist_picker_selected, config->username,
+                  strlen(config->username)))
+        return TRUE;
+    } else
+      return TRUE;
+  }
+  return FALSE;
+}
+
+/** @brief Pop-up menu for picker */
+static struct menuitem playlist_picker_menuitems[] = {
+  {
+    "Select playlist",
+    playlist_picker_select_activate,
+    playlist_picker_select_sensitive,
+    0,
+    0
+  },
+  {
+    "Play playlist",
+    playlist_picker_play_activate,
+    playlist_picker_play_sensitive,
+    0,
+    0
+  },
+  {
+    "Remove playlist",
+    playlist_picker_remove_activate,
+    playlist_picker_remove_sensitive,
+    0,
+    0
+  },
+};
+
+static gboolean playlist_picker_button(GtkWidget *widget,
+                                       GdkEventButton *event,
+                                       gpointer attribute((unused)) user_data) {
+  if(event->type == GDK_BUTTON_PRESS && event->button == 3) {
+    static GtkWidget *playlist_picker_menu;
+
+    /* Right click press pops up a menu */
+    ensure_selected(GTK_TREE_VIEW(widget), event);
+    /* Find the selected row */
+    GtkTreeIter iter[1];
+    if(!gtk_tree_selection_get_selected(playlist_picker_selection, 0, iter))
+      return TRUE;
+    popup(&playlist_picker_menu, event,
+          playlist_picker_menuitems,
+          sizeof playlist_picker_menuitems / sizeof *playlist_picker_menuitems,
+          iter);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 static void playlist_picker_destroy(void) {
