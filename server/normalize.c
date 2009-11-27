@@ -278,7 +278,6 @@ int main(int argc, char attribute((unused)) **argv) {
                                                  converted, 0);
         //syslog(LOG_INFO, "used=%zu consumed=%zu", used, consumed);
         D(("consumed=%zu", consumed));
-        assert(consumed != 0);
         memmove(buffer, buffer + consumed, used - consumed);
         used -= consumed;
       }
