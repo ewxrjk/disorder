@@ -23,6 +23,8 @@ dochtml_DATA=index.html intro.html misc.html playlists.html		\
 	choose-search.png choose.png disobedience-debian-menu.png	\
 	disobedience-terminal.png disorder-email-confirm.png		\
 	disorder-web-login.png login.png menu-control.png		\
-	menu-edit.png menu-help.png menu-server.png queue-menu.png	\
+	menu-edit.png menu-help.png menu-server.png			\
+	playlist-create.png playlist-picker-menu.png			\
+	playlist-popup-menu.png playlist-window.png queue-menu.png	\
 	queue.png queue2.png recent.png track-properties.png		\
 	volume-slider.png
