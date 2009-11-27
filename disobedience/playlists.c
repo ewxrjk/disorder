@@ -126,6 +126,9 @@ static void playlist_picker_delete_obsolete(GtkTreeIter parent[1],
 static gboolean playlist_picker_button(GtkWidget *widget,
                                        GdkEventButton *event,
                                        gpointer user_data);
+static gboolean playlist_editor_keypress(GtkWidget *widget,
+                                         GdkEventKey *event,
+                                         gpointer user_data);
 
 /** @brief Playlist editing window */
 static GtkWidget *playlist_window;
@@ -1071,11 +1074,29 @@ static GtkWidget *playlists_editor_create(void) {
   playlist_editor_set_buttons(0,0,0);
 
   GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(vbox), init_queuelike(&ql_playlist),
+  GtkWidget *view = init_queuelike(&ql_playlist);
+  gtk_box_pack_start(GTK_BOX(vbox), view,
                      TRUE/*expand*/, TRUE/*fill*/, 0);
   gtk_box_pack_start(GTK_BOX(vbox), hbox,
                      FALSE/*expand*/, FALSE/*fill*/, 0);
+  g_signal_connect(view, "key-press-event",
+                   G_CALLBACK(playlist_editor_keypress), 0);
   return vbox;
+}
+
+static gboolean playlist_editor_keypress(GtkWidget attribute((unused)) *widget,
+                                         GdkEventKey *event,
+                                         gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_BackSpace:
+  case GDK_Delete:
+    playlist_remove_activate(NULL, NULL);
+    return TRUE;
+  default:
+    return FALSE;
+  }
 }
 
 /** @brief Called when the public/private buttons are set */
