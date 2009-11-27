@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -274,7 +274,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
     {
       (char *)"/Edit/Select all tracks", /* path */
-      0,                                /* accelerator */
+      (char *)"<CTRL>A",                /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, selectall_activate), /* callback_action */
       0,                                /* item_type */
@@ -282,7 +282,7 @@ GtkWidget *menubar(GtkWidget *w) {
     },
     {
       (char *)"/Edit/Deselect all tracks", /* path */
-      0,                                /* accelerator */
+      (char *)"<CTRL><SHIFT>A",         /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, selectnone_activate), /* callback_action */
       0,                                /* item_type */

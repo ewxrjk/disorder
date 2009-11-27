@@ -35,6 +35,9 @@ void popup(GtkWidget **menup,
                      G_CALLBACK(gtk_widget_destroyed), menup);
     for(int n = 0; n < nitems; ++n) {
       items[n].w = gtk_menu_item_new_with_label(items[n].name);
+      /* TODO accelerators would be useful here.  There might be some
+       * interaction with the main menu accelerators, _except_ for playlist
+       * case!  */
       gtk_menu_attach(GTK_MENU(menu), items[n].w, 0, 1, n, n + 1);
     }
     set_tool_colors(menu);
