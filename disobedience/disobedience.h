@@ -166,6 +166,7 @@ void all_update(void);
 
 GtkWidget *menubar(GtkWidget *w);
 /* Create the menu bar */
+int full_mode;
 
 void users_set_sensitive(int sensitive);
 

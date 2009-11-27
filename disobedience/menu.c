@@ -21,15 +21,21 @@
 
 #include "disobedience.h"
 
+static void toggled_minimode(GtkCheckMenuItem *item, gpointer userdata);
+
 static GtkWidget *selectall_widget;
 static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
 GtkWidget *menu_playlists_widget;
 GtkWidget *playlists_menu;
 GtkWidget *menu_editplaylists_widget;
+static GtkWidget *menu_minimode_widget;
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
+
+/** @brief Set for full mode, clear for mini mode */
+int full_mode;
 
 static void about_popup_got_version(void *v,
                                     const char *err,
@@ -346,6 +352,16 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
+#if 0
+    {
+      (char *)"/Control/Compact mode",  /* path */
+      (char *)"<CTRL>M",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<CheckItem>",            /* item_type */
+      0                                 /* extra_data */
+    },
+#endif
     {
       (char *)"/Control/Activate playlist", /* path */
       0,                                /* accelerator */
@@ -404,6 +420,8 @@ GtkWidget *menubar(GtkWidget *w) {
                                                "<GdisorderMain>/Control/Activate playlist");
   menu_editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                      "<GdisorderMain>/Edit/Edit playlists");
+  menu_minimode_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                     "<GdisorderMain>/Control/Compact mode");
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
@@ -420,7 +438,16 @@ GtkWidget *menubar(GtkWidget *w) {
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);
+  if(menu_minimode_widget)
+    g_signal_connect(G_OBJECT(menu_minimode_widget), "toggled",
+                     G_CALLBACK(toggled_minimode), NULL);
   return m;
+}
+
+static void toggled_minimode(GtkCheckMenuItem  *item,
+                             gpointer attribute((unused)) userdata) {
+  full_mode = !gtk_check_menu_item_get_active(item);
+  event_raise("mini-mode-changed", NULL);
 }
 
 /*
