@@ -718,6 +718,7 @@ void scratch(const char *who, const char *id) {
     if(next_scratch){
       next_scratch->submitter = who;
       queue_insert_entry(&qhead, next_scratch);
+      eventlog_raw("queue", queue_marshall(next_scratch), (const char *)0);
       next_scratch = NULL;
     }
     notify_scratch(playing->track, playing->submitter, who,
