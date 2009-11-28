@@ -100,6 +100,12 @@ const char *server_version;
 /** @brief Parsed server version */
 long server_version_bytes;
 
+static GtkWidget *queue;
+
+static GtkWidget *notebook_box;
+
+static int main_current_fullmode = 1;
+
 static void check_rtp_address(const char *event,
                               void *eventdata,
                               void *callbackdata);
@@ -154,7 +160,7 @@ static GtkWidget *notebook(void) {
    * produces not too dreadful appearance */
   gtk_widget_set_style(tabs, tool_style);
   g_signal_connect(tabs, "switch-page", G_CALLBACK(tab_switched), 0);
-  gtk_notebook_append_page(GTK_NOTEBOOK(tabs), queue_widget(),
+  gtk_notebook_append_page(GTK_NOTEBOOK(tabs), queue = queue_widget(),
                            gtk_label_new("Queue"));
   gtk_notebook_append_page(GTK_NOTEBOOK(tabs), recent_widget(),
                            gtk_label_new("Recent"));
@@ -163,6 +169,38 @@ static GtkWidget *notebook(void) {
   gtk_notebook_append_page(GTK_NOTEBOOK(tabs), added_widget(),
                            gtk_label_new("Added"));
   return tabs;
+}
+
+static void main_minimode(const char attribute((unused)) *event,
+                          void attribute((unused)) *evendata,
+                          void attribute((unused)) *callbackdata) {
+  if(full_mode == main_current_fullmode)
+    return;
+  if(full_mode) {
+    /* Remove queue from display */
+    g_object_ref(queue);
+    gtk_container_remove(GTK_CONTAINER(notebook_box), queue);
+    /* Add queue to notebook */
+    gtk_notebook_prepend_page(GTK_NOTEBOOK(tabs), queue,
+                              gtk_label_new("Queue"));
+    g_object_unref(queue);
+    /* Add notebook to display */
+    gtk_container_add(GTK_CONTAINER(notebook_box), tabs);
+    g_object_unref(tabs);
+    /* Show the queue (bit confusing otherwise!) */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(tabs), 0);
+  } else {
+    /* Remove notebook from display */
+    g_object_ref(tabs);
+    gtk_container_remove(GTK_CONTAINER(notebook_box), tabs);
+    /* Remove queue from notebook */
+    g_object_ref(queue);
+    gtk_container_remove(GTK_CONTAINER(tabs), queue);
+    /* Add queue to display */
+    gtk_container_add(GTK_CONTAINER(notebook_box), queue);
+    g_object_unref(queue);
+  }
+  main_current_fullmode = full_mode;
 }
 
 /** @brief Create and populate the main window */
@@ -191,13 +229,16 @@ static void make_toplevel_window(void) {
                      FALSE,             /* expand */
                      FALSE,             /* fill */
                      0);
-  gtk_container_add(GTK_CONTAINER(vbox), notebook());
+  notebook_box = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(notebook_box), notebook());
+  gtk_container_add(GTK_CONTAINER(vbox), notebook_box);
   gtk_box_pack_end(GTK_BOX(vbox),
                    rb,
                    FALSE,             /* expand */
                    FALSE,             /* fill */
                    0);
   gtk_widget_set_style(toplevel, tool_style);
+  event_register("mini-mode-changed", main_minimode, 0);
 }
 
 static void userinfo_rights_completed(void attribute((unused)) *v,
