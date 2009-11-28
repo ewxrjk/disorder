@@ -55,7 +55,8 @@ static void queue_playing_changed(void) {
         break;
     if(q) {
       disorder_eclient_playing(client, playing_completed, 0);
-      disorder_eclient_queue(client, queue_completed, 0);
+      if(full_mode)
+        disorder_eclient_queue(client, queue_completed, 0);
       return;
     }
   }
@@ -83,7 +84,10 @@ static void queue_completed(void attribute((unused)) *v,
     popup_protocol_error(0, err);
     return;
   }
-  actual_queue = q;
+  if(full_mode)
+    actual_queue = q;
+  else
+    actual_queue = NULL;
   queue_playing_changed();
 }
 
@@ -108,6 +112,8 @@ static void queue_changed(const char attribute((unused)) *event,
                            void  attribute((unused)) *eventdata,
                            void  attribute((unused)) *callbackdata) {
   D(("queue_changed"));
+  if(!full_mode)
+    return;
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
   disorder_eclient_queue(client, queue_completed, 0);
 }
@@ -287,12 +293,27 @@ static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
   return FALSE;                         /* Propagate */
 }
 
+static void queue_minimode(const char attribute((unused)) *event,
+                           void attribute((unused)) *evendata,
+                           void attribute((unused)) *callbackdata) {
+  if(full_mode) {
+    /* We will need to refetch the queue */
+    disorder_eclient_queue(client, queue_completed, 0);
+  } else {
+    /* We will need to hide the queue */
+    if(actual_queue)
+      queue_completed(NULL, NULL, NULL);
+  }
+}
+
 GtkWidget *queue_widget(void) {
   GtkWidget *const w = init_queuelike(&ql_queue);
 
   /* Catch keypresses */
   g_signal_connect(ql_queue.view, "key-press-event",
                    G_CALLBACK(queue_key_press), &ql_queue);
+  
+  event_register("mini-mode-changed", queue_minimode, 0);
   return w;
 }
 

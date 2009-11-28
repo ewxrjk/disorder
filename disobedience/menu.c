@@ -35,7 +35,7 @@ static GtkWidget *menu_minimode_widget;
 GtkItemFactory *mainmenufactory;
 
 /** @brief Set for full mode, clear for mini mode */
-int full_mode;
+int full_mode = 1;
 
 static void about_popup_got_version(void *v,
                                     const char *err,
@@ -446,8 +446,11 @@ GtkWidget *menubar(GtkWidget *w) {
 
 static void toggled_minimode(GtkCheckMenuItem  *item,
                              gpointer attribute((unused)) userdata) {
-  full_mode = !gtk_check_menu_item_get_active(item);
-  event_raise("mini-mode-changed", NULL);
+  int new_full_mode = !gtk_check_menu_item_get_active(item);
+  if(full_mode != new_full_mode) {
+    full_mode = new_full_mode;
+    event_raise("mini-mode-changed", NULL);
+  }
 }
 
 /*
