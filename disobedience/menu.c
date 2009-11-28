@@ -35,7 +35,7 @@ static GtkWidget *menu_minimode_widget;
 GtkItemFactory *mainmenufactory;
 
 /** @brief Set for full mode, clear for mini mode */
-int full_mode;
+int full_mode = 1;
 
 static void about_popup_got_version(void *v,
                                     const char *err,
