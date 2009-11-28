@@ -104,6 +104,8 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
     }
     queue_insert_entry(afterme, q);
     break;
+  case WHERE_NOWHERE:
+    return q;
   }
   /* submitter will be a null pointer for a scratch */
   if(submitter)

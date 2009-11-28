@@ -140,6 +140,7 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
 #define WHERE_END 1			/* Add to end of queue */
 #define WHERE_BEFORE_RANDOM 2		/* End, or before random track */
 #define WHERE_AFTER 3                   /* After the target */
+#define WHERE_NOWHERE 4                 /* Don't add to queue at all */
 /* add an entry to the queue.  Return a pointer to the new entry. */
 
 void queue_remove(struct queue_entry *q, const char *who);
