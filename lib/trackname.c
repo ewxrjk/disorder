@@ -51,6 +51,10 @@ const char *find_track_root(const char *track) {
   const struct collection *c = find_track_collection(track);
   if(c)
     return c->root;
+  /* Suppress this message for scratches */
+  for(int n = 0; n < config->scratch.n; ++n)
+    if(!strcmp(track, config->scratch.s[n]))
+      return 0;
   disorder_error(0, "found track in no collection '%s'", track);
   return 0;
 }

@@ -39,6 +39,7 @@ static int start_child(struct queue_entry *q,
 static int prepare_child(struct queue_entry *q, 
                          const struct pbgc_params *params,
                          void attribute((unused)) *bgdata);
+static void ensure_next_scratch(ev_source *ev);
 
 /** @brief File descriptor of our end of the socket to the speaker */
 static int speaker_fd = -1;
@@ -195,7 +196,9 @@ static void finished(ev_source *ev) {
  * some time before the speaker reports it as finished) or when a non-raw
  * (i.e. non-speaker) player terminates.  In the latter case it's imaginable
  * that the OS has buffered the last few samples.
- * 
+ *
+ * NB.  The finished track might NOT be in the queue (yet) - it might be a
+ * pre-chosen scratch.
  */
 static int player_finished(ev_source *ev,
 			   pid_t pid,
@@ -609,6 +612,8 @@ void play(ev_source *ev) {
      * potentially be a just-added random track. */
     if(qhead.next != &qhead)
       prepare(ev, qhead.next);
+    /* Make sure there is a prepared scratch */
+    ensure_next_scratch(ev);
     break;
   }
 }
@@ -656,12 +661,27 @@ void disable_random(const char *who) {
 
 /* Scratching --------------------------------------------------------------- */
 
+/** @brief Track to play next time something is scratched */
+static struct queue_entry *next_scratch;
+
+/** @brief Ensure there isa prepared scratch */
+static void ensure_next_scratch(ev_source *ev) {
+  if(next_scratch)                      /* There's one already */
+    return;
+  if(!config->scratch.n)                /* There are no scratches */
+    return;
+  int r = rand() * (double)config->scratch.n / (RAND_MAX + 1.0);
+  next_scratch = queue_add(config->scratch.s[r], NULL,
+                           WHERE_NOWHERE, NULL, origin_scratch);
+  if(ev)
+    prepare(ev, next_scratch);
+}
+
 /** @brief Scratch a track
  * @param who User responsible (or NULL)
  * @param id Track ID (or NULL for current)
  */
 void scratch(const char *who, const char *id) {
-  struct queue_entry *q;
   struct speaker_message sm;
 
   D(("scratch playing=%p state=%d id=%s playing->id=%s",
@@ -692,12 +712,14 @@ void scratch(const char *who, const char *id) {
       speaker_send(speaker_fd, &sm);
       D(("sending SM_CANCEL for %s", playing->id));
     }
-    /* put a scratch track onto the front of the queue (but don't
-     * bother if playing is disabled) */
-    if(playing_is_enabled() && config->scratch.n) {
-      int r = rand() * (double)config->scratch.n / (RAND_MAX + 1.0);
-      q = queue_add(config->scratch.s[r], who, WHERE_START, NULL, 
-                    origin_scratch);
+    /* Try to make sure there is a scratch */
+    ensure_next_scratch(NULL);
+    /* Insert it at the head of the queue */
+    if(next_scratch){
+      next_scratch->submitter = who;
+      queue_insert_entry(&qhead, next_scratch);
+      eventlog_raw("queue", queue_marshall(next_scratch), (const char *)0);
+      next_scratch = NULL;
     }
     notify_scratch(playing->track, playing->submitter, who,
 		   xtime(0) - playing->played);
