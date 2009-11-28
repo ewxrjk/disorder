@@ -446,8 +446,11 @@ GtkWidget *menubar(GtkWidget *w) {
 
 static void toggled_minimode(GtkCheckMenuItem  *item,
                              gpointer attribute((unused)) userdata) {
-  full_mode = !gtk_check_menu_item_get_active(item);
-  event_raise("mini-mode-changed", NULL);
+  int new_full_mode = !gtk_check_menu_item_get_active(item);
+  if(full_mode != new_full_mode) {
+    full_mode = new_full_mode;
+    event_raise("mini-mode-changed", NULL);
+  }
 }
 
 /*
