@@ -75,7 +75,8 @@ span.command {
       <p>Gapless play should be more reliable, and playback latency over RTP
       should be a bit lower.  Note though that all the sound output code has
       been reorganized and in some cases completely rewritten, so it's possible
-      that bugs may have been (re-)introduced.</p>
+      that bugs may have been (re-)introduced.  Decoding of scratches is also
+      initiated ahead of time, giving more reliable playback.</p>
       
       <p>The <tt>command</tt> backend now (optionally) sends silence instead
       of suspending writes when a pause occurs or no track is playing.</p>
@@ -215,6 +216,12 @@ span.command {
         <tr>
           <td><a href="http://code.google.com/p/disorder/issues/detail?id=49">#49</a></d>
           <td>Disobedience's 'When' column gets out of date</td>
+        </tr>
+
+        <tr>
+          <td>(none)</td>
+	  <td>&ldquo;found track in no collection&rdquo; messages for scratches
+	  are now suppressed</td>
         </tr>
 
       </table>
