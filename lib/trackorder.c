@@ -27,6 +27,22 @@
 #include "log.h"
 #include "unicode.h"
 
+/** @brief Compare two tracks
+ * @param sa First sort key
+ * @param sb Second sort key
+ * @param da First display string
+ * @param db Second display string
+ * @param ta First raw track
+ * @param tb Second raw track
+ * @return -ve, 0 or +ve for a <, = or > b
+ *
+ * Tries the following comparisons until a difference is found:
+ * - case-independent comparison of sort keys
+ * - case-dependent comparison of sort keys
+ * - case-independent comparison of display strings
+ * - case-dependent comparison of display strings
+ * - case-dependent comparison of paths (see compare_path())
+ */
 int compare_tracks(const char *sa, const char *sb,
 		   const char *da, const char *db,
 		   const char *ta, const char *tb) {
@@ -43,6 +59,17 @@ int compare_tracks(const char *sa, const char *sb,
   return compare_path(ta, tb);
 }
 
+/** @brief Compare two paths
+ * @param ap First path
+ * @param an Length of @p ap
+ * @param bp Second path
+ * @param bn Length @p bp
+ * @return -ve, 0 or +ve for ap <, = or > bp
+ *
+ * Sorts files within a directory together.
+ *
+ * See also compare_path().
+ */
 int compare_path_raw(const unsigned char *ap, size_t an,
 		     const unsigned char *bp, size_t bn) {
   /* Don't change this function!  The database sort order depends on it */

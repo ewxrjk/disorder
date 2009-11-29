@@ -859,24 +859,36 @@ static int exp__files_dirs(int nargs,
   /* Get the list */
   if(fn(dcgi_client, dir, re, &tracks, &ntracks))
     return 0;
-  /* Sort it.  NB trackname_transform() does not go to the server. */
-  tsd = tracksort_init(ntracks, tracks, type);
-  /* Expand the subsiduary templates.  We chuck in @sort and @display because
-   * it is particularly easy to do so. */
-  for(n = 0; n < ntracks; ++n)
-    if((rc = mx_expand(mx_rewritel(m,
-                                   "index", make_index(n),
-                                   "parity", n % 2 ? "odd" : "even",
-                                   "track", tsd[n].track,
-                                   "first", n == 0 ? "true" : "false",
-                                   "last", n + 1 == ntracks ? "false" : "true",
-                                   "sort", tsd[n].sort,
-                                   "display", tsd[n].display,
-                                   (char *)0),
-                       output, u)))
-      return rc;
+  if(type) {
+    /* Sort it.  NB trackname_transform() does not go to the server. */
+    tsd = tracksort_init(ntracks, tracks, type);
+    /* Expand the subsiduary templates.  We chuck in @sort and @display because
+     * it is particularly easy to do so. */
+    for(n = 0; n < ntracks; ++n)
+      if((rc = mx_expand(mx_rewritel(m,
+                                     "index", make_index(n),
+                                     "parity", n % 2 ? "odd" : "even",
+                                     "track", tsd[n].track,
+                                     "first", n == 0 ? "true" : "false",
+                                     "last", n + 1 == ntracks ? "false" : "true",
+                                     "sort", tsd[n].sort,
+                                     "display", tsd[n].display,
+                                     (char *)0),
+                         output, u)))
+        return rc;
+  } else {
+    for(n = 0; n < ntracks; ++n)
+      if((rc = mx_expand(mx_rewritel(m,
+                                     "index", make_index(n),
+                                     "parity", n % 2 ? "odd" : "even",
+                                     "track", tracks[n],
+                                     "first", n == 0 ? "true" : "false",
+                                     "last", n + 1 == ntracks ? "false" : "true",
+                                     (char *)0),
+                         output, u)))
+        return rc;
+  }
   return 0;
-
 }
 
 /*$ @tracks{DIR}{RE}{TEMPLATE}
@@ -936,14 +948,12 @@ static int exp__search_shim(disorder_client *c, const char *terms,
  * - @parity: "even" or "odd" alternately
  * - @first: "true" on the first directory and "false" otherwise
  * - @last: "true" on the last directory and "false" otherwise
- * - @sort: the sort key for this track
- * - @display: the UNQUOTED display string for this track
  */
 static int exp_search(int nargs,
                       const struct mx_node **args,
                       struct sink *output,
                       void *u) {
-  return exp__files_dirs(nargs, args, output, u, "track", exp__search_shim);
+  return exp__files_dirs(nargs, args, output, u, NULL, exp__search_shim);
 }
 
 /*$ @label{NAME}
