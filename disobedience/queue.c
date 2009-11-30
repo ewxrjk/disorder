@@ -55,8 +55,7 @@ static void queue_playing_changed(void) {
         break;
     if(q) {
       disorder_eclient_playing(client, playing_completed, 0);
-      if(full_mode)
-        disorder_eclient_queue(client, queue_completed, 0);
+      disorder_eclient_queue(client, queue_completed, 0);
       return;
     }
   }
@@ -73,7 +72,7 @@ static void queue_playing_changed(void) {
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
   event_raise("queue-list-changed", q);
-  event_raise("playing-track-changed", q);
+  event_raise("playing-track-changed", playing_track);
 }
 
 /** @brief Update the queue itself */
@@ -84,10 +83,7 @@ static void queue_completed(void attribute((unused)) *v,
     popup_protocol_error(0, err);
     return;
   }
-  if(full_mode)
-    actual_queue = q;
-  else
-    actual_queue = NULL;
+  actual_queue = q;
   queue_playing_changed();
 }
 
@@ -112,8 +108,6 @@ static void queue_changed(const char attribute((unused)) *event,
                            void  attribute((unused)) *eventdata,
                            void  attribute((unused)) *callbackdata) {
   D(("queue_changed"));
-  if(!full_mode)
-    return;
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
   disorder_eclient_queue(client, queue_completed, 0);
 }
@@ -293,27 +287,12 @@ static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
   return FALSE;                         /* Propagate */
 }
 
-static void queue_minimode(const char attribute((unused)) *event,
-                           void attribute((unused)) *evendata,
-                           void attribute((unused)) *callbackdata) {
-  if(full_mode) {
-    /* We will need to refetch the queue */
-    disorder_eclient_queue(client, queue_completed, 0);
-  } else {
-    /* We will need to hide the queue */
-    if(actual_queue)
-      queue_completed(NULL, NULL, NULL);
-  }
-}
-
 GtkWidget *queue_widget(void) {
   GtkWidget *const w = init_queuelike(&ql_queue);
 
   /* Catch keypresses */
   g_signal_connect(ql_queue.view, "key-press-event",
                    G_CALLBACK(queue_key_press), &ql_queue);
-  
-  event_register("mini-mode-changed", queue_minimode, 0);
   return w;
 }
 
@@ -328,6 +307,31 @@ int queued(const char *track) {
     if(!strcmp(q->track, track))
       return 1;
   return 0;
+}
+
+/* Playing widget for mini-mode */
+
+static void queue_set_playing_widget(const char attribute((unused)) *event,
+                                     void *eventdata,
+                                     void *callbackdata) {
+  GtkLabel *w = callbackdata;
+  struct queue_entry *p = eventdata;
+
+  if(p) {
+    const char *title = namepart(p->track, "display", "title");
+    gtk_label_set_text(w, title);
+    // TODO handle namepart updates
+    // TODO include played-so-far
+  } else
+    gtk_label_set_text(w, "");
+}
+
+GtkWidget *playing_widget(void) {
+  GtkWidget *w = gtk_label_new("");
+  event_register("playing-track-changed",
+                 queue_set_playing_widget,
+                 w);
+  return w;
 }
 
 /*

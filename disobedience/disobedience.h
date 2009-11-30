@@ -180,6 +180,7 @@ extern int suppress_actions;
 /* Queue/Recent/Added */
 
 GtkWidget *queue_widget(void);
+GtkWidget *playing_widget(void);
 GtkWidget *recent_widget(void);
 GtkWidget *added_widget(void);
 /* Create widgets for displaying the queue, the recently played list and the

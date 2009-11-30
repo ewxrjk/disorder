@@ -44,6 +44,9 @@ GtkWidget *report_label;
 /** @brief Main tab group */
 GtkWidget *tabs;
 
+/** @brief Mini-mode widget for playing track */
+GtkWidget *playing_mini;
+
 /** @brief Main client */
 disorder_eclient *client;
 
@@ -103,8 +106,6 @@ long server_version_bytes;
 static GtkWidget *queue;
 
 static GtkWidget *notebook_box;
-
-static int main_current_fullmode = 1;
 
 static void check_rtp_address(const char *event,
                               void *eventdata,
@@ -174,33 +175,15 @@ static GtkWidget *notebook(void) {
 static void main_minimode(const char attribute((unused)) *event,
                           void attribute((unused)) *evendata,
                           void attribute((unused)) *callbackdata) {
-  if(full_mode == main_current_fullmode)
-    return;
   if(full_mode) {
-    /* Remove queue from display */
-    g_object_ref(queue);
-    gtk_container_remove(GTK_CONTAINER(notebook_box), queue);
-    /* Add queue to notebook */
-    gtk_notebook_prepend_page(GTK_NOTEBOOK(tabs), queue,
-                              gtk_label_new("Queue"));
-    g_object_unref(queue);
-    /* Add notebook to display */
-    gtk_container_add(GTK_CONTAINER(notebook_box), tabs);
-    g_object_unref(tabs);
+    gtk_widget_show(tabs);
+    gtk_widget_hide(playing_mini);
     /* Show the queue (bit confusing otherwise!) */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(tabs), 0);
   } else {
-    /* Remove notebook from display */
-    g_object_ref(tabs);
-    gtk_container_remove(GTK_CONTAINER(notebook_box), tabs);
-    /* Remove queue from notebook */
-    g_object_ref(queue);
-    gtk_container_remove(GTK_CONTAINER(tabs), queue);
-    /* Add queue to display */
-    gtk_container_add(GTK_CONTAINER(notebook_box), queue);
-    g_object_unref(queue);
+    gtk_widget_hide(tabs);
+    gtk_widget_show(playing_mini);
   }
-  main_current_fullmode = full_mode;
 }
 
 /** @brief Create and populate the main window */
@@ -228,6 +211,12 @@ static void make_toplevel_window(void) {
                      control_widget(),
                      FALSE,             /* expand */
                      FALSE,             /* fill */
+                     0);
+  playing_mini = playing_widget();
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     playing_mini,
+                     FALSE,
+                     FALSE,
                      0);
   notebook_box = gtk_vbox_new(FALSE, 0);
   gtk_container_add(GTK_CONTAINER(notebook_box), notebook());
@@ -518,6 +507,7 @@ int main(int argc, char **argv) {
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));
   gtk_widget_show_all(toplevel);
+  gtk_widget_hide(playing_mini);
   /* issue a NOP every so often */
   g_timeout_add_full(G_PRIORITY_LOW,
                      2000/*interval, ms*/,
