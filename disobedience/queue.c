@@ -312,23 +312,36 @@ int queued(const char *track) {
 /* Playing widget for mini-mode */
 
 static void queue_set_playing_widget(const char attribute((unused)) *event,
-                                     void *eventdata,
+                                     void attribute((unused)) *eventdata,
                                      void *callbackdata) {
   GtkLabel *w = callbackdata;
-  struct queue_entry *p = eventdata;
 
-  if(p) {
-    const char *title = namepart(p->track, "display", "title");
-    gtk_label_set_text(w, title);
-    // TODO handle namepart updates
-    // TODO include played-so-far
+  if(playing_track) {
+    const char *title = namepart(playing_track->track, "display", "title");
+    const char *ldata = column_length(playing_track, NULL);
+    if(!ldata)
+      ldata = "";
+    char *text;
+    fprintf(stderr, "title=%s\n", title);
+    fprintf(stderr, "ldata=%s\n", ldata);
+    byte_xasprintf(&text, "%s %s", title, ldata);
+    gtk_label_set_text(w, text);
   } else
     gtk_label_set_text(w, "");
 }
 
 GtkWidget *playing_widget(void) {
   GtkWidget *w = gtk_label_new("");
+  /* Spot changes to the playing track */
   event_register("playing-track-changed",
+                 queue_set_playing_widget,
+                 w);
+  /* Use the best-known name for it */
+  event_register("lookups-complete",
+                 queue_set_playing_widget,
+                 w);
+  /* Keep the amount played so far up to date */
+  event_register("periodic-fast",
                  queue_set_playing_widget,
                  w);
   return w;
