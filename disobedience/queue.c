@@ -318,14 +318,14 @@ static void queue_set_playing_widget(const char attribute((unused)) *event,
   GtkLabel *w = callbackdata;
 
   if(playing_track) {
+    const char *artist = namepart(playing_track->track, "display", "artist");
+    const char *album = namepart(playing_track->track, "display", "album");
     const char *title = namepart(playing_track->track, "display", "title");
     const char *ldata = column_length(playing_track, NULL);
     if(!ldata)
       ldata = "";
     char *text;
-    fprintf(stderr, "title=%s\n", title);
-    fprintf(stderr, "ldata=%s\n", ldata);
-    byte_xasprintf(&text, "%s %s", title, ldata);
+    byte_xasprintf(&text, "%s/%s/%s %s", artist, album, title, ldata);
     gtk_label_set_text(w, text);
   } else
     gtk_label_set_text(w, "");
@@ -333,6 +333,7 @@ static void queue_set_playing_widget(const char attribute((unused)) *event,
 
 GtkWidget *playing_widget(void) {
   GtkWidget *w = gtk_label_new("");
+  gtk_misc_set_alignment(GTK_MISC(w), 1.0, 0);
   /* Spot changes to the playing track */
   event_register("playing-track-changed",
                  queue_set_playing_widget,
@@ -345,7 +346,7 @@ GtkWidget *playing_widget(void) {
   event_register("periodic-fast",
                  queue_set_playing_widget,
                  w);
-  return w;
+  return frame_widget(w, NULL);
 }
 
 /*
