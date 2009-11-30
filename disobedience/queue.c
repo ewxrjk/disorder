@@ -55,8 +55,7 @@ static void queue_playing_changed(void) {
         break;
     if(q) {
       disorder_eclient_playing(client, playing_completed, 0);
-      if(full_mode)
-        disorder_eclient_queue(client, queue_completed, 0);
+      disorder_eclient_queue(client, queue_completed, 0);
       return;
     }
   }
@@ -73,7 +72,7 @@ static void queue_playing_changed(void) {
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
   event_raise("queue-list-changed", q);
-  event_raise("playing-track-changed", q);
+  event_raise("playing-track-changed", playing_track);
 }
 
 /** @brief Update the queue itself */
@@ -84,10 +83,7 @@ static void queue_completed(void attribute((unused)) *v,
     popup_protocol_error(0, err);
     return;
   }
-  if(full_mode)
-    actual_queue = q;
-  else
-    actual_queue = NULL;
+  actual_queue = q;
   queue_playing_changed();
 }
 
@@ -112,8 +108,6 @@ static void queue_changed(const char attribute((unused)) *event,
                            void  attribute((unused)) *eventdata,
                            void  attribute((unused)) *callbackdata) {
   D(("queue_changed"));
-  if(!full_mode)
-    return;
   gtk_label_set_text(GTK_LABEL(report_label), "updating queue");
   disorder_eclient_queue(client, queue_completed, 0);
 }
@@ -163,6 +157,7 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
 static void queue_init(struct queuelike attribute((unused)) *ql) {
   /* Arrange a callback whenever the playing state changes */ 
   event_register("playing-changed", playing_changed, 0);
+  event_register("playing-started", playing_changed, 0);
   /* We reget both playing track and queue at pause/resume so that start times
    * can be computed correctly */
   event_register("pause-changed", playing_changed, 0);
@@ -293,27 +288,12 @@ static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
   return FALSE;                         /* Propagate */
 }
 
-static void queue_minimode(const char attribute((unused)) *event,
-                           void attribute((unused)) *evendata,
-                           void attribute((unused)) *callbackdata) {
-  if(full_mode) {
-    /* We will need to refetch the queue */
-    disorder_eclient_queue(client, queue_completed, 0);
-  } else {
-    /* We will need to hide the queue */
-    if(actual_queue)
-      queue_completed(NULL, NULL, NULL);
-  }
-}
-
 GtkWidget *queue_widget(void) {
   GtkWidget *const w = init_queuelike(&ql_queue);
 
   /* Catch keypresses */
   g_signal_connect(ql_queue.view, "key-press-event",
                    G_CALLBACK(queue_key_press), &ql_queue);
-  
-  event_register("mini-mode-changed", queue_minimode, 0);
   return w;
 }
 
@@ -328,6 +308,45 @@ int queued(const char *track) {
     if(!strcmp(q->track, track))
       return 1;
   return 0;
+}
+
+/* Playing widget for mini-mode */
+
+static void queue_set_playing_widget(const char attribute((unused)) *event,
+                                     void attribute((unused)) *eventdata,
+                                     void *callbackdata) {
+  GtkLabel *w = callbackdata;
+
+  if(playing_track) {
+    const char *artist = namepart(playing_track->track, "display", "artist");
+    const char *album = namepart(playing_track->track, "display", "album");
+    const char *title = namepart(playing_track->track, "display", "title");
+    const char *ldata = column_length(playing_track, NULL);
+    if(!ldata)
+      ldata = "";
+    char *text;
+    byte_xasprintf(&text, "%s/%s/%s %s", artist, album, title, ldata);
+    gtk_label_set_text(w, text);
+  } else
+    gtk_label_set_text(w, "");
+}
+
+GtkWidget *playing_widget(void) {
+  GtkWidget *w = gtk_label_new("");
+  gtk_misc_set_alignment(GTK_MISC(w), 1.0, 0);
+  /* Spot changes to the playing track */
+  event_register("playing-track-changed",
+                 queue_set_playing_widget,
+                 w);
+  /* Use the best-known name for it */
+  event_register("lookups-complete",
+                 queue_set_playing_widget,
+                 w);
+  /* Keep the amount played so far up to date */
+  event_register("periodic-fast",
+                 queue_set_playing_widget,
+                 w);
+  return frame_widget(w, NULL);
 }
 
 /*

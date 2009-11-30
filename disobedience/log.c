@@ -115,6 +115,7 @@ static void log_moved(void attribute((unused)) *v,
 static void log_playing(void attribute((unused)) *v,
                         const char attribute((unused)) *track,
                         const char attribute((unused)) *user) {
+  event_raise("playing-started", 0);
 }
 
 /** @brief Called when a track is added to the queue */
