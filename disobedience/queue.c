@@ -157,6 +157,7 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
 static void queue_init(struct queuelike attribute((unused)) *ql) {
   /* Arrange a callback whenever the playing state changes */ 
   event_register("playing-changed", playing_changed, 0);
+  event_register("playing-started", playing_changed, 0);
   /* We reget both playing track and queue at pause/resume so that start times
    * can be computed correctly */
   event_register("pause-changed", playing_changed, 0);
