@@ -172,6 +172,10 @@ static GtkWidget *notebook(void) {
   return tabs;
 }
 
+/* Tracking of window sizes */
+static int toplevel_width = 640, toplevel_height = 480;
+static int mini_width = 480, mini_height = 140;
+
 static void main_minimode(const char attribute((unused)) *event,
                           void attribute((unused)) *evendata,
                           void attribute((unused)) *callbackdata) {
@@ -180,9 +184,24 @@ static void main_minimode(const char attribute((unused)) *event,
     gtk_widget_hide(playing_mini);
     /* Show the queue (bit confusing otherwise!) */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(tabs), 0);
+    gtk_window_resize(GTK_WINDOW(toplevel), toplevel_width, toplevel_height);
   } else {
     gtk_widget_hide(tabs);
     gtk_widget_show(playing_mini);
+    gtk_window_resize(GTK_WINDOW(toplevel), mini_width, mini_height);
+  }
+}
+
+/* Called when the window size is allocate */
+static void toplevel_size_allocate(GtkWidget attribute((unused)) *w,
+                                   GtkAllocation *a,
+                                   gpointer attribute((unused)) user_data) {
+  if(full_mode) {
+    toplevel_width = a->width;
+    toplevel_height = a->height;
+  } else {
+    mini_width = a->width;
+    mini_height = a->height;
   }
 }
 
@@ -194,10 +213,14 @@ static void make_toplevel_window(void) {
   D(("top_window"));
   toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   /* default size is too small */
-  gtk_window_set_default_size(GTK_WINDOW(toplevel), 640, 480);
+  gtk_window_set_default_size(GTK_WINDOW(toplevel),
+                              toplevel_width, toplevel_height);
   /* terminate on close */
   g_signal_connect(G_OBJECT(toplevel), "delete_event",
                    G_CALLBACK(delete_event), NULL);
+  /* track size */
+  g_signal_connect(G_OBJECT(toplevel), "size-allocate",
+                   G_CALLBACK(toplevel_size_allocate), NULL);
   /* lay out the window */
   gtk_window_set_title(GTK_WINDOW(toplevel), "Disobedience");
   gtk_container_add(GTK_CONTAINER(toplevel), vbox);
