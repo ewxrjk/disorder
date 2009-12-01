@@ -175,27 +175,38 @@ static GtkWidget *notebook(void) {
 /* Tracking of window sizes */
 static int toplevel_width = 640, toplevel_height = 480;
 static int mini_width = 480, mini_height = 140;
+static struct timeval last_mode_switch;
 
 static void main_minimode(const char attribute((unused)) *event,
                           void attribute((unused)) *evendata,
                           void attribute((unused)) *callbackdata) {
   if(full_mode) {
+    gtk_window_resize(GTK_WINDOW(toplevel), toplevel_width, toplevel_height);
     gtk_widget_show(tabs);
     gtk_widget_hide(playing_mini);
     /* Show the queue (bit confusing otherwise!) */
     gtk_notebook_set_current_page(GTK_NOTEBOOK(tabs), 0);
-    gtk_window_resize(GTK_WINDOW(toplevel), toplevel_width, toplevel_height);
   } else {
+    gtk_window_resize(GTK_WINDOW(toplevel), mini_width, mini_height);
     gtk_widget_hide(tabs);
     gtk_widget_show(playing_mini);
-    gtk_window_resize(GTK_WINDOW(toplevel), mini_width, mini_height);
   }
+  xgettimeofday(&last_mode_switch, NULL);
 }
 
 /* Called when the window size is allocate */
 static void toplevel_size_allocate(GtkWidget attribute((unused)) *w,
                                    GtkAllocation *a,
                                    gpointer attribute((unused)) user_data) {
+  struct timeval now;
+  xgettimeofday(&now, NULL);
+  if(tvdouble(tvsub(now, last_mode_switch)) < 0.5) {
+    /* Suppress size-allocate signals that are within half a second of a mode
+     * switch: they are quite likely to be the result of re-arranging widgets
+     * within the old size, not the application of the new size.  Yes, this is
+     * a disgusting hack! */
+    return;                             /* OMG too soon! */
+  }
   if(full_mode) {
     toplevel_width = a->width;
     toplevel_height = a->height;
@@ -203,6 +214,18 @@ static void toplevel_size_allocate(GtkWidget attribute((unused)) *w,
     mini_width = a->width;
     mini_height = a->height;
   }
+}
+
+/* Periodically check the toplevel's size
+ * (the hack in toplevel_size_allocate() means we could in principle
+ * miss a user-initiated resize)
+ */
+static void check_toplevel_size(const char attribute((unused)) *event,
+                                void attribute((unused)) *evendata,
+                                void attribute((unused)) *callbackdata) {
+  GtkAllocation a;
+  gtk_window_get_size(GTK_WINDOW(toplevel), &a.width, &a.height);
+  toplevel_size_allocate(NULL, &a, NULL);
 }
 
 /** @brief Create and populate the main window */
@@ -251,6 +274,7 @@ static void make_toplevel_window(void) {
                    0);
   gtk_widget_set_style(toplevel, tool_style);
   event_register("mini-mode-changed", main_minimode, 0);
+  event_register("periodic-fast", check_toplevel_size, 0);
 }
 
 static void userinfo_rights_completed(void attribute((unused)) *v,
