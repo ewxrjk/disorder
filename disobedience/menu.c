@@ -352,7 +352,6 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
-#if 0
     {
       (char *)"/Control/Compact mode",  /* path */
       (char *)"<CTRL>M",                /* accelerator */
@@ -361,7 +360,6 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
-#endif
     {
       (char *)"/Control/Activate playlist", /* path */
       0,                                /* accelerator */

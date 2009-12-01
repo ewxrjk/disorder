@@ -808,7 +808,7 @@ GtkWidget *init_queuelike(struct queuelike *ql) {
       (ql->columns[n].name,
        r,
        "text", n,
-       "background", ql->ncolumns + BACKGROUND_COLUMN,
+       "cell-background", ql->ncolumns + BACKGROUND_COLUMN,
        "foreground", ql->ncolumns + FOREGROUND_COLUMN,
        (char *)0);
     gtk_tree_view_column_set_resizable(c, TRUE);
