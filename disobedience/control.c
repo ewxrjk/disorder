@@ -334,7 +334,8 @@ static void volume_changed(const char attribute((unused)) *event,
   /* Only display volume/balance controls if they will work */
   if(volume_supported()) {
     gtk_widget_show(volume_widget);
-    gtk_widget_show(balance_widget);
+    if(full_mode)
+      gtk_widget_show(balance_widget);
     l = volume_l / 100.0;
     r = volume_r / 100.0;
     gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
