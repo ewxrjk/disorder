@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,6 +72,9 @@ int suppress_actions = 1;
  * (All icons can be sensitive or insensitive, separately to the above.)
  */
 struct icon {
+  /** @brief True to use GTK+ stock icons instead of filenames */
+  gboolean stock;
+
   /** @brief Filename for 'on' image */
   const char *icon_on;
 
@@ -81,7 +84,7 @@ struct icon {
   /** @brief Filename for 'off' image or NULL for an action icon */
   const char *icon_off;
 
-  /** @brief Text for 'off tooltip */
+  /** @brief Text for 'off' tooltip */
   const char *tip_off;
 
   /** @brief Associated menu item or NULL */
@@ -133,7 +136,8 @@ static int pause_resume_on(void) {
 }
 
 static int pause_resume_sensitive(void) {
-  return !!(last_state & DISORDER_PLAYING)
+  return playing_track
+    && !!(last_state & DISORDER_PLAYING)
     && (last_rights & RIGHT_PAUSE);
 }
 
@@ -150,6 +154,7 @@ static int random_enabled(void) {
   return !!(last_state & DISORDER_RANDOM_ENABLED);
 }
 
+#if 0
 static int playing_sensitive(void) {
   return !!(last_rights & RIGHT_GLOBAL_PREFS);
 }
@@ -157,6 +162,7 @@ static int playing_sensitive(void) {
 static int playing_enabled(void) {
   return !!(last_state & DISORDER_PLAYING_ENABLED);
 }
+#endif
 
 static int rtp_enabled(void) {
   return rtp_is_running;
@@ -169,19 +175,21 @@ static int rtp_sensitive(void) {
 /** @brief Table of all icons */
 static struct icon icons[] = {
   {
-    icon_on: "pause32.png",
+    stock: TRUE,
+    icon_on: GTK_STOCK_MEDIA_PAUSE,
     tip_on: "Pause playing track",
-    icon_off: "play32.png",
+    icon_off: GTK_STOCK_MEDIA_PLAY,
     tip_off: "Resume playing track",
     menuitem: "<GdisorderMain>/Control/Playing",
     on: pause_resume_on,
     sensitive: pause_resume_sensitive,
     action_go_on: disorder_eclient_resume,
     action_go_off: disorder_eclient_pause,
-    events: "pause-changed playing-changed rights-changed",
+    events: "pause-changed playing-changed rights-changed playing-track-changed",
   },
   {
-    icon_on: "cross32.png",
+    stock: TRUE,
+    icon_on: GTK_STOCK_STOP,
     tip_on: "Cancel playing track",
     menuitem: "<GdisorderMain>/Control/Scratch",
     sensitive: scratch_sensitive,
@@ -189,9 +197,10 @@ static struct icon icons[] = {
     events: "playing-track-changed rights-changed",
   },
   {
-    icon_on: "randomenabled32.png",
+    stock: TRUE,
+    icon_on: GTK_STOCK_YES,
     tip_on: "Disable random play",
-    icon_off: "randomdisabled32.png",
+    icon_off: GTK_STOCK_NO,
     tip_off: "Enable random play",
     menuitem: "<GdisorderMain>/Control/Random play",
     on: random_enabled,
@@ -200,10 +209,12 @@ static struct icon icons[] = {
     action_go_off: disorder_eclient_random_disable,
     events: "random-changed rights-changed",
   },
+#if 0
   {
-    icon_on: "playenabled32.png",
+    stock: TRUE,
+    icon_on: GTK_STOCK_YES,
     tip_on: "Disable play",
-    icon_off: "playdisabled32.png",
+    icon_off: GTK_STOCK_NO,
     tip_off: "Enable play",
     on: playing_enabled,
     sensitive: playing_sensitive,
@@ -211,10 +222,12 @@ static struct icon icons[] = {
     action_go_off: disorder_eclient_disable,
     events: "enabled-changed rights-changed",
   },
+#endif
   {
-    icon_on: "rtpenabled32.png",
+    stock: TRUE,
+    icon_on: GTK_STOCK_CONNECT,
     tip_on: "Stop playing network stream",
-    icon_off: "rtpdisabled32.png",
+    icon_off: GTK_STOCK_DISCONNECT,
     tip_off: "Play network stream",
     menuitem: "<GdisorderMain>/Control/Network player",
     on: rtp_enabled,
@@ -244,15 +257,27 @@ GtkWidget *control_widget(void) {
     /* Create the button */
     icons[n].button = gtk_button_new();
     gtk_widget_set_style(icons[n].button, tool_style);
-    icons[n].image_on = gtk_image_new_from_pixbuf(find_image(icons[n].icon_on));
-    gtk_widget_set_style(icons[n].image_on, tool_style);
-    g_object_ref(icons[n].image_on);
-    /* If it's a toggle icon, create the 'off' half too */
-    if(icons[n].icon_off) {
-      icons[n].image_off = gtk_image_new_from_pixbuf(find_image(icons[n].icon_off));
-      gtk_widget_set_style(icons[n].image_off, tool_style);
-      g_object_ref(icons[n].image_off);
+    if(icons[n].stock) {
+      /* We'll use the stock icons for this one */
+      gtk_button_set_use_stock(GTK_BUTTON(icons[n].button), TRUE);
+      icons[n].image_on = gtk_image_new_from_stock(icons[n].icon_on,
+                                                   GTK_ICON_SIZE_LARGE_TOOLBAR);
+      if(icons[n].icon_off)
+        icons[n].image_off = gtk_image_new_from_stock(icons[n].icon_off,
+                                                     GTK_ICON_SIZE_LARGE_TOOLBAR);
+    } else {
+      /* Create the 'on' image */
+      icons[n].image_on = gtk_image_new_from_pixbuf(find_image(icons[n].icon_on));
+      gtk_widget_set_style(icons[n].image_on, tool_style);
+      /* If it's a toggle icon, create the 'off' half too */
+      if(icons[n].icon_off) {
+        icons[n].image_off = gtk_image_new_from_pixbuf(find_image(icons[n].icon_off));
+        gtk_widget_set_style(icons[n].image_off, tool_style);
+      }
     }
+    g_object_ref(icons[n].image_on);
+    if(icons[n].image_off)
+      g_object_ref(icons[n].image_off);
     g_signal_connect(G_OBJECT(icons[n].button), "clicked",
                      G_CALLBACK(clicked_icon), &icons[n]);
     /* pop the icon in a vbox so it doesn't get vertically stretch if there are
