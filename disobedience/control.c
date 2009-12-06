@@ -334,7 +334,8 @@ static void volume_changed(const char attribute((unused)) *event,
   /* Only display volume/balance controls if they will work */
   if(volume_supported()) {
     gtk_widget_show(volume_widget);
-    gtk_widget_show(balance_widget);
+    if(full_mode)
+      gtk_widget_show(balance_widget);
     l = volume_l / 100.0;
     r = volume_r / 100.0;
     gtk_adjustment_set_value(volume_adj, volume(l, r) * goesupto);
@@ -566,10 +567,13 @@ static int disable_rtp(disorder_eclient attribute((unused)) *c,
 static void control_minimode(const char attribute((unused)) *event,
                              void attribute((unused)) *evendata,
                              void attribute((unused)) *callbackdata) {
-  if(full_mode && volume_supported())
+  if(full_mode && volume_supported()) {
     gtk_widget_show(balance_widget);
-  else
+    gtk_scale_set_value_pos(GTK_SCALE(volume_widget), GTK_POS_TOP);
+  } else {
     gtk_widget_hide(balance_widget);
+    gtk_scale_set_value_pos(GTK_SCALE(volume_widget), GTK_POS_RIGHT);
+  }
 }
 
 /*
