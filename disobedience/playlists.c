@@ -151,12 +151,12 @@ static const struct queue_column playlist_columns[] = {
  * - select/deselect all work
  */
 static struct menuitem playlist_menuitems[] = {
-  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
-  { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
-  { "Play playlist", playlist_playall_activate, playlist_playall_sensitive, 0, 0 },
-  { "Remove track from playlist", playlist_remove_activate, playlist_remove_sensitive, 0, 0 },
-  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Track properties", GTK_STOCK_PROPERTIES, ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Play track", GTK_STOCK_MEDIA_PLAY, ql_play_activate, ql_play_sensitive, 0, 0 },
+  { "Play playlist", NULL, playlist_playall_activate, playlist_playall_sensitive, 0, 0 },
+  { "Remove track from playlist", GTK_STOCK_CUT, playlist_remove_activate, playlist_remove_sensitive, 0, 0 },
+  { "Select all tracks", GTK_STOCK_SELECT_ALL, ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", NULL, ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
 
 static const GtkTargetEntry playlist_targets[] = {
@@ -995,6 +995,7 @@ static int playlist_picker_remove_sensitive(void *extra) {
 static struct menuitem playlist_picker_menuitems[] = {
   {
     "Select playlist",
+    NULL,
     playlist_picker_select_activate,
     playlist_picker_select_sensitive,
     0,
@@ -1002,6 +1003,7 @@ static struct menuitem playlist_picker_menuitems[] = {
   },
   {
     "Play playlist",
+    GTK_STOCK_MEDIA_PLAY, 
     playlist_picker_play_activate,
     playlist_picker_play_sensitive,
     0,
@@ -1009,6 +1011,7 @@ static struct menuitem playlist_picker_menuitems[] = {
   },
   {
     "Remove playlist",
+    GTK_STOCK_CUT,
     playlist_picker_remove_activate,
     playlist_picker_remove_sensitive,
     0,
