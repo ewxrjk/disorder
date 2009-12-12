@@ -327,8 +327,8 @@ GtkWidget *control_widget(void) {
   gtk_widget_set_style(balance_widget, tool_style);
   gtk_scale_set_digits(GTK_SCALE(volume_widget), 10);
   gtk_scale_set_digits(GTK_SCALE(balance_widget), 10);
-  gtk_widget_set_size_request(volume_widget, 192, -1);
-  gtk_widget_set_size_request(balance_widget, 192, -1);
+  gtk_widget_set_size_request(volume_widget, 128, -1);
+  gtk_widget_set_size_request(balance_widget, 128, -1);
   gtk_widget_set_tooltip_text(volume_widget, "Volume");
   gtk_widget_set_tooltip_text(balance_widget, "Balance");
   gtk_box_pack_start(GTK_BOX(hbox), toolbar,
