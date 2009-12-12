@@ -205,8 +205,8 @@ static struct icon icons[] = {
   },
   {
     toggle: TRUE,
-    stock: TRUE,
-    icon: GTK_STOCK_REFRESH,
+    stock: FALSE,
+    icon: "cards24.png",
     label: "Random",
     tip_on: "Disable random play",
     tip_off: "Enable random play",

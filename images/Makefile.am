@@ -27,6 +27,6 @@ disobedience32x32.xpm cross.svg go.svg notes.svg noteson.svg pause.svg	\
 query.svg queryon.svg speaker.svg speakeron.svg cross32.png		\
 pause32.png play32.png playdisabled32.png playenabled32.png		\
 randomdisabled32.png randomenabled32.png rtpdisabled32.png		\
-rtpenabled32.png duck55.png
+rtpenabled32.png duck55.png cards24.png cards48.png
 
 CLEANFILES=$(SEDFILES)
