@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2005-2008 Richard Kettlewell
+# Copyright (C) 2005-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ disobedience32x32.xpm cross.svg go.svg notes.svg noteson.svg pause.svg	\
 query.svg queryon.svg speaker.svg speakeron.svg cross32.png		\
 pause32.png play32.png playdisabled32.png playenabled32.png		\
 randomdisabled32.png randomenabled32.png rtpdisabled32.png		\
-rtpenabled32.png duck55.png cards24.png cards48.png
+rtpenabled32.png duck55.png cards24.png cards48.png 			\
+cards-simple-fanned.svg cards-thin.svg
 
 CLEANFILES=$(SEDFILES)
