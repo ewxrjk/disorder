@@ -283,8 +283,8 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CTRL>A",                /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, selectall_activate), /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",           /* item_type */
+      GTK_STOCK_SELECT_ALL,            /* extra_data */
     },
     {
       (char *)"/Edit/Deselect all tracks", /* path */
@@ -299,8 +299,8 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, properties_activate), /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_PROPERTIES,             /* extra_data */
     },
     {
       (char *)"/Edit/Edit playlists",   /* path */
@@ -325,8 +325,8 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CTRL>S",                /* accelerator */
       0,                                /* callback */
       0,                                /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_STOP,                   /* extra_data */
     },
     {
       (char *)"/Control/Playing",       /* path */
@@ -382,8 +382,8 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* accelerator */
       manual_popup,                     /* callback */
       0,                                /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_HELP,                   /* extra_data */
     },
     {
       (char *)"/Help/About DisOrder",   /* path */

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
 
 struct icon;
 
-static void clicked_icon(GtkButton *, gpointer);
+static void clicked_icon(GtkToolButton *, gpointer);
+static void toggled_icon(GtkToggleToolButton *button,
+                         gpointer user_data);
 static void clicked_menu(GtkMenuItem *, gpointer userdata);
 static void toggled_menu(GtkCheckMenuItem *, gpointer userdata);
 
@@ -60,6 +62,9 @@ static void control_minimode(const char *event,
 /** @brief Guard against feedback */
 int suppress_actions = 1;
 
+/** @brief Toolbar widget */
+static GtkWidget *toolbar;
+
 /** @brief Definition of an icon
  *
  * We have two kinds of icon:
@@ -72,20 +77,26 @@ int suppress_actions = 1;
  * (All icons can be sensitive or insensitive, separately to the above.)
  */
 struct icon {
-  /** @brief Filename for 'on' image */
-  const char *icon_on;
+  /** @brief TRUE to use GTK+ stock icons instead of filenames */
+  gboolean stock;
+
+  /** @brief TRUE for toggle buttons, FALSE for action buttons */
+  gboolean toggle;
+  
+  /** @brief Filename for image or stock string */
+  const char *icon;
 
   /** @brief Text for 'on' tooltip */
   const char *tip_on;
 
-  /** @brief Filename for 'off' image or NULL for an action icon */
-  const char *icon_off;
-
-  /** @brief Text for 'off tooltip */
+  /** @brief Text for 'off' tooltip */
   const char *tip_off;
 
   /** @brief Associated menu item or NULL */
   const char *menuitem;
+
+  /** @brief Label text */
+  const char *label;
 
   /** @brief Events that change this icon, separated by spaces */
   const char *events;
@@ -124,16 +135,16 @@ struct icon {
   /** @brief Pointer to menu item */
   GtkWidget *item;
 
-  GtkWidget *image_on;
-  GtkWidget *image_off;
+  GtkWidget *image;
 };
 
 static int pause_resume_on(void) {
-  return !(last_state & DISORDER_TRACK_PAUSED);
+  return !!(last_state & DISORDER_TRACK_PAUSED);
 }
 
 static int pause_resume_sensitive(void) {
-  return !!(last_state & DISORDER_PLAYING)
+  return playing_track
+    && !!(last_state & DISORDER_PLAYING)
     && (last_rights & RIGHT_PAUSE);
 }
 
@@ -169,19 +180,23 @@ static int rtp_sensitive(void) {
 /** @brief Table of all icons */
 static struct icon icons[] = {
   {
-    icon_on: "pause32.png",
-    tip_on: "Pause playing track",
-    icon_off: "play32.png",
-    tip_off: "Resume playing track",
+    toggle: TRUE,
+    stock: TRUE,
+    icon: GTK_STOCK_MEDIA_PAUSE,
+    label: "Pause",
+    tip_on: "Resume playing track",
+    tip_off: "Pause playing track",
     menuitem: "<GdisorderMain>/Control/Playing",
     on: pause_resume_on,
     sensitive: pause_resume_sensitive,
-    action_go_on: disorder_eclient_resume,
-    action_go_off: disorder_eclient_pause,
-    events: "pause-changed playing-changed rights-changed",
+    action_go_on: disorder_eclient_pause,
+    action_go_off: disorder_eclient_resume,
+    events: "pause-changed playing-changed rights-changed playing-track-changed",
   },
   {
-    icon_on: "cross32.png",
+    stock: TRUE,
+    icon: GTK_STOCK_STOP,
+    label: "Scratch",
     tip_on: "Cancel playing track",
     menuitem: "<GdisorderMain>/Control/Scratch",
     sensitive: scratch_sensitive,
@@ -189,9 +204,11 @@ static struct icon icons[] = {
     events: "playing-track-changed rights-changed",
   },
   {
-    icon_on: "randomenabled32.png",
+    toggle: TRUE,
+    stock: FALSE,
+    icon: "cards24.png",
+    label: "Random",
     tip_on: "Disable random play",
-    icon_off: "randomdisabled32.png",
     tip_off: "Enable random play",
     menuitem: "<GdisorderMain>/Control/Random play",
     on: random_enabled,
@@ -201,9 +218,11 @@ static struct icon icons[] = {
     events: "random-changed rights-changed",
   },
   {
-    icon_on: "playenabled32.png",
+    toggle: TRUE,
+    stock: TRUE,
+    icon: GTK_STOCK_MEDIA_PLAY,
+    label: "Play",
     tip_on: "Disable play",
-    icon_off: "playdisabled32.png",
     tip_off: "Enable play",
     on: playing_enabled,
     sensitive: playing_sensitive,
@@ -212,9 +231,11 @@ static struct icon icons[] = {
     events: "enabled-changed rights-changed",
   },
   {
-    icon_on: "rtpenabled32.png",
+    toggle: TRUE,
+    stock: TRUE,
+    icon: GTK_STOCK_CONNECT,
+    label: "RTP",
     tip_on: "Stop playing network stream",
-    icon_off: "rtpdisabled32.png",
     tip_off: "Play network stream",
     menuitem: "<GdisorderMain>/Control/Network player",
     on: rtp_enabled,
@@ -235,36 +256,52 @@ static GtkWidget *balance_widget;
 
 /** @brief Create the control bar */
 GtkWidget *control_widget(void) {
-  GtkWidget *hbox = gtk_hbox_new(FALSE, 1), *vbox;
+  GtkWidget *hbox = gtk_hbox_new(FALSE, 1);
   int n;
 
   D(("control_widget"));
   assert(mainmenufactory);              /* ordering must be right */
+  toolbar = gtk_toolbar_new();
+  /* Don't permit overflow arrow as otherwise the toolbar isn't greedy enough
+   * in asking for space.  The ideal is probably to make the volume and balance
+   * sliders hang down from the toolbar so it unavoidably gets the whole width
+   * of the window to play with. */
+  gtk_toolbar_set_show_arrow(GTK_TOOLBAR(toolbar), FALSE);
+  gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), 
+                        full_mode ? GTK_TOOLBAR_BOTH : GTK_TOOLBAR_ICONS);
   for(n = 0; n < NICONS; ++n) {
-    /* Create the button */
-    icons[n].button = gtk_button_new();
+    struct icon *const icon = &icons[n];
+    icon->button = (icon->toggle
+                    ? GTK_WIDGET(gtk_toggle_tool_button_new())
+                    : GTK_WIDGET(gtk_tool_button_new(NULL, NULL)));
     gtk_widget_set_style(icons[n].button, tool_style);
-    icons[n].image_on = gtk_image_new_from_pixbuf(find_image(icons[n].icon_on));
-    gtk_widget_set_style(icons[n].image_on, tool_style);
-    g_object_ref(icons[n].image_on);
-    /* If it's a toggle icon, create the 'off' half too */
-    if(icons[n].icon_off) {
-      icons[n].image_off = gtk_image_new_from_pixbuf(find_image(icons[n].icon_off));
-      gtk_widget_set_style(icons[n].image_off, tool_style);
-      g_object_ref(icons[n].image_off);
+    if(icons[n].stock) {
+      /* We'll use the stock icons for this one */
+      icon->image = gtk_image_new_from_stock(icons[n].icon,
+                                             GTK_ICON_SIZE_LARGE_TOOLBAR);
+    } else {
+      /* Create the 'on' image */
+      icon->image = gtk_image_new_from_pixbuf(find_image(icons[n].icon));
     }
-    g_signal_connect(G_OBJECT(icons[n].button), "clicked",
-                     G_CALLBACK(clicked_icon), &icons[n]);
-    /* pop the icon in a vbox so it doesn't get vertically stretch if there are
-     * taller things in the control bar */
-    vbox = gtk_vbox_new(FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox), icons[n].button, TRUE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
+    assert(icon->image);
+    gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(icon->button),
+                                    icon->image);
+    gtk_tool_button_set_label(GTK_TOOL_BUTTON(icon->button),
+                                    icon->label);
+    if(icon->toggle)
+      g_signal_connect(G_OBJECT(icon->button), "toggled",
+                       G_CALLBACK(toggled_icon), icon);
+    else
+      g_signal_connect(G_OBJECT(icon->button), "clicked",
+                       G_CALLBACK(clicked_icon), icon);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar),
+                       GTK_TOOL_ITEM(icon->button),
+                       -1);
     if(icons[n].menuitem) {
       /* Find the menu item */
       icons[n].item = gtk_item_factory_get_widget(mainmenufactory,
                                                   icons[n].menuitem);
-      if(icons[n].icon_off)
+      if(icon->toggle)
         g_signal_connect(G_OBJECT(icons[n].item), "toggled",
                          G_CALLBACK(toggled_menu), &icons[n]);
       else
@@ -290,12 +327,16 @@ GtkWidget *control_widget(void) {
   gtk_widget_set_style(balance_widget, tool_style);
   gtk_scale_set_digits(GTK_SCALE(volume_widget), 10);
   gtk_scale_set_digits(GTK_SCALE(balance_widget), 10);
-  gtk_widget_set_size_request(volume_widget, 192, -1);
-  gtk_widget_set_size_request(balance_widget, 192, -1);
+  gtk_widget_set_size_request(volume_widget, 128, -1);
+  gtk_widget_set_size_request(balance_widget, 128, -1);
   gtk_widget_set_tooltip_text(volume_widget, "Volume");
   gtk_widget_set_tooltip_text(balance_widget, "Balance");
-  gtk_box_pack_start(GTK_BOX(hbox), volume_widget, FALSE, TRUE, 0);
-  gtk_box_pack_start(GTK_BOX(hbox), balance_widget, FALSE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), toolbar,
+                     FALSE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), volume_widget,
+                     FALSE/*expand*/, TRUE/*fill*/, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), balance_widget,
+                     FALSE/*expand*/, TRUE/*fill*/, 0);
   /* space updates rather than hammering the server */
   gtk_range_set_update_policy(GTK_RANGE(volume_widget), GTK_UPDATE_DELAYED);
   gtk_range_set_update_policy(GTK_RANGE(balance_widget), GTK_UPDATE_DELAYED);
@@ -357,22 +398,14 @@ static void icon_changed(const char attribute((unused)) *event,
   int on = icon->on ? icon->on() : 1;
   int sensitive = icon->sensitive ? icon->sensitive() : 1;
   //fprintf(stderr, "sensitive->%d\n", sensitive);
-  GtkWidget *child, *newchild;
 
   ++suppress_actions;
   /* If the connection is down nothing is ever usable */
   if(!(last_state & DISORDER_CONNECTED))
     sensitive = 0;
-  //fprintf(stderr, "(checked connected) sensitive->%d\n", sensitive);
-  /* Replace the child */
-  newchild = on ? icon->image_on : icon->image_off;
-  child = gtk_bin_get_child(GTK_BIN(icon->button));
-  if(child != newchild) {
-    if(child)
-      gtk_container_remove(GTK_CONTAINER(icon->button), child);
-    gtk_container_add(GTK_CONTAINER(icon->button), newchild);
-    gtk_widget_show(newchild);
-  }
+  if(icon->toggle)
+    gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(icon->button),
+                                      on);
   /* If you disable play or random play NOT via the icon (for instance, via the
    * edit menu or via a completely separate command line invocation) then the
    * icon shows up as insensitive.  Hover the mouse over it and the correct
@@ -384,7 +417,7 @@ static void icon_changed(const char attribute((unused)) *event,
   gtk_widget_set_sensitive(icon->button, sensitive);
   /* Icons with an associated menu item */
   if(icon->item) {
-    if(icon->icon_off)
+    if(icon->toggle)
       gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item), on);
     gtk_widget_set_sensitive(icon->item, sensitive);
   }
@@ -397,13 +430,22 @@ static void icon_action_completed(void attribute((unused)) *v,
     popup_protocol_error(0, err);
 }
 
-static void clicked_icon(GtkButton attribute((unused)) *button,
+static void clicked_icon(GtkToolButton attribute((unused)) *button,
                          gpointer userdata) {
   const struct icon *icon = userdata;
 
   if(suppress_actions)
     return;
-  if(!icon->on || icon->on())
+  icon->action_go_off(client, icon_action_completed, 0);
+}
+
+static void toggled_icon(GtkToggleToolButton attribute((unused)) *button,
+                         gpointer user_data) {
+  const struct icon *icon = user_data;
+
+  if(suppress_actions)
+    return;
+  if(icon->on())
     icon->action_go_off(client, icon_action_completed, 0);
   else
     icon->action_go_on(client, icon_action_completed, 0);
@@ -416,7 +458,7 @@ static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
 
 static void toggled_menu(GtkCheckMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
-  clicked_icon(NULL, userdata);
+  toggled_icon(NULL, userdata);
 }
 
 /** @brief Called when a volume command completes */
@@ -574,6 +616,8 @@ static void control_minimode(const char attribute((unused)) *event,
     gtk_widget_hide(balance_widget);
     gtk_scale_set_value_pos(GTK_SCALE(volume_widget), GTK_POS_RIGHT);
   }
+  gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), 
+                        full_mode ? GTK_TOOLBAR_BOTH : GTK_TOOLBAR_ICONS);
 }
 
 /*

@@ -265,6 +265,7 @@ static void choose_playchildren_played(void attribute((unused)) *v,
 static struct menuitem choose_menuitems[] = {
   {
     "Play track",
+    GTK_STOCK_MEDIA_PLAY,
     choose_play_activate,
     choose_play_sensitive,
     0,
@@ -272,6 +273,7 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Track properties",
+    GTK_STOCK_PROPERTIES,
     choose_properties_activate,
     choose_properties_sensitive,
     0,
@@ -279,6 +281,7 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Select children",
+    NULL,
     choose_selectchildren_activate,
     choose_selectchildren_sensitive,
     0,
@@ -286,6 +289,7 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Play children",
+    NULL,
     choose_playchildren_activate,
     choose_selectchildren_sensitive,    /* re-use */
     0,
@@ -293,6 +297,7 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Deselect all tracks",
+    NULL,
     choose_selectnone_activate,
     choose_selectnone_sensitive,
     0,

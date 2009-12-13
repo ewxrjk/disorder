@@ -233,12 +233,12 @@ static const struct queue_column queue_columns[] = {
 
 /** @brief Pop-up menu for queue */
 static struct menuitem queue_menuitems[] = {
-  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
-  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
-  { "Scratch playing track", ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
-  { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
-  { "Adopt track", ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
+  { "Track properties", GTK_STOCK_PROPERTIES, ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Select all tracks", GTK_STOCK_SELECT_ALL, ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", NULL, ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Scratch playing track", GTK_STOCK_STOP, ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
+  { "Remove track from queue", GTK_STOCK_DELETE, ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Adopt track", NULL, ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
 };
 
 static const GtkTargetEntry queue_targets[] = {

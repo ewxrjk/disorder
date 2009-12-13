@@ -78,6 +78,10 @@ td {
   padding: 8px
 }
 
+td:first-child {
+  text-align: right
+}
+
 table {
   margin-left: 2em
 }

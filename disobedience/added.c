@@ -80,10 +80,10 @@ static const struct queue_column added_columns[] = {
 
 /** @brief Pop-up menu for new tracks list */
 static struct menuitem added_menuitems[] = {
-  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
-  { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
-  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Track properties", GTK_STOCK_PROPERTIES, ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Play track", GTK_STOCK_MEDIA_PLAY, ql_play_activate, ql_play_sensitive, 0, 0 },
+  { "Select all tracks", GTK_STOCK_SELECT_ALL, ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", NULL, ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
 
 struct queuelike ql_added = {

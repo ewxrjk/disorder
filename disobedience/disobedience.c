@@ -230,7 +230,7 @@ static void check_toplevel_size(const char attribute((unused)) *event,
 
 /** @brief Create and populate the main window */
 static void make_toplevel_window(void) {
-  GtkWidget *const vbox = gtk_vbox_new(FALSE, 1);
+  GtkWidget *const vbox = gtk_vbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
   GtkWidget *const rb = report_box();
 
   D(("top_window"));
