@@ -83,8 +83,13 @@ static int speaker_readable(ev_source *ev, int fd,
   case SM_FINISHED:			/* scratched the playing track */
   case SM_STILLBORN:			/* scratched too early */
   case SM_UNKNOWN:			/* scratched WAY too early */
-    if(playing && !strcmp(sm.id, playing->id))
+    if(playing && !strcmp(sm.id, playing->id)) {
+      if((playing->state == playing_unplayed
+          || playing->state == playing_started)
+         && sm.type == SM_FINISHED)
+        playing->state = playing_ok;
       finished(ev);
+    }
     break;
   case SM_PLAYING:
     /* track ID is playing, DATA seconds played */
