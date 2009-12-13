@@ -458,7 +458,7 @@ static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
 
 static void toggled_menu(GtkCheckMenuItem attribute((unused)) *menuitem,
                          gpointer userdata) {
-  clicked_icon(NULL, userdata);
+  toggled_icon(NULL, userdata);
 }
 
 /** @brief Called when a volume command completes */
