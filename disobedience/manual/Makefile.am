@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-dochtml_DATA=index.html intro.html misc.html playlists.html		\
+dist_dochtml_DATA=index.html intro.html misc.html playlists.html	\
 	properties.html tabs.html window.html disobedience.css		\
 	arch-simple.png button-pause.png button-playing.png		\
 	button-random.png button-rtp.png button-scratch.png		\
