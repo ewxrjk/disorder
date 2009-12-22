@@ -19,4 +19,5 @@
 pkgdata_DATA=slap.ogg scratch.ogg
 
 EXTRA_DIST=${pkgdata_DATA} \
-	scratch.wav scratch.flac scratch.mp3 scratch.raw long.ogg
+	scratch.wav scratch.flac scratch.mp3 scratch.raw long.ogg \
+	scratch-mp3.raw

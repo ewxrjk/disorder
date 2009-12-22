@@ -85,7 +85,7 @@ Make track with relative path S exist"""
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
-    copyfile("%s/sounds/long.ogg" % top_builddir, trackpath)
+    copyfile("%s/sounds/long.ogg" % top_srcdir, trackpath)
     # We record the tracks we created so they can be tested against
     # server responses.  We put them into NFC since that's what the server
     # uses internally.

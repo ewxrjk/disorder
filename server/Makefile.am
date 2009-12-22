@@ -121,7 +121,7 @@ check-decode: check-wav check-flac check-mp3
 
 check-mp3: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
-	  ./disorder-normalize --config test-config > mp3ed.raw
+	  ./disorder-normalize --config ${srcdir}/test-config > mp3ed.raw
 	cmp mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
 	rm -f mp3ed.raw
 
@@ -129,19 +129,19 @@ check-mp3: disorder-decode disorder-normalize
 # or something.  Makes it tricky to test!
 check-ogg: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
-	  ./disorder-normalize --config test-config > ogged.raw
+	  ./disorder-normalize --config ${srcdir}/test-config > ogged.raw
 	cmp ogged.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f ogged.raw
 
 check-wav: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.wav | \
-	  ./disorder-normalize --config test-config > waved.raw
+	  ./disorder-normalize --config ${srcdir}/test-config > waved.raw
 	cmp waved.raw ${top_srcdir}/sounds/scratch.raw
 	rm -rf waved.raw
 
 check-flac: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.flac | \
-	  ./disorder-normalize --config test-config > flacced.raw
+	  ./disorder-normalize --config ${srcdir}/test-config > flacced.raw
 	cmp flacced.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f flacced.raw
 
