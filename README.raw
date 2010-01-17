@@ -13,15 +13,15 @@ The purpose of raw format players is:
 
 ** Usage
 
+By default, built-in raw-format players are used for several encodings, so you
+do not need to do anything.
+
+*** Use with libao
+
 To use raw format, use the execraw module and make the command choose the
 "disorder" libao driver.  You may need to link the driver from wherever
 DisOrder installs it (e.g. /usr/local/lib/ao/plugins-2) to where libao will
 look for it (e.g. /usr/lib/ao/plugins-2 or /sw/lib/ao/plugins-2).
-
-You should pass the "fragile" option to ogg123.  This is because ogg123 ignores
-write errors!
-
-mpg321 does not appear to have this bug.
 
 For _non_ raw players it is advisable to use the new --wait-for-device option.
 This repeatedly tries to open the audio device before starting the player

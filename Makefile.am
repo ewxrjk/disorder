@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-EXTRA_DIST=TODO CHANGES.html README.streams BUGS \
+EXTRA_DIST=CHANGES.html README.streams BUGS \
 README.upgrades README.client README.raw README.vhost README.developers
 SUBDIRS=@subdirs@
 
