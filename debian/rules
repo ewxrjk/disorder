@@ -62,12 +62,12 @@ FAKEROOT=fakeroot
 
 SHELL=bash
 
-# ./prepare is the script that generates configure etc.  It only needs to be
+# ./autogen.sh is the script that generates configure etc.  It only needs to be
 # run if building from a checkout rather than a tarball.
 build:
 	@set -e;if test ! -f configure; then \
-	  echo ./prepare;\
-	  ./prepare;\
+	  echo ./autogen.sh;\
+	  ./autogen.sh;\
 	fi
 	@set -e;if test ! -f config.status; then \
 	  echo ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\

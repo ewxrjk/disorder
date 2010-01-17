@@ -21,13 +21,6 @@ set -e
 srcdir=$(dirname $0)
 here=$(pwd)
 cd $srcdir
-rm -f COPYING
-for f in /usr/share/common-licenses/GPL-3 $HOME/doc/GPL-3 $HOME/Documents/GPL-3; do
-  if test -e "$f"; then
-    ln -s "$f" COPYING
-    break
-  fi
-done
 if test -d $HOME/share/aclocal; then
   aclocal --acdir=$HOME/share/aclocal
 else

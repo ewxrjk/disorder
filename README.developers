@@ -33,7 +33,7 @@ Building:
    * Compiled versions of configure and the makefiles are not included in bzr,
      so if you didn't use a source tarball, you must start as follows:
 
-        bash ./prepare
+        bash ./autogen.sh
         ./configure -C
         make
 
