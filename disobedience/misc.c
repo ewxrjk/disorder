@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2008, 2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ struct image {
   const guint8 *data;
 };
 
-#include "images.h"
+#include "../images/images.h"
 
 /* Miscellaneous GTK+ stuff ------------------------------------------------ */
 

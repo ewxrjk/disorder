@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2009 Richard Kettlewell
+# Copyright (C) 2004-2010 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
 # This program is free software: you can redistribute it and/or modify
@@ -685,6 +685,7 @@ AM_CONDITIONAL([SERVER], [test x$want_server = xyes])
 if test $want_gtk = yes; then
   AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
 fi
+AM_CONDITIONAL([GTK], [test x$want_gtk = xyes])
 
 if test "x$GCC" = xyes; then
   # We need LLONG_MAX and annoyingly GCC doesn't always give it to us
