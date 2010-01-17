@@ -136,10 +136,6 @@ defs.lo: definitions.h versionstring.h
 rebuild-unicode:
 	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata
 
-%.i: %.c
-	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
-	mv $@.new $@
-
 CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
