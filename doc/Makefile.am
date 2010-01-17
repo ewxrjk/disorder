@@ -35,19 +35,31 @@ SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-HTMLMAN=$(foreach man,$(man_MANS),$(man).html)
-$(HTMLMAN) : %.html : % $(top_srcdir)/scripts/htmlman
-	rm -f $@.new
-	$(top_srcdir)/scripts/htmlman $< >$@.new
-	chmod 444 $@.new
-	mv -f $@.new $@
+HTMLMAN=disorderd.8.html disorder.1.html disorder.3.html		\
+disorder_config.5.html disorder-dump.8.html disorder_protocol.5.html	\
+disorder-deadlock.8.html disorder-rescan.8.html disobedience.1.html	\
+disorderfm.1.html disorder-speaker.8.html disorder-playrtp.1.html	\
+disorder-normalize.8.html disorder-decode.8.html disorder-stats.8.html	\
+disorder-dbupgrade.8.html disorder_templates.5.html			\
+disorder_actions.5.html disorder_options.5.html disorder.cgi.8.html	\
+disorder_preferences.5.html disorder-choose.8.html
 
-TMPLMAN=$(foreach man,$(man_MANS),$(man).tmpl)
-$(TMPLMAN) : %.tmpl : % $(top_srcdir)/scripts/htmlman
-	rm -f $@.new
-	$(top_srcdir)/scripts/htmlman -stdhead $< >$@.new
-	chmod 444 $@.new
-	mv -f $@.new $@
+$(HTMLMAN): disorderd.8.html
+disorderd.8.html: $(man_MANS)
+	$(top_srcdir)/scripts/htmlman -- $^
+
+TMPLMAN=disorderd.8.tmpl disorder.1.tmpl disorder.3.tmpl		\
+disorder_config.5.tmpl disorder-dump.8.tmpl disorder_protocol.5.tmpl	\
+disorder-deadlock.8.tmpl disorder-rescan.8.tmpl disobedience.1.tmpl	\
+disorderfm.1.tmpl disorder-speaker.8.tmpl disorder-playrtp.1.tmpl	\
+disorder-normalize.8.tmpl disorder-decode.8.tmpl disorder-stats.8.tmpl	\
+disorder-dbupgrade.8.tmpl disorder_templates.5.tmpl			\
+disorder_actions.5.tmpl disorder_options.5.tmpl disorder.cgi.8.tmpl	\
+disorder_preferences.5.tmpl disorder-choose.8.tmpl
+
+$(TMPLMAN): disorderd.8.tmpl
+disorderd.8.tmpl: $(man_MANS)
+	$(top_srcdir)/scripts/htmlman -stdhead -extension tmpl -- $^
 
 disorder_templates.5.in: disorder_templates.5.head disorder_templates.5.tail \
 		$(top_srcdir)/lib/macros-builtin.c \
