@@ -25,6 +25,16 @@ import java.nio.charset.*;
 
 /**
  * A synchronous connection to a DisOrder server.
+ *
+ * <p>Having created a connection, use the various methods to play
+ * tracks, list the queue, etc.
+ *
+ * <p><b>This is a work in progress</b>. Many commands are not
+ * implemented.
+ *
+ * <p>Commands that require admin rights are not implemented as they
+ * only work on local connections, and this class always uses a TCP
+ * connection.
  */
 public class DisorderServer {
   private DisorderConfig config;
@@ -38,6 +48,10 @@ public class DisorderServer {
   /**
    * Construct a server connection from a given configuration.
    *
+   * <p>Creating a connection does not connect it.  Instead the
+   * underlying connection is established either on demand or via the
+   * {@link #connect() connect} method.
+   *
    * @param c Configuration to use
    */
   public DisorderServer(DisorderConfig c) {
@@ -50,6 +64,10 @@ public class DisorderServer {
   /**
    * Construct a server connection from the default configuration.
    *
+   * <p>Creating a connection does not connect it.  Instead the
+   * underlying connection is established either on demand or via the
+   * {@link #connect() connect} method.
+   *
    * @throws DisorderParseError If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
    */
@@ -61,9 +79,18 @@ public class DisorderServer {
     connected = false;
   }
 
-  /** Connect to server.
+  /** Connect to the server.
    *
-   * If the connection is already established then nothing happens.
+   * <p>Establishes a TCP connection to the server and authenticates
+   * using the username and password from the configuration chosen at
+   * construction time.
+   *
+   * <p>Does nothing if already connected.
+   *
+   * <p>Note that it's never <i>necessary</i> to call this method.
+   * The other methods will call it automatically.  However, if you
+   * want to distinguish connection and authentication errors from
+   * errors occurring later, it may be convenient to do so.
    *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
@@ -113,7 +140,7 @@ public class DisorderServer {
       md.update(config.password.getBytes());
       md.update(DisorderMisc.fromHex(challenge));
       String response = DisorderMisc.toHex(md.digest());
-      send("user %s %s\n", config.user, response);
+      send("user %s %s", config.user, response);
     }
     // Handle the response to our login attempt
     {
@@ -128,26 +155,13 @@ public class DisorderServer {
   }
 
   /**
-   * Get the server version.
+   * Send a command to the server.
    *
-   * @return Server version string
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
+   * A newline is appended to the command automatically.
+   *
+   * @param format Format string
+   * @param args Arguments to <code>format</code>
    */
-  public String version() throws IOException,
-                                 DisorderParseError,
-                                 DisorderProtocolError {
-    connect();
-    send("version\n");
-    String response = getResponse();
-    Vector<String> v = DisorderMisc.split(response, false/*comments*/);
-    int rc = responseCode(v);
-    if(rc / 100 != 2)
-      throw new DisorderProtocolError(config.serverName, response);
-    return v.get(1);
-  }
-
   private void send(String format, Object ... args) {
     if(formatter == null)
       formatter = new Formatter();
@@ -156,9 +170,10 @@ public class DisorderServer {
     String s = sb.toString();
     if(debugging) {
       System.err.print("SEND: ");
-      System.err.print(s);
+      System.err.println(s);
     }
     output.print(s);
+    output.print('\n');         // no, not println!
     output.flush();
     sb.delete(0, s.length());
   }
@@ -203,6 +218,565 @@ public class DisorderServer {
       throw new DisorderParseError("invalid response code " + v.get(0));
     return rc;
   }
+
+  /**
+   * Await a response and check it's OK.
+   *
+   * Any 2xx response counts as success.  Anything else will generate
+   * a DisorderProtocolError.
+   *
+   * @return Split response
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  private Vector<String> getPositiveResponse() throws IOException,
+                                                      DisorderParseError,
+                                                      DisorderProtocolError {
+    String response = getResponse();
+    Vector<String> v = DisorderMisc.split(response, false/*comments*/);
+    int rc = responseCode(v);
+    if(rc / 100 != 2)
+      throw new DisorderProtocolError(config.serverName, response);
+    return v;
+  }
+
+  /**
+   * Get a string response
+   *
+   * <p>Any 2xx response with exactly one extra field will return the
+   * value of that field.
+   *
+   * <p>If <code>optional<code> is <code>true</code> then a 555
+   * response is also accepted, with a return value of
+   * <code>null</code>.
+   *
+   * <p>Otherwise there will be a DisorderProtocolError or
+   * DisorderParseError.
+   *
+   * @param optional Whether 555 responses are acceptable
+   * @return Response value or <code>null</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  String getStringResponse(boolean optional) throws IOException,
+                                                    DisorderParseError,
+                                                    DisorderProtocolError {
+    String response = getResponse();
+    Vector<String> v = DisorderMisc.split(response, false/*comments*/);
+    int rc = responseCode(v);
+    if(optional && rc == 555)
+      return null;
+    if(rc / 100 != 2)
+      throw new DisorderProtocolError(config.serverName, response);
+    if(v.size() != 2)
+      throw new DisorderParseError("malformed response: " + response);
+    return v.get(1);
+  }
+
+  /**
+   * Get a boolean response
+   *
+   * Any 2xx response with the next field being "yes" or "no" counts
+   * as success.  Anything else will generate a DisorderProtocolError
+   * or DisorderParseError.
+   *
+   * @return Response truth value
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  boolean getBooleanResponse() throws IOException,
+                                      DisorderParseError,
+                                      DisorderProtocolError {
+    String s = getStringResponse(false);
+    if(s.equals("yes"))
+      return true;
+    else if(s.equals("no"))
+      return false;
+    else
+      throw new DisorderParseError("expxected 'yes' or 'no' in response");
+  }
+
+  /**
+   * Quote a string for use in a Disorder command
+   *
+   * @param s String to quote
+   * @return Quoted string (possibly the same object as <code>s</code>)
+   */
+  static private String quote(String s) {
+    if(s.length() == 0 || s.matches("[^\"\'\\#\0-\37 ]")) {
+      StringBuilder sb = new StringBuilder();
+      sb.append('"');
+      for(int n = 0; n < s.length(); ++n) {
+        char c = s.charAt(n);
+        switch(c) {
+        case '"':
+        case '\\':
+          sb.append('\\');
+          // fall through
+        default:
+          sb.append(c);
+          break;
+        case '\n':
+          sb.append('\\');
+          sb.append('\n');
+          break;
+        }
+      }
+      sb.append('"');
+      return sb.toString();
+    } else
+      return s;
+  }
+
+  /**
+   * Get a response body.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   */
+  Vector<String> getResponseBody() throws IOException,
+                                          DisorderParseError {
+    Vector<String> r = new Vector<String>();
+    String s;
+    while((s = getResponse()) != null
+          && !s.equals("."))
+      if(s.length() > 0 && s.charAt(0) == '.')
+        r.add(s.substring(1));
+      else
+        r.add(s);
+    if(s == null)
+      throw new DisorderParseError("unterminated response body");
+    return r;
+  }
+
+  // TODO adduser not implemented because only works on local connections
+
+  /**
+   * Adopt a track.
+   *
+   * Adopts a randomly picked track, leaving it in the same state as
+   * if it was picked by the calling user.
+   *
+   * @param id Track to adopt
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void adopt(String id) throws IOException,
+                                      DisorderParseError,
+                                      DisorderProtocolError {
+    connect();
+    send("adopt %s", quote(id));
+    getPositiveResponse();
+  }
+
+  /**
+   * Get a list of files and directories.
+   *
+   * Returns a list of the files and directories immediately below
+   * <code>path</code>.  If <code>regexp</code> is not
+   * <code>null</code> then only matching names are returned.
+   *
+   * <p>If you need to tell files and directories apart, use {@link
+   * #dirs(String,String) dirs()} and {@link #files(String,String)
+   * files()} instead.
+   *
+   * @param path Parent directory
+   * @param regexp Regular expression to filter results, or <code>null</code>
+   * @return List of files and directiories
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public Vector<String> allfiles(String path,
+                                 String regexp) throws IOException,
+                                                       DisorderParseError,
+                                                       DisorderProtocolError {
+    connect();
+    if(regexp != null)
+      send("allfiles %s %s", quote(path), quote(regexp));
+    else
+      send("allfiles %s", quote(path));
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  // TODO confirm not implemented because only used by CGI
+  // TODO cookie not implemented because only used by CGI
+  // TODO deluser not implemented because only works on local connections
+
+  /**
+   * Get a list of directories.
+   *
+   * Returns a list of the directories immediately below
+   * <code>path</code>.  If <code>regexp</code> is not
+   * <code>null</code> then only matching names are returned.
+   *
+   * @param path Parent directory
+   * @param regexp Regular expression to filter results, or <code>null</code>
+   * @return List of directories
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public Vector<String> dirs(String path,
+                             String regexp) throws IOException,
+                                                   DisorderParseError,
+                                                   DisorderProtocolError {
+    connect();
+    if(regexp != null)
+      send("dirs %s %s", quote(path), quote(regexp));
+    else
+      send("dirs %s", quote(path));
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Disable further playing.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void disable() throws IOException,
+                               DisorderParseError,
+                               DisorderProtocolError {
+    connect();
+    send("disable");
+    getPositiveResponse();
+  }
+
+  /**
+   * Set a user property.
+   *
+   * @param username User to edit
+   * @param property Property to set
+   * @param value New value for property
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void edituser(String username,
+                       String property,
+                       String value) throws IOException,
+                                            DisorderParseError,
+                                            DisorderProtocolError {
+    connect();
+    send("edituser %s %s %s", quote(username), quote(property), quote(value));
+    getPositiveResponse();
+  }
+
+  /**
+   * Enable play
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void enable() throws IOException,
+                              DisorderParseError,
+                              DisorderProtocolError {
+    connect();
+    send("enable");
+    getPositiveResponse();
+  }
+
+  /**
+   * Test whether play is enabled.
+   *
+   * @return <code>true</code> if play is enabled, otherwise <code>false</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public boolean enabled() throws IOException,
+                                  DisorderParseError,
+                                  DisorderProtocolError {
+    connect();
+    send("enabled");
+    return getBooleanResponse();
+  }
+
+  /**
+   * Test whether a track exists.
+   *
+   * @param track Track to check
+   * @return <code>true</code> if the track exists, otherwise <code>false</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public boolean exists(String track) throws IOException,
+                                  DisorderParseError,
+                                             DisorderProtocolError {
+    connect();
+    send("exists %s", quote(track));
+    return getBooleanResponse();
+  }
+
+  /**
+   * Get a list of files.
+   *
+   * Returns a list of the files immediately below
+   * <code>path</code>.  If <code>regexp</code> is not
+   * <code>null</code> then only matching names are returned.
+   *
+   * @param path Parent directory
+   * @param regexp Regular expression to filter results, or <code>null</code>
+   * @return List of files
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public Vector<String> files(String path,
+                              String regexp) throws IOException,
+                                                    DisorderParseError,
+                                                    DisorderProtocolError {
+    connect();
+    if(regexp != null)
+      send("files %s %s", quote(path), quote(regexp));
+    else
+      send("files %s", quote(path));
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Get a track preference value.
+   *
+   * @param track Track to look up
+   * @param pref Preference name
+   * @return Preference value, or <code>null</code> if it's not set
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String get(String track,
+                    String pref) throws IOException,
+                                        DisorderParseError,
+                                        DisorderProtocolError {
+    connect();
+    send("get %s %s", quote(track), quote(pref));
+    return getStringResponse(true);
+  }
+
+  /**
+   * Get a global preference value
+   *
+   * @param key Preference name
+   * @return Preference value, or <code>null</code> if it's not set
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String getGlobal(String key) throws IOException,
+                                             DisorderParseError,
+                                             DisorderProtocolError {
+    connect();
+    send("get-global %s %s", quote(key));
+    return getStringResponse(true);
+  }
+
+  /**
+   * Get a track's length.
+   *
+   * @param track Track to look up
+   * @return Track length in seconds
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public int length(String track) throws IOException,
+                                         DisorderParseError,
+                                         DisorderProtocolError {
+    connect();
+    send("length %s", quote(track));
+    return Integer.parseInt(getStringResponse(false));
+  }
+
+  // TODO log not implemented yet
+  // TODO make-cookie not implemented because only used by CGI
+
+  /**
+   * Move a track.
+   *
+   * <p>If <code>delta</code> is positive then the track is moved
+   * towards the head of the queue.  If it is negative then it is
+   * moved towards the tail of the queue.
+   *
+   * <p>Tracks be identified by ID or name but ID is preferred.
+   *
+   * @param track Track ID or name
+   * @param delta How far to move track
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void move(String track,
+                   int delta) throws IOException,
+                                         DisorderParseError,
+                                         DisorderProtocolError {
+    connect();
+    send("move %s %d", quote(track), delta);
+    getPositiveResponse();
+  }
+
+  /**
+   * Move multiple tracks.
+   *
+   * ALl of the listed track IDs will be moved so that they appear
+   * just after the target, but retaining their relative ordering
+   * within themselves.
+   *
+   * @param target Target track ID
+   * @param tracks Track IDs to move
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void moveafter(String target,
+                        String... tracks) throws IOException,
+                                                 DisorderParseError,
+                                                 DisorderProtocolError {
+    connect();
+    StringBuilder sb = new StringBuilder();
+    for(int n = 0; n < tracks.length; ++n) {
+      sb.append(' ');
+      sb.append(quote(tracks[n]));
+    }
+    send("moveafter %s %s", quote(target), sb.toString());
+    getPositiveResponse();
+  }
+
+  /**
+   * Get a list of newly added tracks.
+   *
+   * If <code>max</code> is positive then at most that many tracks will
+   * be sent.  Otherwise the server will choose the maximum to send (and in any case it may impose an upper limit).
+   *
+   * @param max Maximum number of tracks to get, or 0
+   * @return List of new tracks
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public Vector<String> newTracks(int max) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    if(max > 0)
+      send("new %d", max);
+    else
+      send("new");
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Do nothing.
+   *
+   * <p>Typically used to ensure that a failed network connection is
+   * quickly detected.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void nop() throws IOException,
+                           DisorderParseError,
+                           DisorderProtocolError {
+    connect();
+    send("nop");
+    getPositiveResponse();
+  }
+
+  /**
+   * Get a track name part.
+   *
+   * <p><code>context</code> should either <code>"sort"</code> or
+   * <code>"display"</code>.  <code>part</code> is generally either
+   * <code>"artist"</code>, <code>"album"</code> or <code>"title"</code>.
+   *
+   * @param track Track to look up
+   * @param context Context for the lookup
+   * @param part Part of the track name to get
+   * @return Track name part or the empty string
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String part(String track,
+                     String context,
+                     String part) throws IOException,
+                           DisorderParseError,
+                           DisorderProtocolError {
+    connect();
+    send("part %s %s %s", quote(track), quote(context), quote(part));
+    return getStringResponse(false);
+  }
+
+  /**
+   * Pause play.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void pause() throws IOException,
+                              DisorderParseError,
+                              DisorderProtocolError {
+    connect();
+    send("pause");
+    getPositiveResponse();
+  }
+
+  /**
+   * Add a track to the queue.
+   *
+   * @param track Track to queue
+   * @return Track ID in queue
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String play(String track) throws IOException,
+                                  DisorderParseError,
+                                             DisorderProtocolError {
+    connect();
+    send("play %s", quote(track));
+    return getStringResponse(false);
+  }
+
+  // TODO lots more to do...
+
+  /**
+   * Get the server version.
+   *
+   * <p>The version string will generally be in one of the following formats:
+   * <ul>
+   * <li><code>x.y</code> - a major release
+   * <li><code>x.y.z</code> - a minor release
+   * <li><code>x.y+</code> - an intermediate development version
+   * </ul>
+   *
+   * @return Server version string
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String version() throws IOException,
+                                 DisorderParseError,
+                                 DisorderProtocolError {
+    connect();
+    send("version");
+    return getPositiveResponse().get(1);
+  }
+
+  
 }
 
 /*
