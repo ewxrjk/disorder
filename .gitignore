@@ -207,6 +207,10 @@ libtests/test-suite.log
 /GRTAGS
 /GSYMS
 /GTAGS
+*.jar
+java/jar
+*.class
+java/Makefile
 /Debug
 /lib/Debug
 /clients/Debug

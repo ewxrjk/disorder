@@ -34,6 +34,7 @@ want_python=yes
 want_tests=yes
 want_server=yes
 want_cgi=yes
+want_java=yes
 
 # APIs we want
 want_alsa=yes
@@ -248,6 +249,10 @@ AC_ARG_WITH([python],
 	    [AS_HELP_STRING([--without-python],
 			    [do not build Python support])],
 	    [want_python=$withval])
+AC_ARG_WITH([java],
+	    [AS_HELP_STRING([--without-java],
+			    [do not build Java support])],
+	    [want_java=$withval])
 
 if test $want_server = no; then
   want_cgi=no
@@ -360,6 +365,9 @@ fi
 if test $want_tests = yes && test $want_python = yes; then
   AM_PATH_PYTHON([2.5])
   subdirs="${subdirs} python tests"
+fi
+if test $want_java = yes; then
+  subdirs="${subdirs} java"
 fi
 AC_SUBST([subdirs])
 
@@ -862,7 +870,8 @@ AC_CONFIG_FILES([Makefile
 		 python/Makefile
 		 examples/Makefile
 		 libtests/Makefile
-		 tests/Makefile])
+		 tests/Makefile
+                 java/Makefile])
 AC_OUTPUT
 
 if test $GCC = yes && test "$gcc_werror" = ''; then
