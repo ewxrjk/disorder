@@ -31,7 +31,7 @@ public class DisorderServer {
   }
 
   /**
-   * Construct a server configuration from the default configuration.
+   * Construct a server connection from the default configuration.
    *
    * @throws DisorderParseError If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
