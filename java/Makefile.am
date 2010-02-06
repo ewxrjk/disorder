@@ -29,6 +29,7 @@ disorder.jar: ${SOURCE}
 doc/index.html: ${SOURCE} ${EXTRAS}
 	mkdir -p doc
 	javadoc -d doc \
+		-link http://java.sun.com/javase/6/docs/api/ \
 		-doctitle "DisOrder Java support" \
 		${SOURCE}
 
