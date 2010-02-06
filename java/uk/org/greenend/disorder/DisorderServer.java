@@ -28,15 +28,31 @@ import java.nio.charset.*;
  *
  * <p>Having created a connection, use the various methods to play
  * tracks, list the queue, etc.  Most methods have exactly the same
- * name as the underlying protocol command, the exceptions being where
- * there is a clash with a Java reserved word.
+ * name as the underlying protocol command, the exceptions being:
  *
- * <p><b>This is a work in progress</b>. Many commands are not
- * implemented.
+ * <ul>
+ * <li>Where there is a dash in the command, in which case a camelcase
+ * construction is used instead, e.g. {@link #playlistGet(String)
+ * playlistGet}.
+ * <li>Where there is a clash with a Java reserved word (e.g. {@link
+ * #newTracks(int) newTracks}).
+ * </ul>
  *
- * <p>Commands that require admin rights are not implemented as they
+ * <p>Certain classes of commands are not implemented:
+ * <ul>
+ * <li>Commands that require admin rights are not implemented as they
  * only work on local connections, and this class always uses a TCP
  * connection.
+ * <li>Commands that are only used by the web interface are
+ * also not implemented, but there's not inherent reason why they
+ * couldn't be in a future version.
+ * <li>The <code>schedule-</code> commands are not implemented.
+ * Again there's no reason they couldn't be.
+ * </ul>
+ *
+ * <p>Set the system property <code>DISORDER_DEBUG</code> (to
+ * anything) to turn on debugging.  Debug messages are sent to
+ * System.err.
  */
 public class DisorderServer {
   private DisorderConfig config;
@@ -473,7 +489,7 @@ public class DisorderServer {
   }
 
   /**
-   * Enable play
+   * Enable play.
    *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
@@ -725,13 +741,15 @@ public class DisorderServer {
   /**
    * Pause play.
    *
+   * The opposite of {@link #pause()}.
+   *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
   public void pause() throws IOException,
-                              DisorderParseError,
-                              DisorderProtocolError {
+                             DisorderParseError,
+                             DisorderProtocolError {
     connect();
     send("pause");
     getPositiveResponse();
@@ -841,6 +859,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("playlist-get %s", quote(playlist));
+    getPositiveResponse();
     return getResponseBody();
   }
 
@@ -958,10 +977,430 @@ public class DisorderServer {
                                          DisorderProtocolError {
     connect();
     send("playlists");
+    getPositiveResponse();
     return getResponseBody();
   }
 
-  // TODO lots more to do...
+  /**
+   * Get all preferences for a track.
+   *
+   * @param track Track to get preferences for
+   * @return Dictionary relating preference keys to values
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public Dictionary<String,String> prefs(String track)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
+    connect();
+    send("prefs %s", quote(track));
+    getPositiveResponse();
+    List<String> prefs = getResponseBody();
+    Hashtable<String, String> r = new Hashtable<String, String>(prefs.size());
+    for(String line: prefs) {
+      Vector<String> v = DisorderMisc.split(line, false);
+      String key = v.get(0);
+      String value = v.get(1);
+      r.put(key, value);
+    }
+    return r;
+  }
+
+  /**
+   * Get the queue.
+   *
+   * <p>The queue is returned as a list of {@link TrackInformation}
+   * objects.  The first element of the list is the head of the queue,
+   * i.e. the track that will be played next (if the queue is not
+   * modified).  The queue might be empty.
+   *
+   * @return A list representing the queue
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<TrackInformation> queue() throws IOException,
+                                               DisorderParseError,
+                                               DisorderProtocolError {
+    connect();
+    send("queue");
+    getPositiveResponse();
+    List<String> queue = getResponseBody();
+    Vector<TrackInformation> r = new Vector<TrackInformation>(queue.size());
+    for(String line: queue)
+      r.add(new TrackInformation(line));
+    return r;
+  }
+
+  /**
+   * Disable random play.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void randomDisable() throws IOException,
+                                     DisorderParseError,
+                                     DisorderProtocolError {
+    connect();
+    send("random-disable");
+    getPositiveResponse();
+  }
+
+  /**
+   * Enable random play.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void randomEnable() throws IOException,
+                              DisorderParseError,
+                              DisorderProtocolError {
+    connect();
+    send("random-enable");
+    getPositiveResponse();
+  }
+
+  /**
+   * Test whether random play is enabled.
+   *
+   * @return <code>true</code> if random play is enabled, otherwise <code>false</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public boolean randomEnabled() throws IOException,
+                                  DisorderParseError,
+                                  DisorderProtocolError {
+    connect();
+    send("random-enabled");
+    return getBooleanResponse();
+  }
+
+  /**
+   * Get the recently played list.
+   *
+   * <p>The recently played is returned as a list of {@link
+   * TrackInformation} objects.  The <u>last</u> element of the list
+   * is the most recently played track.  It might be empty.
+   *
+   * @return The recently played list
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<TrackInformation> recent() throws IOException,
+                                               DisorderParseError,
+                                               DisorderProtocolError {
+    connect();
+    send("recent");
+    getPositiveResponse();
+    List<String> recent = getResponseBody();
+    Vector<TrackInformation> r = new Vector<TrackInformation>(recent.size());
+    for(String line: recent)
+      r.add(new TrackInformation(line));
+    return r;
+  }
+
+  // TODO reconfigure not implemented because it only works on local connections
+  // TODO register not implemented because it's only used by the CGI
+  // TODO reminder not implemented because it's only used by the CGI
+
+  
+  /**
+   * Remove a track form the queue
+   *
+   * @param id ID of track to remove
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void remove(String id) throws IOException,
+                                       DisorderParseError,
+                                       DisorderProtocolError {
+    connect();
+    send("remove %s", quote(id));
+    getPositiveResponse();
+  }
+
+  // TODO rescan not implemented
+
+
+  /**
+   * Resolve a track name.
+   *
+   * Returns the canonical name of <code>track</code>, i.e. if it's an
+   * alias then returns target of the alisas.
+   *
+   * @param track Track to resolve
+   * @return Canonical name of track
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String resolve(String track) throws IOException,
+                                             DisorderParseError,
+                                             DisorderProtocolError {
+    connect();
+    send("resolve %s", quote(track));
+    return getStringResponse(false);
+  }
+
+  /**
+   * Resume play.
+   *
+   * The opposite of {@link #resume()}.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void resume() throws IOException,
+                              DisorderParseError,
+                              DisorderProtocolError {
+    connect();
+    send("resume");
+    getPositiveResponse();
+  }
+
+  // TODO revoke not implemented because only used by the CGI
+
+  /**
+   * An RTP broadcast address.
+   *
+   * This is used for the return value from {@link #rtpAddress()}.
+   */
+  public class RtpAddress {
+    /**
+     * The hostname or IP address.
+     */
+    public String host;
+
+    /**
+     * The port number
+     */
+    public int port;
+
+    /**
+     * Construct an RTP address from a host and port.
+     */
+    RtpAddress(String h, int p) {
+      host = h;
+      port = p;
+    }
+  }
+  
+  /**
+   * Get the RTP address.
+   *
+   * @return A string representing the RTP broadcast address
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public RtpAddress rtpAddress() throws IOException,
+                                        DisorderParseError,
+                                        DisorderProtocolError {
+    connect();
+    send("rtp-address");
+    Vector<String> v = getPositiveResponse();
+    String host = v.get(1);
+    int port = Integer.parseInt(v.get(2));
+    return new RtpAddress(host, port);
+  }
+
+  /**
+   * Scratch a track.
+   *
+   * <p>If <code>id</code> is not <code>null</code> then that track is
+   * scratched.  Otherwise the currently playing track is scratched.
+   *
+   * @param id Track to scratch or <code>null</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void scratch(String id) throws IOException,
+                                        DisorderParseError,
+                                        DisorderProtocolError {
+    connect();
+    if(id != null)
+      send("scratch %s", quote(id));
+    else
+      send("scratch");
+    getPositiveResponse();
+  }
+
+  // TODO schedule-* not implemented due to dubious utility
+
+  /**
+   * Search for tracks.
+   *
+   * <p>Search terms are broken up by spaces, with quoting allowed as
+   * for the configuration file and commands.  Terms of the form
+   * <code>tag:TAG</code> match tags, other terms match words in the
+   * track name.  Terms are combined with “and” logic, i.e. only
+   * tracks which match all terms are returned.
+   *
+   * @param terms Search terms
+   * @return List of tracks matching search terms
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> search(String terms) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    send("search %s", quote(terms));
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Set a track preference value.
+   *
+   * @param track Track to modify
+   * @param pref Preference name
+   * @param value New preference value
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void set(String track,
+                  String pref,
+                  String value) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    send("set %s %s %s", quote(track), quote(pref), quote(value));
+    getPositiveResponse();
+  }
+
+  /**
+   * Set a global preference value.
+   *
+   * @param pref Preference name
+   * @param value New preference value
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void setGlobal(String pref,
+                        String value) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    send("set-global %s %s", quote(pref), quote(value));
+    getPositiveResponse();
+  }
+
+  /**
+   * Get server statistics.
+   *
+   * @return List of server statistics
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> stats() throws IOException,
+                                     DisorderParseError,
+                                     DisorderProtocolError {
+    connect();
+    send("stats");
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Get all tags.
+   *
+   * @return List of tags
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> tags() throws IOException,
+                                     DisorderParseError,
+                                     DisorderProtocolError {
+    connect();
+    send("tags");
+    getPositiveResponse();
+    return getResponseBody();
+  }
+
+  /**
+   * Unset a track preference value.
+   *
+   * @param track Track to modify
+   * @param pref Preference name
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void unset(String track,
+                    String pref) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    send("set %s %s", quote(track), quote(pref));
+    getPositiveResponse();
+  }
+
+  /**
+   * Unset a global preference value.
+   *
+   * @param pref Preference name
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void unsetGlobal(String pref) throws IOException,
+                                              DisorderParseError,
+                                              DisorderProtocolError {
+    connect();
+    send("unset-global %s", quote(pref));
+    getPositiveResponse();
+  }
+
+  /**
+   * Get a user property.
+   *
+   * @param user User to look up
+   * @param property Property name
+   * @return Property value, or <code>null</code> if it's not set
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String userinfo(String user,
+                         String property) throws IOException,
+                                                 DisorderParseError,
+                                                 DisorderProtocolError {
+    connect();
+    send("userinfo %s %s", quote(user), quote(property));
+    return getStringResponse(true);
+  }
+
+  /**
+   * Get a list of users.
+   *
+   * @return List of users
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> users() throws IOException,
+                                     DisorderParseError,
+                                     DisorderProtocolError {
+    connect();
+    send("users");
+    getPositiveResponse();
+    return getResponseBody();
+  }
 
   /**
    * Get the server version.
@@ -986,7 +1425,51 @@ public class DisorderServer {
     return getPositiveResponse().get(1);
   }
 
-  
+  /**
+   * Get the volume.
+   *
+   * <p>The returned array has the left and right channel volumes in
+   * that order.
+   *
+   * @return The current volume setting
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public int[] volume() throws IOException,
+                               DisorderParseError,
+                               DisorderProtocolError {
+    connect();
+    send("volume");
+    Vector<String> v = getPositiveResponse();
+    int[] r = new int[2];
+    r[0] = Integer.parseInt(v.get(1));
+    r[1] = Integer.parseInt(v.get(2));
+    return r;
+  }
+
+  /**
+   * Set the volume
+   *
+   * <p>The returned array has the left and right channel volumes in
+   * that order.
+   *
+   * @return The current volume setting
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public int[] volume(int left, int right) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
+    connect();
+    send("volume %d %d", left, right);
+    Vector<String> v = getPositiveResponse();
+    int[] r = new int[2];
+    r[0] = Integer.parseInt(v.get(1));
+    r[1] = Integer.parseInt(v.get(2));
+    return r;
+  }
 }
 
 /*

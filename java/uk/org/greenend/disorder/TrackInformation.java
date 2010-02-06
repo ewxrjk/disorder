@@ -22,6 +22,8 @@ import java.util.*;
 /**
  * Information about a track in the queue or another list.
  *
+ * Returned by various methods of {@link DisorderServer DisorderServer}.
+ *
  * <p>Queued track data appears in the following contexts:
  * <ul>
  * <li>The playing track
@@ -34,30 +36,31 @@ import java.util.*;
  *
  * <p>It is possible that future versions of the server will send keys
  * unknown to this class.  The current implementation just ignores
- * them.
+ * them.  However, unknown states and origins will currently generate
+ * an exception.
  */
 public class TrackInformation {
   /**
    * Possible track origins.
    */
   public enum Origin {
-    adopted,
-    picked,
-    random,
-    scheduled,
-    scratch
+    Adopted,
+    Picked,
+    Random,
+    Scheduled,
+    Scratch
   }
 
   /**
    * Possible track states
    */
   public enum State {
-    failed,
-    ok,
-    scratched,
-    paused,
-    unplayed,
-    quitting
+    Failed,
+    Ok,
+    Scratched,
+    Paused,
+    Unplayed,
+    Quitting
   }
 
   /**
@@ -108,10 +111,21 @@ public class TrackInformation {
   /**
    * The exit status of the player.
    *
-   * Note that this is packed UNIX "wstat" code, not a simple exit
+   * Note that this is packed UNIX “wait status” code, not a simple exit
    * status.
    */
   public int wstat;
+
+  /**
+   * Construct an empty track information object.
+   *
+   * <p>The usual way to get one is for it to be returned by some
+   * method of DisorderServer.  However, in some cases it may be
+   * convenient to create your own and fill it in, so this default
+   * constructor is provided.
+   */
+  public TrackInformation() {
+  }
 
   /**
    * Construct a new track information object from a string.
@@ -119,7 +133,7 @@ public class TrackInformation {
    * @param s Encoded track information
    * @throws DisorderParseError If the track information is malformed
    */
-  public TrackInformation(String s) throws DisorderParseError {
+  TrackInformation(String s) throws DisorderParseError {
     unpack(DisorderMisc.split(s, false), 0);
   }
 
@@ -130,7 +144,7 @@ public class TrackInformation {
    * @param start Start index of track information
    * @throws DisorderParseError If the track information is malformed
    */
-  public TrackInformation(Vector<String> v, int start)
+  TrackInformation(Vector<String> v, int start)
     throws DisorderParseError {
     unpack(v, start);
   }
@@ -159,13 +173,13 @@ public class TrackInformation {
         scratched = value;
       else if(key == "origin")
         try {
-          origin = Origin.valueOf(value);
+          origin = Origin.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
           throw new DisorderParseError("unknown origin: " + value);
         }
       else if(key == "state")
         try {
-          state = State.valueOf(value);
+          state = State.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
           throw new DisorderParseError("unknown state: " + value);
         }
@@ -182,6 +196,19 @@ public class TrackInformation {
          * ignore them */
       }
     }
+  }
+
+  /**
+   * Uppercase the first letter of a string
+   *
+   * @param s String to modify
+   * @return Same string with first letter converted to upper case
+   */
+  static private String fixCase(String s) {
+    char cs[] = s.toCharArray();
+    if(cs.length > 0)
+      cs[0] = Character.toUpperCase(cs[0]);
+    return new String(cs);
   }
 
 };
