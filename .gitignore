@@ -211,6 +211,7 @@ libtests/test-suite.log
 java/jar
 *.class
 java/Makefile
+java/doc
 /Debug
 /lib/Debug
 /clients/Debug

@@ -16,12 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-all: disorder.jar GetVersion.class
+all: disorder.jar GetVersion.class doc/index.html
 
-disorder.jar: $(wildcard ${srcdir}/uk/org/greenend/disorder/*.java)
+SOURCE:=$(wildcard ${srcdir}/uk/org/greenend/disorder/*.java)
+EXTRAS:=$(wildcard ${srcdir}/uk/org/greenend/disorder/*.html)
+
+disorder.jar: ${SOURCE}
 	mkdir -p jar
-	javac -d jar ${srcdir}/uk/org/greenend/disorder/*.java
+	javac -d jar ${SOURCE}
 	jar cvf disorder.jar -C jar/ .
+
+doc/index.html: ${SOURCE} ${EXTRAS}
+	mkdir -p doc
+	javadoc -d doc \
+		-doctitle "DisOrder Java support" \
+		${SOURCE}
 
 GetVersion.class: disorder.jar
 	javac -cp disorder.jar GetVersion.java
@@ -30,3 +39,5 @@ clean-local:
 	rm -f *.jar
 	rm -f *.class
 	rm -rf jar
+	rm -rf doc
+

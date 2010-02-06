@@ -1,0 +1,19 @@
+<body>
+  <p>This package provides Java support
+  for <a href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>.  <b>It
+  is currently a work in progress.</b></p>
+
+  <p>Example of usage:</p>
+  <pre style="border: 1px solid">import uk.org.greenend.disorder.*;
+import java.io.*;
+
+class GetVersion {
+  public static void main(String[] args) throws DisorderParseError,
+                                                DisorderProtocolError,
+                                                IOException {
+    DisorderServer d = new DisorderServer();
+    String v = d.version();
+    System.out.println(v);
+  }
+}</pre>
+</body>
