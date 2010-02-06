@@ -122,7 +122,7 @@ List all the files in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files are returned.
 .TP
 .B get \fITRACK\fR \fIPREF\fR
-Getsa preference value.
+Gets a preference value.
 On success the second field of the response line will have the value.
 .IP
 If the track or preference do not exist then the response code is 555.
