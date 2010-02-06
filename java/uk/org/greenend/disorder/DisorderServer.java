@@ -27,7 +27,9 @@ import java.nio.charset.*;
  * A synchronous connection to a DisOrder server.
  *
  * <p>Having created a connection, use the various methods to play
- * tracks, list the queue, etc.
+ * tracks, list the queue, etc.  Most methods have exactly the same
+ * name as the underlying protocol command, the exceptions being where
+ * there is a clash with a Java reserved word.
  *
  * <p><b>This is a work in progress</b>. Many commands are not
  * implemented.
@@ -210,7 +212,7 @@ public class DisorderServer {
    * @return Response code in the range 0-999.
    * @throws DisorderParseError If the response is malformed
    */
-  private int responseCode(Vector<String> v) throws DisorderParseError {
+  private int responseCode(List<String> v) throws DisorderParseError {
     if(v.size() < 1)
       throw new DisorderParseError("empty response");
     int rc = Integer.parseInt(v.get(0));
@@ -337,8 +339,8 @@ public class DisorderServer {
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
    */
-  Vector<String> getResponseBody() throws IOException,
-                                          DisorderParseError {
+  List<String> getResponseBody() throws IOException,
+                                        DisorderParseError {
     Vector<String> r = new Vector<String>();
     String s;
     while((s = getResponse()) != null
@@ -391,7 +393,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public Vector<String> allfiles(String path,
+  public List<String> allfiles(String path,
                                  String regexp) throws IOException,
                                                        DisorderParseError,
                                                        DisorderProtocolError {
@@ -422,7 +424,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public Vector<String> dirs(String path,
+  public List<String> dirs(String path,
                              String regexp) throws IOException,
                                                    DisorderParseError,
                                                    DisorderProtocolError {
@@ -532,7 +534,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public Vector<String> files(String path,
+  public List<String> files(String path,
                               String regexp) throws IOException,
                                                     DisorderParseError,
                                                     DisorderProtocolError {
@@ -655,8 +657,9 @@ public class DisorderServer {
   /**
    * Get a list of newly added tracks.
    *
-   * If <code>max</code> is positive then at most that many tracks will
-   * be sent.  Otherwise the server will choose the maximum to send (and in any case it may impose an upper limit).
+   * If <code>max</code> is positive then at most that many tracks
+   * will be sent.  Otherwise the server will choose the maximum to
+   * send (and in any case it may impose an upper limit).
    *
    * @param max Maximum number of tracks to get, or 0
    * @return List of new tracks
@@ -664,9 +667,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public Vector<String> newTracks(int max) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public List<String> newTracks(int max) throws IOException,
+                                                DisorderParseError,
+                                                DisorderProtocolError {
     connect();
     if(max > 0)
       send("new %d", max);
@@ -749,6 +752,213 @@ public class DisorderServer {
     connect();
     send("play %s", quote(track));
     return getStringResponse(false);
+  }
+
+  /**
+   * Play multiple tracks.
+   *
+   * All of the listed tracks will be insered into the qeueu just
+   * after the target, retaining their relative ordering within
+   * themselves.
+   *
+   * <p><b>Note</b>: in current server implementations the underlying
+   * command does not return new track IDs.  This may change in the
+   * future.  In that case a future implementation of this method will
+   * return a list of track IDs.  However in the mean time callers
+   * <u>must</u> be able to cope with a <code>null</code> return from
+   * this method.
+   *
+   * @param target Target track ID
+   * @param tracks Tracks to add to the queue
+   * @return Currently <code>null</code>, but see note above
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> playafter(String target,
+                        String... tracks) throws IOException,
+                                                 DisorderParseError,
+                                                 DisorderProtocolError {
+    connect();
+    StringBuilder sb = new StringBuilder();
+    for(int n = 0; n < tracks.length; ++n) {
+      sb.append(' ');
+      sb.append(quote(tracks[n]));
+    }
+    send("playafter %s %s", quote(target), sb.toString());
+    getPositiveResponse();
+    return null;
+  }
+
+  /**
+   * Get the playing track.
+   *
+   * @return Information for the playing track or <code>null</code> if nothing is playing
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public TrackInformation playing() throws IOException,
+                                           DisorderParseError,
+                                           DisorderProtocolError {
+    connect();
+    send("playing");
+    Vector<String> v = getPositiveResponse();
+    if(v.get(0).equals("252"))
+      return new TrackInformation(v, 1);
+    else
+      return null;
+  }
+
+  /**
+   * Delete a playlist.
+   *
+   * @param playlist Playlist to delete
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void playlistDelete(String playlist) throws IOException,
+                                                     DisorderParseError,
+                                                     DisorderProtocolError {
+    connect();
+    send("playlist-delete %s", quote(playlist));
+    getPositiveResponse();
+  }
+
+  /**
+   * Get the contents of a playlist.
+   *
+   * @param playlist Playlist to get
+   * @return Playlist contents
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> playlistGet(String playlist)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
+    connect();
+    send("playlist-get %s", quote(playlist));
+    return getResponseBody();
+  }
+
+  /**
+   * Get the sharing status of a playlist.
+   *
+   * Possible sharing statuses are <code>"public"</code>,
+   * <code>"private"</code> and <code>"shared"</code>.
+   *
+   * @param playlist Playlist to get sharing status for
+   * @return Sharing status of playlist.
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public String playlistGetShare(String playlist)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
+    connect();
+    send("playlist-get-share %s", quote(playlist));
+    return getStringResponse(false);
+  }
+
+  /**
+   * Lock a playlist.
+   *
+   * @param playlist Playlist to lock
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void playlistLock(String playlist) throws IOException,
+                                                     DisorderParseError,
+                                                     DisorderProtocolError {
+    connect();
+    send("playlist-lock %s", quote(playlist));
+    getPositiveResponse();
+  }
+
+  /**
+   * Set the contents of a playlist.
+   *
+   * The playlist must be locked.
+   *
+   * @param playlist Playlist to modify
+   * @param contents New contents
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void playlistSet(String playlist,
+                          List<String> contents) throws IOException,
+                                                        DisorderParseError,
+                                                        DisorderProtocolError {
+    connect();
+    send("playlist-set %s", quote(playlist));
+    for(String s: contents)
+      send("%s%s", s.charAt(0) == '.' ? "." : "", s);
+    send(".");
+    // TODO send() will flush after every line which isn't very efficient
+    getPositiveResponse();
+  }
+
+  /**
+   * Set the sharing status of a playlist.
+   *
+   * The playlist must be locked.
+   *
+   * Possible sharing statuses are <code>"public"</code>,
+   * <code>"private"</code> and <code>"shared"</code>.
+   *
+   * @param playlist Playlist to delete
+   * @param share New sharing status
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void playlistSetShare(String playlist,
+                               String share) throws IOException,
+                                                    DisorderParseError,
+                                                    DisorderProtocolError {
+    connect();
+    send("playlist-set-share %s %s", quote(playlist), quote(share));
+    getPositiveResponse();
+  }
+
+  /**
+   * Unlock the locked playlist.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public void playlistUnlock(String playlist) throws IOException,
+                                                     DisorderParseError,
+                                                     DisorderProtocolError {
+    connect();
+    send("playlist-unlock");
+    getPositiveResponse();
+  }
+
+  /**
+   * Get a list of playlists.
+   *
+   * Private playlists belonging to other users aren't included in the
+   * result.
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  public List<String> playlists() throws IOException,
+                                         DisorderParseError,
+                                         DisorderProtocolError {
+    connect();
+    send("playlists");
+    return getResponseBody();
   }
 
   // TODO lots more to do...
