@@ -20,7 +20,8 @@ all: disorder.jar doc/index.html
 
 SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
 DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
-DisorderLog.java package-info.java
+DisorderLog.java RtpPacket.java RtpClient.java DisorderRtpPlayer.java	\
+package-info.java
 
 EXTRA_DIST=${SOURCE}
 
