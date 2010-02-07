@@ -20,17 +20,16 @@ all: disorder.jar doc/index.html
 
 SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
 DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
-DisorderLog.java
-EXTRAS=package.html
+DisorderLog.java package-info.java
 
-EXTRA_DIST=${SOURCE} ${EXTRAS}
+EXTRA_DIST=${SOURCE}
 
 disorder.jar: ${SOURCE}
 	mkdir -p jar
 	javac -d jar ${SOURCE}
 	jar cvf disorder.jar -C jar/ .
 
-doc/index.html: ${SOURCE} ${EXTRAS}
+doc/index.html: ${SOURCE}
 	mkdir -p doc
 	javadoc -d doc \
 		-link http://java.sun.com/javase/6/docs/api/ \
