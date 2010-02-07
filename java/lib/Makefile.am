@@ -36,12 +36,7 @@ doc/index.html: ${SOURCE} ${EXTRAS}
 		-doctitle "DisOrder Java support" \
 		${SOURCE}
 
-%.class: %.java 
-	javac -cp disorder.jar $<
-
 clean-local:
 	rm -f *.jar
-	rm -f *.class
 	rm -rf jar
 	rm -rf doc
-

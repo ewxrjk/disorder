@@ -27,6 +27,4 @@ GetQueue.class GetVersion.class: ../lib/disorder.jar
 
 clean-local:
 	rm -f *.class
-	rm -rf jar
-	rm -rf doc
 
