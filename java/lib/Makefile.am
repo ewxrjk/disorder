@@ -19,7 +19,8 @@
 all: disorder.jar doc/index.html
 
 SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
-DisorderProtocolError.java DisorderServer.java TrackInformation.java
+DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
+DisorderLog.java
 EXTRAS=package.html
 
 EXTRA_DIST=${SOURCE} ${EXTRAS}

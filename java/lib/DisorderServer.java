@@ -638,7 +638,75 @@ public class DisorderServer {
     return Integer.parseInt(getStringResponse(false));
   }
 
-  // TODO log not implemented yet
+  /**
+   * Monitor the server log.
+   *
+   * <p>This method doesn't return.  (It might thrown an exception,
+   * though.)  Instead it receives event log messages from the server
+   * and calls appropriate methods on <code>l</code>.  You should
+   * subclass <code>DisorderLog</code>, overriding those methods that
+   * correspond to events you're interested in.
+   *
+   * @param l Log consumer
+   */
+  public synchronized void log(DisorderLog l)
+     throws IOException,
+            DisorderParseError,
+            DisorderProtocolError {
+    for(;;) {
+      connect();
+      send("log");
+      getPositiveResponse();
+      String r;
+      while((r = getResponse()) != null) {
+        Vector<String> v = DisorderMisc.split(r, false);
+        String e = v.get(0);
+        if(e.equals("adopted")) l.adopted(v.get(1), v.get(2));
+        else if(e.equals("completed")) l.completed(v.get(1));
+        else if(e.equals("failed")) l.failed(v.get(1), v.get(2));
+        else if(e.equals("moved")) l.moved(v.get(1));
+        else if(e.equals("playing")) l.playing(v.get(1),
+                                               v.size() > 2 ? v.get(2) : null);
+        else if(e.equals("playlist_created"))
+          l.playlistCreated(v.get(1), v.get(2));
+        else if(e.equals("playlist_deleted")) l.playlistDeleted(v.get(1));
+        else if(e.equals("playlist_modified"))
+          l.playlistModified(v.get(1), v.get(2));
+        else if(e.equals("queue")) l.queue(new TrackInformation(v, 1));
+        else if(e.equals("recent_added"))
+          l.recentAdded(new TrackInformation(v, 1));
+        else if(e.equals("recent_removed")) l.recentRemoved(v.get(1));
+        else if(e.equals("removed")) l.removed(v.get(1),
+                                               v.size() > 2 ? v.get(2) : null);
+        else if(e.equals("rescanned")) l.rescanned();
+        else if(e.equals("scratched")) l.scratched(v.get(1), v.get(2));
+        else if(e.equals("state")) {
+          e = v.get(1);
+          if(e.equals("completed")) l.stateCompleted();
+          else if(e.equals("enable_play")) l.stateEnabled();
+          else if(e.equals("disable_play")) l.stateDisabled();
+          else if(e.equals("enable_random")) l.stateRandomEnabled();
+          else if(e.equals("disable_random")) l.stateRandomDisabled();
+          else if(e.equals("failed")) l.stateFailed();
+          else if(e.equals("pause")) l.statePause();
+          else if(e.equals("playing")) l.statePlaying();
+          else if(e.equals("resume")) l.stateResume();
+          else if(e.equals("rights_changed")) l.stateRightsChanged(v.get(2));
+          else if(e.equals("scratched")) l.stateScratched();
+        }
+        else if(e.equals("user_add")) l.userAdd(v.get(1));
+        else if(e.equals("user_delete")) l.userDelete(v.get(1));
+        else if(e.equals("user_edit")) l.userEdit(v.get(1), v.get(2));
+        else if(e.equals("user_confirm")) l.userConfirm(v.get(1));
+        else if(e.equals("volume"))
+          l.volume(Integer.parseInt(v.get(1)),
+                   Integer.parseInt(v.get(2)));
+      }
+      connected = false;
+      // Go round again
+    }
+  }
+
   // TODO make-cookie not implemented because only used by CGI
 
   /**
