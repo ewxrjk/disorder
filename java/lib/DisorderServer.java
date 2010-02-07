@@ -50,9 +50,18 @@ import java.nio.charset.*;
  * Again there's no reason they couldn't be.
  * </ul>
  *
+ * <p>Command methods can throw the following exceptions:
+ * <ul>
+ * <li>{@link IOException}.  This is thrown if a network IO error occurs.
+ * <li>{@link DisorderProtocolError}.  This is thrown if the server
+ *     sends back an error.
+ * <li>{@link DisorderParseError}.  This is thrown if a malformed message
+ *     is received from the server.
+ * </ul>
+ *
  * <p>Set the system property <code>DISORDER_DEBUG</code> (to
  * anything) to turn on debugging.  Debug messages are sent to
- * System.err.
+ * <code>System.err</code>.
  */
 public class DisorderServer {
   private DisorderConfig config;
@@ -67,8 +76,7 @@ public class DisorderServer {
    * Construct a server connection from a given configuration.
    *
    * <p>Creating a connection does not connect it.  Instead the
-   * underlying connection is established either on demand or via the
-   * {@link #connect() connect} method.
+   * underlying connection is established on demand.
    *
    * @param c Configuration to use
    */
@@ -83,8 +91,7 @@ public class DisorderServer {
    * Construct a server connection from the default configuration.
    *
    * <p>Creating a connection does not connect it.  Instead the
-   * underlying connection is established either on demand or via the
-   * {@link #connect() connect} method.
+   * underlying connection is established on demand.
    *
    * @throws DisorderParseError If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
@@ -105,18 +112,13 @@ public class DisorderServer {
    *
    * <p>Does nothing if already connected.
    *
-   * <p>Note that it's never <i>necessary</i> to call this method.
-   * The other methods will call it automatically.  However, if you
-   * want to distinguish connection and authentication errors from
-   * errors occurring later, it may be convenient to do so.
-   *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void connect() throws IOException,
-                               DisorderParseError,
-                               DisorderProtocolError {
+  private void connect() throws IOException,
+                                DisorderParseError,
+                                DisorderProtocolError {
     if(connected)
       return;
     conn = new Socket(config.serverName, config.serverPort);
@@ -741,7 +743,7 @@ public class DisorderServer {
   /**
    * Pause play.
    *
-   * The opposite of {@link #pause()}.
+   * The opposite of {@link #resume()}.
    *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
@@ -1152,7 +1154,7 @@ public class DisorderServer {
   /**
    * Resume play.
    *
-   * The opposite of {@link #resume()}.
+   * The opposite of {@link #pause()}.
    *
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
