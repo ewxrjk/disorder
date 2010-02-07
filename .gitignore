@@ -212,6 +212,10 @@ java/jar
 *.class
 java/Makefile
 java/doc
+java/lib/jar
+java/lib/doc
+java/lib/Makefile
+java/tests/Makefile
 /Debug
 /lib/Debug
 /clients/Debug
@@ -221,3 +225,4 @@ java/doc
 *.vcxproj.user
 .dirstamp
 tests/*.trs
+*.class

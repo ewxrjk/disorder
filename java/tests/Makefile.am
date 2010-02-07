@@ -16,4 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS=lib tests
+all: GetVersion.class GetQueue.class
+
+EXTRA_DIST=GetVersion.java GetQueue.java
+
+%.class: %.java 
+	javac -cp ../lib/disorder.jar $<
+
+GetQueue.class GetVersion.class: ../lib/disorder.jar 
+
+clean-local:
+	rm -f *.class
+	rm -rf jar
+	rm -rf doc
+

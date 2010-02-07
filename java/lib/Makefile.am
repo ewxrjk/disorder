@@ -16,4 +16,32 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS=lib tests
+all: disorder.jar doc/index.html
+
+SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
+DisorderProtocolError.java DisorderServer.java TrackInformation.java
+EXTRAS=package.html
+
+EXTRA_DIST=${SOURCE} ${EXTRAS}
+
+disorder.jar: ${SOURCE}
+	mkdir -p jar
+	javac -d jar ${SOURCE}
+	jar cvf disorder.jar -C jar/ .
+
+doc/index.html: ${SOURCE} ${EXTRAS}
+	mkdir -p doc
+	javadoc -d doc \
+		-link http://java.sun.com/javase/6/docs/api/ \
+		-doctitle "DisOrder Java support" \
+		${SOURCE}
+
+%.class: %.java 
+	javac -cp disorder.jar $<
+
+clean-local:
+	rm -f *.jar
+	rm -f *.class
+	rm -rf jar
+	rm -rf doc
+

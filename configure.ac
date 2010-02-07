@@ -871,7 +871,9 @@ AC_CONFIG_FILES([Makefile
 		 examples/Makefile
 		 libtests/Makefile
 		 tests/Makefile
-                 java/Makefile])
+                 java/Makefile
+                 java/lib/Makefile
+                 java/tests/Makefile])
 AC_OUTPUT
 
 if test $GCC = yes && test "$gcc_werror" = ''; then
