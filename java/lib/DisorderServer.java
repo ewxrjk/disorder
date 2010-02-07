@@ -59,11 +59,26 @@ import java.nio.charset.*;
  *     is received from the server.
  * </ul>
  *
+ * <p>It is safe to use one <code>DisorderServer</code> from multiple
+ * threads.
+ *
  * <p>Set the system property <code>DISORDER_DEBUG</code> (to
  * anything) to turn on debugging.  Debug messages are sent to
  * <code>System.err</code>.
  */
 public class DisorderServer {
+  /* TODO: Currently we handle parallelization by making all public
+   * methods synchronized.  The effect is to completely serialized all
+   * commands, preventing any pipelining.  This might not perform well
+   * in practice. */
+
+  /* TODO: If the connection to the server fails we should
+   * automatically reconnect and retry, within reason and perhaps
+   * configurably.  This wouldn't change the interface - IOException
+   * would still be possible when we give up - but would allow
+   * long-running user interfaces to recover from transient outages
+   * (e.g. server restarts) more transparently.  */
+
   private DisorderConfig config;
   private boolean connected;
   private Socket conn;
@@ -385,9 +400,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void adopt(String id) throws IOException,
-                                      DisorderParseError,
-                                      DisorderProtocolError {
+  public synchronized void adopt(String id) throws IOException,
+                                                   DisorderParseError,
+                                                   DisorderProtocolError {
     connect();
     send("adopt %s", quote(id));
     getPositiveResponse();
@@ -411,10 +426,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> allfiles(String path,
-                                 String regexp) throws IOException,
-                                                       DisorderParseError,
-                                                       DisorderProtocolError {
+  public synchronized List<String> allfiles(String path,
+                                            String regexp)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     if(regexp != null)
       send("allfiles %s %s", quote(path), quote(regexp));
@@ -442,10 +458,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> dirs(String path,
-                             String regexp) throws IOException,
-                                                   DisorderParseError,
-                                                   DisorderProtocolError {
+  public synchronized List<String> dirs(String path,
+                                        String regexp)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     if(regexp != null)
       send("dirs %s %s", quote(path), quote(regexp));
@@ -462,9 +479,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void disable() throws IOException,
-                               DisorderParseError,
-                               DisorderProtocolError {
+  public synchronized void disable() throws IOException,
+                                            DisorderParseError,
+                                            DisorderProtocolError {
     connect();
     send("disable");
     getPositiveResponse();
@@ -480,11 +497,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void edituser(String username,
-                       String property,
-                       String value) throws IOException,
-                                            DisorderParseError,
-                                            DisorderProtocolError {
+  public synchronized void edituser(String username,
+                                    String property,
+                                    String value) throws IOException,
+                                                         DisorderParseError,
+                                                         DisorderProtocolError {
     connect();
     send("edituser %s %s %s", quote(username), quote(property), quote(value));
     getPositiveResponse();
@@ -497,9 +514,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void enable() throws IOException,
-                              DisorderParseError,
-                              DisorderProtocolError {
+  public synchronized void enable() throws IOException,
+                                           DisorderParseError,
+                                           DisorderProtocolError {
     connect();
     send("enable");
     getPositiveResponse();
@@ -513,9 +530,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public boolean enabled() throws IOException,
-                                  DisorderParseError,
-                                  DisorderProtocolError {
+  public synchronized boolean enabled() throws IOException,
+                                               DisorderParseError,
+                                               DisorderProtocolError {
     connect();
     send("enabled");
     return getBooleanResponse();
@@ -530,9 +547,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public boolean exists(String track) throws IOException,
-                                  DisorderParseError,
-                                             DisorderProtocolError {
+  public synchronized boolean exists(String track)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("exists %s", quote(track));
     return getBooleanResponse();
@@ -552,10 +570,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> files(String path,
-                              String regexp) throws IOException,
-                                                    DisorderParseError,
-                                                    DisorderProtocolError {
+  public synchronized List<String> files(String path,
+                                         String regexp)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     if(regexp != null)
       send("files %s %s", quote(path), quote(regexp));
@@ -575,10 +594,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String get(String track,
-                    String pref) throws IOException,
-                                        DisorderParseError,
-                                        DisorderProtocolError {
+  public synchronized String get(String track,
+                                 String pref) throws IOException,
+                                                     DisorderParseError,
+                                                     DisorderProtocolError {
     connect();
     send("get %s %s", quote(track), quote(pref));
     return getStringResponse(true);
@@ -593,9 +612,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String getGlobal(String key) throws IOException,
-                                             DisorderParseError,
-                                             DisorderProtocolError {
+  public synchronized String getGlobal(String key)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("get-global %s %s", quote(key));
     return getStringResponse(true);
@@ -610,9 +630,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public int length(String track) throws IOException,
-                                         DisorderParseError,
-                                         DisorderProtocolError {
+  public synchronized int length(String track) throws IOException,
+                                                      DisorderParseError,
+                                                      DisorderProtocolError {
     connect();
     send("length %s", quote(track));
     return Integer.parseInt(getStringResponse(false));
@@ -636,10 +656,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void move(String track,
-                   int delta) throws IOException,
-                                         DisorderParseError,
-                                         DisorderProtocolError {
+  public synchronized void move(String track,
+                                int delta) throws IOException,
+                                                  DisorderParseError,
+                                                  DisorderProtocolError {
     connect();
     send("move %s %d", quote(track), delta);
     getPositiveResponse();
@@ -658,10 +678,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void moveafter(String target,
-                        String... tracks) throws IOException,
-                                                 DisorderParseError,
-                                                 DisorderProtocolError {
+  public synchronized void moveafter(String target,
+                                     String... tracks)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     StringBuilder sb = new StringBuilder();
     for(int n = 0; n < tracks.length; ++n) {
@@ -685,9 +706,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> newTracks(int max) throws IOException,
-                                                DisorderParseError,
-                                                DisorderProtocolError {
+  public synchronized List<String> newTracks(int max)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     if(max > 0)
       send("new %d", max);
@@ -707,9 +729,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void nop() throws IOException,
-                           DisorderParseError,
-                           DisorderProtocolError {
+  public synchronized void nop() throws IOException,
+                                        DisorderParseError,
+                                        DisorderProtocolError {
     connect();
     send("nop");
     getPositiveResponse();
@@ -730,11 +752,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String part(String track,
-                     String context,
-                     String part) throws IOException,
-                           DisorderParseError,
-                           DisorderProtocolError {
+  public synchronized String part(String track,
+                                  String context,
+                                  String part) throws IOException,
+                                                      DisorderParseError,
+                                                      DisorderProtocolError {
     connect();
     send("part %s %s %s", quote(track), quote(context), quote(part));
     return getStringResponse(false);
@@ -749,9 +771,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void pause() throws IOException,
-                             DisorderParseError,
-                             DisorderProtocolError {
+  public synchronized void pause() throws IOException,
+                                          DisorderParseError,
+                                          DisorderProtocolError {
     connect();
     send("pause");
     getPositiveResponse();
@@ -766,9 +788,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String play(String track) throws IOException,
-                                  DisorderParseError,
-                                             DisorderProtocolError {
+  public synchronized String play(String track) throws IOException,
+                                                       DisorderParseError,
+                                                       DisorderProtocolError {
     connect();
     send("play %s", quote(track));
     return getStringResponse(false);
@@ -795,10 +817,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> playafter(String target,
-                        String... tracks) throws IOException,
-                                                 DisorderParseError,
-                                                 DisorderProtocolError {
+  public synchronized List<String> playafter(String target,
+                                             String... tracks)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     StringBuilder sb = new StringBuilder();
     for(int n = 0; n < tracks.length; ++n) {
@@ -818,9 +841,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public TrackInformation playing() throws IOException,
-                                           DisorderParseError,
-                                           DisorderProtocolError {
+  public synchronized TrackInformation playing()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playing");
     Vector<String> v = getPositiveResponse();
@@ -838,9 +862,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void playlistDelete(String playlist) throws IOException,
-                                                     DisorderParseError,
-                                                     DisorderProtocolError {
+  public synchronized void playlistDelete(String playlist)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlist-delete %s", quote(playlist));
     getPositiveResponse();
@@ -855,7 +880,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> playlistGet(String playlist)
+  public synchronized List<String> playlistGet(String playlist)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
@@ -877,7 +902,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String playlistGetShare(String playlist)
+  public synchronized String playlistGetShare(String playlist)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
@@ -894,9 +919,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void playlistLock(String playlist) throws IOException,
-                                                     DisorderParseError,
-                                                     DisorderProtocolError {
+  public synchronized void playlistLock(String playlist)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlist-lock %s", quote(playlist));
     getPositiveResponse();
@@ -913,10 +939,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void playlistSet(String playlist,
-                          List<String> contents) throws IOException,
-                                                        DisorderParseError,
-                                                        DisorderProtocolError {
+  public synchronized void playlistSet(String playlist,
+                                       List<String> contents)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlist-set %s", quote(playlist));
     for(String s: contents)
@@ -940,10 +967,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void playlistSetShare(String playlist,
-                               String share) throws IOException,
-                                                    DisorderParseError,
-                                                    DisorderProtocolError {
+  public synchronized void playlistSetShare(String playlist,
+                                            String share)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlist-set-share %s %s", quote(playlist), quote(share));
     getPositiveResponse();
@@ -956,9 +984,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void playlistUnlock(String playlist) throws IOException,
-                                                     DisorderParseError,
-                                                     DisorderProtocolError {
+  public synchronized void playlistUnlock(String playlist)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlist-unlock");
     getPositiveResponse();
@@ -974,9 +1003,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> playlists() throws IOException,
-                                         DisorderParseError,
-                                         DisorderProtocolError {
+  public synchronized List<String> playlists()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("playlists");
     getPositiveResponse();
@@ -992,7 +1022,7 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public Dictionary<String,String> prefs(String track)
+  public synchronized Dictionary<String,String> prefs(String track)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
@@ -1023,9 +1053,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<TrackInformation> queue() throws IOException,
-                                               DisorderParseError,
-                                               DisorderProtocolError {
+  public synchronized List<TrackInformation> queue()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("queue");
     getPositiveResponse();
@@ -1043,9 +1074,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void randomDisable() throws IOException,
-                                     DisorderParseError,
-                                     DisorderProtocolError {
+  public synchronized void randomDisable()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("random-disable");
     getPositiveResponse();
@@ -1058,9 +1090,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void randomEnable() throws IOException,
-                              DisorderParseError,
-                              DisorderProtocolError {
+  public synchronized void randomEnable()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("random-enable");
     getPositiveResponse();
@@ -1074,9 +1107,9 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public boolean randomEnabled() throws IOException,
-                                  DisorderParseError,
-                                  DisorderProtocolError {
+  public synchronized boolean randomEnabled() throws IOException,
+                                                     DisorderParseError,
+                                                     DisorderProtocolError {
     connect();
     send("random-enabled");
     return getBooleanResponse();
@@ -1094,9 +1127,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<TrackInformation> recent() throws IOException,
-                                               DisorderParseError,
-                                               DisorderProtocolError {
+  public synchronized List<TrackInformation> recent()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("recent");
     getPositiveResponse();
@@ -1120,9 +1154,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void remove(String id) throws IOException,
-                                       DisorderParseError,
-                                       DisorderProtocolError {
+  public synchronized void remove(String id)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("remove %s", quote(id));
     getPositiveResponse();
@@ -1143,9 +1178,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String resolve(String track) throws IOException,
-                                             DisorderParseError,
-                                             DisorderProtocolError {
+  public synchronized String resolve(String track)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("resolve %s", quote(track));
     return getStringResponse(false);
@@ -1160,9 +1196,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void resume() throws IOException,
-                              DisorderParseError,
-                              DisorderProtocolError {
+  public synchronized void resume()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("resume");
     getPositiveResponse();
@@ -1203,9 +1240,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public RtpAddress rtpAddress() throws IOException,
-                                        DisorderParseError,
-                                        DisorderProtocolError {
+  public synchronized RtpAddress rtpAddress()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("rtp-address");
     Vector<String> v = getPositiveResponse();
@@ -1225,9 +1263,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void scratch(String id) throws IOException,
-                                        DisorderParseError,
-                                        DisorderProtocolError {
+  public synchronized void scratch(String id)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     if(id != null)
       send("scratch %s", quote(id));
@@ -1253,9 +1292,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> search(String terms) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public synchronized List<String> search(String terms)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("search %s", quote(terms));
     getPositiveResponse();
@@ -1272,11 +1312,12 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void set(String track,
-                  String pref,
-                  String value) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public synchronized void set(String track,
+                               String pref,
+                               String value)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("set %s %s %s", quote(track), quote(pref), quote(value));
     getPositiveResponse();
@@ -1291,10 +1332,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void setGlobal(String pref,
-                        String value) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public synchronized void setGlobal(String pref,
+                                     String value)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("set-global %s %s", quote(pref), quote(value));
     getPositiveResponse();
@@ -1308,9 +1350,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> stats() throws IOException,
-                                     DisorderParseError,
-                                     DisorderProtocolError {
+  public synchronized List<String> stats()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("stats");
     getPositiveResponse();
@@ -1325,9 +1368,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> tags() throws IOException,
-                                     DisorderParseError,
-                                     DisorderProtocolError {
+  public synchronized List<String> tags()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("tags");
     getPositiveResponse();
@@ -1343,10 +1387,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void unset(String track,
-                    String pref) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public synchronized void unset(String track,
+                                 String pref)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("set %s %s", quote(track), quote(pref));
     getPositiveResponse();
@@ -1360,9 +1405,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public void unsetGlobal(String pref) throws IOException,
-                                              DisorderParseError,
-                                              DisorderProtocolError {
+  public synchronized void unsetGlobal(String pref)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("unset-global %s", quote(pref));
     getPositiveResponse();
@@ -1378,10 +1424,11 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String userinfo(String user,
-                         String property) throws IOException,
-                                                 DisorderParseError,
-                                                 DisorderProtocolError {
+  public synchronized String userinfo(String user,
+                                      String property)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("userinfo %s %s", quote(user), quote(property));
     return getStringResponse(true);
@@ -1395,9 +1442,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public List<String> users() throws IOException,
-                                     DisorderParseError,
-                                     DisorderProtocolError {
+  public synchronized List<String> users()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("users");
     getPositiveResponse();
@@ -1419,9 +1467,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public String version() throws IOException,
-                                 DisorderParseError,
-                                 DisorderProtocolError {
+  public synchronized String version()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("version");
     return getPositiveResponse().get(1);
@@ -1438,9 +1487,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public int[] volume() throws IOException,
-                               DisorderParseError,
-                               DisorderProtocolError {
+  public synchronized int[] volume()
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("volume");
     Vector<String> v = getPositiveResponse();
@@ -1451,7 +1501,7 @@ public class DisorderServer {
   }
 
   /**
-   * Set the volume
+   * Set the volume.
    *
    * <p>The returned array has the left and right channel volumes in
    * that order.
@@ -1461,9 +1511,10 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public int[] volume(int left, int right) throws IOException,
-                                                  DisorderParseError,
-                                                  DisorderProtocolError {
+  public synchronized int[] volume(int left, int right)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
     connect();
     send("volume %d %d", left, right);
     Vector<String> v = getPositiveResponse();
