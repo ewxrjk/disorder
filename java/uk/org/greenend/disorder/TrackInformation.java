@@ -65,21 +65,34 @@ public class TrackInformation {
 
   /**
    * When the track is expected to play.
+   *
+   * <p>This is only meaningful in the queue and may be <code>null</code>
+   * or nonsense in other contexts.
    */
   public Date expected;
 
   /**
-   * Unique ID in the queue
+   * Unique ID in the queue.
+   *
+   * <p>This is always set in returns from the server but could be
+   * <code>null</code> in a locally created instance.
    */
   public String id;
 
   /**
-   * When the track was played, or <code>null</code>.
+   * When the track was played.
+   *
+   * <p>This will either be <code>null</code> or <code>Date(0)</code>
+   * if the track hasn't been played yet.
    */
   public Date played;
 
   /**
-   * The user that scratched the track, or <code>null</code>.
+   * The user that scratched the track.
+   *
+   * <p>This will be <code>null</code> if the track hasn't been
+   * scratched (which is most tracks).  Check <code>state</code> for
+   * <code>Scratched</code> rather than just inspecting this field.
    */
   public String scratched;
 
@@ -89,12 +102,14 @@ public class TrackInformation {
   public Origin origin;
 
   /**
-   * The current state of the track
+   * The current state of the track.
    */
   public State state;
 
   /**
-   * The user that submitted the track, or <code>null</code>.
+   * The user that submitted the track.
+   *
+   * <p>This will be <code>null</code> if the track was picked at random.
    */
   public String submitter;
 
@@ -109,10 +124,17 @@ public class TrackInformation {
   public Date when;
 
   /**
+   * How much of the track has been played so far.
+   *
+   * <p>This is only meaningful for the currently playing track.
+   */
+  public int sofar;
+
+  /**
    * The exit status of the player.
    *
-   * Note that this is packed UNIX “wait status” code, not a simple exit
-   * status.
+   * <p>Note that this is packed UNIX “wait status” code, not a simple
+   * exit status.
    */
   public int wstat;
 
@@ -163,39 +185,77 @@ public class TrackInformation {
     while(n < v.size()) {
       String key = v.get(n++);
       String value = v.get(n++);
-      if(key == "expected")
+      if(key.equals("expected"))
         expected = new Date(Long.parseLong(value));
-      else if(key == "id")
+      else if(key.equals("id"))
         id = value;
-      else if(key == "played")
+      else if(key.equals("played"))
         played = new Date(Long.parseLong(value));
-      else if(key == "scratched")
+      else if(key.equals("scratched"))
         scratched = value;
-      else if(key == "origin")
+      else if(key.equals("origin"))
         try {
           origin = Origin.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
           throw new DisorderParseError("unknown origin: " + value);
         }
-      else if(key == "state")
+      else if(key.equals("sofar"))
+        sofar = Integer.parseInt(value);
+      else if(key.equals("state"))
         try {
           state = State.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
           throw new DisorderParseError("unknown state: " + value);
         }
-      else if(key == "submitter")
+      else if(key.equals("submitter"))
         submitter = value;
-      else if(key == "track")
+      else if(key.equals("track"))
         track = value;
-      else if(key == "when")
+      else if(key.equals("when"))
         when = new Date(Long.parseLong(value));
-      else if(key == "wstat")
+      else if(key.equals("wstat"))
         wstat = Integer.parseInt(value);
       else {
         /* We interpret unknown keys as coming from the future and
          * ignore them */
       }
     }
+  }
+
+  /**
+   * Returns a string representation of the object.
+   *
+   * @return a string representation of the object.
+   */
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("track: ");
+    sb.append(track);
+    if(id != null) {
+      sb.append(" id: ");
+      sb.append(id);
+    }
+    sb.append(" origin: ");
+    sb.append(origin.toString());
+    if(played != null) {
+      sb.append(" played: ");
+      sb.append(played.toString());
+    }
+    if(expected != null) {
+      sb.append(" expected: ");
+      sb.append(expected.toString());
+    }
+    if(scratched != null) {
+      sb.append(" scratched by: ");
+      sb.append(scratched);
+    }
+    sb.append(" state: ");
+    sb.append(state.toString());
+    if(wstat != 0) {
+      sb.append(" wstat: ");
+      sb.append(wstat);
+    }
+    return sb.toString();
   }
 
   /**

@@ -83,6 +83,7 @@ class DisorderMisc {
 	}
 	if(n == s.length())
 	  throw new DisorderParseError("unterminated quoted string");
+        ++n;
 	v.add(e.toString());
       } else {
 	// Unquoted string; terminated by space or end of
