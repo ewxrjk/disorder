@@ -108,6 +108,12 @@ public class DisorderServer {
    * <p>Creating a connection does not connect it.  Instead the
    * underlying connection is established on demand.
    *
+   * <p>Note that if the default configuration does not include the
+   * password then won't be possible to supply it by some other means
+   * using this constructor.  In that case you must create
+   * <code>DisorderConfig</code> and fill in the missing bits manually
+   * and then use {@link #DisorderServer(DisorderConfig)}.
+   *
    * @throws DisorderParseError If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
    */

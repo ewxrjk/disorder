@@ -66,6 +66,7 @@ public class DisorderConfig {
    * <li><tt>/etc/disorder/config</tt> - the global configuration
    * <li><tt>~/.disorder/password</tt> - the user's personal configuration
    * </ul>
+   * <p>If a file does not exist, it is ignored.
    *
    * @throws DisorderParseError If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
