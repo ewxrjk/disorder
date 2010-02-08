@@ -86,11 +86,6 @@ public class RtpClient {
   private long bufferSize;
   
   /**
-   * Set to shut down the player thread
-   */
-  private boolean quitting;
-
-  /**
    * Maximum number of silent samples to "fill in".
    */
   private int maxSilence;
@@ -120,7 +115,6 @@ public class RtpClient {
    */
   public RtpClient() {
     buffer = new TreeSet<RtpPacket>();
-    quitting = false;
     maxSilence = 256;
     maxBuffer = 44100 * 2;              // i.e. 1s TODO assumes sample format
     // TODO these values should be configurable
@@ -141,7 +135,8 @@ public class RtpClient {
    * <p>This method doesn't return (though it might terminate due to an
    * exception).
    *
-   * <p>You must have already started the player.
+   * <p>You must have already started the player (with
+   * <code>startPlayer()</code>).
    *
    * <p>For a more flexible (but less friendly) interface, see {@link
    * #receive(byte[], int) receive()}.
@@ -186,10 +181,11 @@ public class RtpClient {
   /**
    * Receive one packet.
    *
-   * <p>May keeps a reference to <code>data</code>, so don't re-use it.
+   * <p>May keep a reference to <code>data</code>, so don't re-use it.
    * Packets from the past or the far future are ignored.
    *
-   * <p>You must have already started the player.
+   * <p>You must have already started the player (with
+   * <code>startPlayer()</code>).
    *
    * <p>For a friendlier, but less flexible, interface see {@link
    * #listen(String, int) listen()}.
@@ -234,13 +230,8 @@ public class RtpClient {
       System.err.println("Player thread up and running");
     for(;;) {
       synchronized(this) {
-        if(quitting) {
-          // Drain any buffered audio
-          line.drain();
-          // Tell stopPlayer() we've noticed
-          notify();
+        if(Thread.interrupted())
           return;
-        }
         // If there's nothing to play then wait for something to change
         if(buffer.size() == 0) {
           try {
@@ -290,7 +281,7 @@ public class RtpClient {
                 && bytes[offset + 1] == 0
                 && bytes[offset + 2] == 0
                 && bytes[offset + 3] == 0) {
-            next = (next + 2) & 0xFFFFFFFF;
+            next += 2;
             offset += 4;
             length -= 4;
             dropped += 4;
@@ -311,7 +302,7 @@ public class RtpClient {
       // Make some noise
       int bytesPlayed = line.write(bytes, offset, length);
       synchronized(this) {
-        next = (next + bytesPlayed / 2) & 0xFFFFFFFF;
+        next += bytesPlayed / 2;
         // TODO assumes sample format
       }
     }
@@ -322,39 +313,39 @@ public class RtpClient {
    *
    * If a player thread is already running, does nothing.
    *
+   * <p>The caller should have opened and started <code>line</code>.
+   *
+   * <p>You must not call <code>receive()</code> or <code>listen()</code>
+   * concurrently with this method.
+   *
    * @param line Data line to use to play samples
    */
   public void startPlayer(SourceDataLine line) {
-    synchronized(this) {
-      if(player != null)
-        return;
-      player = new PlayerThread(this);
-      this.line = line;
-      player.start();
-    }
+    if(player != null)
+      return;
+    player = new PlayerThread(this);
+    this.line = line;
+    player.start();
   }
   
   /**
    * Stop the player thread.
    * If no player thread is running, does nothing.
    *
+   * <p>The data line (<code>line</code> as passed to
+   * <code>startPlayer()</code>) is drained, but not stopped or closed.
+   *
    * <p>You must not call <code>receive()</code> or <code>listen()</code>
    * concurrently with this method.
    */
   public void stopPlayer() throws InterruptedException {
-    synchronized(this) {
-      if(player == null)
-        return;
-      quitting = true;
-      // Tell the player to quit
-      notify();
-      // Wait for it to tell us it's quitting (and crucially, therefore,
-      // release the lock on 'this' until it notifies us).
-      wait();
-      player.join();
-      line = null;
-      player = null;
-    }
+    if(player == null)
+      return;
+    player.interrupt();
+    player.join();
+    line.drain();
+    line = null;
+    player = null;
   }
 
 }
