@@ -16,19 +16,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-all: disorder.jar doc/index.html
+bin_SCRIPTS=DisorderRtpPlayer
+jar_DATA=disorder.jar
 
 SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
 DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
 DisorderLog.java RtpPacket.java RtpClient.java DisorderRtpPlayer.java	\
 package-info.java
 
-EXTRA_DIST=${SOURCE}
+EXTRA_DIST=${SOURCE} DisorderRtpPlayer.in
 
 disorder.jar: ${SOURCE}
 	mkdir -p jar
 	javac -d jar ${SOURCE}
 	jar cvf disorder.jar -C jar/ .
+
+SEDFILES=DisorderRtpPlayer
+
+include ${top_srcdir}/scripts/sedfiles.make
 
 doc/index.html: ${SOURCE}
 	mkdir -p doc

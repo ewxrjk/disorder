@@ -344,6 +344,11 @@ if test -z "$dochtmldir"; then
 fi
 AC_SUBST([dochtmldir])
 
+if test -z "$jardir"; then
+  jardir='$(datadir)/java'
+fi
+AC_SUBST([jardir])
+
 subdirs="scripts lib"
 if test $want_tests = yes; then
   subdirs="${subdirs} libtests"

@@ -216,6 +216,7 @@ java/lib/jar
 java/lib/doc
 java/lib/Makefile
 java/tests/Makefile
+java/lib/DisorderRtpPlayer
 /Debug
 /lib/Debug
 /clients/Debug
@@ -225,4 +226,3 @@ java/tests/Makefile
 *.vcxproj.user
 .dirstamp
 tests/*.trs
-*.class
