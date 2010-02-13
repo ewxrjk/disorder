@@ -41,34 +41,6 @@ import javax.sound.sampled.*;
  */
 public class RtpClient {
   /**
-   * Player thread.
-   *
-   * This is a separate class so as not to expose the methods of
-   * <code>Thread</code> in the interface of <code>RtpClient</code>.
-   */
-  private class PlayerThread extends Thread {
-    /**
-     * Owning client
-     */
-    RtpClient client;
-
-    /**
-     * Construct a new player thread attached to a client.
-     * @param client Client to attach to
-     */
-    PlayerThread(RtpClient client) {
-      this.client = client;
-    }
-
-    /**
-     * Run the client's player loop.
-     */
-    public void run() {
-      client.run();
-    }
-  }
-
-  /**
    * Buffered RTP packets, sorted by sequence number.
    */
   private TreeSet<RtpPacket> buffer;
@@ -98,8 +70,13 @@ public class RtpClient {
   /**
    * The player thread.
    */
-  private PlayerThread player;
+  private Thread player;
 
+  /**
+   * The listener thread
+   */
+  private Thread listener;
+  
   /**
    * Where to play sound to.
    */
@@ -109,6 +86,36 @@ public class RtpClient {
    * Whether debugging is enabled.
    */
   private boolean debugging;
+
+  /**
+   * Create a listening socket.
+   *
+   * @param host Destination address to listen on
+   * @param port Destination port number
+   * @return Socket
+   */
+  private DatagramSocket createSocket(String host, int port)
+    throws IOException {
+    DatagramSocket sock;
+    InetAddress a = InetAddress.getByName(host);
+    // Create the socket
+    if(a.isMulticastAddress()) {
+      if(debugging)
+        System.err.printf("%s port %d: multicast socket\n", host, port);
+      MulticastSocket s = new MulticastSocket(port);
+      s.joinGroup(a);
+      sock = s;
+      // SO_REUSEADDR is implicit for MulticastSocket, so we need not set it
+      // here.
+    } else {
+      if(debugging)
+        System.err.printf("%s port %d: unicast/broadcast socket\n", host, port);
+      sock = new DatagramSocket();
+      sock.setReuseAddress(true);
+      sock.bind(new InetSocketAddress(port));
+    }
+    return sock;
+  }
 
   /**
    * Construct an RTP client.
@@ -143,31 +150,23 @@ public class RtpClient {
    *
    * @param host Destination address to listen on
    * @param port Destination port number
+   * @param timeout Socket timeout
    */
-  public void listen(String host, int port)
+  public void listen(String host, int port, int timeout)
     throws IOException {
-    DatagramSocket sock;
-    InetAddress a = InetAddress.getByName(host);
-    // Create the socket
-    if(a.isMulticastAddress()) {
-      if(debugging)
-        System.err.printf("%s port %d: multicast socket\n", host, port);
-      MulticastSocket s = new MulticastSocket(port);
-      s.joinGroup(a);
-      sock = s;
-      // SO_REUSEADDR is implicit for MulticastSocket, so we need not set it
-      // here.
-    } else {
-      if(debugging)
-        System.err.printf("%s port %d: unicast/broadcast socket\n", host, port);
-      sock = new DatagramSocket();
-      sock.setReuseAddress(true);
-      sock.bind(new InetSocketAddress(port));
-    }
+    DatagramSocket sock = createSocket(host, port);
     try {
+      if(timeout > 0)
+        sock.setSoTimeout(timeout);
       DatagramPacket dp = new DatagramPacket(new byte[4096], 4096);
       for(;;) {
-        sock.receive(dp);
+        if(Thread.interrupted())
+          return;
+        try {
+          sock.receive(dp);
+        } catch(SocketTimeoutException ex) {
+          continue;
+        }
         receive(dp.getData(), dp.getLength());
         // We'll need a new buffer
         byte[] buffer = new byte[4096];
@@ -178,6 +177,33 @@ public class RtpClient {
     }
   }
 
+  /**
+   * Receive RTP packets over the network.
+   *
+   * <p>Normally <code>host</code> would be the multicast address that the
+   * DisOrder server transmits RTP packets to.  Other configurations are
+   * possible in principle, but are poorly tested.
+   *
+   * <p><code>port</code> similarly is the port number that RTP packets are
+   * sent to.
+   *
+   * <p>This method doesn't return (though it might terminate due to an
+   * exception).
+   *
+   * <p>You must have already started the player (with
+   * <code>startPlayer()</code>).
+   *
+   * <p>For a more flexible (but less friendly) interface, see {@link
+   * #receive(byte[], int) receive()}.
+   *
+   * @param host Destination address to listen on
+   * @param port Destination port number
+   * @param timeout Socket timeout
+   */
+  public void listen(String host, int port) throws IOException {
+    listen(host, port, 0);
+  }
+  
   /**
    * Receive one packet.
    *
@@ -220,7 +246,7 @@ public class RtpClient {
    *
    * The player thread will play data as it arrives.
    */
-  private void run() {
+  private void play() {
     byte[] silence = new byte[maxSilence];
     byte[] bytes;                     // what to play
     int offset;                       // offset in bytes
@@ -323,7 +349,11 @@ public class RtpClient {
   public void startPlayer(SourceDataLine line) {
     if(player != null)
       return;
-    player = new PlayerThread(this);
+    player = new Thread() {
+        public void run() {
+          play();
+        }
+      };
     this.line = line;
     player.start();
   }
@@ -346,6 +376,40 @@ public class RtpClient {
     line.drain();
     line = null;
     player = null;
+  }
+
+  /**
+   * Start the listener thread
+   *
+   * @param host Destination address to listen on
+   * @param port Destination port number
+   */
+  public void startListener(final String host,
+                            final int port)
+    throws IOException {
+    if(listener != null)
+      return;
+    listener = new Thread() {
+        public void run() {
+          try {
+            listen(host, port, 500);
+          } catch(IOException e) {
+            // ignored
+          }
+        }
+      };
+    listener.start();
+  }
+
+  /**
+   * Stop the listener thread
+   */
+  public void stopListener() throws InterruptedException {
+    if(listener == null)
+      return;
+    listener.interrupt();
+    listener.join();
+    listener = null;
   }
 
 }

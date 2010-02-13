@@ -17,15 +17,130 @@
  */
 import uk.org.greenend.disorder.RtpClient;
 import javax.sound.sampled.*;
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 
 class DisorderRtpPlayer {
+  static private void listen(String host, int port)
+    throws IOException,
+           LineUnavailableException {
+    line.open();
+    line.start();
+    client.startPlayer(line);
+    client.startListener(host, port);
+  }
+
+  static private JTextField hostField;
+  static private JTextField portField;
+  static private JCheckBox active;
+
+  static private SourceDataLine line;
+  static private RtpClient client = new RtpClient();
+  static private String runningHost = null;
+  static private int runningPort = -1;
+  static private boolean running = false;
+
+  static class DetailsChanged implements ItemListener, DocumentListener {
+    public void itemStateChanged(ItemEvent e) {
+      //System.err.format("itemStateChanged: %s\n", e.toString());
+      somethingChanged();
+    }
+    public void changedUpdate(DocumentEvent e) {
+      //System.err.format("changedUpdate: %s\n", e.toString());
+      somethingChanged();
+    }
+    public void insertUpdate(DocumentEvent e) {
+      //System.err.format("insertUpdate: %s\n", e.toString());
+      somethingChanged();
+    }
+    public void removeUpdate(DocumentEvent e) {
+      //System.err.format("removeUpdate: %s\n", e.toString());
+      somethingChanged();
+    }
+  }
+
+  static private void somethingChanged() {
+    String newHost = hostField.getText();
+    int newPort;
+    boolean newRunning = active.isSelected();
+
+    try {
+      newPort = Integer.parseInt(portField.getText());
+    } catch(NumberFormatException ex) {
+      // TODO visual feedback that the number is bad
+      return;
+    }
+    /*System.err.format("newRunning=%s  newPort=%d  newHost=%s\n",
+                      newRunning ? "true" : "false",
+                      newPort,
+                      newHost == null ? "(null)" : newHost);*/
+    if(running == newRunning
+       && ((runningHost == null
+            && newHost == null)
+           || (runningHost != null
+               && newHost != null
+               && runningHost.equals(newHost)))
+       && runningPort == newPort) {
+      // Nothing changed
+      return;
+    }
+    if(running) {
+      try {
+        client.stopListener();
+        client.stopPlayer();
+      } catch(InterruptedException ex) {
+        return;
+      }
+      line.stop();
+    }
+    if(newRunning) {
+      line.start();
+      client.startPlayer(line);
+      try {
+        client.startListener(newHost, newPort);
+      } catch(IOException ex) {
+        // TODO
+      }
+    }
+    running = newRunning;
+    runningHost = newHost;
+    runningPort = newPort;
+  }
+
+  static private void createUI() {
+    // The top-level window
+    JFrame frame = new JFrame("DisOrder Network Play");
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    hostField = new JTextField(16);
+    portField = new JTextField();
+    active = new JCheckBox();
+
+    // TODO This is a really poor layout but it gets us up and running
+    GridLayout layout = new GridLayout(3, 2);
+    frame.setLayout(layout);
+
+    frame.add(new JLabel("Address", JLabel.RIGHT));
+    frame.add(hostField);
+    frame.add(new JLabel("Port", JLabel.RIGHT));
+    frame.add(portField);
+    frame.add(new JLabel("Play", JLabel.RIGHT));
+    frame.add(active);
+    frame.pack();
+    frame.setVisible(true);
+
+    DetailsChanged d = new DetailsChanged();
+    hostField.getDocument().addDocumentListener(d);
+    portField.getDocument().addDocumentListener(d);
+    active.addItemListener(d);
+  }
+
   public static void main(String[] args) throws IOException,
                                                 LineUnavailableException {
-    if(args.length != 2) {
-      System.err.println("Usage: DisorderRtpPlayer ADDRESS PORT");
-      System.exit(1);
-    }
+    // Initialize output
     AudioFormat af = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
                                      44100,
                                      16,
@@ -33,15 +148,28 @@ class DisorderRtpPlayer {
                                      4,
                                      44100,
                                      true);
-    SourceDataLine sdl;
     DataLine.Info dli = new DataLine.Info(SourceDataLine.class,
                                           af);
-    sdl = (SourceDataLine)AudioSystem.getLine(dli);
-    sdl.open();
-    sdl.start();
-    RtpClient client = new RtpClient();
-    client.startPlayer(sdl);
-    client.listen(args[0], Integer.parseInt(args[1]));
+    line = (SourceDataLine)AudioSystem.getLine(dli);
+    line.open();
+
+    switch(args.length) {
+    case 0: {
+      javax.swing.SwingUtilities.invokeLater(new Runnable() {
+          public void run() {
+            createUI();
+          }
+        });
+      break;
+    }
+    case 2: {
+      listen(args[0], Integer.parseInt(args[1]));
+      break;
+    }
+    default:
+      System.err.println("Usage: DisorderRtpPlayer [ADDRESS PORT]");
+      System.exit(1);
+    }
   }
 }
 
@@ -53,3 +181,4 @@ fill-column:79
 indent-tabs-mode:nil
 End:
 */
+
