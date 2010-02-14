@@ -865,6 +865,11 @@ const struct s sv = { .a = 1 };],
   fi
 fi
 
+if test $want_java = yes; then
+  # Version options
+  JAVAC="${JAVAC} -target 1.5 -source 1.5"
+fi
+
 RJK_GCOV
 
 AH_BOTTOM([#ifdef __GNUC__
