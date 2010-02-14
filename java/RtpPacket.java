@@ -17,8 +17,6 @@
  */
 package uk.org.greenend.disorder;
 
-import java.util.*;
-
 /**
  * An RTP packet.
  *
