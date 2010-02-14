@@ -29,6 +29,8 @@ public class DisorderParseError extends Exception {
   public DisorderParseError(String message) {
     super(message);
   }
+
+  private static final long serialVersionUID = 0;
 }
 
 /*

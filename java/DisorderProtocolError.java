@@ -30,6 +30,8 @@ public class DisorderProtocolError extends Exception {
   public DisorderProtocolError(String serverName, String message) {
     super(serverName + ": " + message);
   }
+
+  private static final long serialVersionUID = 0;
 }
 
 /*
