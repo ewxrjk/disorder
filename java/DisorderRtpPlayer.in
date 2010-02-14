@@ -32,15 +32,4 @@ if test -z "$JAVA"; then
   fi
 fi
 
-# Default location for our .jar file
-cp="jardir/disorder.jar"
-
-# If we seem to be part of a .app then use the embedded .jar file
-# and discard any command line arguments
-dir="${0%/*}"
-if test -e "$dir/../Resources/disorder.jar"; then
-  cp="$dir/../Resources/disorder.jar"
-  set --
-fi
-
-exec "$JAVA" -cp "$cp" DisorderRtpPlayer "$@"
+exec "$JAVA" -cp "jardir/disorder.jar" DisorderRtpPlayer "$@"
