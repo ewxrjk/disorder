@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2010 Richard Kettlewell
  * Portions copyright (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -1068,8 +1068,8 @@ static const struct conf conf[] = {
   { C(checkpoint_min),   &type_integer,          validate_non_negative },
   { C(collection),       &type_collections,      validate_any },
   { C(connect),          &type_netaddress,       validate_destaddr },
-  { C(cookie_login_lifetime),  &type_integer,    validate_positive },
   { C(cookie_key_lifetime),  &type_integer,      validate_positive },
+  { C(cookie_login_lifetime),  &type_integer,    validate_positive },
   { C(dbversion),        &type_integer,          validate_positive },
   { C(default_rights),   &type_rights,           validate_any },
   { C(device),           &type_string,           validate_any },
@@ -1099,10 +1099,10 @@ static const struct conf conf[] = {
   { C(plugins),          &type_string_accum,     validate_isdir },
   { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
-  { C(replay_min),       &type_integer,          validate_non_negative },
   { C(refresh),          &type_integer,          validate_positive },
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
+  { C(replay_min),       &type_integer,          validate_non_negative },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
@@ -1727,6 +1727,19 @@ static int namepartlist_compare(const struct namepartlist *a,
     return -1;
   else
     return 0;
+}
+
+/** @brief Verify configuration table.
+ * @return The number of problems found
+*/
+int config_verify(void) {
+  int fails = 0;
+  for(size_t n = 1; n < sizeof conf / sizeof *conf; ++n)
+    if(strcmp(conf[n-1].name, conf[n].name) >= 0) {
+      fprintf(stderr, "%s >= %s\n", conf[n-1].name, conf[n].name);
+      ++fails;
+    }
+  return fails;
 }
 
 /*

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -319,6 +319,8 @@ char *config_usersysconf(const struct passwd *pw );
 
 char *config_private(void);
 /* get the private config file */
+
+int config_verify(void);
 
 extern char *configfile;
 extern int config_per_user;

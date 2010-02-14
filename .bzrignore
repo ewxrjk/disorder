@@ -172,6 +172,7 @@ libtests/t-words
 libtests/t-wstat
 libtests/t-macros
 libtests/t-cgi
+libtests/t-configuration
 doc/*.tmpl
 doc/disorder_templates.5
 oc/disorder_templates.5.html

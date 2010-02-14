@@ -188,6 +188,13 @@ struct queue_entry {
   /** @brief How much of track has been played so far (seconds) */
   long sofar;
 
+  /** @brief True if track preparation is underway
+   *
+   * This is set when a decoder has been started and is expected to connect to
+   * the speaker, but the speaker has not sent as @ref SM_ARRIVED message back
+   * yet. */
+  int preparing;
+
   /** @brief True if decoder is connected to speaker 
    *
    * This is not a @ref playing_state for a couple of reasons

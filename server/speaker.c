@@ -529,6 +529,10 @@ static void mainloop(void) {
             nonblock(fd);
             t->fd = fd;               /* yay */
           }
+          /* Notify the server that the connection arrived */
+          sm.type = SM_ARRIVED;
+          strcpy(sm.id, id);
+          speaker_send(1, &sm);
         }
       } else
         disorder_error(errno, "accept");

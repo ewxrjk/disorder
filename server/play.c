@@ -96,6 +96,19 @@ static int speaker_readable(ev_source *ev, int fd,
     D(("SM_PLAYING %s %ld", sm.id, sm.data));
     playing->sofar = sm.data;
     break;
+  case SM_ARRIVED: {
+    /* track ID is now prepared */
+    struct queue_entry *q;
+    for(q = qhead.next; q != &qhead && strcmp(q->id, sm.id); q = q->next)
+      ;
+    if(q && q->preparing) {
+      q->preparing = 0;
+      q->prepared = 1;
+      /* We might be waiting to play the now-prepared track */
+      play(ev);
+    }
+    break;
+  }
   default:
     disorder_error(0, "unknown speaker message type %d", sm.type);
   }
@@ -379,7 +392,7 @@ int prepare(ev_source *ev,
   if(q->pid >= 0)
     return START_OK;
   /* If the track is already prepared, do nothing */
-  if(q->prepared)
+  if(q->prepared || q->preparing)
     return START_OK;
   /* Find the player plugin */
   if(!(player = find_player(q)) < 0) 
@@ -388,10 +401,12 @@ int prepare(ev_source *ev,
   q->type = play_get_type(q->pl);
   if((q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return START_OK;                    /* Not a raw player */
-  const int rc = play_background(ev, player, q, prepare_child, NULL);
+  int rc = play_background(ev, player, q, prepare_child, NULL);
   if(rc == START_OK) {
     ev_child(ev, q->pid, 0, player_finished, q);
-    q->prepared = 1;
+    q->preparing = 1;
+    /* Actually the track is still "in flight" */
+    rc = START_SOFTFAIL;
   }
   return rc;
 }

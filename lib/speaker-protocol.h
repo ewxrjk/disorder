@@ -43,6 +43,7 @@ struct speaker_message {
    * - @ref SM_FINISHED
    * - @ref SM_PLAYING
    * - @ref SM_UNKNOWN
+   * - @ref SM_ARRIVED
    */
   int type;
 
@@ -101,6 +102,9 @@ struct speaker_message {
 
 /** @brief Cancelled track @c id which wasn't playing */
 #define SM_STILLBORN 133
+
+/** @brief A connection for track @c id arrived */
+#define SM_ARRIVED 134
 
 void speaker_send(int fd, const struct speaker_message *sm);
 /* Send a message. */
