@@ -55,9 +55,10 @@ endif
 
 DisorderRtpPlayer.app: disorder.jar DisorderRtpPlayer DisorderRtpPlayer.plist duck.icns
 	$(MKDIR_P) new_$@/Contents/MacOS
-	$(MKDIR_P) new_$@/Contents/Resources
-	$(INSTALL) DisorderRtpPlayer new_$@/Contents/MacOS/DisorderRtpPlayer
-	$(INSTALL_DATA) disorder.jar new_$@/Contents/Resources/disorder.jar
+	$(MKDIR_P) new_$@/Contents/Resources/Java
+	$(INSTALL) PkgInfo new_$@/Contents/PkgInfo
+	$(INSTALL) /System/Library/Frameworks/JavaVM.framework/Versions/Current/Resources/MacOS/JavaApplicationStub new_$@/Contents/MacOS/JavaApplicationStub
+	$(INSTALL_DATA) disorder.jar new_$@/Contents/Resources/Java/disorder.jar
 	$(INSTALL_DATA) DisorderRtpPlayer.plist new_$@/Contents/Info.plist
 	$(INSTALL_DATA) duck.icns new_$@/Contents/Resources/disorder.icns
 	rm -rf $@

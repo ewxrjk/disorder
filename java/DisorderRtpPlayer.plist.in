@@ -1,28 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
 <plist version="0.9">
-  <dict>
-
-    <key>CFBundleName</key>
-    <string>DisorderRtpPlayer _version_</string>
-    
-    <key>CFBundleVersion</key>
-    <string>_version_</string>
-    
-    <key>CFBundleExecutable</key>
-    <string>DisorderRtpPlayer</string>
-    
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    
-    <key>CFBundleShortVersionString</key>
-    <string>_version_</string>
-
-    <key>CFBundleIdentifier</key>
-    <string>uk.org.greenend.disorder.DisorderRtpPlayer._version_</string>
-    
-    <key>CFBundleIconFile</key>
-    <string>disorder.icns</string>
-
-  </dict>
+<dict>
+	<key>CFBundleName</key>
+	<string>DisorderRtpPlayer</string>
+	<key>CFBundleIdentifier</key>
+	<string>DisorderRtpPlayer</string>
+	<key>CFBundleVersion</key>
+	<string>_version_</string>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<string>true</string>
+	<key>CFBundleExecutable</key>
+	<string>JavaApplicationStub</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleIconFile</key>
+	<string>disorder.icns</string>
+	<key>Java</key>
+	<dict>
+		<key>MainClass</key>
+		<string>DisorderRtpPlayer</string>
+		<key>JVMVersion</key>
+		<string>1.5+</string>
+		<key>ClassPath</key>
+			<string>$JAVAROOT/disorder.jar</string>
+		<key>Properties</key>
+		<dict>
+			<key>apple.laf.useScreenMenuBar</key>
+			<string>true</string>
+		</dict>
+	</dict>
+</dict>
 </plist>
