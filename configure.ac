@@ -876,28 +876,33 @@ if test $want_java = yes; then
 
   # Warning options
 
-  # ecj warnings
-  ECJ_WARNINGS="allJavaDoc conditionAssign enumSwitch fallThrough \
-   hiding finalBound indirectStatic null nullDereference paramAssign \
-   semicolon super syntheticAccess unusedThrown \
-   uselessTypeCheck"
-  # Missing:
-  #  boxing
-  #  emptyBlock
-  #  unnecessaryElse
-  #  unqualifiedField
-  #  unused
-  ecjwarnings=""
-  for warning in $ECJ_WARNINGS; do
-    if ${JAVAC} -warn:+$warning >/dev/null 2>&1; then
-      if test ! -z "$ecjwarnings"; then
-        ecjwarnings="${ecjwarnings},"
+  AC_CACHE_CHECK([what Java warnings to request],[rjk_cv_javac_warnings],[
+    rjk_cv_javac_warnings=""
+    # ecj warnings
+    ECJ_WARNINGS="allJavaDoc conditionAssign enumSwitch fallThrough \
+     hiding finalBound indirectStatic null nullDereference paramAssign \
+     semicolon super syntheticAccess unusedThrown \
+     uselessTypeCheck"
+    # Missing:
+    #  boxing
+    #  emptyBlock
+    #  unnecessaryElse
+    #  unqualifiedField
+    #  unusedArgument
+    ecjwarnings=""
+    for warning in $ECJ_WARNINGS; do
+      if ${JAVAC} -warn:+$warning >/dev/null 2>&1; then
+        if test ! -z "$ecjwarnings"; then
+          ecjwarnings="${ecjwarnings},"
+        fi
+        ecjwarnings="${ecjwarnings}$warning"
       fi
-      ecjwarnings="${ecjwarnings}$warning"
+    done
+    if test ! -z "$ecjwarnings"; then
+      rjk_cv_javac_warnings="$warnings -warn:+$ecjwarnings"
     fi
-  done
-
-  JAVAC="${JAVAC} -warn:+$ecjwarnings"
+  ])
+  JAVAC="${JAVAC} $rjk_cv_javac_warnings"
 fi
 
 RJK_GCOV
