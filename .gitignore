@@ -217,6 +217,9 @@ java/lib/doc
 java/lib/Makefile
 java/tests/Makefile
 java/DisorderRtpPlayer
+java/DisorderRtpPlayer.plist
+*.app
+*.icns
 /Debug
 /lib/Debug
 /clients/Debug

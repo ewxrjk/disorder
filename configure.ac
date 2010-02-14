@@ -35,6 +35,7 @@ want_tests=yes
 want_server=yes
 want_cgi=yes
 want_java=yes
+want_bundles=no
 
 # APIs we want
 want_alsa=yes
@@ -154,6 +155,8 @@ case "$host" in
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
     export PKG_CONFIG_PATH
   fi
+
+  want_bundles=yes
 
   ;;
 *-freebsd* )
@@ -787,6 +790,8 @@ if test $want_gtk = yes; then
   AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
 fi
 AM_CONDITIONAL([GTK], [test x$want_gtk = xyes])
+
+AM_CONDITIONAL([BUNDLES], [test x$want_bundles = xyes])
 
 if test "x$GCC" = xyes; then
   # We need LLONG_MAX and annoyingly GCC doesn't always give it to us

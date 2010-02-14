@@ -25,7 +25,8 @@ DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
 DisorderLog.java RtpPacket.java RtpClient.java DisorderRtpPlayer.java	\
 package-info.java
 
-EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java DisorderRtpPlayer.in
+EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java \
+	DisorderRtpPlayer.in DisorderRtpPlayer.plist.in
 
 disorder.jar: ${SOURCE}
 	${MKDIR_P} jar
@@ -37,7 +38,7 @@ disorder.jar: ${SOURCE}
 
 GetQueue.class GetVersion.class: disorder.jar
 
-SEDFILES=DisorderRtpPlayer
+SEDFILES=DisorderRtpPlayer DisorderRtpPlayer.plist
 
 include ${top_srcdir}/scripts/sedfiles.make
 
@@ -47,6 +48,23 @@ doc/index.html: ${SOURCE}
 		-link http://java.sun.com/javase/6/docs/api/ \
 		-doctitle "DisOrder Java support" \
 		${SOURCE}
+
+if BUNDLES
+all: DisorderRtpPlayer.app
+endif
+
+DisorderRtpPlayer.app: disorder.jar DisorderRtpPlayer DisorderRtpPlayer.plist duck.icns
+	$(MKDIR_P) new_$@/Contents/MacOS
+	$(MKDIR_P) new_$@/Contents/Resources
+	$(INSTALL) DisorderRtpPlayer new_$@/Contents/MacOS/DisorderRtpPlayer
+	$(INSTALL_DATA) disorder.jar new_$@/Contents/Resources/disorder.jar
+	$(INSTALL_DATA) DisorderRtpPlayer.plist new_$@/Contents/Info.plist
+	$(INSTALL_DATA) duck.icns new_$@/Contents/Resources/disorder.icns
+	rm -rf $@
+	mv new_$@ $@
+
+duck.icns: ${top_srcdir}/images/duck.png
+	sips -s format icns $^ --out $@
 
 clean-local:
 	rm -f *.jar
