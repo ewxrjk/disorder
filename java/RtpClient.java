@@ -197,7 +197,6 @@ public class RtpClient {
    *
    * @param host Destination address to listen on
    * @param port Destination port number
-   * @param timeout Socket timeout
    */
   public void listen(String host, int port) throws IOException {
     listen(host, port, 0);
