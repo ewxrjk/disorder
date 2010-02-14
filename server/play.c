@@ -732,14 +732,20 @@ void scratch(const char *who, const char *id) {
       speaker_send(speaker_fd, &sm);
       D(("sending SM_CANCEL for %s", playing->id));
     }
-    /* Try to make sure there is a scratch */
-    ensure_next_scratch(NULL);
-    /* Insert it at the head of the queue */
-    if(next_scratch){
-      next_scratch->submitter = who;
-      queue_insert_entry(&qhead, next_scratch);
-      eventlog_raw("queue", queue_marshall(next_scratch), (const char *)0);
-      next_scratch = NULL;
+    /* If playing is enabled then add a scratch to the queue.  Having a scratch
+     * appear in the queue when further play is disabled is weird and
+     * contradicts implicit assumptions made elsewhere, so we try to avoid
+     * it. */
+    if(playing_is_enabled()) {
+      /* Try to make sure there is a scratch */
+      ensure_next_scratch(NULL);
+      /* Insert it at the head of the queue */
+      if(next_scratch){
+        next_scratch->submitter = who;
+        queue_insert_entry(&qhead, next_scratch);
+        eventlog_raw("queue", queue_marshall(next_scratch), (const char *)0);
+        next_scratch = NULL;
+      }
     }
     notify_scratch(playing->track, playing->submitter, who,
 		   xtime(0) - playing->played);
