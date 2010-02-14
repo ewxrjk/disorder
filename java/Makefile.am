@@ -16,4 +16,40 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS=lib tests
+bin_SCRIPTS=DisorderRtpPlayer
+jar_DATA=disorder.jar
+noinst_DATA=GetQueue.class GetVersion.class
+
+SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
+DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
+DisorderLog.java RtpPacket.java RtpClient.java DisorderRtpPlayer.java	\
+package-info.java
+
+EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java DisorderRtpPlayer.in
+
+disorder.jar: ${SOURCE}
+	mkdir -p jar
+	${JAVAC} -d jar ${SOURCE}
+	${JAR} cvf disorder.jar -C jar/ .
+
+%.class: %.java
+	${JAVAC} -cp disorder.jar $<
+
+GetQueue.class GetVersion.class: disorder.jar 
+
+SEDFILES=DisorderRtpPlayer
+
+include ${top_srcdir}/scripts/sedfiles.make
+
+doc/index.html: ${SOURCE}
+	mkdir -p doc
+	javadoc -d doc \
+		-link http://java.sun.com/javase/6/docs/api/ \
+		-doctitle "DisOrder Java support" \
+		${SOURCE}
+
+clean-local:
+	rm -f *.jar
+	rm -f *.class
+	rm -rf jar
+	rm -rf doc

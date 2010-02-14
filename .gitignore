@@ -216,7 +216,7 @@ java/lib/jar
 java/lib/doc
 java/lib/Makefile
 java/tests/Makefile
-java/lib/DisorderRtpPlayer
+java/DisorderRtpPlayer
 /Debug
 /lib/Debug
 /clients/Debug
