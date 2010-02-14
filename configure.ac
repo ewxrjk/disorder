@@ -344,8 +344,14 @@ if test -z "$dochtmldir"; then
 fi
 AC_SUBST([dochtmldir])
 
+AC_ARG_VAR([JDK_HOME],[JDK root directory])
+
 if test -z "$JAVAC"; then
-  JAVAC="javac"
+  if test ! -z "$JDK_HOME"; then
+    JAVAC="$JDK_HOME/bin/javac"
+  else
+    JAVAC="javac"
+  fi
 fi
 AC_ARG_VAR([JAVAC],[Java compiler])
 
@@ -355,12 +361,20 @@ fi
 AC_ARG_VAR([JAVACFLAGS],[Java compiler flags])
 
 if test -z "$JAVADOC"; then
-  JAVADOC="javadoc"
+  if test ! -z "$JDK_HOME"; then
+    JAVADOC="$JDK_HOME/bin/javadoc"
+  else
+    JAVADOC="javadoc"
+  fi
 fi
 AC_ARG_VAR([JAVADOC],[Java documentation generator])
 
 if test -z "$JAR"; then
-  JAR="jar"
+  if test ! -z "$JDK_HOME"; then
+    JAR="$JDK_HOME/bin/jar"
+  else
+    JAR="jar"
+  fi
 fi
 AC_ARG_VAR([JAR],[.jar file packer])
 
