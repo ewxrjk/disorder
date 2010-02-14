@@ -228,6 +228,7 @@ public class TrackInformation {
    * @return a string representation of the object.
    */
   @SuppressWarnings("super")
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("track: ");

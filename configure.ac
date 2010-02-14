@@ -882,7 +882,7 @@ if test $want_java = yes; then
     ECJ_WARNINGS="allJavaDoc conditionAssign enumSwitch fallThrough \
      hiding finalBound indirectStatic null nullDereference paramAssign \
      semicolon super syntheticAccess unusedThrown \
-     uselessTypeCheck"
+     uselessTypeCheck dep-ann over-ann"
     # Missing:
     #  boxing
     #  emptyBlock
