@@ -344,44 +344,74 @@ if test -z "$dochtmldir"; then
 fi
 AC_SUBST([dochtmldir])
 
-AC_ARG_VAR([JDK_HOME],[JDK root directory])
+if test $want_java = yes; then
+  AC_CACHE_CHECK([JDK root directory],[rjk_cv_jdk_home],[
+    if test -z "$JDK_HOME"; then
+      if test -x /usr/libexec/java_home; then
+        # Apple have utility to tell us which JDK to use
+        rjk_cv_jdk_home="`/usr/libexec/java_home`"
+      fi
+    else
+      rjk_cv_jdk_home="${JDK_HOME}"
+    fi
+  ])
+  JDK_HOME="$rjk_cv_jdk_home"
+  AC_ARG_VAR([JDK_HOME],[JDK root directory])
+  # If JDK_HOME is not set and is not discoverable, we will use the path
+  # to find the build tools.
 
-if test -z "$JAVAC"; then
-  if test ! -z "$JDK_HOME"; then
-    JAVAC="$JDK_HOME/bin/javac"
-  else
-    JAVAC="javac"
+  AC_CACHE_CHECK([for javac],[rjk_cv_prog_javac],[
+    if test -z "$JAVAC"; then
+      if test ! -z "$JDK_HOME"; then
+        rjk_cv_prog_javac="$JDK_HOME/bin/javac"
+      else
+        rjk_cv_prog_javac="javac"
+      fi
+    else
+      rjk_cv_prog_javac="${JAVAC}"
+    fi
+  ])
+  JAVAC="$rjk_cv_prog_javac"
+  AC_ARG_VAR([JAVAC],[Java compiler])
+
+  if test -z "$JAVACFLAGS"; then
+    JAVACFLAGS=""
   fi
-fi
-AC_ARG_VAR([JAVAC],[Java compiler])
+  AC_ARG_VAR([JAVACFLAGS],[Java compiler flags])
 
-if test -z "$JAVACFLAGS"; then
-  JAVACFLAGS=""
-fi
-AC_ARG_VAR([JAVACFLAGS],[Java compiler flags])
+  AC_CACHE_CHECK([for javadoc],[rjk_cv_prog_javadoc],[
+    if test -z "$JAVADOC"; then
+      if test ! -z "$JDK_HOME"; then
+        rjk_cv_prog_javadoc="$JDK_HOME/bin/javadoc"
+      else
+        rjk_cv_prog_javadoc="javadoc"
+      fi
+    else
+      rjk_cv_prog_javadoc="${JAVADOC}"
+    fi
+  ])
+  JAVADOC="$rjk_cv_prog_javadoc"
+  AC_ARG_VAR([JAVADOC],[Java documentation generator])
 
-if test -z "$JAVADOC"; then
-  if test ! -z "$JDK_HOME"; then
-    JAVADOC="$JDK_HOME/bin/javadoc"
-  else
-    JAVADOC="javadoc"
+  AC_CACHE_CHECK([for jar],[rjk_cv_prog_jar],[
+    if test -z "$JAR"; then
+      if test ! -z "$JDK_HOME"; then
+        rjk_cv_prog_jar="$JDK_HOME/bin/jar"
+      else
+        rjk_cv_prog_jar="jar"
+      fi
+    else
+      rjk_cv_prog_jar="${JAR}"
+    fi
+  ])
+  JAR="$rjk_cv_prog_jar"
+  AC_ARG_VAR([JAR],[.jar file packer])
+
+  if test -z "$jardir"; then
+    jardir='$(datadir)/java'
   fi
+  AC_SUBST([jardir])
 fi
-AC_ARG_VAR([JAVADOC],[Java documentation generator])
-
-if test -z "$JAR"; then
-  if test ! -z "$JDK_HOME"; then
-    JAR="$JDK_HOME/bin/jar"
-  else
-    JAR="jar"
-  fi
-fi
-AC_ARG_VAR([JAR],[.jar file packer])
-
-if test -z "$jardir"; then
-  jardir='$(datadir)/java'
-fi
-AC_SUBST([jardir])
 
 subdirs="scripts lib"
 if test $want_tests = yes; then
