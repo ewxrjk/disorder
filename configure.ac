@@ -344,6 +344,16 @@ if test -z "$dochtmldir"; then
 fi
 AC_SUBST([dochtmldir])
 
+if test -z "$JAVAC"; then
+  JAVAC="javac"
+fi
+AC_ARG_VAR([JAVAC],[Java compiler])
+
+if test -z "$JAR"; then
+  JAR="jar"
+fi
+AC_ARG_VAR([JAR],[.jar file packer])
+
 if test -z "$jardir"; then
   jardir='$(datadir)/java'
 fi

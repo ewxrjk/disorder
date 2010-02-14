@@ -28,8 +28,8 @@ EXTRA_DIST=${SOURCE} DisorderRtpPlayer.in
 
 disorder.jar: ${SOURCE}
 	mkdir -p jar
-	javac -d jar ${SOURCE}
-	jar cvf disorder.jar -C jar/ .
+	${JAVAC} -d jar ${SOURCE}
+	${JAR} cvf disorder.jar -C jar/ .
 
 SEDFILES=DisorderRtpPlayer
 
