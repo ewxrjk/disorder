@@ -28,7 +28,7 @@ package-info.java
 EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java DisorderRtpPlayer.in
 
 disorder.jar: ${SOURCE}
-	mkdir -p jar
+	${MKDIR_P} jar
 	${JAVAC} -d jar ${SOURCE}
 	${JAR} cvf disorder.jar -C jar/ .
 
@@ -42,8 +42,8 @@ SEDFILES=DisorderRtpPlayer
 include ${top_srcdir}/scripts/sedfiles.make
 
 doc/index.html: ${SOURCE}
-	mkdir -p doc
-	javadoc -d doc \
+	${MKDIR_P} doc
+	${JAVADOC} -d doc \
 		-link http://java.sun.com/javase/6/docs/api/ \
 		-doctitle "DisOrder Java support" \
 		${SOURCE}

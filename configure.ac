@@ -349,6 +349,11 @@ if test -z "$JAVAC"; then
 fi
 AC_ARG_VAR([JAVAC],[Java compiler])
 
+if test -z "$JAVADOC"; then
+  JAVADOC="javadoc"
+fi
+AC_ARG_VAR([JAVADOC],[Java documentation generator])
+
 if test -z "$JAR"; then
   JAR="jar"
 fi
