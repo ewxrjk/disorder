@@ -95,6 +95,10 @@ static void act_playing(void) {
     if(refresh > config->gap)
       refresh = config->gap;
   }
+  /* Bound the refresh interval below as a back-stop against the above
+   * calculations coming up with a stupid answer */
+  if(refresh < config->refresh_min)
+    refresh = config->refresh_min;
   if((action = cgi_get("action")))
     url = cgi_makeurl(config->url, "action", action, (char *)0);
   else

@@ -1100,6 +1100,7 @@ static const struct conf conf[] = {
   { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
   { C(refresh),          &type_integer,          validate_positive },
+  { C(refresh_min),      &type_integer,          validate_non_negative },
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
   { C(replay_min),       &type_integer,          validate_non_negative },
@@ -1337,6 +1338,7 @@ static struct config *config_default(void) {
   logname = pw->pw_name;
   c->username = xstrdup(logname);
   c->refresh = 15;
+  c->refresh_min = 1;
   c->prefsync = 0;
   c->signal = SIGKILL;
   c->alias = xstrdup("{/artist}{/album}{/title}{ext}");

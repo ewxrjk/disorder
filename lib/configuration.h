@@ -215,6 +215,9 @@ struct config {
   /** @brief Maximum refresh interval for web interface (seconds) */
   long refresh;
 
+  /** @brief Minimum refresh interval for web interface (seconds) */
+  long refresh_min;
+
   /** @brief Facilities restricted to trusted users
    *
    * A bitmap of @ref RESTRICT_SCRATCH, @ref RESTRICT_REMOVE and @ref

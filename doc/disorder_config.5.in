@@ -808,7 +808,13 @@ This must be set if you have online registration enabled.
 .TP
 .B refresh \fISECONDS\fR
 Specifies the maximum refresh period in seconds.
+The refresh period is the time after which the web interface's queue and manage
+pages will automatically reload themselves.
 Default 15.
+.TP
+.B refresh_min \fISECONDS\fR
+Specifies the minimum refresh period in seconds.
+Default 1.
 .TP
 .B sendmail \fIPATH\fR
 The path to the Sendmail executable.
