@@ -29,13 +29,13 @@ EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java DisorderRtpPlayer.in
 
 disorder.jar: ${SOURCE}
 	${MKDIR_P} jar
-	${JAVAC} -d jar ${SOURCE}
+	${JAVAC} ${JAVACFLAGS} -d jar ${SOURCE}
 	${JAR} cvf disorder.jar -C jar/ .
 
 %.class: %.java
-	${JAVAC} -cp disorder.jar $<
+	${JAVAC} ${JAVACFLAGS} -cp disorder.jar $<
 
-GetQueue.class GetVersion.class: disorder.jar 
+GetQueue.class GetVersion.class: disorder.jar
 
 SEDFILES=DisorderRtpPlayer
 

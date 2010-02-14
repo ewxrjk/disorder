@@ -21,12 +21,10 @@ import javax.swing.*;
 import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
 
 class DisorderRtpPlayer {
   static private void listen(String host, int port)
-    throws IOException,
-           LineUnavailableException {
+    throws LineUnavailableException {
     line.open();
     line.start();
     client.startPlayer(line);
@@ -62,7 +60,7 @@ class DisorderRtpPlayer {
     }
   }
 
-  static private void somethingChanged() {
+  static public void somethingChanged() {
     String newHost = hostField.getText();
     int newPort;
     boolean newRunning = active.isSelected();
@@ -99,18 +97,14 @@ class DisorderRtpPlayer {
     if(newRunning) {
       line.start();
       client.startPlayer(line);
-      try {
-        client.startListener(newHost, newPort);
-      } catch(IOException ex) {
-        // TODO
-      }
+      client.startListener(newHost, newPort);
     }
     running = newRunning;
     runningHost = newHost;
     runningPort = newPort;
   }
 
-  static private void createUI() {
+  static public void createUI() {
     // The top-level window
     JFrame frame = new JFrame("DisOrder Network Play");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -123,11 +117,11 @@ class DisorderRtpPlayer {
     GridLayout layout = new GridLayout(3, 2);
     frame.setLayout(layout);
 
-    frame.add(new JLabel("Address", JLabel.RIGHT));
+    frame.add(new JLabel("Address", SwingConstants.RIGHT));
     frame.add(hostField);
-    frame.add(new JLabel("Port", JLabel.RIGHT));
+    frame.add(new JLabel("Port", SwingConstants.RIGHT));
     frame.add(portField);
-    frame.add(new JLabel("Play", JLabel.RIGHT));
+    frame.add(new JLabel("Play", SwingConstants.RIGHT));
     frame.add(active);
     frame.pack();
     frame.setVisible(true);
@@ -138,8 +132,7 @@ class DisorderRtpPlayer {
     active.addItemListener(d);
   }
 
-  public static void main(String[] args) throws IOException,
-                                                LineUnavailableException {
+  public static void main(String[] args) throws LineUnavailableException {
     // Initialize output
     AudioFormat af = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
                                      44100,

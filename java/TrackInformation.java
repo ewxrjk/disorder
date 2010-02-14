@@ -227,6 +227,7 @@ public class TrackInformation {
    *
    * @return a string representation of the object.
    */
+  @SuppressWarnings("super")
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("track: ");
@@ -271,7 +272,7 @@ public class TrackInformation {
     return new String(cs);
   }
 
-};
+}
 
 /*
 Local Variables:

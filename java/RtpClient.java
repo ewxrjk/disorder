@@ -169,8 +169,7 @@ public class RtpClient {
         }
         receive(dp.getData(), dp.getLength());
         // We'll need a new buffer
-        byte[] buffer = new byte[4096];
-        dp.setData(buffer);
+        dp.setData(new byte[4096]);
       }
     } finally {
       sock.close();
@@ -246,7 +245,7 @@ public class RtpClient {
    *
    * The player thread will play data as it arrives.
    */
-  private void play() {
+  protected void play() {
     byte[] silence = new byte[maxSilence];
     byte[] bytes;                     // what to play
     int offset;                       // offset in bytes
@@ -344,17 +343,18 @@ public class RtpClient {
    * <p>You must not call <code>receive()</code> or <code>listen()</code>
    * concurrently with this method.
    *
-   * @param line Data line to use to play samples
+   * @param sdl Data line to use to play samples
    */
-  public void startPlayer(SourceDataLine line) {
+  public void startPlayer(SourceDataLine sdl) {
     if(player != null)
       return;
     player = new Thread() {
+        @SuppressWarnings("super")
         public void run() {
           play();
         }
       };
-    this.line = line;
+    this.line = sdl;
     player.start();
   }
   
@@ -385,11 +385,11 @@ public class RtpClient {
    * @param port Destination port number
    */
   public void startListener(final String host,
-                            final int port)
-    throws IOException {
+                            final int port) {
     if(listener != null)
       return;
     listener = new Thread() {
+        @SuppressWarnings("super")
         public void run() {
           try {
             listen(host, port, 500);

@@ -349,6 +349,11 @@ if test -z "$JAVAC"; then
 fi
 AC_ARG_VAR([JAVAC],[Java compiler])
 
+if test -z "$JAVACFLAGS"; then
+  JAVACFLAGS=""
+fi
+AC_ARG_VAR([JAVACFLAGS],[Java compiler flags])
+
 if test -z "$JAVADOC"; then
   JAVADOC="javadoc"
 fi
@@ -868,6 +873,31 @@ fi
 if test $want_java = yes; then
   # Version options
   JAVAC="${JAVAC} -target 1.5 -source 1.5"
+
+  # Warning options
+
+  # ecj warnings
+  ECJ_WARNINGS="allJavaDoc conditionAssign enumSwitch fallThrough \
+   hiding finalBound indirectStatic null nullDereference paramAssign \
+   semicolon super syntheticAccess unusedThrown \
+   uselessTypeCheck"
+  # Missing:
+  #  boxing
+  #  emptyBlock
+  #  unnecessaryElse
+  #  unqualifiedField
+  #  unused
+  ecjwarnings=""
+  for warning in $ECJ_WARNINGS; do
+    if ${JAVAC} -warn:+$warning >/dev/null 2>&1; then
+      if test ! -z "$ecjwarnings"; then
+        ecjwarnings="${ecjwarnings},"
+      fi
+      ecjwarnings="${ecjwarnings}$warning"
+    fi
+  done
+
+  JAVAC="${JAVAC} -warn:+$ecjwarnings"
 fi
 
 RJK_GCOV

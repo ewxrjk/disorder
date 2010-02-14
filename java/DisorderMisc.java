@@ -90,8 +90,8 @@ class DisorderMisc {
 	// string, no escapes.
         --n;
 	int m;
-	for(m = n; m < s.length() && !space(s.charAt(m)); ++m)
-	  ;
+	for(m = n; m < s.length() && !space(s.charAt(m)); ++m) {
+        }
 	v.add(s.substring(n, m));
 	n = m;
       }
