@@ -125,6 +125,208 @@ public class DisorderServer {
     connected = false;
   }
 
+  private class Response {
+    /**
+     * Exact string as received from the server
+     */
+    String line;
+
+
+    /**
+     * Status code
+     */
+    int rc;
+
+    /**
+     * Parsed response, or null
+     */
+    List<String> bits;
+
+    /**
+     * Response body, or null
+     */
+    List<String> body;
+
+    /**
+     * Construct a response from parsed data.
+     * Called by getResponse().
+     */
+    Response(String line,
+             int rc,
+             List<String> bits,
+             List<String> body) {
+      this.line = line;
+      this.rc = rc;
+      this.bits = bits;
+      this.body = body;
+    }
+
+    /**
+     * Determine whether a response is an OK response.
+     */
+    boolean ok() {
+      return rc / 100 == 2;
+    }
+
+    /**
+     * Convert a response to a string
+     * @return String representing response
+     */
+    public String toString() {
+      return line;
+    }
+  }
+
+  /**
+   * Read a line from the input
+   *
+   * @return Input line, with newline character removed, or null at EOF
+   */
+  String getLine() throws IOException {
+    StringBuilder sb = new StringBuilder();
+    int n;
+    while((n = input.read()) != -1) {
+      char c = (char)n;
+      if(c == '\n') {
+        String s = sb.toString();
+        if(debugging) 
+          System.err.println("RECV: " + s);
+        return s;
+      }
+      sb.append(c);
+    }
+    // We reached end of file
+    return null;
+  }
+
+  /**
+   * Get a response body.
+   *
+   * @return Response body with extra dots removed
+   *
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   */
+  List<String> getResponseBody() throws IOException,
+                                        DisorderParseError {
+    Vector<String> r = new Vector<String>();
+    String s;
+    while((s = getLine()) != null
+          && !s.equals("."))
+      if(s.length() > 0 && s.charAt(0) == '.')
+        r.add(s.substring(1));
+      else
+        r.add(s);
+    if(s == null)
+      throw new DisorderParseError("unterminated response body");
+    return r;
+  }
+
+  /**
+   * Get a response.
+   *
+   * @return New response, or null at EOF
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   */
+  Response getResponse() throws IOException,
+                                DisorderParseError {
+    String line = getLine();
+    if(line == null)
+      return null;
+    int rc = 0;
+    for(int n = 0; n < 3; ++n)
+      rc = 10 * rc + Character.digit(line.charAt(n), 10);
+    List<String> bits = null, body = null;
+    switch(rc % 10) {
+    case 1:
+    case 2:
+      bits = DisorderMisc.split(line, false/*comments*/);
+      break;
+    case 3:
+      body = getResponseBody();
+      break;
+    }
+    return new Response(line, rc, bits, body);
+  }
+
+  /**
+   * Get a response and check it's OK.
+   *
+   * Any 2xx response counts as success.  Anything else will generate
+   * a DisorderProtocolError.
+   *
+   * @return Parsed response
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  Response getPositiveResponse() throws IOException,
+                                        DisorderParseError,
+                                        DisorderProtocolError {
+    Response r = getResponse();
+
+    if(!r.ok())
+      throw new DisorderProtocolError(config.serverName, r.toString());
+    return r;
+  }
+
+  /**
+   * Get a string response.
+   *
+   * <p>Any 2xx response with exactly one extra field will return the
+   * value of that field.
+   *
+   * <p>If <code>optional<code> is <code>true</code> then a 555
+   * response is also accepted, with a return value of
+   * <code>null</code>.
+   *
+   * <p>Otherwise there will be a DisorderProtocolError or
+   * DisorderParseError.
+   *
+   * @param optional Whether 555 responses are acceptable
+   * @return Response value or <code>null</code>
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  String getStringResponse(boolean optional) throws IOException,
+                                                    DisorderParseError,
+                                                    DisorderProtocolError {
+    Response r = getResponse();
+    if(optional && r.rc == 555)
+      return null;
+    if(!r.ok())
+      throw new DisorderProtocolError(config.serverName, r.toString());
+    if(r.bits.size() != 2)
+      throw new DisorderParseError("malformed response: " + r.toString());
+    return r.bits.get(1);
+  }
+
+  /**
+   * Get a boolean response
+   *
+   * Any 2xx response with the next field being "yes" or "no" counts
+   * as success.  Anything else will generate a DisorderProtocolError
+   * or DisorderParseError.
+   *
+   * @return Response truth value
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  boolean getBooleanResponse() throws IOException,
+                                      DisorderParseError,
+                                      DisorderProtocolError {
+    String s = getStringResponse(false);
+    if(s.equals("yes"))
+      return true;
+    else if(s.equals("no"))
+      return false;
+    else
+      throw new DisorderParseError("expxected 'yes' or 'no' in response");
+  }
+
   /** Connect to the server.
    *
    * <p>Establishes a TCP connection to the server and authenticates
@@ -152,15 +354,13 @@ public class DisorderServer {
 					   Charset.forName("UTF-8"))));
     // Field the initial greeting and attempt to log in
     {
-      String greeting = getResponse();
-      Vector<String> v = DisorderMisc.split(greeting, false/*comments*/);
-      int rc = responseCode(v);
-      if(rc != 231)
-        throw new DisorderProtocolError(config.serverName, greeting);
-      if(!v.get(1).equals("2"))
-        throw new DisorderParseError("unknown protocol generation: " + v.get(1));
-      String alg = v.get(2);
-      String challenge = v.get(3);
+      Response greeting = getResponse();
+      if(greeting.rc != 231)
+        throw new DisorderProtocolError(config.serverName, greeting.toString());
+      if(!greeting.bits.get(1).equals("2"))
+        throw new DisorderParseError("unknown protocol generation: " + greeting.bits.get(1));
+      String alg = greeting.bits.get(2);
+      String challenge = greeting.bits.get(3);
       // Identify the hashing algorithm to use
       MessageDigest md;
       try {
@@ -185,12 +385,11 @@ public class DisorderServer {
     }
     // Handle the response to our login attempt
     {
-      String response = getResponse();
-      Vector<String> v = DisorderMisc.split(response, false/*comments*/);
-      int rc = responseCode(v);
-      if(rc / 100 != 2)
+      Response response = getResponse();
+      if(!response.ok())
         throw new DisorderProtocolError(config.serverName,
-                                        "authentication failed: " + response);
+                                        "authentication failed: "
+                                            + response.toString());
     }
     connected = true;
   }
@@ -234,127 +433,6 @@ public class DisorderServer {
   }
 
   /**
-   * Read a response form the server.
-   *
-   * Reads one line from the server and returns it as a string.  Note
-   * that the trailing newline character is not included.
-   *
-   * @return Line from server, or null at end of input.
-   * @throws IOException If a network IO error occurs
-   */
-  private String getResponse() throws IOException {
-    StringBuilder sb = new StringBuilder();
-    int n;
-    while((n = input.read()) != -1) {
-      char c = (char)n;
-      if(c == '\n') {
-        String s = sb.toString();
-        if(debugging) 
-          System.err.println("RECV: " + s);
-        return s;
-      }
-      sb.append(c);
-    }
-    // We reached end of file
-    return null;
-  }
-
-  /**
-   * Pick out a response code.
-   *
-   * @return Response code in the range 0-999.
-   * @throws DisorderParseError If the response is malformed
-   */
-  private int responseCode(List<String> v) throws DisorderParseError {
-    if(v.size() < 1)
-      throw new DisorderParseError("empty response");
-    int rc = Integer.parseInt(v.get(0));
-    if(rc < 0 || rc > 999)
-      throw new DisorderParseError("invalid response code " + v.get(0));
-    return rc;
-  }
-
-  /**
-   * Await a response and check it's OK.
-   *
-   * Any 2xx response counts as success.  Anything else will generate
-   * a DisorderProtocolError.
-   *
-   * @return Split response
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  private Vector<String> getPositiveResponse() throws IOException,
-                                                      DisorderParseError,
-                                                      DisorderProtocolError {
-    String response = getResponse();
-    Vector<String> v = DisorderMisc.split(response, false/*comments*/);
-    int rc = responseCode(v);
-    if(rc / 100 != 2)
-      throw new DisorderProtocolError(config.serverName, response);
-    return v;
-  }
-
-  /**
-   * Get a string response
-   *
-   * <p>Any 2xx response with exactly one extra field will return the
-   * value of that field.
-   *
-   * <p>If <code>optional<code> is <code>true</code> then a 555
-   * response is also accepted, with a return value of
-   * <code>null</code>.
-   *
-   * <p>Otherwise there will be a DisorderProtocolError or
-   * DisorderParseError.
-   *
-   * @param optional Whether 555 responses are acceptable
-   * @return Response value or <code>null</code>
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  String getStringResponse(boolean optional) throws IOException,
-                                                    DisorderParseError,
-                                                    DisorderProtocolError {
-    String response = getResponse();
-    Vector<String> v = DisorderMisc.split(response, false/*comments*/);
-    int rc = responseCode(v);
-    if(optional && rc == 555)
-      return null;
-    if(rc / 100 != 2)
-      throw new DisorderProtocolError(config.serverName, response);
-    if(v.size() != 2)
-      throw new DisorderParseError("malformed response: " + response);
-    return v.get(1);
-  }
-
-  /**
-   * Get a boolean response
-   *
-   * Any 2xx response with the next field being "yes" or "no" counts
-   * as success.  Anything else will generate a DisorderProtocolError
-   * or DisorderParseError.
-   *
-   * @return Response truth value
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  boolean getBooleanResponse() throws IOException,
-                                      DisorderParseError,
-                                      DisorderProtocolError {
-    String s = getStringResponse(false);
-    if(s.equals("yes"))
-      return true;
-    else if(s.equals("no"))
-      return false;
-    else
-      throw new DisorderParseError("expxected 'yes' or 'no' in response");
-  }
-
-  /**
    * Quote a string for use in a Disorder command
    *
    * @param s String to quote
@@ -384,27 +462,6 @@ public class DisorderServer {
       return sb.toString();
     } else
       return s;
-  }
-
-  /**
-   * Get a response body.
-   *
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   */
-  List<String> getResponseBody() throws IOException,
-                                        DisorderParseError {
-    Vector<String> r = new Vector<String>();
-    String s;
-    while((s = getResponse()) != null
-          && !s.equals("."))
-      if(s.length() > 0 && s.charAt(0) == '.')
-        r.add(s.substring(1));
-      else
-        r.add(s);
-    if(s == null)
-      throw new DisorderParseError("unterminated response body");
-    return r;
   }
 
   // TODO adduser not implemented because only works on local connections
@@ -456,8 +513,7 @@ public class DisorderServer {
       send("allfiles %s %s", quote(path), quote(regexp));
     else
       send("allfiles %s", quote(path));
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   // TODO confirm not implemented because only used by CGI
@@ -488,8 +544,7 @@ public class DisorderServer {
       send("dirs %s %s", quote(path), quote(regexp));
     else
       send("dirs %s", quote(path));
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -600,8 +655,7 @@ public class DisorderServer {
       send("files %s %s", quote(path), quote(regexp));
     else
       send("files %s", quote(path));
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -678,7 +732,7 @@ public class DisorderServer {
       send("log");
       getPositiveResponse();
       String r;
-      while((r = getResponse()) != null) {
+      while((r = getLine()) != null) {
         Vector<String> v = DisorderMisc.split(r, false);
         String e = v.get(0);
         if(e.equals("adopted")) l.adopted(v.get(1), v.get(2));
@@ -803,8 +857,7 @@ public class DisorderServer {
       send("new %d", max);
     else
       send("new");
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -935,9 +988,9 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("playing");
-    Vector<String> v = getPositiveResponse();
-    if(v.get(0).equals("252"))
-      return new TrackInformation(v, 1);
+    Response r = getPositiveResponse();
+    if(r.rc == 252)
+      return new TrackInformation(r.bits, 1);
     else
       return null;
   }
@@ -974,8 +1027,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("playlist-get %s", quote(playlist));
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1096,8 +1148,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("playlists");
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1115,8 +1166,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("prefs %s", quote(track));
-    getPositiveResponse();
-    List<String> prefs = getResponseBody();
+    List<String> prefs = getPositiveResponse().body;
     Hashtable<String, String> r = new Hashtable<String, String>(prefs.size());
     for(String line: prefs) {
       Vector<String> v = DisorderMisc.split(line, false);
@@ -1146,8 +1196,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("queue");
-    getPositiveResponse();
-    List<String> queue = getResponseBody();
+    List<String> queue = getPositiveResponse().body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(queue.size());
     for(String line: queue)
       r.add(new TrackInformation(line));
@@ -1220,8 +1269,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("recent");
-    getPositiveResponse();
-    List<String> recent = getResponseBody();
+    List<String> recent = getPositiveResponse().body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(recent.size());
     for(String line: recent)
       r.add(new TrackInformation(line));
@@ -1333,9 +1381,9 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("rtp-address");
-    Vector<String> v = getPositiveResponse();
-    String host = v.get(1);
-    int port = Integer.parseInt(v.get(2));
+    Response r = getPositiveResponse();
+    String host = r.bits.get(1);
+    int port = Integer.parseInt(r.bits.get(2));
     return new RtpAddress(host, port);
   }
 
@@ -1385,8 +1433,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("search %s", quote(terms));
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1443,8 +1490,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("stats");
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1461,8 +1507,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("tags");
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1535,8 +1580,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("users");
-    getPositiveResponse();
-    return getResponseBody();
+    return getPositiveResponse().body;
   }
 
   /**
@@ -1560,7 +1604,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("version");
-    return getPositiveResponse().get(1);
+    return getPositiveResponse().bits.get(1);
   }
 
   /**
@@ -1580,11 +1624,11 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("volume");
-    Vector<String> v = getPositiveResponse();
-    int[] r = new int[2];
-    r[0] = Integer.parseInt(v.get(1));
-    r[1] = Integer.parseInt(v.get(2));
-    return r;
+    Response r = getPositiveResponse();
+    int[] vol = new int[2];
+    vol[0] = Integer.parseInt(r.bits.get(1));
+    vol[1] = Integer.parseInt(r.bits.get(2));
+    return vol;
   }
 
   /**
@@ -1604,11 +1648,11 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("volume %d %d", left, right);
-    Vector<String> v = getPositiveResponse();
-    int[] r = new int[2];
-    r[0] = Integer.parseInt(v.get(1));
-    r[1] = Integer.parseInt(v.get(2));
-    return r;
+    Response r = getPositiveResponse();
+    int[] vol = new int[2];
+    vol[0] = Integer.parseInt(r.bits.get(1));
+    vol[1] = Integer.parseInt(r.bits.get(2));
+    return vol;
   }
 }
 

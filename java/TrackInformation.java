@@ -166,7 +166,7 @@ public class TrackInformation {
    * @param start Start index of track information
    * @throws DisorderParseError If the track information is malformed
    */
-  TrackInformation(Vector<String> v, int start)
+  TrackInformation(List<String> v, int start)
     throws DisorderParseError {
     unpack(v, start);
   }
@@ -178,7 +178,7 @@ public class TrackInformation {
    * @param start Start index of track information
    * @throws DisorderParseError If the track information is malformed
    */
-  private void unpack(Vector<String> v, int start) throws DisorderParseError {
+  private void unpack(List<String> v, int start) throws DisorderParseError {
     if((v.size() - start) % 2 == 1)
       throw new DisorderParseError("odd-length track information");
     int n = start;
