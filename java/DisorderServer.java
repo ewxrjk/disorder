@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -131,7 +131,6 @@ public class DisorderServer {
      */
     String line;
 
-
     /**
      * Status code
      */
@@ -189,7 +188,7 @@ public class DisorderServer {
       char c = (char)n;
       if(c == '\n') {
         String s = sb.toString();
-        if(debugging) 
+        if(debugging)
           System.err.println("RECV: " + s);
         return s;
       }
@@ -545,7 +544,7 @@ public class DisorderServer {
    * Execute a command.
    *
    * @param c Command to execute
-   * @return Command that was executed
+   * @return Command that was executed (same as {@c c}).
    */
   private Command execute(Command c) throws DisorderProtocolError,
                                             DisorderParseError,
@@ -1157,18 +1156,19 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public synchronized void playlistSet(String playlist,
-                                       List<String> contents)
+  public synchronized void playlistSet(final String playlist,
+                                       final List<String> contents)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    // TODO
-    connect();
-    sendNoFlush("playlist-set %s", quote(playlist));
-    for(String s: contents)
-      sendNoFlush("%s%s", s.charAt(0) == '.' ? "." : "", s);
-    send(".");
-    getPositiveResponse();
+    execute(new Command() {
+        void go() {
+          sendNoFlush("playlist-set %s", quote(playlist));
+          for(String s: contents)
+            sendNoFlush("%s%s", s.charAt(0) == '.' ? "." : "", s);
+          send(".");
+        }
+      });
   }
 
   /**
@@ -1341,7 +1341,6 @@ public class DisorderServer {
   // TODO register not implemented because it's only used by the CGI
   // TODO reminder not implemented because it's only used by the CGI
 
-  
   /**
    * Remove a track form the queue
    *
@@ -1358,7 +1357,6 @@ public class DisorderServer {
   }
 
   // TODO rescan not implemented
-
 
   /**
    * Resolve a track name.
@@ -1415,13 +1413,16 @@ public class DisorderServer {
 
     /**
      * Construct an RTP address from a host and port.
+     *
+     * @param h Hostname or IP address
+     * @param p Port number
      */
     RtpAddress(String h, int p) {
       host = h;
       port = p;
     }
   }
-  
+
   /**
    * Get the RTP address.
    *
