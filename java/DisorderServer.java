@@ -249,27 +249,6 @@ public class DisorderServer {
     return new Response(line, rc, bits, body);
   }
 
-  /**
-   * Get a response and check it's OK.
-   *
-   * Any 2xx response counts as success.  Anything else will generate
-   * a DisorderProtocolError.
-   *
-   * @return Parsed response
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  Response getPositiveResponse() throws IOException,
-                                        DisorderParseError,
-                                        DisorderProtocolError {
-    Response r = getResponse();
-
-    if(!r.ok())
-      throw new DisorderProtocolError(config.serverName, r.toString());
-    return r;
-  }
-
   /** Connect to the server.
    *
    * <p>Establishes a TCP connection to the server and authenticates
@@ -785,7 +764,12 @@ public class DisorderServer {
     for(;;) {
       connect();
       send("log");
-      getPositiveResponse();
+      {
+        Response r = getResponse();
+
+        if(!r.ok())
+          throw new DisorderProtocolError(config.serverName, r.toString());
+      }
       String r;
       while((r = getLine()) != null) {
         Vector<String> v = DisorderMisc.split(r, false);
