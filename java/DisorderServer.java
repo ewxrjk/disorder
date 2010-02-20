@@ -300,55 +300,6 @@ public class DisorderServer {
     return r.bits.get(1);
   }
 
-  /**
-   * Get a string response.
-   *
-   * <p>Any 2xx response with exactly one extra field will return the
-   * value of that field.
-   *
-   * <p>Otherwise there will be a DisorderProtocolError or
-   * DisorderParseError.
-   *
-   * @return Response value
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  String getStringResponse() throws IOException,
-                                    DisorderParseError,
-                                    DisorderProtocolError {
-    Response r = getResponse();
-    if(!r.ok())
-      throw new DisorderProtocolError(config.serverName, r.toString());
-    if(r.bits.size() != 2)
-      throw new DisorderParseError("malformed response: " + r.toString());
-    return r.bits.get(1);
-  }
-
-  /**
-   * Get a boolean response
-   *
-   * Any 2xx response with the next field being "yes" or "no" counts
-   * as success.  Anything else will generate a DisorderProtocolError
-   * or DisorderParseError.
-   *
-   * @return Response truth value
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  boolean getBooleanResponse() throws IOException,
-                                      DisorderParseError,
-                                      DisorderProtocolError {
-    String s = getStringResponse();
-    if(s.equals("yes"))
-      return true;
-    else if(s.equals("no"))
-      return false;
-    else
-      throw new DisorderParseError("expxected 'yes' or 'no' in response");
-  }
-
   /** Connect to the server.
    *
    * <p>Establishes a TCP connection to the server and authenticates
