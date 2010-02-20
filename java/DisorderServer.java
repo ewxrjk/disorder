@@ -199,11 +199,12 @@ public class DisorderServer {
    * Send a command to the server.
    *
    * A newline is appended to the command automatically.
+   * The output stream is NOT flushed.
    *
    * @param format Format string
    * @param args Arguments to <code>format</code>
    */
-  private void send(String format, Object ... args) {
+  private void sendNoFlush(String format, Object ... args) {
     if(formatter == null)
       formatter = new Formatter();
     formatter.format(format, args);
@@ -215,8 +216,21 @@ public class DisorderServer {
     }
     output.print(s);
     output.print('\n');         // no, not println!
-    output.flush();
     sb.delete(0, s.length());
+  }
+
+  /**
+   * Send a command to the server.
+   *
+   * A newline is appended to the command automatically.
+   * The output stream is flushed.
+   *
+   * @param format Format string
+   * @param args Arguments to <code>format</code>
+   */
+  private void send(String format, Object ... args) {
+    sendNoFlush(format, args);
+    output.flush();
   }
 
   /**
@@ -1019,11 +1033,10 @@ public class DisorderServer {
            DisorderParseError,
            DisorderProtocolError {
     connect();
-    send("playlist-set %s", quote(playlist));
+    sendNoFlush("playlist-set %s", quote(playlist));
     for(String s: contents)
-      send("%s%s", s.charAt(0) == '.' ? "." : "", s);
+      sendNoFlush("%s%s", s.charAt(0) == '.' ? "." : "", s);
     send(".");
-    // TODO send() will flush after every line which isn't very efficient
     getPositiveResponse();
   }
 
