@@ -270,36 +270,6 @@ public class DisorderServer {
     return r;
   }
 
-  /**
-   * Get an optional string response.
-   *
-   * <p>Any 2xx response with exactly one extra field will return the
-   * value of that field.
-   *
-   * <p>A 555 response is also accepted, with a return value of
-   * <code>null</code>.
-   *
-   * <p>Otherwise there will be a DisorderProtocolError or
-   * DisorderParseError.
-   *
-   * @return Response value or <code>null</code>
-   * @throws IOException If a network IO error occurs
-   * @throws DisorderParseError If a malformed response was received
-   * @throws DisorderProtocolError If the server sends an error response
-   */
-  String getOptionalStringResponse() throws IOException,
-                                            DisorderParseError,
-                                            DisorderProtocolError {
-    Response r = getResponse();
-    if(r.rc == 555)
-      return null;
-    if(!r.ok())
-      throw new DisorderProtocolError(config.serverName, r.toString());
-    if(r.bits.size() != 2)
-      throw new DisorderParseError("malformed response: " + r.toString());
-    return r.bits.get(1);
-  }
-
   /** Connect to the server.
    *
    * <p>Establishes a TCP connection to the server and authenticates
@@ -472,13 +442,31 @@ public class DisorderServer {
         throw new DisorderProtocolError(config.serverName, response.toString());
     }
 
+    /**
+     * Get a string response.
+     *
+     * <p>If the return code is 2xx then the response must contain
+     * a single (quoted) field, which will be returned.
+     *
+     * <p>If the return code is 555 then {@c null} is returned.  Note
+     * that the default ok() will reject this response.
+     *
+     * @return Response value or {@c null}.
+     */
     String getString() throws DisorderParseError {
+      if(response.rc == 555)
+        return null;
       if(response.bits.size() != 2)
         throw new DisorderParseError("malformed response: "
                                      + response.toString());
       return response.bits.get(1);
     }
 
+    /**
+     * Get a boolean response.
+     *
+     * @return Response value.
+     */
     boolean getBoolean() throws DisorderParseError {
       String s = getString();
       if(s.equals("yes"))
@@ -487,6 +475,20 @@ public class DisorderServer {
         return false;
       else
         throw new DisorderParseError("expxected 'yes' or 'no' in response");
+    }
+
+  };
+
+  abstract class OptionalResponseCommand extends Command {
+    /**
+     * Test whether a response is OK.
+     *
+     * <p>This version accepts both 555 and 2xx responses.
+     *
+     * @return true if the response is OK, else false.
+     */
+    boolean ok() {
+      return response.rc == 555 || response.ok();
     }
 
   };
@@ -717,13 +719,16 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public synchronized String get(String track,
-                                 String pref) throws IOException,
-                                                     DisorderParseError,
-                                                     DisorderProtocolError {
-    connect();
-    send("get %s %s", quote(track), quote(pref));
-    return getOptionalStringResponse(); // TODO
+  public synchronized String get(final String track,
+                                 final String pref)
+    throws IOException,
+           DisorderParseError,
+           DisorderProtocolError {
+    return execute(new OptionalResponseCommand() {
+        void go(){
+          send("get %s %s", quote(track), quote(pref));
+        }
+      }).getString();
   }
 
   /**
@@ -735,13 +740,15 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public synchronized String getGlobal(String key)
+  public synchronized String getGlobal(final String key)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("get-global %s %s", quote(key));
-    return getOptionalStringResponse(); // TODO
+    return execute(new OptionalResponseCommand() {
+        void go(){
+          send("get-global %s", quote(key));
+        }
+      }).getString();
   }
 
   /**
@@ -1545,14 +1552,16 @@ public class DisorderServer {
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  public synchronized String userinfo(String user,
-                                      String property)
+  public synchronized String userinfo(final String user,
+                                      final String property)
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("userinfo %s %s", quote(user), quote(property));
-    return getOptionalStringResponse(); // TODO
+    return execute(new OptionalResponseCommand() {
+        void go(){
+          send("userinfo %s %s", quote(user), quote(property));
+        }
+      }).getString();
   }
 
   /**
