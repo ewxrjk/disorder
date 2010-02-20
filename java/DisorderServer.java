@@ -522,6 +522,23 @@ public class DisorderServer {
         throw new DisorderProtocolError(config.serverName, response.toString());
     }
 
+    String getString() throws DisorderParseError {
+      if(response.bits.size() != 2)
+        throw new DisorderParseError("malformed response: "
+                                     + response.toString());
+      return response.bits.get(1);
+    }
+
+    boolean getBoolean() throws DisorderParseError {
+      String s = getString();
+      if(s.equals("yes"))
+        return true;
+      else if(s.equals("no"))
+        return false;
+      else
+        throw new DisorderParseError("expxected 'yes' or 'no' in response");
+    }
+
   };
 
   /**
@@ -600,12 +617,12 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
+    Command c;
     if(regexp != null)
-      send("allfiles %s %s", quote(path), quote(regexp));
+      c = execute("allfiles %s %s", quote(path), quote(regexp));
     else
-      send("allfiles %s", quote(path));
-    return getPositiveResponse().body;
+      c = execute("allfiles %s", quote(path));
+    return c.response.body;
   }
 
   // TODO confirm not implemented because only used by CGI
@@ -631,12 +648,12 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
+    Command c;
     if(regexp != null)
-      send("dirs %s %s", quote(path), quote(regexp));
+      c = execute("dirs %s %s", quote(path), quote(regexp));
     else
-      send("dirs %s", quote(path));
-    return getPositiveResponse().body;
+      c = execute("dirs %s", quote(path));
+    return c.response.body;
   }
 
   /**
@@ -649,9 +666,7 @@ public class DisorderServer {
   public synchronized void disable() throws IOException,
                                             DisorderParseError,
                                             DisorderProtocolError {
-    connect();
-    send("disable");
-    getPositiveResponse();
+    execute("disable");
   }
 
   /**
@@ -669,9 +684,7 @@ public class DisorderServer {
                                     String value) throws IOException,
                                                          DisorderParseError,
                                                          DisorderProtocolError {
-    connect();
-    send("edituser %s %s %s", quote(username), quote(property), quote(value));
-    getPositiveResponse();
+    execute("edituser %s %s %s", quote(username), quote(property), quote(value));
   }
 
   /**
@@ -684,9 +697,7 @@ public class DisorderServer {
   public synchronized void enable() throws IOException,
                                            DisorderParseError,
                                            DisorderProtocolError {
-    connect();
-    send("enable");
-    getPositiveResponse();
+    execute("enable");
   }
 
   /**
@@ -700,9 +711,7 @@ public class DisorderServer {
   public synchronized boolean enabled() throws IOException,
                                                DisorderParseError,
                                                DisorderProtocolError {
-    connect();
-    send("enabled");
-    return getBooleanResponse();
+    return execute("enabled").getBoolean();
   }
 
   /**
@@ -718,9 +727,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("exists %s", quote(track));
-    return getBooleanResponse();
+    return execute("exists %s", quote(track)).getBoolean();
   }
 
   /**
@@ -742,12 +749,12 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
+    Command c;
     if(regexp != null)
-      send("files %s %s", quote(path), quote(regexp));
+      c = execute("files %s %s", quote(path), quote(regexp));
     else
-      send("files %s", quote(path));
-    return getPositiveResponse().body;
+      c = execute("files %s", quote(path));
+    return c.response.body;
   }
 
   /**
@@ -766,7 +773,7 @@ public class DisorderServer {
                                                      DisorderProtocolError {
     connect();
     send("get %s %s", quote(track), quote(pref));
-    return getOptionalStringResponse();
+    return getOptionalStringResponse(); // TODO
   }
 
   /**
@@ -784,7 +791,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("get-global %s %s", quote(key));
-    return getOptionalStringResponse();
+    return getOptionalStringResponse(); // TODO
   }
 
   /**
@@ -799,9 +806,7 @@ public class DisorderServer {
   public synchronized int length(String track) throws IOException,
                                                       DisorderParseError,
                                                       DisorderProtocolError {
-    connect();
-    send("length %s", quote(track));
-    return Integer.parseInt(getStringResponse());
+    return Integer.parseInt(execute("length %s", quote(track)).getString());
   }
 
   /**
@@ -819,6 +824,7 @@ public class DisorderServer {
      throws IOException,
             DisorderParseError,
             DisorderProtocolError {
+    // TODO
     for(;;) {
       connect();
       send("log");
@@ -894,9 +900,7 @@ public class DisorderServer {
                                 int delta) throws IOException,
                                                   DisorderParseError,
                                                   DisorderProtocolError {
-    connect();
-    send("move %s %d", quote(track), delta);
-    getPositiveResponse();
+    execute("move %s %d", quote(track), delta);
   }
 
   /**
@@ -923,8 +927,7 @@ public class DisorderServer {
       sb.append(' ');
       sb.append(quote(tracks[n]));
     }
-    send("moveafter %s %s", quote(target), sb.toString());
-    getPositiveResponse();
+    execute("moveafter %s %s", quote(target), sb.toString());
   }
 
   /**
@@ -944,12 +947,12 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
+    Command c;
     if(max > 0)
-      send("new %d", max);
+      c = execute("new %d", max);
     else
-      send("new");
-    return getPositiveResponse().body;
+      c = execute("new");
+    return c.response.body;
   }
 
   /**
@@ -965,9 +968,7 @@ public class DisorderServer {
   public synchronized void nop() throws IOException,
                                         DisorderParseError,
                                         DisorderProtocolError {
-    connect();
-    send("nop");
-    getPositiveResponse();
+    execute("nop");
   }
 
   /**
@@ -990,9 +991,10 @@ public class DisorderServer {
                                   String part) throws IOException,
                                                       DisorderParseError,
                                                       DisorderProtocolError {
-    connect();
-    send("part %s %s %s", quote(track), quote(context), quote(part));
-    return getStringResponse();
+    return execute("part %s %s %s",
+                   quote(track),
+                   quote(context),
+                   quote(part)).getString();
   }
 
   /**
@@ -1007,9 +1009,7 @@ public class DisorderServer {
   public synchronized void pause() throws IOException,
                                           DisorderParseError,
                                           DisorderProtocolError {
-    connect();
-    send("pause");
-    getPositiveResponse();
+    execute("pause");
   }
 
   /**
@@ -1024,9 +1024,7 @@ public class DisorderServer {
   public synchronized String play(String track) throws IOException,
                                                        DisorderParseError,
                                                        DisorderProtocolError {
-    connect();
-    send("play %s", quote(track));
-    return getStringResponse();
+    return execute("play %s", quote(track)).getString();
   }
 
   /**
@@ -1055,14 +1053,12 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
     StringBuilder sb = new StringBuilder();
     for(int n = 0; n < tracks.length; ++n) {
       sb.append(' ');
       sb.append(quote(tracks[n]));
     }
-    send("playafter %s %s", quote(target), sb.toString());
-    getPositiveResponse();
+    execute("playafter %s %s", quote(target), sb.toString());
     return null;
   }
 
@@ -1078,11 +1074,9 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playing");
-    Response r = getPositiveResponse();
-    if(r.rc == 252)
-      return new TrackInformation(r.bits, 1);
+    Command c = execute("playing");
+    if(c.response.rc == 252)
+      return new TrackInformation(c.response.bits, 1);
     else
       return null;
   }
@@ -1099,9 +1093,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-delete %s", quote(playlist));
-    getPositiveResponse();
+    execute("playlist-delete %s", quote(playlist));
   }
 
   /**
@@ -1117,9 +1109,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-get %s", quote(playlist));
-    return getPositiveResponse().body;
+    return execute("playlist-get %s", quote(playlist)).response.body;
   }
 
   /**
@@ -1138,9 +1128,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-get-share %s", quote(playlist));
-    return getStringResponse();
+    return execute("playlist-get-share %s", quote(playlist)).getString();
   }
 
   /**
@@ -1155,9 +1143,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-lock %s", quote(playlist));
-    getPositiveResponse();
+    execute("playlist-lock %s", quote(playlist));
   }
 
   /**
@@ -1176,6 +1162,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
+    // TODO
     connect();
     sendNoFlush("playlist-set %s", quote(playlist));
     for(String s: contents)
@@ -1203,9 +1190,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-set-share %s %s", quote(playlist), quote(share));
-    getPositiveResponse();
+    execute("playlist-set-share %s %s", quote(playlist), quote(share));
   }
 
   /**
@@ -1219,9 +1204,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlist-unlock");
-    getPositiveResponse();
+    execute("playlist-unlock");
   }
 
   /**
@@ -1238,9 +1221,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("playlists");
-    return getPositiveResponse().body;
+    return execute("playlists").response.body;
   }
 
   /**
@@ -1256,9 +1237,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("prefs %s", quote(track));
-    List<String> prefs = getPositiveResponse().body;
+    List<String> prefs = execute("prefs %s", quote(track)).response.body;
     Hashtable<String, String> r = new Hashtable<String, String>(prefs.size());
     for(String line: prefs) {
       Vector<String> v = DisorderMisc.split(line, false);
@@ -1286,9 +1265,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("queue");
-    List<String> queue = getPositiveResponse().body;
+    List<String> queue = execute("queue").response.body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(queue.size());
     for(String line: queue)
       r.add(new TrackInformation(line));
@@ -1306,9 +1283,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("random-disable");
-    getPositiveResponse();
+    execute("random-disable");
   }
 
   /**
@@ -1322,9 +1297,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("random-enable");
-    getPositiveResponse();
+    execute("random-enable");
   }
 
   /**
@@ -1338,9 +1311,7 @@ public class DisorderServer {
   public synchronized boolean randomEnabled() throws IOException,
                                                      DisorderParseError,
                                                      DisorderProtocolError {
-    connect();
-    send("random-enabled");
-    return getBooleanResponse();
+    return execute("random-enabled").getBoolean();
   }
 
   /**
@@ -1359,9 +1330,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("recent");
-    List<String> recent = getPositiveResponse().body;
+    List<String> recent = execute("recent").response.body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(recent.size());
     for(String line: recent)
       r.add(new TrackInformation(line));
@@ -1385,9 +1354,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("remove %s", quote(id));
-    getPositiveResponse();
+    execute("remove %s", quote(id));
   }
 
   // TODO rescan not implemented
@@ -1409,9 +1376,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("resolve %s", quote(track));
-    return getStringResponse();
+    return execute("resolve %s", quote(track)).getString();
   }
 
   /**
@@ -1427,9 +1392,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("resume");
-    getPositiveResponse();
+    execute("resume");
   }
 
   // TODO revoke not implemented because only used by the CGI
@@ -1471,9 +1434,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("rtp-address");
-    Response r = getPositiveResponse();
+    Response r = execute("rtp-address").response;
     String host = r.bits.get(1);
     int port = Integer.parseInt(r.bits.get(2));
     return new RtpAddress(host, port);
@@ -1494,12 +1455,10 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
     if(id != null)
-      send("scratch %s", quote(id));
+      execute("scratch %s", quote(id));
     else
-      send("scratch");
-    getPositiveResponse();
+      execute("scratch");
   }
 
   // TODO schedule-* not implemented due to dubious utility
@@ -1523,9 +1482,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("search %s", quote(terms));
-    return getPositiveResponse().body;
+    return execute("search %s", quote(terms)).response.body;
   }
 
   /**
@@ -1544,9 +1501,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("set %s %s %s", quote(track), quote(pref), quote(value));
-    getPositiveResponse();
+    execute("set %s %s %s", quote(track), quote(pref), quote(value));
   }
 
   /**
@@ -1563,9 +1518,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("set-global %s %s", quote(pref), quote(value));
-    getPositiveResponse();
+    execute("set-global %s %s", quote(pref), quote(value));
   }
 
   /**
@@ -1580,9 +1533,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("stats");
-    return getPositiveResponse().body;
+    return execute("stats").response.body;
   }
 
   /**
@@ -1597,9 +1548,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("tags");
-    return getPositiveResponse().body;
+    return execute("tags").response.body;
   }
 
   /**
@@ -1616,9 +1565,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("set %s %s", quote(track), quote(pref));
-    getPositiveResponse();
+    execute("set %s %s", quote(track), quote(pref));
   }
 
   /**
@@ -1633,9 +1580,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("unset-global %s", quote(pref));
-    getPositiveResponse();
+    execute("unset-global %s", quote(pref));
   }
 
   /**
@@ -1655,7 +1600,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("userinfo %s %s", quote(user), quote(property));
-    return getOptionalStringResponse();
+    return getOptionalStringResponse(); // TODO
   }
 
   /**
@@ -1670,9 +1615,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("users");
-    return getPositiveResponse().body;
+    return execute("users").response.body;
   }
 
   /**
@@ -1712,9 +1655,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("volume");
-    Response r = getPositiveResponse();
+    Response r = execute("volume").response;
     int[] vol = new int[2];
     vol[0] = Integer.parseInt(r.bits.get(1));
     vol[1] = Integer.parseInt(r.bits.get(2));
@@ -1736,9 +1677,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("volume %d %d", left, right);
-    Response r = getPositiveResponse();
+    Response r = execute("volume %d %d", left, right).response;
     int[] vol = new int[2];
     vol[0] = Integer.parseInt(r.bits.get(1));
     vol[1] = Integer.parseInt(r.bits.get(2));
