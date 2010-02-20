@@ -272,30 +272,53 @@ public class DisorderServer {
   }
 
   /**
-   * Get a string response.
+   * Get an optional string response.
    *
    * <p>Any 2xx response with exactly one extra field will return the
    * value of that field.
    *
-   * <p>If <code>optional<code> is <code>true</code> then a 555
-   * response is also accepted, with a return value of
+   * <p>A 555 response is also accepted, with a return value of
    * <code>null</code>.
    *
    * <p>Otherwise there will be a DisorderProtocolError or
    * DisorderParseError.
    *
-   * @param optional Whether 555 responses are acceptable
    * @return Response value or <code>null</code>
    * @throws IOException If a network IO error occurs
    * @throws DisorderParseError If a malformed response was received
    * @throws DisorderProtocolError If the server sends an error response
    */
-  String getStringResponse(boolean optional) throws IOException,
-                                                    DisorderParseError,
-                                                    DisorderProtocolError {
+  String getOptionalStringResponse() throws IOException,
+                                            DisorderParseError,
+                                            DisorderProtocolError {
     Response r = getResponse();
-    if(optional && r.rc == 555)
+    if(r.rc == 555)
       return null;
+    if(!r.ok())
+      throw new DisorderProtocolError(config.serverName, r.toString());
+    if(r.bits.size() != 2)
+      throw new DisorderParseError("malformed response: " + r.toString());
+    return r.bits.get(1);
+  }
+
+  /**
+   * Get a string response.
+   *
+   * <p>Any 2xx response with exactly one extra field will return the
+   * value of that field.
+   *
+   * <p>Otherwise there will be a DisorderProtocolError or
+   * DisorderParseError.
+   *
+   * @return Response value
+   * @throws IOException If a network IO error occurs
+   * @throws DisorderParseError If a malformed response was received
+   * @throws DisorderProtocolError If the server sends an error response
+   */
+  String getStringResponse() throws IOException,
+                                    DisorderParseError,
+                                    DisorderProtocolError {
+    Response r = getResponse();
     if(!r.ok())
       throw new DisorderProtocolError(config.serverName, r.toString());
     if(r.bits.size() != 2)
@@ -318,7 +341,7 @@ public class DisorderServer {
   boolean getBooleanResponse() throws IOException,
                                       DisorderParseError,
                                       DisorderProtocolError {
-    String s = getStringResponse(false);
+    String s = getStringResponse();
     if(s.equals("yes"))
       return true;
     else if(s.equals("no"))
@@ -674,7 +697,7 @@ public class DisorderServer {
                                                      DisorderProtocolError {
     connect();
     send("get %s %s", quote(track), quote(pref));
-    return getStringResponse(true);
+    return getOptionalStringResponse();
   }
 
   /**
@@ -692,7 +715,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("get-global %s %s", quote(key));
-    return getStringResponse(true);
+    return getOptionalStringResponse();
   }
 
   /**
@@ -709,7 +732,7 @@ public class DisorderServer {
                                                       DisorderProtocolError {
     connect();
     send("length %s", quote(track));
-    return Integer.parseInt(getStringResponse(false));
+    return Integer.parseInt(getStringResponse());
   }
 
   /**
@@ -900,7 +923,7 @@ public class DisorderServer {
                                                       DisorderProtocolError {
     connect();
     send("part %s %s %s", quote(track), quote(context), quote(part));
-    return getStringResponse(false);
+    return getStringResponse();
   }
 
   /**
@@ -934,7 +957,7 @@ public class DisorderServer {
                                                        DisorderProtocolError {
     connect();
     send("play %s", quote(track));
-    return getStringResponse(false);
+    return getStringResponse();
   }
 
   /**
@@ -1048,7 +1071,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("playlist-get-share %s", quote(playlist));
-    return getStringResponse(false);
+    return getStringResponse();
   }
 
   /**
@@ -1319,7 +1342,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("resolve %s", quote(track));
-    return getStringResponse(false);
+    return getStringResponse();
   }
 
   /**
@@ -1563,7 +1586,7 @@ public class DisorderServer {
            DisorderProtocolError {
     connect();
     send("userinfo %s %s", quote(user), quote(property));
-    return getStringResponse(true);
+    return getOptionalStringResponse();
   }
 
   /**
