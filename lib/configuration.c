@@ -52,7 +52,7 @@
 
 /** @brief Path to config file 
  *
- * set_configfile() sets the deafult if it is null.
+ * set_configfile() sets the default if it is null.
  */
 char *configfile;
 
