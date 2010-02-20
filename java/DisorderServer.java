@@ -487,6 +487,77 @@ public class DisorderServer {
       return s;
   }
 
+  /**
+   * Base class for commands
+   */
+  abstract class Command {
+    /**
+     * The response to the command.
+     */
+    Response response;
+
+    /**
+     * Called to send the command.
+     */
+    abstract void go();
+
+    /**
+     * Test whether a response is OK.
+     *
+     * The default is to test for a 2xx response.
+     *
+     * @return true if the response is OK, else false.
+     */
+    boolean ok() {
+      return response.ok();
+    }
+
+    /**
+     * Called to process the response.
+     *
+     * The default is to insist that ok() returns true.
+     */
+    void completed() throws DisorderProtocolError {
+      if(!ok())
+        throw new DisorderProtocolError(config.serverName, response.toString());
+    }
+
+  };
+
+  /**
+   * Execute a command.
+   *
+   * @param c Command to execute
+   * @return Command that was executed
+   */
+  private Command execute(Command c) throws DisorderProtocolError,
+                                            DisorderParseError,
+                                            IOException {
+    connect();
+    c.go();
+    c.response = getResponse();
+    c.completed();
+    return c;
+  }
+
+  /**
+   * Execute a command.
+   *
+   * @param format Format string
+   * @param args Arguments to <code>format</code>
+   * @return Command that was executed
+   */
+  private Command execute(final String format,
+                          final Object ... args) throws DisorderProtocolError,
+                                                        DisorderParseError,
+                                                        IOException  {
+    return execute(new Command() {
+        void go() {
+          send(format, args);
+        }
+      });
+  }
+
   // TODO adduser not implemented because only works on local connections
 
   /**
@@ -503,9 +574,7 @@ public class DisorderServer {
   public synchronized void adopt(String id) throws IOException,
                                                    DisorderParseError,
                                                    DisorderProtocolError {
-    connect();
-    send("adopt %s", quote(id));
-    getPositiveResponse();
+    execute("adopt %s", quote(id));
   }
 
   /**
@@ -1625,9 +1694,7 @@ public class DisorderServer {
     throws IOException,
            DisorderParseError,
            DisorderProtocolError {
-    connect();
-    send("version");
-    return getPositiveResponse().bits.get(1);
+    return execute("version").response.bits.get(1);
   }
 
   /**
