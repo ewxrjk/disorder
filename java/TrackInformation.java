@@ -22,7 +22,8 @@ import java.util.*;
 /**
  * Information about a track in the queue or another list.
  *
- * Returned by various methods of {@link DisorderServer DisorderServer}.
+ * Returned by various methods of {@link
+ * uk.org.greenend.disorder.DisorderServer DisorderServer}.
  *
  * <p>Queued track data appears in the following contexts:
  * <ul>

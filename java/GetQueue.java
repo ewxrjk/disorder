@@ -23,6 +23,7 @@ class GetQueue {
   public static void main(String[] args) throws DisorderParseException,
                                                 DisorderProtocolException,
                                                 DisorderIOException,
+                                                InterruptedException,
                                                 IOException {
     DisorderServer d = new DisorderServer();
     List<TrackInformation> q = d.queue();

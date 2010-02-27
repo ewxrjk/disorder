@@ -103,11 +103,12 @@ class ReliableWriter extends Writer {
 }
 
 /**
- * A synchronous connection to a DisOrder server.
+ * A thread-safe, synchronous, robust connection to a DisOrder server.
  *
- * <p>Having created a connection, use the various methods to play
- * tracks, list the queue, etc.  Most methods have exactly the same
- * name as the underlying protocol command, the exceptions being:
+ * <h3>Implemented Methods</h3>
+ *
+ * <p>Most methods have exactly the same name as the underlying protocol
+ * command, the exceptions being:
  *
  * <ul>
  * <li>Where there is a dash in the command, in which case a camelcase
@@ -129,31 +130,57 @@ class ReliableWriter extends Writer {
  * Again there's no reason they couldn't be.
  * </ul>
  *
+ * <p>The full protocol documentation can be found in the <code>doc</code>
+ * subdirectory of the DisOrder source distribution; <code>man
+ * disorder_protocol</code> on a system with a DisOrder install; or online at
+ * <a
+ * href="http://www.greenend.org.uk/rjk/disorder/disorder_protocol.5.html">disorder_protocol.5.html</a>.
+ *
+ * <h3>Error Handling</h3>
+ *
+ * <p>If an IO error occurs connecting to the server, sending a command or
+ * retrieving a reply, then the command will be retried after a short delay.
+ * By default, it will be retried indefinitely until it gets through, but the
+ * {@link #setMaxAttempts setMaxAttempts} method can be used to set a limit on
+ * how many times it will be retried.
+ *
+ * <p>The default is most appropriate for GUIs which should survive transient
+ * outages of the server.  For command line tools,
+ * <code>setMaxAttempts(1)</code> might be more suitable.
+ *
  * <p>Command methods can throw the following exceptions:
  * <ul>
- * <li>{@link DisorderIOException}.  This is thrown if a network IO error occurs.
- * <li>{@link DisorderProtocolException}.  This is thrown if the server
- *     sends back an error.
- * <li>{@link DisorderParseException}.  This is thrown if a malformed message
- *     is received from the server.
+ *
+ * <li>{@link uk.org.greenend.disorder.DisorderIOException}.  This is thrown if
+ *     a network IO error occurs, after all retries have been attempted.
+ *
+ * <li>{@link uk.org.greenend.disorder.DisorderProtocolException}.  This is
+ *     thrown if the server sends back an error.
+ *
+ * <li>{@link uk.org.greenend.disorder.DisorderParseException}.  This is thrown
+ *     if a malformed message is received from the server.
+ *
+ * <li>{@link InterruptedException}.  This is thrown if the thread is
+ *     interrupted while awaiting a retry attempt.
+ *
  * </ul>
  *
- * <p>It is safe and efficient to use one <code>DisorderServer</code>
- * from multiple threads.
+ * <h3>Threading</h3>
  *
- * <p>Set the system property <code>DISORDER_DEBUG</code> (to
- * anything) to turn on debugging.  Debug messages are sent to
- * <code>System.err</code>.
+ * <p>It is safe and relatively efficient to use one
+ * <code>DisorderServer</code> from multiple threads.  If multiple threads
+ * invoke commands concurrently then each will have to wait its turn to send
+ * its command, but will be able to send while others are still waiting for
+ * their reply.
+ *
+ * <h3>Debugging</h3>
+ *
+ * <p>Set the system property <code>DISORDER_DEBUG</code> (to anything) to turn
+ * on debugging.  Debug messages are sent to <code>System.err</code>.  (This
+ * isn't formally part of the interface and is subject to change without
+ * warning.)
  */
 public class DisorderServer {
-
-  /* TODO: If the connection to the server fails we should
-   * automatically reconnect and retry, within reason and perhaps
-   * configurably.  This wouldn't change the interface - IOException
-   * would still be possible when we give up - but would allow
-   * long-running user interfaces to recover from transient outages
-   * (e.g. server restarts) more transparently.  */
-
   private DisorderConfig config;
   private boolean connected;
   private Socket conn;
@@ -162,6 +189,7 @@ public class DisorderServer {
   private PrintWriter output;
   private boolean debugging;
   private Formatter formatter;
+  private int maxAttempts;
 
   private ReentrantLock sendLock, receiveLock;
 
@@ -211,8 +239,28 @@ public class DisorderServer {
     connected = false;
     sendLock = new ReentrantLock();
     receiveLock = new ReentrantLock();
+    maxAttempts = 0;            // infinitely many attempts
   }
 
+  /**
+   * Set the maximum number of times to attempt a command.
+   *
+   * @param maxAttempts Maximum attempts, or 0 to retry indefinitely
+   */
+  public void setMaxAttempts(int maxAttempts) {
+    if(maxAttempts >= 0)
+      this.maxAttempts = maxAttempts;
+  }
+
+  /**
+   * Get the maximum number of times to attempt a command.
+   *
+   * @return Maximum attempts, or 0 to retry indefinitely
+   */
+  public int getMaxAttempts() {
+    return maxAttempts;
+  }
+  
   /**
    * Represents a response.
    */
@@ -415,6 +463,8 @@ public class DisorderServer {
     connected = true;
   }
 
+  // TODO threading issues: what if we disconnect() in the middle of a
+  // read while something else is engaged in a write?
   private DisorderIOException disconnect(Throwable ex) {
     if(connected) {
       try {
@@ -424,6 +474,7 @@ public class DisorderServer {
       }
       input = null;
       output = null;
+      outputw = null;
       conn = null;
       connected = false;
     }
@@ -609,27 +660,43 @@ public class DisorderServer {
    */
   private Command execute(Command c) throws DisorderProtocolException,
                                             DisorderParseException,
-                                            DisorderIOException {
+                                            DisorderIOException,
+                                            InterruptedException {
     boolean haveSendLock = false, haveReceiveLock = false;
+    DisorderIOException error = null;
+    int backoff = 250;          // milliseconds
 
-    try {
-      sendLock.lock(); haveSendLock = true;
-      connect();
-      c.go();
-      if(output.checkError())
-        throw disconnect(outputw.getError());
-      receiveLock.lock(); haveReceiveLock = true;
-      sendLock.unlock(); haveSendLock = false;
-      c.response = getResponse();
-      receiveLock.unlock(); haveReceiveLock = false;
-      c.completed();
-    } finally {
-      if(haveSendLock)
-        sendLock.unlock();
-      if(haveReceiveLock)
-        receiveLock.unlock();
+    for(int attempts = 0;
+        maxAttempts == 0 || attempts < maxAttempts;
+        ++attempts) {
+      try {
+        try {
+          sendLock.lock(); haveSendLock = true;
+          connect();
+          c.go();
+          if(output.checkError())
+            throw disconnect(outputw.getError());
+          receiveLock.lock(); haveReceiveLock = true;
+          sendLock.unlock(); haveSendLock = false;
+          c.response = getResponse();
+          receiveLock.unlock(); haveReceiveLock = false;
+          c.completed();
+          return c;
+        } finally {
+          if(haveSendLock)
+            sendLock.unlock();
+          if(haveReceiveLock)
+            receiveLock.unlock();
+        }
+      } catch(DisorderIOException ex) {
+        error = ex;
+      }
+      Thread.sleep(backoff);
+      backoff *= 2;
+      if(backoff > 1000)
+        backoff = 1000;
     }
-    return c;
+    throw error;
   }
 
   /**
@@ -640,9 +707,11 @@ public class DisorderServer {
    * @return Command that was executed
    */
   private Command execute(final String format,
-                          final Object ... args) throws DisorderProtocolException,
-                                                        DisorderParseException,
-                                                        DisorderIOException  {
+                          final Object ... args)
+    throws DisorderProtocolException,
+           DisorderParseException,
+           InterruptedException,
+           DisorderIOException  {
     return execute(new Command() {
         void go() {
           send(format, args);
@@ -662,9 +731,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void adopt(String id) throws DisorderIOException,
                                       DisorderParseException,
+                                      InterruptedException,
                                       DisorderProtocolException {
     execute("adopt %s", quote(id));
   }
@@ -686,11 +757,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> allfiles(String path,
                                String regexp)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     Command c;
     if(regexp != null)
@@ -717,11 +790,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> dirs(String path,
                            String regexp)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     Command c;
     if(regexp != null)
@@ -737,9 +812,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void disable() throws DisorderIOException,
                                DisorderParseException,
+                               InterruptedException,
                                DisorderProtocolException {
     execute("disable");
   }
@@ -753,11 +830,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void edituser(String username,
                        String property,
                        String value) throws DisorderIOException,
                                             DisorderParseException,
+                                            InterruptedException,
                                             DisorderProtocolException {
     execute("edituser %s %s %s", quote(username), quote(property), quote(value));
   }
@@ -768,9 +847,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void enable() throws DisorderIOException,
                               DisorderParseException,
+                              InterruptedException,
                               DisorderProtocolException {
     execute("enable");
   }
@@ -782,9 +863,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public boolean enabled() throws DisorderIOException,
                                   DisorderParseException,
+                                  InterruptedException,
                                   DisorderProtocolException {
     return execute("enabled").getBoolean();
   }
@@ -797,10 +880,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public boolean exists(String track)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute("exists %s", quote(track)).getBoolean();
   }
@@ -818,11 +903,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> files(String path,
                             String regexp)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     Command c;
     if(regexp != null)
@@ -841,11 +928,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String get(final String track,
                     final String pref)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute(new OptionalResponseCommand() {
         void go(){
@@ -862,10 +951,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String getGlobal(final String key)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute(new OptionalResponseCommand() {
         void go(){
@@ -882,9 +973,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public int length(String track) throws DisorderIOException,
                                          DisorderParseException,
+                                         InterruptedException,
                                          DisorderProtocolException {
     return Integer.parseInt(execute("length %s", quote(track)).getString());
   }
@@ -910,6 +1003,7 @@ public class DisorderServer {
    */
   public void log(DisorderLog l) throws DisorderIOException,
                                         DisorderParseException,
+                                        InterruptedException,
                                         DisorderProtocolException {
     boolean locked = sendLock.tryLock();
     assert locked == true:
@@ -995,10 +1089,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void move(String track,
                    int delta) throws DisorderIOException,
                                      DisorderParseException,
+                                     InterruptedException,
                                      DisorderProtocolException {
     execute("move %s %d", quote(track), delta);
   }
@@ -1015,11 +1111,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void moveafter(String target,
                         String... tracks)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     connect();
     StringBuilder sb = new StringBuilder();
@@ -1042,9 +1140,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> newTracks(int max) throws DisorderIOException,
                                                 DisorderParseException,
+                                                InterruptedException,
                                                 DisorderProtocolException {
     Command c;
     if(max > 0)
@@ -1063,9 +1163,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void nop() throws DisorderIOException,
                            DisorderParseException,
+                           InterruptedException,
                            DisorderProtocolException {
     execute("nop");
   }
@@ -1084,11 +1186,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String part(String track,
                      String context,
                      String part) throws DisorderIOException,
                                          DisorderParseException,
+                                         InterruptedException,
                                          DisorderProtocolException {
     return execute("part %s %s %s",
                    quote(track),
@@ -1104,9 +1208,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void pause() throws DisorderIOException,
                              DisorderParseException,
+                             InterruptedException,
                              DisorderProtocolException {
     execute("pause");
   }
@@ -1119,9 +1225,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String play(String track) throws DisorderIOException,
                                           DisorderParseException,
+                                          InterruptedException,
                                           DisorderProtocolException {
     return execute("play %s", quote(track)).getString();
   }
@@ -1146,11 +1254,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> playafter(String target,
                                 String... tracks)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     StringBuilder sb = new StringBuilder();
     for(int n = 0; n < tracks.length; ++n) {
@@ -1168,9 +1278,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public TrackInformation playing() throws DisorderIOException,
                                            DisorderParseException,
+                                           InterruptedException,
                                            DisorderProtocolException {
     Command c = execute("playing");
     if(c.response.rc == 252)
@@ -1186,9 +1298,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void playlistDelete(String playlist) throws DisorderIOException,
                                                      DisorderParseException,
+                                                     InterruptedException,
                                                      DisorderProtocolException {
     execute("playlist-delete %s", quote(playlist));
   }
@@ -1201,10 +1315,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> playlistGet(String playlist)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute("playlist-get %s", quote(playlist)).response.body;
   }
@@ -1220,10 +1336,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String playlistGetShare(String playlist)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute("playlist-get-share %s", quote(playlist)).getString();
   }
@@ -1235,10 +1353,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void playlistLock(String playlist)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     execute("playlist-lock %s", quote(playlist));
   }
@@ -1253,11 +1373,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void playlistSet(final String playlist,
                           final List<String> contents)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     execute(new Command() {
         void go() {
@@ -1282,11 +1404,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void playlistSetShare(String playlist,
                                String share)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     execute("playlist-set-share %s %s", quote(playlist), quote(share));
   }
@@ -1297,10 +1421,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void playlistUnlock(String playlist)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     execute("playlist-unlock");
   }
@@ -1314,10 +1440,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> playlists()
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute("playlists").response.body;
   }
@@ -1330,10 +1458,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public Dictionary<String,String> prefs(String track)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     List<String> prefs = execute("prefs %s", quote(track)).response.body;
     Hashtable<String, String> r = new Hashtable<String, String>(prefs.size());
@@ -1358,9 +1488,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<TrackInformation> queue() throws DisorderIOException,
                                                DisorderParseException,
+                                               InterruptedException,
                                                DisorderProtocolException {
     List<String> queue = execute("queue").response.body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(queue.size());
@@ -1375,10 +1507,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void randomDisable() throws DisorderIOException,
                                      DisorderParseException,
-                                     DisorderProtocolException {
+                                     InterruptedException,
+                                    DisorderProtocolException {
     execute("random-disable");
   }
 
@@ -1388,9 +1522,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void randomEnable() throws DisorderIOException,
                                     DisorderParseException,
+                                    InterruptedException,
                                     DisorderProtocolException {
     execute("random-enable");
   }
@@ -1402,9 +1538,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public boolean randomEnabled() throws DisorderIOException,
                                         DisorderParseException,
+                                        InterruptedException,
                                         DisorderProtocolException {
     return execute("random-enabled").getBoolean();
   }
@@ -1420,10 +1558,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<TrackInformation> recent()
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     List<String> recent = execute("recent").response.body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(recent.size());
@@ -1443,9 +1583,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void remove(String id) throws DisorderIOException,
                                        DisorderParseException,
+                                       InterruptedException,
                                        DisorderProtocolException {
     execute("remove %s", quote(id));
   }
@@ -1463,9 +1605,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String resolve(String track) throws DisorderIOException,
                                              DisorderParseException,
+                                             InterruptedException,
                                              DisorderProtocolException {
     return execute("resolve %s", quote(track)).getString();
   }
@@ -1478,9 +1622,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void resume() throws DisorderIOException,
                               DisorderParseException,
+                              InterruptedException,
                               DisorderProtocolException {
     execute("resume");
   }
@@ -1522,9 +1668,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public RtpAddress rtpAddress() throws DisorderIOException,
                                         DisorderParseException,
+                                        InterruptedException,
                                         DisorderProtocolException {
     Response r = execute("rtp-address").response;
     String host = r.bits.get(1);
@@ -1542,9 +1690,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void scratch(String id) throws DisorderIOException,
                                         DisorderParseException,
+                                        InterruptedException,
                                         DisorderProtocolException {
     if(id != null)
       execute("scratch %s", quote(id));
@@ -1568,10 +1718,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> search(String terms)
     throws DisorderIOException,
            DisorderParseException,
+           InterruptedException,
            DisorderProtocolException {
     return execute("search %s", quote(terms)).response.body;
   }
@@ -1585,11 +1737,13 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void set(String track,
                                String pref,
                                String value) throws DisorderIOException,
                                                     DisorderParseException,
+                                                    InterruptedException,
                                                     DisorderProtocolException {
     execute("set %s %s %s", quote(track), quote(pref), quote(value));
   }
@@ -1602,10 +1756,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void setGlobal(String pref,
                         String value) throws DisorderIOException,
                                              DisorderParseException,
+                                             InterruptedException,
                                              DisorderProtocolException {
     execute("set-global %s %s", quote(pref), quote(value));
   }
@@ -1617,9 +1773,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> stats() throws DisorderIOException,
                                      DisorderParseException,
+                                     InterruptedException,
                                      DisorderProtocolException {
     return execute("stats").response.body;
   }
@@ -1631,9 +1789,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> tags() throws DisorderIOException,
                                     DisorderParseException,
+                                    InterruptedException,
                                     DisorderProtocolException {
     return execute("tags").response.body;
   }
@@ -1646,10 +1806,12 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void unset(String track,
                     String pref) throws DisorderIOException,
                                         DisorderParseException,
+                                        InterruptedException,
                                         DisorderProtocolException {
     execute("set %s %s", quote(track), quote(pref));
   }
@@ -1661,9 +1823,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public void unsetGlobal(String pref) throws DisorderIOException,
                                               DisorderParseException,
+                                              InterruptedException,
                                               DisorderProtocolException {
     execute("unset-global %s", quote(pref));
   }
@@ -1677,11 +1841,14 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String userinfo(final String user,
-                         final String property) throws DisorderIOException,
-                                                       DisorderParseException,
-                                                       DisorderProtocolException {
+                         final String property)
+    throws DisorderIOException,
+           DisorderParseException,
+           InterruptedException,
+           DisorderProtocolException {
     return execute(new OptionalResponseCommand() {
         void go(){
           send("userinfo %s %s", quote(user), quote(property));
@@ -1696,9 +1863,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public List<String> users() throws DisorderIOException,
                                      DisorderParseException,
+                                     InterruptedException,
                                      DisorderProtocolException {
     return execute("users").response.body;
   }
@@ -1717,9 +1886,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public String version() throws DisorderIOException,
                                  DisorderParseException,
+                                 InterruptedException,
                                  DisorderProtocolException {
     return execute("version").response.bits.get(1);
   }
@@ -1734,9 +1905,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public int[] volume() throws DisorderIOException,
                                DisorderParseException,
+                               InterruptedException,
                                DisorderProtocolException {
     Response r = execute("volume").response;
     int[] vol = new int[2];
@@ -1755,9 +1928,11 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
   public int[] volume(int left, int right) throws DisorderIOException,
                                                   DisorderParseException,
+                                                  InterruptedException,
                                                   DisorderProtocolException {
     Response r = execute("volume %d %d", left, right).response;
     int[] vol = new int[2];

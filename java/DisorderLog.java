@@ -25,7 +25,8 @@ package uk.org.greenend.disorder;
  * <li>Subclass it, overriding the methods you're interested in.
  *     By default, all methods do nothing.
  * <li>Create an instance.
- * <li>In a thread, create a {@link DisorderServer} and invoke pass the
+ * <li>In a thread, create a {@link
+ *     uk.org.greenend.disorder.DisorderServer} and invoke pass the
  *     instance to its <code>log</code> method.  This won't return.
  * <li>The methods of your instance will be called when things happen
  *     in the server.

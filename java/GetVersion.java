@@ -22,6 +22,7 @@ class GetVersion {
   public static void main(String[] args) throws DisorderParseException,
                                                 DisorderIOException,
                                                 DisorderProtocolException,
+                                                InterruptedException,
                                                 IOException {
     DisorderServer d = new DisorderServer();
     String v = d.version();
