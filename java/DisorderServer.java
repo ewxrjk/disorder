@@ -196,6 +196,9 @@ class ReliableWriter extends Writer {
  * might be reported in more than one thread, if the connection is being used
  * concurrently at the time.
  *
+ * <p>The exception is that the {@link #log log} method (which see)
+ * cannot be used concurrently with any other command.
+ *
  * <h3>Debugging</h3>
  *
  * <p>Set the system property <code>DISORDER_DEBUG</code> (to anything) to turn
@@ -377,7 +380,7 @@ public class DisorderServer {
      *
      * @param l A line of the body
      */
-    void bodyLine(String l) {
+    void bodyLine(String l) throws DisorderParseException {
       if(body == null)
         body = new Vector<String>();
       body.add(l);
@@ -495,6 +498,7 @@ public class DisorderServer {
       r.bits = DisorderMisc.split(r.line, false/*comments*/);
       break;
     case 3:
+    case 4:
       getResponseBody(r);
       break;
     }
@@ -1083,42 +1087,37 @@ public class DisorderServer {
    * Monitor the server log.
    *
    * <p>This method keeps reading from the server log until an error
-   * occurs (in which case an exception is thrown).  If the connection
-   * is closed then it will automatically be reconnected and the log
-   * monitored again.  Therefore, it never returns.
+   * occurs (in which case an exception is thrown).  As usual, the
+   * command is retried after an IO error, up to the number of
+   * attempts set with {@link #setMaxAttempts setMaxAttempts}.
    *
-   * <p>It receives event log messages from the server and calls
-   * appropriate methods on <code>l</code>.  You should subclass
-   * <code>DisorderLog</code>, overriding those methods that
-   * correspond to events you're interested in.
+   * <p>For each message received from the server log, an appropriate
+   * method is invoked on <code>l</code>.  You should subclass {@link
+   * uk.org.greenend.disorder.DisorderLog}, overriding those methods
+   * that correspond to events you're interested in.
    *
-   * <p>This method <b>must not</b> be called concurrently with any
-   * other method on the same object.  Similarly the event-handling
-   * methods must not invoke any commands on the connection object.
+   * <p>Unlike the other methods, it is not possible to usefuly share
+   * the connection between multiple threads if this method is used.
+   * Once a <code>log</code> method is running other commands will be
+   * ignored by the server, and therefore hang until an error occurs
+   * on the connection.
    *
    * @param l Log consumer
+   * @throws DisorderIOException If a network IO error occurs
+   * @throws DisorderParseException If a malformed response was received
+   * @throws DisorderProtocolException If the server sends an error response
+   * @throws InterruptedException If the thread was interrupted
    */
-  public void log(DisorderLog l) throws DisorderIOException,
-                                        DisorderParseException,
-                                        InterruptedException,
-                                        DisorderProtocolException {
-    boolean locked = sendLock.tryLock();
-    assert locked == true:
-        "DisorderServer.log called concurrently";
-    try {
-      assert sendLock.getHoldCount() == 1:
-          "DisorderServer.log called re-entrantly";
-      for(;;) {
-        connect();
-        send("log");
-        {
-          Response r = getResponse();
-
-          if(!r.ok())
-            throw new DisorderProtocolException(config.serverName, r.toString());
+  public void log(final DisorderLog l)
+    throws DisorderIOException,
+           DisorderParseException,
+           InterruptedException,
+           DisorderProtocolException {
+    execute(new Command() {
+        void go() {
+          send("log");
         }
-        String r;
-        while((r = getLine()) != null) {
+        void bodyLine(String r) throws DisorderParseException {
           Vector<String> v = DisorderMisc.split(r, false);
           String e = v.get(0);
           if(e.equals("adopted")) l.adopted(v.get(1), v.get(2));
@@ -1162,12 +1161,7 @@ public class DisorderServer {
             l.volume(Integer.parseInt(v.get(1)),
                      Integer.parseInt(v.get(2)));
         }
-        connected = false;
-        // Go round again
-      }
-    } finally {
-      sendLock.unlock();
-    }
+      });
   }
 
   // TODO make-cookie not implemented because only used by CGI
