@@ -27,7 +27,7 @@ RtpPacket.java RtpClient.java DisorderRtpPlayer.java		\
 DisorderIOException.java package-info.java
 
 EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java \
-	DisorderRtpPlayer.in DisorderRtpPlayer.plist.in
+	DisorderRtpPlayer.in DisorderRtpPlayer.plist.in stylesheet.css
 
 disorder.jar: ${SOURCE}
 	${MKDIR_P} jar
