@@ -24,16 +24,35 @@ import java.security.*;
 import java.nio.charset.*;
 import java.util.concurrent.locks.*;
 
-// Wrapper class for Writer that allows us to retrieve errors despite
-// PrintWriter's preferenced for hiding them
+/**
+ * Error-preserving writer.
+ *
+ * <p>This is needed to work around the problem that {@link PrintWriter} throws
+ * away error information.  It can be interposed between a real {@link Writer}
+ * and the surrounding formatting class to allow exceptions from the former to
+ * be retrieved even if the latter doesn't expose them.
+ */
 class ReliableWriter extends Writer {
+  /** Contained writer. */
   private Writer child;
+
+  /** Last reported error. */
   private IOException error;
 
+  /**
+   * Construct a new reliable writer.
+   *
+   * @param child Writer to wrap
+   */
   ReliableWriter(Writer child) {
     this.child = child;
   }
 
+  /**
+   * Get the last error.
+   *
+   * @return The last error thrown by the wrapped writer
+   */
   public IOException getError() {
     return error;
   }
@@ -181,17 +200,38 @@ class ReliableWriter extends Writer {
  * warning.)
  */
 public class DisorderServer {
+  /** The configuration used by this connection. */
   private DisorderConfig config;
+
+  /** Whether a TCP/IP connection is established. */
   private boolean connected;
+
+  /** The connection to the server. */
   private Socket conn;
+
+  /** The read half of the server connection. */
   private BufferedReader input;
+
+  /** Error container for the server connection. */
   private ReliableWriter outputw;
+
+  /** The write half of the server connection. */
   private PrintWriter output;
+
+  /** Debug mode. */
   private boolean debugging;
+
+  /** Private formatter. */
   private Formatter formatter;
+
+  /** Maximum number of times to attempt a command, or 0 for indefinite. */
   private int maxAttempts;
 
-  private ReentrantLock sendLock, receiveLock;
+  /** Lock for sending a command. */
+  private ReentrantLock sendLock;
+
+  /** Lock for awaiting a reply. */
+  private ReentrantLock receiveLock;
 
   /**
    * Construct a server connection from a given configuration.
@@ -320,7 +360,7 @@ public class DisorderServer {
    *
    * @return Input line, with newline character removed, or null at EOF
    */
-  String getLine() throws DisorderIOException {
+  private String getLine() throws DisorderIOException {
     try {
       StringBuilder sb = new StringBuilder();
       int n;
@@ -349,8 +389,8 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    */
-  List<String> getResponseBody() throws DisorderIOException,
-                                        DisorderParseException {
+  private List<String> getResponseBody() throws DisorderIOException,
+                                                DisorderParseException {
     Vector<String> r = new Vector<String>();
     String s;
     while((s = getLine()) != null
@@ -371,8 +411,8 @@ public class DisorderServer {
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    */
-  Response getResponse() throws DisorderIOException,
-                                DisorderParseException {
+  private Response getResponse() throws DisorderIOException,
+                                        DisorderParseException {
     String line = getLine();
     if(line == null)
       return null;
@@ -399,6 +439,8 @@ public class DisorderServer {
    * construction time.
    *
    * <p>Does nothing if already connected.
+   *
+   * <p>{@link sendLock} must be held.
    *
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
@@ -463,6 +505,14 @@ public class DisorderServer {
     connected = true;
   }
 
+  /** Disconnect from the server.
+   *
+   * <p>Closes the connection to the server
+   *
+   * <p>Does nothing if not connected.
+   *
+   * <p>{@link sendLock} and {@link receiveLock} must <i>both</i> be held.
+   */
   private void disconnect() {
     if(connected) {
       try {
@@ -641,9 +691,11 @@ public class DisorderServer {
    * protocol as follows:
    *
    * <ul>
-   * <li>When sending a command, sendLock must be held.
+   * <li>When connecting or sending a command, sendLock must be held.
    * <li>When receiving a command, receiveLock must be held.
-   * <li>receiveLock must be acquired only when sendLock is held.
+   * <li>When disconnecting, both locks must be held.
+   * <li>receiveLock must be acquired only when sendLock is held
+   *     (but can be <i>held</i> when sendLock is not held).
    * </ul>
    *
    * <p>The effect of this is that sends and receives can overlap, but
@@ -677,17 +729,19 @@ public class DisorderServer {
           c.completed();
           return c;
         } finally {
-          if(haveSendLock)
-            sendLock.unlock();
-          if(haveReceiveLock)
-            receiveLock.unlock();
+          if(haveSendLock) { sendLock.unlock(); haveSendLock = false; }
+          if(haveReceiveLock) { receiveLock.unlock(); haveReceiveLock = false; }
         }
       } catch(DisorderIOException ex) {
-        sendLock.lock();
+        // We must hold both send and receive locks when disconnecting, as
+        // users of the connection will only hold one or the other.
         try {
+          sendLock.lock(); haveSendLock = true;
+          receiveLock.lock(); haveReceiveLock = true;
           disconnect();
         } finally {
-          sendLock.unlock();
+          if(haveSendLock) { sendLock.unlock(); haveSendLock = false; }
+          if(haveReceiveLock) { receiveLock.unlock(); haveReceiveLock = false; }
         }
         error = ex;
       }

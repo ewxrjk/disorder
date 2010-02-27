@@ -25,8 +25,17 @@ class GetVersion {
                                                 InterruptedException,
                                                 IOException {
     DisorderServer d = new DisorderServer();
-    String v = d.version();
-    System.out.println(v);
+    if(args.length > 0) {
+      int delay = Integer.parseInt(args[0]);
+      for(;;) {
+        String v = d.version();
+        System.out.println(v);
+        Thread.sleep(delay);
+      }
+    } else {
+      String v = d.version();
+      System.out.println(v);
+    }
   }
 }
 /*
