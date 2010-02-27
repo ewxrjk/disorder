@@ -335,9 +335,9 @@ public class DisorderServer {
         sb.append(c);
       }
       // The server went away on us
-      throw disconnect(null);
+      throw new DisorderIOException(config.serverName);
     } catch(IOException e) {
-      throw disconnect(e);
+      throw new DisorderIOException(config.serverName, e);
     }
   }
 
@@ -463,9 +463,7 @@ public class DisorderServer {
     connected = true;
   }
 
-  // TODO threading issues: what if we disconnect() in the middle of a
-  // read while something else is engaged in a write?
-  private DisorderIOException disconnect(Throwable ex) {
+  private void disconnect() {
     if(connected) {
       try {
         conn.close();
@@ -478,10 +476,6 @@ public class DisorderServer {
       conn = null;
       connected = false;
     }
-    if(ex != null)
-      return new DisorderIOException(config.serverName, ex);
-    else
-      return new DisorderIOException(config.serverName);
   }
 
   /**
@@ -675,7 +669,7 @@ public class DisorderServer {
           connect();
           c.go();
           if(output.checkError())
-            throw disconnect(outputw.getError());
+            throw new DisorderIOException(config.serverName, outputw.getError());
           receiveLock.lock(); haveReceiveLock = true;
           sendLock.unlock(); haveSendLock = false;
           c.response = getResponse();
@@ -689,6 +683,12 @@ public class DisorderServer {
             receiveLock.unlock();
         }
       } catch(DisorderIOException ex) {
+        sendLock.lock();
+        try {
+          disconnect();
+        } finally {
+          sendLock.unlock();
+        }
         error = ex;
       }
       Thread.sleep(backoff);
