@@ -153,7 +153,7 @@ class ReliableWriter extends Writer {
  * subdirectory of the DisOrder source distribution; <code>man
  * disorder_protocol</code> on a system with a DisOrder install; or online at
  * <a
- * href="http://www.greenend.org.uk/rjk/disorder/disorder_protocol.5.html">disorder_protocol.5.html</a>.
+ * href="http://www.greenend.org.uk/rjk/disorder/disorder_protocol.5.html" target=_top>disorder_protocol.5.html</a>.
  *
  * <h3>Error Handling</h3>
  *
@@ -192,12 +192,28 @@ class ReliableWriter extends Writer {
  * its command, but will be able to send while others are still waiting for
  * their reply.
  *
+ * <p>If an IO error occurs (and the retry limit is exceeded) then the error
+ * might be reported in more than one thread, if the connection is being used
+ * concurrently at the time.
+ *
  * <h3>Debugging</h3>
  *
  * <p>Set the system property <code>DISORDER_DEBUG</code> (to anything) to turn
  * on debugging.  Debug messages are sent to <code>System.err</code>.  (This
  * isn't formally part of the interface and is subject to change without
  * warning.)
+ *
+ * <p>Currently debug messages are as follows:
+ *
+ * <table class=debug>
+ *
+ * <tr><th>Message<th>Description
+ * <tr><td><code>SEND: <i>line</i></code><td>a line sent to the server
+ * <tr><td><code>RECV: <i>line</i></code><td>a line received from the serve
+ * <tr><td><code>CONNECT: <i>message</i></code><td>connection success or failure
+ * <tr><td><code>IO ERROR: <i>message</i></code><td>a read or write error
+ *
+ * </table>
  */
 public class DisorderServer {
   /** The configuration used by this connection. */
@@ -266,6 +282,23 @@ public class DisorderServer {
   }
 
   /**
+   * Construct a server connection by duplicating an existing one.
+   *
+   * <p>Creating a connection does not connect it.  Instead the
+   * underlying connection is established on demand.
+   *
+   * <p>The newly constructed object will share the configuration container and
+   * the maximum retry count.  However, it will use an independent TCP/IP
+   * connection to the server.  This implies that it will report errors
+   * independently and not content for locks.  Resource usage will be higher,
+   * however.
+   */
+  public DisorderServer(DisorderServer d) {
+    init(d.config);
+    maxAttempts = d.maxAttempts;
+  }
+  
+  /**
    * Initialize a server connection from a given configuration.
    *
    * <p>This is the common code for the various constructors.
@@ -300,7 +333,7 @@ public class DisorderServer {
   public int getMaxAttempts() {
     return maxAttempts;
   }
-  
+
   /**
    * Represents a response.
    */
@@ -461,8 +494,14 @@ public class DisorderServer {
                                          Charset.forName("UTF-8"))));
       output = new PrintWriter(outputw);
     } catch(IOException e) {
+      if(debugging)
+        System.err.format("CONNECT: %s port %d: %s\n",
+                          config.serverName, config.serverPort, e.toString());
       throw new DisorderIOException(config.serverName, e);
     }
+    if(debugging)
+        System.err.format("CONNECT: %s port %d: Connected\n",
+                          config.serverName, config.serverPort);
     // Field the initial greeting and attempt to log in
     {
       Response greeting = getResponse();
@@ -733,6 +772,8 @@ public class DisorderServer {
           if(haveReceiveLock) { receiveLock.unlock(); haveReceiveLock = false; }
         }
       } catch(DisorderIOException ex) {
+        if(debugging)
+          System.err.format("IO ERROR: %s\n", ex.toString());
         // We must hold both send and receive locks when disconnecting, as
         // users of the connection will only hold one or the other.
         try {

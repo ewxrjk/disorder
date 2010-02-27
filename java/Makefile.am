@@ -43,11 +43,12 @@ SEDFILES=DisorderRtpPlayer DisorderRtpPlayer.plist
 
 include ${top_srcdir}/scripts/sedfiles.make
 
-doc/index.html: ${SOURCE}
+doc/index.html: ${SOURCE} stylesheet.css
 	${MKDIR_P} doc
 	${JAVADOC} -d doc \
 		-link http://java.sun.com/javase/6/docs/api/ \
 		-doctitle "DisOrder Java support" \
+		-stylesheetfile ${srcdir}/stylesheet.css \
 		${SOURCE}
 
 if BUNDLES
