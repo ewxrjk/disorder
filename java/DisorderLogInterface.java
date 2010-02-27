@@ -70,7 +70,7 @@ public interface DisorderLogInterface {
      *
      * @param username User who moved the track
      */
-    public void moved(String username) ;
+    public void moved(String username);
 
     /**
      * Called when a track starts playing.
@@ -78,7 +78,7 @@ public interface DisorderLogInterface {
      * @param track Track that started
      * @param username User that chose track, or <code>null</code>
      */
-    public void playing(String track, String username) ;
+    public void playing(String track, String username);
 
     /**
      * Called when a playlist is created.
@@ -88,7 +88,7 @@ public interface DisorderLogInterface {
      * @param playlist Playlist name
      * @param sharing Sharing status
      */
-    public void playlistCreated(String playlist, String sharing) ;
+    public void playlistCreated(String playlist, String sharing);
 
     /**
      * Called when a playlist is deleted.
@@ -97,7 +97,7 @@ public interface DisorderLogInterface {
      *
      * @param playlist Playlist name
      */
-    public void playlistDeleted(String playlist) ;
+    public void playlistDeleted(String playlist);
 
     /**
      * Called when a playlist is modified.
@@ -112,7 +112,7 @@ public interface DisorderLogInterface {
      * @param playlist Playlist name
      * @param sharing New sharing status.
      */
-    public void playlistModified(String playlist, String sharing) ;
+    public void playlistModified(String playlist, String sharing);
 
     /**
      * Called when a track is added to the queue.
@@ -120,21 +120,21 @@ public interface DisorderLogInterface {
      *
      * @param entry New queue entry
      */
-    public void queue(TrackInformation entry) ;
+    public void queue(TrackInformation entry);
 
     /**
      * Called when a track is added to the recently played list.
      *
      * @param entry New recent-list entry
      */
-    public void recentAdded(TrackInformation entry) ;
+    public void recentAdded(TrackInformation entry);
 
     /**
      * Called when a track is removed from the recently played list.
      *
      * @param id ID of removed track
      */
-    public void recentRemoved(String id) ;
+    public void recentRemoved(String id);
 
     /**
      * Called when a track is removed from the queue.
@@ -145,12 +145,12 @@ public interface DisorderLogInterface {
      * @param id ID of removed track
      * @param username User who removed track, or <code>null</code>
      */
-    public void removed(String id, String username) ;
+    public void removed(String id, String username);
 
     /**
      * Called when a rescan completes.
      */
-    public void rescanned() ;
+    public void rescanned();
 
     /**
      * Called when a track is scratched.
@@ -158,88 +158,88 @@ public interface DisorderLogInterface {
      * @param track Track that was scratched (it will be the playing track)
      * @param username User who scratched it
      */
-    public void scratched(String track, String username) ;
+    public void scratched(String track, String username);
 
     /**
      * Called when the current track completes OK.
      *
      */
-    public void stateCompleted() ;
+    public void stateCompleted();
 
     /**
      * Called when play is enabled.
      *
      */
-    public void stateEnabled() ;
+    public void stateEnabled();
 
     /**
      * Called when play is disabled.
      *
      */
-    public void stateDisabled() ;
+    public void stateDisabled();
 
     /**
      * Called when random play is enabled.
      *
      */
-    public void stateRandomEnabled() ;
+    public void stateRandomEnabled();
 
     /**
      * Called when random play is disabled.
      *
      */
-    public void stateRandomDisabled() ;
+    public void stateRandomDisabled();
 
     /**
      * Called when the current track fails.
      *
      */
-    public void stateFailed() ;
+    public void stateFailed();
 
     /**
      * Called when the current track is paused.
      *
      */
-    public void statePause() ;
+    public void statePause();
 
     /**
      * Called when a track starts playing.
      *
      */
-    public void statePlaying() ;
+    public void statePlaying();
 
     /**
      * Called when the current track is resumed.
      *
      */
-    public void stateResume() ;
+    public void stateResume();
 
     /**
      * Called when the user's rights change.
      *
      * @param newRights New rights string
      */
-    public void stateRightsChanged(String newRights) ;
+    public void stateRightsChanged(String newRights);
 
     /**
      * Called when the current track is scratched.
      *
      */
-    public void stateScratched() ;
+    public void stateScratched();
     
     /**
      * Called when a user is created.
      *
      * @param username Name of new user
      */
-    public void userAdd(String username) ;
+    public void userAdd(String username);
 
     /**
      * Called when a user is deleted.
      *
      * @param username Name of deleted user
      */
-    public void userDelete(String username) ;
+    public void userDelete(String username);
 
     /**
      * Called when a user has some property modified.
@@ -247,7 +247,7 @@ public interface DisorderLogInterface {
      * @param username Name of user
      * @param property Property that was modified
      */
-    public void userEdit(String username, String property) ;
+    public void userEdit(String username, String property);
 
     /**
      * Called when a user is confirmed.
@@ -257,7 +257,7 @@ public interface DisorderLogInterface {
      *
      * @param username Name of confirmed user
      */
-    public void userConfirm(String username) ;
+    public void userConfirm(String username);
 
     /**
      * Called when the volume changes.
@@ -265,7 +265,7 @@ public interface DisorderLogInterface {
      * @param left New left-channel volume
      * @param right New right-channel volume
      */
-    public void volume(int left, int right) ;
+    public void volume(int left, int right);
 
 }
 
