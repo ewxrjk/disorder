@@ -18,16 +18,25 @@
 package uk.org.greenend.disorder;
 
 /**
- * Parse error exception class
+ * Protocol error exception class.
+ *
+ * <p>Thrown when the server returns an error.  Examples include:
+ *
+ * <ul>
+ * <li>Authentication failure
+ * <li>Authenticated user lacks sufficient privilege
+ * <li>Access a nonexistent track
+ * </ul>
  */
-public class DisorderParseError extends Exception {
+public class DisorderProtocolException extends Exception {
   /**
-   * Constructs a new parse error with an error message.
+   * Constructs a new protocol error with an error message.
    *
+   * @param serverName The server that reported the error
    * @param message The error message
    */
-  public DisorderParseError(String message) {
-    super(message);
+  public DisorderProtocolException(String serverName, String message) {
+    super(serverName + ": " + message);
   }
 
   private static final long serialVersionUID = 0;

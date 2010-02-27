@@ -44,7 +44,7 @@ class DisorderMisc {
    * @return The string split into fields
    */
   static Vector<String> split(String s,
-                              boolean allowComments) throws DisorderParseError {
+                              boolean allowComments) throws DisorderParseException {
     Vector<String> v = new Vector<String>();
     int n = 0;
     while(n < s.length()) {
@@ -75,14 +75,14 @@ class DisorderMisc {
 	      e.append('\n');
 	      break;
 	    default:
-	      throw new DisorderParseError("invalid escape sequence");
+	      throw new DisorderParseException("invalid escape sequence");
 	    }
 	  } else {
 	    e.append(c);
 	  }
 	}
 	if(n == s.length())
-	  throw new DisorderParseError("unterminated quoted string");
+	  throw new DisorderParseException("unterminated quoted string");
         ++n;
 	v.add(e.toString());
       } else {
@@ -104,13 +104,13 @@ class DisorderMisc {
    *
    * @param s String to convert
    * @return Byteblock
-   * @throw DisorderParseError If the input string is malformed
+   * @throw DisorderParseException If the input string is malformed
    */
-  static byte[] fromHex(String s) throws DisorderParseError {
+  static byte[] fromHex(String s) throws DisorderParseException {
     if(s.length() % 2 == 1)
-      throw new DisorderParseError("hex string has odd length");
+      throw new DisorderParseException("hex string has odd length");
     if(!s.matches("^[0-9a-fA-F]*$"))
-      throw new DisorderParseError("invalid hex string");
+      throw new DisorderParseException("invalid hex string");
     final int len = s.length() / 2;
     byte[] bytes = new byte[len];
     for(int n = 0; n < len; ++n) {

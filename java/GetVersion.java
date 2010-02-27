@@ -19,8 +19,9 @@ import uk.org.greenend.disorder.*;
 import java.io.*;
 
 class GetVersion {
-  public static void main(String[] args) throws DisorderParseError,
-                                                DisorderProtocolError,
+  public static void main(String[] args) throws DisorderParseException,
+                                                DisorderIOException,
+                                                DisorderProtocolException,
                                                 IOException {
     DisorderServer d = new DisorderServer();
     String v = d.version();

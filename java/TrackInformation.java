@@ -153,9 +153,9 @@ public class TrackInformation {
    * Construct a new track information object from a string.
    *
    * @param s Encoded track information
-   * @throws DisorderParseError If the track information is malformed
+   * @throws DisorderParseException If the track information is malformed
    */
-  TrackInformation(String s) throws DisorderParseError {
+  TrackInformation(String s) throws DisorderParseException {
     unpack(DisorderMisc.split(s, false), 0);
   }
 
@@ -164,10 +164,10 @@ public class TrackInformation {
    *
    * @param v Response from server
    * @param start Start index of track information
-   * @throws DisorderParseError If the track information is malformed
+   * @throws DisorderParseException If the track information is malformed
    */
   TrackInformation(List<String> v, int start)
-    throws DisorderParseError {
+    throws DisorderParseException {
     unpack(v, start);
   }
 
@@ -176,11 +176,11 @@ public class TrackInformation {
    *
    * @param v Response from server
    * @param start Start index of track information
-   * @throws DisorderParseError If the track information is malformed
+   * @throws DisorderParseException If the track information is malformed
    */
-  private void unpack(List<String> v, int start) throws DisorderParseError {
+  private void unpack(List<String> v, int start) throws DisorderParseException {
     if((v.size() - start) % 2 == 1)
-      throw new DisorderParseError("odd-length track information");
+      throw new DisorderParseException("odd-length track information");
     int n = start;
     while(n < v.size()) {
       String key = v.get(n++);
@@ -197,7 +197,7 @@ public class TrackInformation {
         try {
           origin = Origin.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
-          throw new DisorderParseError("unknown origin: " + value);
+          throw new DisorderParseException("unknown origin: " + value);
         }
       else if(key.equals("sofar"))
         sofar = Integer.parseInt(value);
@@ -205,7 +205,7 @@ public class TrackInformation {
         try {
           state = State.valueOf(fixCase(value));
         } catch(IllegalArgumentException e) {
-          throw new DisorderParseError("unknown state: " + value);
+          throw new DisorderParseException("unknown state: " + value);
         }
       else if(key.equals("submitter"))
         submitter = value;

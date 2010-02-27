@@ -68,10 +68,10 @@ public class DisorderConfig {
    * </ul>
    * <p>If a file does not exist, it is ignored.
    *
-   * @throws DisorderParseError If a configuration file contains a syntax error
+   * @throws DisorderParseException If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
    */
-  public DisorderConfig() throws DisorderParseError,
+  public DisorderConfig() throws DisorderParseException,
                                  IOException {
     // TODO cope with nonstandard installation location
     // TODO cope with windows locations
@@ -87,10 +87,10 @@ public class DisorderConfig {
    * Read a configuration file.
    *
    * @param path Path to configuration file to read
-   * @throws DisorderParseError If a configuration file contains a syntax error
+   * @throws DisorderParseException If a configuration file contains a syntax error
    * @throws IOException If an error occurs reading a configuration file
    */
-  private void readConfig(String path) throws DisorderParseError,
+  private void readConfig(String path) throws DisorderParseException,
                                               IOException {
     BufferedReader f;
     try {
@@ -107,9 +107,9 @@ public class DisorderConfig {
         Vector<String> v = DisorderMisc.split(l, true/*comments*/);
         if(v.size() > 0)
           processLine(v);
-      } catch(DisorderParseError e) {
+      } catch(DisorderParseException e) {
         // Insert the error location into the error message
-        throw new DisorderParseError(path + ":" + line + ": " + e.toString());
+        throw new DisorderParseException(path + ":" + line + ": " + e.toString());
       }
     }
     f.close();
@@ -119,9 +119,9 @@ public class DisorderConfig {
    * Process one directive in a configuration file.
    *
    * @param v A <b>nonempty</b> parsed line
-   * @throws DisorderParseError If a configuration file contains a syntax error
+   * @throws DisorderParseException If a configuration file contains a syntax error
    */
-  private void processLine(Vector<String> v) throws DisorderParseError {
+  private void processLine(Vector<String> v) throws DisorderParseException {
     String cmd = v.get(0);
     if(cmd.equals("connect")) {
       // connect [-4|-6] HOST PORT
@@ -139,22 +139,22 @@ public class DisorderConfig {
         else if(v.get(1).equals("-"))
           addressFamily = 0;
         else
-          throw new DisorderParseError("invalid address family");
+          throw new DisorderParseException("invalid address family");
         serverName = v.get(2);
         serverPort = Integer.parseInt(v.get(3));
         break;
       default:
-        throw new DisorderParseError("syntax error");
+        throw new DisorderParseException("syntax error");
       }
     } else if(cmd.equals("password")) {
       // password PASSWORD
       if(v.size() != 2)
-        throw new DisorderParseError("syntax error");
+        throw new DisorderParseException("syntax error");
       password = v.get(1);
     } else if(cmd.equals("username")) {
       // username USERNAME
       if(v.size() != 2)
-        throw new DisorderParseError("syntax error");
+        throw new DisorderParseException("syntax error");
       user = v.get(1);
     }
     // Anything else is ignored.

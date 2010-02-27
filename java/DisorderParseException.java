@@ -18,17 +18,19 @@
 package uk.org.greenend.disorder;
 
 /**
- * Protocol error exception class
+ * Parse error exception class.
+ *
+ * <p>Thrown when a configuration file or protocol response cannot be
+ * parsed.  In the latter case this indicates a bug somewhere.
  */
-public class DisorderProtocolError extends Exception {
+public class DisorderParseException extends Exception {
   /**
-   * Constructs a new protocol error with an error message.
+   * Constructs a new parse error with an error message.
    *
-   * @param serverName The server that reported the error
    * @param message The error message
    */
-  public DisorderProtocolError(String serverName, String message) {
-    super(serverName + ": " + message);
+  public DisorderParseException(String message) {
+    super(message);
   }
 
   private static final long serialVersionUID = 0;

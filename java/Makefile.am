@@ -20,10 +20,11 @@ bin_SCRIPTS=DisorderRtpPlayer
 jar_DATA=disorder.jar
 noinst_DATA=GetQueue.class GetVersion.class
 
-SOURCE=DisorderConfig.java DisorderMisc.java DisorderParseError.java	\
-DisorderProtocolError.java DisorderServer.java TrackInformation.java	\
-DisorderLog.java RtpPacket.java RtpClient.java DisorderRtpPlayer.java	\
-package-info.java
+SOURCE=DisorderConfig.java DisorderMisc.java			\
+DisorderParseException.java DisorderProtocolException.java	\
+DisorderServer.java TrackInformation.java DisorderLog.java	\
+RtpPacket.java RtpClient.java DisorderRtpPlayer.java		\
+DisorderIOException.java package-info.java
 
 EXTRA_DIST=${SOURCE} GetVersion.java GetQueue.java \
 	DisorderRtpPlayer.in DisorderRtpPlayer.plist.in
