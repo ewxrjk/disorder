@@ -371,6 +371,19 @@ public class DisorderServer {
     }
 
     /**
+     * Called repeatedly with the lines of the response body.
+     *
+     * If there is an initial "." it is already removed.
+     *
+     * @param l A line of the body
+     */
+    void bodyLine(String l) {
+      if(body == null)
+        body = new Vector<String>();
+      body.add(l);
+    }
+
+    /**
      * Get a string response.
      *
      * <p>If the return code is 2xx then the response must contain
@@ -442,24 +455,20 @@ public class DisorderServer {
   /**
    * Get a response body.
    *
-   * @return Response body with extra dots removed
+   * @param r Response to fill in
    *
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    */
-  private List<String> getResponseBody() throws DisorderIOException,
-                                                DisorderParseException {
-    Vector<String> r = new Vector<String>();
+  private void getResponseBody(Response r) throws DisorderIOException,
+                                                  DisorderParseException {
     String s;
     while((s = getLine()) != null
           && !s.equals("."))
       if(s.length() > 0 && s.charAt(0) == '.')
-        r.add(s.substring(1));
+        r.bodyLine(s.substring(1));
       else
-        r.add(s);
-    if(s == null)
-      throw new DisorderParseException("unterminated response body");
-    return r;
+        r.bodyLine(s);
   }
 
   /**
@@ -486,7 +495,7 @@ public class DisorderServer {
       r.bits = DisorderMisc.split(r.line, false/*comments*/);
       break;
     case 3:
-      r.body = getResponseBody();
+      getResponseBody(r);
       break;
     }
   }
