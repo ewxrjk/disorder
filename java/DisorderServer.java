@@ -1077,6 +1077,8 @@ public class DisorderServer {
     return Integer.parseInt(execute("length %s", quote(track)).getString());
   }
 
+  // TODO this needs considerable rework!  It might work still but only by
+  // luck.
   /**
    * Monitor the server log.
    *
