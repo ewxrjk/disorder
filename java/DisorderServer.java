@@ -1081,8 +1081,6 @@ public class DisorderServer {
     return Integer.parseInt(execute("length %s", quote(track)).getString());
   }
 
-  // TODO this needs considerable rework!  It might work still but only by
-  // luck.
   /**
    * Monitor the server log.
    *
@@ -1092,9 +1090,11 @@ public class DisorderServer {
    * attempts set with {@link #setMaxAttempts setMaxAttempts}.
    *
    * <p>For each message received from the server log, an appropriate
-   * method is invoked on <code>l</code>.  You should subclass {@link
-   * uk.org.greenend.disorder.DisorderLog}, overriding those methods
-   * that correspond to events you're interested in.
+   * method is invoked on <code>l</code>.  You should implement {@link
+   * uk.org.greenend.disorder.DisorderLogInterface}, perhaps by
+   * subclassing {@link uk.org.greenend.disorder.DisorderLog} and
+   * overriding those methods that correspond to events you're
+   * interested in.
    *
    * <p>Unlike the other methods, it is not possible to usefuly share
    * the connection between multiple threads if this method is used.
@@ -1108,7 +1108,7 @@ public class DisorderServer {
    * @throws DisorderProtocolException If the server sends an error response
    * @throws InterruptedException If the thread was interrupted
    */
-  public void log(final DisorderLog l)
+  public void log(final DisorderLogInterface l)
     throws DisorderIOException,
            DisorderParseException,
            InterruptedException,
