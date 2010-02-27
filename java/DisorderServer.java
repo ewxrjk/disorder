@@ -336,6 +336,8 @@ public class DisorderServer {
 
   /**
    * Represents a response.
+   *
+   * <p>Also acts as the base class for commands. 
    */
   private class Response {
     /**
@@ -359,24 +361,47 @@ public class DisorderServer {
     List<String> body;
 
     /**
-     * Construct a response from parsed data.
-     * Called by getResponse().
-     */
-    Response(String line,
-             int rc,
-             List<String> bits,
-             List<String> body) {
-      this.line = line;
-      this.rc = rc;
-      this.bits = bits;
-      this.body = body;
-    }
-
-    /**
      * Determine whether a response is an OK response.
+     *
+     * <p>NB overridden in some subclasses to support other responses
+     * as "OK".
      */
     boolean ok() {
       return rc / 100 == 2;
+    }
+
+    /**
+     * Get a string response.
+     *
+     * <p>If the return code is 2xx then the response must contain
+     * a single (quoted) field, which will be returned.
+     *
+     * <p>If the return code is 555 then {@c null} is returned.  Note
+     * that the default ok() will reject this response.
+     *
+     * @return Response value or {@c null}.
+     */
+    String getString() throws DisorderParseException {
+      if(rc == 555)
+        return null;
+      if(bits.size() != 2)
+        throw new DisorderParseException("malformed response: " + line);
+      return bits.get(1);
+    }
+
+    /**
+     * Get a boolean response.
+     *
+     * @return Response value.
+     */
+    boolean getBoolean() throws DisorderParseException {
+      String s = getString();
+      if(s.equals("yes"))
+        return true;
+      else if(s.equals("no"))
+        return false;
+      else
+        throw new DisorderParseException("expxected 'yes' or 'no' in response");
     }
 
     /**
@@ -438,31 +463,48 @@ public class DisorderServer {
   }
 
   /**
+   * Fill in a response.
+   *
+   * <p>When this is used directly, <code>r</code> is a {@link
+   * Command}.
+   *
+   * @param r Response to fill in
+   * @throws DisorderIOException If a network IO error occurs
+   * @throws DisorderParseException If a malformed response was received
+   */
+  private void getResponse(Response r) throws DisorderIOException,
+                                              DisorderParseException {
+    r.line = getLine();
+    r.rc = 0;
+    for(int n = 0; n < 3; ++n)
+      r.rc = 10 * r.rc + Character.digit(r.line.charAt(n), 10);
+    r.bits = null;
+    r.body = null;
+    switch(r.rc % 10) {
+    case 1:
+    case 2:
+      r.bits = DisorderMisc.split(r.line, false/*comments*/);
+      break;
+    case 3:
+      r.body = getResponseBody();
+      break;
+    }
+  }
+
+  /**
    * Get a response.
+   *
+   * <p>This is used by {@link connect}.
    *
    * @return New response, or null at EOF
    * @throws DisorderIOException If a network IO error occurs
    * @throws DisorderParseException If a malformed response was received
    */
   private Response getResponse() throws DisorderIOException,
-                                        DisorderParseException {
-    String line = getLine();
-    if(line == null)
-      return null;
-    int rc = 0;
-    for(int n = 0; n < 3; ++n)
-      rc = 10 * rc + Character.digit(line.charAt(n), 10);
-    List<String> bits = null, body = null;
-    switch(rc % 10) {
-    case 1:
-    case 2:
-      bits = DisorderMisc.split(line, false/*comments*/);
-      break;
-    case 3:
-      body = getResponseBody();
-      break;
-    }
-    return new Response(line, rc, bits, body);
+                                              DisorderParseException {
+    Response r = new Response();
+    getResponse(r);
+    return r;
   }
 
   /** Connect to the server.
@@ -640,27 +682,11 @@ public class DisorderServer {
   /**
    * Base class for commands
    */
-  abstract class Command {
-    /**
-     * The response to the command.
-     */
-    Response response;
-
+  abstract class Command extends Response  {
     /**
      * Called to send the command.
      */
     abstract void go();
-
-    /**
-     * Test whether a response is OK.
-     *
-     * The default is to test for a 2xx response.
-     *
-     * @return true if the response is OK, else false.
-     */
-    boolean ok() {
-      return response.ok();
-    }
 
     /**
      * Called to process the response.
@@ -669,42 +695,7 @@ public class DisorderServer {
      */
     void completed() throws DisorderProtocolException {
       if(!ok())
-        throw new DisorderProtocolException(config.serverName, response.toString());
-    }
-
-    /**
-     * Get a string response.
-     *
-     * <p>If the return code is 2xx then the response must contain
-     * a single (quoted) field, which will be returned.
-     *
-     * <p>If the return code is 555 then {@c null} is returned.  Note
-     * that the default ok() will reject this response.
-     *
-     * @return Response value or {@c null}.
-     */
-    String getString() throws DisorderParseException {
-      if(response.rc == 555)
-        return null;
-      if(response.bits.size() != 2)
-        throw new DisorderParseException("malformed response: "
-                                     + response.toString());
-      return response.bits.get(1);
-    }
-
-    /**
-     * Get a boolean response.
-     *
-     * @return Response value.
-     */
-    boolean getBoolean() throws DisorderParseException {
-      String s = getString();
-      if(s.equals("yes"))
-        return true;
-      else if(s.equals("no"))
-        return false;
-      else
-        throw new DisorderParseException("expxected 'yes' or 'no' in response");
+        throw new DisorderProtocolException(config.serverName, line);
     }
 
   }
@@ -718,7 +709,7 @@ public class DisorderServer {
      * @return true if the response is OK, else false.
      */
     boolean ok() {
-      return response.rc == 555 || response.ok();
+      return rc == 555 || rc / 100 == 2;
     }
 
   }
@@ -763,7 +754,7 @@ public class DisorderServer {
             throw new DisorderIOException(config.serverName, outputw.getError());
           receiveLock.lock(); haveReceiveLock = true;
           sendLock.unlock(); haveSendLock = false;
-          c.response = getResponse();
+          getResponse(c);
           receiveLock.unlock(); haveReceiveLock = false;
           c.completed();
           return c;
@@ -865,7 +856,7 @@ public class DisorderServer {
       c = execute("allfiles %s %s", quote(path), quote(regexp));
     else
       c = execute("allfiles %s", quote(path));
-    return c.response.body;
+    return c.body;
   }
 
   // TODO confirm not implemented because only used by CGI
@@ -898,7 +889,7 @@ public class DisorderServer {
       c = execute("dirs %s %s", quote(path), quote(regexp));
     else
       c = execute("dirs %s", quote(path));
-    return c.response.body;
+    return c.body;
   }
 
   /**
@@ -1011,7 +1002,7 @@ public class DisorderServer {
       c = execute("files %s %s", quote(path), quote(regexp));
     else
       c = execute("files %s", quote(path));
-    return c.response.body;
+    return c.body;
   }
 
   /**
@@ -1248,7 +1239,7 @@ public class DisorderServer {
       c = execute("new %d", max);
     else
       c = execute("new");
-    return c.response.body;
+    return c.body;
   }
 
   /**
@@ -1382,8 +1373,8 @@ public class DisorderServer {
                                            InterruptedException,
                                            DisorderProtocolException {
     Command c = execute("playing");
-    if(c.response.rc == 252)
-      return new TrackInformation(c.response.bits, 1);
+    if(c.rc == 252)
+      return new TrackInformation(c.bits, 1);
     else
       return null;
   }
@@ -1419,7 +1410,7 @@ public class DisorderServer {
            DisorderParseException,
            InterruptedException,
            DisorderProtocolException {
-    return execute("playlist-get %s", quote(playlist)).response.body;
+    return execute("playlist-get %s", quote(playlist)).body;
   }
 
   /**
@@ -1544,7 +1535,7 @@ public class DisorderServer {
            DisorderParseException,
            InterruptedException,
            DisorderProtocolException {
-    return execute("playlists").response.body;
+    return execute("playlists").body;
   }
 
   /**
@@ -1562,7 +1553,7 @@ public class DisorderServer {
            DisorderParseException,
            InterruptedException,
            DisorderProtocolException {
-    List<String> prefs = execute("prefs %s", quote(track)).response.body;
+    List<String> prefs = execute("prefs %s", quote(track)).body;
     Hashtable<String, String> r = new Hashtable<String, String>(prefs.size());
     for(String line: prefs) {
       Vector<String> v = DisorderMisc.split(line, false);
@@ -1591,7 +1582,7 @@ public class DisorderServer {
                                                DisorderParseException,
                                                InterruptedException,
                                                DisorderProtocolException {
-    List<String> queue = execute("queue").response.body;
+    List<String> queue = execute("queue").body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(queue.size());
     for(String line: queue)
       r.add(new TrackInformation(line));
@@ -1662,7 +1653,7 @@ public class DisorderServer {
            DisorderParseException,
            InterruptedException,
            DisorderProtocolException {
-    List<String> recent = execute("recent").response.body;
+    List<String> recent = execute("recent").body;
     Vector<TrackInformation> r = new Vector<TrackInformation>(recent.size());
     for(String line: recent)
       r.add(new TrackInformation(line));
@@ -1771,7 +1762,7 @@ public class DisorderServer {
                                         DisorderParseException,
                                         InterruptedException,
                                         DisorderProtocolException {
-    Response r = execute("rtp-address").response;
+    Response r = execute("rtp-address");
     String host = r.bits.get(1);
     int port = Integer.parseInt(r.bits.get(2));
     return new RtpAddress(host, port);
@@ -1822,7 +1813,7 @@ public class DisorderServer {
            DisorderParseException,
            InterruptedException,
            DisorderProtocolException {
-    return execute("search %s", quote(terms)).response.body;
+    return execute("search %s", quote(terms)).body;
   }
 
   /**
@@ -1876,7 +1867,7 @@ public class DisorderServer {
                                      DisorderParseException,
                                      InterruptedException,
                                      DisorderProtocolException {
-    return execute("stats").response.body;
+    return execute("stats").body;
   }
 
   /**
@@ -1892,7 +1883,7 @@ public class DisorderServer {
                                     DisorderParseException,
                                     InterruptedException,
                                     DisorderProtocolException {
-    return execute("tags").response.body;
+    return execute("tags").body;
   }
 
   /**
@@ -1966,7 +1957,7 @@ public class DisorderServer {
                                      DisorderParseException,
                                      InterruptedException,
                                      DisorderProtocolException {
-    return execute("users").response.body;
+    return execute("users").body;
   }
 
   /**
@@ -1989,7 +1980,7 @@ public class DisorderServer {
                                  DisorderParseException,
                                  InterruptedException,
                                  DisorderProtocolException {
-    return execute("version").response.bits.get(1);
+    return execute("version").bits.get(1);
   }
 
   /**
@@ -2008,7 +1999,7 @@ public class DisorderServer {
                                DisorderParseException,
                                InterruptedException,
                                DisorderProtocolException {
-    Response r = execute("volume").response;
+    Response r = execute("volume");
     int[] vol = new int[2];
     vol[0] = Integer.parseInt(r.bits.get(1));
     vol[1] = Integer.parseInt(r.bits.get(2));
@@ -2031,7 +2022,7 @@ public class DisorderServer {
                                                   DisorderParseException,
                                                   InterruptedException,
                                                   DisorderProtocolException {
-    Response r = execute("volume %d %d", left, right).response;
+    Response r = execute("volume %d %d", left, right);
     int[] vol = new int[2];
     vol[0] = Integer.parseInt(r.bits.get(1));
     vol[1] = Integer.parseInt(r.bits.get(2));
