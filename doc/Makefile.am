@@ -44,7 +44,7 @@ disorder-dbupgrade.8.html disorder_templates.5.html			\
 disorder_actions.5.html disorder_options.5.html disorder.cgi.8.html	\
 disorder_preferences.5.html disorder-choose.8.html
 
-$(HTMLMAN): disorderd.8.html
+$(wordlist 2,9999,$(HTMLMAN)): disorderd.8.html
 disorderd.8.html: $(man_MANS)
 	$(top_srcdir)/scripts/htmlman -- $^
 
@@ -57,7 +57,7 @@ disorder-dbupgrade.8.tmpl disorder_templates.5.tmpl			\
 disorder_actions.5.tmpl disorder_options.5.tmpl disorder.cgi.8.tmpl	\
 disorder_preferences.5.tmpl disorder-choose.8.tmpl
 
-$(TMPLMAN): disorderd.8.tmpl
+$(wordlist 2,9999,$(TMPLMAN)): disorderd.8.tmpl
 disorderd.8.tmpl: $(man_MANS)
 	$(top_srcdir)/scripts/htmlman -stdhead -extension tmpl -- $^
 
