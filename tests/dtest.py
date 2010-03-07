@@ -337,7 +337,8 @@ def run(module=None, report=True):
     except Exception, e:
         traceback.print_exc(None, sys.stderr)
         failures += 1
-    stop_daemon()
+    finally:
+        stop_daemon()
     if report:
         if failures:
             print " FAILED"
