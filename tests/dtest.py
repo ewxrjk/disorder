@@ -286,6 +286,7 @@ def stop_daemon():
 Stop the daemon if it has not stopped already"""
     global daemon
     if daemon == None:
+        print " (daemon not running)"
         return
     rc = daemon.poll()
     if rc == None:
@@ -339,6 +340,7 @@ def run(module=None, report=True):
         failures += 1
     finally:
         stop_daemon()
+        os.system("ps -ef | grep disorderd")
     if report:
         if failures:
             print " FAILED"
