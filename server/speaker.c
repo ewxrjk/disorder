@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005-2009 Richard Kettlewell
+ * Copyright (C) 2005-2010 Richard Kettlewell
  * Portions (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -316,12 +316,16 @@ static int speaker_fill(struct track *t) {
       n = read(t->fd, t->buffer + where, left);
     } while(n < 0 && errno == EINTR);
     pthread_mutex_lock(&lock);
-    if(n < 0) {
-      if(errno != EAGAIN)
-        disorder_fatal(errno, "error reading sample stream");
+    if(n < 0 && errno == EAGAIN) {
+      /* EAGAIN means more later */
       rc = 0;
-    } else if(n == 0) {
-      D(("fill %s: eof detected", t->id));
+    } else if(n <= 0) {
+      /* n=0 means EOF.  n<0 means some error occurred.  We log the error but
+       * otherwise treat it as identical to EOF. */
+      if(n < 0)
+        disorder_error(errno, "error reading sample stream for %s", t->id);
+      else
+        D(("fill %s: eof detected", t->id));
       t->eof = 1;
       /* A track always becomes playable at EOF; we're not going to see any
        * more data. */
@@ -521,7 +525,8 @@ static void mainloop(void) {
           D(("id %s fd %d", id, fd));
           t = findtrack(id, 1/*create*/);
           if (write(fd, "", 1) < 0)             /* write an ack */
-            disorder_error(errno, "writing ack to inbound connection");
+            disorder_error(errno, "writing ack to inbound connection for %s",
+                           id);
           if(t->fd != -1) {
             disorder_error(0, "%s: already got a connection", id);
             xclose(fd);
