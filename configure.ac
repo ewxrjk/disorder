@@ -475,7 +475,7 @@ if test $want_server = yes; then
       AC_COMPILE_IFELSE([#include <ao/ao.h>
 #include <ao/plugin.h>
 
-void ao_plugin_device_init(ao_device *d) {
+int ao_plugin_device_init(ao_device *d) {
   d->internal = 0;
 }],[rjk_cv_libao_plugin_api_works=yes],[rjk_cv_libao_plugin_api_works=no])])
   else
