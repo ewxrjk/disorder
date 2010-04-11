@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005, 2007 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,9 @@
  *
  * The output from this driver is expected to be fed to @c
  * disorder-normalize to convert to the confnigured target format.
+ *
+ * @attention This driver will not build with libao 1.0.0.  libao has
+ * taken away half the plugin API and not provided any replacement.
  */
 
 #include "common.h"

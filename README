@@ -31,7 +31,7 @@ Build dependencies:
   libpcre          6.7         need UTF-8 support
   libmad           0.15.1b
   libgcrypt        1.2.3
-  libao            0.8.6
+  libao            0.8.6       1.0.0 is broken
   libasound        1.0.13
   libFLAC          1.1.2
   libsamplerate    0.1.4       currently optional

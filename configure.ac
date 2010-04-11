@@ -338,7 +338,10 @@ fi
 subdirs="${subdirs} clients doc examples debian"
 
 if test $want_server = yes; then
-  subdirs="${subdirs} server plugins driver sounds"
+  subdirs="${subdirs} server plugins sounds"
+  if test "$rjk_cv_libao_plugin_api_works" = yes; then
+    subdirs="${subdirs} driver"
+  fi
 fi
 if test $want_cgi = yes; then
   subdirs="${subdirs} cgi templates images"
@@ -465,6 +468,19 @@ if test $want_server = yes; then
   AC_CHECK_LIB([FLAC], [FLAC__stream_decoder_new],
 	       [AC_SUBST(LIBFLAC,[-lFLAC])],
 	       [missing_libraries="$missing_libraries libFLAC"])
+  if test $ac_cv_lib_ao_ao_initialize = yes; then
+    # libao 1.0.0 breaks the plugin interface
+    AC_CACHE_CHECK([whether libao has a working plugin interface],
+                   [rjk_cv_libao_plugin_api_works],[
+      AC_COMPILE_IFELSE([#include <ao/ao.h>
+#include <ao/plugin.h>
+
+int ao_plugin_device_init(ao_device *d) {
+  d->internal = 0;
+}],[rjk_cv_libao_plugin_api_works=yes],[rjk_cv_libao_plugin_api_works=no])])
+  else
+    rjk_cv_libao_plugin_api_works=no
+  fi
 fi
 AC_CHECK_LIB([pthread], [pthread_create],
              [AC_SUBST(LIBPTHREAD,[-lpthread])],
