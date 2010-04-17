@@ -166,7 +166,6 @@ pkg-disorder-server: build
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C images
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C server
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C templates
-	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C driver
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C plugins
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C sounds
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C doc
@@ -178,10 +177,6 @@ pkg-disorder-server: build
 	find debian/disorder-server -name '*.la' -print0 | xargs -r0 rm -f
 	find debian/disorder-server -name '*.so.0' -print0 | xargs -r0 rm -f
 	@for f in debian/disorder-server/usr/lib/disorder/*.so.0.0.0; do \
-	  echo mv $$f $${f/.0.0.0};\
-	  mv $$f $${f/.0.0.0};\
-	done
-	@for f in debian/disorder-server/usr/lib/ao/plugins*/*.so.0.0.0; do \
 	  echo mv $$f $${f/.0.0.0};\
 	  mv $$f $${f/.0.0.0};\
 	done
@@ -211,7 +206,6 @@ pkg-disorder-server: build
 	strip --remove-section=.comment \
 		debian/disorder-server/usr/sbin/* \
 		debian/disorder-server${cgiexecdir}/* \
-		debian/disorder-server/usr/lib/ao/plugins*/*.so \
 		debian/disorder-server/usr/lib/disorder/*.so
 	cd debian/disorder-server && \
 		find -name DEBIAN -prune -o -type f -print \

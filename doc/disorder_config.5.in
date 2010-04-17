@@ -609,9 +609,6 @@ Identical to the \fBexec\fR except that the player is expected to use the
 DisOrder raw player protocol.
 .BR disorder-decode (8)
 can decode several common audio file formats to this format.
-If your favourite format is not supported, but you have a player
-which uses libao, there is also a libao driver which supports this format;
-see below for more information about this.
 .TP
 .B shell \fR[\fISHELL\fR] \fICOMMAND\fR
 The command is executed using the shell.
@@ -870,25 +867,6 @@ longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
-.SH "LIBAO DRIVER"
-.SS "Raw Protocol Players"
-Raw protocol players are expected to use the \fBdisorder\fR libao driver.
-Programs that use libao generally have command line options to select the
-driver and pass options to it.
-.SS "Driver Options"
-The known driver options are:
-.TP
-.B fd
-The file descriptor to write to.
-If this is not specified then the driver looks like the environment
-variable \fBDISORDER_RAW_FD\fR.
-If that is not set then the default is 1 (i.e. standard output).
-.TP
-.B fragile
-If this is set to a nonzero value then the driver will call \fB_exit\fR(2) if a
-write to the output file descriptor fails.
-This is a workaround for buggy players such as \fBogg123\fR that ignore
-write errors.
 .SH "REGEXP SUBSTITUTION RULES"
 Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
 The only option used is \fBPCRE_UTF8\fR.
