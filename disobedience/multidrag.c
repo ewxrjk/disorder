@@ -92,8 +92,9 @@ static gboolean multidrag_button_press_event(GtkWidget *w,
   /* We are only interested in left-button behavior */
   if(event->button != 1)
     return FALSE;
-  /* We are only interested in unmodified clicks (not SHIFT etc) */
-  if(event->state & GDK_MODIFIER_MASK)
+  /* We are only uninterested in clicks without CTRL or SHIFT.  GTK ignores the
+   * other possible modifiers, so we do too. */
+  if(event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK))
     return FALSE;
   /* We are only interested if a well-defined path is clicked */
   GtkTreePath *path = NULL;
