@@ -35,10 +35,10 @@ sub Write {
 
 # Command classes -------------------------------------------------------------
 
-# simple_string_command(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...],)
+# simple(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...],)
 #
 # Response is simply success/failure
-sub simple_string_command {
+sub simple {
     my $cmd = shift;
     my $summary = shift;
     my $detail = shift;
@@ -62,6 +62,59 @@ sub simple_string_command {
 	 "  return disorder_simple(c, 0, \"$cmd\"",
 	 map(", $_->[0]", @$args),
 	 ", (char *)0);\n",
+	 "}\n\n");
+
+    # Asynchronous C API
+    # TODO
+
+    # Python API
+    # TODO
+
+    # Java API
+    # TODO
+}
+
+# boolean(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+#
+# Response is yes/no or failure
+sub boolean {
+    my $cmd = shift;
+    my $summary = shift;
+    my $detail = shift;
+    my $args = shift;
+    my $return = shift;
+
+    my $cmdc = $cmd;
+    $cmdc =~ s/-/_/g;
+    # Synchronous C API
+    push(@h, "/** \@brief $summary\n",
+	 " *\n",
+	 " * $detail\n",
+	 " *\n",
+	 map(" * \@param $_->[0] $_->[1]\n", @$args),
+	 " * \@param $return->[0] $return->[1]\n",
+	 " * \@return 0 on success, non-0 on error\n",
+	 " */\n",
+	 "int disorder_$cmdc(disorder_client *c",
+	 map(", const char *$_->[0]", @$args),
+	 ", int *$return->[0]);\n",
+	 "\n");
+    push(@c, "int disorder_$cmdc(disorder_client *c",
+	 map(", const char *$_->[0]", @$args),
+	 ", int *$return->[0]) {\n",
+	 "  char *v;\n",
+	 "  int rc = disorder_simple(c, &v, \"$cmd\"",
+	 map(", $_->[0]", @$args),
+	 ", (char *)0);\n",
+	 "  if(rc) return rc;\n",
+	 "  if(!strcmp(v, \"yes\")) *$return->[0] = 1;\n",
+	 "  if(!strcmp(v, \"no\")) *$return->[0] = 0;\n",
+	 "  else {\n",
+	 "    disorder_error(0, \"malformed response to '$cmd' command\");\n",
+	 "    rc = -1;\n",
+	 "  }\n",
+	 "  xfree(v);\n",
+	 "  return 0;\n",
 	 "}\n\n");
 
     # Asynchronous C API
@@ -107,54 +160,62 @@ push(@c, @gpl,
 
 # The protocol ----------------------------------------------------------------
 
-simple_string_command("adopt",
-		      "Adopt a track",
-		      "Makes the calling user owner of a randomly picked track.",
-		      [["id", "Track ID"]]);
+simple("adopt",
+       "Adopt a track",
+       "Makes the calling user owner of a randomly picked track.",
+       [["id", "Track ID"]]);
 
-simple_string_command("adduser",
-		      "Create a user",
-		      "Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.",
-		      [["user", "New username"],
-		       ["password", "Initial password"],
-		       ["rights", "Initial rights (optional)"]]);
+simple("adduser",
+       "Create a user",
+       "Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.",
+       [["user", "New username"],
+	["password", "Initial password"],
+	["rights", "Initial rights (optional)"]]);
 
 # TODO allfiles
 
-simple_string_command("confirm",
-		      "Confirm user registration",
-		      "The confirmation string is as returned by the register command.",
-		      [["confirmation", "Confirmnation string"]]);
+simple("confirm",
+       "Confirm user registration",
+       "The confirmation string is as returned by the register command.",
+       [["confirmation", "Confirmnation string"]]);
 
 # TODO cookie
 
-simple_string_command("deluser",
-		      "Delete user",
-		      "Requires the 'admin' right.",
-		      [["user", "User to delete"]]);
+simple("deluser",
+       "Delete user",
+       "Requires the 'admin' right.",
+       [["user", "User to delete"]]);
 
 # TODO dirs
 
-simple_string_command("disable",
-		      "Disable play",
-		      "Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.",
-		      []);
+simple("disable",
+       "Disable play",
+       "Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.",
+       []);
 
-simple_string_command("edituser",
-		      "Set a user property",
-		      "With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.",
-		      [["username", "User to modify"],
-		       ["property", "Property name"],
-		       ["value", "New property value"]]);
+simple("edituser",
+       "Set a user property",
+       "With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.",
+       [["username", "User to modify"],
+	["property", "Property name"],
+	["value", "New property value"]]);
 
-simple_string_command("enable",
-		      "Enable play",
-		      "Requires the 'global prefs' right.",
-		      []);
+simple("enable",
+       "Enable play",
+       "Requires the 'global prefs' right.",
+       []);
 
-# TODO enabled
+boolean("enabled",
+	"Detect whether play is enabled",
+	"",
+	[],
+	["enabled", "1 if play is enabled and 0 otherwise"]);
 
-# TODO exists
+boolean("exists",
+	"Test whether a track exists",
+	"",
+	[["track", "Track name"]],
+	["exists", "1 if the track exists and 0 otherwise"]);
 
 # TODO files
 
@@ -174,48 +235,48 @@ simple_string_command("enable",
 
 # TODO new
 
-simple_string_command("nop",
-		      "Do nothing",
-		      "Used as a keepalive.  No authentication required.",
-		      []);
+simple("nop",
+       "Do nothing",
+       "Used as a keepalive.  No authentication required.",
+       []);
 
 # TODO part
 
-simple_string_command("pause",
-		      "Pause the currently playing track",
-		      "Requires the 'pause' right.",
-		      []);
+simple("pause",
+       "Pause the currently playing track",
+       "Requires the 'pause' right.",
+       []);
 
 # TODO playafter
 
 # TODO playing
 
-simple_string_command("playlist-delete",
-		      "Delete a playlist",
-		      "Requires the 'play' right and permission to modify the playlist.",
-		      [["playlist", "Playlist to delete"]]);
+simple("playlist-delete",
+       "Delete a playlist",
+       "Requires the 'play' right and permission to modify the playlist.",
+       [["playlist", "Playlist to delete"]]);
 
 # TODO playlist-get
 
 # TODO playlist-get-share
 
-simple_string_command("playlist-lock",
-		      "Lock a playlist",
-		      "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
-		      [["playlist", "Playlist to delete"]]);
+simple("playlist-lock",
+       "Lock a playlist",
+       "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
+       [["playlist", "Playlist to delete"]]);
 
 # TODO playlist-set
 
-simple_string_command("playlist-set-share",
-		      "Set a playlist's sharing status",
-		      "Requires the 'play' right and permission to modify the playlist.  ",
-		      [["playlist", "Playlist to modify"],
-		       ["share", "New sharing status ('public', 'private' or 'shared')"]]);
+simple("playlist-set-share",
+       "Set a playlist's sharing status",
+       "Requires the 'play' right and permission to modify the playlist.  ",
+       [["playlist", "Playlist to modify"],
+	["share", "New sharing status ('public', 'private' or 'shared')"]]);
 
-simple_string_command("playlist-unlock",
-		      "Unlock the locked playlist playlist",
-		      "The playlist to unlock is implicit in the connection.",
-		      []);
+simple("playlist-unlock",
+       "Unlock the locked playlist playlist",
+       "The playlist to unlock is implicit in the connection.",
+       []);
 
 # TODO playlists
 
@@ -223,67 +284,73 @@ simple_string_command("playlist-unlock",
 
 # TODO queue
 
-simple_string_command("random-disable",
-		      "Disable random play",
-		      "Requires the 'global prefs' right.",
-		      []);
+simple("random-disable",
+       "Disable random play",
+       "Requires the 'global prefs' right.",
+       []);
 
-simple_string_command("random-enable",
-		      "Enable random play",
-		      "Requires the 'global prefs' right.",
-		      []);
+simple("random-enable",
+       "Enable random play",
+       "Requires the 'global prefs' right.",
+       []);
+
+boolean("random-enabled",
+	"Detect whether random play is enabled",
+	"Random play counts as enabled even if play is disabled.",
+	[],
+	["enabled", "1 if random play is enabled and 0 otherwise"]);
 
 # TODO random-enabled
 
 # TODO recent
 
-simple_string_command("reconfigure",
-		      "Re-read configuraiton file.",
-		      "Requires the 'admin' right.",
-		      []);
+simple("reconfigure",
+       "Re-read configuraiton file.",
+       "Requires the 'admin' right.",
+       []);
 
 # TODO register
 
-simple_string_command("reminder",
-		      "Send a password reminder.",
-		      "If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.",
-		      [["username", "User to remind"]]);
+simple("reminder",
+       "Send a password reminder.",
+       "If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.",
+       [["username", "User to remind"]]);
 
-simple_string_command("remove",
-		      "Remove a track form the queue.",
-		      "Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.",
-		      [["id", "Track ID"]]);
+simple("remove",
+       "Remove a track form the queue.",
+       "Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.",
+       [["id", "Track ID"]]);
 
-simple_string_command("rescan",
-		      "Rescan all collections for new or obsolete tracks.",
-		      "Requires the 'rescan' right.",
-		      []);	# TODO wait/fresh flags
+simple("rescan",
+       "Rescan all collections for new or obsolete tracks.",
+       "Requires the 'rescan' right.",
+       []);	# TODO wait/fresh flags
 
 # TODO resolve
 
-simple_string_command("resume",
-		      "Resume the currently playing track",
-		      "Requires the 'pause' right.",
-		      []);
+simple("resume",
+       "Resume the currently playing track",
+       "Requires the 'pause' right.",
+       []);
 
-simple_string_command("revoke",
-		      "Revoke a cookie.",
-		      "It will not subsequently be possible to log in with the cookie..",
-		      [["cookie", "Cookie to revoke"]]);
+simple("revoke",
+       "Revoke a cookie.",
+       "It will not subsequently be possible to log in with the cookie.",
+       [["cookie", "Cookie to revoke"]]);
 
 # TODO rtp-address
 
-simple_string_command("scratch",
-		      "Terminate the playing track.",
-		      "Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.",
-		      [["id", "Track ID (optional)"]]);
+simple("scratch",
+       "Terminate the playing track.",
+       "Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.",
+       [["id", "Track ID (optional)"]]);
 
 # TODO schedule-add
 
-simple_string_command("schedule-del",
-		      "Delete a scheduled event.",
-		      "Users can always delete their own scheduled events; with the admin right you can delete any event.",
-		      [["event", "ID of event to delete"]]);
+simple("schedule-del",
+       "Delete a scheduled event.",
+       "Users can always delete their own scheduled events; with the admin right you can delete any event.",
+       [["event", "ID of event to delete"]]);
 
 # TODO schedule-get
 
@@ -291,33 +358,33 @@ simple_string_command("schedule-del",
 
 # TODO search
 
-simple_string_command("set",
-		      "Set a track preference",
-		      "Requires the 'prefs' right.",
-		      [["track", "Track name"],
-		       ["pref", "Preference name"],
-		       ["value", "New value"]]);
+simple("set",
+       "Set a track preference",
+       "Requires the 'prefs' right.",
+       [["track", "Track name"],
+	["pref", "Preference name"],
+	["value", "New value"]]);
 
-simple_string_command("set-global",
-		      "Set a global preference",
-		      "Requires the 'global prefs' right.",
-		      [["pref", "Preference name"],
-		       ["value", "New value"]]);
+simple("set-global",
+       "Set a global preference",
+       "Requires the 'global prefs' right.",
+       [["pref", "Preference name"],
+	["value", "New value"]]);
 
 # TODO stats
 
 # TODO tags
 
-simple_string_command("unset",
-		      "Unset a track preference",
-		      "Requires the 'prefs' right.",
-		      [["track", "Track name"],
-		       ["pref", "Preference name"]]);
+simple("unset",
+       "Unset a track preference",
+       "Requires the 'prefs' right.",
+       [["track", "Track name"],
+	["pref", "Preference name"]]);
 
-simple_string_command("unset-global",
-		      "Set a global preference",
-		      "Requires the 'global prefs' right.",
-		      [["pref", "Preference name"]]);
+simple("unset-global",
+       "Set a global preference",
+       "Requires the 'global prefs' right.",
+       [["pref", "Preference name"]]);
 
 # user is only used by connect functions
 
