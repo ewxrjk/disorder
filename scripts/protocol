@@ -35,7 +35,40 @@ sub Write {
 
 # Command classes -------------------------------------------------------------
 
-# simple(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...],)
+sub c_in_decl {
+    my $arg = shift;
+
+    my $type = $arg->[0];
+    my $name = $arg->[1];
+    if($type eq 'string') {
+	return "const char *$name";
+    } elsif($type eq 'integer') {
+	return "long $name";
+    } else {
+	die "$0: unknown type '$type'\n";
+    }
+}
+
+sub c_out_decl {
+    my $arg = shift;
+
+    my $type = $arg->[0];
+    my $name = $arg->[1];
+    if($type eq 'string') {
+	return "char **${name}p";
+    } elsif($type eq 'integer') {
+	return "long *${name}p";
+    } else {
+	die "$0: unknown type '$type'\n";
+    }
+}
+
+sub c_param_docs {
+    my $args = shift;
+    return map(" * \@param $_->[1] $_->[2]\n", @$args);
+}
+
+# simple(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],)
 #
 # Response is simply success/failure
 sub simple {
@@ -51,16 +84,19 @@ sub simple {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         c_param_docs($args),
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args), ");\n",
-         "\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args), ") {\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args)),
+         ");\n\n");
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args)),
+	 ") {\n",
          "  return disorder_simple(c, 0, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
          ", (char *)0);\n",
          "}\n\n");
 
@@ -74,7 +110,7 @@ sub simple {
     # TODO
 }
 
-# string(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+# string(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
 #
 # Response is a string, or failure, or 555 for "none".
 sub string {
@@ -91,19 +127,22 @@ sub string {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+	 c_param_docs($args),
          " * \@param $return->[0]p $return->[1]\n",
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", char **$return->[0]p);\n",
-         "\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", char **$return->[0]p) {\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "char **$return->[0]p"),
+	 ");\n\n");
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "char **$return->[0]p"),
+	 ") {\n",
          "  return dequote(disorder_simple(c, $return->[0]p, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
          ", (char *)0), $return->[0]p);\n",
          "}\n\n");
 
@@ -117,7 +156,7 @@ sub string {
     # TODO
 }
 
-# string_login(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...])
+# string_login(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...])
 #
 # Like string(), but the server returns a username, which we squirrel
 # away rather than returning to the caller.
@@ -135,19 +174,21 @@ sub string_login {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+	 c_param_docs($args),
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args)),
          ");\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args)),
 	 ") {\n",
 	 "  char *u;\n",
 	 "  int rc;\n",
          "  if((rc = disorder_simple(c, &u, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
 	 "  )))\n",
 	 "    return rc;\n",
 	 "  c->user = u;\n",
@@ -164,7 +205,7 @@ sub string_login {
     # TODO
 }
 
-# boolean(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+# boolean(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
 #
 # Response is yes/no or failure
 sub boolean {
@@ -181,21 +222,24 @@ sub boolean {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         c_param_docs($args),
          " * \@param $return->[0]p $return->[1]\n",
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", int *$return->[0]p);\n",
-         "\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", int *$return->[0]p) {\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "int *$return->[0]p"),
+	 ");\n\n");
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "int *$return->[0]p"),
+	 ") {\n",
          "  char *v;\n",
          "  int rc;\n",
          "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
          ", (char *)0)))\n",
          "    return rc;\n",
          "  return boolean(\"$cmd\", v, $return->[0]p);\n",
@@ -211,7 +255,7 @@ sub boolean {
     # TODO
 }
 
-# integer(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+# integer(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
 #
 # Response is an integer, or failure
 sub integer {
@@ -228,22 +272,25 @@ sub integer {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         c_param_docs($args),
          " * \@param $return->[0]p $return->[1]\n",
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", long *$return->[0]p);\n",
-         "\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", long *$return->[0]p) {\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "long *$return->[0]p"),
+	 ");\n\n");
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "long *$return->[0]p"),
+	 ") {\n",
          "  char *v;\n",
 	 "  int rc;\n",
 	 "\n",
 	 "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
          ", (char *)0)))\n",
 	 "    return rc;\n",
 	 "  *$return->[0]p = atol(v);\n",
@@ -261,7 +308,7 @@ sub integer {
     # TODO
 }
 
-# list(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+# list(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
 #
 # Response is a a list of strings in a dot-stuffed body
 sub list {
@@ -278,20 +325,25 @@ sub list {
          " *\n",
          " * $detail\n",
          " *\n",
-         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         c_param_docs($args),
          " * \@param $return->[0]p $return->[1]\n",
          " * \@param n$return->[0]p Number of elements in $return->[0]p\n",
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
-         "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", char ***$return->[0]p, int *n$return->[0]p);\n",
-         "\n");
-    push(@c, "int disorder_$cmdc(disorder_client *c",
-         map(", const char *$_->[0]", @$args),
-         ", char ***$return->[0]p, int *n$return->[0]p) {\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "char ***$return->[0]p",
+	            "int *n$return->[0]p"),
+	 ");\n\n");
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            "char ***$return->[0]p",
+	            "int *n$return->[0]p"),
+	 ") {\n",
          "  return disorder_simple_list(c, $return->[0]p, n$return->[0]p, \"$cmd\"",
-         map(", $_->[0]", @$args),
+         map(", $_->[1]", @$args),
          ", (char *)0);\n",
          "}\n\n");
 
@@ -341,42 +393,42 @@ push(@c, @gpl,
 simple("adopt",
        "Adopt a track",
        "Makes the calling user owner of a randomly picked track.",
-       [["id", "Track ID"]]);
+       [["string", "id", "Track ID"]]);
 
 simple("adduser",
        "Create a user",
        "Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.",
-       [["user", "New username"],
-        ["password", "Initial password"],
-        ["rights", "Initial rights (optional)"]]);
+       [["string", "user", "New username"],
+        ["string", "password", "Initial password"],
+        ["string", "rights", "Initial rights (optional)"]]);
 
 list("allfiles",
      "List files and directories in a directory",
      "See 'files' and 'dirs' for more specific lists.",
-     [["dir", "Directory to list (optional)"],
-      ["re", "Regexp that results must match (optional)"]],
+     [["string", "dir", "Directory to list (optional)"],
+      ["string", "re", "Regexp that results must match (optional)"]],
      ["files", "List of matching files and directories"]);
 
 string_login("confirm",
 	     "Confirm registration",
 	     "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
-	     [["confirmation", "Confirmation string"]]);
+	     [["string", "confirmation", "Confirmation string"]]);
 
 string_login("cookie",
 	     "Log in with a cookie",
 	     "The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.",
-	     [["cookie", "Cookie string"]]);
+	     [["string", "cookie", "Cookie string"]]);
 
 simple("deluser",
        "Delete user",
        "Requires the 'admin' right.",
-       [["user", "User to delete"]]);
+       [["string", "user", "User to delete"]]);
 
 list("dirs",
      "List directories in a directory",
      "",
-     [["dir", "Directory to list (optional)"],
-      ["re", "Regexp that results must match (optional)"]],
+     [["string", "dir", "Directory to list (optional)"],
+      ["string", "re", "Regexp that results must match (optional)"]],
      ["files", "List of matching directories"]);
 
 simple("disable",
@@ -387,9 +439,9 @@ simple("disable",
 simple("edituser",
        "Set a user property",
        "With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.",
-       [["username", "User to modify"],
-        ["property", "Property name"],
-	["value", "New property value"]]);
+       [["string", "username", "User to modify"],
+        ["string", "property", "Property name"],
+	["string", "value", "New property value"]]);
 
 simple("enable",
        "Enable play",
@@ -405,33 +457,33 @@ boolean("enabled",
 boolean("exists",
         "Test whether a track exists",
         "",
-        [["track", "Track name"]],
+        [["string", "track", "Track name"]],
         ["exists", "1 if the track exists and 0 otherwise"]);
 
 list("files",
      "List files in a directory",
      "",
-     [["dir", "Directory to list (optional)"],
-      ["re", "Regexp that results must match (optional)"]],
+     [["string", "dir", "Directory to list (optional)"],
+      ["string", "re", "Regexp that results must match (optional)"]],
      ["files", "List of matching files"]);
 
 string("get",
        "Get a track preference",
        "If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.",
-       [["track", "Track name"],
-        ["pref", "Preference name"]],
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"]],
        ["value", "Preference value"]);
 
 string("get-global",
        "Get a global preference",
        "If the preference does exist not then a null value is returned.",
-       [["pref", "Global preference name"]],
+       [["string", "pref", "Global preference name"]],
        ["value", "Preference value"]);
 
 integer("length",
 	"Get a track's length",
 	"If the track does not exist an error is returned.",
-	[["track", "Track name"]],
+	[["string", "track", "Track name"]],
 	["length", "Track length in seconds"]);
 
 # TODO log
@@ -456,9 +508,9 @@ simple("nop",
 string("part",
        "Get a track name part",
        "If the name part cannot be constructed an empty string is returned.",
-       [["track", "Track name"],
-        ["context", "Context (\"sort\" or \"display\")"],
-        ["part", "Name part (\"artist\", \"album\" or \"title\")"]],
+       [["string", "track", "Track name"],
+        ["string", "context", "Context (\"sort\" or \"display\")"],
+        ["string", "part", "Name part (\"artist\", \"album\" or \"title\")"]],
        ["part", "Value of name part"]);
 
 simple("pause",
@@ -469,7 +521,7 @@ simple("pause",
 string("play",
        "Play a track",
        "Requires the 'play' right.",
-       [["track", "Track to play"]],
+       [["string", "track", "Track to play"]],
        ["id", "Queue ID of new track"]);
 
 # TODO playafter
@@ -479,30 +531,30 @@ string("play",
 simple("playlist-delete",
        "Delete a playlist",
        "Requires the 'play' right and permission to modify the playlist.",
-       [["playlist", "Playlist to delete"]]);
+       [["string", "playlist", "Playlist to delete"]]);
 
 list("playlist-get",
      "List the contents of a playlist",
      "Requires the 'read' right and oermission to read the playlist.",
-     [["playlist", "Playlist name"]],
+     [["string", "playlist", "Playlist name"]],
      ["tracks", "List of tracks in playlist"]);
 
 string("playlist-get-share",
        "Get a playlist's sharing status",
        "Requires the 'read' right and permission to read the playlist.",
-       [["playlist", "Playlist to read"]],
+       [["string", "playlist", "Playlist to read"]],
        ["share", "Sharing status (\"public\", \"private\" or \"shared\")"]);
 
 simple("playlist-lock",
        "Lock a playlist",
        "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
-       [["playlist", "Playlist to delete"]]);
+       [["string", "playlist", "Playlist to delete"]]);
 
 simple("playlist-set-share",
        "Set a playlist's sharing status",
        "Requires the 'play' right and permission to modify the playlist.",
-       [["playlist", "Playlist to modify"],
-        ["share", "New sharing status (\"public\", \"private\" or \"shared\")"]]);
+       [["string", "playlist", "Playlist to modify"],
+        ["string", "share", "New sharing status (\"public\", \"private\" or \"shared\")"]]);
 
 simple("playlist-unlock",
        "Unlock the locked playlist playlist",
@@ -545,20 +597,20 @@ simple("reconfigure",
 string("register",
        "Register a new user",
        "Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.",
-       [["username", "Requested new username"],
-        ["password", "Requested initial password"],
-        ["email", "New user's email address"]],
+       [["string", "username", "Requested new username"],
+        ["string", "password", "Requested initial password"],
+        ["string", "email", "New user's email address"]],
        ["confirmation", "Confirmation string"]);
 
 simple("reminder",
        "Send a password reminder.",
        "If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.",
-       [["username", "User to remind"]]);
+       [["string", "username", "User to remind"]]);
 
 simple("remove",
        "Remove a track form the queue.",
        "Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.",
-       [["id", "Track ID"]]);
+       [["string", "id", "Track ID"]]);
 
 simple("rescan",
        "Rescan all collections for new or obsolete tracks.",
@@ -568,7 +620,7 @@ simple("rescan",
 string("resolve",
        "Resolve a track name",
        "Converts aliases to non-alias track names",
-       [["track", "Track name (might be an alias)"]],
+       [["string", "track", "Track name (might be an alias)"]],
        ["resolved", "Resolve track name (definitely not an alias)"]);
 
 simple("resume",
@@ -586,14 +638,14 @@ simple("revoke",
 simple("scratch",
        "Terminate the playing track.",
        "Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.",
-       [["id", "Track ID (optional)"]]);
+       [["string", "id", "Track ID (optional)"]]);
 
 # TODO schedule-add
 
 simple("schedule-del",
        "Delete a scheduled event.",
        "Users can always delete their own scheduled events; with the admin right you can delete any event.",
-       [["event", "ID of event to delete"]]);
+       [["string", "event", "ID of event to delete"]]);
 
 # TODO schedule-get
 
@@ -606,21 +658,21 @@ list("schedule-list",
 list("search",
      "Search for tracks",
      "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
-     [["terms", "List of search terms"]],
+     [["string", "terms", "List of search terms"]],
      ["tracks", "List of matching tracks"]);
 
 simple("set",
        "Set a track preference",
        "Requires the 'prefs' right.",
-       [["track", "Track name"],
-        ["pref", "Preference name"],
-	["value", "New value"]]);
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"],
+	["string", "value", "New value"]]);
 
 simple("set-global",
        "Set a global preference",
        "Requires the 'global prefs' right.",
-       [["pref", "Preference name"],
-	["value", "New value"]]);
+       [["string", "pref", "Preference name"],
+	["string", "value", "New value"]]);
 
 simple("shutdown",
        "Request server shutdown",
@@ -642,21 +694,21 @@ list("tags",
 simple("unset",
        "Unset a track preference",
        "Requires the 'prefs' right.",
-       [["track", "Track name"],
-        ["pref", "Preference name"]]);
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"]]);
 
 simple("unset-global",
        "Set a global preference",
        "Requires the 'global prefs' right.",
-       [["pref", "Preference name"]]);
+       [["string", "pref", "Preference name"]]);
 
-# TODO user?
+# 'user' only used for authentication
 
 string("userinfo",
        "Get a user property.",
        "If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.",
-       [["username", "User to read"],
-        ["property", "Property to read"]],
+       [["string", "username", "User to read"],
+        ["string", "property", "Property to read"]],
        ["value", "Value of property"]);
 
 list("users",
