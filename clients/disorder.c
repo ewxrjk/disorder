@@ -344,7 +344,7 @@ static void cf_move(char **argv) {
 static void cf_part(char **argv) {
   char *s;
 
-  if(disorder_part(getclient(), &s, argv[0], argv[1], argv[2])) exit(EXIT_FAILURE);
+  if(disorder_part(getclient(), argv[0], argv[1], argv[2], &s)) exit(EXIT_FAILURE);
   xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
@@ -359,7 +359,7 @@ static void cf_authorize(char **argv) {
 static void cf_resolve(char **argv) {
   char *track;
 
-  if(disorder_resolve(getclient(), &track, argv[0])) exit(EXIT_FAILURE);
+  if(disorder_resolve(getclient(), argv[0], &track)) exit(EXIT_FAILURE);
   xprintf("%s\n", nullcheck(utf82mb_f(track)));
 }
 

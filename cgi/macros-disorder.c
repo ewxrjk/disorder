@@ -159,10 +159,11 @@ static int exp_part(int nargs,
       return 0;
   }
   if(dcgi_client
-     && !disorder_part(dcgi_client, (char **)&s,
+     && !disorder_part(dcgi_client,
                        track,
                        !strcmp(context, "short") ? "display" : context,
-                       part)) {
+                       part,
+                       (char **)&s)) {
     if(!strcmp(context, "short"))
       s = truncate_for_display(s, config->short_display);
     return sink_writes(output, cgi_sgmlquote(s)) < 0 ? -1 : 0;
@@ -625,7 +626,7 @@ static int exp_trackstate(int attribute((unused)) nargs,
 
   if(!dcgi_client)
     return 0;
-  if(disorder_resolve(dcgi_client, &track, args[0]))
+  if(disorder_resolve(dcgi_client, args[0], &track))
     return 0;
   dcgi_lookup(DCGI_PLAYING);
   if(dcgi_playing && !strcmp(track, dcgi_playing->track))
@@ -661,7 +662,7 @@ static int exp_resolve(int attribute((unused)) nargs,
                        void attribute((unused)) *u) {
   char *r;
 
-  if(dcgi_client && !disorder_resolve(dcgi_client, &r, args[0]))
+  if(dcgi_client && !disorder_resolve(dcgi_client, args[0], &r))
     return sink_writes(output, r) < 0 ? -1 : 0;
   return 0;
 }

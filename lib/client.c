@@ -531,15 +531,6 @@ int disorder_play(disorder_client *c, const char *track) {
   return disorder_simple(c, 0, "play", track, (char *)0);
 }
 
-/** @brief Remove a track
- * @param c Client
- * @param track Track to remove (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_remove(disorder_client *c, const char *track) {
-  return disorder_simple(c, 0, "remove", track, (char *)0);
-}
-
 /** @brief Move a track
  * @param c Client
  * @param track Track to move (UTF-8)
@@ -553,62 +544,12 @@ int disorder_move(disorder_client *c, const char *track, int delta) {
   return disorder_simple(c, 0, "move", track, d, (char *)0);
 }
 
-/** @brief Enable play
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_enable(disorder_client *c) {
-  return disorder_simple(c, 0, "enable", (char *)0);
-}
-
-/** @brief Disable play
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_disable(disorder_client *c) {
-  return disorder_simple(c, 0, "disable", (char *)0);
-}
-
-/** @brief Scratch the currently playing track
- * @param id Playing track ID or NULL (UTF-8)
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_scratch(disorder_client *c, const char *id) {
-  return disorder_simple(c, 0, "scratch", id, (char *)0);
-}
-
 /** @brief Shut down the server
  * @param c Client
  * @return 0 on success, non-0 on error
  */
 int disorder_shutdown(disorder_client *c) {
   return disorder_simple(c, 0, "shutdown", (char *)0);
-}
-
-/** @brief Make the server re-read its configuration
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_reconfigure(disorder_client *c) {
-  return disorder_simple(c, 0, "reconfigure", (char *)0);
-}
-
-/** @brief Rescan tracks
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_rescan(disorder_client *c) {
-  return disorder_simple(c, 0, "rescan", (char *)0);
-}
-
-/** @brief Get server version number
- * @param c Client
- * @param rp Where to store version string (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_version(disorder_client *c, char **rp) {
-  return dequote(disorder_simple(c, rp, "version", (char *)0), rp);
 }
 
 static void client_error(const char *msg,
@@ -804,42 +745,6 @@ char *disorder_user(disorder_client *c) {
   return c->user;
 }
 
-/** @brief Set a track preference
- * @param c Client
- * @param track Track name (UTF-8)
- * @param key Preference name (UTF-8)
- * @param value Preference value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_set(disorder_client *c, const char *track,
-		 const char *key, const char *value) {
-  return disorder_simple(c, 0, "set", track, key, value, (char *)0);
-}
-
-/** @brief Unset a track preference
- * @param c Client
- * @param track Track name (UTF-8)
- * @param key Preference name (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_unset(disorder_client *c, const char *track,
-		   const char *key) {
-  return disorder_simple(c, 0, "unset", track, key, (char *)0);
-}
-
-/** @brief Get a track preference
- * @param c Client
- * @param track Track name (UTF-8)
- * @param key Preference name (UTF-8)
- * @param valuep Where to store preference value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_get(disorder_client *c,
-		 const char *track, const char *key, char **valuep) {
-  return dequote(disorder_simple(c, valuep, "get", track, key, (char *)0),
-		 valuep);
-}
-
 static void pref_error_handler(const char *msg,
 			       void attribute((unused)) *u) {
   disorder_error(0, "error handling 'prefs' reply: %s", msg);
@@ -893,35 +798,6 @@ static int boolean(const char *cmd, const char *value,
   return 0;
 }
 
-/** @brief Test whether a track exists
- * @param c Client
- * @param track Track name (UTF-8)
- * @param existsp Where to store result (non-0 iff does exist)
- * @return 0 on success, non-0 on error
- */
-int disorder_exists(disorder_client *c, const char *track, int *existsp) {
-  char *v;
-  int rc;
-
-  if((rc = disorder_simple(c, &v, "exists", track, (char *)0)))
-    return rc;
-  return boolean("exists", v, existsp);
-}
-
-/** @brief Test whether playing is enabled
- * @param c Client
- * @param enabledp Where to store result (non-0 iff enabled)
- * @return 0 on success, non-0 on error
- */
-int disorder_enabled(disorder_client *c, int *enabledp) {
-  char *v;
-  int rc;
-
-  if((rc = disorder_simple(c, &v, "enabled", (char *)0)))
-    return rc;
-  return boolean("enabled", v, enabledp);
-}
-
 /** @brief Get the length of a track
  * @param c Client
  * @param track Track name (UTF-8)
@@ -951,36 +827,6 @@ int disorder_length(disorder_client *c, const char *track,
 int disorder_search(disorder_client *c, const char *terms,
 		    char ***vecp, int *nvecp) {
   return disorder_simple_list(c, vecp, nvecp, "search", terms, (char *)0);
-}
-
-/** @brief Enable random play
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_random_enable(disorder_client *c) {
-  return disorder_simple(c, 0, "random-enable", (char *)0);
-}
-
-/** @brief Disable random play
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_random_disable(disorder_client *c) {
-  return disorder_simple(c, 0, "random-disable", (char *)0);
-}
-
-/** @brief Test whether random play is enabled
- * @param c Client
- * @param enabledp Where to store result (non-0 iff enabled)
- * @return 0 on success, non-0 on error
- */
-int disorder_random_enabled(disorder_client *c, int *enabledp) {
-  char *v;
-  int rc;
-
-  if((rc = disorder_simple(c, &v, "random-enabled", (char *)0)))
-    return rc;
-  return boolean("random-enabled", v, enabledp);
 }
 
 /** @brief Get server stats
@@ -1050,47 +896,6 @@ int disorder_log(disorder_client *c, struct sink *s) {
   return 0;
 }
 
-/** @brief Look up a track name part
- * @param c Client
- * @param partp Where to store result (UTF-8)
- * @param track Track name (UTF-8)
- * @param context Context (usually "sort" or "display") (UTF-8)
- * @param part Track part (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_part(disorder_client *c, char **partp,
-		  const char *track, const char *context, const char *part) {
-  return dequote(disorder_simple(c, partp, "part",
-				 track, context, part, (char *)0), partp);
-}
-
-/** @brief Resolve aliases
- * @param c Client
- * @param trackp Where to store canonical name (UTF-8)
- * @param track Track name (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_resolve(disorder_client *c, char **trackp, const char *track) {
-  return dequote(disorder_simple(c, trackp, "resolve", track, (char *)0),
-		 trackp);
-}
-
-/** @brief Pause the current track
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_pause(disorder_client *c) {
-  return disorder_simple(c, 0, "pause", (char *)0);
-}
-
-/** @brief Resume the current track
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_resume(disorder_client *c) {
-  return disorder_simple(c, 0, "resume", (char *)0);
-}
-
 /** @brief List all known tags
  * @param c Client
  * @param vecp Where to store list (UTF-8)
@@ -1129,37 +934,6 @@ int disorder_new_tracks(disorder_client *c,
   return disorder_simple_list(c, vecp, nvecp, "new", limit, (char *)0);
 }
 
-/** @brief Set a global preference
- * @param c Client
- * @param key Preference name (UTF-8)
- * @param value Preference value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_set_global(disorder_client *c,
-			const char *key, const char *value) {
-  return disorder_simple(c, 0, "set-global", key, value, (char *)0);
-}
-
-/** @brief Unset a global preference
- * @param c Client
- * @param key Preference name (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_unset_global(disorder_client *c, const char *key) {
-  return disorder_simple(c, 0, "unset-global", key, (char *)0);
-}
-
-/** @brief Get a global preference
- * @param c Client
- * @param key Preference name (UTF-8)
- * @param valuep Where to store preference value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_get_global(disorder_client *c, const char *key, char **valuep) {
-  return dequote(disorder_simple(c, valuep, "get-global", key, (char *)0),
-		 valuep);
-}
-
 /** @brief Get server's RTP address information
  * @param c Client
  * @param addressp Where to store address (UTF-8)
@@ -1184,111 +958,6 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   return 0;
 }
 
-/** @brief Create a user
- * @param c Client
- * @param user Username
- * @param password Password
- * @param rights Initial rights or NULL to use default
- * @return 0 on success, non-0 on error
- */
-int disorder_adduser(disorder_client *c,
-		     const char *user, const char *password,
-		     const char *rights) {
-  return disorder_simple(c, 0, "adduser", user, password, rights, (char *)0);
-}
-
-/** @brief Delete a user
- * @param c Client
- * @param user Username
- * @return 0 on success, non-0 on error
- */
-int disorder_deluser(disorder_client *c, const char *user) {
-  return disorder_simple(c, 0, "deluser", user, (char *)0);
-}
-
-/** @brief Get user information
- * @param c Client
- * @param user Username
- * @param key Property name (UTF-8)
- * @param valuep Where to store value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_userinfo(disorder_client *c, const char *user, const char *key,
-		      char **valuep) {
-  return dequote(disorder_simple(c, valuep, "userinfo", user, key, (char *)0),
-		 valuep);
-}
-
-/** @brief Set user information
- * @param c Client
- * @param user Username
- * @param key Property name (UTF-8)
- * @param value New property value (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_edituser(disorder_client *c, const char *user,
-		      const char *key, const char *value) {
-  return disorder_simple(c, 0, "edituser", user, key, value, (char *)0);
-}
-
-/** @brief Register a user
- * @param c Client
- * @param user Username
- * @param password Password
- * @param email Email address (UTF-8)
- * @param confirmp Where to store confirmation string
- * @return 0 on success, non-0 on error
- */
-int disorder_register(disorder_client *c, const char *user,
-		      const char *password, const char *email,
-		      char **confirmp) {
-  return dequote(disorder_simple(c, confirmp, "register",
-				 user, password, email, (char *)0),
-		 confirmp);
-}
-
-/** @brief Confirm a user
- * @param c Client
- * @param confirm Confirmation string
- * @return 0 on success, non-0 on error
- */
-int disorder_confirm(disorder_client *c, const char *confirm) {
-  char *u;
-  int rc;
-  
-  if(!(rc = dequote(disorder_simple(c, &u, "confirm", confirm, (char *)0),
-		    &u)))
-    c->user = u;
-  return rc;
-}
-
-/** @brief Make a cookie for this login
- * @param c Client
- * @param cookiep Where to store cookie string
- * @return 0 on success, non-0 on error
- */
-int disorder_make_cookie(disorder_client *c, char **cookiep) {
-  return dequote(disorder_simple(c, cookiep, "make-cookie", (char *)0),
-		 cookiep);
-}
-
-/** @brief Revoke the cookie used by this session
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_revoke(disorder_client *c) {
-  return disorder_simple(c, 0, "revoke", (char *)0);
-}
-
-/** @brief Request a password reminder email
- * @param c Client
- * @param user Username
- * @return 0 on success, non-0 on error
- */
-int disorder_reminder(disorder_client *c, const char *user) {
-  return disorder_simple(c, 0, "reminder", user, (char *)0);
-}
-
 /** @brief List scheduled events
  * @param c Client
  * @param idsp Where to put list of event IDs
@@ -1297,15 +966,6 @@ int disorder_reminder(disorder_client *c, const char *user) {
  */
 int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp) {
   return disorder_simple_list(c, idsp, nidsp, "schedule-list", (char *)0);
-}
-
-/** @brief Delete a scheduled event
- * @param c Client
- * @param id Event ID to delete
- * @return 0 on success, non-0 on error
- */
-int disorder_schedule_del(disorder_client *c, const char *id) {
-  return disorder_simple(c, 0, "schedule-del", id, (char *)0);
 }
 
 /** @brief Get details of a scheduled event
@@ -1377,25 +1037,6 @@ int disorder_schedule_add(disorder_client *c,
   return rc;
 }
 
-/** @brief Adopt a track
- * @param c Client
- * @param id Track ID to adopt
- * @return 0 on success, non-0 on error
- */
-int disorder_adopt(disorder_client *c, const char *id) {
-  return disorder_simple(c, 0, "adopt", id, (char *)0);
-}
-
-/** @brief Delete a playlist
- * @param c Client
- * @param playlist Playlist to delete
- * @return 0 on success, non-0 on error
- */
-int disorder_playlist_delete(disorder_client *c,
-                             const char *playlist) {
-  return disorder_simple(c, 0, "playlist-delete", playlist, (char *)0);
-}
-
 /** @brief Get the contents of a playlist
  * @param c Client
  * @param playlist Playlist to get
@@ -1421,53 +1062,6 @@ int disorder_playlists(disorder_client *c,
                               "playlists", (char *)0);
 }
 
-/** @brief Get the sharing status of a playlist
- * @param c Client
- * @param playlist Playlist to inspect
- * @param sharep Where to put sharing status
- * @return 0 on success, non-0 on error
- *
- * Possible @p sharep values are @c public, @c private and @c shared.
- */
-int disorder_playlist_get_share(disorder_client *c, const char *playlist,
-                                char **sharep) {
-  return disorder_simple(c, sharep,
-                         "playlist-get-share", playlist, (char *)0);
-}
-
-/** @brief Get the sharing status of a playlist
- * @param c Client
- * @param playlist Playlist to modify
- * @param share New sharing status
- * @return 0 on success, non-0 on error
- *
- * Possible @p share values are @c public, @c private and @c shared.
- */
-int disorder_playlist_set_share(disorder_client *c, const char *playlist,
-                                const char *share) {
-  return disorder_simple(c, 0,
-                         "playlist-set-share", playlist, share, (char *)0);
-}
-
-/** @brief Lock a playlist for modifications
- * @param c Client
- * @param playlist Playlist to lock
- * @return 0 on success, non-0 on error
- */
-int disorder_playlist_lock(disorder_client *c, const char *playlist) {
-  return disorder_simple(c, 0,
-                         "playlist-lock", playlist, (char *)0);
-}
-
-/** @brief Unlock the locked playlist
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_playlist_unlock(disorder_client *c) {
-  return disorder_simple(c, 0,
-                         "playlist-unlock", (char *)0);
-}
-
 /** @brief Set the contents of a playlst
  * @param c Client
  * @param playlist Playlist to modify
@@ -1482,6 +1076,8 @@ int disorder_playlist_set(disorder_client *c,
   return disorder_simple_body(c, 0, tracks, ntracks,
                               "playlist-set", playlist, (char *)0);
 }
+
+#include "client-stubs.c"
 
 /*
 Local Variables:

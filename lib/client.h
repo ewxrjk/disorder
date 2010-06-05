@@ -89,9 +89,6 @@ int disorder_stats(disorder_client *c,
 int disorder_set_volume(disorder_client *c, int left, int right);
 int disorder_get_volume(disorder_client *c, int *left, int *right);
 int disorder_log(disorder_client *c, struct sink *s);
-int disorder_part(disorder_client *c, char **partp,
-		  const char *track, const char *context, const char *part);
-int disorder_resolve(disorder_client *c, char **trackp, const char *track);
 int disorder_pause(disorder_client *c);
 int disorder_resume(disorder_client *c);
 int disorder_tags(disorder_client *c,
@@ -148,6 +145,8 @@ int disorder_playlist_set(disorder_client *c,
                           const char *playlist,
                           char **tracks,
                           int ntracks);
+
+#include "client-stubs.h"
 
 #endif /* CLIENT_H */
 
