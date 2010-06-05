@@ -60,8 +60,6 @@ int disorder_rescan(disorder_client *c);
 int disorder_playing(disorder_client *c, struct queue_entry **qp);
 int disorder_recent(disorder_client *c, struct queue_entry **qp);
 int disorder_queue(disorder_client *c, struct queue_entry **qp);
-int disorder_directories(disorder_client *c, const char *dir, const char *re,
-			 char ***vecp, int *nvecp);
 int disorder_files(disorder_client *c, const char *dir, const char *re,
 		   char ***vecp, int *nvecp);
 int disorder_allfiles(disorder_client *c, const char *dir, const char *re,

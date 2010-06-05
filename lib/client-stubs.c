@@ -24,6 +24,10 @@ int disorder_adduser(disorder_client *c, const char *user, const char *password,
   return disorder_simple(c, 0, "adduser", user, password, rights, (char *)0);
 }
 
+int disorder_allfiles(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp) {
+  return disorder_simple_list(c, filesp, nfilesp, "allfiles", dir, re, (char *)0);
+}
+
 int disorder_confirm(disorder_client *c, const char *confirmation) {
   char *u;
   int rc;
@@ -44,6 +48,10 @@ int disorder_cookie(disorder_client *c, const char *cookie) {
 
 int disorder_deluser(disorder_client *c, const char *user) {
   return disorder_simple(c, 0, "deluser", user, (char *)0);
+}
+
+int disorder_dirs(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp) {
+  return disorder_simple_list(c, filesp, nfilesp, "dirs", dir, re, (char *)0);
 }
 
 int disorder_disable(disorder_client *c) {
@@ -74,6 +82,10 @@ int disorder_exists(disorder_client *c, const char *track, int *existsp) {
   return boolean("exists", v, existsp);
 }
 
+int disorder_files(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp) {
+  return disorder_simple_list(c, filesp, nfilesp, "files", dir, re, (char *)0);
+}
+
 int disorder_get(disorder_client *c, const char *track, const char *pref, char **valuep) {
   return dequote(disorder_simple(c, valuep, "get", track, pref, (char *)0), valuep);
 }
@@ -102,12 +114,16 @@ int disorder_playlist_delete(disorder_client *c, const char *playlist) {
   return disorder_simple(c, 0, "playlist-delete", playlist, (char *)0);
 }
 
-int disorder_playlist_lock(disorder_client *c, const char *playlist) {
-  return disorder_simple(c, 0, "playlist-lock", playlist, (char *)0);
+int disorder_playlist_get(disorder_client *c, const char *playlist, char ***tracksp, int *ntracksp) {
+  return disorder_simple_list(c, tracksp, ntracksp, "playlist-get", playlist, (char *)0);
 }
 
 int disorder_playlist_get_share(disorder_client *c, const char *playlist, char **sharep) {
   return dequote(disorder_simple(c, sharep, "playlist-get-share", playlist, (char *)0), sharep);
+}
+
+int disorder_playlist_lock(disorder_client *c, const char *playlist) {
+  return disorder_simple(c, 0, "playlist-lock", playlist, (char *)0);
 }
 
 int disorder_playlist_set_share(disorder_client *c, const char *playlist, const char *share) {
@@ -116,6 +132,10 @@ int disorder_playlist_set_share(disorder_client *c, const char *playlist, const 
 
 int disorder_playlist_unlock(disorder_client *c) {
   return disorder_simple(c, 0, "playlist-unlock", (char *)0);
+}
+
+int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp) {
+  return disorder_simple_list(c, playlistsp, nplaylistsp, "playlists", (char *)0);
 }
 
 int disorder_random_disable(disorder_client *c) {
@@ -174,12 +194,28 @@ int disorder_schedule_del(disorder_client *c, const char *event) {
   return disorder_simple(c, 0, "schedule-del", event, (char *)0);
 }
 
+int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp) {
+  return disorder_simple_list(c, idsp, nidsp, "schedule-list", (char *)0);
+}
+
+int disorder_search(disorder_client *c, const char *terms, char ***tracksp, int *ntracksp) {
+  return disorder_simple_list(c, tracksp, ntracksp, "search", terms, (char *)0);
+}
+
 int disorder_set(disorder_client *c, const char *track, const char *pref, const char *value) {
   return disorder_simple(c, 0, "set", track, pref, value, (char *)0);
 }
 
 int disorder_set_global(disorder_client *c, const char *pref, const char *value) {
   return disorder_simple(c, 0, "set-global", pref, value, (char *)0);
+}
+
+int disorder_stats(disorder_client *c, char ***statsp, int *nstatsp) {
+  return disorder_simple_list(c, statsp, nstatsp, "stats", (char *)0);
+}
+
+int disorder_tags(disorder_client *c, char ***tagsp, int *ntagsp) {
+  return disorder_simple_list(c, tagsp, ntagsp, "tags", (char *)0);
 }
 
 int disorder_unset(disorder_client *c, const char *track, const char *pref) {
@@ -192,6 +228,10 @@ int disorder_unset_global(disorder_client *c, const char *pref) {
 
 int disorder_userinfo(disorder_client *c, const char *username, const char *property, char **valuep) {
   return dequote(disorder_simple(c, valuep, "userinfo", username, property, (char *)0), valuep);
+}
+
+int disorder_users(disorder_client *c, char ***usersp, int *nusersp) {
+  return disorder_simple_list(c, usersp, nusersp, "users", (char *)0);
 }
 
 int disorder_version(disorder_client *c, char **versionp) {

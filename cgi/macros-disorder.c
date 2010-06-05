@@ -931,7 +931,7 @@ static int exp_dirs(int nargs,
                     const struct mx_node **args,
                     struct sink *output,
                     void *u) {
-  return exp__files_dirs(nargs, args, output, u, "dir", disorder_directories);
+  return exp__files_dirs(nargs, args, output, u, "dir", disorder_dirs);
 }
 
 static int exp__search_shim(disorder_client *c, const char *terms,

@@ -244,7 +244,7 @@ static int isarg_regexp(const char *s) {
 }
 
 static void cf_dirs(char **argv) {
-  cf_somelist(argv, disorder_directories);
+  cf_somelist(argv, disorder_dirs);
 }
 
 static void cf_files(char **argv) {

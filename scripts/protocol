@@ -76,7 +76,7 @@ sub simple {
 
 # string(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
 #
-# Response is yes/no or failure
+# Response is a string, or failure, or 555 for "none".
 sub string {
     my $cmd = shift;
     my $summary = shift;
@@ -117,9 +117,10 @@ sub string {
     # TODO
 }
 
-# string(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...])
+# string_login(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...])
 #
-# Response is yes/no or failure
+# Like string(), but the server returns a username, which we squirrel
+# away rather than returning to the caller.
 sub string_login {
     my $cmd = shift;
     my $summary = shift;
@@ -210,6 +211,50 @@ sub boolean {
     # TODO
 }
 
+# list(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+#
+# Response is a a list of strings in a dot-stuffed body
+sub list {
+    my $cmd = shift;
+    my $summary = shift;
+    my $detail = shift;
+    my $args = shift;
+    my $return = shift;
+
+    my $cmdc = $cmd;
+    $cmdc =~ s/-/_/g;
+    # Synchronous C API
+    push(@h, "/** \@brief $summary\n",
+         " *\n",
+         " * $detail\n",
+         " *\n",
+         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         " * \@param $return->[0]p $return->[1]\n",
+         " * \@param n$return->[0]p Number of elements in $return->[0]p\n",
+         " * \@return 0 on success, non-0 on error\n",
+         " */\n",
+         "int disorder_$cmdc(disorder_client *c",
+         map(", const char *$_->[0]", @$args),
+         ", char ***$return->[0]p, int *n$return->[0]p);\n",
+         "\n");
+    push(@c, "int disorder_$cmdc(disorder_client *c",
+         map(", const char *$_->[0]", @$args),
+         ", char ***$return->[0]p, int *n$return->[0]p) {\n",
+         "  return disorder_simple_list(c, $return->[0]p, n$return->[0]p, \"$cmd\"",
+         map(", $_->[0]", @$args),
+         ", (char *)0);\n",
+         "}\n\n");
+
+    # Asynchronous C API
+    # TODO
+
+    # Python API
+    # TODO
+
+    # Java API
+    # TODO
+}
+
 # TODO other command classes
 
 # Front matter ----------------------------------------------------------------
@@ -255,7 +300,12 @@ simple("adduser",
         ["password", "Initial password"],
         ["rights", "Initial rights (optional)"]]);
 
-# TODO allfiles
+list("allfiles",
+     "List files and directories in a directory",
+     "See 'files' and 'dirs' for more specific lists.",
+     [["dir", "Directory to list (optional)"],
+      ["re", "Regexp that results must match (optional)"]],
+     ["files", "List of matching files and directories"]);
 
 string_login("confirm",
 	     "Confirm registration",
@@ -273,7 +323,12 @@ simple("deluser",
        "Requires the 'admin' right.",
        [["user", "User to delete"]]);
 
-# TODO dirs
+list("dirs",
+     "List directories in a directory",
+     "",
+     [["dir", "Directory to list (optional)"],
+      ["re", "Regexp that results must match (optional)"]],
+     ["files", "List of matching directories"]);
 
 simple("disable",
        "Disable play",
@@ -304,7 +359,12 @@ boolean("exists",
         [["track", "Track name"]],
         ["exists", "1 if the track exists and 0 otherwise"]);
 
-# TODO files
+list("files",
+     "List files in a directory",
+     "",
+     [["dir", "Directory to list (optional)"],
+      ["re", "Regexp that results must match (optional)"]],
+     ["files", "List of matching files"]);
 
 string("get",
        "Get a track preference",
@@ -362,20 +422,22 @@ simple("playlist-delete",
        "Requires the 'play' right and permission to modify the playlist.",
        [["playlist", "Playlist to delete"]]);
 
-# TODO playlist-get
-
-# TODO playlist-get-share
-
-simple("playlist-lock",
-       "Lock a playlist",
-       "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
-       [["playlist", "Playlist to delete"]]);
+list("playlist-get",
+     "List the contents of a playlist",
+     "Requires the 'read' right and oermission to read the playlist.",
+     [["playlist", "Playlist name"]],
+     ["tracks", "List of tracks in playlist"]);
 
 string("playlist-get-share",
        "Get a playlist's sharing status",
        "Requires the 'read' right and permission to read the playlist.",
        [["playlist", "Playlist to read"]],
        ["share", "Sharing status (\"public\", \"private\" or \"shared\")"]);
+
+simple("playlist-lock",
+       "Lock a playlist",
+       "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
+       [["playlist", "Playlist to delete"]]);
 
 simple("playlist-set-share",
        "Set a playlist's sharing status",
@@ -388,7 +450,11 @@ simple("playlist-unlock",
        "The playlist to unlock is implicit in the connection.",
        []);
 
-# TODO playlists
+list("playlists",
+     "List playlists",
+     "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
+     [],
+     ["playlists", "Playlist names"]);
 
 # TODO prefs
 
@@ -472,9 +538,17 @@ simple("schedule-del",
 
 # TODO schedule-get
 
-# TODO schedule-list
+list("schedule-list",
+     "List scheduled events",
+     "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
+     [],
+     ["ids", "List of event IDs"]);
 
-# TODO search
+list("search",
+     "Search for tracks",
+     "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
+     [["terms", "List of search terms"]],
+     ["tracks", "List of matching tracks"]);
 
 simple("set",
        "Set a track preference",
@@ -491,9 +565,17 @@ simple("set-global",
 
 # TODO shutdown (also needs documenting)
 
-# TODO stats
+list("stats",
+     "Get server statistics",
+     "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..",
+     [],
+     ["stats", "List of server information strings."]);
 
-# TODO tags
+list("tags",
+     "Get a list of known tags",
+     "Only tags which apply to at least one track are returned.",
+     [],
+     ["tags", "List of tags"]);
 
 simple("unset",
        "Unset a track preference",
@@ -515,7 +597,11 @@ string("userinfo",
         ["property", "Property to read"]],
        ["value", "Value of property"]);
 
-# TODO users
+list("users",
+     "Get a list of users",
+     "",
+     [],
+     ["users", "List of users"]);
 
 string("version",
        "Get the server version",

@@ -38,6 +38,18 @@ int disorder_adopt(disorder_client *c, const char *id);
  */
 int disorder_adduser(disorder_client *c, const char *user, const char *password, const char *rights);
 
+/** @brief List files and directories in a directory
+ *
+ * See 'files' and 'dirs' for more specific lists.
+ *
+ * @param dir Directory to list (optional)
+ * @param re Regexp that results must match (optional)
+ * @param filesp List of matching files and directories
+ * @param nfilesp Number of elements in filesp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_allfiles(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp);
+
 /** @brief Confirm registration
  *
  * The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.
@@ -62,6 +74,18 @@ int disorder_cookie(disorder_client *c, const char *cookie);
  * @return 0 on success, non-0 on error
  */
 int disorder_deluser(disorder_client *c, const char *user);
+
+/** @brief List directories in a directory
+ *
+ * 
+ *
+ * @param dir Directory to list (optional)
+ * @param re Regexp that results must match (optional)
+ * @param filesp List of matching directories
+ * @param nfilesp Number of elements in filesp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_dirs(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp);
 
 /** @brief Disable play
  *
@@ -108,6 +132,18 @@ int disorder_enabled(disorder_client *c, int *enabledp);
  * @return 0 on success, non-0 on error
  */
 int disorder_exists(disorder_client *c, const char *track, int *existsp);
+
+/** @brief List files in a directory
+ *
+ * 
+ *
+ * @param dir Directory to list (optional)
+ * @param re Regexp that results must match (optional)
+ * @param filesp List of matching files
+ * @param nfilesp Number of elements in filesp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_files(disorder_client *c, const char *dir, const char *re, char ***filesp, int *nfilesp);
 
 /** @brief Get a track preference
  *
@@ -176,14 +212,16 @@ int disorder_pause(disorder_client *c);
  */
 int disorder_playlist_delete(disorder_client *c, const char *playlist);
 
-/** @brief Lock a playlist
+/** @brief List the contents of a playlist
  *
- * Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.
+ * Requires the 'read' right and oermission to read the playlist.
  *
- * @param playlist Playlist to delete
+ * @param playlist Playlist name
+ * @param tracksp List of tracks in playlist
+ * @param ntracksp Number of elements in tracksp
  * @return 0 on success, non-0 on error
  */
-int disorder_playlist_lock(disorder_client *c, const char *playlist);
+int disorder_playlist_get(disorder_client *c, const char *playlist, char ***tracksp, int *ntracksp);
 
 /** @brief Get a playlist's sharing status
  *
@@ -194,6 +232,15 @@ int disorder_playlist_lock(disorder_client *c, const char *playlist);
  * @return 0 on success, non-0 on error
  */
 int disorder_playlist_get_share(disorder_client *c, const char *playlist, char **sharep);
+
+/** @brief Lock a playlist
+ *
+ * Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.
+ *
+ * @param playlist Playlist to delete
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlist_lock(disorder_client *c, const char *playlist);
 
 /** @brief Set a playlist's sharing status
  *
@@ -212,6 +259,16 @@ int disorder_playlist_set_share(disorder_client *c, const char *playlist, const 
  * @return 0 on success, non-0 on error
  */
 int disorder_playlist_unlock(disorder_client *c);
+
+/** @brief List playlists
+ *
+ * Requires the 'read' right.  Only playlists that you have permission to read are returned.
+ *
+ * @param playlistsp Playlist names
+ * @param nplaylistsp Number of elements in playlistsp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp);
 
 /** @brief Disable random play
  *
@@ -328,6 +385,27 @@ int disorder_scratch(disorder_client *c, const char *id);
  */
 int disorder_schedule_del(disorder_client *c, const char *event);
 
+/** @brief List scheduled events
+ *
+ * This just lists IDs.  Use 'schedule-get' to retrieve more detail
+ *
+ * @param idsp List of event IDs
+ * @param nidsp Number of elements in idsp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp);
+
+/** @brief Search for tracks
+ *
+ * Terms are either keywords or tags formatted as 'tag:TAG-NAME'.
+ *
+ * @param terms List of search terms
+ * @param tracksp List of matching tracks
+ * @param ntracksp Number of elements in tracksp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_search(disorder_client *c, const char *terms, char ***tracksp, int *ntracksp);
+
 /** @brief Set a track preference
  *
  * Requires the 'prefs' right.
@@ -348,6 +426,26 @@ int disorder_set(disorder_client *c, const char *track, const char *pref, const 
  * @return 0 on success, non-0 on error
  */
 int disorder_set_global(disorder_client *c, const char *pref, const char *value);
+
+/** @brief Get server statistics
+ *
+ * The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..
+ *
+ * @param statsp List of server information strings.
+ * @param nstatsp Number of elements in statsp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_stats(disorder_client *c, char ***statsp, int *nstatsp);
+
+/** @brief Get a list of known tags
+ *
+ * Only tags which apply to at least one track are returned.
+ *
+ * @param tagsp List of tags
+ * @param ntagsp Number of elements in tagsp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_tags(disorder_client *c, char ***tagsp, int *ntagsp);
 
 /** @brief Unset a track preference
  *
@@ -378,6 +476,16 @@ int disorder_unset_global(disorder_client *c, const char *pref);
  * @return 0 on success, non-0 on error
  */
 int disorder_userinfo(disorder_client *c, const char *username, const char *property, char **valuep);
+
+/** @brief Get a list of users
+ *
+ * 
+ *
+ * @param usersp List of users
+ * @param nusersp Number of elements in usersp
+ * @return 0 on success, non-0 on error
+ */
+int disorder_users(disorder_client *c, char ***usersp, int *nusersp);
 
 /** @brief Get the server version
  *

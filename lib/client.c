@@ -698,45 +698,6 @@ static int disorder_simple_list(disorder_client *c,
   return readlist(c, vecp, nvecp);
 }
 
-/** @brief List directories below @p dir
- * @param c Client
- * @param dir Directory to list, or NULL for root (UTF-8)
- * @param re Regexp that results must match, or NULL (UTF-8)
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_directories(disorder_client *c, const char *dir, const char *re,
-			 char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "dirs", dir, re, (char *)0);
-}
-
-/** @brief List files below @p dir
- * @param c Client
- * @param dir Directory to list, or NULL for root (UTF-8)
- * @param re Regexp that results must match, or NULL (UTF-8)
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_files(disorder_client *c, const char *dir, const char *re,
-		   char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "files", dir, re, (char *)0);
-}
-
-/** @brief List files and directories below @p dir
- * @param c Client
- * @param dir Directory to list, or NULL for root (UTF-8)
- * @param re Regexp that results must match, or NULL (UTF-8)
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_allfiles(disorder_client *c, const char *dir, const char *re,
-		      char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "allfiles", dir, re, (char *)0);
-}
-
 /** @brief Return the user we logged in with
  * @param c Client
  * @return User name (owned by @p c, don't modify)
@@ -817,29 +778,6 @@ int disorder_length(disorder_client *c, const char *track,
   return 0;
 }
 
-/** @brief Search for tracks
- * @param c Client
- * @param terms Search terms (UTF-8)
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_search(disorder_client *c, const char *terms,
-		    char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "search", terms, (char *)0);
-}
-
-/** @brief Get server stats
- * @param c Client
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_stats(disorder_client *c,
-		   char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "stats", (char *)0);
-}
-
 /** @brief Set volume
  * @param c Client
  * @param left New left channel value
@@ -896,28 +834,6 @@ int disorder_log(disorder_client *c, struct sink *s) {
   return 0;
 }
 
-/** @brief List all known tags
- * @param c Client
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_tags(disorder_client *c,
-		   char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "tags", (char *)0);
-}
-
-/** @brief List all known users
- * @param c Client
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_users(disorder_client *c,
-		   char ***vecp, int *nvecp) {
-  return disorder_simple_list(c, vecp, nvecp, "users", (char *)0);
-}
-
 /** @brief Get recently added tracks
  * @param c Client
  * @param vecp Where to store pointer to list (UTF-8)
@@ -956,16 +872,6 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   *addressp = vec[0];
   *portp = vec[1];
   return 0;
-}
-
-/** @brief List scheduled events
- * @param c Client
- * @param idsp Where to put list of event IDs
- * @param nidsp Where to put count of event IDs, or NULL
- * @return 0 on success, non-0 on error
- */
-int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp) {
-  return disorder_simple_list(c, idsp, nidsp, "schedule-list", (char *)0);
 }
 
 /** @brief Get details of a scheduled event
@@ -1035,31 +941,6 @@ int disorder_schedule_add(disorder_client *c,
     disorder_fatal(0, "unknown action '%s'", action);
   va_end(ap);
   return rc;
-}
-
-/** @brief Get the contents of a playlist
- * @param c Client
- * @param playlist Playlist to get
- * @param tracksp Where to put list of tracks
- * @param ntracksp Where to put count of tracks
- * @return 0 on success, non-0 on error
- */
-int disorder_playlist_get(disorder_client *c, const char *playlist,
-                          char ***tracksp, int *ntracksp) {
-  return disorder_simple_list(c, tracksp, ntracksp,
-                              "playlist-get", playlist, (char *)0);
-}
-
-/** @brief List all readable playlists
- * @param c Client
- * @param playlistsp Where to put list of playlists
- * @param nplaylistsp Where to put count of playlists
- * @return 0 on success, non-0 on error
- */
-int disorder_playlists(disorder_client *c,
-                       char ***playlistsp, int *nplaylistsp) {
-  return disorder_simple_list(c, playlistsp, nplaylistsp,
-                              "playlists", (char *)0);
 }
 
 /** @brief Set the contents of a playlst
