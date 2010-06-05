@@ -52,12 +52,18 @@ sub c_in_decl {
 sub c_out_decl {
     my $arg = shift;
 
+    return () unless defined $arg;
     my $type = $arg->[0];
     my $name = $arg->[1];
     if($type eq 'string') {
-	return "char **${name}p";
+	return ("char **${name}p");
     } elsif($type eq 'integer') {
-	return "long *${name}p";
+	return ("long *${name}p");
+    } elsif($type eq 'boolean') {
+	return ("int *${name}p");
+    } elsif($type eq 'list') {
+	return ("char ***${name}p",
+		"int *n${name}p");
     } else {
 	die "$0: unknown type '$type'\n";
     }
@@ -68,52 +74,28 @@ sub c_param_docs {
     return map(" * \@param $_->[1] $_->[2]\n", @$args);
 }
 
-# simple(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],)
-#
-# Response is simply success/failure
-sub simple {
-    my $cmd = shift;
-    my $summary = shift;
-    my $detail = shift;
-    my $args = shift;
-
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
-    # Synchronous C API
-    push(@h, "/** \@brief $summary\n",
-         " *\n",
-         " * $detail\n",
-         " *\n",
-         c_param_docs($args),
-         " * \@return 0 on success, non-0 on error\n",
-         " */\n",
-         "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args)),
-         ");\n\n");
-    push(@c, "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args)),
-	 ") {\n",
-         "  return disorder_simple(c, 0, \"$cmd\"",
-         map(", $_->[1]", @$args),
-         ", (char *)0);\n",
-         "}\n\n");
-
-    # Asynchronous C API
-    # TODO
-
-    # Python API
-    # TODO
-
-    # Java API
-    # TODO
+sub c_return_docs {
+    my $return = shift;
+    return () unless defined $return;
+    my $type = $return->[0];
+    my $name = $return->[1];
+    my $descr = $return->[2];
+    if($type eq 'string'
+       or $type eq 'integer'
+       or $type eq 'boolean') {
+	return (" * \@param ${name}p $descr\n");
+    } elsif($type eq 'list') {
+	return (" * \@param ${name}p $descr\n",
+	        " * \@param n${name}p Number of elements in ${name}p\n");
+    } else {
+	die "$0: unknown return type '$type'\n";
+    }
 }
 
-# string(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
-#
-# Response is a string, or failure, or 555 for "none".
-sub string {
+# simple(CMD, SUMMARY, DETAIL,
+#        [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],
+#        [RETURN-TYPE, RETURN-NAME, RETURN_DESCR)
+sub simple {
     my $cmd = shift;
     my $summary = shift;
     my $detail = shift;
@@ -127,24 +109,56 @@ sub string {
          " *\n",
          " * $detail\n",
          " *\n",
-	 c_param_docs($args),
-         " * \@param $return->[0]p $return->[1]\n",
+         c_param_docs($args),
+	 c_return_docs($return),
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
          "int disorder_$cmdc(",
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
-	            "char **$return->[0]p"),
-	 ");\n\n");
+	            c_out_decl($return)),
+         ");\n\n");
     push(@c, "int disorder_$cmdc(",
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
-	            "char **$return->[0]p"),
-	 ") {\n",
-         "  return dequote(disorder_simple(c, $return->[0]p, \"$cmd\"",
-         map(", $_->[1]", @$args),
-         ", (char *)0), $return->[0]p);\n",
-         "}\n\n");
+	            c_out_decl($return)),
+	 ") {\n");
+    if(!defined $return) {
+	push(@c, "  return disorder_simple(c, 0, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     ", (char *)0);\n",
+	    );
+    } elsif($return->[0] eq 'string') {
+	push(@c, "  return dequote(disorder_simple(c, $return->[1]p, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     ", (char *)0), $return->[1]p);\n");
+    } elsif($return->[0] eq 'boolean') {
+	push(@c, "  char *v;\n",
+	     "  int rc;\n",
+	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     ", (char *)0)))\n",
+	     "    return rc;\n",
+	     "  return boolean(\"$cmd\", v, $return->[1]p);\n");
+    } elsif($return->[0] eq 'integer') {
+	push(@c, "  char *v;\n",
+	     "  int rc;\n",
+	     "\n",
+	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     ", (char *)0)))\n",
+	     "    return rc;\n",
+	     "  *$return->[1]p = atol(v);\n",
+	     "  xfree(v);\n",
+	     "  return 0;\n");
+    } elsif($return->[0] eq 'list') {
+	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     ", (char *)0);\n");
+    } else {
+	die "$0: unknown return type '$return->[0]' for '$cmd'\n";
+    }
+    push(@c, "}\n\n");
 
     # Asynchronous C API
     # TODO
@@ -205,158 +219,6 @@ sub string_login {
     # TODO
 }
 
-# boolean(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
-#
-# Response is yes/no or failure
-sub boolean {
-    my $cmd = shift;
-    my $summary = shift;
-    my $detail = shift;
-    my $args = shift;
-    my $return = shift;
-
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
-    # Synchronous C API
-    push(@h, "/** \@brief $summary\n",
-         " *\n",
-         " * $detail\n",
-         " *\n",
-         c_param_docs($args),
-         " * \@param $return->[0]p $return->[1]\n",
-         " * \@return 0 on success, non-0 on error\n",
-         " */\n",
-         "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "int *$return->[0]p"),
-	 ");\n\n");
-    push(@c, "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "int *$return->[0]p"),
-	 ") {\n",
-         "  char *v;\n",
-         "  int rc;\n",
-         "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-         map(", $_->[1]", @$args),
-         ", (char *)0)))\n",
-         "    return rc;\n",
-         "  return boolean(\"$cmd\", v, $return->[0]p);\n",
-         "}\n\n");
-
-    # Asynchronous C API
-    # TODO
-
-    # Python API
-    # TODO
-
-    # Java API
-    # TODO
-}
-
-# integer(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
-#
-# Response is an integer, or failure
-sub integer {
-    my $cmd = shift;
-    my $summary = shift;
-    my $detail = shift;
-    my $args = shift;
-    my $return = shift;
-
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
-    # Synchronous C API
-    push(@h, "/** \@brief $summary\n",
-         " *\n",
-         " * $detail\n",
-         " *\n",
-         c_param_docs($args),
-         " * \@param $return->[0]p $return->[1]\n",
-         " * \@return 0 on success, non-0 on error\n",
-         " */\n",
-         "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "long *$return->[0]p"),
-	 ");\n\n");
-    push(@c, "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "long *$return->[0]p"),
-	 ") {\n",
-         "  char *v;\n",
-	 "  int rc;\n",
-	 "\n",
-	 "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-         map(", $_->[1]", @$args),
-         ", (char *)0)))\n",
-	 "    return rc;\n",
-	 "  *$return->[0]p = atol(v);\n",
-	 "  xfree(v);\n",
-	 "  return 0;\n",
-         "}\n\n");
-
-    # Asynchronous C API
-    # TODO
-
-    # Python API
-    # TODO
-
-    # Java API
-    # TODO
-}
-
-# list(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...], [RETURN, DESCR])
-#
-# Response is a a list of strings in a dot-stuffed body
-sub list {
-    my $cmd = shift;
-    my $summary = shift;
-    my $detail = shift;
-    my $args = shift;
-    my $return = shift;
-
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
-    # Synchronous C API
-    push(@h, "/** \@brief $summary\n",
-         " *\n",
-         " * $detail\n",
-         " *\n",
-         c_param_docs($args),
-         " * \@param $return->[0]p $return->[1]\n",
-         " * \@param n$return->[0]p Number of elements in $return->[0]p\n",
-         " * \@return 0 on success, non-0 on error\n",
-         " */\n",
-         "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "char ***$return->[0]p",
-	            "int *n$return->[0]p"),
-	 ");\n\n");
-    push(@c, "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args),
-	            "char ***$return->[0]p",
-	            "int *n$return->[0]p"),
-	 ") {\n",
-         "  return disorder_simple_list(c, $return->[0]p, n$return->[0]p, \"$cmd\"",
-         map(", $_->[1]", @$args),
-         ", (char *)0);\n",
-         "}\n\n");
-
-    # Asynchronous C API
-    # TODO
-
-    # Python API
-    # TODO
-
-    # Java API
-    # TODO
-}
-
 # TODO other command classes
 
 # Front matter ----------------------------------------------------------------
@@ -402,12 +264,12 @@ simple("adduser",
         ["string", "password", "Initial password"],
         ["string", "rights", "Initial rights (optional)"]]);
 
-list("allfiles",
-     "List files and directories in a directory",
-     "See 'files' and 'dirs' for more specific lists.",
-     [["string", "dir", "Directory to list (optional)"],
-      ["string", "re", "Regexp that results must match (optional)"]],
-     ["files", "List of matching files and directories"]);
+simple("allfiles",
+       "List files and directories in a directory",
+       "See 'files' and 'dirs' for more specific lists.",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       ["list", "files", "List of matching files and directories"]);
 
 string_login("confirm",
 	     "Confirm registration",
@@ -424,12 +286,12 @@ simple("deluser",
        "Requires the 'admin' right.",
        [["string", "user", "User to delete"]]);
 
-list("dirs",
-     "List directories in a directory",
-     "",
-     [["string", "dir", "Directory to list (optional)"],
-      ["string", "re", "Regexp that results must match (optional)"]],
-     ["files", "List of matching directories"]);
+simple("dirs",
+       "List directories in a directory",
+       "",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       ["list", "files", "List of matching directories"]);
 
 simple("disable",
        "Disable play",
@@ -448,51 +310,51 @@ simple("enable",
        "Requires the 'global prefs' right.",
        []);
 
-boolean("enabled",
-        "Detect whether play is enabled",
-        "",
-        [],
-        ["enabled", "1 if play is enabled and 0 otherwise"]);
+simple("enabled",
+       "Detect whether play is enabled",
+       "",
+       [],
+       ["boolean", "enabled", "1 if play is enabled and 0 otherwise"]);
 
-boolean("exists",
-        "Test whether a track exists",
-        "",
-        [["string", "track", "Track name"]],
-        ["exists", "1 if the track exists and 0 otherwise"]);
+simple("exists",
+       "Test whether a track exists",
+       "",
+       [["string", "track", "Track name"]],
+       ["boolean", "exists", "1 if the track exists and 0 otherwise"]);
 
-list("files",
-     "List files in a directory",
-     "",
-     [["string", "dir", "Directory to list (optional)"],
-      ["string", "re", "Regexp that results must match (optional)"]],
-     ["files", "List of matching files"]);
+simple("files",
+       "List files in a directory",
+       "",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       ["list", "files", "List of matching files"]);
 
-string("get",
+simple("get",
        "Get a track preference",
        "If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.",
        [["string", "track", "Track name"],
         ["string", "pref", "Preference name"]],
-       ["value", "Preference value"]);
+       ["string", "value", "Preference value"]);
 
-string("get-global",
+simple("get-global",
        "Get a global preference",
        "If the preference does exist not then a null value is returned.",
        [["string", "pref", "Global preference name"]],
-       ["value", "Preference value"]);
+       ["string", "value", "Preference value"]);
 
-integer("length",
-	"Get a track's length",
-	"If the track does not exist an error is returned.",
-	[["string", "track", "Track name"]],
-	["length", "Track length in seconds"]);
+simple("length",
+       "Get a track's length",
+       "If the track does not exist an error is returned.",
+       [["string", "track", "Track name"]],
+       ["integer", "length", "Track length in seconds"]);
 
 # TODO log
 
-string("make-cookie",
+simple("make-cookie",
        "Create a login cookie for this user",
        "The cookie may be redeemed via the 'cookie' command",
        [],
-       ["cookie", "Newly created cookie"]);
+       ["string", "cookie", "Newly created cookie"]);
 
 # TODO move
 
@@ -505,24 +367,24 @@ simple("nop",
        "Used as a keepalive.  No authentication required.",
        []);
 
-string("part",
+simple("part",
        "Get a track name part",
        "If the name part cannot be constructed an empty string is returned.",
        [["string", "track", "Track name"],
         ["string", "context", "Context (\"sort\" or \"display\")"],
         ["string", "part", "Name part (\"artist\", \"album\" or \"title\")"]],
-       ["part", "Value of name part"]);
+       ["string", "part", "Value of name part"]);
 
 simple("pause",
        "Pause the currently playing track",
        "Requires the 'pause' right.",
        []);
 
-string("play",
+simple("play",
        "Play a track",
        "Requires the 'play' right.",
        [["string", "track", "Track to play"]],
-       ["id", "Queue ID of new track"]);
+       ["string", "id", "Queue ID of new track"]);
 
 # TODO playafter
 
@@ -533,17 +395,17 @@ simple("playlist-delete",
        "Requires the 'play' right and permission to modify the playlist.",
        [["string", "playlist", "Playlist to delete"]]);
 
-list("playlist-get",
-     "List the contents of a playlist",
-     "Requires the 'read' right and oermission to read the playlist.",
-     [["string", "playlist", "Playlist name"]],
-     ["tracks", "List of tracks in playlist"]);
+simple("playlist-get",
+       "List the contents of a playlist",
+       "Requires the 'read' right and oermission to read the playlist.",
+       [["string", "playlist", "Playlist name"]],
+       ["list", "tracks", "List of tracks in playlist"]);
 
-string("playlist-get-share",
+simple("playlist-get-share",
        "Get a playlist's sharing status",
        "Requires the 'read' right and permission to read the playlist.",
        [["string", "playlist", "Playlist to read"]],
-       ["share", "Sharing status (\"public\", \"private\" or \"shared\")"]);
+       ["string", "share", "Sharing status (\"public\", \"private\" or \"shared\")"]);
 
 simple("playlist-lock",
        "Lock a playlist",
@@ -561,11 +423,11 @@ simple("playlist-unlock",
        "The playlist to unlock is implicit in the connection.",
        []);
 
-list("playlists",
-     "List playlists",
-     "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
-     [],
-     ["playlists", "Playlist names"]);
+simple("playlists",
+       "List playlists",
+       "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
+       [],
+       ["list", "playlists", "Playlist names"]);
 
 # TODO prefs
 
@@ -581,11 +443,11 @@ simple("random-enable",
        "Requires the 'global prefs' right.",
        []);
 
-boolean("random-enabled",
-        "Detect whether random play is enabled",
-        "Random play counts as enabled even if play is disabled.",
-        [],
-        ["enabled", "1 if random play is enabled and 0 otherwise"]);
+simple("random-enabled",
+       "Detect whether random play is enabled",
+       "Random play counts as enabled even if play is disabled.",
+       [],
+       ["boolean", "enabled", "1 if random play is enabled and 0 otherwise"]);
 
 # TODO recent
 
@@ -594,13 +456,13 @@ simple("reconfigure",
        "Requires the 'admin' right.",
        []);
 
-string("register",
+simple("register",
        "Register a new user",
        "Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.",
        [["string", "username", "Requested new username"],
         ["string", "password", "Requested initial password"],
         ["string", "email", "New user's email address"]],
-       ["confirmation", "Confirmation string"]);
+       ["string", "confirmation", "Confirmation string"]);
 
 simple("reminder",
        "Send a password reminder.",
@@ -617,11 +479,11 @@ simple("rescan",
        "Requires the 'rescan' right.",
        []);     # TODO wait/fresh flags
 
-string("resolve",
+simple("resolve",
        "Resolve a track name",
        "Converts aliases to non-alias track names",
        [["string", "track", "Track name (might be an alias)"]],
-       ["resolved", "Resolve track name (definitely not an alias)"]);
+       ["string", "resolved", "Resolve track name (definitely not an alias)"]);
 
 simple("resume",
        "Resume the currently playing track",
@@ -649,17 +511,17 @@ simple("schedule-del",
 
 # TODO schedule-get
 
-list("schedule-list",
-     "List scheduled events",
-     "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
-     [],
-     ["ids", "List of event IDs"]);
+simple("schedule-list",
+       "List scheduled events",
+       "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
+       [],
+       ["list", "ids", "List of event IDs"]);
 
-list("search",
-     "Search for tracks",
-     "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
-     [["string", "terms", "List of search terms"]],
-     ["tracks", "List of matching tracks"]);
+simple("search",
+       "Search for tracks",
+       "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
+       [["string", "terms", "List of search terms"]],
+       ["list", "tracks", "List of matching tracks"]);
 
 simple("set",
        "Set a track preference",
@@ -679,17 +541,17 @@ simple("shutdown",
        "Requires the 'admin' right.",
        []);
 
-list("stats",
-     "Get server statistics",
-     "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..",
-     [],
-     ["stats", "List of server information strings."]);
+simple("stats",
+       "Get server statistics",
+       "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..",
+       [],
+       ["list", "stats", "List of server information strings."]);
 
-list("tags",
-     "Get a list of known tags",
-     "Only tags which apply to at least one track are returned.",
-     [],
-     ["tags", "List of tags"]);
+simple("tags",
+       "Get a list of known tags",
+       "Only tags which apply to at least one track are returned.",
+       [],
+       ["list", "tags", "List of tags"]);
 
 simple("unset",
        "Unset a track preference",
@@ -704,24 +566,24 @@ simple("unset-global",
 
 # 'user' only used for authentication
 
-string("userinfo",
+simple("userinfo",
        "Get a user property.",
        "If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.",
        [["string", "username", "User to read"],
         ["string", "property", "Property to read"]],
-       ["value", "Value of property"]);
+       ["string", "value", "Value of property"]);
 
-list("users",
-     "Get a list of users",
-     "",
-     [],
-     ["users", "List of users"]);
+simple("users",
+       "Get a list of users",
+       "",
+       [],
+       ["list", "users", "List of users"]);
 
-string("version",
+simple("version",
        "Get the server version",
        "",
        [],
-       ["version", "Server version string"]);
+       ["string", "version", "Server version string"]);
 
 # TODO volume
 
