@@ -75,7 +75,8 @@ If \fIREGEXP\fR is present only matching files and directories are returned.
 .B confirm \fICONFIRMATION
 Confirm user registration.
 \fICONFIRMATION\fR is as returned from \fBregister\fR below.
-This command can be used without logging in.
+This command logs the user in.
+The response contains the logged-in username.
 .TP
 .B cookie \fICOOKIE
 Log a user back in using a cookie created with \fBmake\-cookie\fR.

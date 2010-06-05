@@ -311,7 +311,6 @@ string_login("confirm",
 	     "Confirm registration",
 	     "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
 	     [["confirmation", "Confirmation string"]]);
-#TODO update docs - this logs you in
 
 string_login("cookie",
 	     "Log in with a cookie",
