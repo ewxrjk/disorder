@@ -57,18 +57,22 @@ int disorder_allfiles(disorder_client *c, const char *dir, const char *re, char 
  *
  * The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.
  *
+ * @param c Client
  * @param confirmation Confirmation string
  * @return 0 on success, non-0 on error
  */
 int disorder_confirm(disorder_client *c, const char *confirmation);
+
 /** @brief Log in with a cookie
  *
  * The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.
  *
+ * @param c Client
  * @param cookie Cookie string
  * @return 0 on success, non-0 on error
  */
 int disorder_cookie(disorder_client *c, const char *cookie);
+
 /** @brief Delete user
  *
  * Requires the 'admin' right.

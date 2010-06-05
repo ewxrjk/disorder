@@ -69,6 +69,8 @@ sub c_out_decl {
 		"int *n${name}p");
     } elsif($type eq 'queue') {
 	return ("struct queue_entry **${name}p");
+    } elsif($type eq 'user') {
+	return ();
     } else {
 	die "$0: unknown type '$type'\n";
     }
@@ -104,6 +106,8 @@ sub c_return_docs {
 	        " * \@param n${name}p Number of elements in ${name}p\n");
     } elsif($type eq 'queue') {
 	return (" * \@param ${name}p $descr\n");
+    } elsif($type eq 'user') {
+	return ();
     } else {
 	die "$0: unknown return type '$type'\n";
     }
@@ -182,6 +186,15 @@ sub simple {
 	     "  *$return->[1]p = atol(v);\n",
 	     "  xfree(v);\n",
 	     "  return 0;\n");
+    } elsif($return->[0] eq 'user') {
+	push(@c, "  char *u;\n",
+	     "  int rc;\n",
+	     "  if((rc = disorder_simple(c, &u, \"$cmd\"",
+	     map(", $_->[1]", @$args),
+	     "  )))\n",
+	     "    return rc;\n",
+	     "  c->user = u;\n",
+	     "  return 0;\n");
     } elsif($return->[0] eq 'list') {
 	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
 	     map(", $_->[1]", @$args),
@@ -192,55 +205,6 @@ sub simple {
 	die "$0: unknown return type '$return->[0]' for '$cmd'\n";
     }
     push(@c, "}\n\n");
-
-    # Asynchronous C API
-    # TODO
-
-    # Python API
-    # TODO
-
-    # Java API
-    # TODO
-}
-
-# string_login(CMD, SUMMARY, DETAIL, [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...])
-#
-# Like string(), but the server returns a username, which we squirrel
-# away rather than returning to the caller.
-sub string_login {
-    my $cmd = shift;
-    my $summary = shift;
-    my $detail = shift;
-    my $args = shift;
-    my $return = shift;
-
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
-    # Synchronous C API
-    push(@h, "/** \@brief $summary\n",
-         " *\n",
-         " * $detail\n",
-         " *\n",
-	 c_param_docs($args),
-         " * \@return 0 on success, non-0 on error\n",
-         " */\n",
-         "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args)),
-         ");\n");
-    push(@c, "int disorder_$cmdc(",
-	 join(", ", "disorder_client *c",
-	            map(c_in_decl($_), @$args)),
-	 ") {\n",
-	 "  char *u;\n",
-	 "  int rc;\n",
-         "  if((rc = disorder_simple(c, &u, \"$cmd\"",
-         map(", $_->[1]", @$args),
-	 "  )))\n",
-	 "    return rc;\n",
-	 "  c->user = u;\n",
-	 "  return 0;\n",
-         "}\n\n");
 
     # Asynchronous C API
     # TODO
@@ -304,15 +268,17 @@ simple("allfiles",
 	["string", "re", "Regexp that results must match (optional)"]],
        ["list", "files", "List of matching files and directories"]);
 
-string_login("confirm",
-	     "Confirm registration",
-	     "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
-	     [["string", "confirmation", "Confirmation string"]]);
+simple("confirm",
+       "Confirm registration",
+       "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
+       [["string", "confirmation", "Confirmation string"]],
+       ["user"]);
 
-string_login("cookie",
-	     "Log in with a cookie",
-	     "The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.",
-	     [["string", "cookie", "Cookie string"]]);
+simple("cookie",
+       "Log in with a cookie",
+       "The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.",
+       [["string", "cookie", "Cookie string"]],
+       ["user"]);
 
 simple("deluser",
        "Delete user",
