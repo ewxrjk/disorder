@@ -341,9 +341,9 @@ Resolve a track name, i.e. if this is an alias then return the real track name.
 Resume the current track after a \fBpause\fR command.
 Requires the \fBpause\fR right.
 .TP
-.B revoke \fBcookie\fR
-Revoke a cookie previously created with \fBmake\-cookie\fR.
-It will not be possible to use this cookie in the future.
+.B revoke
+Revoke the current login's cookie.
+It will not be possible to use the cookie in the future.
 .TP
 .B rtp\-address
 Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
