@@ -48,7 +48,6 @@ int disorder_connect_generic(struct config *conf,
                              const char *cookie);
 int disorder_close(disorder_client *c);
 int disorder_version(disorder_client *c, char **versionp);
-int disorder_play(disorder_client *c, const char *track);
 int disorder_remove(disorder_client *c, const char *track);
 int disorder_move(disorder_client *c, const char *track, int delta);
 int disorder_enable(disorder_client *c);

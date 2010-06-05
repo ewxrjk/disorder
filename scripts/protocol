@@ -412,6 +412,12 @@ simple("pause",
        "Requires the 'pause' right.",
        []);
 
+string("play",
+       "Play a track",
+       "Requires the 'play' right.",
+       [["track", "Track to play"]],
+       ["id", "Queue ID of new track"]);
+
 # TODO playafter
 
 # TODO playing

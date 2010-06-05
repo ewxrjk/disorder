@@ -138,8 +138,9 @@ static void cf_playing(char attribute((unused)) **argv) {
 }
 
 static void cf_play(char **argv) {
+  char *id;
   while(*argv)
-    if(disorder_play(getclient(), *argv++)) exit(EXIT_FAILURE);
+    if(disorder_play(getclient(), *argv++, &id)) exit(EXIT_FAILURE);
 }
 
 static void cf_remove(char **argv) {

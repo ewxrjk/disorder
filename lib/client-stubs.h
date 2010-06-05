@@ -203,6 +203,16 @@ int disorder_part(disorder_client *c, const char *track, const char *context, co
  */
 int disorder_pause(disorder_client *c);
 
+/** @brief Play a track
+ *
+ * Requires the 'play' right.
+ *
+ * @param track Track to play
+ * @param idp Queue ID of new track
+ * @return 0 on success, non-0 on error
+ */
+int disorder_play(disorder_client *c, const char *track, char **idp);
+
 /** @brief Delete a playlist
  *
  * Requires the 'play' right and permission to modify the playlist.

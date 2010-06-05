@@ -522,15 +522,6 @@ int disorder_close(disorder_client *c) {
   return ret;
 }
 
-/** @brief Play a track
- * @param c Client
- * @param track Track to play (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_play(disorder_client *c, const char *track) {
-  return disorder_simple(c, 0, "play", track, (char *)0);
-}
-
 /** @brief Move a track
  * @param c Client
  * @param track Track to move (UTF-8)

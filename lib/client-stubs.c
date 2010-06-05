@@ -110,6 +110,10 @@ int disorder_pause(disorder_client *c) {
   return disorder_simple(c, 0, "pause", (char *)0);
 }
 
+int disorder_play(disorder_client *c, const char *track, char **idp) {
+  return dequote(disorder_simple(c, idp, "play", track, (char *)0), idp);
+}
+
 int disorder_playlist_delete(disorder_client *c, const char *playlist) {
   return disorder_simple(c, 0, "playlist-delete", playlist, (char *)0);
 }
