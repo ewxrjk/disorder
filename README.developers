@@ -14,7 +14,7 @@ Dependencies:
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
 		     libflac-dev vorbis-tools wget libsamplerate0-dev
 
-     On lenny use libdb4.5-deb.  libdb4.6 does not work (and configure will
+     On lenny use libdb4.5-dev.  libdb4.6 does not work (and configure will
      refuse to use it).
 
    * On FreeBSD you'll need at least these packages:
