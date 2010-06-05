@@ -141,6 +141,10 @@ int disorder_playlist_lock(disorder_client *c, const char *playlist) {
   return disorder_simple(c, 0, "playlist-lock", playlist, (char *)0);
 }
 
+int disorder_playlist_set(disorder_client *c, const char *playlist, char **tracks, int ntracks) {
+  return disorder_simple(c, 0, "playlist-set", playlist, disorder_body, tracks, ntracks, (char *)0);
+}
+
 int disorder_playlist_set_share(disorder_client *c, const char *playlist, const char *share) {
   return disorder_simple(c, 0, "playlist-set-share", playlist, share, (char *)0);
 }
@@ -151,6 +155,10 @@ int disorder_playlist_unlock(disorder_client *c) {
 
 int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp) {
   return disorder_simple_list(c, playlistsp, nplaylistsp, "playlists", (char *)0);
+}
+
+int disorder_queue(disorder_client *c, struct queue_entry **queuep) {
+  return disorder_somequeue(c, "queue", queuep);
 }
 
 int disorder_random_disable(disorder_client *c) {
@@ -167,6 +175,10 @@ int disorder_random_enabled(disorder_client *c, int *enabledp) {
   if((rc = disorder_simple(c, &v, "random-enabled", (char *)0)))
     return rc;
   return boolean("random-enabled", v, enabledp);
+}
+
+int disorder_recent(disorder_client *c, struct queue_entry **recentp) {
+  return disorder_somequeue(c, "recent", recentp);
 }
 
 int disorder_reconfigure(disorder_client *c) {

@@ -151,12 +151,13 @@ static int check_response(disorder_client *c, char **rp) {
   }
 }
 
+/** @brief Marker for a command body */
+static const char disorder_body[1];
+
 /** @brief Issue a command and parse a simple response
  * @param c Client
  * @param rp Where to store result, or NULL
  * @param cmd Command
- * @param body Body or NULL
- * @param nbody Length of body or -1
  * @param ap Arguments (UTF-8), terminated by (char *)0
  * @return 0 on success, non-0 on error
  *
@@ -168,22 +169,23 @@ static int check_response(disorder_client *c, char **rp) {
  * NB that the response will NOT be converted to the local encoding
  * nor will quotes be stripped.  See dequote().
  *
- * If @p body is not NULL then the body is sent immediately after the
- * command.  @p nbody should be the number of lines or @c -1 to count
- * them if @p body is NULL-terminated.
+ * Put @ref disorder_body in the argument list followed by a char **
+ * and int giving the body to follow the command.  If the int is @c -1
+ * then the list is assumed to be NULL-terminated.
  *
  * Usually you would call this via one of the following interfaces:
  * - disorder_simple()
- * - disorder_simple_body()
  * - disorder_simple_list()
  */
 static int disorder_simple_v(disorder_client *c,
 			     char **rp,
 			     const char *cmd,
-                             char **body, int nbody,
                              va_list ap) {
   const char *arg;
   struct dynstr d;
+  char **body = NULL;
+  int nbody = 0;
+  int has_body = 0;
 
   if(!c->fpout) {
     c->last = "not connected";
@@ -194,8 +196,14 @@ static int disorder_simple_v(disorder_client *c,
     dynstr_init(&d);
     dynstr_append_string(&d, cmd);
     while((arg = va_arg(ap, const char *))) {
-      dynstr_append(&d, ' ');
-      dynstr_append_string(&d, quoteutf8(arg));
+      if(arg == disorder_body) {
+	body = va_arg(ap, char **);
+	nbody = va_arg(ap, int);
+	has_body = 1;
+      } else {
+	dynstr_append(&d, ' ');
+	dynstr_append_string(&d, quoteutf8(arg));
+      }
     }
     dynstr_append(&d, '\n');
     dynstr_terminate(&d);
@@ -203,7 +211,7 @@ static int disorder_simple_v(disorder_client *c,
     if(fputs(d.vec, c->fpout) < 0)
       goto write_error;
     xfree(d.vec);
-    if(body) {
+    if(has_body) {
       if(nbody < 0)
         for(nbody = 0; body[nbody]; ++nbody)
           ;
@@ -253,30 +261,7 @@ static int disorder_simple(disorder_client *c,
   int ret;
 
   va_start(ap, cmd);
-  ret = disorder_simple_v(c, rp, cmd, 0, 0, ap);
-  va_end(ap);
-  return ret;
-}
-
-/** @brief Issue a command with a body and parse a simple response
- * @param c Client
- * @param rp Where to store result, or NULL (UTF-8)
- * @param body Pointer to body
- * @param nbody Size of body
- * @param cmd Command
- * @return 0 on success, non-0 on error
- *
- * See disorder_simple().
- */
-static int disorder_simple_body(disorder_client *c,
-                                char **rp,
-                                char **body, int nbody,
-                                const char *cmd, ...) {
-  va_list ap;
-  int ret;
-
-  va_start(ap, cmd);
-  ret = disorder_simple_v(c, rp, cmd, body, nbody, ap);
+  ret = disorder_simple_v(c, rp, cmd, ap);
   va_end(ap);
   return ret;
 }
@@ -597,28 +582,6 @@ static int disorder_somequeue(disorder_client *c,
   return -1;
 }
 
-/** @brief Get recently played tracks
- * @param c Client
- * @param qp Where to store track information
- * @return 0 on success, non-0 on error
- *
- * The last entry in the list is the most recently played track.
- */
-int disorder_recent(disorder_client *c, struct queue_entry **qp) {
-  return disorder_somequeue(c, "recent", qp);
-}
-
-/** @brief Get queue
- * @param c Client
- * @param qp Where to store track information
- * @return 0 on success, non-0 on error
- *
- * The first entry in the list will be played next.
- */
-int disorder_queue(disorder_client *c, struct queue_entry **qp) {
-  return disorder_somequeue(c, "queue", qp);
-}
-
 /** @brief Read a dot-stuffed list
  * @param c Client
  * @param vecp Where to store list (UTF-8)
@@ -675,7 +638,7 @@ static int disorder_simple_list(disorder_client *c,
   int ret;
 
   va_start(ap, cmd);
-  ret = disorder_simple_v(c, 0, cmd, 0, 0, ap);
+  ret = disorder_simple_v(c, 0, cmd, ap);
   va_end(ap);
   if(ret) return ret;
   return readlist(c, vecp, nvecp);
@@ -905,21 +868,6 @@ int disorder_schedule_add(disorder_client *c,
     disorder_fatal(0, "unknown action '%s'", action);
   va_end(ap);
   return rc;
-}
-
-/** @brief Set the contents of a playlst
- * @param c Client
- * @param playlist Playlist to modify
- * @param tracks List of tracks
- * @param ntracks Length of @p tracks (or -1 to count up to the first NULL)
- * @return 0 on success, non-0 on error
- */
-int disorder_playlist_set(disorder_client *c,
-                          const char *playlist,
-                          char **tracks,
-                          int ntracks) {
-  return disorder_simple_body(c, 0, tracks, ntracks,
-                              "playlist-set", playlist, (char *)0);
 }
 
 #include "client-stubs.c"

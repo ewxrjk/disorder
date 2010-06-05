@@ -44,6 +44,9 @@ sub c_in_decl {
 	return "const char *$name";
     } elsif($type eq 'integer') {
 	return "long $name";
+    } elsif($type eq 'list') {
+	return ("char **$name",
+		"int n$name");
     } else {
 	die "$0: unknown type '$type'\n";
     }
@@ -64,6 +67,8 @@ sub c_out_decl {
     } elsif($type eq 'list') {
 	return ("char ***${name}p",
 		"int *n${name}p");
+    } elsif($type eq 'queue') {
+	return ("struct queue_entry **${name}p");
     } else {
 	die "$0: unknown type '$type'\n";
     }
@@ -71,7 +76,17 @@ sub c_out_decl {
 
 sub c_param_docs {
     my $args = shift;
-    return map(" * \@param $_->[1] $_->[2]\n", @$args);
+    my @d = ();
+    for my $arg (@$args) {
+	if($arg->[0] eq 'list') {
+	    push(@d,
+		 " * \@param $arg->[1] $arg->[2]\n",
+		 " * \@param n$arg->[1] Length of $arg->[1]\n");
+	} else {
+	    push(@d, " * \@param $arg->[1] $arg->[2]\n");
+	}
+    }
+    return @d;
 }
 
 sub c_return_docs {
@@ -87,6 +102,8 @@ sub c_return_docs {
     } elsif($type eq 'list') {
 	return (" * \@param ${name}p $descr\n",
 	        " * \@param n${name}p Number of elements in ${name}p\n");
+    } elsif($type eq 'queue') {
+	return (" * \@param ${name}p $descr\n");
     } else {
 	die "$0: unknown return type '$type'\n";
     }
@@ -94,7 +111,7 @@ sub c_return_docs {
 
 # simple(CMD, SUMMARY, DETAIL,
 #        [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],
-#        [RETURN-TYPE, RETURN-NAME, RETURN_DESCR)
+#        [RETURN-TYPE, RETURN-NAME, RETURN_DESCR])
 sub simple {
     my $cmd = shift;
     my $summary = shift;
@@ -109,6 +126,7 @@ sub simple {
          " *\n",
          " * $detail\n",
          " *\n",
+	 " * \@param c Client\n",
          c_param_docs($args),
 	 c_return_docs($return),
          " * \@return 0 on success, non-0 on error\n",
@@ -124,10 +142,17 @@ sub simple {
 	            c_out_decl($return)),
 	 ") {\n");
     if(!defined $return) {
-	push(@c, "  return disorder_simple(c, 0, \"$cmd\"",
-	     map(", $_->[1]", @$args),
-	     ", (char *)0);\n",
-	    );
+	my @cargs = ();
+	for my $arg (@$args) {
+	    if($arg->[0] eq 'list') {
+		push(@cargs, "disorder_body", $arg->[1], "n$arg->[1]");
+	    } else {
+		push(@cargs, $arg->[1]);
+	    }
+	}
+	push(@c, "  return disorder_simple(",
+	     join(", ", "c", 0, "\"$cmd\"", @cargs, "(char *)0"),
+	     ");\n");
     } elsif($return->[0] eq 'string') {
 	push(@c, "  return dequote(disorder_simple(c, $return->[1]p, \"$cmd\"",
 	     map(", $_->[1]", @$args),
@@ -155,6 +180,8 @@ sub simple {
 	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
 	     map(", $_->[1]", @$args),
 	     ", (char *)0);\n");
+    } elsif($return->[0] eq 'queue') {
+	push(@c, "  return disorder_somequeue(c, \"$cmd\", $return->[1]p);\n");
     } else {
 	die "$0: unknown return type '$return->[0]' for '$cmd'\n";
     }
@@ -412,6 +439,12 @@ simple("playlist-lock",
        "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
        [["string", "playlist", "Playlist to delete"]]);
 
+simple("playlist-set",
+       "Set the contents of a playlist",
+       "Requires the 'play' right and permission to modify the playlist, which must be locked.",
+       [["string", "playlist", "Playlist to modify"],
+	["list", "tracks", "New list of tracks for playlist"]]);
+
 simple("playlist-set-share",
        "Set a playlist's sharing status",
        "Requires the 'play' right and permission to modify the playlist.",
@@ -431,7 +464,11 @@ simple("playlists",
 
 # TODO prefs
 
-# TODO queue
+simple("queue",
+       "List the queue",
+       "",
+       [],
+       ["queue", "queue", "Current queue contents"]);
 
 simple("random-disable",
        "Disable random play",
@@ -449,7 +486,11 @@ simple("random-enabled",
        [],
        ["boolean", "enabled", "1 if random play is enabled and 0 otherwise"]);
 
-# TODO recent
+simple("recent",
+       "List recently played tracks",
+       "",
+       [],
+       ["queue", "recent", "Recently played tracks"]);
 
 simple("reconfigure",
        "Re-read configuraiton file.",
@@ -493,7 +534,7 @@ simple("resume",
 simple("revoke",
        "Revoke a cookie.",
        "It will not subsequently be possible to log in with the cookie.",
-       []);                     # TODO fix docs!
+       []);
 
 # TODO rtp-address
 
