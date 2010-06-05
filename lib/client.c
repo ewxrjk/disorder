@@ -544,14 +544,6 @@ int disorder_move(disorder_client *c, const char *track, int delta) {
   return disorder_simple(c, 0, "move", track, d, (char *)0);
 }
 
-/** @brief Shut down the server
- * @param c Client
- * @return 0 on success, non-0 on error
- */
-int disorder_shutdown(disorder_client *c) {
-  return disorder_simple(c, 0, "shutdown", (char *)0);
-}
-
 static void client_error(const char *msg,
 			 void attribute((unused)) *u) {
   disorder_error(0, "error parsing reply: %s", msg);

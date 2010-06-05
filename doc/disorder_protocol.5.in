@@ -437,6 +437,10 @@ Requires the \fBprefs\fR right.
 Set a global preference.
 Requires the \fBglobal prefs\fR right.
 .TP
+.B shutdown
+Requests server shutdown.
+Requires the \fBadmin\fR right.
+.TP
 .B stats
 Send server statistics in plain text in a response body.
 .TP

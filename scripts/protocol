@@ -562,7 +562,10 @@ simple("set-global",
        [["pref", "Preference name"],
 	["value", "New value"]]);
 
-# TODO shutdown (also needs documenting)
+simple("shutdown",
+       "Request server shutdown",
+       "Requires the 'admin' right.",
+       []);
 
 list("stats",
      "Get server statistics",

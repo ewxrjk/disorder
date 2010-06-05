@@ -210,6 +210,10 @@ int disorder_set_global(disorder_client *c, const char *pref, const char *value)
   return disorder_simple(c, 0, "set-global", pref, value, (char *)0);
 }
 
+int disorder_shutdown(disorder_client *c) {
+  return disorder_simple(c, 0, "shutdown", (char *)0);
+}
+
 int disorder_stats(disorder_client *c, char ***statsp, int *nstatsp) {
   return disorder_simple_list(c, statsp, nstatsp, "stats", (char *)0);
 }

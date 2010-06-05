@@ -427,6 +427,14 @@ int disorder_set(disorder_client *c, const char *track, const char *pref, const 
  */
 int disorder_set_global(disorder_client *c, const char *pref, const char *value);
 
+/** @brief Request server shutdown
+ *
+ * Requires the 'admin' right.
+ *
+ * @return 0 on success, non-0 on error
+ */
+int disorder_shutdown(disorder_client *c);
+
 /** @brief Get server statistics
  *
  * The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..
