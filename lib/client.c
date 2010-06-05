@@ -154,6 +154,9 @@ static int check_response(disorder_client *c, char **rp) {
 /** @brief Marker for a command body */
 static const char disorder_body[1];
 
+/** @brief Marker for a list of args */
+static const char disorder_list[1];
+
 /** @brief Issue a command and parse a simple response
  * @param c Client
  * @param rp Where to store result, or NULL
@@ -171,7 +174,13 @@ static const char disorder_body[1];
  *
  * Put @ref disorder_body in the argument list followed by a char **
  * and int giving the body to follow the command.  If the int is @c -1
- * then the list is assumed to be NULL-terminated.
+ * then the list is assumed to be NULL-terminated.  This may be used
+ * only once.
+ *
+ * Put @ref disorder_list in the argument list followed by a char **
+ * and int giving a list of arguments to include.  If the int is @c -1
+ * then the list is assumed to be NULL-terminated.  This may be used
+ * any number of times.
  *
  * Usually you would call this via one of the following interfaces:
  * - disorder_simple()
@@ -200,6 +209,17 @@ static int disorder_simple_v(disorder_client *c,
 	body = va_arg(ap, char **);
 	nbody = va_arg(ap, int);
 	has_body = 1;
+      } else if(arg == disorder_list) {
+	char **list = va_arg(ap, char **);
+	int nlist = va_arg(ap, int);
+	if(nlist < 0) {
+	  for(nlist = 0; list[nlist]; ++nlist)
+	    ;
+	}
+	for(int n = 0; n < nlist; ++n) {
+	  dynstr_append(&d, ' ');
+	  dynstr_append_string(&d, quoteutf8(arg));
+	}
       } else {
 	dynstr_append(&d, ' ');
 	dynstr_append_string(&d, quoteutf8(arg));
@@ -505,19 +525,6 @@ int disorder_close(disorder_client *c) {
   xfree(c->user);
   c->user = 0;
   return ret;
-}
-
-/** @brief Move a track
- * @param c Client
- * @param track Track to move (UTF-8)
- * @param delta Distance to move by
- * @return 0 on success, non-0 on error
- */
-int disorder_move(disorder_client *c, const char *track, int delta) {
-  char d[16];
-
-  byte_snprintf(d, sizeof d, "%d", delta);
-  return disorder_simple(c, 0, "move", track, d, (char *)0);
 }
 
 static void client_error(const char *msg,

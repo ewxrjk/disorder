@@ -109,6 +109,16 @@ int disorder_make_cookie(disorder_client *c, char **cookiep) {
   return dequote(disorder_simple(c, cookiep, "make-cookie", (char *)0), cookiep);
 }
 
+int disorder_move(disorder_client *c, const char *track, long delta) {
+  char buf_delta[16];
+  byte_snprintf(buf_delta, sizeof buf_delta, "%ld", delta);
+  return disorder_simple(c, 0, "move", track, buf_delta, (char *)0);
+}
+
+int disorder_moveafter(disorder_client *c, const char *target, char **ids, int nids) {
+  return disorder_simple(c, 0, "moveafter", target, disorder_list, ids, nids, (char *)0);
+}
+
 int disorder_nop(disorder_client *c) {
   return disorder_simple(c, 0, "nop", (char *)0);
 }
@@ -123,6 +133,10 @@ int disorder_pause(disorder_client *c) {
 
 int disorder_play(disorder_client *c, const char *track, char **idp) {
   return dequote(disorder_simple(c, idp, "play", track, (char *)0), idp);
+}
+
+int disorder_playafter(disorder_client *c, const char *target, char **tracks, int ntracks) {
+  return disorder_simple(c, 0, "playafter", target, disorder_list, tracks, ntracks, (char *)0);
 }
 
 int disorder_playlist_delete(disorder_client *c, const char *playlist) {

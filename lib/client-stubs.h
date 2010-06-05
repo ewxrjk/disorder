@@ -200,6 +200,29 @@ int disorder_length(disorder_client *c, const char *track, long *lengthp);
  */
 int disorder_make_cookie(disorder_client *c, char **cookiep);
 
+/** @brief Move a track
+ *
+ * Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.
+ *
+ * @param c Client
+ * @param track Track ID or name
+ * @param delta How far to move the track towards the head of the queue
+ * @return 0 on success, non-0 on error
+ */
+int disorder_move(disorder_client *c, const char *track, long delta);
+
+/** @brief Move multiple tracks
+ *
+ * Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.
+ *
+ * @param c Client
+ * @param target Move after this track, or to head if ""
+ * @param ids List of tracks to move by ID
+ * @param nids Length of ids
+ * @return 0 on success, non-0 on error
+ */
+int disorder_moveafter(disorder_client *c, const char *target, char **ids, int nids);
+
 /** @brief Do nothing
  *
  * Used as a keepalive.  No authentication required.
@@ -241,6 +264,18 @@ int disorder_pause(disorder_client *c);
  * @return 0 on success, non-0 on error
  */
 int disorder_play(disorder_client *c, const char *track, char **idp);
+
+/** @brief Play multiple tracks
+ *
+ * Requires the 'play' right.
+ *
+ * @param c Client
+ * @param target Insert into queue after this track, or at head if ""
+ * @param tracks List of track names to play
+ * @param ntracks Length of tracks
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playafter(disorder_client *c, const char *target, char **tracks, int ntracks);
 
 /** @brief Delete a playlist
  *
