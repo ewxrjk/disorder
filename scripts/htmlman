@@ -48,7 +48,7 @@ done
 
 for page; do
   title=$(basename $page)
-  output=$page.$extension
+  output=$(basename $page).$extension
   echo "$page -> $output" >&2
   exec > $output.new
   echo "<html>"
