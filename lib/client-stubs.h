@@ -166,6 +166,16 @@ int disorder_get(disorder_client *c, const char *track, const char *pref, char *
  */
 int disorder_get_global(disorder_client *c, const char *pref, char **valuep);
 
+/** @brief Get a track's length
+ *
+ * If the track does not exist an error is returned.
+ *
+ * @param track Track name
+ * @param lengthp Track length in seconds
+ * @return 0 on success, non-0 on error
+ */
+int disorder_length(disorder_client *c, const char *track, long *lengthp);
+
 /** @brief Create a login cookie for this user
  *
  * The cookie may be redeemed via the 'cookie' command

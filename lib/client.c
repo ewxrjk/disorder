@@ -742,25 +742,6 @@ static int boolean(const char *cmd, const char *value,
   return 0;
 }
 
-/** @brief Get the length of a track
- * @param c Client
- * @param track Track name (UTF-8)
- * @param valuep Where to store length in seconds
- * @return 0 on success, non-0 on error
- *
- * If the length is unknown 0 is returned.
- */
-int disorder_length(disorder_client *c, const char *track,
-		    long *valuep) {
-  char *value;
-  int rc;
-
-  if((rc = disorder_simple(c, &value, "length", track, (char *)0)))
-    return rc;
-  *valuep = atol(value);
-  return 0;
-}
-
 /** @brief Set volume
  * @param c Client
  * @param left New left channel value

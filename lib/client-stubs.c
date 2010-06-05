@@ -94,6 +94,17 @@ int disorder_get_global(disorder_client *c, const char *pref, char **valuep) {
   return dequote(disorder_simple(c, valuep, "get-global", pref, (char *)0), valuep);
 }
 
+int disorder_length(disorder_client *c, const char *track, long *lengthp) {
+  char *v;
+  int rc;
+
+  if((rc = disorder_simple(c, &v, "length", track, (char *)0)))
+    return rc;
+  *lengthp = atol(v);
+  xfree(v);
+  return 0;
+}
+
 int disorder_make_cookie(disorder_client *c, char **cookiep) {
   return dequote(disorder_simple(c, cookiep, "make-cookie", (char *)0), cookiep);
 }

@@ -211,6 +211,56 @@ sub boolean {
     # TODO
 }
 
+# integer(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
+#
+# Response is an integer, or failure
+sub integer {
+    my $cmd = shift;
+    my $summary = shift;
+    my $detail = shift;
+    my $args = shift;
+    my $return = shift;
+
+    my $cmdc = $cmd;
+    $cmdc =~ s/-/_/g;
+    # Synchronous C API
+    push(@h, "/** \@brief $summary\n",
+         " *\n",
+         " * $detail\n",
+         " *\n",
+         map(" * \@param $_->[0] $_->[1]\n", @$args),
+         " * \@param $return->[0]p $return->[1]\n",
+         " * \@return 0 on success, non-0 on error\n",
+         " */\n",
+         "int disorder_$cmdc(disorder_client *c",
+         map(", const char *$_->[0]", @$args),
+         ", long *$return->[0]p);\n",
+         "\n");
+    push(@c, "int disorder_$cmdc(disorder_client *c",
+         map(", const char *$_->[0]", @$args),
+         ", long *$return->[0]p) {\n",
+         "  char *v;\n",
+	 "  int rc;\n",
+	 "\n",
+	 "  if((rc = disorder_simple(c, &v, \"$cmd\"",
+         map(", $_->[0]", @$args),
+         ", (char *)0)))\n",
+	 "    return rc;\n",
+	 "  *$return->[0]p = atol(v);\n",
+	 "  xfree(v);\n",
+	 "  return 0;\n",
+         "}\n\n");
+
+    # Asynchronous C API
+    # TODO
+
+    # Python API
+    # TODO
+
+    # Java API
+    # TODO
+}
+
 # list(CMD, SUMMARY, DETAIL, [[NAME,DESCR], [NAME,DESCR], ...], [RETURN, DESCR])
 #
 # Response is a a list of strings in a dot-stuffed body
@@ -378,7 +428,11 @@ string("get-global",
        [["pref", "Global preference name"]],
        ["value", "Preference value"]);
 
-# TODO length
+integer("length",
+	"Get a track's length",
+	"If the track does not exist an error is returned.",
+	[["track", "Track name"]],
+	["length", "Track length in seconds"]);
 
 # TODO log
 
