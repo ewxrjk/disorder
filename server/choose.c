@@ -3,22 +3,20 @@
  * Copyright (C) 2008 Richard Kettlewell
  * Copyright (C) 2008 Mark Wooding
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file choose.c
+/** @file server/choose.c
  * @brief Random track chooser
  *
  * Picks a track at random and writes it to standard output.  If for
@@ -54,7 +52,7 @@ static void help(void) {
 	  "  --debug, -d             Turn on debugging\n"
           "  --[no-]syslog           Enable/disable logging to syslog\n"
           "\n"
-          "Track choose for DisOrder.  Not intended to be run\n"
+          "Track chooser for DisOrder.  Not intended to be run\n"
           "directly.\n");
   xfclose(stdout);
   exit(0);
@@ -297,8 +295,10 @@ int main(int argc, char **argv) {
   if((err = trackdb_get_global_tid("prohibited-tags", global_tid, &tags)))
     fatal(0, "error getting prohibited-tags: %s", db_strerror(err));
   prohibited_tags = parsetags(tags);
-  if(trackdb_scan(0, collect_tracks_callback, 0, global_tid))
+  if(trackdb_scan(0, collect_tracks_callback, 0, global_tid)) {
+    global_tid->abort(global_tid);
     exit(1);
+  }
   trackdb_commit_transaction(global_tid);
   trackdb_close();
   trackdb_deinit();

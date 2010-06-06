@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2006-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/eclient.c
  * @brief Client code for event-driven programs
@@ -188,6 +186,7 @@ static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
 static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
+static void logentry_adopted(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -204,6 +203,7 @@ struct logentry_handler {
 /** @brief Table for parsing log entries */
 static const struct logentry_handler logentry_handlers[] = {
 #define LE(X, MIN, MAX) { #X, MIN, MAX, logentry_##X }
+  LE(adopted, 2, 2),
   LE(completed, 1, 1),
   LE(failed, 2, 2),
   LE(moved, 1, 1),
@@ -1406,6 +1406,20 @@ int disorder_eclient_adduser(disorder_eclient *c,
                 "adduser", user, password, rights, (char *)0);
 }
 
+/** @brief Adopt a track
+ * @param c Client
+ * @param completed Called on completion
+ * @param id Track ID
+ * @param v Passed to @p completed
+ */
+int disorder_eclient_adopt(disorder_eclient *c,
+                           disorder_eclient_no_response *completed,
+                           const char *id,
+                           void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, 
+                "adopt", id, (char *)0);
+}
+
 /* Log clients ***************************************************************/
 
 /** @brief Monitor the server log
@@ -1678,6 +1692,12 @@ char *disorder_eclient_interpret_state(unsigned long statebits) {
   }
   dynstr_terminate(d);
   return d->vec;
+}
+
+static void logentry_adopted(disorder_eclient *c,
+                             int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->adopted) 
+    c->log_callbacks->adopted(c->log_v, vec[0], vec[1]);
 }
 
 /*

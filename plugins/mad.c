@@ -1,5 +1,9 @@
-/* This file is a subset of the debian source tarball of mpg321-0.2.10.3/mad.c
-   - see http://mpg321.sourceforge.net/ */
+/** @file plugins/mad.c
+ * @brief MP3 Length calculation
+ *
+ * This file is a subset of the debian source tarball of
+ * mpg321-0.2.10.3/mad.c - see http://mpg321.sourceforge.net/
+ */
 
 /*
     mpg321 - a fully free clone of mpg123.

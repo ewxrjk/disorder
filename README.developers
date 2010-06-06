@@ -12,7 +12,7 @@ Dependencies:
      apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
 		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
-		     libflac-dev
+		     libflac-dev vorbis-tools wget
 
      (Use the bzr from backports, the one in etch is obsolete.)
 
@@ -195,7 +195,7 @@ Code And Patches:
      branch somewhere I can get at it.
 
    * Please make it clear that your changes can be distributed under DisOrder's
-     licence (which is "GPL v2 or later").
+     licence (which is "GPL v3 or later").
 
 Local Variables:
 mode:text

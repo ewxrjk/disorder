@@ -4,25 +4,23 @@
 # Copyright (C) 2004-2008 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-# USA
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AC_INIT([disorder], [4.2], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [4.3], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [4.2])
+AM_INIT_AUTOMAKE(disorder, [4.3])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
@@ -43,6 +41,7 @@ want_coreaudio=yes
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_AWK
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
   gcc_werror=-Werror
@@ -117,6 +116,11 @@ case "$host" in
   AC_MSG_RESULT([$minver])
   AC_DEFINE_UNQUOTED([MAC_OS_X_VERSION_MIN_REQUIRED], [$minver],
                      [define to minimum version of Mac OS X to support])
+
+  # Fink's GTK+ is hopelessly broken
+  PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
+  export PKG_CONFIG_PATH
+
   ;;
 *-freebsd* )
   AC_MSG_RESULT([FreeBSD])
@@ -163,6 +167,37 @@ if test -z "$browser"; then
   browser="$rjk_cv_browser"
 fi
 AC_DEFINE_UNQUOTED([BROWSER],["$browser"],[HTML viewer])
+
+# Figure out what version of sox is installed
+AC_CACHE_CHECK([sox version],[rjk_cv_soxver],[
+  rjk_cv_soxver=UNKNOWN
+  if sox --version > /dev/null 2>&1; then
+    rjk_cv_soxver=`sox --version|$AWK '{ if(match($0, /[[0-9\.]]+/)) print substr($0,RSTART,RLENGTH)}'`
+  else
+    rjk_cv_soxver=`sox -h 2>&1|$AWK '/Version/ { if(match($0, /[[0-9\.]]+/)) print substr($0,RSTART,RLENGTH)}'`
+  fi
+])
+
+# Decide what command line options to use
+#
+# sox version   endian     bits       deployed
+# 12.17.9       -x         -[bwld]    debian etch, ubuntu dapper
+# 14.0.0        -x/-[BL]   -[bwld]    ubuntu hardy
+# 14.0.1        -x/-[BL]   -[1248]    debian lenny
+# 14.2.0        -x/-[BL]   -[1248]    debian sid (at 2008-12)
+
+AC_CACHE_CHECK([default sox generation],[rjk_cv_soxgen],[
+  case $rjk_cv_soxver in
+  [[0-9]].* | 1[[0123]].* )
+    rjk_cv_soxgen=0
+    ;;
+  * )
+    rjk_cv_soxgen=1
+    ;;
+  esac
+])
+AC_DEFINE_UNQUOTED([DEFAULT_SOX_GENERATION],[$rjk_cv_soxgen],
+                   [default sox generation])
 
 AC_ARG_WITH([server],
 	    [AS_HELP_STRING([--without-server],
@@ -561,10 +596,27 @@ if test $want_server = yes; then
 		      ],
 		      [rjk_cv_db_version=ok],
 		      [rjk_cv_db_version=inadequate])
+    if test $rjk_cv_db_version = ok; then
+      AC_PREPROC_IFELSE([
+                         #include <db.h>
+                         #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 6
+                         # error http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=510270
+                         #endif
+                        ],
+                        [rjk_cv_db_version=ok],
+                        [rjk_cv_db_version=toxic])
+    fi
   ])
-  if test $rjk_cv_db_version != ok; then
-    AC_MSG_ERROR([need db.h version at least 4.2])
-  fi
+  case $rjk_cv_db_version in
+  ok )
+    ;;
+  inadequate )
+    AC_MSG_ERROR([need db version at least 4.3 (but not 4.6)])
+    ;;
+  toxic )
+    AC_MSG_ERROR([db version 4.6.x does not work - see debian bug 510270])
+    ;;
+  esac
 fi
 
 AM_CONDITIONAL([SERVER], [test x$want_server = xyes])

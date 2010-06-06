@@ -1,20 +1,18 @@
 .\"
 .\" Copyright (C) 2004-2008 Richard Kettlewell
 .\"
-.\" This program is free software; you can redistribute it and/or modify
+.\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation; either version 2 of the License, or
+.\" the Free Software Foundation, either version 3 of the License, or
 .\" (at your option) any later version.
-.\"
-.\" This program is distributed in the hope that it will be useful, but
-.\" WITHOUT ANY WARRANTY; without even the implied warranty of
-.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-.\" General Public License for more details.
-.\"
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
 .\" You should have received a copy of the GNU General Public License
-.\" along with this program; if not, write to the Free Software
-.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-.\" USA
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .\"
 .TH disobedience 1
 .SH NAME
@@ -40,8 +38,11 @@ Terminates the program.
 .SS "Edit Menu"
 This has the following options:
 .TP
-.B "Select All"
-Select all tracks in whichever of the Queue or Recent tabs are showing.
+.B "Select All Tracks"
+Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .TP
 .B Properties
 Edit the details of the selected tracks.
@@ -73,6 +74,8 @@ name, author and version number of the software.
 .TP
 .B "Pause button"
 The pause button can be used to pause and resume tracks.
+This button shows either a pause symbol (two vertical bars) or a resume symbol
+(a right-pointing arrow).
 .TP
 .B "Scratch button"
 The scratch button, a red cross, can be used to interrupt the currently playing
@@ -81,16 +84,22 @@ track.
 .B "Random play button"
 The random play button can be used to enable and disable random play.
 It does not take effect until the currently playing track finishes.
+When the button is green, random play is enabled.
+When it is grey, random play is disabled.
 .TP
 .B "Play button"
 The play button controls whether tracks will be played at all.
 As above it does not take effect until the currently playing track finishes.
+When the button is green, play is enabled.
+When it is grey, play is disabled.
 .TP
 .B "Network play button"
 The network play buttons enables or disables network play.
 See
 .B "NETWORK PLAY"
 below.
+When the button is green, network play is enabled.
+When it is grey, network play is disabled.
 .TP
 .B "Volume slider"
 The volume slider indicates the current volume level and can be used to adjust
@@ -128,16 +137,22 @@ See
 .B "Properties Window"
 below.
 .TP
-.B "Select All"
+.B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .TP
 .B Scratch
 Interrupt the currently playing track.
 (Note that this appears even if you right click over a queued track rather
 than the currently playing track.)
 .TP
-.B Remove
+.B "Remove track from queue"
 Remove the selected tracks from the queue.
+.TP
+.B "Adopt track"
+Sets the submitter of a randomly picked track to you.
 .SS "Recent Tab"
 This displays recently played tracks, the most recent at the top.
 .PP
@@ -151,8 +166,14 @@ See
 .B "Properties Window"
 below.
 .TP
-.B "Select All"
+.B "Play track"
+Play the select track(s);
+.TP
+.B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .SS "Choose Tab"
 This displays all the tracks known to the server in a tree structure.
 .PP
@@ -198,11 +219,11 @@ Play all the tracks in the directory, in the order they appear on screen.
 .B "Track properties"
 Edit properties of all tracks in the directory.
 .TP
-.B "Select all tracks"
+.B "Select children"
 Select all the tracks in the directory (and deselect everything else).
-.PP
-Note that these options do not apply recursively - only the tracks in the
-relevant directory are affected, not those in its subdirectories.
+.TP
+.B "Deselect all tracks"
+Deselect everything.
 .SS "Added Tab"
 This displays a list of tracks recently added to the server's database.
 The most recently added track is at the top.
@@ -223,6 +244,9 @@ Play selected tracks.
 .TP
 .B "Select All Tracks"
 Select all tracks.
+.TP
+.B "Deselect All Tracks"
+Deselect all tracks.
 .SS "Login Details Window"
 The login details window allows you to edit the connection details and
 authorization information used by Disobedience.

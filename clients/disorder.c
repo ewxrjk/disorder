@@ -2,20 +2,21 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file clients/disorder.c
+ * @brief Command-line client
  */
 
 #include "common.h"
@@ -98,8 +99,17 @@ static void cf_version(char attribute((unused)) **argv) {
 static void print_queue_entry(const struct queue_entry *q) {
   if(q->track) xprintf("track %s\n", nullcheck(utf82mb(q->track)));
   if(q->id) xprintf("  id %s\n", nullcheck(utf82mb(q->id)));
-  if(q->submitter) xprintf("  submitted by %s at %s",
-			   nullcheck(utf82mb(q->submitter)), ctime(&q->when));
+  switch(q->origin) {
+  case origin_adopted:
+  case origin_picked:
+  case origin_scheduled:
+    xprintf("  %s by %s at %s",
+            track_origins[q->origin],
+            nullcheck(utf82mb(q->submitter)), ctime(&q->when));
+    break;
+  default:
+    break;
+  }
   if(q->played) xprintf("  played at %s", ctime(&q->played));
   if(q->state == playing_started
      || q->state == playing_paused) xprintf("  %lds so far",  q->sofar);
@@ -567,6 +577,11 @@ static void cf_schedule_unset_global(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+static void cf_adopt(char **argv) {
+  if(disorder_adopt(getclient(), argv[0]))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -576,6 +591,8 @@ static const struct command {
 } commands[] = {
   { "adduser",        2, 3, cf_adduser, isarg_rights, "USERNAME PASSWORD [RIGHTS]",
                       "Create a new user" },
+  { "adopt",          1, 1, cf_adopt, 0, "ID",
+                      "Adopt a randomly picked track" },
   { "allfiles",       1, 2, cf_allfiles, isarg_regexp, "DIR [~REGEXP]",
                       "List all files and directories in DIR" },
   { "authorize",      1, 2, cf_authorize, isarg_rights, "USERNAME [RIGHTS]",

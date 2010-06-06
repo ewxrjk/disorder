@@ -2,20 +2,18 @@
  * This file is part of DisOrder
  * Copyright (C) 2005-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/trackdb.c
  * @brief Track database
@@ -356,7 +354,7 @@ static DB *open_db(const char *path,
                    DBTYPE dbtype,
                    u_int32_t openflags,
                    int mode) {
-  int err;
+  int err, err2;
   DB *db;
 
   D(("open %s", path));
@@ -371,8 +369,14 @@ static DB *open_db(const char *path,
       fatal(0, "db->set_bt_compare %s: %s", path, db_strerror(err));
   if((err = db->open(db, 0, path, 0, dbtype,
                      openflags | DB_AUTO_COMMIT, mode))) {
-    if((openflags & DB_CREATE) || errno != ENOENT)
+    if((openflags & DB_CREATE) || errno != ENOENT) {
+      if((err2 = db->close(db, 0)))
+        error(0, "db->close: %s", db_strerror(err2));
+      trackdb_close();
+      trackdb_env->close(trackdb_env,0);
+      trackdb_env = 0;
       fatal(0, "db->open %s: %s", path, db_strerror(err));
+    }
     db->close(db, 0);
     db = 0;
   }
@@ -486,24 +490,19 @@ void trackdb_close(void) {
   /* sanity checks */
   assert(opened == 1);
   --opened;
-  if((err = trackdb_tracksdb->close(trackdb_tracksdb, 0)))
-    fatal(0, "error closing tracks.db: %s", db_strerror(err));
-  if((err = trackdb_searchdb->close(trackdb_searchdb, 0)))
-    fatal(0, "error closing search.db: %s", db_strerror(err));
-  if((err = trackdb_tagsdb->close(trackdb_tagsdb, 0)))
-    fatal(0, "error closing tags.db: %s", db_strerror(err));
-  if((err = trackdb_prefsdb->close(trackdb_prefsdb, 0)))
-    fatal(0, "error closing prefs.db: %s", db_strerror(err));
-  if((err = trackdb_globaldb->close(trackdb_globaldb, 0)))
-    fatal(0, "error closing global.db: %s", db_strerror(err));
-  if((err = trackdb_noticeddb->close(trackdb_noticeddb, 0)))
-    fatal(0, "error closing noticed.db: %s", db_strerror(err));
-  if((err = trackdb_scheduledb->close(trackdb_scheduledb, 0)))
-    fatal(0, "error closing schedule.db: %s", db_strerror(err));
-  if((err = trackdb_usersdb->close(trackdb_usersdb, 0)))
-    fatal(0, "error closing users.db: %s", db_strerror(err));
-  trackdb_tracksdb = trackdb_searchdb = trackdb_prefsdb = 0;
-  trackdb_tagsdb = trackdb_globaldb = 0;
+#define CLOSE(N, V) do {                                        \
+  if(V && (err = V->close(V, 0)))                               \
+    fatal(0, "error closing %s: %s", N, db_strerror(err));      \
+  V = 0;                                                        \
+} while(0)
+  CLOSE("tracks.db", trackdb_tracksdb);
+  CLOSE("search.db", trackdb_searchdb);
+  CLOSE("tags.db", trackdb_tagsdb);
+  CLOSE("prefs.db", trackdb_prefsdb);
+  CLOSE("global.db", trackdb_globaldb);
+  CLOSE("noticed.db", trackdb_noticeddb);
+  CLOSE("schedule.db", trackdb_scheduledb);
+  CLOSE("users.db", trackdb_usersdb);
   D(("closed databases"));
 }
 
@@ -1401,7 +1400,9 @@ void trackdb_stats_subprocess(ev_source *ev,
   pid = subprogram(ev, p[1], "disorder-stats", (char *)0);
   xclose(p[1]);
   ev_child(ev, pid, 0, stats_finished, d);
-  ev_reader_new(ev, p[0], stats_read, stats_error, d, "disorder-stats reader");
+  if(!ev_reader_new(ev, p[0], stats_read, stats_error, d,
+                    "disorder-stats reader"))
+    fatal(0, "ev_reader_new for disorder-stats reader failed");
 }
 
 /** @brief Parse a track name part preference
@@ -1757,8 +1758,9 @@ int trackdb_request_random(ev_source *ev,
   choose_callback = callback;
   choose_output.nvec = 0;
   choose_complete = 0;
-  ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
-                "disorder-choose reader"); /* owns p[0] */
+  if(!ev_reader_new(ev, p[0], choose_readable, choose_read_error, 0,
+                    "disorder-choose reader")) /* owns p[0] */
+    fatal(0, "ev_reader_new for disorder-choose reader failed");
   ev_child(ev, choose_pid, 0, choose_exited, 0); /* owns the subprocess */
   return 0;
 }
@@ -2248,7 +2250,7 @@ static int reap_rescan(ev_source attribute((unused)) *ev,
  * @param ev Event loop or 0 to block
  * @param recheck 1 to recheck lengths, 0 to suppress check
  * @param rescanned Called on completion (if not NULL)
- * @param u Passed to @p rescanned
+ * @param ru Passed to @p rescanned
  */
 void trackdb_rescan(ev_source *ev, int recheck,
                     void (*rescanned)(void *ru),

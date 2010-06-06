@@ -2,29 +2,33 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "disorder-server.h"
 
 /* the head of the queue is played next, so normally we add to the tail */
-struct queue_entry qhead = { &qhead, &qhead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+struct queue_entry qhead = {
+  .next = &qhead,
+  .prev = &qhead
+};
 
 /* the head of the recent list is the oldest thing, the tail the most recently
  * played */
-struct queue_entry phead = { &phead, &phead, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+struct queue_entry phead = {
+  .next = &phead,
+  .prev = &phead
+};
 
 long pcount;
 
@@ -61,6 +65,7 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   char *buffer;
   FILE *fp;
   struct queue_entry *q;
+  int ver = 0;
 
   if(!(fp = fopen(path, "r"))) {
     if(errno == ENOENT)
@@ -69,8 +74,31 @@ static void queue_do_read(struct queue_entry *head, const char *path) {
   }
   head->next = head->prev = head;
   while(!inputline(path, fp, &buffer, '\n')) {
+    if(buffer[0] == '#') {
+      /* Version indicator */
+      ver = atoi(buffer + 1);
+      continue;
+    }
     q = xmalloc(sizeof *q);
     queue_unmarshall(q, buffer, queue_read_error, (void *)path);
+    if(ver < 1) {
+      /* Fix up origin field as best we can; will be wrong in some cases but
+       * hopefully not too horribly so. */
+      q->origin = q->submitter ? origin_picked : origin_random;
+      /* Eliminated obsolete states, since they are assumed elsewhere not to be
+       * set. */
+      switch(q->state) {
+      case playing_isscratch:
+        q->origin = origin_scratch;
+        q->state = playing_unplayed;
+        break;
+      case playing_random:
+        q->state = playing_unplayed;
+        break;
+      default:
+        break;
+      }
+    }
     if(head == &qhead
        && (!q->track
 	   || !q->when))
@@ -105,6 +133,9 @@ static void queue_do_write(const struct queue_entry *head, const char *path) {
 
   byte_xasprintf(&tmp, "%s.new", path);
   if(!(fp = fopen(tmp, "w"))) fatal(errno, "error opening %s", tmp);
+  /* Save version indicator */
+  if(fprintf(fp, "#1\n") < 0)
+    fatal(errno, "error writing %s", tmp);
   for(q = head->next; q != head; q = q->next)
     if(fprintf(fp, "%s\n", queue_marshall(q)) < 0)
       fatal(errno, "error writing %s", tmp);

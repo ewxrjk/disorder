@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2006, 2007 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/log.c
  * @brief State monitoring
@@ -43,6 +41,7 @@ static void log_state(void *v, unsigned long state);
 static void log_volume(void *v, int l, int r);
 static void log_rescanned(void *v);
 static void log_rights_changed(void *v, rights_type r);
+static void log_adopted(void *v, const char *id, const char *user);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -59,7 +58,8 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .state = log_state,
   .volume = log_volume,
   .rescanned = log_rescanned,
-  .rights_changed = log_rights_changed
+  .rights_changed = log_rights_changed,
+  .adopted = log_adopted
 };
 
 /** @brief Update everything */
@@ -202,6 +202,13 @@ static void log_rights_changed(void attribute((unused)) *v,
   last_rights = new_rights;
   event_raise("rights-changed", 0);
   --suppress_actions;
+}
+
+/** @brief Called when a track is adopted */
+static void log_adopted(void attribute((unused)) *v,
+                        const char attribute((unused)) *id,
+                        const char attribute((unused)) *who) {
+  event_raise("queue-changed", 0);
 }
 
 /*

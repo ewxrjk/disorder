@@ -3,20 +3,18 @@
 # This file is part of DisOrder.
 # Copyright (C) 2007 Richard Kettlewell
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-# USA
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import re,sys,os,string
 
@@ -32,6 +30,9 @@ def sgmlquotechar(c):
 
 def sgmlquote(s):
   return string.join(map(sgmlquotechar, s),'')
+
+def line_count(f):
+  return len(open(f, "r").readlines())
 
 missing = {}
 percent = {}
@@ -66,6 +67,10 @@ for line in sys.stdin:
       covered_lines += this_lines * this_pc / 100.0
     name = None
 
+for m in missing:
+  percent[m] = 0
+  total_lines += line_count(m)
+
 def cmp(a,b):
   if percent[a] < percent[b]: return -1 
   elif percent[a] > percent[b]: return 1
@@ -82,22 +87,35 @@ if len(keys):
 if htmldir is not None and len(keys):
   index = open(os.path.join(htmldir, "index.html"), "w")
   index.write("<html><head><title>gcov report</title>\n")
+  index.write("<style type=\"text/css\">\n");
+  index.write(".missing {\n");
+  index.write("  color: red;\n");
+  index.write("}\n");
+  index.write(".bar {\n");
+  index.write("  width: 400px;\n");
+  index.write("}\n");
+  index.write(".bar div {\n");
+  index.write("  background-color: #00ff00;\n");
+  index.write("  height: 1em;\n");
+  index.write("}\n");
+  index.write("</style>\n");
   index.write("<body><h1>gcov report</h1>\n")
-  index.write("<table><tr><th>File</th><th>Coverage</th></tr>\n")
+  index.write("<table><tr><th>File</th><th colspan=2>Coverage</th></tr>\n")
   for k in keys:
-    index.write("<tr><td><a href=\"%s.html\">%s</a><td>%d%%\n" %
-                (sgmlquote(k), sgmlquote(k), percent[k]))
+    index.write("<tr>\n")
+    if k in missing:
+      index.write("<td><span class=missing>%s</span>\n" % sgmlquote(k))
+    else:
+      index.write("<td><a href=\"%s.html\">%s</a>\n" %
+                  (sgmlquote(k), sgmlquote(k)))
+    index.write("<td>%d%%\n" % percent[k])
+    index.write("<td class=bar><div style=\"width: %d%%\"></div></td>\n"
+                % int(percent[k]))
   index.write("</table>\n")
   index.write("<p>Total coverage: %d%%</p>\n" % (100 * (covered_lines / total_lines)))
-  missing_files = missing.keys()
-  missing_files.sort()
-  if len(missing_files) > 0:
-    index.write("<p>Missing files:</p>\n")
-    index.write("<ul>\n")
-    for mf in missing_files:
-      index.write("<li><a href=\"%s\">%s</a></li>\n" % (mf, mf))
-    index.write("</lu>\n")
   for k in keys:
+    if k in missing:
+      continue
     html = open(os.path.join(htmldir, "%s.html" % k), "w")
     html.write("<html><head><title>%s</title>\n" % sgmlquote(k))
     html.write("<body><h1>%s</h1>\n" % sgmlquote(k))

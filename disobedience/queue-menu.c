@@ -2,20 +2,21 @@
  * This file is part of DisOrder
  * Copyright (C) 2006-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file disobedience/queue-menu.c
+ * @brief Disobedience queue widget popup menu
  */
 #include "disobedience.h"
 #include "popup.h"
@@ -184,6 +185,64 @@ gboolean ql_button_release(GtkWidget *widget,
   }
 
   return FALSE;
+}
+
+/* Adopt */
+
+static void ql_adopt_sensitive_callback(GtkTreeModel *model,
+                                        GtkTreePath attribute((unused)) *path,
+                                        GtkTreeIter *iter,
+                                        gpointer data) {
+  struct queue_entry *const q = ql_iter_to_q(model, iter);
+  int *const count = data;
+
+  if(*count < 0)
+    return;
+  if(q->origin == origin_random)
+    ++*count;
+  else
+    *count = -1;
+}
+
+/** @brief Determine whether we're pointing at an adoptable track */
+int ql_adopt_sensitive(void *extra) {
+  struct queuelike *ql = extra;
+  int count = 0;
+
+  /* We'll need RIGHT_PLAY */
+  if(!(last_rights & RIGHT_PLAY))
+    return FALSE;
+  /* Check that (1) only random tracks are selected (2) at least something is
+   * selected */
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      ql_adopt_sensitive_callback,
+                                      &count);
+  if(count <= 0)
+    return FALSE;
+  return TRUE;
+}
+
+static void ql_adopt_completed(void attribute((unused)) *v, const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+}
+
+static void ql_adopt_activate_callback(GtkTreeModel *model,
+                                       GtkTreePath attribute((unused)) *path,
+                                       GtkTreeIter *iter,
+                                       gpointer attribute((unused)) data) {
+  struct queue_entry *const q = ql_iter_to_q(model, iter);
+
+  disorder_eclient_adopt(client, ql_adopt_completed, q->id, q);
+}
+
+/** @brief Called to adopt a track */
+void ql_adopt_activate(GtkMenuItem attribute((unused)) *menuitem,
+                       gpointer user_data) {
+  struct queuelike *ql = user_data;
+  gtk_tree_selection_selected_foreach(ql->selection,
+                                      ql_adopt_activate_callback,
+                                      NULL);
 }
 
 struct tabtype *ql_tabtype(struct queuelike *ql) {

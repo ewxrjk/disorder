@@ -2,20 +2,18 @@
 # This file is part of DisOrder.
 # Copyright (C) 2008 Richard Kettlewell
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-# USA
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
@@ -48,6 +46,7 @@ t_kvp_SOURCES=t-kvp.c test.c test.h
 t_macros_SOURCES=t-macros.c test.c test.h
 t_mime_SOURCES=t-mime.c test.c test.h
 t_printf_SOURCES=t-printf.c test.c test.h
+t_printf_CFLAGS=$(AM_CFLAGS) -Wno-format-security
 t_regsub_SOURCES=t-regsub.c test.c test.h
 t_selection_SOURCES=t-selection.c test.c test.h
 t_signame_SOURCES=t-signame.c test.c test.h
@@ -66,12 +65,12 @@ t_eventdist_SOURCES=t-eventdist.c test.c test.h
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f *.gcda *.gcov
-make-coverage-reports:
-	${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
+make-coverage-reports: check
+	cd ../lib && ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
 
 EXTRA_DIST=t-macros-1.tmpl t-macros-2
 
-CLEANFILES=*.gcda *.gcov *.gcno
+CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html
 
 DISTCLEANFILES=GraphemeBreakTest.txt NormalizationTest.txt	\
 	       WordBreakTest.txt

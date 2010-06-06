@@ -2,20 +2,21 @@
  * This file is part of DisOrder
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file disobedience/choose-menu.c
+ * @brief Popup menu for choose screen
  */
 #include "disobedience.h"
 #include "popup.h"
@@ -24,98 +25,17 @@
 /** @brief Popup menu */
 static GtkWidget *choose_menu;
 
-/** @brief Recursion step for choose_get_visible()
- * @param parent A visible node, or NULL for the root
- * @param callback Called for each visible node
- * @param userdata Passed to @p callback
- *
- * If @p callback returns nonzero, the walk stops immediately.
- */
-static int choose_visible_recurse(GtkTreeIter *parent,
-                                  int (*callback)(GtkTreeIter *it,
-                                                  int isfile,
-                                                  void *userdata),
-                                  void *userdata) {
-  int expanded;
-  if(parent) {
-    /* Skip placeholders */
-    if(choose_is_placeholder(parent))
-      return 0;
-    const int isfile = choose_is_file(parent);
-    if(callback(parent, isfile, userdata))
-      return 1;
-    if(isfile)
-      return 0;                 /* Files never have children */
-    GtkTreePath *parent_path
-      = gtk_tree_model_get_path(GTK_TREE_MODEL(choose_store),
-                                parent);
-    expanded = gtk_tree_view_row_expanded(GTK_TREE_VIEW(choose_view),
-                                          parent_path);
-    gtk_tree_path_free(parent_path);
-  } else
-    expanded = 1;
-  /* See if parent is expanded */
-  if(expanded) {
-    /* Parent is expanded, visit all its children */
-    GtkTreeIter it[1];
-    gboolean itv = gtk_tree_model_iter_children(GTK_TREE_MODEL(choose_store),
-                                                it,
-                                                parent);
-    while(itv) {
-      if(choose_visible_recurse(it, callback, userdata))
-        return TRUE;
-      itv = gtk_tree_model_iter_next(GTK_TREE_MODEL(choose_store), it);
-    }
-  }
-  return 0;
-}
+/** @brief Path to directory pending a "select children" operation */
+static GtkTreePath *choose_eventually_select_children;
 
-static void choose_visible_visit(int (*callback)(GtkTreeIter *it,
-                                                 int isfile,
-                                                 void *userdata),
-                                 void *userdata) {
-  choose_visible_recurse(NULL, callback, userdata);
-}
-
-static int choose_selectall_sensitive_callback
-   (GtkTreeIter attribute((unused)) *it,
-     int isfile,
-     void *userdata) {
-  if(isfile) {
-    *(int *)userdata = 1;
-    return 1;
-  }
-  return 0;
-}
-
-/** @brief Should 'select all' be sensitive?
- *
- * Yes if there are visible files.
- */
+/** @brief Should edit->select all be sensitive?  No, for the choose tab. */
 static int choose_selectall_sensitive(void attribute((unused)) *extra) {
-  int files = 0;
-  choose_visible_visit(choose_selectall_sensitive_callback, &files);
-  return files > 0;
+  return FALSE;
 }
 
-static int choose_selectall_activate_callback
-    (GtkTreeIter *it,
-     int isfile,
-     void attribute((unused)) *userdata) {
-  if(isfile)
-    gtk_tree_selection_select_iter(choose_selection, it);
-  else
-    gtk_tree_selection_unselect_iter(choose_selection, it);
-  return 0;
-}
-
-/** @brief Activate select all
- *
- * Selects all files and deselects everything else.
- */
+/** @brief Activate edit->select all (which should do nothing) */
 static void choose_selectall_activate(GtkMenuItem attribute((unused)) *item,
                                       gpointer attribute((unused)) userdata) {
-  choose_visible_visit(choose_selectall_activate_callback, 0);
 }
 
 /** @brief Should 'select none' be sensitive
@@ -168,6 +88,16 @@ static void choose_gather_selected_files_callback(GtkTreeModel attribute((unused
     vector_append(v, choose_get_track(iter));
 }
 
+static void choose_gather_selected_dirs_callback(GtkTreeModel attribute((unused)) *model,
+                                                 GtkTreePath attribute((unused)) *path,
+                                                 GtkTreeIter *iter,
+                                                 gpointer data) {
+  struct vector *v = data;
+
+  if(choose_is_dir(iter))
+    vector_append(v, choose_get_track(iter));
+}
+
   
 static void choose_play_activate(GtkMenuItem attribute((unused)) *item,
                                  gpointer attribute((unused)) userdata) {
@@ -194,6 +124,92 @@ static void choose_properties_activate(GtkMenuItem attribute((unused)) *item,
   properties(v->nvec, (const char **)v->vec);
 }
 
+/** @brief Set sensitivity for select children
+ *
+ * Sensitive if we've selected exactly one directory.
+ */
+static int choose_selectchildren_sensitive(void attribute((unused)) *extra) {
+  struct vector v[1];
+  /* Only one thing should be selected */
+  if(gtk_tree_selection_count_selected_rows(choose_selection) != 1)
+    return FALSE;
+  /* The selected thing should be a directory */
+  vector_init(v);
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_gather_selected_dirs_callback,
+                                      v);
+  return v->nvec == 1;
+}
+
+/** @brief Actually select the children of path
+ *
+ * We deselect everything else, too.
+ */
+static void choose_select_children(GtkTreePath *path) {
+  GtkTreeIter iter[1], child[1];
+  
+  if(gtk_tree_model_get_iter(GTK_TREE_MODEL(choose_store), iter, path)) {
+    gtk_tree_selection_unselect_all(choose_selection);
+    for(int n = 0;
+        gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(choose_store), child,
+                                      iter, n);
+        ++n) {
+      if(choose_is_file(child))
+        gtk_tree_selection_select_iter(choose_selection, child);
+    }
+  }
+}
+
+/** @brief Called to expand the children of path/iter */
+static void choose_selectchildren_callback(GtkTreeModel attribute((unused)) *model,
+                                           GtkTreePath *path,
+                                           GtkTreeIter attribute((unused)) *iter,
+                                           gpointer attribute((unused)) data) {
+  if(gtk_tree_view_row_expanded(GTK_TREE_VIEW(choose_view), path)) {
+    /* Directory is already expanded */
+    choose_select_children(path);
+  } else {
+    /* Directory is not expanded, so expand it */
+    gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), path, FALSE/*!expand_all*/);
+    /* Select its children when it's done */
+    if(choose_eventually_select_children)
+      gtk_tree_path_free(choose_eventually_select_children);
+    choose_eventually_select_children = gtk_tree_path_copy(path);
+  }
+}
+
+/** @brief Called when all pending track fetches are finished
+ *
+ * If there's a pending select-children operation, it can now be actioned
+ * (or might have gone stale).
+ */
+void choose_menu_moretracks(const char attribute((unused)) *event,
+                            void attribute((unused)) *eventdata,
+                            void attribute((unused)) *callbackdata) {
+  if(choose_eventually_select_children) {
+    choose_select_children(choose_eventually_select_children);
+    gtk_tree_path_free(choose_eventually_select_children);
+    choose_eventually_select_children = 0;
+  }
+}
+
+/** @brief Select all children
+ *
+ * Easy enough if the directory is already expanded, we can just select its
+ * children.  However if it is not then we must expand it and _when this has
+ * completed_ select its children.
+ *
+ * The way this is implented could cope with multiple directories but
+ * choose_selectchildren_sensitive() should stop this.
+ */
+static void choose_selectchildren_activate
+    (GtkMenuItem attribute((unused)) *item,
+     gpointer attribute((unused)) userdata) {
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_selectchildren_callback,
+                                      0);
+}
+
 /** @brief Pop-up menu for choose */
 static struct menuitem choose_menuitems[] = {
   {
@@ -211,9 +227,9 @@ static struct menuitem choose_menuitems[] = {
     0
   },
   {
-    "Select all tracks",
-    choose_selectall_activate,
-    choose_selectall_sensitive,
+    "Select children",
+    choose_selectchildren_activate,
+    choose_selectchildren_sensitive,
     0,
     0
   },

@@ -1,20 +1,18 @@
 .\"
 .\" Copyright (C) 2004-2008 Richard Kettlewell
 .\"
-.\" This program is free software; you can redistribute it and/or modify
+.\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation; either version 2 of the License, or
+.\" the Free Software Foundation, either version 3 of the License, or
 .\" (at your option) any later version.
-.\"
-.\" This program is distributed in the hope that it will be useful, but
-.\" WITHOUT ANY WARRANTY; without even the implied warranty of
-.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-.\" General Public License for more details.
-.\"
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
 .\" You should have received a copy of the GNU General Public License
-.\" along with this program; if not, write to the Free Software
-.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-.\" USA
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .\"
 .TH disorder_protocol 5
 .SH NAME
@@ -58,6 +56,10 @@ The new user's rights list can be specified; if it is not
 then the \fBdefault_rights\fR setting applies instead.
 Requires the \fBadmin\fR right, and only works on local
 connections.
+.TP
+.B adopt \fIID\fR
+Adopts a randomly picked track, leaving it in a similar state to if it was
+picked by this user.  Requires the \fBplay\fR right.
 .TP
 .B allfiles \fIDIRECTORY\fR [\fIREGEXP\fR]
 List all the files and directories in \fIDIRECTORY\fR in a response body.
@@ -497,6 +499,26 @@ The time the track was played at.
 .B scratched
 The user that scratched the track.
 .TP
+.B origin
+The origin of the track.  Valid origins are:
+.RS
+.TP 12
+.B adopted
+The track was originally randomly picked but has been adopted by a user.
+.TP
+.B picked
+The track was picked by a user.
+.TP
+.B random
+The track was randomly picked.
+.TP
+.B scheduled
+The track was played from a scheduled action.
+.TP
+.B scratch
+The track is a scratch sound.
+.RE
+.TP
 .B state
 The current track state.
 Valid states are:
@@ -504,12 +526,6 @@ Valid states are:
 .TP 12
 .B failed
 The player failed (exited with nonzero status but wasn't scratched).
-.TP
-.B isscratch
-The track is actually a scratch.
-.TP
-.B no_player
-No player could be found for the track.
 .TP
 .B ok
 The track was played without any problems.
@@ -519,6 +535,9 @@ The track was scratched.
 .TP
 .B started
 The track is currently playing.
+.TP
+.B paused
+Track is playing but paused.
 .TP
 .B unplayed
 In the queue, hasn't been played yet.
@@ -538,6 +557,9 @@ The time the track was added to the queue.
 .TP
 .B wstat
 The wait status of the player in decimal.
+.PP
+Note that \fBorigin\fR is new with DisOrder 4.3, and obsoletes some old
+\fBstate\fR values.
 .SH NOTES
 Times are decimal integers using the server's \fBtime_t\fR.
 .PP
@@ -554,6 +576,9 @@ The event log consists of lines starting with a hexadecimal timestamp and a
 keyword followed by (optionally) parameters.
 The parameters are quoted in the usual DisOrder way.
 Currently the following keywords are used:
+.TP
+.B adopted \fIID\fR \fIUSERNAME\fR
+\fIUSERNAME\fR adopted track \fIID\fR.
 .TP
 .B completed \fITRACK\fR
 Completed playing \fITRACK\fR
@@ -629,7 +654,7 @@ The current track was scratched.
 To simplify client implementation, \fBstate\fR commands reflecting the current
 state are sent at the start of the log.
 .RE
-.TB
+.TP
 .B user_add \fIUSERNAME\fR
 A user was created.
 .TP

@@ -1,20 +1,18 @@
 .\"
 .\" Copyright (C) 2004-2008 Richard Kettlewell
 .\"
-.\" This program is free software; you can redistribute it and/or modify
+.\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation; either version 2 of the License, or
+.\" the Free Software Foundation, either version 3 of the License, or
 .\" (at your option) any later version.
-.\"
-.\" This program is distributed in the hope that it will be useful, but
-.\" WITHOUT ANY WARRANTY; without even the implied warranty of
-.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-.\" General Public License for more details.
-.\"
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
 .\" You should have received a copy of the GNU General Public License
-.\" along with this program; if not, write to the Free Software
-.\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-.\" USA
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
 .\"
 .TH disorder_config 5
 .SH NAME
@@ -479,7 +477,7 @@ namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .TP
 .B new_bias \fIWEIGHT\fR
 The weight for new tracks.
-The default is 900000, i.e. recently added tracks are a hundred times as likely
+The default is 450000, i.e. recently added tracks are a fifty times as likely
 to be picked as normal.
 .TP
 .B new_bias_age \fISECONDS\fR
@@ -648,7 +646,10 @@ Determines whether calls to \fBsox\fR(1) should use \fB\-b\fR, \fB\-x\fR, etc (i
 the generation is 0) or \fB\-\fIbits\fR, \fB\-L\fR etc (if it is 1).
 See the documentation for your installed copy of \fBsox\fR to determine
 which you need.
-The default is 0.
+The default is set according to the version of sox found when DisOrder was
+built.
+If you run on a system with a different version of sox, you will need to
+set this option.
 .TP
 .B speaker_backend \fINAME
 This is an alias for \fBapi\fR; see above.

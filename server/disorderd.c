@@ -2,20 +2,21 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file server/disorderd.c
+ * @brief Main DisOrder server
  */
 #include "disorder-server.h"
 
@@ -98,7 +99,7 @@ static int periodic_callback(ev_source *ev_,
 }
 
 /** @brief Create a periodic action
- * @param ev Event loop
+ * @param ev_ Event loop
  * @param callback Callback function
  * @param period Interval between calls in seconds
  * @param immediate If true, call @p callback straight away
@@ -173,6 +174,7 @@ static void fix_path(void) {
 int main(int argc, char **argv) {
   int n, background = 1, logsyslog = 0;
   const char *pidfile = 0;
+  struct rlimit rl[1];
 
   set_progname(argv);
   mem_init();
@@ -207,6 +209,18 @@ int main(int argc, char **argv) {
   srand(time(0));			/* don't start the same every time */
   /* gcrypt initialization */
   gcry_control(GCRYCTL_INIT_SECMEM, 1);
+  /* make sure we can't have more than FD_SETSIZE files open (event.c does
+   * check but this provides an additional line of defence) */
+  if(getrlimit(RLIMIT_NOFILE, rl) < 0)
+    fatal(errno, "getrlimit RLIMIT_NOFILE");
+  if(rl->rlim_cur > FD_SETSIZE) {
+    rl->rlim_cur = FD_SETSIZE;
+    if(setrlimit(RLIMIT_NOFILE, rl) < 0)
+      fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
+            (unsigned long)rl->rlim_cur);
+    info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
+  } else
+    info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
   /* create event loop */
   ev = ev_new();
   if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");

@@ -2,20 +2,18 @@
  * This file is part of DisOrder
  * Copyright (C) 2005, 2007 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/filepart.c
  * @brief Filename parsing
@@ -28,8 +26,8 @@
 
 /** @brief Parse a filename
  * @param path Filename to parse
- * @param Where to put directory name, or NULL
- * @param Where to put basename, or NULL
+ * @param dirnamep Where to put directory name, or NULL
+ * @param basenamep Where to put basename, or NULL
  */
 static void parse_filename(const char *path,
                            char **dirnamep,
@@ -104,7 +102,7 @@ char *d_dirname(const char *path) {
 }
 
 /** @brief Return the basename part of @p path
- * @param Path to parse
+ * @param path Path to parse
  * @return Base part of @p path
  *
  * Extracts the base part of @p path.  This is a simple lexical transformation

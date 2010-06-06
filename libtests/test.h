@@ -2,22 +2,20 @@
  * This file is part of DisOrder.
  * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file lib/test.h @brief Library tests */
+/** @file libtests/test.h @brief Library tests */
 
 #ifndef TEST_H
 #define TEST_H
@@ -70,7 +68,11 @@ extern int fail_first;
 extern int verbose;
 extern int skipped;
 
-/** @brief Checks that @p expr is nonzero */
+/** @brief Checks that @p expr is nonzero
+ * @param expr Expression to check
+ *
+ * If @p expr is nonzero then logs an error (and continues).
+ */
 #define insist(expr) do {				\
   if(!(expr)) {						\
     count_error();						\
@@ -80,6 +82,15 @@ extern int skipped;
   ++tests;						\
 } while(0)
 
+/** @brief Check that a pair of strings match
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p GOT and @p WANT differ then logs an error (and continues).
+ *
+ * @p WANT is allowed to evaluate to a null pointer (but if it comes to
+ * anything else then must be safe to strcmp).
+ */
 #define check_string(GOT, WANT) do {                                    \
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
@@ -96,6 +107,15 @@ extern int skipped;
   ++tests;                                                              \
  } while(0)
 
+/** @brief Check that a string prefix matches
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p WANT is not a prefix of @p GOT then logs an error (and continues).
+ *
+ * @p WANT is allowed to evaluate to a null pointer (but if it comes to
+ * anything else then must be safe to strcmp).
+ */
 #define check_string_prefix(GOT, WANT) do {                             \
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
@@ -112,6 +132,12 @@ extern int skipped;
   ++tests;                                                              \
  } while(0)
 
+/** @brief Check that a pair of integers match.
+ * @param GOT What we actually got
+ * @param WANT What we wanted
+ *
+ * If @p GOT and @p WANT differ then logs an error (and continues).
+ */
 #define check_integer(GOT, WANT) do {                           \
   const intmax_t got = GOT, want = WANT;                        \
   if(got != want) {                                             \
@@ -122,6 +148,12 @@ extern int skipped;
   ++tests;                                                      \
 } while(0)
 
+/** @brief Check that a function calls fatal()
+ * @param WHAT Expression to evaluate
+ *
+ * Evaluates WHAT and if it does not call fatal(), logs an error.  In any case,
+ * continues.  Modifies exitfn() so that fatal() isn't actually fatal.
+ */
 #define check_fatal(WHAT) do {                                          \
   void (*const save_exitfn)(int) attribute((noreturn)) = exitfn;        \
                                                                         \
@@ -147,6 +179,15 @@ void test_init(int argc, char **argv);
 extern jmp_buf fatal_env;
 void test_exitfn(int) attribute((noreturn));
 
+/** @brief Common code for each test source file
+ * @param name Name of test
+ *
+ * Expands to a  @c main function which:
+ * - calls test_init()
+ * - calls test_NAME()
+ * - reports a count of errors
+ * - returns the right exit status
+ */
 #define TEST(name)                                                      \
   int main(int argc, char **argv) {                                     \
     test_init(argc, argv);                                              \

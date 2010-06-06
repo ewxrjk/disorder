@@ -2,32 +2,80 @@
  * This file is part of DisOrder.
  * Copyright (C) 2007 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file lib/rtp.h
+ * @brief RTP packet header format
+ *
+ * See <a href="http://www.ietf.org/rfc/rfc1889.txt">RFC1889</a>.
  */
 
 #ifndef RTP_H
 #define RTP_H
 
-/* RTP is defined in RFC1889 */
+/** @brief RTP packet header format
+ *
+ * See <a href="http://www.ietf.org/rfc/rfc1889.txt">RFC1889</a> (now obsoleted
+ * by <a href="http://www.ietf.org/rfc/rfc3550.txt">RFC3550</a>).
+ *
+ * All values in this structure are big-endian.
+ */
 struct attribute((packed)) rtp_header {
+  /** @brief Version, padding, extension and CSRC
+   *
+   * Version is bits 6 and 7; currently always 2.
+   *
+   * Padding is bit 5; if set frame includes padding octets.
+   *
+   * eXtension is bit 4; if set there is a header extension.
+   *
+   * CSRC Count is bits 0-3 and is the number of CSRC identifiers following the
+   * header.
+   */
   uint8_t vpxcc;
+
+  /** @brief Marker and payload type
+   *
+   * Marker is bit 7.  Profile-defined.
+   *
+   * Payload Type is bits 0-6.  Profile defined.  
+   */
   uint8_t mpt;
+
+  /** @brief Sequence number */
   uint16_t seq;
+
+  /** @brief Timestamp */
   uint32_t timestamp;
+
+  /** @brief Synchronization source */
   uint32_t ssrc;
+};
+
+/** @brief RTP packet header format
+ *
+ * See <a href="http://www.ietf.org/rfc/rfc1889.txt">RFC1889</a> (now obsoleted
+ * by <a href="http://www.ietf.org/rfc/rfc3550.txt">RFC3550</a>).
+ *
+ * All values in this structure are big-endian.
+ */
+struct attribute((packed)) rtp_extension {
+  /** @brief Profile-defined extension type */
+  uint16_t type;
+
+  /** @brief Length of rest of extension */
+  uint16_t length;
 };
 
 #endif /* RTP_H */

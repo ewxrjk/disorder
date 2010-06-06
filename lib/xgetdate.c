@@ -1,7 +1,11 @@
-/* Derived from getdate.c in glibc 2.3.6.  This is pretty much
+/** @file lib/xgetdate.c
+ * @brief Date parsing
+ *
+ * Derived from getdate.c in glibc 2.3.6.  This is pretty much
  * standard getdate() except that you supply the template in an
  * argument, rather than messing around with environment variables and
- * files.  */
+ * files.
+ */
 
 /* Convert a string representation of time to a time value.
    Copyright (C) 1997,1998,1999,2000,2001,2003 Free Software Foundation, Inc.
@@ -31,6 +35,7 @@
 #include <time.h>
 
 #include "dateparse.h"
+#include "strptime.h"
 
 #define TM_YEAR_BASE 1900
 
@@ -130,7 +135,7 @@ xgetdate_r (const char *string, struct tm *tp,
       tp->tm_isdst = -1;
       tp->tm_gmtoff = 0;
       tp->tm_zone = NULL;
-      result = strptime (string, line, tp);
+      result = my_strptime (string, line, tp);
       if (result && *result == '\0')
 	break;
     }

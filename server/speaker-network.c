@@ -2,20 +2,18 @@
  * This file is part of DisOrder
  * Copyright (C) 2005-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file server/speaker-network.c
  * @brief Support for @ref BACKEND_NETWORK */
@@ -204,7 +202,7 @@ static size_t network_play(size_t frames) {
     /* Find the number of microseconds elapsed since rtp_time=0 */
     delta = tvsub_us(now, rtp_time_0);
     if(delta > UINT64_MAX / 88200)
-      fatal(0, "rtp_time=%llu now=%ld.%06ld rtp_time_0=%ld.%06ld delta=%llu (%lld)",
+      fatal(0, "rtp_time=%"PRIu64" now=%ld.%06ld rtp_time_0=%ld.%06ld delta=%"PRIu64" (%"PRId64")",
             rtp_time,
             (long)now.tv_sec, (long)now.tv_usec,
             (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
@@ -304,7 +302,7 @@ static void network_beforepoll(int *timeoutp) {
   xgettimeofday(&now, 0);
   target_us = tvsub_us(now, rtp_time_0);
   if(target_us > UINT64_MAX / 88200)
-    fatal(0, "rtp_time=%llu rtp_time_0=%ld.%06ld now=%ld.%06ld target_us=%llu (%lld)\n",
+    fatal(0, "rtp_time=%"PRIu64" rtp_time_0=%ld.%06ld now=%ld.%06ld target_us=%"PRIu64" (%"PRId64")\n",
           rtp_time,
           (long)rtp_time_0.tv_sec, (long)rtp_time_0.tv_usec,
           (long)now.tv_sec, (long)now.tv_usec,

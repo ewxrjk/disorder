@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="32"
+   height="32"
+   id="svg4179"
+   sodipodi:version="0.32"
+   inkscape:version="0.45.1"
+   version="1.0"
+   sodipodi:docbase="/Users/richard/Documents/Inkscape/disorder"
+   sodipodi:docname="queryon.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="/Users/richard/Documents/Inkscape/disorder/queryon.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <defs
+     id="defs4181">
+    <linearGradient
+       id="linearGradient5161">
+      <stop
+         style="stop-color:#00c000;stop-opacity:1;"
+         offset="0"
+         id="stop5163" />
+      <stop
+         id="stop5169"
+         offset="0.75"
+         style="stop-color:#80ff80;stop-opacity:1;" />
+      <stop
+         style="stop-color:#00c000;stop-opacity:1;"
+         offset="1"
+         id="stop5165" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient5161"
+       id="linearGradient5167"
+       x1="7"
+       y1="16.075975"
+       x2="26.150736"
+       y2="16.075975"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1,0,0,0.9843005,0,2.3855502e-3)" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="11.8125"
+     inkscape:cx="16"
+     inkscape:cy="16"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     width="32px"
+     height="32px"
+     showgrid="true"
+     inkscape:window-width="701"
+     inkscape:window-height="583"
+     inkscape:window-x="642"
+     inkscape:window-y="233" />
+  <metadata
+     id="metadata4184">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="font-size:42.91105652px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:url(#linearGradient5167);fill-opacity:1.0;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:round;stroke-opacity:1;font-family:Bitstream Vera Sans"
+       d="M 18.901113,21.105648 L 11.337202,21.105648 L 11.337202,20.095086 C 11.337194,18.967668 11.567673,17.970856 12.028639,17.104646 C 12.48959,16.224716 13.460395,15.111037 14.94106,13.763604 L 16.28203,12.567428 C 17.078218,11.852492 17.657908,11.178785 18.021101,10.546304 C 18.398235,9.9138654 18.586809,9.281405 18.586823,8.648922 C 18.586809,7.6865057 18.251567,6.9371781 17.581095,6.4009368 C 16.910597,5.8509967 15.974713,5.576014 14.773438,5.5759881 C 13.641985,5.576014 12.419747,5.8097492 11.106722,6.2771944 C 9.7936828,6.730941 8.4247768,7.4115231 7,8.3189426 L 7,1.8430951 C 8.6901769,1.2656612 10.233688,0.83943817 11.630539,0.56442461 C 13.027374,0.28947291 14.375328,0.1519816 15.674403,0.15195025 C 19.082688,0.1519816 21.680816,0.83943817 23.468794,2.2143221 C 25.256734,3.5755154 26.150713,5.5691395 26.150735,8.1952002 C 26.150713,9.5426384 25.878329,10.752562 25.333581,11.824974 C 24.788791,12.883677 23.859891,14.024855 22.546877,15.248512 L 21.205906,16.424063 C 20.256036,17.276525 19.634441,17.963982 19.341119,18.486436 C 19.047767,18.995166 18.901098,19.55888 18.901113,20.17758 L 18.901113,21.105648 M 11.337202,24.157958 L 18.901113,24.157958 L 18.901113,31.500002 L 11.337202,31.500002 L 11.337202,24.157958"
+       id="text4187" />
+  </g>
+</svg>

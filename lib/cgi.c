@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/cgi.c
  * @brief CGI tools
@@ -256,54 +254,6 @@ char *cgi_sgmlquote(const char *src) {
   }
   dynstr_terminate(d);
   return d->vec;
-}
-
-/** @brief Write a CGI attribute
- * @param output Where to send output
- * @param name Attribute name
- * @param value Attribute value
- */
-void cgi_attr(struct sink *output, const char *name, const char *value) {
-  /* Try to avoid needless quoting */
-  if(!value[strspn(value, "abcdefghijklmnopqrstuvwxyz"
-		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		   "0123456789")])
-    sink_printf(output, "%s=%s", name, value);
-  else
-    sink_printf(output, "%s=\"%s\"", name, cgi_sgmlquote(value));
-}
-
-/** @brief Write an open tag
- * @param output Where to send output
- * @param name Element name
- * @param ... Attribute name/value pairs
- *
- * The name/value pair list is terminated by a single (char *)0.
- */
-void cgi_opentag(struct sink *output, const char *name, ...) {
-  va_list ap;
-  const char *n, *v;
-   
-  sink_printf(output, "<%s", name);
-  va_start(ap, name);
-  while((n = va_arg(ap, const char *))) {
-    sink_printf(output, " ");
-    v = va_arg(ap, const char *);
-    if(v)
-      cgi_attr(output, n, v);
-    else
-      sink_printf(output, n);
-  }
-  va_end(ap);
-  sink_printf(output, ">");
-}
-
-/** @brief Write a close tag
- * @param output Where to send output
- * @param name Element name
- */
-void cgi_closetag(struct sink *output, const char *name) {
-  sink_printf(output, "</%s>", name);
 }
 
 /** @brief Construct a URL

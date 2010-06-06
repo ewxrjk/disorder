@@ -197,3 +197,6 @@ libtests/index.html
 libtests/t-eventdist
 doc/disorder_preferences.5
 doc/disorder_preferences.5.html
+plugins/index.html
+doc/disorder-choose.8
+doc/disorder-choose.8.html

@@ -2,20 +2,21 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file server/queue-ops.c
+ * @brief Track queues (server-specific code)
  */
 #include "disorder-server.h"
 
@@ -48,13 +49,14 @@ static void queue_id(struct queue_entry *q) {
 }
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where) {
+			      int where, enum track_origin origin) {
   struct queue_entry *q, *beforeme;
 
   q = xmalloc(sizeof *q);
   q->track = xstrdup(track);
   q->submitter = submitter ? xstrdup(submitter) : 0;
   q->state = playing_unplayed;
+  q->origin = origin;
   queue_id(q);
   time(&q->when);
   switch(where) {
@@ -69,7 +71,7 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
      * at the end. */
     beforeme = &qhead;
     while(beforeme->prev != &qhead
-	  && beforeme->prev->state == playing_random)
+	  && beforeme->prev->origin == origin_random)
       beforeme = beforeme->prev;
     queue_insert_entry(beforeme->prev, q);
     break;

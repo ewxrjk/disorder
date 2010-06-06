@@ -2,20 +2,18 @@
  * This file is part of DisOrder
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/choose.c
  * @brief Hierarchical track selection and search
@@ -105,7 +103,7 @@ int choose_can_autocollapse(GtkTreeIter *iter) {
 }
 
 /** @brief Remove node @p it and all its children
- * @param Iterator, updated to point to next
+ * @param it Iterator, updated to point to next
  * @return True if iterator remains valid
  *
  * TODO is this necessary?  gtk_tree_store_remove() does not document what
@@ -165,12 +163,12 @@ static void choose_set_state(const char attribute((unused)) *event,
  * @param parent_ref Node to populate or NULL to fill root
  * @param nvec Number of children to add
  * @param vec Children
- * @param files 1 if children are files, 0 if directories
+ * @param isfile 1 if children are files, 0 if directories
  *
  * Adjusts the set of files (or directories) below @p parent_ref to match those
  * listed in @p nvec and @p vec.
  *
- * @parent_ref will be destroyed.
+ * @p parent_ref will be destroyed.
  */
 static void choose_populate(GtkTreeRowReference *parent_ref,
                             int nvec, char **vec,
@@ -621,6 +619,7 @@ GtkWidget *choose_widget(void) {
   event_register("playing-track-changed", choose_set_state, 0);
   event_register("search-results-changed", choose_set_state, 0);
   event_register("lookups-completed", choose_set_state, 0);
+  event_register("choose-more-tracks", choose_menu_moretracks, 0);
 
   /* After a rescan we update the choose tree.  We get a rescan-complete
    * automatically at startup and upon connection too. */

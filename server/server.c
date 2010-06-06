@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "disorder-server.h"
@@ -190,7 +188,7 @@ static int c_play(struct conn *c, char **vec,
     sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
     return 1;
   }
-  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM);
+  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, origin_picked);
   queue_write();
   /* If we added the first track, and something is playing, then prepare the
    * new track.  If nothing is playing then we don't bother as it wouldn't gain
@@ -1575,6 +1573,31 @@ static int c_schedule_add(struct conn *c,
   return 1;
 }
 
+static int c_adopt(struct conn *c,
+		   char **vec,
+		   int attribute((unused)) nvec) {
+  struct queue_entry *q;
+
+  if(!c->who) {
+    sink_writes(ev_writer_sink(c->w), "550 no identity\n");
+    return 1;
+  }
+  if(!(q = queue_find(vec[0]))) {
+    sink_writes(ev_writer_sink(c->w), "550 no such track on the queue\n");
+    return 1;
+  }
+  if(q->origin != origin_random) {
+    sink_writes(ev_writer_sink(c->w), "550 not a random track\n");
+    return 1;
+  }
+  q->origin = origin_adopted;
+  q->submitter = xstrdup(c->who);
+  eventlog("adopted", q->id, q->submitter, (char *)0);
+  queue_write();
+  sink_writes(ev_writer_sink(c->w), "250 OK\n");
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1596,6 +1619,7 @@ static const struct command {
   rights_type rights;
 } commands[] = {
   { "adduser",        2, 3,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "adopt",          1, 1,       c_adopt,          RIGHT_PLAY },
   { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
   { "confirm",        1, 1,       c_confirm,        0 },
   { "cookie",         1, 1,       c_cookie,         0 },
@@ -1778,8 +1802,18 @@ static int listen_callback(ev_source *ev,
   c->ev = ev;
   c->w = ev_writer_new(ev, fd, writer_error, c,
 		       "client writer");
+  if(!c->w) {
+    error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
+          fd);
+    close(fd);
+    return 0;
+  }
   c->r = ev_reader_new(ev, fd, redirect_reader_callback, reader_error, c,
 		       "client reader");
+  if(!c->r)
+    /* Main reason for failure is the FD is too big and that will already have
+     * been handled */
+    fatal(0, "ev_reader_new for file inbound connection (fd=%d) failed", fd);
   ev_tie(c->r, c->w);
   c->fd = fd;
   c->reader = reader_callback;

@@ -18,6 +18,9 @@
  * 02110-1301, USA.
  *
  */
+/** @file lib/arcfour.h
+ * @brief Arcfour (RC4-compatible) stream cipher implementation
+ */
 
 /* Code from Libgcrypt adapted for gnulib by Simon Josefsson. */
 
@@ -29,6 +32,7 @@
 
 #define ARCFOUR_SBOX_SIZE 256
 
+/** @brief Context structture for Arcfour stream cipher */
 typedef struct
 {
   char sbox[ARCFOUR_SBOX_SIZE];

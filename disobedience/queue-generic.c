@@ -2,23 +2,21 @@
  * This file is part of DisOrder
  * Copyright (C) 2006-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/queue-generic.c
- * @brief Queue widgets
+ * @brief Disobedience queue widgets
  *
  * This file provides contains code shared between all the queue-like
  * widgets - the queue, the recent list and the added tracks list.
@@ -129,6 +127,8 @@ const char *column_length(const struct queue_entry *q,
     if(last_state & DISORDER_TRACK_PAUSED)
       l = playing_track->sofar;
     else {
+      if(!last_playing)
+        return NULL;
       time(&now);
       l = playing_track->sofar + (now - last_playing);
     }
@@ -178,11 +178,14 @@ void ql_update_row(struct queue_entry *q,
     iter = my_iter;
   }
   /* Update all the columns */
-  for(int col = 0; col < ql->ncolumns; ++col)
-    gtk_list_store_set(ql->store, iter,
-                       col, ql->columns[col].value(q,
-                                                   ql->columns[col].data),
-                       -1);
+  for(int col = 0; col < ql->ncolumns; ++col) {
+    const char *const v = ql->columns[col].value(q,
+                                                 ql->columns[col].data);
+    if(v)
+      gtk_list_store_set(ql->store, iter,
+                         col, v,
+                         -1);
+  }
   gtk_list_store_set(ql->store, iter,
                      ql->ncolumns + QUEUEPOINTER_COLUMN, q,
                      -1);

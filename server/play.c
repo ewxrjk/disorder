@@ -2,20 +2,21 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file server/play.c
+ * @brief Playing tracks
  */
 
 #include "disorder-server.h"
@@ -127,7 +128,8 @@ void speaker_setup(ev_source *ev) {
   /* Wait for the speaker to be ready */
   speaker_recv(speaker_fd, &sm);
   nonblock(speaker_fd);
-  ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0, "speaker read");
+  if(ev_fd(ev, ev_read, speaker_fd, speaker_readable, 0, "speaker read") < 0)
+    fatal(0, "error registering speaker socket fd");
 }
 
 void speaker_reload(void) {
@@ -364,7 +366,8 @@ static int start(ev_source *ev,
 	     || write(sfd, q->id, l) < 0)
 	    fatal(errno, "writing to %s", addr.sun_path);
 	  /* Await the ack */
-	  read(sfd, &l, 1);
+	  if (read(sfd, &l, 1) < 0) 
+		fatal(errno, "reading ack from %s", addr.sun_path);
 	  /* Plumbing */
 	  xdup2(np[0], 0);
 	  xdup2(sfd, 1);
@@ -480,6 +483,7 @@ void abandon(ev_source attribute((unused)) *ev,
 }
 
 /** @brief Called with a new random track
+ * @param ev Event loop
  * @param track Track name
  */
 static void chosen_random_track(ev_source *ev,
@@ -489,8 +493,7 @@ static void chosen_random_track(ev_source *ev,
   if(!track)
     return;
   /* Add the track to the queue */
-  q = queue_add(track, 0, WHERE_END);
-  q->state = playing_random;
+  q = queue_add(track, 0, WHERE_END, origin_random);
   D(("picked %p (%s) at random", (void *)q, q->track));
   queue_write();
   /* Maybe a track can now be played */
@@ -532,9 +535,10 @@ void play(ev_source *ev) {
   }
   /* There must be at least one track in the queue. */
   q = qhead.next;
-  /* If random play is disabled but the track is a random one then don't play
-   * it.  play() will be called again when random play is re-enabled. */
-  if(!random_enabled && q->state == playing_random)
+  /* If random play is disabled but the track is a non-adopted random one
+   * then don't play it.  play() will be called again when random play is
+   * re-enabled. */
+  if(!random_enabled && q->origin == origin_random)
     return;
   D(("taken %p (%s) from queue", (void *)q, q->track));
   /* Try to start playing. */
@@ -640,8 +644,7 @@ void scratch(const char *who, const char *id) {
      * bother if playing is disabled) */
     if(playing_is_enabled() && config->scratch.n) {
       int r = rand() * (double)config->scratch.n / (RAND_MAX + 1.0);
-      q = queue_add(config->scratch.s[r], who, WHERE_START);
-      q->state = playing_isscratch;
+      q = queue_add(config->scratch.s[r], who, WHERE_START, origin_scratch);
     }
     notify_scratch(playing->track, playing->submitter, who,
 		   time(0) - playing->played);

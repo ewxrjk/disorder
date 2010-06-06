@@ -2,20 +2,18 @@
  * This file is part of DisOrder
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /** @file server/schedule.c
@@ -97,6 +95,9 @@ static const char *const schedule_required[] = {"when", "who", "action"};
 
 /** @brief Parse a scheduled event key and data
  * @param k Pointer to key
+ * @param d Pointer to data
+ * @param idp Where to store event ID
+ * @param actiondatap Where to store parsed data
  * @param whenp Where to store timestamp
  * @return 0 on success, non-0 on error
  *
@@ -227,8 +228,9 @@ void schedule_init(ev_source *ev) {
 /******************************************************************************/
 
 /** @brief Create a scheduled event
- * @param ev Event loop
+ * @param id Event ID
  * @param actiondata Action data
+ * @param tid Containing transaction
  */
 static int schedule_add_tid(const char *id,
 			    struct kvp *actiondata,
@@ -372,7 +374,7 @@ static void schedule_play(ev_source *ev,
     return;
   }
   info("scheduled event %s: %s play %s", id,  who, track);
-  q = queue_add(track, who, WHERE_START);
+  q = queue_add(track, who, WHERE_START, origin_scheduled);
   queue_write();
   if(q == qhead.next && playing)
     prepare(ev, q);
@@ -418,6 +420,7 @@ static struct {
 };
 
 /** @brief Look up a scheduled event
+ * @param id Event ID
  * @param actiondata Event description
  * @return index in schedule_actions[] on success, -1 on error
  *

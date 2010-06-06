@@ -1,0 +1,22 @@
+#! /usr/bin/perl -w
+use strict;
+
+my $act = 1;
+
+for my $f (@ARGV) {
+    if($f =~ /^-/) {
+	if($f eq '-n') {
+	    $act = 0;
+	} else {
+	    die "$0: unknown option: $f\n";
+	}
+	next;
+    }
+    my $t = $f;
+    $t =~ s/[_ ]+/ /g;
+    $t =~ s/(?!(?<=\.)[A-Za-z0-9]+$)\b[a-z]/\U$&\E/g;
+    print "$f -> $t\n";
+    if($act) {
+	(rename $f, $t) or die "$0: $f -> $t: $!\n";
+    }
+}

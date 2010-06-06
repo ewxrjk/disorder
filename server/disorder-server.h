@@ -2,20 +2,21 @@
  * This file is part of DisOrder
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file server/disorder-server.h
+ * @brief Definitions for server and allied utilities
  */
 
 #ifndef DISORDER_SERVER_H
@@ -41,6 +42,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/resource.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
@@ -120,7 +122,7 @@ void recent_write(void);
 /* write the recently played list out.  Calls @fatal@ on error. */
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where);
+			      int where, enum track_origin origin);
 #define WHERE_START 0			/* Add to head of queue */
 #define WHERE_END 1			/* Add to end of queue */
 #define WHERE_BEFORE_RANDOM 2		/* End, or before random track */

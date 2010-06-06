@@ -3,34 +3,78 @@
 # This file is part of DisOrder
 # Copyright (C) 2005-2008 Richard Kettlewell
 #
-# This program is free software; you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-# USA
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 set -e
-[ -d =build ] && cd =build
+web=$HOME/public_html/web/disorder
+
 make
-make check
+make distcheck
 make dist-bzip2
+v=$(make echo-version)
 d=$(make echo-distdir)
-cp $d.tar.bz2 $HOME/work/web/disorder
+src=$d.tar.bz2
+
+# Report and execute a command remotely
+remote() {
+  local h=$1
+  shift
+  echo "$h:" "$@"
+  ssh $h "$@"
+}
+
+# Build .debs and copy to the right place
+build() {
+  local h=$1			# build host
+  local f=$2
+  local vs=$3
+  local dist=$4
+
+  remote $h "mkdir -p _builds"
+  remote $h "rm -rf _builds/*.deb _builds/$d"
+  scp $src $h:_builds
+  remote $h "cd _builds && tar xfj $src"
+  if [ "$vs" != "" ]; then
+    remote $h "cd _builds/$d && scripts/setversion $v~$vs 'Backport to $vs' $dist"
+  fi
+  remote $h "cd _builds/$d && fakeroot debian/rules binary"
+  mkdir -p $web/$f
+  scp $h:_builds/*.deb $web/$f/.
+}
+
+# Build various debs
+
+# Ubuntu dapper; binaries suit Debian etch too
+build dekabrach etch etch oldstable
+
+# Debian lenny (32-bit)
+build leucomorph lenny "" stable
+
+# Debian lenny (64-bit)
+build araminta lenny "" stable
+
+# Update the web
+cp $src $web
 cd doc
 for f in *.[1-9].html; do
   echo $f
-  rm -f $HOME/work/web/disorder/$f
-  sed < $f > $HOME/work/web/disorder/$f 's/^@.*//'
+  rm -f $web/$f
+  sed < $f > $web/$f 's/^@.*//'
 done
-cp plumbing.svg $HOME/work/web/disorder
-cp plumbing.png $HOME/work/web/disorder
+cp plumbing.svg $web/.
+if [ -f plumbing.png ]; then
+  cp plumbing.png $web/.
+fi
+

@@ -2,23 +2,27 @@
  * This file is part of DisOrder.
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file alsabg.c
  * @brief Background-thread interface to ALSA
+ *
+ * This wraps ALSA with an interface which calls back to the client from a
+ * thread.  It's not intended for completely general use, just what DisOrder
+ * needs.
+ *
+ * Only builds on Linux systems.
  */
 
 #include "common.h"
@@ -275,6 +279,10 @@ void alsa_bg_init(const char *device,
   ep(pthread_create(&alsa_bg_play_tid, 0, alsa_bg_play, 0));
 }
 
+/** @brief Deinitialize background ALSA playback
+ *
+ * The opposite of alsa_bg_init().
+ */
 void alsa_bg_close(void) {
   void *r;
 

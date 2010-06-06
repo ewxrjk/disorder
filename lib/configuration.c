@@ -3,20 +3,18 @@
  * Copyright (C) 2004-2008 Richard Kettlewell
  * Portions copyright (C) 2007 Mark Wooding
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/configuration.c
  * @brief Configuration file support
@@ -1197,7 +1195,8 @@ static struct config *config_default(void) {
   c->new_max = 100;
   c->reminder_interval = 600;		/* 10m */
   c->new_bias_age = 7 * 86400;		/* 1 week */
-  c->new_bias = 9000000;		/* 100 times the base weight */
+  c->new_bias = 4500000;		/* 50 times the base weight */
+  c->sox_generation = DEFAULT_SOX_GENERATION;
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
@@ -1248,7 +1247,7 @@ static void config_postdefaults(struct config *c,
   int n;
 
   static const char *namepart[][4] = {
-    { "title",  "/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display" },
+    { "title",  "/([0-9]+ *[-:]? *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display" },
     { "title",  "/([^/]+)\\.[a-zA-Z0-9]+$",           "$1", "sort" },
     { "album",  "/([^/]+)/[^/]+$",                    "$1", "*" },
     { "artist", "/([^/]+)/[^/]+/[^/]+$",              "$1", "*" },
@@ -1257,7 +1256,7 @@ static void config_postdefaults(struct config *c,
 #define NNAMEPART (int)(sizeof namepart / sizeof *namepart)
 
   static const char *transform[][5] = {
-    { "track", "^.*/([0-9]+ *[-:] *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display", "" },
+    { "track", "^.*/([0-9]+ *[-:]? *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display", "" },
     { "track", "^.*/([^/]+)\\.[a-zA-Z0-9]+$",           "$1", "sort", "" },
     { "dir",   "^.*/([^/]+)$",                          "$1", "*", "" },
     { "dir",   "^(the) ([^/]*)",                        "$2, $1", "sort", "i", },

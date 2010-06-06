@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2006, 2007 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file lib/eclient.h
  * @brief Client code for event-driven programs
@@ -127,7 +125,7 @@ typedef struct disorder_eclient_log_callbacks {
   /** @brief Called when @p id is removed from the recent list */
   void (*recent_removed)(void *v, const char *id);
 
-  /** @brief Called when @id is removed from the queue
+  /** @brief Called when @p id is removed from the queue
    *
    * @p user might be 0.
    */
@@ -167,6 +165,9 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when your rights change */
   void (*rights_changed)(void *v, rights_type new_rights);
+
+  /** @brief Called when a track is adopted */
+  void (*adopted)(void *v, const char *id, const char *who);
 } disorder_eclient_log_callbacks;
 
 /* State bits */
@@ -485,7 +486,10 @@ int disorder_eclient_adduser(disorder_eclient *c,
                              void *v);
 void disorder_eclient_enable_connect(disorder_eclient *c);
 void disorder_eclient_disable_connect(disorder_eclient *c);
-  
+int disorder_eclient_adopt(disorder_eclient *c,
+                           disorder_eclient_no_response *completed,
+                           const char *id,
+                           void *v);  
 #endif
 
 /*

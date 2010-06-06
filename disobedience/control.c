@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2006-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /** @file disobedience/control.c
  * @brief Volume control and buttons
@@ -169,9 +167,9 @@ static int rtp_sensitive(void) {
 /** @brief Table of all icons */
 static struct icon icons[] = {
   {
-    icon_on: "pause.png",
+    icon_on: "pause32.png",
     tip_on: "Pause playing track",
-    icon_off: "play.png",
+    icon_off: "play32.png",
     tip_off: "Resume playing track",
     menuitem: "<GdisorderMain>/Control/Playing",
     on: pause_resume_on,
@@ -181,7 +179,7 @@ static struct icon icons[] = {
     events: "pause-changed playing-changed rights-changed",
   },
   {
-    icon_on: "cross.png",
+    icon_on: "cross32.png",
     tip_on: "Cancel playing track",
     menuitem: "<GdisorderMain>/Control/Scratch",
     sensitive: scratch_sensitive,
@@ -189,9 +187,9 @@ static struct icon icons[] = {
     events: "playing-track-changed rights-changed",
   },
   {
-    icon_on: "randomcross.png",
+    icon_on: "randomenabled32.png",
     tip_on: "Disable random play",
-    icon_off: "random.png",
+    icon_off: "randomdisabled32.png",
     tip_off: "Enable random play",
     menuitem: "<GdisorderMain>/Control/Random play",
     on: random_enabled,
@@ -201,9 +199,9 @@ static struct icon icons[] = {
     events: "random-changed rights-changed",
   },
   {
-    icon_on: "notescross.png",
+    icon_on: "playenabled32.png",
     tip_on: "Disable play",
-    icon_off: "notes.png",
+    icon_off: "playdisabled32.png",
     tip_off: "Enable play",
     on: playing_enabled,
     sensitive: playing_sensitive,
@@ -212,9 +210,9 @@ static struct icon icons[] = {
     events: "enabled-changed rights-changed",
   },
   {
-    icon_on: "speakercross.png",
+    icon_on: "rtpenabled32.png",
     tip_on: "Stop playing network stream",
-    icon_off: "speaker.png",
+    icon_off: "rtpdisabled32.png",
     tip_off: "Play network stream",
     menuitem: "<GdisorderMain>/Control/Network player",
     on: rtp_enabled,

@@ -2,20 +2,18 @@
  * This file is part of DisOrder.
  * Copyright (C) 2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "test.h"
 #include "cgi.h"
@@ -37,7 +35,6 @@ static void input_from(const char *s) {
 }
 
 static void test_cgi(void) {
-  struct dynstr d[1];
 
   setenv("REQUEST_METHOD", "GET", 1);
   setenv("QUERY_STRING", "foo=bar&a=b+c&c=x%7ey", 1);
@@ -113,27 +110,6 @@ static void test_cgi(void) {
   check_string(cgi_sgmlquote("<wibble>"), "&#60;wibble&#62;");
   check_string(cgi_sgmlquote("\"&\""), "&#34;&#38;&#34;");
   check_string(cgi_sgmlquote("\xC2\xA3"), "&#163;");
-
-  dynstr_init(d);
-  cgi_opentag(sink_dynstr(d), "element",
-	      "foo", "bar",
-	      "foo", "has space",
-	      "foo", "has \"quotes\"",
-	      (char *)NULL);
-  dynstr_terminate(d);
-  check_string(d->vec, "<element foo=bar foo=\"has space\" foo=\"has &#34;quotes&#34;\">");
-  
-  dynstr_init(d);
-  cgi_opentag(sink_dynstr(d), "element",
-	      "foo", (char *)NULL,
-	      (char *)NULL);
-  dynstr_terminate(d);
-  check_string(d->vec, "<element foo>");
-  
-  dynstr_init(d);
-  cgi_closetag(sink_dynstr(d), "element");
-  dynstr_terminate(d);
-  check_string(d->vec, "</element>");
 
   check_string(cgi_makeurl("http://example.com/", (char *)NULL),
 	       "http://example.com/");

@@ -2,28 +2,28 @@
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file server/actions.c
+/** @file cgi/actions.c
  * @brief DisOrder web actions
  *
  * Actions are anything that the web interface does beyond passive template
  * expansion and inspection of state recieved from the server.  This means
  * playing tracks, editing prefs etc but also setting extra headers e.g. to
  * auto-refresh the playing list.
+ *
+ * See @ref lib/macros-builtin.c for docstring syntax.
  */
 
 #include "disorder-cgi.h"
@@ -47,14 +47,14 @@ static void redirect(const char *url) {
     fatal(errno, "error writing to stdout");
 }
 
-/*! playing
+/*$ playing
  *
  * Expands \fIplaying.tmpl\fR as if there was no special 'playing' action, but
  * adds a Refresh: field to the HTTP header.  The maximum refresh interval is
  * defined by \fBrefresh\fR (see \fBdisorder_config\fR(5)) but may be less if
  * the end of the track is near.
  */
-/*! manage
+/*$ manage
  *
  * Expands \fIplaying.tmpl\fR (NB not \fImanage.tmpl\fR) as if there was no
  * special 'playing' action, and adds a Refresh: field to the HTTP header.  The
@@ -80,14 +80,14 @@ static void act_playing(void) {
     if(now + refresh > fin)
       refresh = fin - now;
   }
-  if(dcgi_queue && dcgi_queue->state == playing_isscratch) {
+  if(dcgi_queue && dcgi_queue->origin == origin_scratch) {
     /* next track is a scratch, don't leave more than the inter-track gap */
     if(refresh > config->gap)
       refresh = config->gap;
   }
   if(!dcgi_playing
      && ((dcgi_queue
-          && dcgi_queue->state != playing_random)
+          && dcgi_queue->origin != origin_random)
          || dcgi_random_enabled)
      && dcgi_enabled) {
     /* no track playing but playing is enabled and there is something coming
@@ -105,7 +105,7 @@ static void act_playing(void) {
   dcgi_expand("playing", 1);
 }
 
-/*! disable
+/*$ disable
  *
  * Disables play.
  */
@@ -115,7 +115,7 @@ static void act_disable(void) {
   redirect(0);
 }
 
-/*! enable
+/*$ enable
  *
  * Enables play.
  */
@@ -125,7 +125,7 @@ static void act_enable(void) {
   redirect(0);
 }
 
-/*! random-disable
+/*$ random-disable
  *
  * Disables random play.
  */
@@ -135,7 +135,7 @@ static void act_random_disable(void) {
   redirect(0);
 }
 
-/*! random-enable
+/*$ random-enable
  *
  * Enables random play.
  */
@@ -145,7 +145,7 @@ static void act_random_enable(void) {
   redirect(0);
 }
 
-/*! pause
+/*$ pause
  *
  * Pauses the current track (if there is one and it's not paused already).
  */
@@ -155,7 +155,7 @@ static void act_pause(void) {
   redirect(0);
 }
 
-/*! resume
+/*$ resume
  *
  * Resumes the current track (if there is one and it's paused).
  */
@@ -165,7 +165,7 @@ static void act_resume(void) {
   redirect(0);
 }
 
-/*! remove
+/*$ remove
  *
  * Removes the track given by the \fBid\fR argument.  If this is the currently
  * playing track then it is scratched.
@@ -179,29 +179,24 @@ static void act_remove(void) {
       error(0, "missing 'id' argument");
     else if(!(q = dcgi_findtrack(id)))
       error(0, "unknown queue id %s", id);
-    else switch(q->state) {
-    case playing_isscratch:
-    case playing_failed:
-    case playing_no_player:
-    case playing_ok:
-    case playing_quitting:
-    case playing_scratched:
-      error(0, "does not make sense to scratch %s", id);
-      break;
-    case playing_paused:                /* started but paused */
-    case playing_started:               /* started to play */
+    else if(q->origin == origin_scratch)
+      /* can't scratch scratches */
+      error(0, "does not make sense to scratch or remove %s", id);
+    else if(q->state == playing_paused
+            || q->state == playing_started)
+      /* removing the playing track = scratching */
       disorder_scratch(dcgi_client, id);
-      break;
-    case playing_random:                /* unplayed randomly chosen track */
-    case playing_unplayed:              /* haven't played this track yet */
+    else if(q->state == playing_unplayed)
+      /* otherwise it must be in the queue */
       disorder_remove(dcgi_client, id);
-      break;
-    }
+    else
+      /* various error states */
+      error(0, "does not make sense to scratch or remove %s", id);
   }
   redirect(0);
 }
 
-/*! move
+/*$ move
  *
  * Moves the track given by the \fBid\fR argument the distance given by the
  * \fBdelta\fR argument.  If this is positive the track is moved earlier in the
@@ -231,7 +226,7 @@ static void act_move(void) {
   redirect(0);
 }
 
-/*! play
+/*$ play
  *
  * Play the track given by the \fBtrack\fR argument, or if that is not set all
  * the tracks in the directory given by the \fBdir\fR argument.
@@ -264,7 +259,7 @@ static int clamp(int n, int min, int max) {
   return n;
 }
 
-/*! volume
+/*$ volume
  *
  * If the \fBdelta\fR argument is set: adjust both channels by that amount (up
  * if positive, down if negative).
@@ -326,7 +321,7 @@ static int login_as(const char *username, const char *password) {
   return 0;                             /* OK */
 }
 
-/*! login
+/*$ login
  *
  * If \fBusername\fR and \fBpassword\fR are set (and the username isn't
  * "guest") then attempt to log in using those credentials.  On success,
@@ -361,7 +356,7 @@ static void act_login(void) {
   }
 }
 
-/*! logout
+/*$ logout
  *
  * Logs out the current user and expands \fIlogin.tmpl\fR with \fBstatus\fR or
  * \fB@error\fR set according to the result.
@@ -386,7 +381,7 @@ static void act_logout(void) {
   dcgi_expand("login", 1);
 }
 
-/*! register
+/*$ register
  *
  * Register a new user using \fBusername\fR, \fBpassword1\fR, \fBpassword2\fR
  * and \fBemail\fR and expands \fIlogin.tmpl\fR with \fBstatus\fR or
@@ -453,7 +448,7 @@ static void act_register(void) {
   dcgi_expand("login", 1);
 }
 
-/*! confirm
+/*$ confirm
  *
  * Confirm a user registration using the nonce supplied in \fBc\fR and expands
  * \fIlogin.tmpl\fR with \fBstatus\fR or \fB@error\fR set according to the
@@ -489,7 +484,7 @@ static void act_confirm(void) {
   dcgi_expand("login", 1);
 }
 
-/*! edituser
+/*$ edituser
  *
  * Edit user details using \fBusername\fR, \fBchangepassword1\fR,
  * \fBchangepassword2\fR and \fBemail\fR and expands \fIlogin.tmpl\fR with
@@ -550,7 +545,7 @@ static void act_edituser(void) {
   dcgi_expand("login", 1);
 }
 
-/*! reminder
+/*$ reminder
  *
  * Issue an email password reminder to \fBusername\fR and expands
  * \fIlogin.tmpl\fR with \fBstatus\fR or \fB@error\fR set according to the
@@ -632,7 +627,7 @@ static int process_prefs(int numfile) {
   return 0;
 }
 
-/*! prefs
+/*$ prefs
  *
  * Set preferences on a number of tracks.
  *

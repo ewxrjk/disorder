@@ -2,20 +2,21 @@
  * This file is part of DisOrder
  * Copyright (C) 2006-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+/** @file disobedience/queue.c
+ * @brief Disobedience queue widget
  */
 #include "disobedience.h"
 #include "popup.h"
@@ -28,7 +29,10 @@ static struct queue_entry *actual_playing_track;
 /** @brief The playing track */
 struct queue_entry *playing_track;
 
-/** @brief When we last got the playing track */
+/** @brief When we last got the playing track
+ *
+ * Set to 0 if the timings are currently off due to having just unpaused.
+ */
 time_t last_playing;
 
 static void queue_completed(void *v,
@@ -40,7 +44,6 @@ static void playing_completed(void *v,
 
 /** @brief Called when either the actual queue or the playing track change */
 static void queue_playing_changed(void) {
-
   /* Check that the playing track isn't in the queue.  There's a race here due
    * to the fact that we issue the two commands at slightly different times.
    * If it goes wrong we re-issue and try again, so that we never offer up an
@@ -66,7 +69,6 @@ static void queue_playing_changed(void) {
     playing_track = NULL;
     q = actual_queue;
   }
-  time(&last_playing);          /* for column_length() */
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
   event_raise("queue-list-changed", q);
@@ -95,6 +97,7 @@ static void playing_completed(void attribute((unused)) *v,
   }
   actual_playing_track = q;
   queue_playing_changed();
+  time(&last_playing);
 }
 
 /** @brief Schedule an update to the queue
@@ -118,6 +121,9 @@ static void playing_changed(const char attribute((unused)) *event,
                             void  attribute((unused)) *callbackdata) {
   D(("playing_changed"));
   gtk_label_set_text(GTK_LABEL(report_label), "updating playing track");
+  /* Setting last_playing=0 means that we don't know what the correct value
+   * is right now, e.g. because things have been deranged by a pause. */
+  last_playing = 0;
   disorder_eclient_playing(client, playing_completed, 0);
 }
 
@@ -163,6 +169,7 @@ static struct menuitem queue_menuitems[] = {
   { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
   { "Scratch playing track", ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
   { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Adopt track", ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
 };
 
 struct queuelike ql_queue = {

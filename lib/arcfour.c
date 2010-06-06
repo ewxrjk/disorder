@@ -18,17 +18,28 @@
  * 02110-1301, USA.
  *
  */
-
-/* Code from Libgcrypt adapted for gnulib by Simon Josefsson. */
-
-/*
+/** @file lib/arcfour.c
+ * @brief Arcfour (RC4-compatible) stream cipher implementation
+ *
+ * Code from Libgcrypt adapted for gnulib by Simon Josefsson.
+ *
  * For a description of the algorithm, see:
+ * 
  *   Bruce Schneier: Applied Cryptography. John Wiley & Sons, 1996.
  *   ISBN 0-471-11709-9. Pages 397 ff.
  */
 
 #include "arcfour.h"
 
+/** @brief Encrypt using Arcfour stream cipher
+ * @param context Context structure
+ * @param inbuf Input buffer
+ * @param outbuf Output buffer
+ * @param length Number of bytes in @p inbuf
+ *
+ * Copies from @p inbuf to @p outbuf, encrypting (or decrypting) using
+ * the stream controlled by @p context.
+ */
 void
 arcfour_stream (arcfour_context * context, const char *inbuf, char *outbuf,
 		size_t length)
@@ -54,6 +65,13 @@ arcfour_stream (arcfour_context * context, const char *inbuf, char *outbuf,
   context->idx_j = j;
 }
 
+/** @brief Initialize an @ref arcfour_context
+ * @param context Context structure
+ * @param key Key data
+ * @param keylen Length of key
+ *
+ * Initializes @p context using @p key.
+ */
 void
 arcfour_setkey (arcfour_context * context, const char *key, size_t keylen)
 {

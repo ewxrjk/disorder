@@ -1,25 +1,24 @@
-
 /*
  * This file is part of DisOrder.
  * Copyright (C) 2004-2008 Richard Kettlewell
  *
- * This program is free software; you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file server/macros-disorder.c
+/** @file cgi/macros-disorder.c
  * @brief DisOrder-specific expansions
+ *
+ * See @ref lib/macros-builtin.c for docstring syntax.
  */
 
 #include "disorder-cgi.h"
@@ -38,7 +37,7 @@ static const char *make_index(int i) {
   return s;
 }
 
-/*! @server-version
+/*$ @server-version
  *
  * Expands to the server's version string, or a (safe to use) error
  * value if the server is unavailable or broken.
@@ -57,7 +56,7 @@ static int exp_server_version(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(v)) < 0 ? -1 : 0;
 }
 
-/*! @version
+/*$ @version
  *
  * Expands to the local version string.
  */
@@ -69,7 +68,7 @@ static int exp_version(int attribute((unused)) nargs,
                      cgi_sgmlquote(disorder_short_version_string)) < 0 ? -1 : 0;
 }
 
-/*! @url
+/*$ @url
  *
  * Expands to the base URL of the web interface.
  */
@@ -81,7 +80,7 @@ static int exp_url(int attribute((unused)) nargs,
                      cgi_sgmlquote(config->url)) < 0 ? -1 : 0;
 }
 
-/*! @arg{NAME}
+/*$ @arg{NAME}
  *
  * Expands to the UNQUOTED form of CGI argument NAME, or the empty string if
  * there is no such argument.  Use @argq for a quick way to quote the argument.
@@ -98,7 +97,7 @@ static int exp_arg(int attribute((unused)) nargs,
     return 0;
 }
 
-/*! @argq{NAME}
+/*$ @argq{NAME}
  *
  * Expands to the (quoted) form of CGI argument NAME, or the empty string if
  * there is no such argument.  Use @arg for the unquoted argument.
@@ -115,7 +114,7 @@ static int exp_argq(int attribute((unused)) nargs,
     return 0;
 }
 
-/*! @user
+/*$ @user
  *
  * Expands to the logged-in username (which might be "guest"), or to
  * the empty string if not connected.
@@ -131,7 +130,7 @@ static int exp_user(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @part{TRACK|ID}{PART}{CONTEXT}
+/*$ @part{TRACK|ID}{PART}{CONTEXT}
  *
  * Expands to a track name part.
  *
@@ -171,7 +170,7 @@ static int exp_part(int nargs,
   return 0;
 }
 
-/*! @quote{STRING}
+/*$ @quote{STRING}
  *
  * SGML-quotes STRING.  Note that most expansion results are already suitable
  * quoted, so this expansion is usually not required.
@@ -183,7 +182,7 @@ static int exp_quote(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(args[0])) < 0 ? -1 : 0;
 }
 
-/*! @who{ID}
+/*$ @who{ID}
  *
  * Expands to the name of the submitter of track ID, which must be a playing
  * track, in the queue, or in the recent list.
@@ -199,7 +198,7 @@ static int exp_who(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @when{ID}
+/*$ @when{ID}
  *
  * Expands to the time a track started or is expected to start.  The track must
  * be a playing track, in the queue, or in the recent list.
@@ -236,7 +235,7 @@ static int exp_when(int attribute((unused)) nargs,
   return sink_writes(output, "&nbsp;") < 0 ? -1 : 0;
 }
 
-/*! @length{ID|TRACK}
+/*$ @length{ID|TRACK}
  *
  * Expands to the length of a track, identified by its queue ID or its name.
  * If it is the playing track (identified by ID) then the amount played so far
@@ -268,7 +267,7 @@ static int exp_length(int attribute((unused)) nargs,
   return sink_writes(output, "&nbsp;") < 0 ? -1 : 0;
 }
 
-/*! @removable{ID}
+/*$ @removable{ID}
  *
  * Expands to "true" if track ID is removable (or scratchable, if it is the
  * playing track) and "false" otherwise.
@@ -288,7 +287,7 @@ static int exp_removable(int attribute((unused)) nargs,
                             (dcgi_rights, disorder_user(dcgi_client), q));
 }
 
-/*! @movable{ID}{DIR}
+/*$ @movable{ID}{DIR}
  *
  * Expands to "true" if track ID is movable and "false" otherwise.
  *
@@ -321,7 +320,7 @@ static int exp_movable(int  nargs,
                                       q));
 }
 
-/*! @playing{TEMPLATE}
+/*$ @playing{TEMPLATE}
  *
  * Expands to TEMPLATE, with the following expansions:
  * - @id: the queue ID of the playing track
@@ -349,7 +348,7 @@ static int exp_playing(int nargs,
                    output, u);
 }
 
-/*! @queue{TEMPLATE}
+/*$ @queue{TEMPLATE}
  *
  * For each track in the queue, expands TEMPLATE with the following expansions:
  * - @id: the queue ID of the track
@@ -381,7 +380,7 @@ static int exp_queue(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @recent{TEMPLATE}
+/*$ @recent{TEMPLATE}
  *
  * For each track in the recently played list, expands TEMPLATE with the
  * following expansions:
@@ -414,7 +413,7 @@ static int exp_recent(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @new{TEMPLATE}
+/*$ @new{TEMPLATE}
  *
  * For each track in the newly added list, expands TEMPLATE wit the following
  * expansions:
@@ -448,7 +447,7 @@ static int exp_new(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @volume{CHANNEL}
+/*$ @volume{CHANNEL}
  *
  * Expands to the volume in a given channel.  CHANNEL must be "left" or
  * "right".
@@ -463,7 +462,7 @@ static int exp_volume(int attribute((unused)) nargs,
                          ? dcgi_volume_left : dcgi_volume_right) < 0 ? -1 : 0;
 }
 
-/*! @isplaying
+/*$ @isplaying
  *
  * Expands to "true" if there is a playing track, otherwise "false".
  */
@@ -475,7 +474,7 @@ static int exp_isplaying(int attribute((unused)) nargs,
   return mx_bool_result(output, !!dcgi_playing);
 }
 
-/*! @isqueue
+/*$ @isqueue
  *
  * Expands to "true" if there the queue is nonempty, otherwise "false".
  */
@@ -487,7 +486,7 @@ static int exp_isqueue(int attribute((unused)) nargs,
   return mx_bool_result(output, !!dcgi_queue);
 }
 
-/*! @isrecent@
+/*$ @isrecent
  *
  * Expands to "true" if there the recently played list is nonempty, otherwise
  * "false".
@@ -500,7 +499,7 @@ static int exp_isrecent(int attribute((unused)) nargs,
   return mx_bool_result(output, !!dcgi_recent);
 }
 
-/*! @isnew
+/*$ @isnew
  *
  * Expands to "true" if there the newly added track list is nonempty, otherwise
  * "false".
@@ -513,7 +512,7 @@ static int exp_isnew(int attribute((unused)) nargs,
   return mx_bool_result(output, !!dcgi_nnew);
 }
 
-/*! @pref{TRACK}{KEY}
+/*$ @pref{TRACK}{KEY}
  *
  * Expands to a track preference.
  */
@@ -528,7 +527,7 @@ static int exp_pref(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @prefs{TRACK}{TEMPLATE}
+/*$ @prefs{TRACK}{TEMPLATE}
  *
  * For each track preference of track TRACK, expands TEMPLATE with the
  * following expansions:
@@ -567,7 +566,7 @@ static int exp_prefs(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @transform{TRACK}{TYPE}{CONTEXT}
+/*$ @transform{TRACK}{TYPE}{CONTEXT}
  *
  * Transforms a track name (if TYPE is "track") or directory name (if type is
  * "dir").  CONTEXT should be the context, if it is left out then "display" is
@@ -582,7 +581,7 @@ static int exp_transform(int nargs,
   return sink_writes(output, cgi_sgmlquote(t)) < 0 ? -1 : 0;
 }
 
-/*! @enabled@
+/*$ @enabled
  *
  * Expands to "true" if playing is enabled, otherwise "false".
  */
@@ -597,7 +596,7 @@ static int exp_enabled(int attribute((unused)) nargs,
   return mx_bool_result(output, e);
 }
 
-/*! @random-enabled
+/*$ @random-enabled
  *
  * Expands to "true" if random play is enabled, otherwise "false".
  */
@@ -612,7 +611,7 @@ static int exp_random_enabled(int attribute((unused)) nargs,
   return mx_bool_result(output, e);
 }
 
-/*! @trackstate{TRACK}
+/*$ @trackstate{TRACK}
  *
  * Expands to "playing" if TRACK is currently playing, or "queue" if it is in
  * the queue, otherwise to nothing.
@@ -638,7 +637,7 @@ static int exp_trackstate(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @thisurl
+/*$ @thisurl
  *
  * Expands to an UNQUOTED URL which points back to the current page.  (NB it
  * might not be byte for byte identical - for instance, CGI arguments might be
@@ -651,7 +650,7 @@ static int exp_thisurl(int attribute((unused)) nargs,
   return sink_writes(output, cgi_thisurl(config->url)) < 0 ? -1 : 0;
 }
 
-/*! @resolve{TRACK}
+/*$ @resolve{TRACK}
  *
  * Expands to an UNQUOTED name for the TRACK that is not an alias, or to
  * nothing if it is not a valid track.
@@ -667,7 +666,7 @@ static int exp_resolve(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @paused
+/*$ @paused
  *
  * Expands to "true" if the playing track is paused, to "false" if it is
  * playing (or if there is no playing track at all).
@@ -681,7 +680,7 @@ static int exp_paused(int attribute((unused)) nargs,
                                  && dcgi_playing->state == playing_paused));
 }
 
-/*! @state{ID}@
+/*$ @state{ID}
  *
  * Expands to the current state of track ID.
  */
@@ -696,7 +695,22 @@ static int exp_state(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @right{RIGHT}{WITH-RIGHT}{WITHOUT-RIGHT}@
+/*$ @origin{ID}
+ *
+ * Expands to the current origin of track ID.
+ */
+static int exp_origin(int attribute((unused)) nargs,
+                      char **args,
+                      struct sink *output,
+                      void attribute((unused)) *u) {
+  struct queue_entry *q = dcgi_findtrack(args[0]);
+
+  if(q)
+    return sink_writes(output, track_origins[q->origin]) < 0 ? -1 : 0;
+  return 0;
+}
+
+/*$ @right{RIGHT}{WITH-RIGHT}{WITHOUT-RIGHT}
  *
  * Expands to WITH-RIGHT if the current user has right RIGHT, otherwise to
  * WITHOUT-RIGHT.  The WITHOUT-RIGHT argument may be left out.
@@ -733,7 +747,7 @@ static int exp_right(int nargs,
   return 0;
 }
 
-/*! @userinfo{PROPERTY}
+/*$ @userinfo{PROPERTY}
  *
  * Expands to the named property of the current user.
  */
@@ -750,7 +764,7 @@ static int exp_userinfo(int attribute((unused)) nargs,
   return 0;
 }
 
-/*! @error
+/*$ @error
  *
  * Expands to the latest error string.
  */
@@ -762,7 +776,7 @@ static int exp_error(int attribute((unused)) nargs,
               < 0 ? -1 : 0;
 }
 
-/*! @status
+/*$ @status
  *
  * Expands to the latest status string.
  */
@@ -774,7 +788,7 @@ static int exp_status(int attribute((unused)) nargs,
               < 0 ? -1 : 0;
 }
 
-/*! @image{NAME}
+/*$ @image{NAME}
  *
  * Expands to the URL of the image called NAME.
  *
@@ -865,7 +879,7 @@ static int exp__files_dirs(int nargs,
 
 }
 
-/*! @tracks{DIR}{RE}{TEMPLATE}
+/*$ @tracks{DIR}{RE}{TEMPLATE}
  *
  * For each track below DIR, expands TEMPLATE with the
  * following expansions:
@@ -886,7 +900,7 @@ static int exp_tracks(int nargs,
   return exp__files_dirs(nargs, args, output, u, "track", disorder_files);
 }
 
-/*! @dirs{DIR}{RE}{TEMPLATE}
+/*$ @dirs{DIR}{RE}{TEMPLATE}
  *
  * For each directory below DIR, expands TEMPLATE with the
  * following expansions:
@@ -913,7 +927,7 @@ static int exp__search_shim(disorder_client *c, const char *terms,
   return disorder_search(c, terms, vecp, nvecp);
 }
 
-/*! @search{KEYWORDS}{TEMPLATE}
+/*$ @search{KEYWORDS}{TEMPLATE}
  *
  * For each track matching KEYWORDS, expands TEMPLATE with the
  * following expansions:
@@ -932,7 +946,7 @@ static int exp_search(int nargs,
   return exp__files_dirs(nargs, args, output, u, "track", exp__search_shim);
 }
 
-/*! @label{NAME}
+/*$ @label{NAME}
  *
  * Expands to label NAME from options.labels.  Undefined lables expand to the
  * last dot-separated component, e.g. X.Y.Z to Z.
@@ -944,7 +958,7 @@ static int exp_label(int attribute((unused)) nargs,
   return sink_writes(output, option_label(args[0])) < 0 ? -1 : 0;
 }
 
-/*! @breadcrumbs{DIR}{TEMPLATE}
+/*$ @breadcrumbs{DIR}{TEMPLATE}
  *
  * Expands TEMPLATE for each directory in the path up to DIR, excluding the root
  * but including DIR itself, with the following expansions:
@@ -1000,6 +1014,7 @@ void dcgi_expansions(void) {
   mx_register("label",  1, 1, exp_label);
   mx_register("length", 1, 1, exp_length);
   mx_register("movable", 1, 2, exp_movable);
+  mx_register("origin", 1, 1, exp_origin);
   mx_register("part", 2, 3, exp_part);
   mx_register("paused", 0, 0, exp_paused);
   mx_register("pref", 2, 2, exp_pref);

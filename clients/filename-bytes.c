@@ -1,5 +1,6 @@
-/* Grotty program to print out the bytes making up filenames in some
- * directory */
+/** @file clients/filename-bytes.c
+ * @brief Print out raw bytes of filenames in a directory
+ */
 
 #include "common.h"
 
