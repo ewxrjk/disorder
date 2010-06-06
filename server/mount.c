@@ -73,6 +73,7 @@ void periodic_mount_check(ev_source *ev_) {
     trackdb_rescan(ev_, 1/*check*/, 0, 0);
   memcpy(last, current, sizeof last);
   first = 0;
+  gcry_md_close(h);
 #elif defined PATH_MTAB
   /* On Linux we keep track of the modification time of /etc/mtab */
   static time_t last_mount;
