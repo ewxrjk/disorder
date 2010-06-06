@@ -422,6 +422,8 @@ void logged_in(void) {
   periodic_fast(0);
   /* Recheck server version */
   disorder_eclient_version(client, version_completed, 0);
+  disorder_eclient_enable_connect(client);
+  disorder_eclient_enable_connect(logclient);
 }
 
 int main(int argc, char **argv) {

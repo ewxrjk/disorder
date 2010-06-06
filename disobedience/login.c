@@ -29,7 +29,6 @@
  * It you hit Cancel then the window disappears without saving anything.
  *
  * TODO
- * - escape and return should work
  * - cancel/close should be consistent with properties
  */
 
@@ -50,11 +49,12 @@ struct login_window_item {
   const char *(*get)(void);
 
   /** @brief Set a new value */
-  void (*set)(const char *value);
+  void (*set)(struct config *c, const char *value);
 
   /** @brief Flags
    * 
    * - @ref LWI_HIDDEN - this is a password
+   * - @ref LWI_REMOTE - this is for remote connections
    */
   unsigned flags;
 
@@ -63,45 +63,86 @@ struct login_window_item {
 /** @brief This is a password */
 #define LWI_HIDDEN 0x0001
 
+/** @brief This is for remote connections */
+#define LWI_REMOTE 0x0002
+
 /** @brief Current login window */
 GtkWidget *login_window;
 
 /** @brief Set connection defaults */
 static void default_connect(void) {
-  if(!config->connect.n) {
-    config->connect.n = 2;
-    config->connect.s = xcalloc(2, sizeof (char *));
-    config->connect.s[0] = xstrdup("localhost");
-    config->connect.s[1] = xstrdup("9999"); /* whatever */
-  }
+  /* If a password is set assume we're good */
+  if(config->password)
+    return;
+  /* If we already have a host and/or port that's good too */
+  if(config->connect.n)
+    return;
+  /* If there's a suitable socket that's probably what we wanted */
+  const char *s = config_get_file("socket");
+  struct stat st;
+  if(s && *s && stat(s, &st) == 0 && S_ISSOCK(st.st_mode))
+    return;
+  /* TODO can we use some mdns thing to find a DisOrder server? */
 }
 
-static const char *get_hostname(void) { return config->connect.s[0]; }
-static const char *get_service(void) { return config->connect.s[1]; }
-static const char *get_username(void) { return config->username; }
-static const char *get_password(void) { return config->password ? config->password : ""; }
+static const char *get_hostname(void) {
+  return config->connect.n >= 2 ? config->connect.s[0] : "";
+}
 
-static void set_hostname(const char *s) { config->connect.s[0] = (char *)s; }
-static void set_service(const char *s) { config->connect.s[1] = (char *)s; }
-static void set_username(const char *s) { config->username = s; }
-static void set_password(const char *s) { config->password = s; }
+static const char *get_service(void) {
+  return config->connect.n >= 2 ? config->connect.s[1] : "";
+}
+
+static const char *get_username(void) {
+  return config->username;
+}
+
+static const char *get_password(void) {
+  return config->password ? config->password : "";
+}
+
+static void set_hostname(struct config *c, const char *s) {
+  c->connect.s[0] = (char *)s;
+}
+
+static void set_service(struct config *c, const char *s) {
+  c->connect.s[1] = (char *)s;
+}
+
+static void set_username(struct config *c, const char *s) {
+  c->username = s;
+}
+
+static void set_password(struct config *c, const char *s) {
+  c->password = s;
+}
 
 /** @brief Table used to generate the form */
 static const struct login_window_item lwis[] = {
-  { "Hostname", get_hostname, set_hostname, 0 },
-  { "Service", get_service, set_service, 0 },
+  { "Hostname", get_hostname, set_hostname, LWI_REMOTE },
+  { "Service", get_service, set_service, LWI_REMOTE },
   { "User name", get_username, set_username, 0 },
   { "Password", get_password, set_password, LWI_HIDDEN },
 };
 #define NLWIS (sizeof lwis / sizeof *lwis)
 
+static GtkWidget *lwi_remote;
 static GtkWidget *lwi_entry[NLWIS];
 
-static void login_update_config(void) {
+static void login_update_config(struct config *c) {
   size_t n;
+  const gboolean remote = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lwi_remote));
 
+  if(remote) {
+    c->connect.n = 2;
+    c->connect.s = xcalloc(2, sizeof (char *));
+  } else {
+    c->connect.n = 0;
+    c->connect.s = 0;
+  }
   for(n = 0; n < NLWIS; ++n)
-    lwis[n].set(xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
+    if(remote || !(lwis[n].flags & LWI_REMOTE))
+      lwis[n].set(c, xstrdup(gtk_entry_get_text(GTK_ENTRY(lwi_entry[n]))));
 }
 
 /** @brief Save current login details */
@@ -118,13 +159,15 @@ static void login_save_config(void) {
                tmp, strerror(errno));
     goto done;
   }
-  if(fprintf(fp, "username %s\n"
-             "password %s\n"
-             "connect %s %s\n",
-             quoteutf8(config->username),
-             quoteutf8(config->password),
-             quoteutf8(config->connect.s[0]),
-             quoteutf8(config->connect.s[1])) < 0) {
+  int rc = fprintf(fp, "username %s\n"
+                   "password %s\n",
+                   quoteutf8(config->username),
+                   quoteutf8(config->password));
+  if(rc >= 0 && config->connect.n)
+    rc = fprintf(fp, "connect %s %s\n",
+                 quoteutf8(config->connect.s[0]),
+                 quoteutf8(config->connect.s[1]));
+  if(rc < 0) {
     fpopup_msg(GTK_MESSAGE_ERROR, "error writing to %s: %s",
                tmp, strerror(errno));
     fclose(fp);
@@ -149,13 +192,18 @@ done:
 static void login_ok(GtkButton attribute((unused)) *button,
                      gpointer attribute((unused)) userdata) {
   disorder_client *c;
+  struct config *tmpconfig = xmalloc(sizeof *tmpconfig);
   
+  tmpconfig->home = xstrdup(pkgstatedir);
   /* Copy the new config into @ref config */
-  login_update_config();
+  login_update_config(tmpconfig);
   /* Attempt a login with the new details */
   c = disorder_new(0);
-  if(!disorder_connect(c)) {
+  if(!disorder_connect_generic(tmpconfig, c,
+                               tmpconfig->username, tmpconfig->password,
+                               NULL/*cookie*/)) {
     /* Success; save the config and start using it */
+    login_update_config(config);
     login_save_config();
     logged_in();
     /* Pop down login window */
@@ -171,6 +219,24 @@ static void login_ok(GtkButton attribute((unused)) *button,
 static void login_cancel(GtkButton attribute((unused)) *button,
                          gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(login_window);
+}
+
+/** @brief Keypress handler */
+static gboolean login_keypress(GtkWidget attribute((unused)) *widget,
+                               GdkEventKey *event,
+                               gpointer attribute((unused)) user_data) {
+  if(event->state)
+    return FALSE;
+  switch(event->keyval) {
+  case GDK_Return:
+    login_ok(0, 0);
+    return TRUE;
+  case GDK_Escape:
+    login_cancel(0, 0);
+    return TRUE;
+  default:
+    return FALSE;
+  }
 }
 
 /* Buttons that appear at the bottom of the window */
@@ -191,6 +257,19 @@ static struct button buttons[] = {
 
 #define NBUTTONS (int)(sizeof buttons / sizeof *buttons)
 
+/** @brief Called when the remote/local button is toggled (and initially)
+ *
+ * Sets the sensitivity of the host/port entries.
+ */
+static void lwi_remote_toggled(GtkToggleButton *togglebutton,
+                               gpointer attribute((unused)) user_data) {
+  const gboolean remote = gtk_toggle_button_get_active(togglebutton);
+  
+  for(unsigned n = 0; n < NLWIS; ++n)
+    if(lwis[n].flags & LWI_REMOTE)
+      gtk_widget_set_sensitive(lwi_entry[n], remote);
+}
+
 /** @brief Pop up a login box */
 void login_box(void) {
   GtkWidget *table, *label, *entry,  *buttonbox, *vbox;
@@ -209,15 +288,31 @@ void login_box(void) {
 		   G_CALLBACK(gtk_widget_destroyed), &login_window);
   gtk_window_set_title(GTK_WINDOW(login_window), "Login Details");
   /* Construct the form */
-  table = gtk_table_new(NLWIS + 1/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
+  table = gtk_table_new(1 + NLWIS/*rows*/, 2/*columns*/, FALSE/*homogenous*/);
   gtk_widget_set_style(table, tool_style);
+  label = gtk_label_new("Remote");
+  gtk_widget_set_style(label, tool_style);
+  gtk_misc_set_alignment(GTK_MISC(label), 1/*right*/, 0/*bottom*/);
+  gtk_table_attach(GTK_TABLE(table), label,
+                   0, 1,                /* left/right_attach */
+                   0, 1,                /* top/bottom_attach */
+                   GTK_FILL, 0,         /* x/yoptions */
+                   1, 1);               /* x/ypadding */
+  lwi_remote = gtk_check_button_new();
+  gtk_widget_set_style(lwi_remote, tool_style);
+  gtk_table_attach(GTK_TABLE(table), lwi_remote,
+                   1, 2,                   /* left/right_attach */
+                   0, 1,                   /* top/bottom_attach */
+                   GTK_EXPAND|GTK_FILL, 0, /* x/yoptions */
+                   1, 1);                  /* x/ypadding */
+  g_signal_connect(lwi_remote, "toggled", G_CALLBACK(lwi_remote_toggled), 0);
   for(n = 0; n < NLWIS; ++n) {
     label = gtk_label_new(lwis[n].description);
     gtk_widget_set_style(label, tool_style);
     gtk_misc_set_alignment(GTK_MISC(label), 1/*right*/, 0/*bottom*/);
     gtk_table_attach(GTK_TABLE(table), label,
 		     0, 1,              /* left/right_attach */
-		     n, n+1,            /* top/bottom_attach */
+		     n+1, n+2,          /* top/bottom_attach */
 		     GTK_FILL, 0,       /* x/yoptions */
 		     1, 1);             /* x/ypadding */
     entry = gtk_entry_new();
@@ -227,13 +322,22 @@ void login_box(void) {
     gtk_entry_set_text(GTK_ENTRY(entry), lwis[n].get());
     gtk_table_attach(GTK_TABLE(table), entry,
 		     1, 2,              /* left/right_attach */
-		     n, n+1,            /* top/bottom_attach */
+		     n+1, n+2,          /* top/bottom_attach */
 		     GTK_EXPAND|GTK_FILL, 0, /* x/yoptions */
 		     1, 1);             /* x/ypadding */
     lwi_entry[n] = entry;
   }
+  /* Initial settings */
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lwi_remote),
+                               config->connect.n >= 2);
+  lwi_remote_toggled(GTK_TOGGLE_BUTTON(lwi_remote), 0);
   buttonbox = create_buttons(buttons, NBUTTONS);
   vbox = gtk_vbox_new(FALSE, 1);
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     gtk_image_new_from_pixbuf(find_image("logo256.png")),
+                     TRUE/*expand*/,
+                     TRUE/*fill*/,
+                     4/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), table, 
                      TRUE/*expand*/, TRUE/*fill*/, 1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox), buttonbox,
@@ -241,6 +345,9 @@ void login_box(void) {
   gtk_container_add(GTK_CONTAINER(login_window), frame_widget(vbox, NULL));
   gtk_window_set_transient_for(GTK_WINDOW(login_window),
                                GTK_WINDOW(toplevel));
+  /* Keyboard shortcuts */
+  g_signal_connect(login_window, "key-press-event",
+                   G_CALLBACK(login_keypress), 0);
   gtk_widget_show_all(login_window);
 }
 

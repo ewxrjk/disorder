@@ -311,6 +311,7 @@ int config_read(int server);
 /* re-read config, return 0 on success or non-0 on error.
  * Only updates @config@ if the new configuration is valid. */
 
+char *config_get_file2(struct config *c, const char *name);
 char *config_get_file(const char *name);
 /* get a filename within the home directory */
 

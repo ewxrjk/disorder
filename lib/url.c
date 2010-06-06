@@ -32,12 +32,13 @@
 #include "kvp.h"
 
 /** @brief Infer the for the web interface
+ * @param include_path_info 1 to include post-script path, else 0
  * @return Inferred URL
  *
  * See <a href="http://tools.ietf.org/html/rfc3875">RFC 3875</a>.
  */
-char *infer_url(void) {
-  const char *scheme = "http", *server, *script, *e, *request_uri;
+char *infer_url(int include_path_info) {
+  const char *scheme = "http", *server, *script, *e, *request_uri, *path_info;
   char *url;
   int port;
 
@@ -58,7 +59,7 @@ char *infer_url(void) {
     port = 80;
   
   /* Figure out path to ourselves. */
-  if((request_uri = getenv("REQUEST_URI"))) {
+  if(include_path_info && (request_uri = getenv("REQUEST_URI"))) {
     /* REQUEST_URI is an Apache extexnsion.  If it's available it results in
      * more accurate self-referencing URLs.  */
     if((e = strchr(request_uri, '?')))
@@ -74,6 +75,9 @@ char *infer_url(void) {
       script = "/";
     /* SCRIPT_NAME is not URL-encoded */
     script = urlencodestring(script);
+    if(include_path_info && (path_info = getenv("PATH_INFO")))
+      byte_xasprintf((char **)&script, "%s%s",
+                     script, urlencodestring(path_info));
   }
   if(script[0] != '/')
     fatal(0, "SCRIPT_NAME does not start with a '/'");

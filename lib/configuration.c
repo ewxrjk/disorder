@@ -1213,7 +1213,7 @@ static struct config *config_default(void) {
   return c;
 }
 
-static char *get_file(struct config *c, const char *name) {
+char *config_get_file2(struct config *c, const char *name) {
   char *s;
 
   byte_xasprintf(&s, "%s/%s", c->home, name);
@@ -1411,7 +1411,7 @@ char *config_usersysconf(const struct passwd *pw) {
 }
 
 char *config_get_file(const char *name) {
-  return get_file(config, name);
+  return config_get_file2(config, name);
 }
 
 /*

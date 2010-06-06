@@ -68,7 +68,7 @@ struct url {
   char *query;
 };
 
-char *infer_url(void);
+char *infer_url(int include_path_info);
 int parse_url(const char *url, struct url *parsed);
 
 #endif /* URL_H */

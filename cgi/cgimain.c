@@ -36,7 +36,9 @@ int main(int argc, char **argv) {
     printf("Content-Type: text/html; charset=UTF-8\n");
     printf("Status: 404\n");
     printf("\n");
-    printf("<p>Sorry, PATH_INFO not supported.</p>\n");
+    printf("<p>Sorry, is PATH_INFO not supported."
+           "<a href=\"%s\">Try here instead.</a></p>\n",
+           cgi_sgmlquote(infer_url(0/*!include_path_info*/)));
     exit(0);
   }
   /* Parse CGI arguments */
@@ -53,7 +55,7 @@ int main(int argc, char **argv) {
   /* Figure out our URL.  This can still be overridden from the config file if
    * necessary but it shouldn't be necessary in ordinary installations. */
   if(!config->url)
-    config->url = infer_url();
+    config->url = infer_url(1/*include_path_info*/);
   /* Pick up the cookie, if there is one */
   dcgi_get_cookie();
   /* Register expansions */

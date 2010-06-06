@@ -17,7 +17,7 @@ all 1.1.x versions.
 
 If you install from .deb files then much of this work is automated.
 
-* 3.0 -> 4.0
+* 3.0 -> 4.x
 
 If you customized any of the templates, you will pretty much have to start from
 scratch as the web interface has been rewritten.  See disorder.cgi(8) for a
@@ -72,6 +72,14 @@ configuration imposing access control on it should be removed.  Users now log
 in using their main DisOrder password and the one in the htpassed file is now
 obsolete.  You should revisit the web interface setup instructions in README
 from scratch.
+
+As part of this, the DisOrder URL has changed from (e.g.)
+
+    http://yourserver/cgi-bin/disorder/disorder
+
+to just
+
+    http://yourserver/cgi-bin/disorder
 
 ** Checklist
 

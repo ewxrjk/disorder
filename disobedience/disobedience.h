@@ -53,34 +53,13 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk/gdkkeysyms.h>
 
 /* Types ------------------------------------------------------------------- */
 
 struct queuelike;
 struct choosenode;
 struct progress_window;
-
-/** @brief Callback data structure
- *
- * This program is extremely heavily callback-driven.  Rather than have
- * numerous different callback structures we have a single one which can be
- * interpreted adequately both by success and error handlers.
- */
-struct callbackdata {
-  void (*onerror)(struct callbackdata *cbd,
-                  int code,
-		  const char *msg);     /* called on error */
-  union {
-    const char *key;                    /* gtkqueue.c op_part_lookup */
-    struct choosenode *choosenode;      /* gtkchoose.c got_files/got_dirs */
-    struct queuelike *ql;               /* gtkqueue.c queuelike_completed */
-    struct prefdata *f;                 /* properties.c */
-    const char *user;                   /* users.c */
-    struct {
-      const char *user, *email;         /* users.c */
-    } edituser;
-  } u;
-};
 
 /** @brief Per-tab callbacks
  *

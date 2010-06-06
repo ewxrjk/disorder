@@ -40,3 +40,8 @@ echo-distdir:
 
 echo-version:
 	@echo $(VERSION)
+
+uninstall-local:
+	rmdir ${DESTDIR}${pkgdatadir} || true
+	rmdir ${DESTDIR}${pkghttpdir} || true
+	rmdir ${DESTDIR}${pkglibdir} || true

@@ -505,7 +505,7 @@ static void choose_refill(const char attribute((unused)) *event,
  */
 static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
                                  GdkEventKey *event,
-                                 gpointer attribute((unused)) user_data) {
+                                 gpointer user_data) {
   /*fprintf(stderr, "choose_key_event type=%d state=%#x keyval=%#x\n",
           event->type, event->state, event->keyval);*/
   switch(event->keyval) {
@@ -535,6 +535,7 @@ static gboolean choose_key_event(GtkWidget attribute((unused)) *widget,
     }
     break;
   }
+  /* Anything not handled we redirected to the search entry field */
   gtk_widget_event(user_data, (GdkEvent *)event);
   return TRUE;                          /* Handled it */
 }

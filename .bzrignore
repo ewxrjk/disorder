@@ -195,3 +195,5 @@ libtests/Makefile
 cgi/Makefile
 libtests/index.html
 libtests/t-eventdist
+doc/disorder_preferences.5
+doc/disorder_preferences.5.html
