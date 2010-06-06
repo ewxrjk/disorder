@@ -532,19 +532,19 @@ static void client_error(const char *msg,
   disorder_error(0, "error parsing reply: %s", msg);
 }
 
-/** @brief Get currently playing track
+/** @brief Get a single queue entry
  * @param c Client
+ * @param cmd Command
  * @param qp Where to store track information
  * @return 0 on success, non-0 on error
- *
- * @p qp gets NULL if no track is playing.
  */
-int disorder_playing(disorder_client *c, struct queue_entry **qp) {
+static int onequeue(disorder_client *c, const char *cmd,
+		    struct queue_entry **qp) {
   char *r;
   struct queue_entry *q;
   int rc;
 
-  if((rc = disorder_simple(c, &r, "playing", (char *)0)))
+  if((rc = disorder_simple(c, &r, cmd, (char *)0)))
     return rc;
   if(r) {
     q = xmalloc(sizeof *q);
@@ -557,8 +557,8 @@ int disorder_playing(disorder_client *c, struct queue_entry **qp) {
 }
 
 /** @brief Fetch the queue, recent list, etc */
-static int disorder_somequeue(disorder_client *c,
-			      const char *cmd, struct queue_entry **qp) {
+static int somequeue(disorder_client *c,
+		     const char *cmd, struct queue_entry **qp) {
   struct queue_entry *qh, **qt = &qh, *q;
   char *l;
   int rc;

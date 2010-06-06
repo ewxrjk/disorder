@@ -139,6 +139,10 @@ int disorder_playafter(disorder_client *c, const char *target, char **tracks, in
   return disorder_simple(c, 0, "playafter", target, disorder_list, tracks, ntracks, (char *)0);
 }
 
+int disorder_playing(disorder_client *c, struct queue_entry **playingp) {
+  return onequeue(c, "playing", playingp);
+}
+
 int disorder_playlist_delete(disorder_client *c, const char *playlist) {
   return disorder_simple(c, 0, "playlist-delete", playlist, (char *)0);
 }
@@ -172,7 +176,7 @@ int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp)
 }
 
 int disorder_queue(disorder_client *c, struct queue_entry **queuep) {
-  return disorder_somequeue(c, "queue", queuep);
+  return somequeue(c, "queue", queuep);
 }
 
 int disorder_random_disable(disorder_client *c) {
@@ -192,7 +196,7 @@ int disorder_random_enabled(disorder_client *c, int *enabledp) {
 }
 
 int disorder_recent(disorder_client *c, struct queue_entry **recentp) {
-  return disorder_somequeue(c, "recent", recentp);
+  return somequeue(c, "recent", recentp);
 }
 
 int disorder_reconfigure(disorder_client *c) {

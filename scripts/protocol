@@ -18,6 +18,25 @@
 #
 use strict;
 
+# This file contains the definition of the disorder protocol, plus
+# code to generates stubs for it in the various supported languages.
+#
+# At the time of writing it is a work in progress!
+
+#
+# Types:
+#
+#    string         A (Unicode) string.
+#    integer        An integer.  Decimal on the wire.
+#    boolean        True or false.  "yes" or "no" on the wire.
+#    list           In commands: a list of strings in the command.
+#                   In returns: a list of lines in the response.
+#    body           In commands: a list of strings as a command body.
+#                   In returns: a list of strings as a response body.
+#    queue          In returns: a list of queue entries in a response body.
+#    queue-one      In returns: a queue entry in the response.
+#
+
 # Variables and utilities -----------------------------------------------------
 
 our @h = ();
@@ -48,7 +67,7 @@ sub c_in_decl {
 	return ("char **$name",
 		"int n$name");
     } else {
-	die "$0: unknown type '$type'\n";
+	die "$0: c_in_decl: unknown type '$type'\n";
     }
 }
 
@@ -64,15 +83,15 @@ sub c_out_decl {
 	return ("long *${name}p");
     } elsif($type eq 'boolean') {
 	return ("int *${name}p");
-    } elsif($type eq 'list') {
+    } elsif($type eq 'list' or $type eq 'body') {
 	return ("char ***${name}p",
 		"int *n${name}p");
-    } elsif($type eq 'queue') {
+    } elsif($type eq 'queue' or $type eq 'queue-one') {
 	return ("struct queue_entry **${name}p");
     } elsif($type eq 'user') {
 	return ();
     } else {
-	die "$0: unknown type '$type'\n";
+	die "$0: c_out_decl: unknown type '$type'\n";
     }
 }
 
@@ -101,15 +120,15 @@ sub c_return_docs {
        or $type eq 'integer'
        or $type eq 'boolean') {
 	return (" * \@param ${name}p $descr\n");
-    } elsif($type eq 'list') {
+    } elsif($type eq 'list' or $type eq 'body') {
 	return (" * \@param ${name}p $descr\n",
 	        " * \@param n${name}p Number of elements in ${name}p\n");
-    } elsif($type eq 'queue') {
+    } elsif($type eq 'queue' or $type eq 'queue-one') {
 	return (" * \@param ${name}p $descr\n");
     } elsif($type eq 'user') {
 	return ();
     } else {
-	die "$0: unknown return type '$type'\n";
+	die "$0: c_return_docs: unknown type '$type'\n";
     }
 }
 
@@ -123,9 +142,11 @@ sub simple {
     my $args = shift;
     my $return = shift;
 
+    print STDERR "Processing $cmd... ";
     my $cmdc = $cmd;
     $cmdc =~ s/-/_/g;
     # Synchronous C API
+    print STDERR "H ";
     push(@h, "/** \@brief $summary\n",
          " *\n",
          " * $detail\n",
@@ -140,6 +161,7 @@ sub simple {
 	            map(c_in_decl($_), @$args),
 	            c_out_decl($return)),
          ");\n\n");
+    print STDERR "C ";
     push(@c, "int disorder_$cmdc(",
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
@@ -195,14 +217,16 @@ sub simple {
 	     "    return rc;\n",
 	     "  c->user = u;\n",
 	     "  return 0;\n");
-    } elsif($return->[0] eq 'list') {
+    } elsif($return->[0] eq 'body') {
 	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
 	     map(", $_->[1]", @$args),
 	     ", (char *)0);\n");
     } elsif($return->[0] eq 'queue') {
-	push(@c, "  return disorder_somequeue(c, \"$cmd\", $return->[1]p);\n");
+	push(@c, "  return somequeue(c, \"$cmd\", $return->[1]p);\n");
+    } elsif($return->[0] eq 'queue-one') {
+	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
     } else {
-	die "$0: unknown return type '$return->[0]' for '$cmd'\n";
+	die "$0: C API: unknown type '$return->[0]' for '$cmd'\n";
     }
     push(@c, "}\n\n");
 
@@ -214,6 +238,7 @@ sub simple {
 
     # Java API
     # TODO
+    print STDERR "\n";
 }
 
 # TODO other command classes
@@ -266,7 +291,7 @@ simple("allfiles",
        "See 'files' and 'dirs' for more specific lists.",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["list", "files", "List of matching files and directories"]);
+       ["body", "files", "List of matching files and directories"]);
 
 simple("confirm",
        "Confirm registration",
@@ -290,7 +315,7 @@ simple("dirs",
        "",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["list", "files", "List of matching directories"]);
+       ["body", "files", "List of matching directories"]);
 
 simple("disable",
        "Disable play",
@@ -326,7 +351,7 @@ simple("files",
        "",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["list", "files", "List of matching files"]);
+       ["body", "files", "List of matching files"]);
 
 simple("get",
        "Get a track preference",
@@ -399,7 +424,11 @@ simple("playafter",
        [["string", "target", "Insert into queue after this track, or at head if \"\""],
 	["list", "tracks", "List of track names to play"]]);
 
-# TODO playing
+simple("playing",
+       "Retrieve the playing track",
+       "",
+       [],
+       ["queue-one", "playing", "Details of the playing track"]);
 
 simple("playlist-delete",
        "Delete a playlist",
@@ -410,7 +439,7 @@ simple("playlist-get",
        "List the contents of a playlist",
        "Requires the 'read' right and oermission to read the playlist.",
        [["string", "playlist", "Playlist name"]],
-       ["list", "tracks", "List of tracks in playlist"]);
+       ["body", "tracks", "List of tracks in playlist"]);
 
 simple("playlist-get-share",
        "Get a playlist's sharing status",
@@ -444,7 +473,7 @@ simple("playlists",
        "List playlists",
        "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
        [],
-       ["list", "playlists", "Playlist names"]);
+       ["body", "playlists", "Playlist names"]);
 
 # TODO prefs
 
@@ -540,13 +569,13 @@ simple("schedule-list",
        "List scheduled events",
        "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
        [],
-       ["list", "ids", "List of event IDs"]);
+       ["body", "ids", "List of event IDs"]);
 
 simple("search",
        "Search for tracks",
        "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
        [["string", "terms", "List of search terms"]],
-       ["list", "tracks", "List of matching tracks"]);
+       ["body", "tracks", "List of matching tracks"]);
 
 simple("set",
        "Set a track preference",
@@ -570,13 +599,13 @@ simple("stats",
        "Get server statistics",
        "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..",
        [],
-       ["list", "stats", "List of server information strings."]);
+       ["body", "stats", "List of server information strings."]);
 
 simple("tags",
        "Get a list of known tags",
        "Only tags which apply to at least one track are returned.",
        [],
-       ["list", "tags", "List of tags"]);
+       ["body", "tags", "List of tags"]);
 
 simple("unset",
        "Unset a track preference",
@@ -602,7 +631,7 @@ simple("users",
        "Get a list of users",
        "",
        [],
-       ["list", "users", "List of users"]);
+       ["body", "users", "List of users"]);
 
 simple("version",
        "Get the server version",

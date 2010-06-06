@@ -281,6 +281,16 @@ int disorder_play(disorder_client *c, const char *track, char **idp);
  */
 int disorder_playafter(disorder_client *c, const char *target, char **tracks, int ntracks);
 
+/** @brief Retrieve the playing track
+ *
+ * 
+ *
+ * @param c Client
+ * @param playingp Details of the playing track
+ * @return 0 on success, non-0 on error
+ */
+int disorder_playing(disorder_client *c, struct queue_entry **playingp);
+
 /** @brief Delete a playlist
  *
  * Requires the 'play' right and permission to modify the playlist.
