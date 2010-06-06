@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2007, 2008 Richard Kettlewell
+.\" Copyright (C) 2007-2009 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -21,38 +21,66 @@ disorder-playrtp \- play DisOrder network broadcasts
 .B disorder\-playrtp
 .RI [ OPTIONS ]
 .RB [ \-\- ]
-.RI [[ GROUP ]
+.RI [[ ADDRESS ]
 .IR PORT ]
 .SH DESCRIPTION
 \fBdisorder\-playrtp\fR plays a network broadcast sent from the specified
 address.
 .PP
-If neither a group nor port are specified then the local DisOrder
+If neither an address nor port are specified then the local DisOrder
 configuration is consulted to find the server and the server is asked where the
 RTP stream is.
 .PP
 If just a port is specified then the RTP stream is assumed to be unicast or
 broadcast to that port.
 .PP
-If a group and a port are specified then the RTP stream is assumed to be
-multicast to that group and port.
+If an address and a port are specified then the RTP stream is assumed to be
+multicast to that group address and port.
 .SH OPTIONS
 The default sound API is the first of the ones listed below that are available.
 Usually this implies ALSA under Linux and Core Audio under OS X.
 .TP
-.B \-\-alsa\fR, \fB-\a
+.B \-\-alsa\fR, \fB\-a
 Use ALSA to play sound.
+Only available on Linux.
 .TP
 .B \-\-oss\fR, \fB\-o
 Use OSS to play sound.
+Only available on Linux and FreeBSD.
 .TP
 .B \-\-core\-audio\fR, \fB\-c
 Use Core Audio to play sound.
+Only available on Macs.
 .TP
 .B \-\-device \fIDEVICE\fR, \fB\-D \fIDEVICE\fR
 Specifies the audio device to use.
-The exact meaning of this is platform-dependent; on Linux it is the
-ALSA device name.
+See
+.B "DEVICE NAMES"
+below for more information.
+.TP
+.B \-\-command \fICOMMAND\fR, \fB-e \fICOMMAND\fR
+Instead of sending to a physical audio device, invoke \fICOMMAND\fR using the
+shell and write audio samples to its standard input.
+Currently the input will be 44100KHz 16-bit signed stereo samples.
+If \fICOMMAND\fR exits it is re-executed; any samples that had been written to
+the pipe but not processed by the previous instance will be lost.
+.IP
+.B \-\-device
+is redundant with this option, but you might want to set
+.BR \-\-pause\-mode .
+.IP
+As an example,
+.B "-e \(aqcat > dump\(aq"
+would log audio data to a file for later processing.
+You could convert it to another format with, for instance:
+.IP
+.B "sox -c2 -traw -r44100 -s -w dump dump.wav"
+.TP
+.B \-\-pause\-mode \fIMODE\fR, \fB-P \fIMODE
+Set the pause mode for \fB\-\-command\fR to either \fBsilence\fR (the default), in
+which pauses are represented by sending silent samples, or \fBsuspend\fR, in which
+writes to  the subprocess are suspended, requiring it to infer a pause from flow
+control.
 .TP
 .B \-\-config \fIPATH\fR, \fB\-C \fIPATH
 Set the configuration file.
@@ -70,26 +98,30 @@ Display a usage message.
 Display version number.
 .SS "Buffer Control Options"
 You shouldn't need to use these options.
+Their effects are subject to change between version without warning.
+You should consult the source code for details of their effects.
 .TP
 .B \-\-min \fIFRAMES\fR, \fB\-m \fIFRAMES\fR
 Specifies the buffer low watermark in frames.
-If the number of frames falls below this value then playing will be
-stopped until the buffer fills up.
-.TP
-.B \-\-buffer \fIFRAMES\fR, \fB\-b \fIFRAMES\fR
-Specifies the buffer high watermark in frames.
-Once there are this many frames in the buffer, playing will be (re-)started.
+This also acts as the target buffer occupancy.
 .TP
 .B \-\-max \fIFRAMES\fR, \fB\-x \fIFRAMES\fR
 Specifies the maximum buffer size in frames.
 If there are this many frames in the buffer then reading from the
 network socket will be suspended.
-The default is four times the \fB\-\-buffer\fR value.
+The default is twice the \fB\-\-min\fR value.
 .TP
 .B \-\-rcvbuf \fIBYTES\fR, \fB\-R \fIBYTES\fR
 Specifies socket receive buffer size.
-The default is 131072 (128Kbytes).
+The default is not to change the buffer size, i.e. you get whatever the
+local operating system chooses.
 The buffer size will not be reduced below the operating system's default.
+.TP
+.B \-\-monitor\fR, \fB\-M
+Periodically report how close to the buffer low watermark the buffer is.
+If you have trouble with poor playback quality, enable this option to see if
+the buffer is emptying out (or overfilling, though there are measures to
+prevent that from happening).
 .SH "REMOTE CONTROL"
 The
 .B \-\-socket
@@ -113,6 +145,16 @@ After the first command the connection is closed.
 Only one connection at a time will be serviced.
 .PP
 This protocol is not guaranteed to be stable.
+.SH "DEVICE NAMES"
+.SS "Core Audio"
+On a Mac, the device name can either be the human-readable name of the desired
+output or its UID.
+To get a list of the human-readable names, visit System Preferences -> Sound;
+the Type column has the name you want.
+.PP
+For example, you might use "Built-in Output" for the built-in speaker
+or "Built-in Line Output" if you have connected external speakers.
+Remember to quote the name.
 .SH "SEE ALSO"
 .BR disobedience (1),
 .BR disorder_config (5),

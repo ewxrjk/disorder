@@ -38,9 +38,9 @@ enum playing_state {
    */
   playing_isscratch,
 
-  /** @brief Could not find a player
+  /** @brief OBSOLETE
    *
-   * Obsolete - nothing sets this any more
+   * Formerly meant that no player could be found.  Nothing sets this any more.
    */
   playing_no_player,
 
@@ -188,7 +188,21 @@ struct queue_entry {
   /** @brief How much of track has been played so far (seconds) */
   long sofar;
 
-  /** @brief True if decoder is connected to speaker */
+  /** @brief True if track preparation is underway
+   *
+   * This is set when a decoder has been started and is expected to connect to
+   * the speaker, but the speaker has not sent as @ref SM_ARRIVED message back
+   * yet. */
+  int preparing;
+
+  /** @brief True if decoder is connected to speaker 
+   *
+   * This is not a @ref playing_state for a couple of reasons
+   * - it is orthogonal to @ref playing_started and @ref playing_unplayed
+   * - it would have to be hidden to other users of @c queue_entry
+   *
+   * For non-raw tracks this should always be zero.
+   */
   int prepared;
   /* For DISORDER_PLAYER_PAUSES only: */
 
@@ -203,6 +217,9 @@ struct queue_entry {
 
   /** @brief Owning queue (for Disobedience only) */
   struct queuelike *ql;
+  
+  /** @brief Decoder (or player) process ID */
+  pid_t pid;
 };
 
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n);

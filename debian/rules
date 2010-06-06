@@ -60,12 +60,14 @@ SENDMAIL=/usr/sbin/sendmail
 LIBTOOL=./libtool
 FAKEROOT=fakeroot
 
-# ./prepare is the script that generates configure etc.  It only needs to be
+SHELL=bash
+
+# ./autogen.sh is the script that generates configure etc.  It only needs to be
 # run if building from a checkout rather than a tarball.
 build:
 	@set -e;if test ! -f configure; then \
-	  echo ./prepare;\
-	  ./prepare;\
+	  echo ./autogen.sh;\
+	  ./autogen.sh;\
 	fi
 	@set -e;if test ! -f config.status; then \
 	  echo ./configure ${CONFIGURE} ${CONFIGURE_EXTRA};\
@@ -85,8 +87,8 @@ pkg-disorder: build
 	$(INSTALL_DATA) debian/copyright \
 		debian/disorder/usr/share/doc/disorder/copyright
 	$(INSTALL_DATA) debian/changelog \
-		debian/disorder/usr/share/doc/disorder/changelog.Debian
-	gzip -9 debian/disorder/usr/share/doc/disorder/changelog.Debian
+		debian/disorder/usr/share/doc/disorder/changelog
+	gzip -9 debian/disorder/usr/share/doc/disorder/changelog*
 	@for f in conffiles templates; do\
 	  if test -e debian/$$f.disorder; then\
 	    echo $(INSTALL_DATA) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
@@ -101,6 +103,8 @@ pkg-disorder: build
 	done
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C doc
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C clients
+	strip --remove-section=.comment debian/disorder/usr/bin/disorder
+	strip --remove-section=.comment debian/disorder/usr/bin/disorderfm
 	$(MAKE) DESTDIR=`pwd`/debian/disorder installdirs install -C lib
 	$(INSTALL_DATA) scripts/completion.bash \
 		debian/disorder/etc/bash_completion.d/disorder
@@ -125,6 +129,10 @@ pkg-disorder: build
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
 		 debian/disorder/usr/share/man/man*/*
+	cd debian/disorder && \
+		find -name DEBIAN -prune -o -type f -print \
+			| sed 's/^\.\///' \
+			| xargs md5sum > DEBIAN/md5sums
 	dpkg-gencontrol -isp -pdisorder -Pdebian/disorder -Tdebian/substvars.disorder
 	chown -R root:root debian/disorder
 	chmod -R g-ws debian/disorder
@@ -135,11 +143,14 @@ pkg-disorder-server: build
 	$(MKDIR) debian/disorder-server
 	$(MKDIR) debian/disorder-server/DEBIAN
 	$(MKDIR) debian/disorder-server/usr/share/doc/disorder-server
+	$(MKDIR) debian/disorder-server/usr/share/lintian/overrides
+	$(INSTALL_DATA) debian/overrides.disorder-server \
+	    debian/disorder-server/usr/share/lintian/overrides/disorder-server
 	$(INSTALL_DATA) debian/copyright \
 		debian/disorder-server/usr/share/doc/disorder-server/copyright
 	$(INSTALL_DATA) debian/changelog \
-		debian/disorder-server/usr/share/doc/disorder-server/changelog.Debian
-	gzip -9 debian/disorder-server/usr/share/doc/disorder-server/changelog.Debian
+		debian/disorder-server/usr/share/doc/disorder-server/changelog
+	gzip -9 debian/disorder-server/usr/share/doc/disorder-server/changelog*
 	@for f in preinst postinst prerm postrm config; do\
 	  if test -e debian/$$f.disorder-server; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disorder-server debian/disorder-server/DEBIAN/$$f; \
@@ -155,7 +166,6 @@ pkg-disorder-server: build
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C images
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C server
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C templates
-	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C driver
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C plugins
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C sounds
 	$(MAKE) DESTDIR=`pwd`/debian/disorder-server installdirs install -C doc
@@ -167,10 +177,6 @@ pkg-disorder-server: build
 	find debian/disorder-server -name '*.la' -print0 | xargs -r0 rm -f
 	find debian/disorder-server -name '*.so.0' -print0 | xargs -r0 rm -f
 	@for f in debian/disorder-server/usr/lib/disorder/*.so.0.0.0; do \
-	  echo mv $$f $${f/.0.0.0};\
-	  mv $$f $${f/.0.0.0};\
-	done
-	@for f in debian/disorder-server/usr/lib/ao/plugins*/*.so.0.0.0; do \
 	  echo mv $$f $${f/.0.0.0};\
 	  mv $$f $${f/.0.0.0};\
 	done
@@ -197,6 +203,14 @@ pkg-disorder-server: build
 		debian/disorder-server/usr/lib/disorder/*.so
 	rm -rf debian/disorder-server/usr/share/doc/disorder-server
 	ln -s disorder debian/disorder-server/usr/share/doc/disorder-server
+	strip --remove-section=.comment \
+		debian/disorder-server/usr/sbin/* \
+		debian/disorder-server${cgiexecdir}/* \
+		debian/disorder-server/usr/lib/disorder/*.so
+	cd debian/disorder-server && \
+		find -name DEBIAN -prune -o -type f -print \
+			| sed 's/^\.\///' \
+			| xargs md5sum > DEBIAN/md5sums
 	dpkg-gencontrol -isp -pdisorder-server -Pdebian/disorder-server -Tdebian/substvars.disorder-server
 	chown -R root:root debian/disorder-server
 	chmod -R g-ws debian/disorder-server
@@ -210,8 +224,8 @@ pkg-disorder-playrtp: build
 	$(INSTALL_DATA) debian/copyright \
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/copyright
 	$(INSTALL_DATA) debian/changelog \
-		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog.Debian
-	gzip -9 debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog.Debian
+		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog
+	gzip -9 debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog*
 	@for f in preinst postinst prerm postrm conffiles templates config; do\
 	  if test -e debian/$$f.disorder-playrtp; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disorder-playrtp debian/disorder-playrtp/DEBIAN/$$f; \
@@ -222,6 +236,7 @@ pkg-disorder-playrtp: build
 	$(MKDIR) debian/disorder-playrtp/usr/share/man/man1
 	$(INSTALL_PROGRAM) clients/disorder-playrtp \
 		debian/disorder-playrtp/usr/bin/disorder-playrtp
+	strip --remove-section=.comment debian/disorder-playrtp/usr/bin/disorder-playrtp
 	$(INSTALL_DATA) doc/disorder-playrtp.1 \
 		debian/disorder-playrtp/usr/share/man/man1/disorder-playrtp.1
 	dpkg-shlibdeps -Tdebian/substvars.disorder-playrtp \
@@ -230,6 +245,10 @@ pkg-disorder-playrtp: build
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/README
 	$(INSTALL_DATA) CHANGES.html debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES.html
 	gzip -9f debian/disorder-playrtp/usr/share/man/man*/*
+	cd debian/disorder-playrtp && \
+		find -name DEBIAN -prune -o -type f -print \
+			| sed 's/^\.\///' \
+			| xargs md5sum > DEBIAN/md5sums
 	dpkg-gencontrol -isp -pdisorder-playrtp -Pdebian/disorder-playrtp -Tdebian/substvars.disorder-playrtp
 	chown -R root:root debian/disorder-playrtp
 	chmod -R g-ws debian/disorder-playrtp
@@ -243,8 +262,8 @@ pkg-disobedience: build
 	$(INSTALL_DATA) debian/copyright \
 		debian/disobedience/usr/share/doc/disobedience/copyright
 	$(INSTALL_DATA) debian/changelog \
-		debian/disobedience/usr/share/doc/disobedience/changelog.Debian
-	gzip -9 debian/disobedience/usr/share/doc/disobedience/changelog.Debian
+		debian/disobedience/usr/share/doc/disobedience/changelog
+	gzip -9 debian/disobedience/usr/share/doc/disobedience/changelog*
 	@for f in preinst postinst prerm postrm conffiles templates config; do\
 	  if test -e debian/$$f.disobedience; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disobedience debian/disobedience/DEBIAN/$$f; \
@@ -255,7 +274,9 @@ pkg-disobedience: build
 	$(MKDIR) debian/disobedience/usr/share/man/man1
 	$(MKDIR) debian/disobedience/usr/share/pixmaps
 	$(MKDIR) debian/disobedience/usr/share/menu
+	$(MKDIR) debian/disobedience/usr/share/doc-base
 	$(MAKE) -C disobedience install DESTDIR=`pwd`/debian/disobedience
+	strip --remove-section=.comment debian/disobedience/usr/bin/disobedience
 	$(INSTALL_DATA) doc/disobedience.1 \
 		debian/disobedience/usr/share/man/man1/disobedience.1
 	$(INSTALL_DATA) images/disobedience16x16.xpm \
@@ -263,11 +284,17 @@ pkg-disobedience: build
 			debian/disobedience/usr/share/pixmaps
 	$(INSTALL_DATA) debian/usr.share.menu.disobedience \
 		debian/disobedience/usr/share/menu/disobedience
+	$(INSTALL_DATA) debian/disobedience-manual \
+		debian/disobedience/usr/share/doc-base/disobedience-manual
 	gzip -9f debian/disobedience/usr/share/man/man*/*
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \
 		debian/disobedience/usr/bin/*
 	rm -rf debian/disobedience/usr/share/doc/disobedience
 	ln -s disorder debian/disobedience/usr/share/doc/disobedience
+	cd debian/disobedience && \
+		find -name DEBIAN -prune -o -type f -print \
+			| sed 's/^\.\///' \
+			| xargs md5sum > DEBIAN/md5sums
 	dpkg-gencontrol -isp -pdisobedience -Pdebian/disobedience -Tdebian/substvars.disobedience
 	chown -R root:root debian/disobedience
 	chmod -R g-ws debian/disobedience

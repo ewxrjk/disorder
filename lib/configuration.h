@@ -1,7 +1,6 @@
-
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +26,9 @@
 
 #include "speaker-protocol.h"
 #include "rights.h"
+#include "addr.h"
+
+struct uaudio;
 
 /* Configuration is kept in a @struct config@; the live configuration
  * is always pointed to by @config@.  Values in @config@ are UTF-8 encoded.
@@ -68,7 +70,8 @@ struct collectionlist {
 
 struct namepart {
   char *part;				/* part */
-  pcre *re;				/* regexp */
+  pcre *re;				/* compiled regexp */
+  char *res;                            /* regexp as a string */
   char *replace;			/* replacement string */
   char *context;			/* context glob */
   unsigned reflags;			/* regexp flags */
@@ -153,7 +156,7 @@ struct config {
   long prefsync;			/* preflog sync interval */
 
   /** @brief Secondary listen address */
-  struct stringlist listen;
+  struct netaddress listen;
 
   /** @brief Alias format string */
   const char *alias;
@@ -170,35 +173,23 @@ struct config {
   /** @brief Command execute by speaker to play audio */
   const char *speaker_command;
 
+  /** @brief Pause mode for command backend */
+  const char *pause_mode;
+  
   /** @brief Target sample format */
   struct stream_header sample_format;
 
   /** @brief Sox syntax generation */
   long sox_generation;
 
-  /** @brief API used to play sound
-   *
-   * Choices are @ref BACKEND_ALSA, @ref BACKEND_COMMAND or @ref
-   * BACKEND_NETWORK.
-   */
-  int api;
+  /** @brief API used to play sound */
+  const char *api;
 
-/* These values had better be non-negative */
-#define BACKEND_ALSA 0			/**< Use ALSA (Linux only) */
-#define BACKEND_COMMAND 1		/**< Execute a command */
-#define BACKEND_NETWORK 2		/**< Transmit RTP  */
-#define BACKEND_COREAUDIO 3		/**< Use Core Audio (Mac only) */
-#define BACKEND_OSS 4		        /**< Use OSS */
+  /** @brief Maximum size of a playlist */
+  long playlist_max;
 
-#if HAVE_ALSA_ASOUNDLIB_H
-# define DEFAULT_BACKEND BACKEND_ALSA
-#elif HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-# define DEFAULT_BACKEND BACKEND_OSS
-#elif HAVE_COREAUDIO_AUDIOHARDWARE_H
-# define DEFAULT_BACKEND BACKEND_COREAUDIO
-#else
-# error Cannot choose a default backend
-#endif
+  /** @brief Maximum lifetime of a playlist lock */
+  long playlist_lock_timeout;
 
   /** @brief Home directory for state files */
   const char *home;
@@ -210,7 +201,7 @@ struct config {
   const char *password;
 
   /** @brief Address to connect to */
-  struct stringlist connect;
+  struct netaddress connect;
 
   /** @brief Directories to search for web templates */
   struct stringlist templates;
@@ -223,6 +214,9 @@ struct config {
 
   /** @brief Maximum refresh interval for web interface (seconds) */
   long refresh;
+
+  /** @brief Minimum refresh interval for web interface (seconds) */
+  long refresh_min;
 
   /** @brief Facilities restricted to trusted users
    *
@@ -250,11 +244,14 @@ struct config {
   struct transformlist transform;	/* path name transformations */
 
   /** @brief Address to send audio data to */
-  struct stringlist broadcast;
+  struct netaddress broadcast;
 
   /** @brief Source address for network audio transmission */
-  struct stringlist broadcast_from;
+  struct netaddress broadcast_from;
 
+  /** @brief RTP delay threshold */
+  long rtp_delay_threshold;
+  
   /** @brief TTL for multicast packets */
   long multicast_ttl;
 
@@ -305,7 +302,8 @@ struct config {
 extern struct config *config;
 /* the current configuration */
 
-int config_read(int server);
+int config_read(int server,
+                const struct config *oldconfig);
 /* re-read config, return 0 on success or non-0 on error.
  * Only updates @config@ if the new configuration is valid. */
 
@@ -325,8 +323,12 @@ char *config_usersysconf(const struct passwd *pw );
 char *config_private(void);
 /* get the private config file */
 
+int config_verify(void);
+
 extern char *configfile;
 extern int config_per_user;
+
+extern const struct uaudio *const *config_uaudio_apis;
 
 #endif /* CONFIGURATION_H */
 

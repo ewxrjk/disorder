@@ -1,7 +1,7 @@
 #! /bin/bash
 #
 # This file is part of DisOrder
-# Copyright (C) 2005-2008 Richard Kettlewell
+# Copyright (C) 2005-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,9 +55,6 @@ build() {
 }
 
 # Build various debs
-
-# Ubuntu dapper; binaries suit Debian etch too
-build dekabrach etch etch oldstable
 
 # Debian lenny (32-bit)
 build leucomorph lenny "" stable

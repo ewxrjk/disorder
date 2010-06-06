@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +17,18 @@
  */
 
 #include "disorder-server.h"
+#include "basen.h"
 
 #ifndef NONCE_SIZE
 # define NONCE_SIZE 16
 #endif
 
 #ifndef CONFIRM_SIZE
-# define CONFIRM_SIZE 10
+/** @brief Size of nonce in confirmation string in 32-bit words
+ *
+ * 64 bits gives 11 digits (in base 62).
+ */
+# define CONFIRM_SIZE 2
 #endif
 
 int volume_left, volume_right;		/* last known volume */
@@ -38,6 +43,34 @@ struct listener {
   const char *name;
   int pf;
 };
+
+struct conn;
+
+/** @brief Signature for line reader callback
+ * @param c Connection
+ * @param line Line
+ * @return 0 if incomplete, 1 if complete
+ *
+ * @p line is 0-terminated and excludes the newline.  It points into the
+ * input buffer so will become invalid shortly.
+ */
+typedef int line_reader_type(struct conn *c,
+                             char *line);
+
+/** @brief Signature for with-body command callbacks
+ * @param c Connection
+ * @param body List of body lines
+ * @param nbody Number of body lines
+ * @param u As passed to fetch_body()
+ * @return 0 to suspend input, 1 if complete
+ *
+ * The body strings are allocated (so survive indefinitely) and don't include
+ * newlines.
+ */
+typedef int body_callback_type(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
 
 /** @brief One client connection */
 struct conn {
@@ -72,6 +105,18 @@ struct conn {
   struct conn *next;
   /** @brief True if pending rescan had 'wait' set */
   int rescan_wait;
+  /** @brief Playlist that this connection locks */
+  const char *locked_playlist;
+  /** @brief When that playlist was locked */
+  time_t locked_when;
+  /** @brief Line reader function */
+  line_reader_type *line_reader;
+  /** @brief Called when command body has been read */
+  body_callback_type *body_callback;
+  /** @brief Passed to @c body_callback */
+  void *body_u;
+  /** @brief Accumulating body */
+  struct vector body[1];
 };
 
 /** @brief Linked list of connections */
@@ -83,6 +128,15 @@ static int reader_callback(ev_source *ev,
 			   size_t bytes,
 			   int eof,
 			   void *u);
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u);
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u);
+static int body_line(struct conn *c, char *line);
+static int command(struct conn *c, char *line);
 
 static const char *noyes[] = { "no", "yes" };
 
@@ -111,7 +165,7 @@ static int writer_error(ev_source attribute((unused)) *ev,
     D(("S%x writer completed", c->tag));
   } else {
     if(errno_value != EPIPE)
-      error(errno_value, "S%x write error on socket", c->tag);
+      disorder_error(errno_value, "S%x write error on socket", c->tag);
     if(c->r) {
       D(("cancel reader"));
       ev_reader_cancel(c->r);
@@ -135,7 +189,7 @@ static int reader_error(ev_source attribute((unused)) *ev,
   struct conn *c = u;
 
   D(("server reader_error S%x %d", c->tag, errno_value));
-  error(errno_value, "S%x read error on socket", c->tag);
+  disorder_error(errno_value, "S%x read error on socket", c->tag);
   if(c->w)
     ev_writer_close(c->w);
   c->w = 0;
@@ -188,17 +242,57 @@ static int c_play(struct conn *c, char **vec,
     sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
     return 1;
   }
-  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, origin_picked);
+  q = queue_add(track, c->who, WHERE_BEFORE_RANDOM, NULL, origin_picked);
   queue_write();
-  /* If we added the first track, and something is playing, then prepare the
-   * new track.  If nothing is playing then we don't bother as it wouldn't gain
-   * anything. */
-  if(q == qhead.next && playing)
-    prepare(c->ev, q);
   sink_printf(ev_writer_sink(c->w), "252 %s\n", q->id);
+  /* We make sure the track at the head of the queue is prepared, just in case
+   * we added it.  We could be more subtle but prepare() will ensure we don't
+   * prepare the same track twice so there's no point. */
+  if(qhead.next != &qhead)
+    prepare(c->ev, qhead.next);
   /* If the queue was empty but we are for some reason paused then
    * unpause. */
   if(!playing) resume_playing(0);
+  play(c->ev);
+  return 1;			/* completed */
+}
+
+static int c_playafter(struct conn *c, char **vec,
+		  int attribute((unused)) nvec) {
+  const char *track;
+  struct queue_entry *q;
+  const char *afterme = vec[0];
+
+  for(int n = 1; n < nvec; ++n) {
+    if(!trackdb_exists(vec[n])) {
+      sink_writes(ev_writer_sink(c->w), "550 track is not in database\n");
+      return 1;
+    }
+    if(!(track = trackdb_resolve(vec[n]))) {
+      sink_writes(ev_writer_sink(c->w), "550 cannot resolve track\n");
+      return 1;
+    }
+    q = queue_add(track, c->who, WHERE_AFTER, afterme, origin_picked);
+    if(!q) {
+      sink_printf(ev_writer_sink(c->w), "550 No such ID\n");
+      return 1;
+    }
+    disorder_info("added %s as %s after %s", track, q->id, afterme);
+    afterme = q->id;
+  }
+  queue_write();
+  sink_printf(ev_writer_sink(c->w), "252 OK\n");
+  /* We make sure the track at the head of the queue is prepared, just in case
+   * we added it.  We could be more subtle but prepare() will ensure we don't
+   * prepare the same track twice so there's no point. */
+  if(qhead.next != &qhead) {
+    prepare(c->ev, qhead.next);
+    disorder_info("prepared %s", qhead.next->id);
+  }
+  /* If the queue was empty but we are for some reason paused then
+   * unpause. */
+  if(!playing)
+    resume_playing(0);
   play(c->ev);
   return 1;			/* completed */
 }
@@ -212,7 +306,7 @@ static int c_remove(struct conn *c, char **vec,
     return 1;
   }
   if(!right_removable(c->rights, c->who, q)) {
-    error(0, "%s attempted remove but lacks required rights", c->who);
+    disorder_error(0, "%s attempted remove but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to remove that track\n");
     return 1;
@@ -241,7 +335,7 @@ static int c_scratch(struct conn *c,
    * playing track then you will get 550 if you weren't authorized to scratch
    * the currently playing track. */
   if(!right_scratchable(c->rights, c->who, playing)) {
-    error(0, "%s attempted scratch but lacks required rights", c->who);
+    disorder_error(0, "%s attempted scratch but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to scratch that track\n");
     return 1;
@@ -286,7 +380,7 @@ static int c_resume(struct conn *c,
 static int c_shutdown(struct conn *c,
 		      char attribute((unused)) **vec,
 		      int attribute((unused)) nvec) {
-  info("S%x shut down by %s", c->tag, c->who);
+  disorder_info("S%x shut down by %s", c->tag, c->who);
   sink_writes(ev_writer_sink(c->w), "250 shutting down\n");
   ev_writer_flush(c->w);
   quit(c->ev);
@@ -295,7 +389,7 @@ static int c_shutdown(struct conn *c,
 static int c_reconfigure(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
-  info("S%x reconfigure by %s", c->tag, c->who);
+  disorder_info("S%x reconfigure by %s", c->tag, c->who);
   if(reconfigure(c->ev, 1))
     sink_writes(ev_writer_sink(c->w), "550 error reading new config\n");
   else
@@ -363,9 +457,9 @@ static int c_rescan(struct conn *c,
     }
   }
   /* Report what was requested */
-  info("S%x rescan by %s (%s %s)", c->tag, c->who,
-       flag_wait ? "wait" : "",
-       flag_fresh ? "fresh" : "");
+  disorder_info("S%x rescan by %s (%s %s)", c->tag, c->who,
+		flag_wait ? "wait" : "",
+		flag_fresh ? "fresh" : "");
   if(trackdb_rescan_underway()) {
     if(flag_fresh) {
       /* We want a fresh rescan but there is already one underway.  Arrange a
@@ -439,13 +533,14 @@ static const char *connection_host(struct conn *c) {
   /* get connection data */
   l = sizeof u;
   if(getpeername(c->fd, &u.sa, &l) < 0) {
-    error(errno, "S%x error calling getpeername", c->tag);
+    disorder_error(errno, "S%x error calling getpeername", c->tag);
     return 0;
   }
   if(c->l->pf != PF_UNIX) {
     if((n = getnameinfo(&u.sa, l,
 			host, sizeof host, 0, 0, NI_NUMERICHOST))) {
-      error(0, "S%x error calling getnameinfo: %s", c->tag, gai_strerror(n));
+      disorder_error(0, "S%x error calling getnameinfo: %s",
+		     c->tag, gai_strerror(n));
       return 0;
     }
     return xstrdup(host);
@@ -473,20 +568,21 @@ static int c_user(struct conn *c,
   k = trackdb_getuserinfo(vec[0]);
   /* reject nonexistent users */
   if(!k) {
-    error(0, "S%x unknown user '%s' from %s", c->tag, vec[0], host);
+    disorder_error(0, "S%x unknown user '%s' from %s", c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
   /* reject unconfirmed users */
   if(kvp_get(k, "confirmation")) {
-    error(0, "S%x unconfirmed user '%s' from %s", c->tag, vec[0], host);
+    disorder_error(0, "S%x unconfirmed user '%s' from %s",
+		   c->tag, vec[0], host);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
   password = kvp_get(k, "password");
   if(!password) password = "";
   if(parse_rights(kvp_get(k, "rights"), &rights, 1)) {
-    error(0, "error parsing rights for %s", vec[0]);
+    disorder_error(0, "error parsing rights for %s", vec[0]);
     sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
     return 1;
   }
@@ -498,14 +594,15 @@ static int c_user(struct conn *c,
     c->rights = rights;
     /* currently we only bother logging remote connections */
     if(strcmp(host, "local"))
-      info("S%x %s connected from %s", c->tag, vec[0], host);
+      disorder_info("S%x %s connected from %s", c->tag, vec[0], host);
     else
       c->rights |= RIGHT__LOCAL;
     sink_writes(ev_writer_sink(c->w), "230 OK\n");
     return 1;
   }
   /* oops, response was wrong */
-  info("S%x authentication failure for %s from %s", c->tag, vec[0], host);
+  disorder_info("S%x authentication failure for %s from %s",
+		c->tag, vec[0], host);
   sink_writes(ev_writer_sink(c->w), "530 authentication failed\n");
   return 1;
 }
@@ -536,13 +633,13 @@ static int c_queue(struct conn *c,
       queue_fix_sofar(playing);
       if((l = trackdb_get(playing->track, "_length"))
 	 && (length = atol(l))) {
-	time(&when);
+	xtime(&when);
 	when += length - playing->sofar + config->gap;
       }
     } else
       /* Nothing is playing but playing is enabled, so whatever is
        * first in the queue can be expected to start immediately. */
-      time(&when);
+      xtime(&when);
   }
   for(q = qhead.next; q != &qhead; q = q->next) {
     /* fill in estimated start time */
@@ -821,21 +918,23 @@ static int c_volume(struct conn *c,
   }
   rights = set ? RIGHT_VOLUME : RIGHT_READ;
   if(!(c->rights & rights)) {
-    error(0, "%s attempted to set volume but lacks required rights", c->who);
+    disorder_error(0, "%s attempted to set volume but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
     return 1;
   }
-  if(mixer_control(-1/*as configured*/, &l, &r, set))
+  if(!api || !api->set_volume) {
     sink_writes(ev_writer_sink(c->w), "550 error accessing mixer\n");
-  else {
-    sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);
-    if(l != volume_left || r != volume_right) {
-      volume_left = l;
-      volume_right = r;
-      snprintf(lb, sizeof lb, "%d", l);
-      snprintf(rb, sizeof rb, "%d", r);
-      eventlog("volume", lb, rb, (char *)0);
-    }
+    return 1;
+  }
+  (set ? api->set_volume : api->get_volume)(&l, &r);
+  sink_printf(ev_writer_sink(c->w), "252 %d %d\n", l, r);
+  if(l != volume_left || r != volume_right) {
+    volume_left = l;
+    volume_right = r;
+    snprintf(lb, sizeof lb, "%d", l);
+    snprintf(rb, sizeof rb, "%d", r);
+    eventlog("volume", lb, rb, (char *)0);
   }
   return 1;
 }
@@ -888,7 +987,7 @@ static void logclient(const char *msg, void *user) {
       return;
   }
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" %s\n",
-	      (uintmax_t)time(0), msg);
+	      (uintmax_t)xtime(0), msg);
 }
 
 static int c_log(struct conn *c,
@@ -898,7 +997,7 @@ static int c_log(struct conn *c,
 
   sink_writes(ev_writer_sink(c->w), "254 OK\n");
   /* pump out initial state */
-  time(&now);
+  xtime(&now);
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" state %s\n",
 	      (uintmax_t)now, 
 	      playing_is_enabled() ? "enable_play" : "disable_play");
@@ -949,7 +1048,7 @@ static int c_move(struct conn *c,
     return 1;
   }
   if(!has_move_rights(c, &q, 1)) {
-    error(0, "%s attempted move but lacks required rights", c->who);
+    disorder_error(0, "%s attempted move but lacks required rights", c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move that track\n");
     return 1;
@@ -984,7 +1083,8 @@ static int c_moveafter(struct conn *c,
       return 1;
     }
   if(!has_move_rights(c, qs, nvec)) {
-    error(0, "%s attempted moveafter but lacks required rights", c->who);
+    disorder_error(0, "%s attempted moveafter but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w),
 		"510 Not authorized to move those tracks\n");
     return 1;
@@ -1024,19 +1124,23 @@ static int c_resolve(struct conn *c,
   return 1;
 }
 
-static int c_tags(struct conn *c,
-		  char attribute((unused)) **vec,
-		  int attribute((unused)) nvec) {
-  char **tags = trackdb_alltags();
-  
-  sink_printf(ev_writer_sink(c->w), "253 Tag list follows\n");
-  while(*tags) {
+static int list_response(struct conn *c,
+                         const char *reply,
+                         char **list) {
+  sink_printf(ev_writer_sink(c->w), "253 %s\n", reply);
+  while(*list) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**tags == '.' ? "." : "", *tags);
-    ++tags;
+		**list == '.' ? "." : "", *list);
+    ++list;
   }
   sink_writes(ev_writer_sink(c->w), ".\n");
   return 1;				/* completed */
+}
+
+static int c_tags(struct conn *c,
+		  char attribute((unused)) **vec,
+		  int attribute((unused)) nvec) {
+  return list_response(c, "Tag list follows", trackdb_alltags());
 }
 
 static int c_set_global(struct conn *c,
@@ -1098,10 +1202,13 @@ static int c_new(struct conn *c,
 static int c_rtp_address(struct conn *c,
 			 char attribute((unused)) **vec,
 			 int attribute((unused)) nvec) {
-  if(config->api == BACKEND_NETWORK) {
+  if(api == &uaudio_rtp) {
+    char **addr;
+
+    netaddress_format(&config->broadcast, NULL, &addr);
     sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
-		quoteutf8(config->broadcast.s[0]),
-		quoteutf8(config->broadcast.s[1]));
+		quoteutf8(addr[1]),
+		quoteutf8(addr[2]));
   } else
     sink_writes(ev_writer_sink(c->w), "550 No RTP\n");
   return 1;
@@ -1135,7 +1242,7 @@ static int c_cookie(struct conn *c,
   c->cookie = vec[0];
   c->rights = rights;
   if(strcmp(host, "local"))
-    info("S%x %s connected with cookie from %s", c->tag, user, host);
+    disorder_info("S%x %s connected with cookie from %s", c->tag, user, host);
   else
     c->rights |= RIGHT__LOCAL;
   /* Response contains username so client knows who they are acting as */
@@ -1172,7 +1279,7 @@ static int c_adduser(struct conn *c,
   const char *rights;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote adduser", c->tag);
+    disorder_error(0, "S%x: remote adduser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1198,7 +1305,7 @@ static int c_deluser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote deluser", c->tag);
+    disorder_error(0, "S%x: remote deluser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1220,7 +1327,7 @@ static int c_edituser(struct conn *c,
   struct conn *d;
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
-    error(0, "S%x: remote edituser", c->tag);
+    disorder_error(0, "S%x: remote edituser", c->tag);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1253,7 +1360,7 @@ static int c_edituser(struct conn *c,
             if(d->lo)
               sink_printf(ev_writer_sink(d->w),
                           "%"PRIxMAX" rights_changed %s\n",
-                          (uintmax_t)time(0),
+                          (uintmax_t)xtime(0),
                           quoteutf8(new_rights));
           }
         }
@@ -1261,7 +1368,8 @@ static int c_edituser(struct conn *c,
     }
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
-    error(0, "%s attempted edituser but lacks required rights", c->who);
+    disorder_error(0, "%s attempted edituser but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   }
   return 1;
@@ -1278,7 +1386,7 @@ static int c_userinfo(struct conn *c,
   if(!config->remote_userman
      && !(c->rights & RIGHT__LOCAL)
      && strcmp(vec[1], "rights")) {
-    error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
+    disorder_error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
     sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
     return 1;
   }
@@ -1296,7 +1404,8 @@ static int c_userinfo(struct conn *c,
     else
       sink_writes(ev_writer_sink(c->w), "550 No such user\n");
   } else {
-    error(0, "%s attempted userinfo but lacks required rights", c->who);
+    disorder_error(0, "%s attempted userinfo but lacks required rights",
+		   c->who);
     sink_writes(ev_writer_sink(c->w), "510 Restricted to administrators\n");
   }
   return 1;
@@ -1305,43 +1414,26 @@ static int c_userinfo(struct conn *c,
 static int c_users(struct conn *c,
 		   char attribute((unused)) **vec,
 		   int attribute((unused)) nvec) {
-  /* TODO de-dupe with c_tags */
-  char **users = trackdb_listusers();
-
-  sink_writes(ev_writer_sink(c->w), "253 User list follows\n");
-  while(*users) {
-    sink_printf(ev_writer_sink(c->w), "%s%s\n",
-		**users == '.' ? "." : "", *users);
-    ++users;
-  }
-  sink_writes(ev_writer_sink(c->w), ".\n");
-  return 1;				/* completed */
+  return list_response(c, "User list follows", trackdb_listusers());
 }
-
-/** @brief Base64 mapping table for confirmation strings
- *
- * This is used with generic_to_base64() and generic_base64().  We cannot use
- * the MIME table as that contains '+' and '=' which get quoted when
- * URL-encoding.  (The CGI still does the URL encoding but it is desirable to
- * avoid it being necessary.)
- */
-static const char confirm_base64_table[] =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/.*";
 
 static int c_register(struct conn *c,
 		      char **vec,
 		      int attribute((unused)) nvec) {
-  char *buf, *cs;
-  size_t bufsize;
-  int offset;
+  char *cs;
+  uint32_t nonce[CONFIRM_SIZE];
+  char nonce_str[(32 * CONFIRM_SIZE) / 5 + 1];
 
-  /* The confirmation string is base64(username;nonce) */
-  bufsize = strlen(vec[0]) + CONFIRM_SIZE + 2;
-  buf = xmalloc_noptr(bufsize);
-  offset = byte_snprintf(buf, bufsize, "%s;", vec[0]);
-  gcry_randomize(buf + offset, CONFIRM_SIZE, GCRY_STRONG_RANDOM);
-  cs = generic_to_base64((uint8_t *)buf, offset + CONFIRM_SIZE,
-			 confirm_base64_table);
+  /* The confirmation string is username/base62(nonce).  The confirmation
+   * process will pick the username back out to identify them but the _whole_
+   * string is used as the confirmation string.  Base 62 means we used only
+   * letters and digits, minimizing the chance of the URL being mispasted. */
+  gcry_randomize(nonce, sizeof nonce, GCRY_STRONG_RANDOM);
+  if(basen(nonce, CONFIRM_SIZE, nonce_str, sizeof nonce_str, 62)) {
+    disorder_error(0, "buffer too small encoding confirmation string");
+    sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
+  }
+  byte_xasprintf(&cs, "%s/%s", vec[0], nonce_str);
   if(trackdb_adduser(vec[0], vec[1], config->default_rights, vec[2], cs))
     sink_writes(ev_writer_sink(c->w), "550 Cannot create user\n");
   else
@@ -1352,7 +1444,6 @@ static int c_register(struct conn *c,
 static int c_confirm(struct conn *c,
 		     char **vec,
 		     int attribute((unused)) nvec) {
-  size_t nuser;
   char *user, *sep;
   rights_type rights;
   const char *host;
@@ -1362,12 +1453,12 @@ static int c_confirm(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "530 Authentication failure\n");
     return 1;
   }
-  if(!(user = generic_base64(vec[0], &nuser, confirm_base64_table))
-     || !(sep = memchr(user, ';', nuser))) {
+  /* Picking the LAST / means we don't (here) rule out slashes in usernames. */
+  if(!(sep = strrchr(vec[0], '/'))) {
     sink_writes(ev_writer_sink(c->w), "550 Malformed confirmation string\n");
     return 1;
   }
-  *sep = 0;
+  user = xstrndup(vec[0], sep - vec[0]);
   if(trackdb_confirm(user, vec[0], &rights))
     sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
   else {
@@ -1375,7 +1466,7 @@ static int c_confirm(struct conn *c,
     c->cookie = 0;
     c->rights = rights;
     if(strcmp(host, "local"))
-      info("S%x %s confirmed from %s", c->tag, user, host);
+      disorder_info("S%x %s confirmed from %s", c->tag, user, host);
     else
       c->rights |= RIGHT__LOCAL;
     /* Response contains username so client knows who they are acting as */
@@ -1395,7 +1486,7 @@ static int sent_reminder(ev_source attribute((unused)) *ev,
   if(!status) {
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
-    error(0, "reminder subprocess %s", wstat(status));
+    disorder_error(0, "reminder subprocess %s", wstat(status));
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
   }
   /* Re-enable this connection */
@@ -1415,24 +1506,24 @@ static int c_reminder(struct conn *c,
   static hash *last_reminder;
 
   if(!config->mail_sender) {
-    error(0, "cannot send password reminders because mail_sender not set");
+    disorder_error(0, "cannot send password reminders because mail_sender not set");
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(k = trackdb_getuserinfo(vec[0]))) {
-    error(0, "reminder for user '%s' who does not exist", vec[0]);
+    disorder_error(0, "reminder for user '%s' who does not exist", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(email = kvp_get(k, "email"))
      || !email_valid(email)) {
-    error(0, "user '%s' has no valid email address", vec[0]);
+    disorder_error(0, "user '%s' has no valid email address", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
   if(!(password = kvp_get(k, "password"))
      || !*password) {
-    error(0, "user '%s' has no password", vec[0]);
+    disorder_error(0, "user '%s' has no password", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
@@ -1442,9 +1533,9 @@ static int c_reminder(struct conn *c,
   if(!last_reminder)
     last_reminder = hash_new(sizeof (time_t));
   last = hash_find(last_reminder, vec[0]);
-  time(&now);
+  xtime(&now);
   if(last && now < *last + config->reminder_interval) {
-    error(0, "sent a password reminder to '%s' too recently", vec[0]);
+    disorder_error(0, "sent a password reminder to '%s' too recently", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
   }
@@ -1457,7 +1548,7 @@ static int c_reminder(struct conn *c,
 "\n"
 "  %s\n", password);
   if(!(text = mime_encode_text(text, &charset, &encoding)))
-    fatal(0, "cannot encode email");
+    disorder_fatal(0, "cannot encode email");
   byte_xasprintf((char **)&content_type, "text/plain;charset=%s",
 		 quote822(charset, 0));
   pid = sendmail_subprocess("", config->mail_sender, email,
@@ -1468,7 +1559,7 @@ static int c_reminder(struct conn *c,
     return 1;
   }
   hash_add(last_reminder, vec[0], &now, HASH_INSERT_OR_REPLACE);
-  info("sending a passsword reminder to user '%s'", vec[0]);
+  disorder_info("sending a passsword reminder to user '%s'", vec[0]);
   /* We can only continue when the subprocess finishes */
   ev_child(c->ev, pid, 0, sent_reminder, c);
   return 0;
@@ -1598,6 +1689,152 @@ static int c_adopt(struct conn *c,
   return 1;
 }
 
+static int playlist_response(struct conn *c,
+                             int err) {
+  switch(err) {
+  case 0:
+    assert(!"cannot cope with success");
+  case EACCES:
+    sink_writes(ev_writer_sink(c->w), "550 Access denied\n");
+    break;
+  case EINVAL:
+    sink_writes(ev_writer_sink(c->w), "550 Invalid playlist name\n");
+    break;
+  case ENOENT:
+    sink_writes(ev_writer_sink(c->w), "555 No such playlist\n");
+    break;
+  default:
+    sink_writes(ev_writer_sink(c->w), "550 Error accessing playlist\n");
+    break;
+  }
+  return 1;
+}
+
+static int c_playlist_get(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  char **tracks;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, &tracks, 0, 0)))
+    return list_response(c, "Playlist contents follows", tracks);
+  else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set(struct conn *c,
+			  char **vec,
+			  int attribute((unused)) nvec) {
+  return fetch_body(c, c_playlist_set_body, vec[0]);
+}
+
+static int c_playlist_set_body(struct conn *c,
+                               char **body,
+                               int nbody,
+                               void *u) {
+  const char *playlist = u;
+  int err;
+
+  if(!c->locked_playlist
+     || strcmp(playlist, c->locked_playlist)) {
+    sink_writes(ev_writer_sink(c->w), "550 Playlist is not locked\n");
+    return 1;
+  }
+  if(!(err = trackdb_playlist_set(playlist, c->who,
+                                  body, nbody, 0))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_get_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  char *share;
+  int err;
+
+  if(!(err = trackdb_playlist_get(vec[0], c->who, 0, 0, &share))) {
+    sink_printf(ev_writer_sink(c->w), "252 %s\n", quoteutf8(share));
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_set_share(struct conn *c,
+                                char **vec,
+                                int attribute((unused)) nvec) {
+  int err;
+
+  if(!(err = trackdb_playlist_set(vec[0], c->who, 0, 0, vec[1]))) {
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlists(struct conn *c,
+                       char attribute((unused)) **vec,
+                       int attribute((unused)) nvec) {
+  char **p;
+
+  trackdb_playlist_list(c->who, &p, 0);
+  return list_response(c, "List of playlists follows", p);
+}
+
+static int c_playlist_delete(struct conn *c,
+                             char **vec,
+                             int attribute((unused)) nvec) {
+  int err;
+  
+  if(!(err = trackdb_playlist_delete(vec[0], c->who))) {
+    sink_writes(ev_writer_sink(c->w), "250 OK\n");
+    return 1;
+  } else
+    return playlist_response(c, err);
+}
+
+static int c_playlist_lock(struct conn *c,
+                           char **vec,
+                           int attribute((unused)) nvec) {
+  int err;
+  struct conn *cc;
+
+  /* Check we're allowed to modify this playlist */
+  if((err = trackdb_playlist_set(vec[0], c->who, 0, 0, 0)))
+    return playlist_response(c, err);
+  /* If we hold a lock don't allow a new one */
+  if(c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Already holding a lock\n");
+    return 1;
+  }
+  /* See if some other connection locks the same playlist */
+  for(cc = connections; cc; cc = cc->next)
+    if(cc->locked_playlist && !strcmp(cc->locked_playlist, vec[0]))
+      break;
+  if(cc) {
+    /* TODO: implement config->playlist_lock_timeout */
+    sink_writes(ev_writer_sink(c->w), "550 Already locked\n");
+    return 1;
+  }
+  c->locked_playlist = xstrdup(vec[0]);
+  time(&c->locked_when);
+  sink_writes(ev_writer_sink(c->w), "250 Acquired lock\n");
+  return 1;
+}
+
+static int c_playlist_unlock(struct conn *c,
+                             char attribute((unused)) **vec,
+                             int attribute((unused)) nvec) {
+  if(!c->locked_playlist) {
+    sink_writes(ev_writer_sink(c->w), "550 Not holding a lock\n");
+    return 1;
+  }
+  c->locked_playlist = 0;
+  sink_writes(ev_writer_sink(c->w), "250 Released lock\n");
+  return 1;
+}
+
 static const struct command {
   /** @brief Command name */
   const char *name;
@@ -1643,7 +1880,16 @@ static const struct command {
   { "part",           3, 3,       c_part,           RIGHT_READ },
   { "pause",          0, 0,       c_pause,          RIGHT_PAUSE },
   { "play",           1, 1,       c_play,           RIGHT_PLAY },
+  { "playafter",      2, INT_MAX, c_playafter,      RIGHT_PLAY },
   { "playing",        0, 0,       c_playing,        RIGHT_READ },
+  { "playlist-delete",    1, 1,   c_playlist_delete,    RIGHT_PLAY },
+  { "playlist-get",       1, 1,   c_playlist_get,       RIGHT_READ },
+  { "playlist-get-share", 1, 1,   c_playlist_get_share, RIGHT_READ },
+  { "playlist-lock",      1, 1,   c_playlist_lock,      RIGHT_PLAY },
+  { "playlist-set",       1, 1,   c_playlist_set,       RIGHT_PLAY },
+  { "playlist-set-share", 2, 2,   c_playlist_set_share, RIGHT_PLAY },
+  { "playlist-unlock",    0, 0,   c_playlist_unlock,    RIGHT_PLAY },
+  { "playlists",          0, 0,   c_playlists,          RIGHT_READ },
   { "prefs",          1, 1,       c_prefs,          RIGHT_READ },
   { "queue",          0, 0,       c_queue,          RIGHT_READ },
   { "random-disable", 0, 0,       c_random_disable, RIGHT_GLOBAL_PREFS },
@@ -1679,13 +1925,58 @@ static const struct command {
   { "volume",         0, 2,       c_volume,         RIGHT_READ|RIGHT_VOLUME }
 };
 
+/** @brief Fetch a command body
+ * @param c Connection
+ * @param body_callback Called with body
+ * @param u Passed to body_callback
+ * @return 1
+ */
+static int fetch_body(struct conn *c,
+                      body_callback_type body_callback,
+                      void *u) {
+  assert(c->line_reader == command);
+  c->line_reader = body_line;
+  c->body_callback = body_callback;
+  c->body_u = u;
+  vector_init(c->body);
+  return 1;
+}
+
+/** @brief @ref line_reader_type callback for command body lines
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
+static int body_line(struct conn *c,
+                     char *line) {
+  if(*line == '.') {
+    ++line;
+    if(!*line) {
+      /* That's the lot */
+      c->line_reader = command;
+      vector_terminate(c->body);
+      return c->body_callback(c, c->body->vec, c->body->nvec, c->body_u);
+    }
+  }
+  vector_append(c->body, xstrdup(line));
+  return 1;                             /* completed */
+}
+
 static void command_error(const char *msg, void *u) {
   struct conn *c = u;
 
   sink_printf(ev_writer_sink(c->w), "500 parse error: %s\n", msg);
 }
 
-/* process a command.  Return 1 if complete, 0 if incomplete. */
+/** @brief @ref line_reader_type callback for commands
+ * @param c Connection
+ * @param line Line
+ * @return 1 if complete, 0 if incomplete
+ *
+ * Called from reader_callback().
+ */
 static int command(struct conn *c, char *line) {
   char **vec;
   int nvec, n;
@@ -1709,7 +2000,8 @@ static int command(struct conn *c, char *line) {
   else {
     if(commands[n].rights
        && !(c->rights & commands[n].rights)) {
-      error(0, "%s attempted %s but lacks required rights", c->who ? c->who : "NULL",
+      disorder_error(0, "%s attempted %s but lacks required rights",
+		     c->who ? c->who : "NULL",
 	    commands[n].name);
       sink_writes(ev_writer_sink(c->w), "510 Prohibited\n");
       return 1;
@@ -1756,7 +2048,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   while((eol = memchr(ptr, '\n', bytes))) {
     *eol++ = 0;
     ev_reader_consume(reader, eol - (char *)ptr);
-    complete = command(c, ptr);
+    complete = c->line_reader(c, ptr);  /* usually command() */
     bytes -= (eol - (char *)ptr);
     ptr = eol;
     if(!complete) {
@@ -1772,7 +2064,7 @@ static int reader_callback(ev_source attribute((unused)) *ev,
   }
   if(eof) {
     if(bytes)
-      error(0, "S%x unterminated line", c->tag);
+      disorder_error(0, "S%x unterminated line", c->tag);
     D(("normal reader close"));
     c->r = 0;
     if(c->w) {
@@ -1803,7 +2095,7 @@ static int listen_callback(ev_source *ev,
   c->w = ev_writer_new(ev, fd, writer_error, c,
 		       "client writer");
   if(!c->w) {
-    error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
+    disorder_error(0, "ev_writer_new for file inbound connection (fd=%d) failed",
           fd);
     close(fd);
     return 0;
@@ -1813,12 +2105,15 @@ static int listen_callback(ev_source *ev,
   if(!c->r)
     /* Main reason for failure is the FD is too big and that will already have
      * been handled */
-    fatal(0, "ev_reader_new for file inbound connection (fd=%d) failed", fd);
+    disorder_fatal(0,
+		   "ev_reader_new for file inbound connection (fd=%d) failed",
+		   fd);
   ev_tie(c->r, c->w);
   c->fd = fd;
   c->reader = reader_callback;
   c->l = l;
   c->rights = 0;
+  c->line_reader = command;
   connections = c;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
@@ -1839,7 +2134,7 @@ int server_start(ev_source *ev, int pf,
   fd = xsocket(pf, SOCK_STREAM, 0);
   xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   if(bind(fd, sa, socklen) < 0) {
-    error(errno, "error binding to %s", name);
+    disorder_error(errno, "error binding to %s", name);
     return -1;
   }
   xlisten(fd, 128);
@@ -1849,6 +2144,7 @@ int server_start(ev_source *ev, int pf,
   l->pf = pf;
   if(ev_listen(ev, fd, listen_callback, l, "server listener"))
     exit(EXIT_FAILURE);
+  disorder_info("listening on %s", name);
   return fd;
 }
 

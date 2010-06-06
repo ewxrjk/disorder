@@ -47,12 +47,12 @@ static void random__rekey(void) {
 
   if(random_fd < 0) {
     if((random_fd = open("/dev/urandom", O_RDONLY)) < 0)
-      fatal(errno, "opening /dev/urandom");
+      disorder_fatal(errno, "opening /dev/urandom");
   }
   if((n = read(random_fd, key, sizeof key)) < 0)
-    fatal(errno, "reading from /dev/urandom");
+    disorder_fatal(errno, "reading from /dev/urandom");
   if((size_t)n < sizeof key)
-    fatal(0, "reading from /dev/urandom: short read");
+    disorder_fatal(0, "reading from /dev/urandom: short read");
   arcfour_setkey(random_ctx, key, sizeof key);
   random_count = 8 * 1024 * 1024;
 }
@@ -75,7 +75,7 @@ void random_get(void *ptr, size_t bytes) {
 
 /** @brief Return a random ID string */
 char *random_id(void) {
-  unsigned long words[2];
+  uint32_t words[2];
   char id[128];
 
   random_get(words, sizeof words);

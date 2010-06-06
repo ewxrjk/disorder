@@ -46,6 +46,7 @@ static void prefdata_completed(void *v, const char *err, const char *value);
 static void properties_ok(GtkButton *button, gpointer userdata);
 static void properties_apply(GtkButton *button, gpointer userdata);
 static void properties_cancel(GtkButton *button, gpointer userdata);
+static void properties_help(GtkButton *button, gpointer userdata);
 
 static void properties_logged_in(const char *event,
                                  void *eventdata,
@@ -126,22 +127,32 @@ static const struct pref {
 /* Buttons that appear at the bottom of the window */
 static struct button buttons[] = {
   {
+    GTK_STOCK_HELP,
+    properties_help,
+    "Go to manual",
+    0,
+    gtk_box_pack_start,
+  },
+  {
     GTK_STOCK_OK,
     properties_ok,
     "Apply all changes and close window",
-    0
-  },
-  {
-    GTK_STOCK_APPLY,
-    properties_apply,
-    "Apply all changes and keep window open",
-    0
+    0,
+    gtk_box_pack_end,
   },
   {
     GTK_STOCK_CANCEL,
     properties_cancel,
     "Discard all changes and close window",
-    0
+    0,
+    gtk_box_pack_end
+  },
+  {
+    GTK_STOCK_APPLY,
+    properties_apply,
+    "Apply all changes and keep window open",
+    0,
+    gtk_box_pack_end,
   },
 };
 
@@ -186,7 +197,8 @@ static gboolean properties_keypress(GtkWidget attribute((unused)) *widget,
   }
 }
 
-void properties(int ntracks, const char **tracks) {
+void properties(int ntracks, const char **tracks,
+                GtkWidget *parent) {
   int n, m;
   struct prefdata *f;
   GtkWidget *buttonbox, *vbox, *label, *entry, *propagate;
@@ -299,7 +311,9 @@ void properties(int ntracks, const char **tracks) {
   if(pw)
     progress_window_progress(pw, 0, 0);
   /* Pop up a progress bar while we're waiting */
-  pw = progress_window_new("Fetching Track Properties");
+  while(parent->parent)
+    parent = parent->parent;
+  pw = progress_window_new("Fetching Track Properties", parent);
 }
 
 /* Everything is filled in now */
@@ -485,6 +499,11 @@ static void properties_cancel(GtkButton attribute((unused)) *button,
   gtk_widget_destroy(properties_window);
   event_cancel(properties_event);
   properties_event = 0;
+}
+
+static void properties_help(GtkButton attribute((unused)) *button,
+                            gpointer attribute((unused)) userdata) {
+  popup_help("properties.html");
 }
 
 /** @brief Called when we've just logged in

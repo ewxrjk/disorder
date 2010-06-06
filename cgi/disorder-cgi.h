@@ -52,6 +52,7 @@
 #include "mime.h"
 #include "sendmail.h"
 #include "charset.h"
+#include "syscalls.h"
 
 extern disorder_client *dcgi_client;
 extern char *dcgi_cookie;

@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <pcre.h>
 #include <ctype.h>
+#include <gcrypt.h>
+#include <langinfo.h>
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -50,6 +52,8 @@
 #include "vector.h"
 #include "version.h"
 #include "dateparse.h"
+#include "trackdb.h"
+#include "inputline.h"
 
 static disorder_client *client;
 
@@ -63,6 +67,7 @@ static const struct option options[] = {
   { "help-commands", no_argument, 0, 'H' },
   { "user", required_argument, 0, 'u' },
   { "password", required_argument, 0, 'p' },
+  { "wait-for-root", no_argument, 0, 'W' },
   { 0, 0, 0, 0 }
 };
 
@@ -157,7 +162,8 @@ static void cf_shutdown(char attribute((unused)) **argv) {
 
 static void cf_reconfigure(char attribute((unused)) **argv) {
   /* Re-check configuration for server */
-  if(config_read(1)) fatal(0, "cannot read configuration");
+  if(config_read(1, NULL))
+    disorder_fatal(0, "cannot read configuration");
   if(disorder_reconfigure(getclient())) exit(EXIT_FAILURE);
 }
 
@@ -185,15 +191,34 @@ static void cf_queue(char attribute((unused)) **argv) {
 }
 
 static void cf_quack(char attribute((unused)) **argv) {
-  xprintf("\n"
-	  " .------------------.\n"
-	  " | Naath is a babe! |\n"
-	  " `---------+--------'\n"
-	  "            \\\n"
-	  "              >0\n"
-	  "               (<)'\n"
-	  "~~~~~~~~~~~~~~~~~~~~~~\n"
-	  "\n");
+  if(!strcasecmp(nl_langinfo(CODESET), "utf-8")) {
+#define TL "\xE2\x95\xAD"
+#define TR "\xE2\x95\xAE"
+#define BR "\xE2\x95\xAF"
+#define BL "\xE2\x95\xB0"
+#define H "\xE2\x94\x80"
+#define V "\xE2\x94\x82"
+#define T "\xE2\x94\xAC"
+    xprintf("\n"
+            " "TL H H H H H H H H H H H H H H H H H H TR"\n"
+            " "V" Naath is a babe! "V"\n"
+            " "BL H H H H H H H H H T H H H H H H H H BR"\n"
+            "            \\\n"
+            "              >0\n"
+            "               (<)'\n"
+            "~~~~~~~~~~~~~~~~~~~~~~\n"
+            "\n");
+  } else {
+    xprintf("\n"
+            " .------------------.\n"
+            " | Naath is a babe! |\n"
+            " `---------+--------'\n"
+            "            \\\n"
+            "              >0\n"
+            "               (<)'\n"
+            "~~~~~~~~~~~~~~~~~~~~~~\n"
+            "\n");
+  }
 }
 
 static void cf_somelist(char **argv,
@@ -304,9 +329,9 @@ static void cf_move(char **argv) {
   int e;
   
   if((e = xstrtol(&n, argv[1], 0, 10)))
-    fatal(e, "cannot convert '%s'", argv[1]);
+    disorder_fatal(e, "cannot convert '%s'", argv[1]);
   if(n > INT_MAX || n < INT_MIN)
-    fatal(e, "%ld out of range", n);
+    disorder_fatal(e, "%ld out of range", n);
   if(disorder_move(getclient(), argv[0], (int)n)) exit(EXIT_FAILURE);
 }
 
@@ -463,11 +488,11 @@ static void cf_setup_guest(char **argv) {
     case 'h': help_setup_guest();
     case 'r': online_registration = 1; break;
     case 'R': online_registration = 0; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(online_registration && !config->mail_sender)
-    fatal(0, "you MUST set mail_sender if you want online registration");
+    disorder_fatal(0, "you MUST set mail_sender if you want online registration");
   if(disorder_adduser(getclient(), "guest", "",
 		      online_registration ? "read,register" : "read"))
     exit(EXIT_FAILURE);
@@ -582,6 +607,61 @@ static void cf_adopt(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+static void cf_playlists(char attribute((unused)) **argv) {
+  char **vec;
+
+  if(disorder_playlists(getclient(), &vec, 0))
+    exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
+static void cf_playlist_del(char **argv) {
+  if(disorder_playlist_delete(getclient(), argv[0]))
+    exit(EXIT_FAILURE);
+}
+
+static void cf_playlist_get(char **argv) {
+  char **vec;
+
+  if(disorder_playlist_get(getclient(), argv[0], &vec, 0))
+    exit(EXIT_FAILURE);
+  while(*vec)
+    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+}
+
+static void cf_playlist_set(char **argv) {
+  struct vector v[1];
+  FILE *input;
+  const char *tag;
+  char *l;
+
+  if(argv[1]) {
+    // Read track list from file
+    if(!(input = fopen(argv[1], "r")))
+      disorder_fatal(errno, "opening %s", argv[1]);
+    tag = argv[1];
+  } else {
+    // Read track list from standard input
+    input = stdin;
+    tag = "stdin";
+  }
+  vector_init(v);
+  while(!inputline(tag, input, &l, '\n')) {
+    if(!strcmp(l, "."))
+      break;
+    vector_append(v, l);
+  }
+  if(ferror(input))
+    disorder_fatal(errno, "reading %s", tag);
+  if(input != stdin)
+    fclose(input);
+  if(disorder_playlist_lock(getclient(), argv[0])
+     || disorder_playlist_set(getclient(), argv[0], v->vec, v->nvec)
+     || disorder_playlist_unlock(getclient()))
+    exit(EXIT_FAILURE);
+}
+
 static const struct command {
   const char *name;
   int min, max;
@@ -635,6 +715,14 @@ static const struct command {
                       "Add TRACKS to the end of the queue" },
   { "playing",        0, 0, cf_playing, 0, "",
                       "Report the playing track" },
+  { "playlist-del",   1, 1, cf_playlist_del, 0, "PLAYLIST",
+                      "Delete a playlist" },
+  { "playlist-get",   1, 1, cf_playlist_get, 0, "PLAYLIST",
+                      "Get the contents of a playlist" },
+  { "playlist-set",   1, 2, cf_playlist_set, isarg_filename, "PLAYLIST [PATH]",
+                      "Set the contents of a playlist" },
+  { "playlists",      0, 0, cf_playlists, 0, "",
+                      "List playlists" },
   { "prefs",          1, 1, cf_prefs, 0, "TRACK",
                       "Display all the preferences for TRACK" },
   { "quack",          0, 0, cf_quack, 0, 0, 0 },
@@ -727,8 +815,28 @@ static void help_commands(void) {
   exit(0);
 }
 
+static void wait_for_root(void) {
+  const char *password;
+
+  while(!trackdb_readable()) {
+    disorder_info("waiting for trackdb...");
+    sleep(1);
+  }
+  trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
+  for(;;) {
+    trackdb_open(TRACKDB_READ_ONLY);
+    password = trackdb_get_password("root");
+    trackdb_close();
+    if(password)
+      break;
+    disorder_info("waiting for root user to be created...");
+    sleep(1);
+  }
+  trackdb_deinit(NULL);
+}
+
 int main(int argc, char **argv) {
-  int n, i, j, local = 0;
+  int n, i, j, local = 0, wfr = 0;
   int status = 0;
   struct vector args;
   const char *user = 0, *password = 0;
@@ -737,9 +845,9 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
-  if(!setlocale(LC_TIME, "")) fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
+  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:W", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -750,10 +858,11 @@ int main(int argc, char **argv) {
     case 'N': config_per_user = 0; break;
     case 'u': user = optarg; break;
     case 'p': password = optarg; break;
-    default: fatal(0, "invalid option");
+    case 'W': wfr = 1; break;
+    default: disorder_fatal(0, "invalid option");
     }
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   if(user) {
     config->username = user;
     config->password = 0;
@@ -761,15 +870,22 @@ int main(int argc, char **argv) {
   if(password)
     config->password = password;
   if(local)
-    config->connect.n = 0;
+    config->connect.af = -1;
+  if(wfr)
+    wait_for_root();
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
+  /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
+  gcry_control(GCRYCTL_INIT_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   /* accumulate command args */
   while(n < argc) {
     if((i = TABLE_FIND(commands, name, argv[n])) < 0)
-      fatal(0, "unknown command '%s'", argv[n]);
+      disorder_fatal(0, "unknown command '%s'", argv[n]);
     if(n + commands[i].min >= argc)
-      fatal(0, "missing arguments to '%s'", argv[n]);
+      disorder_fatal(0, "missing arguments to '%s'", argv[n]);
     vector_init(&args);
     /* Include the command name in the args, but at element -1, for
      * the benefit of subcommand getopt calls */
@@ -786,7 +902,7 @@ int main(int argc, char **argv) {
     n += j;
   }
   if(client && disorder_close(client)) exit(EXIT_FAILURE);
-  if(fclose(stdout) < 0) fatal(errno, "error closing stdout");
+  if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
   return status;
 }
 

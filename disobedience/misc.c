@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2008, 2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ struct image {
   const guint8 *data;
 };
 
-#include "images.h"
+#include "../images/images.h"
 
 /* Miscellaneous GTK+ stuff ------------------------------------------------ */
 
@@ -108,14 +108,14 @@ GdkPixbuf *find_image(const char *name) {
     if((n = TABLE_FIND(images, name, name)) >= 0) {
       /* Use the built-in copy */
       if(!(pb = gdk_pixbuf_new_from_inline(-1, images[n].data, FALSE, &err))) {
-        error(0, "%s", err->message);
+        disorder_error(0, "%s", err->message);
         return 0;
       }
     } else {
       /* See if there's a copy on disk */
       byte_xasprintf(&path, "%s/static/%s", pkgdatadir, name);
       if(!(pb = gdk_pixbuf_new_from_file(path, &err))) {
-        error(0, "%s", err->message);
+        disorder_error(0, "%s", err->message);
         return 0;
       }
     }
@@ -172,7 +172,7 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
   gtk_widget_set_style(content, tool_style);
   gtk_container_add(GTK_CONTAINER(button), content);
   if(tip)
-    gtk_tooltips_set_tip(tips, button, tip, "");
+    gtk_widget_set_tooltip_text(button, tip);
   return button;
 }
 
@@ -187,8 +187,15 @@ GtkWidget *create_buttons_box(struct button *buttons,
     gtk_widget_set_style(buttons[n].widget, tool_style);
     g_signal_connect(G_OBJECT(buttons[n].widget), "clicked",
                      G_CALLBACK(buttons[n].clicked), 0);
-    gtk_box_pack_start(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
-    gtk_tooltips_set_tip(tips, buttons[n].widget, buttons[n].tip, "");
+    void (*pack)(GtkBox *box,
+                 GtkWidget *child,
+                 gboolean expand,
+                 gboolean fill,
+                 guint padding);
+    if(!(pack = buttons[n].pack))
+      pack = gtk_box_pack_start;
+    pack(GTK_BOX(box), buttons[n].widget, FALSE, FALSE, 1);
+    gtk_widget_set_tooltip_text(buttons[n].widget, buttons[n].tip);
   }
   return box;
 }

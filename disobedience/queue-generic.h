@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ struct queuelike {
   const char *name;
   
   /** @brief Initialization function */
-  void (*init)(void);
+  void (*init)(struct queuelike *ql);
 
   /** @brief Columns */
   const struct queue_column *columns;
@@ -90,7 +90,43 @@ struct queuelike {
 
   /** @brief Menu callbacks */
   struct tabtype tabtype;
+
+  /** @brief Drag-drop callback, or NULL for no drag+drop
+   * @param ql Owning queuelike
+   * @param ntracks Number of tracks to be dropped
+   * @param tracks List of track names
+   * @param ids List of track IDs
+   * @param after_me Drop after this or NULL to drop at head
+   *
+   * If the rearrangement is impossible then the displayed queue must be put
+   * back.
+   */
+  void (*drop)(struct queuelike *ql, int ntracks, char **tracks, char **ids,
+               struct queue_entry *after_me);
+
+  /** @brief Source target list */
+  const GtkTargetEntry *drag_source_targets;
+
+  /** @brief Drag source actions */
+  GdkDragAction drag_source_actions;
+  
+  /** @brief Destination target list */
+  const GtkTargetEntry *drag_dest_targets;
+
+  /** @brief Drag destination actions */
+  GdkDragAction drag_dest_actions;
+  
 };
+
+enum {
+  PLAYABLE_TRACKS_ID,
+  QUEUED_TRACKS_ID,
+  PLAYLIST_TRACKS_ID
+};
+
+#define PLAYABLE_TRACKS (char *)"text/x-disorder-playable-tracks"
+#define QUEUED_TRACKS (char *)"text/x-disorder-queued-tracks"
+#define PLAYLIST_TRACKS (char *)"text/x-disorder-playlist-tracks"
 
 enum {
   QUEUEPOINTER_COLUMN,
@@ -100,15 +136,8 @@ enum {
   EXTRA_COLUMNS
 };
 
-/* TODO probably need to set "horizontal-separator" to 0, but can't find any
- * coherent description of how to set style properties in isolation. */
-#define BG_PLAYING 0
-#define FG_PLAYING 0
-
-#ifndef BG_PLAYING
-# define BG_PLAYING "#e0ffe0"
-# define FG_PLAYING "black"
-#endif
+#define BG_PLAYING "#e0ffe0"
+#define FG_PLAYING "black"
 
 extern struct queuelike ql_queue;
 extern struct queuelike ql_recent;
@@ -141,6 +170,7 @@ gboolean ql_button_release(GtkWidget *widget,
                            GdkEventButton *event,
                            gpointer user_data);
 GtkWidget *init_queuelike(struct queuelike *ql);
+void destroy_queuelike(struct queuelike *ql);
 void ql_update_list_store(struct queuelike *ql) ;
 void ql_update_row(struct queue_entry *q,
                    GtkTreeIter *iter);
@@ -157,6 +187,8 @@ const char *column_length(const struct queue_entry *q,
 struct tabtype *ql_tabtype(struct queuelike *ql);
 struct queue_entry *ql_iter_to_q(GtkTreeModel *model,
                                  GtkTreeIter *iter);
+struct queue_entry *ql_path_to_q(GtkTreeModel *model,
+                                 GtkTreePath *path);
 
 #endif /* QUEUE_GENERIC_H */
 

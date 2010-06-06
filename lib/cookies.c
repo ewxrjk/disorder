@@ -35,6 +35,7 @@
 #include "configuration.h"
 #include "kvp.h"
 #include "trackdb.h"
+#include "syscalls.h"
 
 /** @brief Hash function used in signing HMAC */
 #define ALGO GCRY_MD_SHA1
@@ -66,7 +67,7 @@ static int revoked_cleanup_callback(const char *key, void *value,
 static void newkey(void) {
   time_t now;
 
-  time(&now);
+  xtime(&now);
   memcpy(old_signing_key, signing_key, HASHSIZE);
   gcry_randomize(signing_key, HASHSIZE, GCRY_STRONG_RANDOM);
   signing_key_validity_limit = now + config->cookie_key_lifetime;
@@ -98,11 +99,11 @@ static char *sign(const uint8_t *key,
   char *sig64;
 
   if((e = gcry_md_open(&h, ALGO, GCRY_MD_FLAG_HMAC))) {
-    error(0, "gcry_md_open: %s", gcry_strerror(e));
+    disorder_error(0, "gcry_md_open: %s", gcry_strerror(e));
     return 0;
   }
   if((e = gcry_md_setkey(h, key, HASHSIZE))) {
-    error(0, "gcry_md_setkey: %s", gcry_strerror(e));
+    disorder_error(0, "gcry_md_setkey: %s", gcry_strerror(e));
     gcry_md_close(h);
     return 0;
   }
@@ -124,17 +125,17 @@ char *make_cookie(const char *user) {
 
   /* dollar signs aren't allowed in usernames */
   if(strchr(user, '$')) {
-    error(0, "make_cookie for username with dollar sign");
+    disorder_error(0, "make_cookie for username with dollar sign");
     return 0;
   }
   /* look up the password */
   password = trackdb_get_password(user);
   if(!password) {
-    error(0, "make_cookie for nonexistent user");
+    disorder_error(0, "make_cookie for nonexistent user");
     return 0;
   }
   /* make sure we have a valid signing key */
-  time(&now);
+  xtime(&now);
   if(now >= signing_key_validity_limit)
     newkey();
   /* construct the subject */
@@ -164,38 +165,38 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
 
   /* check the revocation list */
   if(revoked && hash_find(revoked, cookie)) {
-    error(0, "attempt to log in with revoked cookie");
+    disorder_error(0, "attempt to log in with revoked cookie");
     return 0;
   }
   /* parse the cookie */
   errno = 0;
   t = strtoimax(cookie, &c1, 16);
   if(errno) {
-    error(errno, "error parsing cookie timestamp");
+    disorder_error(errno, "error parsing cookie timestamp");
     return 0;
   }
   if(*c1 != '$') {
-    error(0, "invalid cookie timestamp");
+    disorder_error(0, "invalid cookie timestamp");
     return 0;
   }
   /* There'd better be two dollar signs */
   c2 = strchr(c1 + 1, '$');
   if(c2 == 0) {
-    error(0, "invalid cookie syntax");
+    disorder_error(0, "invalid cookie syntax");
     return 0;
   }
   /* Extract the username */
   user = xstrndup(c1 + 1, c2 - (c1 + 1));
   /* check expiry */
-  time(&now);
+  xtime(&now);
   if(now >= t) {
-    error(0, "cookie has expired");
+    disorder_error(0, "cookie has expired");
     return 0;
   }
   /* look up the password */
   k = trackdb_getuserinfo(user);
   if(!k) {
-    error(0, "verify_cookie for nonexistent user");
+    disorder_error(0, "verify_cookie for nonexistent user");
     return 0;
   }
   password = kvp_get(k, "password");
@@ -217,7 +218,7 @@ char *verify_cookie(const char *cookie, rights_type *rights) {
   if(!strcmp(sig, c2 + 1))
     return user;
   /* that didn't match either */
-  error(0, "cookie signature does not match");
+  disorder_error(0, "cookie signature does not match");
   return 0;
 }
 

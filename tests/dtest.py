@@ -1,7 +1,7 @@
 #-*-python-*-
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007, 2008 Richard Kettlewell
+# Copyright (C) 2007-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 """Utility module used by tests"""
 
-import os,os.path,subprocess,sys,re,time,unicodedata,random,socket
+import os,os.path,subprocess,sys,re,time,unicodedata,random,socket,traceback
 
 def fatal(s):
     """Write an error message and exit"""
@@ -85,7 +85,7 @@ Make track with relative path S exist"""
     trackdir = os.path.dirname(trackpath)
     if not os.path.exists(trackdir):
         os.makedirs(trackdir)
-    copyfile("%s/sounds/long.ogg" % top_builddir, trackpath)
+    copyfile("%s/sounds/long.ogg" % top_srcdir, trackpath)
     # We record the tracks we created so they can be tested against
     # server responses.  We put them into NFC since that's what the server
     # uses internally.
@@ -190,7 +190,7 @@ tracklength *.mp3 disorder-tracklength
 tracklength *.ogg disorder-tracklength
 tracklength *.wav disorder-tracklength
 tracklength *.flac disorder-tracklength
-api network
+api rtp
 broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
 mail_sender no.such.user.sorry@greenend.org.uk
@@ -202,10 +202,10 @@ def common_setup():
     os.mkdir(testroot)
     # Choose a port
     global port
-    port = random.randint(49152, 65535)
+    port = random.randint(49152, 65530)
     while not bindable(port + 1):
         print "port %d is not bindable, trying another" % (port + 1)
-        port = random.randint(49152, 65535)
+        port = random.randint(49152, 65530)
     # Log anything sent to that port
     packetlog = "%s/packetlog" % testroot
     subprocess.Popen(["disorder-udplog",
@@ -230,30 +230,35 @@ Start the daemon."""
     print " starting daemon"
     # remove the socket if it exists
     socket = "%s/home/socket" % testroot
-    try:
+    if os.path.exists(socket):
         os.remove(socket)
-    except:
-        pass
     daemon = subprocess.Popen(["disorderd",
                                "--foreground",
                                "--config", "%s/config" % testroot],
                               stderr=errs)
     # Wait for the socket to be created
     waited = 0
+    sleep_resolution = 0.125
     while not os.path.exists(socket):
         rc = daemon.poll()
         if rc is not None:
             print "FATAL: daemon failed to start up"
             sys.exit(1)
-        waited += 1
+        waited += sleep_resolution
+        if sleep_resolution < 1:
+            sleep_resolution *= 2
         if waited == 1:
             print "  waiting for socket..."
         elif waited >= 60:
             print "FATAL: took too long for socket to appear"
             sys.exit(1)
-        time.sleep(1)
+        time.sleep(sleep_resolution)
     if waited > 0:
-        print "  took about %ds for socket to appear" % waited
+        print "  took about %ss for socket to appear" % waited
+    # Wait for root user to be created
+    command(["disorder",
+             "--config", disorder._configfile, "--no-per-user-config",
+             "--wait-for-root"])
 
 def create_user(username="fred", password="fredpass"):
     """create_user(USERNAME, PASSWORD)
@@ -281,26 +286,25 @@ def stop_daemon():
 Stop the daemon if it has not stopped already"""
     global daemon
     if daemon == None:
+        print " (daemon not running)"
         return
     rc = daemon.poll()
     if rc == None:
         print " stopping daemon"
-        disorder.client().shutdown()
+        os.kill(daemon.pid, 15)
         print "  waiting for daemon"
         rc = daemon.wait()
-        print "  daemon has stopped"
+        print "  daemon has stopped (rc=%d)" % rc
     else:
         print "  daemon already stopped"
     daemon = None
-    # Wait a bit for subprocess to finish too, to try to avoid stupid races
-    time.sleep(2)
 
 def run(module=None, report=True):
     """dtest.run(MODULE)
 
     Run the test in MODULE.  This can be a string (in which case the module
     will be imported) or a module object."""
-    global tests
+    global tests, failures
     tests += 1
     # Locate the test module
     if module is None:
@@ -331,8 +335,12 @@ def run(module=None, report=True):
     stdtracks()
     try:
         module.test()
+    except Exception, e:
+        traceback.print_exc(None, sys.stderr)
+        failures += 1
     finally:
         stop_daemon()
+        os.system("ps -ef | grep disorderd")
     if report:
         if failures:
             print " FAILED"

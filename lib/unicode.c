@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -603,6 +603,12 @@ int utf32_iterator_grapheme_boundary(utf32_iterator it) {
   /* GB9 */
   if(gbafter == unicode_Grapheme_Break_Extend)
     return 0;
+  /* GB9a */
+  if(gbafter == unicode_Grapheme_Break_SpacingMark)
+    return 0;
+  /* GB9b */
+  if(gbbefore == unicode_Grapheme_Break_Prepend)
+    return 0;
   /* GB10 */
   return 1;
 
@@ -618,26 +624,39 @@ int utf32_iterator_grapheme_boundary(utf32_iterator it) {
  * string) and 0 otherwise.
  */
 int utf32_iterator_word_boundary(utf32_iterator it) {
-  enum unicode_Word_Break twobefore, before, after, twoafter;
+  uint32_t before, after;
+  enum unicode_Word_Break wbtwobefore, wbbefore, wbafter, wbtwoafter;
   size_t nn;
 
   /* WB1 and WB2 */
   if(it->n == 0 || it->n == it->ns)
     return 1;
+  before = it->s[it->n-1];
+  after = it->s[it->n];
   /* WB3 */
-  if(it->s[it->n-1] == 0x000D && it->s[it->n] == 0x000A)
+  if(before == 0x000D && after == 0x000A)
     return 0;
+  /* WB3a */
+  if(utf32__iterator_word_break(it, before) == unicode_Word_Break_Newline
+     || before == 0x000D
+     || before == 0x000A)
+    return 1;
+  /* WB3b */
+  if(utf32__iterator_word_break(it, after) == unicode_Word_Break_Newline
+     || after == 0x000D
+     || after == 0x000A)
+    return 1;
   /* WB4 */
   /* (!Sep) x (Extend|Format) as in UAX #29 s6.2 */
-  if(utf32__sentence_break(it->s[it->n-1]) != unicode_Sentence_Break_Sep
-     && utf32__boundary_ignorable(utf32__iterator_word_break(it, it->s[it->n])))
+  if(utf32__sentence_break(before) != unicode_Sentence_Break_Sep
+     && utf32__boundary_ignorable(utf32__iterator_word_break(it, after)))
     return 0;
   /* Gather the property values we'll need for the rest of the test taking the
    * s6.2 changes into account */
   /* First we look at the code points after the proposed boundary */
   nn = it->n;                           /* <it->ns */
-  after = utf32__iterator_word_break(it, it->s[nn++]);
-  if(!utf32__boundary_ignorable(after)) {
+  wbafter = utf32__iterator_word_break(it, it->s[nn++]);
+  if(!utf32__boundary_ignorable(wbafter)) {
     /* X (Extend|Format)* -> X */
     while(nn < it->ns
           && utf32__boundary_ignorable(utf32__iterator_word_break(it,
@@ -646,67 +665,71 @@ int utf32_iterator_word_boundary(utf32_iterator it) {
   }
   /* It's possible now that nn=ns */
   if(nn < it->ns)
-    twoafter = utf32__iterator_word_break(it, it->s[nn]);
+    wbtwoafter = utf32__iterator_word_break(it, it->s[nn]);
   else
-    twoafter = unicode_Word_Break_Other;
+    wbtwoafter = unicode_Word_Break_Other;
 
   /* We've already recorded the non-ignorable code points before the proposed
    * boundary */
-  before = utf32__iterator_word_break(it, it->last[1]);
-  twobefore = utf32__iterator_word_break(it, it->last[0]);
+  wbbefore = utf32__iterator_word_break(it, it->last[1]);
+  wbtwobefore = utf32__iterator_word_break(it, it->last[0]);
 
   /* WB5 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_ALetter)
+  if(wbbefore == unicode_Word_Break_ALetter
+     && wbafter == unicode_Word_Break_ALetter)
     return 0;
   /* WB6 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_MidLetter
-     && twoafter == unicode_Word_Break_ALetter)
+  if(wbbefore == unicode_Word_Break_ALetter
+     && (wbafter == unicode_Word_Break_MidLetter
+         || wbafter == unicode_Word_Break_MidNumLet)
+     && wbtwoafter == unicode_Word_Break_ALetter)
     return 0;
   /* WB7 */
-  if(twobefore == unicode_Word_Break_ALetter
-     && before == unicode_Word_Break_MidLetter
-     && after == unicode_Word_Break_ALetter)
+  if(wbtwobefore == unicode_Word_Break_ALetter
+     && (wbbefore == unicode_Word_Break_MidLetter
+         || wbbefore == unicode_Word_Break_MidNumLet)
+     && wbafter == unicode_Word_Break_ALetter)
     return 0;
   /* WB8 */
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_Numeric)
+  if(wbbefore == unicode_Word_Break_Numeric
+     && wbafter == unicode_Word_Break_Numeric)
     return 0;
   /* WB9 */
-  if(before == unicode_Word_Break_ALetter
-     && after == unicode_Word_Break_Numeric)
+  if(wbbefore == unicode_Word_Break_ALetter
+     && wbafter == unicode_Word_Break_Numeric)
     return 0;
   /* WB10 */
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_ALetter)
+  if(wbbefore == unicode_Word_Break_Numeric
+     && wbafter == unicode_Word_Break_ALetter)
     return 0;
    /* WB11 */
-  if(twobefore == unicode_Word_Break_Numeric
-     && before == unicode_Word_Break_MidNum
-     && after == unicode_Word_Break_Numeric)
+  if(wbtwobefore == unicode_Word_Break_Numeric
+     && (wbbefore == unicode_Word_Break_MidNum
+         || wbbefore == unicode_Word_Break_MidNumLet)
+     && wbafter == unicode_Word_Break_Numeric)
     return 0;
   /* WB12 */
-  if(before == unicode_Word_Break_Numeric
-     && after == unicode_Word_Break_MidNum
-     && twoafter == unicode_Word_Break_Numeric)
+  if(wbbefore == unicode_Word_Break_Numeric
+     && (wbafter == unicode_Word_Break_MidNum
+         || wbafter == unicode_Word_Break_MidNumLet)
+     && wbtwoafter == unicode_Word_Break_Numeric)
     return 0;
   /* WB13 */
-  if(before == unicode_Word_Break_Katakana
-     && after == unicode_Word_Break_Katakana)
+  if(wbbefore == unicode_Word_Break_Katakana
+     && wbafter == unicode_Word_Break_Katakana)
     return 0;
   /* WB13a */
-  if((before == unicode_Word_Break_ALetter
-      || before == unicode_Word_Break_Numeric
-      || before == unicode_Word_Break_Katakana
-      || before == unicode_Word_Break_ExtendNumLet)
-     && after == unicode_Word_Break_ExtendNumLet)
+  if((wbbefore == unicode_Word_Break_ALetter
+      || wbbefore == unicode_Word_Break_Numeric
+      || wbbefore == unicode_Word_Break_Katakana
+      || wbbefore == unicode_Word_Break_ExtendNumLet)
+     && wbafter == unicode_Word_Break_ExtendNumLet)
     return 0;
   /* WB13b */
-  if(before == unicode_Word_Break_ExtendNumLet
-     && (after == unicode_Word_Break_ALetter
-         || after == unicode_Word_Break_Numeric
-         || after == unicode_Word_Break_Katakana))
+  if(wbbefore == unicode_Word_Break_ExtendNumLet
+     && (wbafter == unicode_Word_Break_ALetter
+         || wbafter == unicode_Word_Break_Numeric
+         || wbafter == unicode_Word_Break_Katakana))
     return 0;
   /* WB14 */
   return 1;
@@ -1358,8 +1381,10 @@ uint32_t **utf32_word_split(const uint32_t *s, size_t ns, size_t *nwp,
       }
       /* If it's a word add it to the list of results */
       if(isword) {
-        w = xcalloc(b2 - b1 + 1, sizeof(uint32_t));
-        memcpy(w, it->s + b1, (b2 - b1) * sizeof (uint32_t));
+        const size_t len = b2 - b1;
+        w = xcalloc_noptr(len + 1, sizeof(uint32_t));
+        memcpy(w, it->s + b1, len * sizeof (uint32_t));
+        w[len] = 0;
         vector32_append(v32, w);
       }
     }

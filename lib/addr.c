@@ -30,6 +30,9 @@
 #include "printf.h"
 #include "addr.h"
 #include "mem.h"
+#include "syscalls.h"
+#include "configuration.h"
+#include "vector.h"
 
 /** @brief Convert a pair of strings to an address
  * @param a Pointer to string list
@@ -60,23 +63,24 @@ struct addrinfo *get_address(const struct stringlist *a,
   case 1:
     byte_xasprintf(&name, "host * service %s", a->s[0]);
     if((rc = getaddrinfo(0, a->s[0], pref, &res))) {
-      error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
+      disorder_error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
       return 0;
     }
     break;
   case 2:
     byte_xasprintf(&name, "host %s service %s", a->s[0], a->s[1]);
     if((rc = getaddrinfo(a->s[0], a->s[1], pref, &res))) {
-      error(0, "getaddrinfo %s %s: %s", a->s[0], a->s[1], gai_strerror(rc));
+      disorder_error(0, "getaddrinfo %s %s: %s",
+		     a->s[0], a->s[1], gai_strerror(rc));
       return 0;
     }
     break;
   default:
-    error(0, "invalid network address specification (n=%d)", a->n);
+    disorder_error(0, "invalid network address specification (n=%d)", a->n);
     return 0;
   }
   if(!res || (pref && res->ai_socktype != pref->ai_socktype)) {
-    error(0, "getaddrinfo didn't give us a suitable socket address");
+    disorder_error(0, "getaddrinfo didn't give us a suitable socket address");
     if(res)
       freeaddrinfo(res);
     return 0;
@@ -92,29 +96,38 @@ struct addrinfo *get_address(const struct stringlist *a,
  */
 int addrinfocmp(const struct addrinfo *a,
 		const struct addrinfo *b) {
-  const struct sockaddr_in *ina, *inb;
-  const struct sockaddr_in6 *in6a, *in6b;
-  
   if(a->ai_family != b->ai_family) return a->ai_family - b->ai_family;
   if(a->ai_socktype != b->ai_socktype) return a->ai_socktype - b->ai_socktype;
   if(a->ai_protocol != b->ai_protocol) return a->ai_protocol - b->ai_protocol;
-  switch(a->ai_family) {
+  return sockaddrcmp(a->ai_addr, b->ai_addr);
+}
+
+/** @brief Comparison function for socket addresses
+ *
+ * Suitable for qsort().
+ */
+int sockaddrcmp(const struct sockaddr *a,
+		const struct sockaddr *b) {
+  const struct sockaddr_in *ina, *inb;
+  const struct sockaddr_in6 *in6a, *in6b;
+  
+  if(a->sa_family != b->sa_family) return a->sa_family - b->sa_family;
+  switch(a->sa_family) {
   case PF_INET:
-    ina = (const struct sockaddr_in *)a->ai_addr;
-    inb = (const struct sockaddr_in *)b->ai_addr;
+    ina = (const struct sockaddr_in *)a;
+    inb = (const struct sockaddr_in *)b;
     if(ina->sin_port != inb->sin_port) return ina->sin_port - inb->sin_port;
     return ina->sin_addr.s_addr - inb->sin_addr.s_addr;
     break;
   case PF_INET6:
-    in6a = (const struct sockaddr_in6 *)a->ai_addr;
-    in6b = (const struct sockaddr_in6 *)b->ai_addr;
+    in6a = (const struct sockaddr_in6 *)a;
+    in6b = (const struct sockaddr_in6 *)b;
     if(in6a->sin6_port != in6b->sin6_port)
       return in6a->sin6_port - in6b->sin6_port;
     return memcmp(&in6a->sin6_addr, &in6b->sin6_addr,
 		  sizeof (struct in6_addr));
   default:
-    error(0, "unsupported protocol family %d", a->ai_protocol);
-    return memcmp(a->ai_addr, b->ai_addr, a->ai_addrlen); /* kludge */
+    disorder_fatal(0, "unsupported protocol family %d", a->sa_family);
   }
 }
 
@@ -192,6 +205,142 @@ char *format_sockaddr(const struct sockaddr *sa) {
   default:
     return 0;
   }
+}
+
+/** @brief Parse the text form of a network address
+ * @param na Where to store result
+ * @param nvec Number of strings
+ * @param vec List of strings
+ * @return 0 on success, -1 on syntax error
+ */
+int netaddress_parse(struct netaddress *na,
+		     int nvec,
+		     char **vec) {
+  const char *port;
+
+  na->af = AF_UNSPEC;
+  if(nvec > 0 && vec[0][0] == '-') {
+    if(!strcmp(vec[0], "-4"))
+      na->af = AF_INET;
+    else if(!strcmp(vec[0], "-6")) 
+      na->af = AF_INET6;
+    else if(!strcmp(vec[0], "-unix"))
+      na->af = AF_UNIX;
+    else if(!strcmp(vec[0], "-"))
+      na->af = AF_UNSPEC;
+    else
+      return -1;
+    --nvec;
+    ++vec;
+  }
+  if(nvec == 0)
+    return -1;
+  /* Possibilities are:
+   *
+   *       /path/to/unix/socket      an AF_UNIX socket
+   *       * PORT                    any address, specific port
+   *       PORT                      any address, specific port
+   *       ADDRESS PORT              specific address, specific port
+   */
+  if(vec[0][0] == '/' && na->af == AF_UNSPEC)
+    na->af = AF_UNIX;
+  if(na->af == AF_UNIX) {
+    if(nvec != 1)
+      return -1;
+    na->address = xstrdup(vec[0]);
+    na->port = -1;			/* makes no sense */
+  } else {
+    switch(nvec) {
+    case 1:
+      na->address = NULL;
+      port = vec[0];
+      break;
+    case 2:
+      if(!strcmp(vec[0], "*"))
+	na->address = NULL;
+      else
+	na->address = xstrdup(vec[0]);
+      port = vec[1];
+      break;
+    default:
+      return -1;
+    }
+    if(port[strspn(port, "0123456789")])
+      return -1;
+    long p;
+    int e = xstrtol(&p, port, NULL, 10);
+
+    if(e)
+      return -1;
+    if(p > 65535)
+      return -1;
+    na->port = (int)p;
+  }
+  return 0;
+}
+
+/** @brief Format a @ref netaddress structure
+ * @param na Network address to format
+ * @param nvecp Where to put string count, or NULL
+ * @param vecp Where to put strings
+ *
+ * The formatted form is suitable for passing to netaddress_parse().
+ */
+void netaddress_format(const struct netaddress *na,
+		       int *nvecp,
+		       char ***vecp) {
+  struct vector v[1];
+
+  vector_init(v);
+  switch(na->af) {
+  case AF_UNSPEC: vector_append(v, xstrdup("-")); break;
+  case AF_INET: vector_append(v, xstrdup("-4")); break;
+  case AF_INET6: vector_append(v, xstrdup("-6")); break;
+  case AF_UNIX: vector_append(v, xstrdup("-unix")); break;
+  }
+  if(na->address)
+    vector_append(v, xstrdup(na->address));
+  else
+    vector_append(v, xstrdup("*"));
+  if(na->port != -1) {
+    char buffer[64];
+
+    snprintf(buffer, sizeof buffer, "%d", na->port);
+    vector_append(v, xstrdup(buffer));
+  }
+  vector_terminate(v);
+  if(nvecp)
+    *nvecp = v->nvec;
+  if(vecp)
+    *vecp = v->vec;
+}
+
+/** @brief Resolve a network address
+ * @param na Address structure
+ * @param passive True if passive (bindable) address is desired
+ * @param protocol Protocol number desired (e.g. @c IPPROTO_TCP)
+ * @return List of suitable addresses or NULL
+ */
+struct addrinfo *netaddress_resolve(const struct netaddress *na,
+				    int passive,
+				    int protocol) {
+  struct addrinfo *res, hints[1];
+  char service[64];
+  int rc;
+
+  memset(hints, 0, sizeof hints);
+  hints->ai_family = na->af;
+  hints->ai_protocol = protocol;
+  hints->ai_flags = passive ? AI_PASSIVE : 0;
+  snprintf(service, sizeof service, "%d", na->port);
+  rc = getaddrinfo(na->address, service, hints, &res);
+  if(rc) {
+    disorder_error(0, "getaddrinfo %s %d: %s",
+		   na->address ? na->address : "*",
+		   na->port, gai_strerror(rc));
+    return NULL;
+  }
+  return res;
 }
 
 /*

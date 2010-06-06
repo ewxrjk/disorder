@@ -32,6 +32,10 @@
 #include "sink.h"
 #include "vacopy.h"
 
+/** @brief Flags from a converstion specification
+ *
+ * Order significant!
+ */
 enum flags {
   f_thousands = 1,
   f_left = 2,
@@ -43,6 +47,7 @@ enum flags {
   f_precision = 512
 };
 
+/** @brief Possible lengths of a conversion specification */
 enum lengths {
   l_char = 1,
   l_short,
@@ -56,29 +61,65 @@ enum lengths {
 
 struct conversion;
 
+/** @brief Formatter state */
 struct state {
+  /** @brief Output stream */
   struct sink *output;
+
+  /** @brief Number of bytes written */
   int bytes;
+
+  /** @brief Argument list */
   va_list ap;
 };
 
+/** @brief Definition of a conversion specifier */
 struct specifier {
+  /** @brief Defining character ('d', 's' etc) */
   int ch;
+
+  /** @brief Consistency check
+   * @param c Conversion being processed
+   * @return 0 if OK, -1 on error
+   */
   int (*check)(const struct conversion *c);
+
+  /** @brief Generate output
+   * @param s Formatter state
+   * @param c Conversion being processed
+   * @return 0 on success, -1 on error
+   */
   int (*output)(struct state *s, struct conversion *c);
+
+  /** @brief Number base */
   int base;
+
+  /** @brief Digit set */
   const char *digits;
+
+  /** @brief Alternative-form prefix */
   const char *xform;
 };
 
+/** @brief One conversion specified as it's handled */
 struct conversion {
+  /** @brief Flags in this conversion */
   unsigned flags;
+
+  /** @brief Field width (if @ref f_width) */
   int width;
+
+  /** @brief Precision (if @ref f_precision) */
   int precision;
+
+  /** @brief Length modifier or 0 */
   int length;
+
+  /** @brief Specifier used */
   const struct specifier *specifier;
 };
 
+/** @brief Flag characters (order significant!) */
 static const char flags[] = "'-+ #0";
 
 /* write @nbytes@ to the output.  Return -1 on error, 0 on success.

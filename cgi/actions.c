@@ -44,7 +44,7 @@ static void redirect(const char *url) {
   if(printf("Location: %s\n"
             "%s\n"
             "\n", url, dcgi_cookie_header()) < 0)
-    fatal(errno, "error writing to stdout");
+    disorder_fatal(errno, "error writing to stdout");
 }
 
 /*$ playing
@@ -75,7 +75,7 @@ static void act_playing(void) {
      && length
      && dcgi_playing->sofar >= 0) {
     /* Try to put the next refresh at the start of the next track. */
-    time(&now);
+    xtime(&now);
     fin = now + length - dcgi_playing->sofar + config->gap;
     if(now + refresh > fin)
       refresh = fin - now;
@@ -95,13 +95,17 @@ static void act_playing(void) {
     if(refresh > config->gap)
       refresh = config->gap;
   }
+  /* Bound the refresh interval below as a back-stop against the above
+   * calculations coming up with a stupid answer */
+  if(refresh < config->refresh_min)
+    refresh = config->refresh_min;
   if((action = cgi_get("action")))
     url = cgi_makeurl(config->url, "action", action, (char *)0);
   else
     url = config->url;
   if(printf("Refresh: %ld;url=%s\n",
             refresh, url) < 0)
-    fatal(errno, "error writing to stdout");
+    disorder_fatal(errno, "error writing to stdout");
   dcgi_expand("playing", 1);
 }
 
@@ -176,12 +180,12 @@ static void act_remove(void) {
 
   if(dcgi_client) {
     if(!(id = cgi_get("id")))
-      error(0, "missing 'id' argument");
+      disorder_error(0, "missing 'id' argument");
     else if(!(q = dcgi_findtrack(id)))
-      error(0, "unknown queue id %s", id);
+      disorder_error(0, "unknown queue id %s", id);
     else if(q->origin == origin_scratch)
       /* can't scratch scratches */
-      error(0, "does not make sense to scratch or remove %s", id);
+      disorder_error(0, "does not make sense to scratch or remove %s", id);
     else if(q->state == playing_paused
             || q->state == playing_started)
       /* removing the playing track = scratching */
@@ -191,7 +195,7 @@ static void act_remove(void) {
       disorder_remove(dcgi_client, id);
     else
       /* various error states */
-      error(0, "does not make sense to scratch or remove %s", id);
+      disorder_error(0, "does not make sense to scratch or remove %s", id);
   }
   redirect(0);
 }
@@ -208,18 +212,18 @@ static void act_move(void) {
 
   if(dcgi_client) {
     if(!(id = cgi_get("id")))
-      error(0, "missing 'id' argument");
+      disorder_error(0, "missing 'id' argument");
     else if(!(delta = cgi_get("delta")))
-      error(0, "missing 'delta' argument");
+      disorder_error(0, "missing 'delta' argument");
     else if(!(q = dcgi_findtrack(id)))
-      error(0, "unknown queue id %s", id);
+      disorder_error(0, "unknown queue id %s", id);
     else switch(q->state) {
     case playing_random:                /* unplayed randomly chosen track */
     case playing_unplayed:              /* haven't played this track yet */
       disorder_move(dcgi_client, id, atol(delta));
       break;
     default:
-      error(0, "does not make sense to scratch %s", id);
+      disorder_error(0, "does not make sense to scratch %s", id);
       break;
     }
   }
@@ -438,7 +442,7 @@ static void act_register(void) {
 		 "\n"
 		 "%s?c=%s\n", config->url, urlencodestring(confirm));
   if(!(text = mime_encode_text(text, &charset, &encoding)))
-    fatal(0, "cannot encode email");
+    disorder_fatal(0, "cannot encode email");
   byte_xasprintf(&content_type, "text/plain;charset=%s",
 		 quote822(charset, 0));
   sendmail("", config->mail_sender, email, "Welcome to DisOrder",
@@ -726,19 +730,19 @@ void dcgi_expand(const char *name, int header) {
     mx_expand_file(found, sink_discard(), 0);
   /* For unknown actions check that they aren't evil */
   if(!dcgi_valid_action(name))
-    fatal(0, "invalid action name '%s'", name);
+    disorder_fatal(0, "invalid action name '%s'", name);
   byte_xasprintf((char **)&p, "%s.tmpl", name);
   if(!(found = mx_find(p, 0/*report*/)))
-    fatal(errno, "cannot find %s", p);
+    disorder_fatal(errno, "cannot find %s", p);
   if(header) {
     if(printf("Content-Type: text/html; charset=UTF-8\n"
               "%s\n"
               "\n", dcgi_cookie_header()) < 0)
-      fatal(errno, "error writing to stdout");
+      disorder_fatal(errno, "error writing to stdout");
   }
   if(mx_expand_file(found, sink_stdio("stdout", stdout), 0) == -1
      || fflush(stdout) < 0)
-    fatal(errno, "error writing to stdout");
+    disorder_fatal(errno, "error writing to stdout");
 }
 
 /** @brief Execute a web action

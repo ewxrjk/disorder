@@ -1,0 +1,187 @@
+The effect of "disorder reconfigure"
+====================================
+
+This is current rather vaguely defined and implemented.  This file
+will lay out what you can and cannot change over a reconfigure.  Any
+other changes will require a full server restart.
+
+The situation is gradually improving; this file tracks the current
+state.
+
+* Options that might have to remain the same across restart
+
+Arguably if there is anything in this section then that's a serious
+bug!
+
+** alias (enforced at reload only)
+
+This defines how aliases are inserted into the track database.  Need
+to think about how changing it will affect things.
+
+** namepart (enforced at reload only)
+
+Probably affects alias construction.
+
+** stopword (enforced at reload only)
+
+The search database will have to be rebuilt from scratch.
+
+** user (enforced at reload only)
+
+All the files will be owned by the wrong user!
+
+** Alias, search database, etc
+
+Rescan can regenerate aliases and the search and tag databases but we
+rather assume that they are either empty or good.  Therefore we need
+to store anything that can affect these values and erase them if they
+change.
+
+The solution is a global pref _dbparams which contains the hash of the
+alias, stopword and namepart data.
+
+* Options that must remain the same across reload
+
+Some things will just require a restart.  We should either enforce
+this (refusing to accept modified configurations that purport to
+change them) or explicitly ignore it.
+
+** home (enforced at reload)
+
+We absolutely cannot accept changing our state directory.
+
+** lock (generates a deprecation warning)
+
+Liable to be removed anyway.
+
+** nice_speaker (generates a warning)
+
+You can't renice a running speaker to make it less nice (and we don't
+try to make it more nice).
+
+* Options that ought to be changable across reload but aren't
+
+These options need some work somewhere to be changeable just by a
+reload.
+
+** api
+
+The main server will cope fine with this changing.  The speaker will
+ignore the change however.
+
+** broadcast
+
+The speaker will ignore the change.
+
+** broadcast_from
+
+The speaker will ignore the change.
+
+** collection
+
+If the set of collections change we ought to initiate a rescan.
+
+** device
+
+The speaker will ignore the change.
+
+** multicast_loop
+
+The speaker will ignore the change.
+
+** multicast_ttl
+
+The speaker will ignore the change.
+
+** pause_mode
+
+The speaker will ignore the change.
+
+** sample_format
+
+The speaker will ignore the change.
+
+** speaker_command
+
+The speaker will ignore the change.
+
+* Options that can be changed across reload
+
+These options can be changed at reload and it should just work.
+
+** authorization_algoritm
+
+** channel
+
+** default_rights
+
+** listen
+
+** mixer
+
+** new_bias
+
+** new_bias_age
+
+** new_max
+
+** nice_rescan
+
+Wouldn't affect an already-running rescan, but reload already cancels
+and restarts the underway rescan anyway.
+
+** noticed_history
+
+** reminder_interval
+
+** remote_userman
+
+** replay_min
+
+** signal
+
+** sox_generation
+
+** scratch
+
+* Options that can change, but with a caveat
+
+These options can be changed at reload but there is some caveat about
+this (which ought to be documented, and in some cases is).
+
+** plugins
+
+Plugin path.  You can change the plugin path but an already-loaded
+plugin may stay loaded.
+
+** cookie_key_lifetime
+
+Only affects subsequently generated keys - cannot shorten (or extend)
+the lifetime of the current key.
+
+** cookie_login_lifetime
+
+Only affects subsequently generated cookies - cannot shorten (or
+extend) the lifetime of already-generated cookies.
+
+** history
+
+The history might not shorten until it's next written.
+
+** player
+
+Won't affect running players or decoders.
+
+** queue_pad
+
+Won't shrink the queue.
+
+** tracklength
+
+Won't affect already-computed lengths.
+
+* Implementation Considerations
+
+A likely change is that the speaker will be created on demand and
+stopped when idle.  Some changes will still be handled via SM_RELOAD
+but others may require the speaker to quit and restart.

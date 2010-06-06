@@ -1,0 +1,6 @@
+# Dummy config file for decoder testing
+
+api command
+speaker_command true
+sample_format 16b/44100/2
+

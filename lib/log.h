@@ -30,13 +30,13 @@ void set_progname(char **argv);
 
 void elog(int pri, int errno_value, const char *fmt, va_list ap);
 
-void fatal(int errno_value, const char *msg, ...) attribute((noreturn))
+void disorder_fatal(int errno_value, const char *msg, ...) attribute((noreturn))
   attribute((format (printf, 2, 3)));
-void error(int errno_value, const char *msg, ...)
+void disorder_error(int errno_value, const char *msg, ...)
   attribute((format (printf, 2, 3)));
-void info(const char *msg, ...)
+void disorder_info(const char *msg, ...)
   attribute((format (printf, 1, 2)));
-void debug(const char *msg, ...)
+void disorder_debug(const char *msg, ...)
   attribute((format (printf, 1, 2)));
 /* report a message of the given class.  @errno_value@ if present an
  * non-zero is included.  @fatal@ terminates the process. */
@@ -55,12 +55,18 @@ extern struct log_output log_stderr, log_syslog, *log_default;
 
 extern const char *debug_filename;
 extern int debug_lineno;
+extern int logdate;
 
+/** @brief Issue a debug message if debugging is turned on
+ * @param x Parenthesized debug arguments
+ *
+ * Use in the format: D(("format string", arg, arg, ...));
+ */
 #define D(x) do {				\
   if(debugging) {				\
     debug_filename=__FILE__;			\
     debug_lineno=__LINE__;			\
-    debug x;					\
+    disorder_debug x;				\
   }						\
 } while(0)
 

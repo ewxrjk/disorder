@@ -71,7 +71,7 @@ void ql_properties_activate(GtkMenuItem attribute((unused)) *menuitem,
     gtk_tree_model_iter_next(GTK_TREE_MODEL(ql->store), iter);
   }
   if(v->nvec)
-    properties(v->nvec, (const char **)v->vec);
+    properties(v->nvec, (const char **)v->vec, ql->view);
 }
 
 /* Scratch */

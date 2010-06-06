@@ -17,6 +17,45 @@ all 1.1.x versions.
 
 If you install from .deb files then much of this work is automated.
 
+* 4.x -> 5.0
+
+** Web Confirmation Strings
+
+The syntax of confirmation strings for online registrations has changed and old
+ones no longer work.  This only affects users who registered before the upgrade
+but have not yet confirmed their login.  You can delete such half-created users
+with 'disorder deluser USERNAME' (as an administrative user, for instance as
+root on the server) and they can start the registration process again.
+
+** Handling Of Configuration Changes
+
+There is a new mechanism to ensure that the search database and aliases are
+reconstructed if any options that affect them change.  Unfortunately this means
+that the reconstruction step always takes place on upgrade from 4.3 or earlier,
+as those versions don't record sufficient information for the server to tell
+whether it needs to reconstruct or not.
+
+The result will be a log message of the form:
+
+new database parameter string dbparams-0-sha256:61609f3e6395ec8dee317ee216fe2848d70c249d347dd03c6a219441a13dd456 - removing old data
+
+...and a slower rescan on startup.  Subsequent restarts should not have this
+problem (unless of course you change a relevant option).
+
+** Deprecation Notices
+
+The player --wait-for-device option is deprecated and will be removed in a
+future version.
+
+The 'lock' option no longer does anything.  You must delete it from any
+configuration files that contain it.  The full set of deprecated options is:
+  allow
+  gap
+  lock
+  prefsync
+  restrict
+  trust
+
 * 3.0 -> 4.x
 
 If you customized any of the templates, you will pretty much have to start from

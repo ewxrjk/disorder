@@ -24,22 +24,23 @@ It could probably be ported to some other UNIX variants without too much
 effort.
 
 Build dependencies:
-  Name             Tested              Notes
-  libdb            4.3.29              not 4.2/4.6; 4.[457] seem to be ok
+  Name             Tested      Notes
+  libdb            4.5.20      not 4.6; 4.[78] seem to be ok
   libgc            6.8
-  libvorbisfile    1.1.2
-  libpcre          6.7                 need UTF-8 support
+  libvorbisfile    1.2.0
+  libpcre          7.6         need UTF-8 support
   libmad           0.15.1b
-  libgcrypt        1.2.3
-  libao            0.8.6
-  libasound        1.0.13
-  libFLAC          1.1.2
-  GNU C            4.1.2               }
-  GNU Make         3.81                } Non-GNU versions will NOT work
-  GNU Sed          4.1.5               }
-  Python           2.4.4               (optional)
-  GTK+             2.8.20              (if you want the GTK+ client)
-  GLIB             2.12.4              (if you want the GTK+ client)
+  libgcrypt        1.4.1
+  libao            0.8.8       1.0.0 is broken
+  libasound        1.0.16
+  libFLAC          1.2.1
+  libsamplerate    0.1.4       currently optional
+  GNU C            4.2.1       }
+  GNU Make         3.81        } Non-GNU versions will NOT work
+  GNU Sed          4.1.5       }
+  Python           2.5.2       (optional; 2.4 won't work)
+  GTK+             2.12.12     (for the GTK+ client; 2.10 & older will NOT work)
+  GLIB             2.16.6      (for the GTK+ client)
 
 "Tested" means I've built against that version; earlier or later versions will
 often work too.
@@ -263,13 +264,14 @@ Copyright
   "Nothing but another drug, a licence that you buy and sell"
 
 DisOrder - select and play digital audio files
-Copyright (C) 2003-2008 Richard Kettlewell
+Copyright (C) 2003-2009 Richard Kettlewell
 Portions copyright (C) 2007 Ross Younger
 Portions copyright (C) 2007 Mark Wooding
 Portions extracted from MPG321, http://mpg321.sourceforge.net/
   Copyright (C) 2001 Joe Drew
   Copyright (C) 2000-2001 Robert Leslie
 Portions Copyright (C) 1997-2006 Free Software Foundation, Inc.
+Portions Copyright (C) 2000 Red Hat, Inc., Jonathan Blandford <jrb@redhat.com>
 Binaries may derive extra copyright owners through linkage (binary distributors
 are expected to do their own legwork)
 

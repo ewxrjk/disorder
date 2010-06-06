@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,8 +57,8 @@ static void help(void) {
 static int handle_sighup(ev_source attribute((unused)) *ev_,
 			 int attribute((unused)) sig,
 			 void attribute((unused)) *u) {
-  info("received SIGHUP");
-  reconfigure(ev, 1);
+  disorder_info("received SIGHUP");
+  reconfigure(ev, RECONFIGURE_RELOADING);
   return 0;
 }
 
@@ -67,14 +67,14 @@ static int handle_sighup(ev_source attribute((unused)) *ev_,
 static int handle_sigint(ev_source attribute((unused)) *ev_,
 			 int attribute((unused)) sig,
 			 void attribute((unused)) *u) {
-  info("received SIGINT");
+  disorder_info("received SIGINT");
   quit(ev);
 }
 
 static int handle_sigterm(ev_source attribute((unused)) *ev_,
 			  int attribute((unused)) sig,
 			  void attribute((unused)) *u) {
-  info("received SIGTERM");
+  disorder_info("received SIGTERM");
   quit(ev);
 }
 
@@ -132,7 +132,8 @@ static void periodic_volume_check(ev_source attribute((unused)) *ev_) {
   int l, r;
   char lb[32], rb[32];
 
-  if(!mixer_control(-1/*as configured*/, &l, &r, 0)) {
+  if(api && api->get_volume) {
+    api->get_volume(&l, &r);
     if(l != volume_left || r != volume_right) {
       volume_left = l;
       volume_right = r;
@@ -158,7 +159,7 @@ static void fix_path(void) {
   /* static or libgc collects it! */
 
   if(!path)
-    error(0, "PATH is not set at all!");
+    disorder_error(0, "PATH is not set at all!");
 
   if(*finkbindir && strcmp(finkbindir, "/"))
     /* We appear to be a finkized mac; include fink on the path in case the
@@ -168,7 +169,7 @@ static void fix_path(void) {
   else
     byte_xasprintf(&newpath, "PATH=%s:%s:%s", path, bindir, sbindir);
   putenv(newpath);
-  info("%s", newpath); 
+  disorder_info("%s", newpath); 
 }
 
 int main(int argc, char **argv) {
@@ -178,7 +179,8 @@ int main(int argc, char **argv) {
 
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, ""))
+    disorder_fatal(errno, "error calling setlocale");
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
@@ -192,7 +194,7 @@ int main(int argc, char **argv) {
     case 'P': pidfile = optarg; break;
     case 's': logsyslog = 1; break;
     case 'w': wideopen = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   /* go into background if necessary */
@@ -204,29 +206,33 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  info("process ID %lu", (unsigned long)getpid());
+  disorder_info("process ID %lu", (unsigned long)getpid());
   fix_path();
-  srand(time(0));			/* don't start the same every time */
+  srand(xtime(0));			/* don't start the same every time */
   /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
   gcry_control(GCRYCTL_INIT_SECMEM, 1);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   /* make sure we can't have more than FD_SETSIZE files open (event.c does
    * check but this provides an additional line of defence) */
   if(getrlimit(RLIMIT_NOFILE, rl) < 0)
-    fatal(errno, "getrlimit RLIMIT_NOFILE");
+    disorder_fatal(errno, "getrlimit RLIMIT_NOFILE");
   if(rl->rlim_cur > FD_SETSIZE) {
     rl->rlim_cur = FD_SETSIZE;
     if(setrlimit(RLIMIT_NOFILE, rl) < 0)
-      fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
-            (unsigned long)rl->rlim_cur);
-    info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
+      disorder_fatal(errno, "setrlimit to reduce RLIMIT_NOFILE to %lu",
+		     (unsigned long)rl->rlim_cur);
+    disorder_info("set RLIM_NOFILE to %lu", (unsigned long)rl->rlim_cur);
   } else
-    info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
+    disorder_info("RLIM_NOFILE is %lu", (unsigned long)rl->rlim_cur);
   /* create event loop */
   ev = ev_new();
-  if(ev_child_setup(ev)) fatal(0, "ev_child_setup failed");
+  if(ev_child_setup(ev)) disorder_fatal(0, "ev_child_setup failed");
   /* read config */
-  if(config_read(1))
-    fatal(0, "cannot read configuration");
+  config_uaudio_apis = uaudio_apis;
+  if(config_read(1,  NULL))
+    disorder_fatal(0, "cannot read configuration");
   /* make sure the home directory exists and has suitable permissions */
   make_home();
   /* Start the speaker process (as root! - so it can choose its nice value) */
@@ -237,37 +243,53 @@ int main(int argc, char **argv) {
   /* change user */
   become_mortal();
   /* make sure we're not root, whatever the config says */
-  if(getuid() == 0 || geteuid() == 0) fatal(0, "do not run as root");
+  if(getuid() == 0 || geteuid() == 0)
+    disorder_fatal(0, "do not run as root");
   /* open a lockfile - we only want one copy of the server to run at once. */
-  if(config->lock) {
+  if(1) {
     const char *lockfile;
     int lockfd;
     struct flock lock;
 
     lockfile = config_get_file("lock");
     if((lockfd = open(lockfile, O_RDWR|O_CREAT, 0600)) < 0)
-      fatal(errno, "error opening %s", lockfile);
+      disorder_fatal(errno, "error opening %s", lockfile);
     cloexec(lockfd);
     memset(&lock, 0, sizeof lock);
     lock.l_type = F_WRLCK;
     lock.l_whence = SEEK_SET;
     if(fcntl(lockfd, F_SETLK, &lock) < 0)
-      fatal(errno, "error locking %s", lockfile);
+      disorder_fatal(errno, "error locking %s", lockfile);
   }
   /* initialize database environment */
   trackdb_init(TRACKDB_NORMAL_RECOVER|TRACKDB_MAY_CREATE);
   trackdb_master(ev);
-  /* install new config (calls trackdb_open()) */
-  reconfigure(ev, 0);
+  /* install new config; don't create socket */
+  if(reconfigure(ev, RECONFIGURE_FIRST))
+    disorder_fatal(0, "failed to read configuration");
+  /* Open the database */
+  trackdb_open(TRACKDB_CAN_UPGRADE);
+  /* load the queue and recently-played list */
+  queue_read();
+  recent_read();
+  /* Arrange timeouts for schedule actions */
+  schedule_init(ev);
   /* pull in old users */
   trackdb_old_users();
   /* create a root login */
   trackdb_create_root();
+  /* create sockets */
+  reset_sockets(ev);
+  /* check for change to database parameters */
+  dbparams_check();
   /* re-read config if we receive a SIGHUP */
-  if(ev_signal(ev, SIGHUP, handle_sighup, 0)) fatal(0, "ev_signal failed");
+  if(ev_signal(ev, SIGHUP, handle_sighup, 0))
+    disorder_fatal(0, "ev_signal failed");
   /* exit on SIGINT/SIGTERM */
-  if(ev_signal(ev, SIGINT, handle_sigint, 0)) fatal(0, "ev_signal failed");
-  if(ev_signal(ev, SIGTERM, handle_sigterm, 0)) fatal(0, "ev_signal failed");
+  if(ev_signal(ev, SIGINT, handle_sigint, 0))
+    disorder_fatal(0, "ev_signal failed");
+  if(ev_signal(ev, SIGTERM, handle_sigterm, 0))
+    disorder_fatal(0, "ev_signal failed");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
   /* Rescan immediately and then daily */
@@ -283,7 +305,7 @@ int main(int argc, char **argv) {
   /* enter the event loop */
   n = ev_run(ev);
   /* if we exit the event loop, something must have gone wrong */
-  fatal(errno, "ev_run returned %d", n);
+  disorder_fatal(errno, "ev_run returned %d", n);
 }
 
 /*

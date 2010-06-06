@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,10 @@ const char *const track_origins[] = {
 
 #define VALUE(q, offset, type) *(type *)((char *)q + offset)
 
-/* add new entry @n@ to a doubly linked list just after @b@ */
+/** @brief Insert queue entry @p n just after @p b
+ * @param b Insert after this entry
+ * @param n New entry to insert
+ */
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n) {
   n->prev = b;
   n->next = b->next;
@@ -86,9 +89,9 @@ static const char *marshall_long(const struct queue_entry *q, size_t offset) {
 
   n = byte_snprintf(buffer, sizeof buffer, "%ld", VALUE(q, offset, long));
   if(n < 0)
-    fatal(errno, "error converting int");
+    disorder_fatal(errno, "error converting int");
   else if((size_t)n >= sizeof buffer)
-    fatal(0, "long converted to decimal is too long");
+    disorder_fatal(0, "long converted to decimal is too long");
   return xstrdup(buffer);
 }
 
@@ -125,9 +128,9 @@ static const char *marshall_time_t(const struct queue_entry *q, size_t offset) {
   n = byte_snprintf(buffer, sizeof buffer,
 		    "%"PRIdMAX, (intmax_t)VALUE(q, offset, time_t));
   if(n < 0)
-    fatal(errno, "error converting time");
+    disorder_fatal(errno, "error converting time");
   else if((size_t)n >= sizeof buffer)
-    fatal(0, "time converted to decimal is too long");
+    disorder_fatal(0, "time converted to decimal is too long");
   return xstrdup(buffer);
 }
 
@@ -203,6 +206,7 @@ int queue_unmarshall(struct queue_entry *q, const char *s,
   char **vec;
   int nvec;
 
+  q->pid = -1;                          /* =none */
   if(!(vec = split(s, &nvec, SPLIT_QUOTES, error_handler, u)))
     return -1;
   return queue_unmarshall_vec(q, nvec, vec, error_handler, u);

@@ -48,17 +48,32 @@ static void queue_id(struct queue_entry *q) {
   q->id = id;
 }
 
+/** @brief Add a track to the queue
+ * @param track Track to add
+ * @param submitter Who added it, or NULL
+ * @param where Where to add it
+ * @param target ID to add after for @ref WHERE_AFTER
+ * @param origin Track origin
+ * @return New queue entry or NULL
+ *
+ * The queue is NOT saved to disk.
+ *
+ * NULL can only be returned if @ref WHERE_AFTER is used with an invalid
+ * queue ID.
+ */
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where, enum track_origin origin) {
-  struct queue_entry *q, *beforeme;
+			      int where, const char *target,
+                              enum track_origin origin) {
+  struct queue_entry *q, *beforeme, *afterme;
 
   q = xmalloc(sizeof *q);
   q->track = xstrdup(track);
   q->submitter = submitter ? xstrdup(submitter) : 0;
   q->state = playing_unplayed;
   q->origin = origin;
+  q->pid = -1;
   queue_id(q);
-  time(&q->when);
+  xtime(&q->when);
   switch(where) {
   case WHERE_START:
     queue_insert_entry(&qhead, q);
@@ -75,6 +90,22 @@ struct queue_entry *queue_add(const char *track, const char *submitter,
       beforeme = beforeme->prev;
     queue_insert_entry(beforeme->prev, q);
     break;
+  case WHERE_AFTER:
+    if(!*target)
+      /* Insert at start of queue */
+      afterme = &qhead;
+    else {
+      /* Insert after a specific track */
+      afterme = qhead.next;
+      while(afterme != &qhead && strcmp(afterme->id, target))
+        afterme = afterme->next;
+      if(afterme == &qhead)
+        return NULL;
+    }
+    queue_insert_entry(afterme, q);
+    break;
+  case WHERE_NOWHERE:
+    return q;
   }
   /* submitter will be a null pointer for a scratch */
   if(submitter)
@@ -125,7 +156,7 @@ int queue_move(struct queue_entry *q, int delta, const char *who) {
   }
 
   if(moved) {
-    info("user %s moved %s", who, q->id);
+    disorder_info("user %s moved %s", who, q->id);
     notify_queue_move(q->track, who);
     sprintf(buffer, "%d", moved);
     eventlog("moved", who, (char *)0);
@@ -153,7 +184,7 @@ void queue_moveafter(struct queue_entry *target,
     queue_insert_entry(target, q);
     target = q;
     /* Log the individual tracks */
-    info("user %s moved %s", who, q->id);
+    disorder_info("user %s moved %s", who, q->id);
     notify_queue_move(q->track, who);
   }
   /* Report that the queue changed to the event log */
@@ -162,7 +193,7 @@ void queue_moveafter(struct queue_entry *target,
 
 void queue_remove(struct queue_entry *which, const char *who) {
   if(who) {
-    info("user %s removed %s", who, which->id);
+    disorder_info("user %s removed %s", who, which->id);
     notify_queue_move(which->track, who);
   }
   eventlog("removed", which->id, who, (const char *)0);

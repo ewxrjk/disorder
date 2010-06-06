@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+# Copyright (C) 2004, 2007-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,16 +17,7 @@
 #
 
 pkgdata_DATA=slap.ogg scratch.ogg
-noinst_DATA=long.ogg
 
-EXTRA_DIST=${pkgdata_DATA}
-
-%.raw: %.ogg
-	oggdec -b16 -R -o $@ $<
-
-long.ogg: slap.raw
-	cat slap.raw slap.raw slap.raw slap.raw slap.raw slap.raw \
-		slap.raw slap.raw | oggenc -r -o $@ -
-
-clean-local:
-	rm -f long.ogg slap.raw
+EXTRA_DIST=${pkgdata_DATA} \
+	scratch.wav scratch.flac scratch.mp3 scratch.raw long.ogg \
+	scratch-mp3.raw

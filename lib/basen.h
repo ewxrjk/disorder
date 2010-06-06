@@ -19,7 +19,7 @@
 #ifndef BASEN_H
 #define BASEN_H
 
-int basen(unsigned long *v,
+int basen(uint32_t *v,
 	  int nwords,
 	  char buffer[],
 	  size_t bufsize,
@@ -28,6 +28,11 @@ int basen(unsigned long *v,
  * into a base-@base@ string and store in @buffer@.
  * Returns 0 on success or -1 on overflow.
  */
+
+int nesab(uint32_t *v,
+          int nwords,
+          const char *s,
+          unsigned base);
 
 #endif /* BASEN_H */
 

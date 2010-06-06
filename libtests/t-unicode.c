@@ -30,13 +30,13 @@ static FILE *open_unicode_test(const char *path) {
     base = path;
   if(!(fp = fopen(base, "r"))) {
     snprintf(buffer, sizeof buffer,
-             "wget http://www.unicode.org/Public/5.0.0/ucd/%s", path);
+             "wget http://www.unicode.org/Public/5.1.0/ucd/%s", path);
     if((w = system(buffer)))
-      fatal(0, "%s: %s", buffer, wstat(w));
+      disorder_fatal(0, "%s: %s", buffer, wstat(w));
     if(chmod(base, 0444) < 0)
-      fatal(errno, "chmod %s", base);
+      disorder_fatal(errno, "chmod %s", base);
     if(!(fp = fopen(base, "r")))
-      fatal(errno, "%s", base);
+      disorder_fatal(errno, "%s", base);
   }
   return fp;
 }
@@ -79,7 +79,7 @@ static void breaktest(const char *path,
         buffer[bn++] = strtoul(lp, &lp, 16);
         continue;
       }
-      fatal(0, "%s:%d: evil line: %s", path, lineno, l);
+      disorder_fatal(0, "%s:%d: evil line: %s", path, lineno, l);
     }
     for(n = 0; n <= bn; ++n) {
       if(breakfn(buffer, bn, n) != break_allowed[n]) {

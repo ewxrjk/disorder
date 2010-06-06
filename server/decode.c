@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,14 +63,14 @@ static int input_count;
 /** @brief Write an 8-bit word */
 static inline void output_8(int n) {
   if(putc(n, outputfp) < 0)
-    fatal(errno, "decoding %s: output error", path);
+    disorder_fatal(errno, "decoding %s: output error", path);
 }
 
 /** @brief Write a 16-bit word in bigendian format */
 static inline void output_16(uint16_t n) {
   if(putc(n >> 8, outputfp) < 0
      || putc(n, outputfp) < 0)
-    fatal(errno, "decoding %s: output error", path);
+    disorder_fatal(errno, "decoding %s: output error", path);
 }
 
 /** @brief Write a 24-bit word in bigendian format */
@@ -78,7 +78,7 @@ static inline void output_24(uint32_t n) {
   if(putc(n >> 16, outputfp) < 0
      || putc(n >> 8, outputfp) < 0
      || putc(n, outputfp) < 0)
-    fatal(errno, "decoding %s: output error", path);
+    disorder_fatal(errno, "decoding %s: output error", path);
 }
 
 /** @brief Write a 32-bit word in bigendian format */
@@ -87,7 +87,7 @@ static inline void output_32(uint32_t n) {
      || putc(n >> 16, outputfp) < 0
      || putc(n >> 8, outputfp) < 0
      || putc(n, outputfp) < 0)
-    fatal(errno, "decoding %s: output error", path);
+    disorder_fatal(errno, "decoding %s: output error", path);
 }
 
 /** @brief Write a block header
@@ -98,7 +98,7 @@ static inline void output_32(uint32_t n) {
  * @param endian @ref ENDIAN_BIG or @ref ENDIAN_LITTLE
  *
  * Checks that the sample format is a supported one (so other calls do not have
- * to) and calls fatal() on error.
+ * to) and calls disorder_fatal() on error.
  */
 static void output_header(int rate,
 			  int channels,
@@ -108,18 +108,20 @@ static void output_header(int rate,
   struct stream_header header;
 
   if(bits <= 0 || bits % 8 || bits > 64)
-    fatal(0, "decoding %s: unsupported sample size %d bits", path, bits);
+    disorder_fatal(0, "decoding %s: unsupported sample size %d bits",
+                   path, bits);
   if(channels <= 0 || channels > 2)
-    fatal(0, "decoding %s: unsupported channel count %d", path, channels);
+    disorder_fatal(0, "decoding %s: unsupported channel count %d",
+                   path, channels);
   if(rate <= 0)
-    fatal(0, "decoding %s: nonsensical sample rate %dHz", path, rate);
+    disorder_fatal(0, "decoding %s: nonsensical sample rate %dHz", path, rate);
   header.rate = rate;
   header.bits = bits;
   header.channels = channels;
   header.endian = endian;
   header.nbytes = nbytes;
   if(fwrite(&header, sizeof header, 1, outputfp) < 1)
-    fatal(errno, "decoding %s: writing format header", path);
+    disorder_fatal(errno, "decoding %s: writing format header", path);
 }
 
 /** @brief Dithering state
@@ -239,7 +241,7 @@ static enum mad_flow mp3_input(void attribute((unused)) *data,
   /* Read new data */
   n = read(inputfd, input_buffer + remain, (sizeof input_buffer) - remain);
   if(n < 0)
-    fatal(errno, "reading from %s", path);
+    disorder_fatal(errno, "reading from %s", path);
   /* Compute total number of bytes available */
   input_count = remain + n;
   if(input_count)
@@ -256,8 +258,8 @@ static enum mad_flow mp3_error(void attribute((unused)) *data,
 			       struct mad_frame attribute((unused)) *frame) {
   if(0)
     /* Just generates pointless verbosity l-( */
-    error(0, "decoding %s: %s (%#04x)",
-          path, mad_stream_errorstr(stream), stream->error);
+    disorder_error(0, "decoding %s: %s (%#04x)",
+                   path, mad_stream_errorstr(stream), stream->error);
   return MAD_FLOW_CONTINUE;
 }
 
@@ -266,7 +268,7 @@ static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
   if((inputfd = open(path, O_RDONLY)) < 0)
-    fatal(errno, "opening %s", path);
+    disorder_fatal(errno, "opening %s", path);
   mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
   if(mad_decoder_run(mad, MAD_DECODER_MODE_SYNC))
@@ -284,22 +286,22 @@ static void decode_ogg(void) {
   vorbis_info *vi;
 
   if(!(fp = fopen(path, "rb")))
-    fatal(errno, "cannot open %s", path);
+    disorder_fatal(errno, "cannot open %s", path);
   /* There doesn't seem to be any standard function for mapping the error codes
    * to strings l-( */
   if((err = ov_open(fp, vf, 0/*initial*/, 0/*ibytes*/)))
-    fatal(0, "ov_fopen %s: %d", path, err);
+    disorder_fatal(0, "ov_fopen %s: %d", path, err);
   if(!(vi = ov_info(vf, 0/*link*/)))
-    fatal(0, "ov_info %s: failed", path);
+    disorder_fatal(0, "ov_info %s: failed", path);
   while((n = ov_read(vf, input_buffer, sizeof input_buffer, 1/*bigendianp*/,
                      2/*bytes/word*/, 1/*signed*/, &bitstream))) {
     if(n < 0)
-      fatal(0, "ov_read %s: %ld", path, n);
+      disorder_fatal(0, "ov_read %s: %ld", path, n);
     if(bitstream > 0)
-      fatal(0, "only single-bitstream ogg files are supported");
+      disorder_fatal(0, "only single-bitstream ogg files are supported");
     output_header(vi->rate, vi->channels, 16/*bits*/, n, ENDIAN_BIG);
     if(fwrite(input_buffer, 1, n, outputfp) < (size_t)n)
-      fatal(errno, "decoding %s: writing sample data", path);
+      disorder_fatal(errno, "decoding %s: writing sample data", path);
   }
 }
 
@@ -309,7 +311,7 @@ static int wav_write(struct wavfile attribute((unused)) *f,
                      size_t nbytes,
                      void attribute((unused)) *u) {
   if(fwrite(data, 1, nbytes, outputfp) < nbytes)
-    fatal(errno, "decoding %s: writing sample data", path);
+    disorder_fatal(errno, "decoding %s: writing sample data", path);
   return 0;
 }
 
@@ -319,10 +321,10 @@ static void decode_wav(void) {
   int err;
 
   if((err = wav_init(f, path)))
-    fatal(err, "opening %s", path);
+    disorder_fatal(err, "opening %s", path);
   output_header(f->rate, f->channels, f->bits, f->datasize, ENDIAN_LITTLE);
   if((err = wav_data(f, wav_write, 0)))
-    fatal(err, "error decoding %s", path);
+    disorder_fatal(err, "error decoding %s", path);
 }
 
 /** @brief Metadata callback for FLAC decoder
@@ -338,8 +340,8 @@ static void flac_metadata(const FLAC__FileDecoder attribute((unused)) *decoder,
 static void flac_error(const FLAC__FileDecoder attribute((unused)) *decoder,
 		       FLAC__StreamDecoderErrorStatus status,
 		       void attribute((unused)) *client_data) {
-  fatal(0, "error decoding %s: %s", path,
-        FLAC__StreamDecoderErrorStatusString[status]);
+  disorder_fatal(0, "error decoding %s: %s", path,
+                 FLAC__StreamDecoderErrorStatusString[status]);
 }
 
 /** @brief Write callback for FLAC decoder */
@@ -377,23 +379,30 @@ static void decode_flac(void) {
   FLAC__FileDecoderState fs;
 
   if(!(fd = FLAC__file_decoder_new()))
-    fatal(0, "FLAC__file_decoder_new failed");
+    disorder_fatal(0, "FLAC__file_decoder_new failed");
   if(!(FLAC__file_decoder_set_filename(fd, path)))
-    fatal(0, "FLAC__file_set_filename failed");
+    disorder_fatal(0, "FLAC__file_set_filename failed");
   FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
   FLAC__file_decoder_set_error_callback(fd, flac_error);
   FLAC__file_decoder_set_write_callback(fd, flac_write);
   if((fs = FLAC__file_decoder_init(fd)))
-    fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
+    disorder_fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
   FLAC__file_decoder_process_until_end_of_file(fd);
 #else
-  FLAC__StreamDecoder *sd = 0;
+  FLAC__StreamDecoder *sd = FLAC__stream_decoder_new();
   FLAC__StreamDecoderInitStatus is;
+
+  if (!sd)
+    disorder_fatal(0, "FLAC__stream_decoder_new failed");
 
   if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
                                           flac_error, 0)))
-    fatal(0, "FLAC__stream_decoder_init_file %s: %s",
-          path, FLAC__StreamDecoderInitStatusString[is]);
+    disorder_fatal(0, "FLAC__stream_decoder_init_file %s: %s",
+                   path, FLAC__StreamDecoderInitStatusString[is]);
+
+  FLAC__stream_decoder_process_until_end_of_stream(sd);
+  FLAC__stream_decoder_finish(sd);
+  FLAC__stream_decoder_delete(sd);
 #endif
 }
 
@@ -435,21 +444,21 @@ int main(int argc, char **argv) {
   const char *e;
 
   set_progname(argv);
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "calling setlocale");
   while((n = getopt_long(argc, argv, "hV", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-decode");
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(optind >= argc)
-    fatal(0, "missing filename");
+    disorder_fatal(0, "missing filename");
   if(optind + 1 < argc)
-    fatal(0, "excess arguments");
+    disorder_fatal(0, "excess arguments");
   if((e = getenv("DISORDER_RAW_FD"))) {
     if(!(outputfp = fdopen(atoi(e), "wb")))
-      fatal(errno, "fdopen");
+      disorder_fatal(errno, "fdopen");
   } else
     outputfp = stdout;
   path = argv[optind];
@@ -459,7 +468,7 @@ int main(int argc, char **argv) {
       ++n)
     ;
   if(!decoders[n].pattern)
-    fatal(0, "cannot determine file type for %s", path);
+    disorder_fatal(0, "cannot determine file type for %s", path);
   decoders[n].decode();
   xfclose(outputfp);
   return 0;

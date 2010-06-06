@@ -30,12 +30,14 @@ struct progress_window {
 };
 
 /** @brief Create a progress window */
-struct progress_window *progress_window_new(const char *title) {
+struct progress_window *progress_window_new(const char *title,
+                                            GtkWidget *parent) {
   struct progress_window *pw = xmalloc(sizeof *pw);
 
   pw->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_transient_for(GTK_WINDOW(pw->window),
-                               GTK_WINDOW(toplevel));
+  if(parent)
+    gtk_window_set_transient_for(GTK_WINDOW(pw->window),
+                                 GTK_WINDOW(parent));
   g_signal_connect(pw->window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &pw->window);
   gtk_window_set_default_size(GTK_WINDOW(pw->window), 360, -1);

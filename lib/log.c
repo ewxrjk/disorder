@@ -17,17 +17,18 @@
  */
 /** @file lib/log.c @brief Errors and logging
  *
- * All messages are initially emitted by one of the four functions below.
- * debug() is generally invoked via D() so that mostly you just do a test
- * rather than a complete subroutine call.
+ * All messages are initially emitted by one of the four functions
+ * below.  disorder_debug() is generally invoked via D() so that
+ * mostly you just do a test rather than a complete subroutine call.
  *
  * Messages are dispatched via @ref log_default.  This defaults to @ref
  * log_stderr.  daemonize() will turn off @ref log_stderr and use @ref
  * log_syslog instead.
  *
- * fatal() will call exitfn() with a nonzero status.  The default value is
- * exit(), but it should be set to _exit() anywhere but the 'main line' of the
- * program, to guarantee that exit() gets called at most once.
+ * disorder_fatal() will call exitfn() with a nonzero status.  The
+ * default value is exit(), but it should be set to _exit() anywhere
+ * but the 'main line' of the program, to guarantee that exit() gets
+ * called at most once.
  */
 
 #define NO_MEMORY_ALLOCATION
@@ -38,6 +39,7 @@
 #include <errno.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "log.h"
 #include "disorder.h"
@@ -65,6 +67,9 @@ const char *progname;
 
 /** @brief Filename for debug messages */
 const char *debug_filename;
+
+/** @brief Set to include timestamps in log messages */
+int logdate;
 
 /** @brief Line number for debug messages */
 int debug_lineno;
@@ -119,7 +124,15 @@ static void logfp(int pri, const char *msg, void *user) {
    * sanely */
   const char *p;
   
-  if(progname)
+  if(logdate) {
+    char timebuf[64];
+    struct tm *tm;
+    gettimeofday(&tv, 0);
+    tm = localtime(&tv.tv_sec);
+    strftime(timebuf, sizeof timebuf, "%Y-%m-%d %H:%M:%S %Z", tm);
+    fprintf(fp, "%s: ", timebuf);
+  } 
+ if(progname)
     fprintf(fp, "%s: ", progname);
   if(pri <= LOG_ERR)
     fputs("ERROR: ", fp);
@@ -194,15 +207,41 @@ void elog(int pri, int errno_value, const char *fmt, va_list ap) {
   }
 }
 
-#define disorder_fatal fatal
-#define disorder_error error
-#define disorder_info info
+/** @brief Log an error and quit
+ *
+ * If @c ${DISORDER_FATAL_ABORT} is defined (as anything) then the process
+ * is aborted, so you can get a backtrace.
+ */
+void disorder_fatal(int errno_value, const char *msg, ...) {
+  va_list ap;
 
-/* shared implementation of vararg functions */
-#include "log-impl.h"
+  va_start(ap, msg);
+  elog(LOG_CRIT, errno_value, msg, ap);
+  va_end(ap);
+  if(getenv("DISORDER_FATAL_ABORT")) abort();
+  exitfn(EXIT_FAILURE);
+}
+
+/** @brief Log an error */
+void disorder_error(int errno_value, const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_ERR, errno_value, msg, ap);
+  va_end(ap);
+}
+
+/** @brief Log an informational message */
+void disorder_info(const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_INFO, 0, msg, ap);
+  va_end(ap);
+}
 
 /** @brief Log a debug message */
-void debug(const char *msg, ...) {
+void disorder_debug(const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);

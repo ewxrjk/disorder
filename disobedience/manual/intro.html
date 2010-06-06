@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+ <head>
+   <title>Disobedience: Introduction</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disobedience.css">
+ </head>
+ <body>
+   <h1>1. Introduction</h1>
+
+   <p>This chapter covers the following topics:</p>
+
+   <ul>
+     <li>What DisOrder and Disobedience are, and how to get them</li>
+     <li>How to get a DisOrder login</li>
+     <li>How to start Disobedience</li>
+   </ul>
+
+   <h2><a name=whatis>1.1 What is DisOrder?</a></h2>
+
+   <p><a href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>
+   is a multi-user software jukebox.  It allows MP3s, OGGs, etc to be
+   played either using a single sound card or over a network to many
+   different computers, with multiple different people controlling
+   what is played.</p>
+
+   <p>DisOrder has three main user interfaces.</p>
+
+   <ul>
+     <li>It has a command-line interface, suitable for ad-hoc use and
+     scripting.</li>
+
+     <li>It has a web interface, usable with graphical web browsers
+     (Firefox, Internet Explorer etc).</li>
+
+     <li>It has a graphical client called Disobedience.</li>
+   </ul>
+
+   <p>This manual is about Disobedience, so it does not really cover
+   installation or management issues.  However in this chapter it will
+   cover a few such topics as they are necessary to getting up and
+   running with Disobedience.</p>
+
+   <!--
+
+   <p>This diagram shows an overview of one possible setup.</p>
+
+   <p class=image><img src="arch-simple.png"></p>
+
+   <p>The server and web interface run on one computer.  Disobedience
+   runs on a desktop computer and accesses the server via the network.
+   On another system the RTP player runs and plays sound received from
+   the server via its local sound card.</p>
+
+   <p>Many other configurations are possible.  For instance the server
+   could play directly to a local soundcard.  Also if Disobedience
+   runs on the same computer as the RTP player then it can be used to
+   stop and start the player.  Of course Disobedience can also be run
+   on the same computer as the server provided it can run X11
+   applications.</p>
+
+   -->
+
+   <h2><a name=getting>1.2 Getting DisOrder</a></h2>
+
+   <p>There are two ways to get DisOrder.</p>
+
+   <p>If you have a Debian system you can download the <tt>.deb</tt>
+   files <a href="http://www.greenend.org.uk/rjk/disorder/">from
+   DisOrder's home page</a> and install those.  There are four
+   packages to choose from:</p>
+
+   <ul>
+     <li><tt>disorder.deb</tt> - the base package.  You should always
+     install this.  It contains the command-line client.</li>
+
+     <li><tt>disorder-server.deb</tt> - the server and web interface.
+     Only install this if you are setting up a totally new DisOrder
+     installation.  If you just want to access an existing one, you
+     don't need this package.</li>
+
+     <li><tt>disobedience.deb</tt> - the graphical client.  If you are
+     reading this manual you want this package!</li>
+
+     <li><tt>disorder-rtp.deb</tt> - the network play client.  If your
+     server is set up to transmit sound over the network you will need
+     this.  If it uses a local sound card then this package won't be
+     useful to you.</li>
+
+   </ul>
+
+   <p>(At the time of writing, DisOrder is not included as part of
+   Debian.)</p>
+
+   <p>If you have another kind of Linux system, or a Mac, you must
+   build from source code.  See the <tt>README</tt> file included in
+   the source distribution for more details.  Note that to use
+   Disobedience on a Mac, you will need X11.app.</p>
+
+   <p>There is no Windows support (although the web interface can be
+   used from Windows computers).</p>
+
+   <h2><a name=createlogin>1.3 Getting a DisOrder login</a></h2>
+
+   <p>The easiest way to get a DisOrder login is to access the web
+   interface and set one up using that.  To do this,
+   visit <tt>http://HOSTNAME/cgi-bin/disorder</tt>,
+   where <tt>HOSTNAME</tt> is the name of the server where DisOrder is
+   installed.  You should then be able to select the <b>Login</b>
+   option at the top of the screen.</p>
+
+   <p class=image><img src="disorder-web-login.png"></p>
+
+   <p>Go to the <b>New Users</b> form and enter the username you want
+   to use, your email address, and a password.  The password must be
+   entered twice to verify you did not mistype it (since it won't be
+   displayed on the screen).  When you press <b>Register</b>, you will
+   be sent an email requiring you to confirm your registration.</p>
+
+   <p class=image><img src="disorder-email-confirm.png"></p>
+
+   <p>Your login won't be active until you click on this URL.</p>
+
+   <p>(It might be that your installation isn't set up to allow
+   automatic registration.  In that case the local sysadmin will have
+   to create your login and set your initial password by hand.)</p>
+
+   <p>Having done this you could of course just use the web interface.
+   But since this is the manual for Disobedience, it is assumed that
+   you want to take advantage of its more convenient design and extra
+   features.</p>
+
+   <h2><a name=starting>1.4 Starting Disobedience</a></h2>
+
+   <p>On Debian systems it should be possible to find Disobedience in
+   the menu system:</p>
+
+   <p class=image><img src="disobedience-debian-menu.png"></p>
+
+   <p>On other systems you will have to start it from the command line
+   by typing its name at a command prompt.  You can (optionally) use
+   an <tt>&amp;</tt> suffix to stop it tying up your terminal.</p>
+
+   <p class=image><img src="disobedience-terminal.png"></p>
+
+   <p>(Please note that Disobedience shouldn't write any messages to
+   the terminal.  If it does that probably indicates a bug, which
+   should <a href="http://code.google.com/p/disorder/issues/list">be
+   reported</a>.)</p>
+
+   <h2><a name=login>1.5 Initial Login</a></h2>
+
+   <p>The first time you run Disobedience it won't know what server to
+   connect to, your username or your password, and will therefore
+   display a login box.</p>
+
+   <p class=image><img src="login.png"></p>
+
+   <p>If Disobedience is running on a different computer to the
+   server, then you should make sure the <b>Remote</b> box is ticked
+   and fill in the host name (or IP address) and port number
+   (&ldquo;Service&rdquo;).  If you don't know what values to use
+   here, ask your local sysadmin.  If, on the other hand, Disobedience
+   is running on the <i>same</i> computer as the server then you can
+   leave the <b>Remote</b> box clear and it should be able to connect
+   to it without using the network.</p>
+
+   <p>In any case, you will need to enter your username and
+   password, as set up earlier.</p>
+
+   <p>Once you have logged in successfuly, Disobedience will remember
+   these login settings, so it should not be necessary to enter them
+   again.  If you need to change them for any reason, you can either
+   select the <b>Server > Login</b> option to bring the login window
+   back, or (if you prefer), edit the file <tt>~/.disorder/passwd</tt>
+   directly.</p>
+
+   <hr>
+
+   <a href="index.html">Back to contents</a>
+
+ </body>
+</html>

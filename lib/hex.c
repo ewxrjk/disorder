@@ -75,7 +75,8 @@ int unhexdigitq(int c) {
 int unhexdigit(int c) {
   int d;
 
-  if((d = unhexdigitq(c)) < 0) error(0, "invalid hex digit");
+  if((d = unhexdigitq(c)) < 0)
+    disorder_error(0, "invalid hex digit");
   return d;
 }
 
@@ -96,7 +97,7 @@ uint8_t *unhex(const char *s, size_t *np) {
   int d1, d2;
 
   if((l = strlen(s)) & 1) {
-    error(0, "hex string has odd length");
+    disorder_error(0, "hex string has odd length");
     return 0;
   }
   p = buf = xmalloc_noptr(l / 2);

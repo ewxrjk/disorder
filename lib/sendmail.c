@@ -57,20 +57,20 @@ static int getresponse(const char *tag, FILE *in) {
        && line[2] >= '0' && line[2] <= '9') {
       const int rc = 10 * (10 * line[0] + line[1]) + line[2] - 111 * '0';
       if(rc >= 400 && rc <= 599)
-	error(0, "%s: %s", tag, line);
+	disorder_error(0, "%s: %s", tag, line);
       if(line[3] != '-') {
 	return rc;
       }
       /* else go round for further response lines */
     } else {
-      error(0, "%s: malformed response: %s", tag, line);
+      disorder_error(0, "%s: malformed response: %s", tag, line);
       return -1;
     }
   }
   if(ferror(in))
-    error(errno, "%s: read error", tag);
+    disorder_error(errno, "%s: read error", tag);
   else
-    error(0, "%s: server closed connection", tag);
+    disorder_error(0, "%s: server closed connection", tag);
   return -1;
 }
 
@@ -93,7 +93,7 @@ static int sendcommand(const char *tag, FILE *out, const char *fmt, ...) {
     rc = fflush(out);
   if(rc >= 0)
     return 0;
-  error(errno, "%s: write error", tag);
+  disorder_error(errno, "%s: write error", tag);
   return -1;
 }
 
@@ -126,7 +126,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
   time_t now;
   char date[128];
 
-  time(&now);
+  xtime(&now);
   gmtime_r(&now, &ut);
   strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S +0000", &ut);
   gcry_create_nonce(idbuf, sizeof idbuf);
@@ -159,7 +159,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
      || fprintf(out, "Date: %s\r\n", date) < 0
      || fprintf(out, "\r\n") < 0) {
   write_error:
-    error(errno, "%s: write error", tag);
+    disorder_error(errno, "%s: write error", tag);
     return -1;
   }
   for(ptr = body; *ptr; ++ptr) {
@@ -237,7 +237,7 @@ int sendmail(const char *sender,
       xdup2(outpipe[1], 1);
       execlp(config->sendmail,
              config->sendmail, "-bs", (char *)0);
-      fatal(errno, "executing %s", config->sendmail);
+      disorder_fatal(errno, "executing %s", config->sendmail);
     }
     xclose(inpipe[0]);
     xclose(outpipe[1]);
@@ -253,17 +253,17 @@ int sendmail(const char *sender,
       return -1;
     fdin = xsocket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if(connect(fdin, ai->ai_addr, ai->ai_addrlen) < 0) {
-      error(errno, "error connecting to %s", tag);
+      disorder_error(errno, "error connecting to %s", tag);
       xclose(fdin);
       return -1;
     }
     if((fdout = dup(fdin)) < 0)
-      fatal(errno, "error calling dup2");
+      disorder_fatal(errno, "error calling dup2");
   }
   if(!(in = fdopen(fdin, "rb")))
-    fatal(errno, "error calling fdopen");
+    disorder_fatal(errno, "error calling fdopen");
   if(!(out = fdopen(fdout, "wb")))
-    fatal(errno, "error calling fdopen");
+    disorder_fatal(errno, "error calling fdopen");
   rc = sendmailfp(tag, in, out, sender, pubsender, recipient, subject,
 		  encoding, content_type, body);
   fclose(in);
@@ -274,9 +274,9 @@ int sendmail(const char *sender,
     while(waitpid(pid, &w, 0) < 0 && errno == EINTR)
       ;
     if(w < 0)
-      fatal(errno, "error calling waitpid");
+      disorder_fatal(errno, "error calling waitpid");
     if(w)
-      info("warning: %s -bs: %s", config->sendmail, wstat(w));
+      disorder_info("warning: %s -bs: %s", config->sendmail, wstat(w));
     /* Not fatal - we determine success/failure from the SMTP conversation.
      * Some MTAs exit nonzero if you don't QUIT, which is just stupidly
      * picky. */
@@ -311,7 +311,7 @@ pid_t sendmail_subprocess(const char *sender,
     _exit(0);
   }
   if(pid < 0)
-    error(errno, "error calling fork");
+    disorder_error(errno, "error calling fork");
   return pid;
 }
 

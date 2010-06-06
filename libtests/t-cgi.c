@@ -26,7 +26,7 @@ static void input_from(const char *s) {
      || fputs("wibble wibble\r\nspong", fp) < 0 /* ensure CONTENT_LENGTH
                                                  * honored */
      || fflush(fp) < 0)
-    fatal(errno, "writing to temporary file");
+    disorder_fatal(errno, "writing to temporary file");
   rewind(fp);
   xdup2(fileno(fp), 0);
   lseek(0, 0/*offset*/, SEEK_SET);

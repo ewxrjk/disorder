@@ -243,7 +243,7 @@ int ev_run(ev_source *ev) {
     } while(n < 0 && errno == EINTR);
     xsigprocmask(SIG_BLOCK, &ev->sigmask, 0);
     if(n < 0) {
-      error(errno, "error calling select");
+      disorder_error(errno, "error calling select");
       if(errno == EBADF) {
 	/* If there's a bad FD in the mix then check them all and log what we
 	 * find, to ease debugging */
@@ -253,13 +253,13 @@ int ev_run(ev_source *ev) {
 
 	    if(FD_ISSET(fd, &ev->mode[mode].enabled)
 	       && fstat(fd, &sb) < 0)
-	      error(errno, "mode %s fstat %d (%s)",
-		    modenames[mode], fd, ev->mode[mode].fds[n].what);
+	      disorder_error(errno, "mode %s fstat %d (%s)",
+			     modenames[mode], fd, ev->mode[mode].fds[n].what);
 	  }
 	  for(n = 0; n <= maxfd; ++n)
 	    if(FD_ISSET(n, &ev->mode[mode].enabled)
 	       && fstat(n, &sb) < 0)
-	      error(errno, "mode %s fstat %d", modenames[mode], n);
+	      disorder_error(errno, "mode %s fstat %d", modenames[mode], n);
 	}
       }
       return -1;
@@ -539,7 +539,7 @@ static int signal_read(ev_source *ev,
       return ret;
   assert(n != 0);
   if(n < 0 && (errno != EINTR && errno != EAGAIN)) {
-    error(errno, "error reading from signal pipe %d", ev->sigpipe[0]);
+    disorder_error(errno, "error reading from signal pipe %d", ev->sigpipe[0]);
     return -1;
   }
   return 0;
@@ -680,8 +680,8 @@ static int sigchld_callback(ev_source *ev,
 	 * want the disorder server to bomb out because of it.  So we just log
 	 * the problem and ignore it.
 	 */
-	error(errno, "error calling wait4 for PID %lu (broken ptrace?)",
-	      (unsigned long)ev->children[n].pid);
+	disorder_error(errno, "error calling wait4 for PID %lu (broken ptrace?)",
+		       (unsigned long)ev->children[n].pid);
 	if(errno != ECHILD)
 	  return -1;
       }
@@ -754,6 +754,36 @@ int ev_child_cancel(ev_source *ev,
   return 0;
 }
 
+/** @brief Terminate and wait for all child processes
+ * @param ev Event loop
+ *
+ * Does *not* call the completion callbacks.  Only used during teardown.
+ */
+void ev_child_killall(ev_source *ev) {
+  int n, rc, w;
+
+  for(n = 0; n < ev->nchildren; ++n) {
+    if(kill(ev->children[n].pid, SIGTERM) < 0) {
+      disorder_error(errno, "sending SIGTERM to pid %lu",
+		     (unsigned long)ev->children[n].pid);
+      ev->children[n].pid = -1;
+    }
+  }
+  for(n = 0; n < ev->nchildren; ++n) {
+    if(ev->children[n].pid == -1)
+      continue;
+    do {
+      rc = waitpid(ev->children[n].pid, &w, 0);
+    } while(rc < 0 && errno == EINTR);
+    if(rc < 0) {
+      disorder_error(errno, "waiting for pid %lu",
+		     (unsigned long)ev->children[n].pid);
+      continue;
+    }
+  }
+  ev->nchildren = 0;
+}
+
 /* socket listeners ***********************************************************/
 
 /** @brief State for a socket listener */
@@ -789,22 +819,22 @@ static int listen_callback(ev_source *ev, int fd, void *u) {
     break;
 #ifdef ECONNABORTED
   case ECONNABORTED:
-    error(errno, "error calling accept");
+    disorder_error(errno, "error calling accept");
     break;
 #endif
 #ifdef EPROTO
   case EPROTO:
     /* XXX on some systems EPROTO should be fatal, but we don't know if
      * we're running on one of them */
-    error(errno, "error calling accept");
+    disorder_error(errno, "error calling accept");
     break;
 #endif
   default:
-    fatal(errno, "error calling accept");
+    disorder_fatal(errno, "error calling accept");
     break;
   }
   if(errno != EINTR && errno != EAGAIN)
-    error(errno, "error calling accept");
+    disorder_error(errno, "error calling accept");
   return 0;
 }
 
@@ -988,8 +1018,8 @@ static int writer_timebound_exceeded(ev_source *ev,
 
   if(!w->abandoned) {
     w->abandoned = 1;
-    error(0, "abandoning writer '%s' because no writes within %ds",
-	  w->what, w->timebound);
+    disorder_error(0, "abandoning writer '%s' because no writes within %ds",
+		   w->what, w->timebound);
     w->error = ETIMEDOUT;
   }
   return writer_shutdown(ev, now, u);
@@ -1061,15 +1091,15 @@ static int ev_writer_write(struct sink *sk, const void *s, int n) {
   if(!n)
     return 0;				/* avoid silliness */
   if(w->fd == -1)
-    error(0, "ev_writer_write on %s after shutdown", w->what);
+    disorder_error(0, "ev_writer_write on %s after shutdown", w->what);
   if(w->spacebound && w->b.end - w->b.start + n > w->spacebound) {
     /* The new buffer contents will exceed the space bound.  We assume that the
      * remote client has gone away and TCP hasn't noticed yet, or that it's got
      * hopelessly stuck. */
     if(!w->abandoned) {
       w->abandoned = 1;
-      error(0, "abandoning writer '%s' because buffer has reached %td bytes",
-	    w->what, w->b.end - w->b.start);
+      disorder_error(0, "abandoning writer '%s' because buffer has reached %td bytes",
+		     w->what, w->b.end - w->b.start);
       ev_fd_disable(w->ev, ev_write, w->fd);
       w->error = EPIPE;
       return ev_timeout(w->ev, 0, 0, writer_shutdown, w);
@@ -1178,7 +1208,7 @@ int ev_writer_space_bound(ev_writer *w,
  */
 struct sink *ev_writer_sink(ev_writer *w) {
   if(!w)
-    fatal(0, "ev_write_sink called with null writer");
+    disorder_fatal(0, "ev_write_sink called with null writer");
   return &w->s;
 }
 

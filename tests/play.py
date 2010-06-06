@@ -27,6 +27,8 @@ def test():
     c.random_disable()
     assert c.random_enabled() == False
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
+    track2 = u"%s/Joe Bloggs/First Album/04:Fourth track.ogg" % dtest.tracks
+    track3 = u"%s/Joe Bloggs/First Album/05:Fifth track.ogg" % dtest.tracks
     print " adding track to queue"
     c.disable()
     assert c.enabled() == False
@@ -61,6 +63,55 @@ def test():
     assert len(ts) == 1, "check track appears exactly once in recent"
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
+
+    print " ensuring queue is clear"
+    c.disable()
+    while c.playing() is not None:
+        time.sleep(1)
+    q = c.queue()
+    for qe in q:
+        c.remove(qe["id"])
+
+    print " testing playafter"
+    print "  adding to empty queue"
+    c.playafter(None, [track])
+    q = c.queue()
+    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q))))
+    assert len(q) == 1
+    assert q[0]['track'] == track
+    print "  insert at start of queue"
+    c.playafter(None, [track2])
+    q = c.queue()
+    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q))))
+    assert len(q) == 2
+    assert q[0]['track'] == track2
+    assert q[1]['track'] == track
+    print "  insert in middle of queue"
+    c.playafter(q[0]['id'], [track3])
+    q = c.queue()
+    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q))))
+    assert len(q) == 3
+    assert q[0]['track'] == track2
+    assert q[1]['track'] == track3
+    assert q[2]['track'] == track
+    print "  insert multiple tracks at end of queue"
+    c.playafter(q[2]['id'], [track2, track])
+    q = c.queue()
+    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q))))
+    assert len(q) == 5
+    assert q[0]['track'] == track2
+    assert q[1]['track'] == track3
+    assert q[2]['track'] == track
+    assert q[3]['track'] == track2
+    assert q[4]['track'] == track
+
+    print " clearing queue"
+    for qe in q:
+        c.remove(qe["id"])
 
     print " testing scratches"
     retry = False

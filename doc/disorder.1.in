@@ -152,6 +152,23 @@ Add \fITRACKS\fR to the end of the queue.
 .B playing
 Report the currently playing track.
 .TP
+.B playlist-del \fIPLAYLIST\fR
+Deletes playlist \fIPLAYLIST\fR.
+.TP
+.B playlist-get \fIPLAYLIST\fR
+Gets the contents of playlist \fIPLAYLIST\fR.
+.TP
+.B playlist-set \fIPLAYLIST\fR [\fIPATH\fR]
+Set the contents of playlist \fIPLAYLIST\fR.
+If an absolute path name is specified then the track list is read from
+that filename.
+Otherwise the track list is read from standard input.
+In either case, the list is terminated either by end of file or by a line
+containing a single ".".
+.TP
+.B playlists
+Lists known playlists (in no particular order).
+.TP
 .B prefs \fITRACK\fR
 Display all the preferences for \fITRACK\fR.
 See \fBdisorder_preferences\fR (5).
@@ -173,6 +190,11 @@ recently played one.
 .TP
 .B reconfigure
 Make the daemon reload its configuration file.
+.IP
+Not all configuration options can be modified during the lifetime of the
+server; of those that can't, some will just be ignored if they change while
+others will cause the new configuration to be rejected.
+See \fBdisorder_config\fR(5) for details.
 .TP
 .B remove \fITRACK\fR
 Remove a track from the queue.

@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=macros-disorder.c lookup.c options.c actions.c	\
 	login.c cgimain.c disorder-cgi.h
 disorder_LDADD=../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
+	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB) $(LIBICONV)
 disorder_LDFLAGS=-export-dynamic
 disorder_DEPENDENCIES=../lib/libdisorder.a
 

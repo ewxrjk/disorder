@@ -107,7 +107,7 @@ doc/disorder-normalize.8.html
 doc/disorder-decode.8.html
 doc/disorder-decode.8
 doc/plumbing.png
-disobedience/images.h
+images/images.h
 debian/disorder-server
 doc/disorder-stats.8
 doc/disorder-stats.8.html
@@ -143,8 +143,6 @@ lib/versionstring.h
 scripts/setup
 examples/disorder.rc
 scripts/teardown
-sounds/long.ogg
-sounds/slap.raw
 server/disorder-choose
 libtests/t-addr
 libtests/t-basen
@@ -174,6 +172,7 @@ libtests/t-words
 libtests/t-wstat
 libtests/t-macros
 libtests/t-cgi
+libtests/t-configuration
 doc/*.tmpl
 doc/disorder_templates.5
 oc/disorder_templates.5.html
@@ -200,3 +199,9 @@ doc/disorder_preferences.5.html
 plugins/index.html
 doc/disorder-choose.8
 doc/disorder-choose.8.html
+config.aux/compile
+server/endian
+clients/rtpmon
+libtests/t-resample
+clients/resample
+disobedience/manual/Makefile

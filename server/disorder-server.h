@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,7 +67,6 @@
 #include "logfd.h"
 #include "mem.h"
 #include "mime.h"
-#include "mixer.h"
 #include "printf.h"
 #include "queue.h"
 #include "random.h"
@@ -81,11 +80,14 @@
 #include "trackdb-int.h"
 #include "trackdb.h"
 #include "trackname.h"
+#include "uaudio.h"
 #include "unicode.h"
 #include "user.h"
 #include "vector.h"
 #include "version.h"
 #include "wstat.h"
+
+extern const struct uaudio *api;
 
 void daemonize(const char *tag, int fac, const char *pidfile);
 /* Go into background.  Send stdout/stderr to syslog.
@@ -97,8 +99,18 @@ void daemonize(const char *tag, int fac, const char *pidfile);
 void quit(ev_source *ev) attribute((noreturn));
 /* terminate the daemon */
 
-int reconfigure(ev_source *ev, int reload);
-/* reconfigure.  If @reload@ is nonzero, update the configuration. */
+int reconfigure(ev_source *ev, unsigned flags);
+/* reconfigure */
+
+void reset_sockets(ev_source *ev);
+
+/** @brief Set when starting server */
+#define RECONFIGURE_FIRST 0x0001
+
+/** @brief Set when reloading after SIGHUP etc */
+#define RECONFIGURE_RELOADING 0x0002
+
+void dbparams_check(void);
 
 extern struct queue_entry qhead;
 /* queue of things yet to be played.  the head will be played
@@ -122,10 +134,13 @@ void recent_write(void);
 /* write the recently played list out.  Calls @fatal@ on error. */
 
 struct queue_entry *queue_add(const char *track, const char *submitter,
-			      int where, enum track_origin origin);
+			      int where, const char *target,
+                              enum track_origin origin);
 #define WHERE_START 0			/* Add to head of queue */
 #define WHERE_END 1			/* Add to end of queue */
 #define WHERE_BEFORE_RANDOM 2		/* End, or before random track */
+#define WHERE_AFTER 3                   /* After the target */
+#define WHERE_NOWHERE 4                 /* Don't add to queue at all */
 /* add an entry to the queue.  Return a pointer to the new entry. */
 
 void queue_remove(struct queue_entry *q, const char *who);
@@ -321,6 +336,41 @@ int play_pause(const struct plugin *pl, long *playedp, void *data);
 
 void play_resume(const struct plugin *pl, void *data);
 /* Resume track. */
+
+/* background process support *************************************************/
+
+/** @brief Child process parameters */
+struct pbgc_params {
+  /** @brief Length of player command */
+  int argc;
+  /** @brief Player command */
+  const char **argv;
+  /** @brief Device to wait for or NULL */
+  const char *waitdevice;
+  /** @brief Raw track name */
+  const char *rawpath;
+};
+
+/** @brief Callback to play or prepare a track
+ * @param q Track to play or decode
+ * @param bgdata User data pointer
+ * @return Exit code
+ */
+typedef int play_background_child_fn(struct queue_entry *q,
+                                     const struct pbgc_params *params,
+                                     void *bgdata);
+
+int play_background(ev_source *ev,
+                    const struct stringlist *player,
+                    struct queue_entry *q,
+                    play_background_child_fn *child,
+                    void *bgdata);
+
+/* Return values from start(),  prepare() and play_background() */
+
+#define START_OK 0	   /**< @brief Succeeded. */
+#define START_HARDFAIL 1   /**< @brief Track is broken. */
+#define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
 
 #endif /* DISORDER_SERVER_H */
 

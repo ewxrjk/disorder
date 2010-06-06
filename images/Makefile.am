@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2005-2008 Richard Kettlewell
+# Copyright (C) 2005-2010 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,29 @@ disobedience32x32.xpm cross.svg go.svg notes.svg noteson.svg pause.svg	\
 query.svg queryon.svg speaker.svg speakeron.svg cross32.png		\
 pause32.png play32.png playdisabled32.png playenabled32.png		\
 randomdisabled32.png randomenabled32.png rtpdisabled32.png		\
-rtpenabled32.png
+rtpenabled32.png duck55.png cards24.png cards48.png 			\
+cards-simple-fanned.svg cards-thin.svg
 
-CLEANFILES=$(SEDFILES)
+DISOBEDIENCE_IMAGES=up.png down.png cards24.png logo256.png duck.png	\
+propagate.png
+
+if GTK
+noinst_HEADERS=images.h
+
+images.h: $(DISOBEDIENCE_IMAGES)
+	set -e;								\
+	exec > @$.new;							\
+	for png in $^; do						\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
+	  gdk-pixbuf-csource --raw --name=image_$$name $$png;		\
+	done;								\
+	echo "static const struct image images[] = {";			\
+	for png in `echo $^`; do					\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
+	  echo "  { \"$$name.png\", image_$$name },";			\
+	done|sort;							\
+	echo "};"
+	mv @$.new $@
+endif
+
+CLEANFILES=$(SEDFILES) images.h

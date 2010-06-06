@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2008 Richard Kettlewell
+.\" Copyright (C) 2004-2009 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ Backslash
 Quotation mark
 .\" "
 .TP
-.B \e'
+.B \e\(aq
 Apostrophe
 .TP
 .B \en
@@ -223,6 +223,8 @@ The home directory for state files.
 Defaults to
 .IR pkgstatedir .
 The server will create this directory on startup if it does not exist.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B plugins \fIPATH\fR
 Adds a directory to the plugin path.
@@ -252,6 +254,8 @@ The pattern should not attempt to include the collection root, which is
 automatically included, but should include the proper extension.
 .IP
 The default is \fB{/artist}{/album}{/title}{ext}\fR.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B api \fINAME\fR
 Selects the backend used to play sound and to set the volume.
@@ -275,13 +279,19 @@ Execute a command.
 This is the default if
 .B speaker_command
 is specified, or if no native is available.
+.IP
+You might want to set
+.B pause_mode
+with this backend.
 .TP
-.B network
+.B rtp
 Transmit audio over the network.
 This is the default if \fBbroadcast\fR is specified.
 You can use
 .BR disorder-playrtp (1)
 to receive and play the resulting stream on Linux and OS X.
+.B network
+is a deprecated synonym for this API.
 .RE
 .TP
 .B authorization_algorithm \fIALGORITHM\fR
@@ -291,14 +301,22 @@ See
 .BR disorder_protocol (5)
 for more details.
 .TP
-.B broadcast \fIADDRESS\fR \fIPORT\fR
+.B broadcast \fR[\fIFAMILY\fR] \fIADDRESS\fR \fIPORT\fR
 Transmit sound data to \fIADDRESS\fR using UDP port \fIPORT\fR.
-This implies \fBapi network\fR.
+This implies \fBapi rtp\fR.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIADDRESS\fR.
+Note that IPv6 is not currently well tested.
 .IP
 See also \fBmulticast_loop\fR and \fBmulticast_ttl\fR.
 .TP
-.B broadcast_from \fIADDRESS\fR \fIPORT\fR
+.B broadcast_from \fR[\fIFAMILY\fR] \fIADDRESS\fR \fIPORT\fR
 Sets the (local) source address used by \fBbroadcast\fR.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIADDRESS\fR.
+Note that IPv6 is not currently well tested.
 .TP
 .B channel \fICHANNEL\fR
 The mixer channel that the volume control should use.
@@ -307,6 +325,7 @@ For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
+
 Output level for the audio device.
 This is probably what you want and is the default.
 .TP
@@ -361,11 +380,17 @@ It must be an absolute path and should not end with a "/".
 .B cookie_key_lifetime \fISECONDS\fR
 Lifetime of the signing key used in constructing cookies.  The default is one
 week.
+.IP
+If this is changed during the lifetime of the server, the current key doesn't
+hvave its lifetime retroactively changed.
 .TP
 .B cookie_login_lifetime \fISECONDS\fR
 Lifetime of a cookie enforced by the server.  When the cookie expires the user
 will have to log in again even if their browser has remembered the cookie that
 long.  The default is one day.
+.IP
+If this is changed during the lifetime of the server, cookies that have already
+een generated don't hvave their lifetime retroactively changed.
 .TP
 .B default_rights \fIRIGHTS\fR
 Defines the set of rights given to new users.
@@ -386,34 +411,39 @@ will be tried.
 .IP
 For \fBapi alsa\fR this is the device name to use.
 .IP
-For \fBapi coreaudio\fR this is currently ignored.
+For \fBapi coreaudio\fR this can be either the UID or the human-readable
+name of the desired device.
+For a list of names, visit System Preferences -> Sound and look at the Type column.
+For example, you might use "Built-in Output" for the built-in speaker
+or "Built-in Line Output" if you have connected external speakers.
+Remember to quote the name.
 .IP
 The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
 .TP
 .B gap \fISECONDS\fR
-Specifies the number of seconds to leave between tracks.
-The default is 0.
-.IP
-NB this option currently DOES NOT WORK.  If there is genuine demand it might be
-reinstated.
+This option no longer does anything and will be removed in a future version.
 .TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including
 failed tracks and scratches).
+.IP
+If this is changed during the lifetime of the server, it won't actually reduce
+the size of the list until it is next modified.
 .TP
-.B listen \fR[\fIHOST\fR] \fISERVICE\fR
+.B listen \fR[\fIFAMILY\fR] \fR[\fIHOST\fR] \fISERVICE\fR
 Listen for connections on the address specified by \fIHOST\fR and port
 specified by \fISERVICE\fR.
-If \fIHOST\fR is omitted then listens on all local addresses.
+If \fIHOST\fR is omitted, or is \fB*\fR, then listens on all local addresses.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIHOST\fR.
+Note that IPv6 is not currently well tested.
 .IP
 Normally the server only listens on a UNIX domain socket.
 .TP
 .B lock yes\fR|\fBno
-Determines whether the server locks against concurrent operation.
-Default is \fByes\fR.
-There is no good reason to set this to \fBno\fR and the option will
-probably be removed in a future version.
+This option no longer does anything and will be removed in a future version.
 .TP
 .B mixer \fIDEVICE\fR
 The mixer device name, if it needs to be specified separately from
@@ -430,12 +460,12 @@ For \fBapi coreaudio\fR, volume setting is not currently supported.
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.
 The default is \fByes\fR.
-This only applies if \fBapi\fR is set to \fBnetwork\fR and \fBbroadcast\fR
+This only applies if \fBapi\fR is set to \fBrtp\fR and \fBbroadcast\fR
 is actually a multicast address.
 .TP
 .B multicast_ttl \fIHOPS\fR
 Set the maximum number of hops to send multicast packets.
-This only applies if \fBapi\fR is set to \fBnetwork\fR and
+This only applies if \fBapi\fR is set to \fBrtp\fR and
 \fBbroadcast\fR is actually a multicast address.
 The default is 1.
 .TP
@@ -474,15 +504,23 @@ namepart album  "/([^/]+)/[^/]+$"                          $1 *
 namepart artist "/([^/]+)/[^/]+/[^/]+$"                    $1 *
 namepart ext    "(\\.[a-zA-Z0-9]+)$"                        $1 *
 .fi
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B new_bias \fIWEIGHT\fR
 The weight for new tracks.
 The default is 450000, i.e. recently added tracks are a fifty times as likely
 to be picked as normal.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B new_bias_age \fISECONDS\fR
 The maximum age of tracks that \fBnew_bias\fR applies to, in seconds.
 The default is one week.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B new_max \fIMAX\fR
 The maximum number of tracks to list when reporting newly noticed tracks.
@@ -504,6 +542,8 @@ by programs it executes.
 If you have limited CPU then it might help to set this to a small
 negative value.
 The default is 0.
+.IP
+Changes to this value during the lifetime of the server are ignored.
 .TP
 .B nice_speaker \fIPRIORITY\fR
 Set the speaker process priority.
@@ -514,11 +554,26 @@ standards but depends on reasonably timely scheduling.
 If you have limited CPU then it might help to set this to a small
 negative value.
 The default is 0.
+.IP
+Changes to this value during the lifetime of the server are ignored.
 .TP
 .B noticed_history
 The maximum days that a track can survive in the database of newly added
 tracks.
 The default is 31.
+.TP
+.B pause_mode \fIMODE
+Sets the pause mode for the \fBcommand\fR backend.
+The possible values are:
+.RS
+.TP
+.B silence
+Send silent (0-value) samples when paused.
+This is the default.
+.TP
+.B suspend
+Stop writing when paused.
+.RE
 .TP
 .B player \fIPATTERN\fR \fIMODULE\fR [\fIOPTIONS.. [\fB\-\-\fR]] \fIARGS\fR...
 Specifies the player for files matching the glob \fIPATTERN\fR.
@@ -528,6 +583,10 @@ The following options are supported:
 .RS
 .TP
 .B \-\-wait\-for\-device\fR[\fB=\fIDEVICE\fR]
+\fBThis option is deprecated\fR.
+If you want gapless play use raw-format players and the speaker process instead.
+(This the default in any case.)
+.IP
 Waits (for up to a couple of seconds) for the default, or specified, libao
 device to become openable.
 .TP
@@ -550,9 +609,6 @@ Identical to the \fBexec\fR except that the player is expected to use the
 DisOrder raw player protocol.
 .BR disorder-decode (8)
 can decode several common audio file formats to this format.
-If your favourite format is not supported, but you have a player
-which uses libao, there is also a libao driver which supports this format;
-see below for more information about this.
 .TP
 .B shell \fR[\fISHELL\fR] \fICOMMAND\fR
 The command is executed using the shell.
@@ -577,16 +633,24 @@ command.
 If
 .B player
 is used without arguments, the list of players is cleared.
+.IP
+Although players can be changed during the lifetime of the server, note that
+background decoders will not be stopped and restarted using changed
+configuration once they have been started.
 .TP
 .B prefsync \fISECONDS\fR
-The interval at which the preferences log file will be synchronised.
-Defaults to 3600, i.e. one hour.
+This option no longer does anything and will be removed in a future version.
 .TP
 .B queue_pad \fICOUNT\fR
 The target size of the queue.
 If random play is enabled then randomly picked tracks will be added until
 the queue is at least this big.
 The default is 10.
+.IP
+If this is reduced during the lifetime of the server, the queue won't be
+reduced in size to fit; it just won't start growing again until it is under the
+new value.
+However, if it is increased, new tracks will start being added immediately.
 .TP
 .B reminder_interval \fISECONDS\fR
 The minimum number of seconds that must elapse between password reminders.
@@ -601,6 +665,9 @@ The minimum number of seconds that must elapse after a track has been played
 before it can be picked at random.  The default is 8 hours.  If this is set to
 0 then there is no limit, though current \fBdisorder-choose\fR will not pick
 anything currently listed in the recently-played list.
+.IP
+New values of this option may be picked up from the configuration file even
+without a reload.
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).
@@ -623,7 +690,7 @@ The default is
 .BR 16/44100/2 .
 .PP
 With the
-.B network
+.B rtp
 backend the sample format is forced to
 .B 16b/44100/2
 and with the
@@ -688,6 +755,8 @@ cleared.
 .IP
 There is a default set of stopwords built in, but this option can be used to
 augment or replace that list.
+.IP
+This setting cannot be changed during the lifetime of the server.
 .TP
 .B tracklength \fIPATTERN\fR \fIMODULE\fR
 Specifies the module used to calculate the length of files matching
@@ -696,18 +765,29 @@ Specifies the module used to calculate the length of files matching
 .IP
 If \fBtracklength\fR is used without arguments then the list of modules is
 cleared.
+.IP
+Track lengths are cached in the database, and changing this setting won't cause
+them to be regenerated.
 .TP
 .B user \fIUSERNAME\fR
 Specifies the user to run as.
 Only makes sense if invoked as root (or the target user).
+.IP
+This setting cannot be changed during the lifetime of the server
+(and if it is changed with a restart, you will need to adjust file permissions
+on the server's database).
 .SS "Client Configuration"
 These options would normally be used in \fI~\fRUSERNAME\fI/.disorder/passwd\fR
 or
 \fIpkgconfdir/config.\fRUSERNAME.
 .TP
-.B connect \fIHOST SERVICE\fR
+.B connect \fR[\fIFAMILY\fR] \fIHOST SERVICE\fR
 Connect to the address specified by \fIHOST\fR and port specified by
 \fISERVICE\fR.
+.IP
+\fIFAMILY\fR can be \fB-4\fR or \fB-6\fR to force IPv4 or IPv6, if this is not
+implied by \fIHOST\fR.
+Note that IPv6 is not currently well tested.
 .TP
 .B password \fIPASSWORD\fR
 Specify password.
@@ -725,7 +805,13 @@ This must be set if you have online registration enabled.
 .TP
 .B refresh \fISECONDS\fR
 Specifies the maximum refresh period in seconds.
+The refresh period is the time after which the web interface's queue and manage
+pages will automatically reload themselves.
 Default 15.
+.TP
+.B refresh_min \fISECONDS\fR
+Specifies the minimum refresh period in seconds.
+Default 1.
 .TP
 .B sendmail \fIPATH\fR
 The path to the Sendmail executable.
@@ -781,26 +867,6 @@ longer needs to be specified.
 .IP
 This must be the full URL, e.g. \fBhttp://myhost/cgi-bin/jukebox\fR and not
 \fB/cgi-bin/jukebox\fR.
-.SH "GLOBAL PREFERENCES"
-.SH "LIBAO DRIVER"
-.SS "Raw Protocol Players"
-Raw protocol players are expected to use the \fBdisorder\fR libao driver.
-Programs that use libao generally have command line options to select the
-driver and pass options to it.
-.SS "Driver Options"
-The known driver options are:
-.TP
-.B fd
-The file descriptor to write to.
-If this is not specified then the driver looks like the environment
-variable \fBDISORDER_RAW_FD\fR.
-If that is not set then the default is 1 (i.e. standard output).
-.TP
-.B fragile
-If this is set to a nonzero value then the driver will call \fB_exit\fR(2) if a
-write to the output file descriptor fails.
-This is a workaround for buggy players such as \fBogg123\fR that ignore
-write errors.
 .SH "REGEXP SUBSTITUTION RULES"
 Regexps are PCRE regexps, as defined in \fBpcrepattern\fR(3).
 The only option used is \fBPCRE_UTF8\fR.

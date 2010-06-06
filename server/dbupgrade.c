@@ -92,24 +92,24 @@ static int scan_core(const char *name, DB *db,
       break;
     ++count;
     if(count % 1000 == 0)
-      info("scanning %s, %ld so far", name, count);
+      disorder_info("scanning %s, %ld so far", name, count);
   }
   if(err && err != DB_NOTFOUND && err != DB_LOCK_DEADLOCK)
-    fatal(0, "%s: error scanning database: %s", name, db_strerror(err));
+    disorder_fatal(0, "%s: error scanning database: %s", name, db_strerror(err));
   r = (err == DB_LOCK_DEADLOCK ? err : 0);
   if((err = c->c_close(c)))
-    fatal(0, "%s: error closing cursor: %s", name, db_strerror(err));
-  info("%s: %ld entries scanned", name, count);
+    disorder_fatal(0, "%s: error closing cursor: %s", name, db_strerror(err));
+  disorder_info("%s: %ld entries scanned", name, count);
   if(values_normalized || values_already_ok)
-    info("%s: %ld values converted, %ld already ok", name,
-         values_normalized, values_already_ok);
+    disorder_info("%s: %ld values converted, %ld already ok", name,
+                  values_normalized, values_already_ok);
   if(keys_normalized || keys_already_ok)
-    info("%s: %ld keys converted, %ld already OK", name,
-         keys_normalized, keys_already_ok);
+    disorder_info("%s: %ld keys converted, %ld already OK", name,
+                  keys_normalized, keys_already_ok);
   if(aliases_removed)
-    info("%s: %ld aliases removed", name, aliases_removed);
+    disorder_info("%s: %ld aliases removed", name, aliases_removed);
   if(renoticed)
-    info("%s: %ld tracks re-noticed", name, renoticed);
+    disorder_info("%s: %ld tracks re-noticed", name, renoticed);
   return r;
 }
 
@@ -121,13 +121,13 @@ static int scan_core(const char *name, DB *db,
 static void scandb(const char *name, DB *db,
                    int (*callback)(const char *name, DB *db, DBC *c,
                                    DBT *k, DBT *d)) {
-  info("scanning %s", name);
+  disorder_info("scanning %s", name);
   for(;;) {
     global_tid = trackdb_begin_transaction();
     if(scan_core(name, db, callback)) {
       trackdb_abort_transaction(global_tid);
       global_tid = 0;
-      error(0, "detected deadlock, restarting scan");
+      disorder_error(0, "detected deadlock, restarting scan");
       continue;
     } else {
       trackdb_commit_transaction(global_tid);
@@ -146,7 +146,7 @@ static void truncate_database(const char *name, DB *db) {
     err = db->truncate(db, 0, &count, DB_AUTO_COMMIT);
   } while(err == DB_LOCK_DEADLOCK);
   if(err)
-    fatal(0, "error truncating %s: %s", name, db_strerror(err));
+    disorder_fatal(0, "error truncating %s: %s", name, db_strerror(err));
 }
 
 /* scan callbacks */
@@ -162,22 +162,22 @@ static int normalize_keys(const char *name, DB *db, DBC *c,
   if(!knfc) {
     switch(badkey) {
     case BADKEY_WARN:
-      error(0, "%s: invalid key: %.*s", name,
-            (int)k->size, (const char *)k->data);
+      disorder_error(0, "%s: invalid key: %.*s", name,
+                     (int)k->size, (const char *)k->data);
       break;
     case BADKEY_DELETE:
-      error(0, "%s: deleting invalid key: %.*s", name,
-            (int)k->size, (const char *)k->data);
+      disorder_error(0, "%s: deleting invalid key: %.*s", name,
+                     (int)k->size, (const char *)k->data);
       if((err = c->c_del(c, 0))) {
         if(err != DB_LOCK_DEADLOCK)
-          fatal(0, "%s: error removing denormalized key: %s",
-                name, db_strerror(err));
+          disorder_fatal(0, "%s: error removing denormalized key: %s",
+                         name, db_strerror(err));
         return err;
       }
       break;
     case BADKEY_FAIL:
-      fatal(0, "%s: invalid key: %.*s", name,
-            (int)k->size, (const char *)k->data);
+      disorder_fatal(0, "%s: invalid key: %.*s", name,
+                     (int)k->size, (const char *)k->data);
     }
     return 0;
   }
@@ -189,15 +189,16 @@ static int normalize_keys(const char *name, DB *db, DBC *c,
   /* To rename the key we must delete the old one and insert a new one */
   if((err = c->c_del(c, 0))) {
     if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "%s: error removing denormalized key: %s",
-            name, db_strerror(err));
+      disorder_fatal(0, "%s: error removing denormalized key: %s",
+                     name, db_strerror(err));
     return err;
   }
   k->size = nknfc;
   k->data = knfc;
   if((err = db->put(db, global_tid, k, d, DB_NOOVERWRITE))) {
     if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "%s: error storing normalized key: %s", name, db_strerror(err));
+      disorder_fatal(0, "%s: error storing normalized key: %s",
+                     name, db_strerror(err));
     return err;
   }
   ++keys_normalized;
@@ -214,8 +215,8 @@ static int normalize_values(const char *name, DB *db,
   /* Find the normalized form of the value */
   dnfc = utf8_compose_canon(d->data, d->size, &ndnfc);
   if(!dnfc)
-    fatal(0, "%s: cannot convert data to NFC: %.*s", name,
-          (int)d->size, (const char *)d->data);
+    disorder_fatal(0, "%s: cannot convert data to NFC: %.*s", name,
+                   (int)d->size, (const char *)d->data);
   /* If the key is already in NFC then do nothing */
   if(ndnfc == d->size && !memcmp(d->data, dnfc, ndnfc)) {
     ++values_already_ok;
@@ -225,7 +226,8 @@ static int normalize_values(const char *name, DB *db,
   d->data = dnfc;
   if((err = db->put(db, global_tid, k, d, 0))) {
     if(err != DB_LOCK_DEADLOCK)
-      fatal(0, "%s: error storing normalized data: %s", name, db_strerror(err));
+      disorder_fatal(0, "%s: error storing normalized data: %s",
+                     name, db_strerror(err));
     return err;
   }
   ++values_normalized;
@@ -245,8 +247,8 @@ static int renotice(const char *name, DB attribute((unused)) *db,
      * in the scan. */
     if(kvp_get(t, "_alias_for"))
       return 0;
-    fatal(0, "%s: no '_path' for %.*s", name,
-          (int)k->size, (const char *)k->data);
+    disorder_fatal(0, "%s: no '_path' for %.*s", name,
+                   (int)k->size, (const char *)k->data);
   }
   switch(err = trackdb_notice_tid(track, path, global_tid)) {
   case 0:
@@ -255,8 +257,8 @@ static int renotice(const char *name, DB attribute((unused)) *db,
   case DB_LOCK_DEADLOCK:
     return err;
   default:
-    fatal(0, "%s: unexpected return from trackdb_notice_tid: %s",
-          name, db_strerror(err));
+    disorder_fatal(0, "%s: unexpected return from trackdb_notice_tid: %s",
+                   name, db_strerror(err));
   }
 }
  
@@ -269,14 +271,14 @@ static int remove_aliases_normalize_keys(const char *name, DB *db, DBC *c,
     /* This is an alias.  We remove all the alias entries. */
     if((err = c->c_del(c, 0))) {
       if(err != DB_LOCK_DEADLOCK)
-        fatal(0, "%s: error removing alias: %s", name, db_strerror(err));
+        disorder_fatal(0, "%s: error removing alias: %s", name, db_strerror(err));
       return err;
     }
     ++aliases_removed;
     return 0;
   } else if(!kvp_get(t, "_path"))
-    error(0, "%s: %.*s has neither _alias_for nor _path", name,
-          (int)k->size, (const char *)k->data);
+    disorder_error(0, "%s: %.*s has neither _alias_for nor _path", name,
+                   (int)k->size, (const char *)k->data);
   return normalize_keys(name, db, c, k, d);
 }
 
@@ -288,16 +290,16 @@ static int remove_aliases_normalize_keys(const char *name, DB *db, DBC *c,
 static void upgrade(void) {
   char buf[32];
 
-  info("upgrading database to dbversion %ld", config->dbversion);
+  disorder_info("upgrading database to dbversion %ld", config->dbversion);
   /* Normalize keys and values as required.  We will also remove aliases as
    * they will be regenerated when we re-noticed the tracks. */
-  info("renormalizing keys");
+  disorder_info("renormalizing keys");
   scandb("tracks.db", trackdb_tracksdb, remove_aliases_normalize_keys);
   scandb("prefs.db", trackdb_prefsdb, normalize_keys);
   scandb("global.db", trackdb_globaldb, normalize_keys);
   scandb("noticed.db", trackdb_noticeddb, normalize_values);
   /* search.db and tags.db we will rebuild */
-  info("regenerating search database and aliases");
+  disorder_info("regenerating search database and aliases");
   truncate_database("search.db", trackdb_searchdb);
   truncate_database("tags.db", trackdb_tagsdb);
   /* Regenerate the search database and aliases */
@@ -305,7 +307,7 @@ static void upgrade(void) {
   /* Finally update the database version */
   snprintf(buf, sizeof buf, "%ld", config->dbversion);
   trackdb_set_global("_dbversion", buf, 0);
-  info("completed database upgrade");
+  disorder_info("completed database upgrade");
 }
 
 int main(int argc, char **argv) {
@@ -313,7 +315,7 @@ int main(int argc, char **argv) {
   
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSsxX", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -325,7 +327,7 @@ int main(int argc, char **argv) {
     case 's': logsyslog = 1; break;
     case 'x': badkey = BADKEY_DELETE; break;
     case 'X': badkey = BADKEY_FAIL; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   /* If stderr is a TTY then log there, otherwise to syslog. */
@@ -333,7 +335,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   /* Open the database */
   trackdb_init(TRACKDB_NO_RECOVER);
   trackdb_open(TRACKDB_OPEN_FOR_UPGRADE);

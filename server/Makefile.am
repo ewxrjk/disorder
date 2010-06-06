@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,13 +19,14 @@
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
 	      disorder-stats disorder-dbupgrade disorder-choose
-noinst_PROGRAMS=trackname
+noinst_PROGRAMS=trackname endian
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
-	schedule.c exports.c ../lib/memgc.c disorder-server.h
+	schedule.c dbparams.c background.c \
+	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO)
@@ -37,14 +38,10 @@ disorder_deadlock_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_speaker_SOURCES=speaker.c speaker.h \
-		         speaker-command.c \
-			 speaker-network.c \
-			 speaker-coreaudio.c \
-			 speaker-oss.c \
-			 speaker-alsa.c
+disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO)
+	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
+	$(LIBPTHREAD)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_decode_SOURCES=decode.c disorder-server.h
@@ -54,7 +51,7 @@ disorder_decode_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_normalize_SOURCES=normalize.c disorder-server.h
 disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+	$(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(LIBSAMPLERATE)
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
@@ -67,7 +64,7 @@ disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c	\
 			disorder-server.h
 disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
-	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBGCRYPT)
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_choose_LDFLAGS=-export-dynamic
 disorder_choose_DEPENDENCIES=../lib/libdisorder.a
 
@@ -120,21 +117,34 @@ check-help: all
 	./disorder-choose --help > /dev/null
 	./disorder-choose --version > /dev/null
 
-# My sox doesn't know MP3 or FLAC unfortunately
-check-decode: disorder-decode disorder-normalize
-	echo "speaker_backend network" > config
-	echo "broadcast 127.255.255.255 discard" > config
-	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
-	  ./disorder-normalize --config config > decoded.raw
-	oggdec -b 16 -e 1 -R -s 1 -o oggdec.raw ${top_srcdir}/sounds/scratch.ogg
-	cmp decoded.raw oggdec.raw
-	sox ${top_srcdir}/sounds/scratch.ogg scratch.wav
-	./disorder-decode scratch.wav | \
-	  ./disorder-normalize --config config > decoded.raw
-	ls -l *.raw
-	cmp decoded.raw oggdec.raw
-	rm -f scratch.wav config decoded.raw oggdec.raw
+check-decode: check-wav check-flac check-mp3
 
-EXTRA_DIST=README.dbversions
+check-mp3: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
+	  ./disorder-normalize --config ${srcdir}/test-config > mp3ed.raw
+	cmp mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
+	rm -f mp3ed.raw
+
+# TODO ogg decoding comes out OK but different depending on platform, version
+# or something.  Makes it tricky to test!
+check-ogg: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
+	  ./disorder-normalize --config ${srcdir}/test-config > ogged.raw
+	cmp ogged.raw ${top_srcdir}/sounds/scratch.raw
+	rm -f ogged.raw
+
+check-wav: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.wav | \
+	  ./disorder-normalize --config ${srcdir}/test-config > waved.raw
+	cmp waved.raw ${top_srcdir}/sounds/scratch.raw
+	rm -rf waved.raw
+
+check-flac: disorder-decode disorder-normalize
+	./disorder-decode ${top_srcdir}/sounds/scratch.flac | \
+	  ./disorder-normalize --config ${srcdir}/test-config > flacced.raw
+	cmp flacced.raw ${top_srcdir}/sounds/scratch.raw
+	rm -f flacced.raw
+
+EXTRA_DIST=README.dbversions test-config
 
 CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

@@ -27,10 +27,22 @@
 #include "printf.h"
 #include "sink.h"
 
+/** @brief vfprintf() workalike that always accepts UTF-8
+ * @param fp Stream to write to
+ * @param fmt Format string
+ * @param ap Format arguments
+ * @return -1 on error or bytes written on success
+ */
 int byte_vfprintf(FILE *fp, const char *fmt, va_list ap) {
   return byte_vsinkprintf(sink_stdio(0, fp), fmt, ap);
 }
 
+/** @brief fprintf() workalike that always accepts UTF-8
+ * @param fp Stream to write to
+ * @param fmt Format string
+ * @param ... Format arguments
+ * @return -1 on error or bytes written on success
+ */
 int byte_fprintf(FILE *fp, const char *fmt, ...) {
   int n;
   va_list ap;

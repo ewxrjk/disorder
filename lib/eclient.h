@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -168,6 +168,15 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when a track is adopted */
   void (*adopted)(void *v, const char *id, const char *who);
+
+  /** @brief Called when a new playlist is created */
+  void (*playlist_created)(void *v, const char *playlist, const char *sharing);
+
+  /** @brief Called when a playlist is modified */
+  void (*playlist_modified)(void *v, const char *playlist, const char *sharing);
+
+  /** @brief Called when a new playlist is deleted */
+  void (*playlist_deleted)(void *v, const char *playlist);
 } disorder_eclient_log_callbacks;
 
 /* State bits */
@@ -222,7 +231,8 @@ typedef void disorder_eclient_no_response(void *v,
  *
  * @p error will be NULL on success.  In this case @p value will be the result
  * (which might be NULL for disorder_eclient_get(),
- * disorder_eclient_get_global() and disorder_eclient_userinfo()).
+ * disorder_eclient_get_global(), disorder_eclient_userinfo() and
+ * disorder_eclient_playlist_get_share()).
  *
  * @p error will be non-NULL on failure.  In this case @p value is always NULL.
  */
@@ -281,7 +291,8 @@ typedef void disorder_eclient_queue_response(void *v,
  * @param vec Pointer to response list
  *
  * @p error will be NULL on success.  In this case @p nvec and @p vec will give
- * the result.
+ * the result, or be -1 and NULL respectively e.g. from
+ * disorder_eclient_playlist_get() if there is no such playlist.
  *
  * @p error will be non-NULL on failure.  In this case @p nvec and @p vec will
  * be 0 and NULL.
@@ -313,6 +324,14 @@ int disorder_eclient_play(disorder_eclient *c,
                           disorder_eclient_no_response *completed,
                           void *v);
 /* add a track to the queue */
+
+int disorder_eclient_playafter(disorder_eclient *c,
+                               const char *target,
+                               int ntracks,
+                               const char **tracks,
+                               disorder_eclient_no_response *completed,
+                               void *v);
+/* insert multiple tracks to an arbitrary point in the queue */
 
 int disorder_eclient_pause(disorder_eclient *c,
                            disorder_eclient_no_response *completed,
@@ -490,6 +509,40 @@ int disorder_eclient_adopt(disorder_eclient *c,
                            disorder_eclient_no_response *completed,
                            const char *id,
                            void *v);  
+int disorder_eclient_playlists(disorder_eclient *c,
+                               disorder_eclient_list_response *completed,
+                               void *v);
+int disorder_eclient_playlist_delete(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     const char *playlist,
+                                     void *v);
+int disorder_eclient_playlist_lock(disorder_eclient *c,
+                                   disorder_eclient_no_response *completed,
+                                   const char *playlist,
+                                   void *v);
+int disorder_eclient_playlist_unlock(disorder_eclient *c,
+                                     disorder_eclient_no_response *completed,
+                                     void *v);
+int disorder_eclient_playlist_set_share(disorder_eclient *c,
+                                        disorder_eclient_no_response *completed,
+                                        const char *playlist,
+                                        const char *sharing,
+                                        void *v);
+int disorder_eclient_playlist_get_share(disorder_eclient *c,
+                                        disorder_eclient_string_response *completed,
+                                        const char *playlist,
+                                        void *v);
+int disorder_eclient_playlist_set(disorder_eclient *c,
+                                  disorder_eclient_no_response *completed,
+                                  const char *playlist,
+                                  char **tracks,
+                                  int ntracks,
+                                  void *v);
+int disorder_eclient_playlist_get(disorder_eclient *c,
+                                  disorder_eclient_list_response *completed,
+                                  const char *playlist,
+                                  void *v);
+
 #endif
 
 /*

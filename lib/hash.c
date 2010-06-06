@@ -39,6 +39,10 @@ struct hash {
   size_t valuesize;                     /* size of a value */
 };
 
+/** @brief Hash function
+ * @param key Key to hash
+ * @return Hash code
+ */
 static size_t hashfn(const char *key) {
   size_t i = 0;
 
@@ -47,6 +51,9 @@ static size_t hashfn(const char *key) {
   return i;
 }
 
+/** @brief Expand a hash table
+ * @param h Hash table to expand
+ */
 static void grow(hash *h) {
   size_t n, newnslots;
   struct entry **newslots, *e, *f;
@@ -66,6 +73,10 @@ static void grow(hash *h) {
   h->nslots = newnslots;
 }
 
+/** @brief Create a new hash table
+ * @param valuesize Size of value type
+ * @return Hash table
+ */
 hash *hash_new(size_t valuesize) {
   hash *h = xmalloc(sizeof *h);
 
@@ -75,6 +86,18 @@ hash *hash_new(size_t valuesize) {
   return h;
 }
 
+/** @brief Add an element to a hash table
+ * @param h Hash table
+ * @param key Key
+ * @param value New value (will be shallow-copied)
+ * @param mode Add mode
+ * @return 0 on success, -1 if the value could not be added
+ *
+ * Possible add modes are:
+ * - @ref HASH_INSERT - key must not exist yet
+ * - @ref HASH_REPLACE - key must already exist
+ * - @ref HASH_INSERT_OR_REPLACE - key may or may not exist
+ */
 int hash_add(hash *h, const char *key, const void *value, int mode) {
   size_t n = hashfn(key);
   struct entry *e;
@@ -104,6 +127,11 @@ int hash_add(hash *h, const char *key, const void *value, int mode) {
   }
 }
 
+/** @brief Remove an element from a hash table
+ * @param h Hash table
+ * @param key Key to remove
+ * @return 0 on success, -1 if the key wasn't found
+ */
 int hash_remove(hash *h, const char *key) {
   size_t n = hashfn(key);
   struct entry *e, **ee;
@@ -119,6 +147,13 @@ int hash_remove(hash *h, const char *key) {
     return -1;
 }
 
+/** @brief Find an item in a hash table
+ * @param h Hash table
+ * @param key Key to find
+ * @return Pointer to value or NULL if not found
+ *
+ * The return value points inside the hash table and should not be modified.
+ */
 void *hash_find(hash *h, const char *key) {
   size_t n = hashfn(key);
   struct entry *e;
@@ -129,6 +164,21 @@ void *hash_find(hash *h, const char *key) {
   return 0;
 }
 
+/** @brief Visit every item in a hash table
+ * @param h Hash Table
+ * @param callback Function to call for each item
+ * @param u Passed to @p callback
+ * @return 0 on completion, else last return from @p callback
+ *
+ * @p callback should return 0 to continue or non-0 to stop.  The @p key and @p
+ * value pointers passed to it point into the hash table and should not be
+ * modified.
+ *
+ * It's safe to remove items from inside the callback including the visited
+ * one.  It is not safe to add items from inside the callback.
+ *
+ * No particular ordering is used.
+ */
 int hash_foreach(hash *h,
                  int (*callback)(const char *key, void *value, void *u),
                  void *u) {
@@ -145,10 +195,22 @@ int hash_foreach(hash *h,
   return 0;
 }
 
+/** @brief Count the size of a hash table
+ * @param h Hash table
+ * @return Number of elements in hash table
+ */
 size_t hash_count(hash *h) {
   return h->nitems;
 }
 
+/** @brief Get all the keys of a hash table
+ * @param h Hash table
+ * @return NULL-terminated list of keys
+ *
+ * The keys point into the hash table itself and should not be modified.
+ *
+ * No particular ordering is used.
+ */
 char **hash_keys(hash *h) {
   size_t n;
   char **vec = xcalloc(h->nitems + 1, sizeof (char *)), **vp = vec;

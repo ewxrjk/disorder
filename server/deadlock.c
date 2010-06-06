@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   int n, err, aborted, logsyslog = !isatty(2);
 
   set_progname(argv);
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -64,28 +64,28 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
-  info("started");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
+  disorder_info("started");
   trackdb_init(TRACKDB_NO_RECOVER);
   while(getppid() != 1) {
     if((err = trackdb_env->lock_detect(trackdb_env,
 				       0,
 				       DB_LOCK_DEFAULT,
 				       &aborted)))
-      fatal(0, "trackdb_env->lock_detect: %s", db_strerror(err));
+      disorder_fatal(0, "trackdb_env->lock_detect: %s", db_strerror(err));
     if(aborted)
       D(("aborted %d lock requests", aborted));
     sleep(1);
   }
   /* if our parent goes away, it's time to stop */
-  info("stopped (parent terminated)");
+  disorder_info("stopped (parent terminated)");
   return 0;
 }
 

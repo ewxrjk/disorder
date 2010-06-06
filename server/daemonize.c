@@ -41,7 +41,7 @@ void daemonize(const char *tag, int fac, const char *pidfile) {
    * /dev/null) */
   do {
     if((dn = open("/dev/null", O_RDWR, 0)) < 0)
-      fatal(errno, "error opening /dev/null");
+      disorder_fatal(errno, "error opening /dev/null");
   } while(dn < 3);
   pid = xfork();
   if(pid) {
@@ -50,14 +50,16 @@ void daemonize(const char *tag, int fac, const char *pidfile) {
     exitfn = _exit;
     while((r = waitpid(pid, &w, 0)) == -1 && errno == EINTR)
       ;
-    if(r < 0) fatal(errno, "error calling waitpid");
-    if(w) error(0, "subprocess exited with wait status %#x", (unsigned)w);
+    if(r < 0) disorder_fatal(errno, "error calling waitpid");
+    if(w)
+      disorder_error(0, "subprocess exited with wait status %#x", (unsigned)w);
     _exit(0);
   }
   /* First child process.  This will be the session leader, and will
    * be transient. */
   D(("first child pid=%lu", (unsigned long)getpid()));
-  if(setsid() < 0) fatal(errno, "error calling setsid");
+  if(setsid() < 0)
+    disorder_fatal(errno, "error calling setsid");
   /* we'll log to syslog */
   openlog(tag, LOG_PID, fac);
   log_default = &log_syslog;
@@ -75,7 +77,7 @@ void daemonize(const char *tag, int fac, const char *pidfile) {
     if(!(fp = fopen(pidfile, "w"))
        || fprintf(fp, "%lu\n", (unsigned long)getpid()) < 0
        || fclose(fp) < 0)
-      fatal(errno, "error creating %s", pidfile);
+      disorder_fatal(errno, "error creating %s", pidfile);
   }
 }
 

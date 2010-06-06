@@ -72,7 +72,7 @@ static void queue_playing_changed(void) {
   ql_new_queue(&ql_queue, q);
   /* Tell anyone who cares */
   event_raise("queue-list-changed", q);
-  event_raise("playing-track-changed", q);
+  event_raise("playing-track-changed", playing_track);
 }
 
 /** @brief Update the queue itself */
@@ -97,7 +97,7 @@ static void playing_completed(void attribute((unused)) *v,
   }
   actual_playing_track = q;
   queue_playing_changed();
-  time(&last_playing);
+  xtime(&last_playing);
 }
 
 /** @brief Schedule an update to the queue
@@ -135,13 +135,29 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
   /* If there's a track playing, update its row */
   if(playing_track)
     ql_update_row(playing_track, 0);
+  /* If the first (nonplaying) track starts in the past, update the queue to
+   * get new expected start times; but rate limit this checking.  (If we only
+   * do it once a minute then the rest of the queue can get out of date too
+   * easily.) */
+  struct queue_entry *q = ql_queue.q;
+  if(q) {
+    if(q == playing_track)
+      q = q->next;
+    if(q) {
+      time_t now;
+      time(&now);
+      if(q->expected / 15 < now / 15)
+        queue_changed(0,0,0);
+    }
+  }
   return TRUE;
 }
 
 /** @brief Called at startup */
-static void queue_init(void) {
+static void queue_init(struct queuelike attribute((unused)) *ql) {
   /* Arrange a callback whenever the playing state changes */ 
   event_register("playing-changed", playing_changed, 0);
+  event_register("playing-started", playing_changed, 0);
   /* We reget both playing track and queue at pause/resume so that start times
    * can be computed correctly */
   event_register("pause-changed", playing_changed, 0);
@@ -150,6 +166,59 @@ static void queue_init(void) {
   event_register("queue-changed", queue_changed, 0);
   /* ...and once a second anyway */
   g_timeout_add(1000/*ms*/, playing_periodic, 0);
+}
+
+static void queue_drop_completed(void attribute((unused)) *v,
+                                 const char *err) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  /* The log should tell us the queue changed so we do no more here */
+}
+
+/** @brief Called when drag+drop completes */
+static void queue_drop(struct queuelike attribute((unused)) *ql,
+                       int ntracks,
+                       char **tracks, char **ids,
+                       struct queue_entry *after_me) {
+  int n;
+
+  if(ids) {
+    /* Rearrangement */
+    if(playing_track) {
+      /* If there's a playing track then you can't drag it anywhere  */
+      for(n = 0; n < ntracks; ++n) {
+        if(!strcmp(playing_track->id, ids[n])) {
+          fprintf(stderr, "cannot drag playing track\n");
+          return;
+        }
+      }
+      /* You can't tell the server to drag after the playing track by ID, you
+       * have to send "". */
+      if(after_me == playing_track)
+        after_me = NULL;
+      /* If you try to drag before the playing track (i.e. after_me=NULL on
+       * input) then the effect is just to drag after it, although there's no
+       * longer code to explicitly implement this. */
+    }
+    /* Tell the server to move them.  The log will tell us about the change (if
+     * indeed it succeeds!), so no need to rearrange the model now. */
+    disorder_eclient_moveafter(client,
+                               after_me ? after_me->id : "",
+                               ntracks, (const char **)ids,
+                               queue_drop_completed, NULL);
+  } else {
+    /* You can't tell the server to insert after the playing track by ID, you
+     * have to send "". */
+    if(after_me == playing_track)
+      after_me = NULL;
+    /* Play the tracks */
+    disorder_eclient_playafter(client,
+                               after_me ? after_me->id : "",
+                               ntracks, (const char **)tracks,
+                               queue_drop_completed, NULL);
+  }
 }
 
 /** @brief Columns for the queue */
@@ -164,12 +233,28 @@ static const struct queue_column queue_columns[] = {
 
 /** @brief Pop-up menu for queue */
 static struct menuitem queue_menuitems[] = {
-  { "Track properties", ql_properties_activate, ql_properties_sensitive, 0, 0 },
-  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
-  { "Scratch playing track", ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
-  { "Remove track from queue", ql_remove_activate, ql_remove_sensitive, 0, 0 },
-  { "Adopt track", ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
+  { "Track properties", GTK_STOCK_PROPERTIES, ql_properties_activate, ql_properties_sensitive, 0, 0 },
+  { "Select all tracks", GTK_STOCK_SELECT_ALL, ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", NULL, ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Scratch playing track", GTK_STOCK_STOP, ql_scratch_activate, ql_scratch_sensitive, 0, 0 },
+  { "Remove track from queue", GTK_STOCK_DELETE, ql_remove_activate, ql_remove_sensitive, 0, 0 },
+  { "Adopt track", NULL, ql_adopt_activate, ql_adopt_sensitive, 0, 0 },
+};
+
+static const GtkTargetEntry queue_targets[] = {
+  {
+    QUEUED_TRACKS,                      /* drag type */
+    GTK_TARGET_SAME_WIDGET,             /* rearrangement within a widget */
+    QUEUED_TRACKS_ID                    /* ID value */
+  },
+  {
+    PLAYABLE_TRACKS,                             /* drag type */
+    GTK_TARGET_SAME_APP|GTK_TARGET_OTHER_WIDGET, /* copying between widgets */
+    PLAYABLE_TRACKS_ID,                          /* ID value */
+  },
+  {
+    .target = NULL
+  }
 };
 
 struct queuelike ql_queue = {
@@ -178,160 +263,13 @@ struct queuelike ql_queue = {
   .columns = queue_columns,
   .ncolumns = sizeof queue_columns / sizeof *queue_columns,
   .menuitems = queue_menuitems,
-  .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems
+  .nmenuitems = sizeof queue_menuitems / sizeof *queue_menuitems,
+  .drop = queue_drop,
+  .drag_source_targets = queue_targets,
+  .drag_source_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
+  .drag_dest_targets = queue_targets,
+  .drag_dest_actions = GDK_ACTION_MOVE|GDK_ACTION_COPY,
 };
-
-/* Drag and drop has to be figured out experimentally, because it is not well
- * documented.
- *
- * First you get a row-inserted.  The path argument points to the destination
- * row but this will not yet have had its values set.  The source row is still
- * present.  AFAICT the iter argument points to the same place.
- *
- * Then you get a row-deleted.  The path argument identifies the row that was
- * deleted.  By this stage the row inserted above has acquired its values.
- *
- * A complication is that the deletion will move the inserted row.  For
- * instance, if you do a drag that moves row 1 down to after the track that was
- * formerly on row 9, in the row-inserted call it will show up as row 10, but
- * in the row-deleted call, row 1 will have been deleted thus making the
- * inserted row be row 9.
- *
- * So when we see the row-inserted we have no idea what track to move.
- * Therefore we stash it until we see a row-deleted.
- */
-
-/** @brief Target row for drag */
-static int queue_drag_target = -1;
-
-static void queue_move_completed(void attribute((unused)) *v,
-                                 const char *err) {
-  if(err) {
-    popup_protocol_error(0, err);
-    return;
-  }
-  /* The log should tell us the queue changed so we do no more here */
-}
-
-static void queue_row_deleted(GtkTreeModel *treemodel,
-                              GtkTreePath *path,
-                              gpointer attribute((unused)) user_data) {
-  if(!suppress_actions) {
-#if 0
-    char *ps = gtk_tree_path_to_string(path);
-    fprintf(stderr, "row-deleted path=%s queue_drag_target=%d\n",
-            ps, queue_drag_target);
-    GtkTreeIter j[1];
-    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
-    int row = 0;
-    while(jt) {
-      struct queue_entry *q = ql_iter_to_q(treemodel, j);
-      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
-      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_queue.store), j);
-    }
-    g_free(ps);
-#endif
-    if(queue_drag_target < 0) {
-      error(0, "unsuppressed row-deleted with no row-inserted");
-      return;
-    }
-    int drag_source = gtk_tree_path_get_indices(path)[0];
-
-    /* If the drag is downwards (=towards higher row numbers) then the target
-     * will have been moved upwards (=towards lower row numbers) by one row. */
-    if(drag_source < queue_drag_target)
-      --queue_drag_target;
-    
-    /* Find the track to move */
-    GtkTreeIter src[1];
-    gboolean srcv = gtk_tree_model_iter_nth_child(treemodel, src, NULL,
-                                                  queue_drag_target);
-    if(!srcv) {
-      error(0, "cannot get iterator to drag target %d", queue_drag_target);
-      queue_playing_changed();
-      queue_drag_target = -1;
-      return;
-    }
-    struct queue_entry *srcq = ql_iter_to_q(treemodel, src);
-    assert(srcq);
-    //fprintf(stderr, "move %s %s\n", srcq->id, srcq->track);
-    
-    /* Don't allow the currently playing track to be moved.  As above, we put
-     * the queue back into the right order straight away. */
-    if(srcq == playing_track) {
-      //fprintf(stderr, "cannot move currently playing track\n");
-      queue_playing_changed();
-      queue_drag_target = -1;
-      return;
-    }
-
-    /* Find the destination */
-    struct queue_entry *dstq;
-    if(queue_drag_target) {
-      GtkTreeIter dst[1];
-      gboolean dstv = gtk_tree_model_iter_nth_child(treemodel, dst, NULL,
-                                                    queue_drag_target - 1);
-      if(!dstv) {
-        error(0, "cannot get iterator to drag target predecessor %d",
-              queue_drag_target - 1);
-        queue_playing_changed();
-        queue_drag_target = -1;
-        return;
-      }
-      dstq = ql_iter_to_q(treemodel, dst);
-      assert(dstq);
-      if(dstq == playing_track)
-        dstq = 0;
-    } else
-      dstq = 0;
-    /* NB if the user attempts to move a queued track before the currently
-     * playing track we assume they just missed a bit, and put it after. */
-    //fprintf(stderr, " target %s %s\n", dstq ? dstq->id : "(none)", dstq ? dstq->track : "(none)");
-    /* Now we know what is to be moved.  We need to know the preceding queue
-     * entry so we can move it. */
-    disorder_eclient_moveafter(client,
-                               dstq ? dstq->id : "",
-                               1, &srcq->id,
-                               queue_move_completed, NULL);
-    queue_drag_target = -1;
-  }
-}
-
-static void queue_row_inserted(GtkTreeModel attribute((unused)) *treemodel,
-                               GtkTreePath *path,
-                               GtkTreeIter attribute((unused)) *iter,
-                               gpointer attribute((unused)) user_data) {
-  if(!suppress_actions) {
-#if 0
-    char *ps = gtk_tree_path_to_string(path);
-    GtkTreeIter piter[1];
-    gboolean pi = gtk_tree_model_get_iter(treemodel, piter, path);
-    struct queue_entry *pq = pi ? ql_iter_to_q(treemodel, piter) : 0;
-    struct queue_entry *iq = ql_iter_to_q(treemodel, iter);
-
-    fprintf(stderr, "row-inserted path=%s pi=%d pq=%p path=%s iq=%p iter=%s\n",
-            ps,
-            pi,
-            pq,
-            (pi
-             ? (pq ? pq->track : "(pq=0)")
-             : "(pi=FALSE)"),
-            iq,
-            iq ? iq->track : "(iq=0)");
-
-    GtkTreeIter j[1];
-    gboolean jt = gtk_tree_model_get_iter_first(treemodel, j);
-    int row = 0;
-    while(jt) {
-      struct queue_entry *q = ql_iter_to_q(treemodel, j);
-      fprintf(stderr, " %2d %s\n", row++, q ? q->track : "(no q)");
-      jt = gtk_tree_model_iter_next(GTK_TREE_MODEL(ql_queue.store), j);
-    }
-    g_free(ps);
-#endif
-    queue_drag_target = gtk_tree_path_get_indices(path)[0];
-  }
-}
 
 /** @brief Called when a key is pressed in the queue tree view */
 static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
@@ -353,14 +291,6 @@ static gboolean queue_key_press(GtkWidget attribute((unused)) *widget,
 GtkWidget *queue_widget(void) {
   GtkWidget *const w = init_queuelike(&ql_queue);
 
-  /* Enable drag+drop */
-  gtk_tree_view_set_reorderable(GTK_TREE_VIEW(ql_queue.view), TRUE);
-  g_signal_connect(ql_queue.store,
-                   "row-inserted",
-                   G_CALLBACK(queue_row_inserted), &ql_queue);
-  g_signal_connect(ql_queue.store,
-                   "row-deleted",
-                   G_CALLBACK(queue_row_deleted), &ql_queue);
   /* Catch keypresses */
   g_signal_connect(ql_queue.view, "key-press-event",
                    G_CALLBACK(queue_key_press), &ql_queue);
@@ -378,6 +308,45 @@ int queued(const char *track) {
     if(!strcmp(q->track, track))
       return 1;
   return 0;
+}
+
+/* Playing widget for mini-mode */
+
+static void queue_set_playing_widget(const char attribute((unused)) *event,
+                                     void attribute((unused)) *eventdata,
+                                     void *callbackdata) {
+  GtkLabel *w = callbackdata;
+
+  if(playing_track) {
+    const char *artist = namepart(playing_track->track, "display", "artist");
+    const char *album = namepart(playing_track->track, "display", "album");
+    const char *title = namepart(playing_track->track, "display", "title");
+    const char *ldata = column_length(playing_track, NULL);
+    if(!ldata)
+      ldata = "";
+    char *text;
+    byte_xasprintf(&text, "%s/%s/%s %s", artist, album, title, ldata);
+    gtk_label_set_text(w, text);
+  } else
+    gtk_label_set_text(w, "");
+}
+
+GtkWidget *playing_widget(void) {
+  GtkWidget *w = gtk_label_new("");
+  gtk_misc_set_alignment(GTK_MISC(w), 1.0, 0);
+  /* Spot changes to the playing track */
+  event_register("playing-track-changed",
+                 queue_set_playing_widget,
+                 w);
+  /* Use the best-known name for it */
+  event_register("lookups-complete",
+                 queue_set_playing_widget,
+                 w);
+  /* Keep the amount played so far up to date */
+  event_register("periodic-fast",
+                 queue_set_playing_widget,
+                 w);
+  return frame_widget(w, NULL);
 }
 
 /*

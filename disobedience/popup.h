@@ -26,6 +26,9 @@ struct menuitem {
   /** @brief Menu item name */
   const char *name;
 
+  /** @brief Stock icon name */
+  const char *stock;
+
   /** @brief Called to activate the menu item */
   void (*activate)(GtkMenuItem *menuitem,
                    gpointer user_data);

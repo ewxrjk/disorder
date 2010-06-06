@@ -660,13 +660,15 @@ static struct button users_buttons[] = {
     GTK_STOCK_ADD,
     users_add,
     "Create a new user",
-    0
+    0,
+    NULL,
   },
   {
     GTK_STOCK_REMOVE,
     users_delete,
     "Delete a user",
-    0
+    0,
+    NULL,
   },
 };
 #define NUSERS_BUTTONS (sizeof users_buttons / sizeof *users_buttons)

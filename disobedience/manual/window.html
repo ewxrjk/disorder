@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+ <head>
+   <title>Disobedience: Window Layout</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disobedience.css">
+ </head>
+ <body>
+   <h1>2. Window Layout</h1>
+
+   <p>This chapter contains a tour of the main Disobedience
+   window.</p>
+
+   <h2><a name=main>2.1 The Disobedience Window</a></h2>
+   
+   <p>Disobedience should look something like this when you've started
+   it up and logged in:</p>
+
+   <p class=image><img src="queue.png"></p>
+
+   <p>At the top is the menu bar, and immediately below it a toolbar
+   with some buttons and a volume control.  (In some cases the volume
+   control may be absent.)  Below that is a row of
+   tabs: <b>Queue</b>, <b>Recent</b> and so on.  The <b>Queue</b> tab
+   is selected: this displays the currently playing track and the list
+   of tracks that will play in the near future.</p>
+
+   <p>In this example nothing is actually playing.  (Apart from the
+   fact that you wouldn't hear anything) you can tell this because the
+   top row only has a single length indicator (&ldquo;3:04&rdquo;).
+   If it was playing it would show how far through the track it was
+   too.  Secondly, all the tracks were chosen at random.  You can tell
+   this because the <b>Who</b> column is empty.
+
+   <p>In the screenshot below both of these things have changed.
+   Use <tt>rjk</tt> has selected some tracks and the first of them is
+   playing.</p>
+
+   <p class=image><img src="queue2.png"></p>
+
+   <p>The playing track is highlighted with a green backgroud.  It's 4
+   minutes and 10 seconds long and so far, the first 21 seconds of it
+   has played.</p>
+
+   <h2><a name=buttons>2.2 Buttons</a></h2>
+
+   <p>The meaning of the buttons is as follows:</p>
+
+   <table>
+     <tr>
+       <td><img src="button-pause.png"></td>
+       <td>The pause button.  This only effective when a track is
+       playing.  When it is pressed the playing track is paused.</td>
+     </tr>
+
+     <tr>
+       <td><img src="button-scratch.png"></td>
+       <td>The scratch button.  As above this is only effective when
+       a track is playing.  Pressing it will stop that track playing
+       and move onto the next one.</td>
+     </tr>
+
+     <tr>
+	 <td><img src="button-random.png"></td>
+
+	 <td>The random play button.  Random play, which is enabled
+	 when the button is depressed, means that if
+	 nothing is playing the server will automatically pick a track
+	 at random and play that.  Furthermore it will ensure that the
+	 queue always has a minimum number of tracks, so you can see
+	 ahead of time what will play next.</td>
+     </tr>
+
+     <tr>
+	 <td><img src="button-playing.png"></td>
+	 <td>The playing button.  Normally this would always be left
+	 enabled, i.e. with the button depressed.
+         If it is disabled then nothing will be
+	 played at all, regardless of whether it was randomly chosen
+	 or picked by a human.</td>
+     </tr>
+
+     <tr>
+	 <td><img src="button-rtp.png"></td>
+	 <td>The network play button.  This is only effective if the
+	 server is playing over the network (as opposed to using a
+	 local sound card).  When network play is enabled,
+	 Disobedience runs a client program on your computer to play
+	 sound received over the network using your sound card.</td>
+     </tr>
+   </table>
+
+   <p>To the right of the buttons are two sliders:</p>
+
+   <p class=image><img src="volume-slider.png"></p>
+
+   <p>The left hand slider is the volume control.  This ranges from 0
+   (silent) to 10 (loudest).  The right hand slider is the balance
+   control, which ranges form -1.0 (left) to +1.0 (right).</p>
+
+   <h2><a name=menu>2.3 The Menu Bar</a></h2>
+
+   <p class=image><img src="menu-server.png"></p>
+
+   <p>The <b>Server</b> menu is loosely analogous to the <b>File</b>
+   menu in othe applications.  It has no file-related options though,
+   so the name would not be appropriate!  Instead the three options it
+   has are <b>Login</b>, which brings back the login window shown the
+   first time it is run, <b>Manage Users</b> which allows
+   adminstrators to do user management, and <b>Quit</b>.</p>
+
+   <!-- TODO link to user management -->
+
+   <p class=image><img src="menu-edit.png"></p>
+
+   <p>The <b>Edit</b> menu has options to select or deselect all
+   tracks.  You can also do this with CTRL-A and CTRL-SHIFT-A, and of
+   course you can select tracks in the queue (or other tabs) with the
+   mouse.</p>
+
+   <p>The <b>Track Properties</b> option will create a window with
+   editable <a href="properties.html">properties</a> of each selected
+   track and the <b>Edit Playlists</b> option will create a window
+   allowing editing of <a href="playlists.html">playlists</a>.</p>
+
+   <p class=image><img src="menu-control.png"></p>
+
+   <p>The <b>Control</b> menu options are mostly equivalent to the
+   buttons described above.  The exceptions is <b>Activate
+   Playlist</b> which allows you to play
+   a <A href="playlists.html">playlist</a>, and <b>Compact Mode</b>
+   which switches Disobedience's window to a smaller format.</p>
+
+   <p class=image><img src="menu-help.png"></p>
+
+   <p>The <b>Help</b> menu has an option to bring up the Disobedience
+   manual and an <b>About</b> option which will display a bit of
+   version information for the server and for Disobedience (which
+   might not be the same).</p>
+
+   <hr>
+
+   <a href="index.html">Back to contents</a>
+
+ </body>
+</html>

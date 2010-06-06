@@ -139,21 +139,22 @@ static int copy(const char *from, const char *to) {
   struct stat sb;
 
   if((fdin = open(from, O_RDONLY)) < 0)
-    fatal(errno, "error opening %s", from);
+    disorder_fatal(errno, "error opening %s", from);
   if((fdout = open(to, O_WRONLY|O_CREAT|O_TRUNC, 0666)) < 0)
-    fatal(errno, "error opening %s", to);
+    disorder_fatal(errno, "error opening %s", to);
   while((n = read(fdin, buffer, sizeof buffer)) > 0) {
     if(write(fdout, buffer, n) < 0)
-      fatal(errno, "error writing to %s", to);
+      disorder_fatal(errno, "error writing to %s", to);
   }
-  if(n < 0) fatal(errno, "error reading %s", from);
+  if(n < 0)
+    disorder_fatal(errno, "error reading %s", from);
   if(fstat(fdin, &sb) < 0)
-    fatal(errno, "error stating %s", from);
+    disorder_fatal(errno, "error stating %s", from);
   if(fchown(fdout, sb.st_uid, sb.st_gid) < 0)
-    fatal(errno, "error chowning %s", from);
+    disorder_fatal(errno, "error chowning %s", from);
   if(fchmod(fdout, sb.st_mode & 07777) < 0)
-    fatal(errno, "error chmoding %s", from);
-  if(close(fdout) < 0) fatal(errno, "error closing %s", to);
+    disorder_fatal(errno, "error chmoding %s", from);
+  if(close(fdout) < 0) disorder_fatal(errno, "error closing %s", to);
   xclose(fdin);
   return 0;
 }
@@ -288,25 +289,25 @@ static void visit(const char *path, const char *destpath) {
    * directory. In that case we'd better not descend into it when we encounter
    * it in the source. */
   if(!strcmp(fullsourcepath, destination)) {
-    info("%s matches destination directory, not recursing", errsourcepath);
+    disorder_info("%s matches destination directory, not recursing", errsourcepath);
     return;
   }
   
   /* Find out what kind of file we're dealing with */
   if(stat(fullsourcepath, &sb) < 0) {
-    error(errno, "cannot stat %s", errsourcepath );
+    disorder_error(errno, "cannot stat %s", errsourcepath );
     ++errors;
     return;
   }
   if(S_ISREG(sb.st_mode)) {
     if(copier != nocopy)
       if(unlink(fulldestpath) < 0 && errno != ENOENT) {
-        error(errno, "cannot remove %s", errdestpath);
+        disorder_error(errno, "cannot remove %s", errdestpath);
         ++errors;
         return;
       }
     if(copier(fullsourcepath, fulldestpath) < 0) {
-      error(errno, "cannot link %s to %s", errsourcepath, errdestpath);
+      disorder_error(errno, "cannot link %s to %s", errsourcepath, errdestpath);
       ++errors;
       return;
     }
@@ -322,22 +323,22 @@ static void visit(const char *path, const char *destpath) {
         /* Created new directory.  Adjust permissions and ownership to match the
          * old one. */
         if(chown(fulldestpath, sb.st_uid, sb.st_gid) < 0) {
-          error(errno, "cannot chown %s", errdestpath);
+          disorder_error(errno, "cannot chown %s", errdestpath);
           ++errors;
         }
         if(chmod(fulldestpath, sb.st_mode & 07777) < 0) {
-          error(errno, "cannot chmod %s", errdestpath);
+          disorder_error(errno, "cannot chmod %s", errdestpath);
           ++errors;
         }
       }
     } else if(errno != EEXIST) {
-      error(errno, "cannot mkdir %s", errdestpath);
+      disorder_error(errno, "cannot mkdir %s", errdestpath);
       ++errors;
       return;
     }
     /* We read the directory and visit all the files in it in any old order. */
     if(!(dp = opendir(fullsourcepath))) {
-      error(errno, "cannot open directory %s", errsourcepath);
+      disorder_error(errno, "cannot open directory %s", errsourcepath);
       ++errors;
       return;
     }
@@ -354,11 +355,12 @@ static void visit(const char *path, const char *destpath) {
       }
       visit(childpath, childdestpath);
     }
-    if(errno) fatal(errno, "error reading directory %s", errsourcepath);
+    if(errno)
+      disorder_fatal(errno, "error reading directory %s", errsourcepath);
     closedir(dp);
   } else {
     /* We don't handle special files, but we'd better warn the user. */
-    info("ignoring %s", errsourcepath);
+    disorder_info("ignoring %s", errsourcepath);
   }
 }
 
@@ -367,7 +369,8 @@ int main(int argc, char **argv) {
   struct pattern *p;
 
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, ""))
+    disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVdf:t:i:e:ET:u:wlscn", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -393,17 +396,19 @@ int main(int argc, char **argv) {
     case 's': copier = symlink; break;
     case 'c': copier = copy; break;
     case 'n': copier = nocopy; dirmaker = nomkdir; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
-  if(optind == argc) fatal(0, "missing SOURCE and DESTINATION arguments");
-  else if(optind + 1 == argc) fatal(0, "missing DESTINATION argument");
-  else if(optind + 2 != argc) fatal(0, "redundant extra arguments");
-  if(extracttags) fatal(0, "--extract-tags is not implemented yet"); /* TODO */
+  if(optind == argc)
+    disorder_fatal(0, "missing SOURCE and DESTINATION arguments");
+  else if(optind + 1 == argc) disorder_fatal(0, "missing DESTINATION argument");
+  else if(optind + 2 != argc) disorder_fatal(0, "redundant extra arguments");
+  if(extracttags)
+    disorder_fatal(0, "--extract-tags is not implemented yet"); /* TODO */
   if(tagencoding && !extracttags)
-    fatal(0, "--tag-encoding without --extra-tags does not make sense");
+    disorder_fatal(0, "--tag-encoding without --extra-tags does not make sense");
   if(untagged && !extracttags)
-    fatal(0, "--untagged without --extra-tags does not make sense");
+    disorder_fatal(0, "--untagged without --extra-tags does not make sense");
   source = argv[optind];
   destination = argv[optind + 1];
   nativeencoding = nl_langinfo(CODESET);

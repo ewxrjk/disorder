@@ -44,7 +44,7 @@ int sockaddr_equal(const struct sockaddr *a, const struct sockaddr *b) {
 		   &((const struct sockaddr_in6 *)b)->sin6_addr,
 		   sizeof (struct in6_addr));
   default:
-    fatal(0, "unknown address family %d", a->sa_family);
+    disorder_fatal(0, "unknown address family %d", a->sa_family);
   }
 }
 

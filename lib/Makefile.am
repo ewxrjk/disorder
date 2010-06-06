@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,25 +20,26 @@ noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
 
 if SERVER
-TRACKDB=trackdb.c
+TRACKDB=trackdb.c trackdb-playlists.c
 else
 TRACKDB=trackdb-stub.c
 endif
 
 libdisorder_a_SOURCES=charset.c charset.h		\
 	addr.c addr.h					\
-	alsabg.c alsabg.h				\
 	arcfour.c arcfour.h				\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
 	base64.c base64.h				\
 	bits.c bits.h					\
+	byte-order.h					\
 	cache.c cache.h					\
 	cgi.c cgi.h					\
 	client.c client.h				\
 	client-common.c client-common.h			\
 	configuration.c configuration.h			\
 	cookies.c cookies.h				\
+	coreaudio.c coreaudio.h				\
 	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
 	eclient.c eclient.h				\
@@ -54,17 +55,17 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
-	log.c log.h log-impl.h				\
+	log.c log.h					\
 	logfd.c logfd.h					\
 	macros.c macros-builtin.c macros.h		\
-	mem.c mem.h mem-impl.h				\
+	mem.c mem.h 					\
 	mime.h mime.c					\
-	mixer.c mixer.h mixer-oss.c mixer-alsa.c	\
 	printf.c printf.h				\
 	asprintf.c fprintf.c snprintf.c			\
 	queue.c queue.h					\
 	random.c random.h				\
 	regsub.c regsub.h				\
+	resample.c resample.h				\
 	rights.c queue-rights.c rights.h		\
 	rtp.h						\
 	selection.c selection.h				\
@@ -81,11 +82,16 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	$(TRACKDB) trackdb.h trackdb-int.h		\
 	trackname.c trackorder.c trackname.h		\
 	tracksort.c					\
+	uaudio.c uaudio-thread.c uaudio.h uaudio-apis.c	\
+	uaudio-oss.c uaudio-alsa.c 			\
+	uaudio-coreaudio.c				\
+	uaudio-rtp.c uaudio-command.c uaudio-schedule.c	\
 	url.h url.c					\
 	user.h user.c					\
 	unicode.h unicode.c				\
 	unidata.h unidata.c				\
 	vacopy.h					\
+	validity.c validity.h				\
 	vector.c vector.h				\
 	version.c version.h				\
 	wav.h wav.c					\
@@ -116,6 +122,7 @@ definitions.h: Makefile
 	echo "#define PKGCONFDIR \"${sysconfdir}/\"PACKAGE" >> $@.new
 	echo "#define PKGSTATEDIR \"${localstatedir}/\"PACKAGE" >> $@.new
 	echo "#define PKGDATADIR \"${pkgdatadir}/\"" >> $@.new
+	echo "#define DOCHTMLDIR \"${dochtmldir}\"" >> $@.new
 	echo "#define SBINDIR \"${sbindir}/\"" >> $@.new
 	echo "#define BINDIR \"${bindir}/\"" >> $@.new
 	echo "#define FINKBINDIR \"${finkbindir}/\"" >> $@.new
@@ -128,10 +135,6 @@ defs.lo: definitions.h versionstring.h
 
 rebuild-unicode:
 	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata
-
-%.i: %.c
-	$(CPP) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) -c $< > $@.new
-	mv $@.new $@
 
 CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
 	   *.gcda *.gcov *.gcno *.c.html index.html

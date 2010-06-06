@@ -61,7 +61,7 @@ static void recent_changed(const char attribute((unused)) *event,
 }
 
 /** @brief Called at startup */
-static void recent_init(void) {
+static void recent_init(struct queuelike attribute((unused)) *ql) {
   /* Whenever the recent list changes on the server, re-fetch it */
   event_register("recent-changed", recent_changed, 0);
 }
@@ -78,10 +78,10 @@ static const struct queue_column recent_columns[] = {
 
 /** @brief Pop-up menu for recently played list */
 static struct menuitem recent_menuitems[] = {
-  { "Track properties", ql_properties_activate, ql_properties_sensitive,0, 0 },
-  { "Play track", ql_play_activate, ql_play_sensitive, 0, 0 },
-  { "Select all tracks", ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
-  { "Deselect all tracks", ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
+  { "Track properties", GTK_STOCK_PROPERTIES, ql_properties_activate, ql_properties_sensitive,0, 0 },
+  { "Play track", GTK_STOCK_MEDIA_PLAY, ql_play_activate, ql_play_sensitive, 0, 0 },
+  { "Select all tracks", GTK_STOCK_SELECT_ALL, ql_selectall_activate, ql_selectall_sensitive, 0, 0 },
+  { "Deselect all tracks", NULL, ql_selectnone_activate, ql_selectnone_sensitive, 0, 0 },
 };
 
 struct queuelike ql_recent = {
@@ -91,6 +91,8 @@ struct queuelike ql_recent = {
   .ncolumns = sizeof recent_columns / sizeof *recent_columns,
   .menuitems = recent_menuitems,
   .nmenuitems = sizeof recent_menuitems / sizeof *recent_menuitems,
+  .drag_source_targets = choose_targets,
+  .drag_source_actions = GDK_ACTION_COPY,
 };
 
 GtkWidget *recent_widget(void) {

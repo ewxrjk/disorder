@@ -5,39 +5,35 @@ Dependencies:
      Autoconf         2.61           Slightly older might work too
      Libtool          1.5.22         1.4 is no good
      Bazaar (bzr)                    You might be able to manage without
-     Python           2.4
+     Python           2.5.2          2.4 won't work
 
    * On Debian and derivatives this should work:
 
      apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
 		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
 		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
-		     libflac-dev vorbis-tools wget
+		     libflac-dev vorbis-tools wget libsamplerate0-dev
 
-     (Use the bzr from backports, the one in etch is obsolete.)
+     On lenny use libdb4.5-deb.  libdb4.6 does not work (and configure will
+     refuse to use it).
 
    * On FreeBSD you'll need at least these packages:
-	 autotools
-	 bash
-	 flac
-	 mad
-         boehm-gc
-         db43
-         gmake
-         gsed
-         libao
-         libgcrypt
-         wget
-         vorbis-tools
+       autotools bash flac mad boehm-gc db43 gmake gsed libao libgcrypt wget
+       vorbis-tools
+
+   * On OS X with Fink:
+
+     fink install gtk+2-dev gc libgrypt pcre flac vorbis-tools libmad wget \
+                  sed libsamplerate0-dev
 
    * Please report unstated dependencies (here, README or debian/control).
 
 Building:
 
-   * Compiled versions of configure and the makefiles are including in bzr, so
-     if you didn't use a source tarball, you must start as follows:
+   * Compiled versions of configure and the makefiles are not included in bzr,
+     so if you didn't use a source tarball, you must start as follows:
 
-        bash ./prepare
+        bash ./autogen.sh
         ./configure -C
         make
 
@@ -58,16 +54,11 @@ APIs And Formats:
 
    * To support a new sound API:
      1) Teach configure.ac how to detect any libraries required.
-     2) Define a new BACKEND_ value and update configuration.[ch] for it.
-     3) Create a suitable server/speaker-*.c along the pattern of the existing
-        ones.
-     4) If possible create a suitable lib/mixer-*.c.  This doesn't make sense
-        for all APIs (e.g. network), but even for those it does, playback
-        support without volume control support is likely to be acceptable (even
-        if inferior to full support).
+     2) Create lib/uaudio-<name>.c; see uaudio.h for the interface.
+     3) Update the list in lib/uaudio-apis.c
+     4) Add a new option to clients/playrtp.c and document it in
+        doc/disorder-playrtp.1.in (if appropriate).
      5) Update doc/disorder_config.5.in.
-     6) If relevant, create a suitable clients/playrtp-*.c and update
-        doc/disorder-playrtp.1.in.
 
    * To support a new file format:
      1) Teach configure.ac how to detect any libraries required.
@@ -137,8 +128,9 @@ The Server:
 Web Interface:
 
    * The web interface does not use Javascript or Flash and I would like to
-     keep it that way.  Clever use of CSS is OK provided it works well on the
-     mainstream browsers.
+     keep it that way; Javascript might be acceptable but it must degrade
+     gracefuly if disabled.  Clever use of CSS is OK provided it works well on
+     the mainstream browsers.
 
    * Update templates/help.tmpl for any changes you make.
 

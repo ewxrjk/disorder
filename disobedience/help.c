@@ -24,17 +24,28 @@
 #include <unistd.h>
 
 /** @brief Display the manual page */
-void popup_help(void) {
+void popup_help(const char *what) {
   char *path;
   pid_t pid;
   int w;
 
-  byte_xasprintf(&path, "%s/disobedience.html", pkgdatadir);
+  if(!what)
+    what = "index.html";
+#if __APPLE__
+  if(!strcmp(browser, "open"))
+    /* Apple's open(1) isn't really a web browser so needs some extra hints
+     * that it should see the argument as a URL.  Otherwise it doesn't treat #
+     * specially.  A better answer would be to identify the system web browser
+     * and invoke it directly. */
+    byte_xasprintf(&path, "file:///%s/%s", dochtmldir, what);
+  else
+#endif
+    byte_xasprintf(&path, "%s/%s", dochtmldir, what);
   if(!(pid = xfork())) {
     exitfn = _exit;
     if(!xfork()) {
       execlp(browser, browser, path, (char *)0);
-      fatal(errno, "error executing %s", browser);
+      disorder_fatal(errno, "error executing %s", browser);
     }
     _exit(0);
   }

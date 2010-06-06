@@ -61,7 +61,7 @@ extern unsigned long cache_files_hits, cache_files_misses;
 #define TRACKDB_READ_ONLY 0x0020
 
 void trackdb_init(int flags);
-void trackdb_deinit(void);
+void trackdb_deinit(ev_source *ev);
 /* close/close environment */
 
 void trackdb_master(struct ev_source *ev);
@@ -183,6 +183,22 @@ int trackdb_request_random(struct ev_source *ev,
 void trackdb_add_rescanned(void (*rescanned)(void *ru),
                            void *ru);
 int trackdb_rescan_underway(void);
+
+int trackdb_playlist_get(const char *name,
+                         const char *who,
+                         char ***tracksp,
+                         int *ntracksp,
+                         char **sharep);
+int trackdb_playlist_set(const char *name,
+                         const char *who,
+                         char **tracks,
+                         int ntracks,
+                         const char *share);
+void trackdb_playlist_list(const char *who,
+                           char ***playlistsp,
+                           int *nplaylistsp);
+int trackdb_playlist_delete(const char *name,
+                            const char *who);
 
 #endif /* TRACKDB_H */
 

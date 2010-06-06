@@ -1,3 +1,9 @@
+disorder (5.0) unstable; urgency=low
+
+  * DisOrder 5.0
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 06 Jun 2010 12:43:21 +0100
+
 disorder (4.3) unstable; urgency=low
 
   * DisOrder 4.3

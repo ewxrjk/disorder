@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006-2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,21 @@
 
 #include "disobedience.h"
 
+static void toggled_minimode(GtkCheckMenuItem *item, gpointer userdata);
+
 static GtkWidget *selectall_widget;
 static GtkWidget *selectnone_widget;
 static GtkWidget *properties_widget;
+GtkWidget *menu_playlists_widget;
+GtkWidget *playlists_menu;
+GtkWidget *menu_editplaylists_widget;
+static GtkWidget *menu_minimode_widget;
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
+
+/** @brief Set for full mode, clear for mini mode */
+int full_mode = 1;
 
 static void about_popup_got_version(void *v,
                                     const char *err,
@@ -113,7 +122,7 @@ static void edit_menu_show(GtkWidget attribute((unused)) *widget,
                              && t->selectnone_sensitive(t->extra));
   }
 }
-   
+
 /** @brief Fetch version in order to display the about... popup */
 static void about_popup(gpointer attribute((unused)) callback_data,
                         guint attribute((unused)) callback_action,
@@ -131,7 +140,7 @@ static void manual_popup(gpointer attribute((unused)) callback_data,
                        GtkWidget attribute((unused)) *menu_item) {
   D(("manual_popup"));
 
-  popup_help();
+  popup_help(NULL);
 }
 
 /** @brief Called when version arrives, displays about... popup */
@@ -173,7 +182,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
                      FALSE/*fill*/,
                      1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox),
-                     gtk_label_new("\xC2\xA9 2004-2008 Richard Kettlewell"),
+                     gtk_label_new("\xC2\xA9 2004-2009 Richard Kettlewell"),
                      FALSE/*expand*/,
                      FALSE/*fill*/,
                      1/*padding*/);
@@ -271,15 +280,15 @@ GtkWidget *menubar(GtkWidget *w) {
     },
     {
       (char *)"/Edit/Select all tracks", /* path */
-      0,                                /* accelerator */
+      (char *)"<CTRL>A",                /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, selectall_activate), /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",           /* item_type */
+      GTK_STOCK_SELECT_ALL,            /* extra_data */
     },
     {
       (char *)"/Edit/Deselect all tracks", /* path */
-      0,                                /* accelerator */
+      (char *)"<CTRL><SHIFT>A",         /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, selectnone_activate), /* callback_action */
       0,                                /* item_type */
@@ -290,9 +299,18 @@ GtkWidget *menubar(GtkWidget *w) {
       0,                                /* accelerator */
       menu_tab_action,                  /* callback */
       offsetof(struct tabtype, properties_activate), /* callback_action */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_PROPERTIES,             /* extra_data */
+    },
+    {
+      (char *)"/Edit/Edit playlists",   /* path */
+      0,                                /* accelerator */
+      playlist_window_create,           /* callback */
+      0,                                /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
     },
+    
     
     {
       (char *)"/Control",               /* path */
@@ -307,8 +325,8 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CTRL>S",                /* accelerator */
       0,                                /* callback */
       0,                                /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_STOP,                   /* extra_data */
     },
     {
       (char *)"/Control/Playing",       /* path */
@@ -334,7 +352,23 @@ GtkWidget *menubar(GtkWidget *w) {
       (char *)"<CheckItem>",            /* item_type */
       0                                 /* extra_data */
     },
-    
+    {
+      (char *)"/Control/Compact mode",  /* path */
+      (char *)"<CTRL>M",                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<CheckItem>",            /* item_type */
+      0                                 /* extra_data */
+    },
+    {
+      (char *)"/Control/Activate playlist", /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
+
     {
       (char *)"/Help",                  /* path */
       0,                                /* accelerator */
@@ -344,12 +378,12 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     {
-      (char *)"/Help/Manual page",      /* path */
+      (char *)"/Help/Manual",           /* path */
       0,                                /* accelerator */
       manual_popup,                     /* callback */
       0,                                /* callback_action */
-      0,                                /* item_type */
-      0                                 /* extra_data */
+      (char *)"<StockItem>",            /* item_type */
+      GTK_STOCK_HELP,                   /* extra_data */
     },
     {
       (char *)"/Help/About DisOrder",   /* path */
@@ -378,21 +412,43 @@ GtkWidget *menubar(GtkWidget *w) {
 						 "<GdisorderMain>/Edit/Deselect all tracks");
   properties_widget = gtk_item_factory_get_widget(mainmenufactory,
 						  "<GdisorderMain>/Edit/Track properties");
+  menu_playlists_widget = gtk_item_factory_get_item(mainmenufactory,
+                                               "<GdisorderMain>/Control/Activate playlist");
+  playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
+                                               "<GdisorderMain>/Control/Activate playlist");
+  menu_editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                     "<GdisorderMain>/Edit/Edit playlists");
+  menu_minimode_widget = gtk_item_factory_get_widget(mainmenufactory,
+                                                     "<GdisorderMain>/Control/Compact mode");
   assert(selectall_widget != 0);
   assert(selectnone_widget != 0);
   assert(properties_widget != 0);
+  assert(menu_playlists_widget != 0);
+  assert(playlists_menu != 0);
+  assert(menu_editplaylists_widget != 0);
 
-  
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");
   g_signal_connect(edit_widget, "show", G_CALLBACK(edit_menu_show), 0);
-  
+
   event_register("rights-changed", menu_rights_changed, 0);
   users_set_sensitive(0);
   m = gtk_item_factory_get_widget(mainmenufactory,
                                   "<GdisorderMain>");
   set_tool_colors(m);
+  if(menu_minimode_widget)
+    g_signal_connect(G_OBJECT(menu_minimode_widget), "toggled",
+                     G_CALLBACK(toggled_minimode), NULL);
   return m;
+}
+
+static void toggled_minimode(GtkCheckMenuItem  *item,
+                             gpointer attribute((unused)) userdata) {
+  int new_full_mode = !gtk_check_menu_item_get_active(item);
+  if(full_mode != new_full_mode) {
+    full_mode = new_full_mode;
+    event_raise("mini-mode-changed", NULL);
+  }
 }
 
 /*

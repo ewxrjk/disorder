@@ -132,6 +132,22 @@ int disorder_schedule_add(disorder_client *c,
 			  const char *action,
 			  ...);
 int disorder_adopt(disorder_client *c, const char *id);
+int disorder_playlist_delete(disorder_client *c,
+                             const char *playlist);
+int disorder_playlist_get(disorder_client *c, const char *playlist,
+                          char ***tracksp, int *ntracksp);
+int disorder_playlists(disorder_client *c,
+                       char ***playlistsp, int *nplaylists);
+int disorder_playlist_get_share(disorder_client *c, const char *playlist,
+                                char **sharep);
+int disorder_playlist_set_share(disorder_client *c, const char *playlist,
+                                const char *share);
+int disorder_playlist_lock(disorder_client *c, const char *playlist);
+int disorder_playlist_unlock(disorder_client *c);
+int disorder_playlist_set(disorder_client *c,
+                          const char *playlist,
+                          char **tracks,
+                          int ntracks);
 
 #endif /* CLIENT_H */
 

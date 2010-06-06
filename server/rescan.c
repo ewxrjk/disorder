@@ -70,12 +70,12 @@ static int aborted(void) {
 /* Exit if our parent has gone away or we have been told to stop. */
 static void checkabort(void) {
   if(getppid() == 1) {
-    info("parent has terminated");
+    disorder_info("parent has terminated");
     trackdb_abort_transaction(global_tid);
     exit(0);
   }
   if(signalled) {
-    info("received signal %d", signalled);
+    disorder_info("received signal %d", signalled);
     trackdb_abort_transaction(global_tid);
     exit(0);
   }
@@ -90,7 +90,7 @@ static void rescan_collection(const struct collection *c) {
   long ntracks = 0, nnew = 0;
   
   checkabort();
-  info("rescanning %s with %s", c->root, c->module);
+  disorder_info("rescanning %s with %s", c->root, c->module);
   /* plugin runs in a subprocess */
   xpipe(p);
   if(!(pid = xfork())) {
@@ -100,29 +100,29 @@ static void rescan_collection(const struct collection *c) {
     xclose(p[1]);
     scan(c->module, c->root);
     if(fflush(stdout) < 0)
-      fatal(errno, "error writing to scanner pipe");
+      disorder_fatal(errno, "error writing to scanner pipe");
     _exit(0);
   }
   xclose(p[1]);
   if(!(fp = fdopen(p[0], "r")))
-    fatal(errno, "error calling fdopen");
+    disorder_fatal(errno, "error calling fdopen");
   /* read tracks from the plugin */
   while(!inputline("rescanner", fp, &path, 0)) {
     checkabort();
     /* actually we can cope relatively well within the server, but they'll go
      * wrong in track listings */
     if(strchr(path, '\n')) {
-      error(0, "cannot cope with tracks with newlines in the name");
+      disorder_error(0, "cannot cope with tracks with newlines in the name");
       continue;
     }
     if(!(track = any2utf8(c->encoding, path))) {
-      error(0, "cannot convert track path to UTF-8: %s", path);
+      disorder_error(0, "cannot convert track path to UTF-8: %s", path);
       continue;
     }
     if(config->dbversion > 1) {
       /* We use NFC track names */
       if(!(track = utf8_compose_canon(track, strlen(track), 0))) {
-        error(0, "cannot convert track path to NFC: %s", path);
+        disorder_error(0, "cannot convert track path to NFC: %s", path);
         continue;
       }
     }
@@ -134,28 +134,28 @@ static void rescan_collection(const struct collection *c) {
     if(n < config->player.n) {
       nnew += !!trackdb_notice(track, path);
       ++ntracks;
-      if(ntracks % 100 == 0 && time(0) > last_report + 10) {
-        info("rescanning %s, %ld tracks so far", c->root, ntracks);
-        time(&last_report);
+      if(ntracks % 100 == 0 && xtime(0) > last_report + 10) {
+        disorder_info("rescanning %s, %ld tracks so far", c->root, ntracks);
+        xtime(&last_report);
       }
     }
   }
   /* tidy up */
   if(ferror(fp)) {
-    error(errno, "error reading from scanner pipe");
+    disorder_error(errno, "error reading from scanner pipe");
     goto done;
   }
   xfclose(fp);
   fp = 0;
   while((r = waitpid(pid, &w, 0)) == -1 && errno == EINTR)
     ;
-  if(r < 0) fatal(errno, "error calling waitpid");
+  if(r < 0) disorder_fatal(errno, "error calling waitpid");
   pid = 0;
   if(w) {
-    error(0, "scanner subprocess: %s", wstat(w));
+    disorder_error(0, "scanner subprocess: %s", wstat(w));
     goto done;
   }
-  info("rescanned %s, %ld tracks, %ld new", c->root, ntracks, nnew);
+  disorder_info("rescanned %s, %ld tracks, %ld new", c->root, ntracks, nnew);
 done:
   if(fp)
     xfclose(fp);
@@ -229,7 +229,7 @@ static int recheck_track_tid(struct recheck_state *cs,
       if(fnmatch(config->tracklength.s[n].s[0], t->track, 0) == 0)
         break;
     if(n >= config->tracklength.n)
-      error(0, "no tracklength plugin found for %s", t->track);
+      disorder_error(0, "no tracklength plugin found for %s", t->track);
     else {
       length = tracklength(config->tracklength.s[n].s[1], t->track, path);
       if(length > 0) {
@@ -259,9 +259,9 @@ static void recheck_collection(const struct collection *c) {
   long nrc;
 
   if(c)
-    info("rechecking %s", c->root);
+    disorder_info("rechecking %s", c->root);
   else
-    info("rechecking all tracks");
+    disorder_info("rechecking all tracks");
   /* Doing the checking inside a transaction locks up the server for much too
    * long (because it spends lots of time thinking about each track).  So we
    * pull the full track list into memory and work from that.
@@ -271,7 +271,7 @@ static void recheck_collection(const struct collection *c) {
    */
   for(;;) {
     checkabort();
-    info("getting track list");
+    disorder_info("getting track list");
     global_tid = trackdb_begin_transaction();
     memset(&cs, 0, sizeof cs);
     cs.c = c;
@@ -288,9 +288,9 @@ static void recheck_collection(const struct collection *c) {
     sleep(10);
     checkabort();
     if(c)
-      info("resuming recheck of %s", c->root);
+      disorder_info("resuming recheck of %s", c->root);
     else
-      info("resuming global recheck");
+      disorder_info("resuming global recheck");
   }
   trackdb_commit_transaction(global_tid);
   global_tid = 0;
@@ -300,19 +300,19 @@ static void recheck_collection(const struct collection *c) {
       return;
     recheck_track(&cs, t);
     ++nrc;
-    if(nrc % 100 == 0 && time(0) > last_report + 10) {
+    if(nrc % 100 == 0 && xtime(0) > last_report + 10) {
       if(c)
-        info("rechecking %s, %ld tracks so far", c->root, nrc);
+        disorder_info("rechecking %s, %ld tracks so far", c->root, nrc);
       else
-        info("rechecking all tracks, %ld tracks so far", nrc);
-      time(&last_report);
+        disorder_info("rechecking all tracks, %ld tracks so far", nrc);
+      xtime(&last_report);
     }
   }
   if(c)
-    info("rechecked %s, %ld obsoleted, %ld lengths calculated",
-         c->root, cs.nobsolete, cs.nlength);
+    disorder_info("rechecked %s, %ld obsoleted, %ld lengths calculated",
+                  c->root, cs.nobsolete, cs.nlength);
   else
-    info("rechecked all tracks, %ld no collection, %ld obsoleted, %ld lengths calculated",
+    disorder_info("rechecked all tracks, %ld no collection, %ld obsoleted, %ld lengths calculated",
          cs.nnocollection, cs.nobsolete, cs.nlength);
 }
 
@@ -327,7 +327,7 @@ static void do_directory(const char *s,
   if(n < config->collection.n)
     fn(&config->collection.s[n]);
   else
-    error(0, "no collection has root '%s'", s);
+    disorder_error(0, "no collection has root '%s'", s);
 }
 
 /* rescan/recheck all collections */
@@ -350,7 +350,7 @@ static void do_all(void (*fn)(const struct collection *c)) {
 static void expire_noticed(void) {
   time_t now;
 
-  time(&now);
+  xtime(&now);
   trackdb_expire_noticed(now - config->noticed_history * 86400);
 }
 
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
   
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSsKC", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -373,21 +373,21 @@ int main(int argc, char **argv) {
     case 's': logsyslog = 1; break;
     case 'K': do_check = 1; break;
     case 'C': do_check = 0; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   xnice(config->nice_rescan);
   sa.sa_handler = signal_handler;
   sa.sa_flags = SA_RESTART;
   sigemptyset(&sa.sa_mask);
   xsigaction(SIGTERM, &sa, 0);
   xsigaction(SIGINT, &sa, 0);
-  info("started");
+  disorder_info("started");
   trackdb_init(TRACKDB_NO_RECOVER);
   trackdb_open(TRACKDB_NO_UPGRADE);
   if(optind == argc) {
@@ -409,8 +409,8 @@ int main(int argc, char **argv) {
         do_directory(argv[n], recheck_collection);
   }
   trackdb_close();
-  trackdb_deinit();
-  info("completed");
+  trackdb_deinit(NULL);
+  disorder_info("completed");
   return 0;
 }
 

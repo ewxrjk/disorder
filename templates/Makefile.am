@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 #
 
 pkgdata_DATA=about.tmpl choose.tmpl playing.tmpl recent.tmpl		\
-	     about.tmpl prefs.tmpl help.tmpl error.tmpl			\
+	     prefs.tmpl help.tmpl error.tmpl			\
 	     new.tmpl login.tmpl macros.tmpl				\
 	     options options.labels					\
 	     options.columns

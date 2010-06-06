@@ -32,6 +32,16 @@ static int tracksort_compare(const void *a, const void *b) {
 			ea->track, eb->track);
 }
 
+/** @brief Sort tracks
+ * @param ntracks Number of tracks to sort
+ * @param tracks List of tracks
+ * @param type Comparison type
+ * @return Sorted track data
+ *
+ * Tracks are compared using compare_tracks(), with the sort key and display
+ * string set according to @p type, which should be "track" if the tracks are
+ * really tracks and "dir" if they are directories.
+ */
 struct tracksort_data *tracksort_init(int ntracks,
                                       char **tracks,
                                       const char *type) {

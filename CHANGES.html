@@ -39,11 +39,21 @@ h4 {
 }
 
 table.bugs {
-  width: 100%
+  width: 100%;
+  font-size: 12pt;
+  border-collapse: collapse;
+  border:1px
 }
 
 table.bugs th {
-  text-align: left
+  text-align: left;
+  border: 1px solid black;
+  background-color: black;
+  color: white
+}
+
+table.bugs td {
+  border: 1px solid
 }
 
 span.command {
@@ -57,6 +67,206 @@ span.command {
 
 <p>This file documents recent user-visible changes to <a
  href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>.</p>
+
+<h2>Changes up to version 5.0</h2>
+
+  <div class=section>
+  
+    <h3>Server</h3>
+ 
+    <div class=section>
+
+      <p>The <tt>device</tt> configuration option now works under OS X.
+      Devices may
+      be specified either by UID or name.  Fixes <a
+       href="http://code.google.com/p/disorder/issues/detail?id=27">Issue
+      27</a>.</p>
+
+      <p>Gapless play should be more reliable, and playback latency over RTP
+      should be a bit lower.  Note though that all the sound output code has
+      been reorganized and in some cases completely rewritten, so it's possible
+      that bugs may have been (re-)introduced.  Decoding of scratches is also
+      initiated ahead of time, giving more reliable playback.</p>
+      
+      <p>The <tt>command</tt> backend now (optionally) sends silence instead
+      of suspending writes when a pause occurs or no track is playing.</p>
+
+      <p>If <a href="http://www.mega-nerd.com/SRC/">libsamplerate</a> is
+      available at build time then that will be used instead of invoking
+      <a href="http://sox.sourceforge.net/">SoX</a>.  SoX support will be
+      removed in a future version.</p>
+
+      <p>The libao plugin has been removed, because the plugin API is not
+      usable in libao 1.0.0.</p>
+
+      <p>Playlists are now supported.  These allow a collection of tracks to be
+      prepared offline and played as a unit.</p>
+
+    </div>
+      
+    <h3>Disobedience</h3>
+
+    <div class=section>
+
+      <p>Multiple tracks can now be dragged in the queue in a single operation.
+      Furthermore, it is now possible to drag tracks from the
+      &ldquo;Recent&rdquo;, &ldquo;Added&rdquo; and &ldquo;Choose&rdquo; tabs
+      to the queue.</p>
+
+      <p>Disobedience now supports playlist editing and has a compact mode,
+      available from the <b>Control</b> menu.</p>
+
+      <p>Disobedience has a <a href="disobedience/manual/index.html">new
+      manual</a>.</p>
+
+    </div>
+
+    <h3>Web Interface</h3>
+ 
+    <div class=section>
+
+      <p>Confirmation URLs should be cleaner (and in particular not end
+      with punctuation).  (Please see <a
+      href="README.upgrades">README.upgrades</a> for more about this.)</p>
+
+    </div>
+      
+    <h3>RTP Player</h3>
+  
+    <div class=section>
+
+      <p>There is a new <tt>--command</tt> option which allows the RTP player
+      to send audio data to a user-chosen command instead of an audio API. See
+      the man page for details.</p>
+      
+      <p>The <tt>--device</tt> option to <tt>disorder-playrtp</tt> now works
+      under OS X (as above).</p>
+        
+    </div>
+      
+    <h3>General</h3>
+
+    <div class=section>
+
+      <p>IPv6 should now work.  Network address specifications
+      (<tt>listen</tt>, <tt>connect</tt> etc) can now be prefixed with
+      <tt>-4</tt> or <tt>-6</tt> to force use
+      of IPv4 or IPv6, though normally this should not be needed.</p>
+
+      <p>Unicode support has been upgraded to <a
+      href="http://www.unicode.org/versions/Unicode5.1.0/">Unicode
+      5.1.0</a>.</p>
+
+      <p>Various elements of the source code have been
+      rationalized.</p>
+      
+    </div>
+    
+    <h3>Bugs fixed</h3>
+  
+    <div class=section>
+
+      <table class=bugs>
+        <tr>
+          <th>ID</th>
+          <th>Description</th>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=22">#22</a></td>
+          <td>Background decoders interact badly with server reload</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=27">#27</a></td>
+          <td>Mac DisOrder uses wrong sound device</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=30">#30</a></d>
+          <td>mini disobedience interface</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=32">#32</a></d>
+          <td>Excessively verbose log chatter on shutdown</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=33">#33</a></d>
+          <td>(Some) plugins need -lm.</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=39">#39</a></d>
+          <td>Double bind() non-multicast AF_INET</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=40">#40</a></d>
+          <td>Missing stub function</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=41">#41</a></d>
+          <td>Missing includes for timeval</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=42">#42</a></d>
+          <td>syntax error in empeg_host section</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=43">#43</a></d>
+          <td>decoder segfault with FLAC 1.2.1</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=44">#44</a></d>
+          <td>gcc 4.3.2-1ubuntu12 SUYB patch</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=45">#45</a></d>
+          <td>disobedience doesn't configure its back end</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=46">#46</a></d>
+          <td>Sort search results in web interface</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=48">#48</a></d>
+          <td>build-time dependency on <tt>oggdec</tt> removed</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=49">#49</a></d>
+          <td>Disobedience's 'When' column gets out of date</td>
+        </tr>
+
+        <tr>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=51">#51</a></td>
+          <td>Improved speaker process robustness</td>
+        </tr>
+
+        <tr>
+          <td>(none)</td>
+	  <td>&ldquo;found track in no collection&rdquo; messages for scratches
+	  are now suppressed</td>
+        </tr>
+
+        <tr>
+          <td>(none)</td>
+          <td>Disobedience would sometimes fail to notice when a track
+          started, leading to its display getting out of date.</td>
+        </tr>
+
+      </table>
+    </div>
+  </div>
 
 <h2>Changes up to version 4.3</h2>
 

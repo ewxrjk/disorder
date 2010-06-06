@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define TIMEVAL_H
 
 #include <time.h>
+#include <sys/time.h>
 
 static inline struct timeval tvsub(const struct timeval a,
                                    const struct timeval b) {

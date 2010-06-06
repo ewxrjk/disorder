@@ -92,12 +92,12 @@ static unsigned long compute_weight(const char *track,
                                     struct kvp *prefs) {
   const char *s;
   char **track_tags;
-  time_t last, now = time(0);
+  time_t last, now = xtime(0);
 
   /* Reject tracks not in any collection (race between edit config and
    * rescan) */
   if(!find_track_root(track)) {
-    info("found track not in any collection: %s", track);
+    disorder_info("found track not in any collection: %s", track);
     return 0;
   }
 
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
   
   set_progname(argv);
   mem_init();
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDSs", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -274,14 +274,14 @@ int main(int argc, char **argv) {
     case 'D': debugging = 0; break;
     case 'S': logsyslog = 0; break;
     case 's': logsyslog = 1; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(logsyslog) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   /* Find out current queue/recent list */
   queue_read();
   recent_read();
@@ -290,10 +290,10 @@ int main(int argc, char **argv) {
   trackdb_open(TRACKDB_NO_UPGRADE|TRACKDB_READ_ONLY);
   global_tid = trackdb_begin_transaction();
   if((err = trackdb_get_global_tid("required-tags", global_tid, &tags)))
-    fatal(0, "error getting required-tags: %s", db_strerror(err));
+    disorder_fatal(0, "error getting required-tags: %s", db_strerror(err));
   required_tags = parsetags(tags);
   if((err = trackdb_get_global_tid("prohibited-tags", global_tid, &tags)))
-    fatal(0, "error getting prohibited-tags: %s", db_strerror(err));
+    disorder_fatal(0, "error getting prohibited-tags: %s", db_strerror(err));
   prohibited_tags = parsetags(tags);
   if(trackdb_scan(0, collect_tracks_callback, 0, global_tid)) {
     global_tid->abort(global_tid);
@@ -301,12 +301,12 @@ int main(int argc, char **argv) {
   }
   trackdb_commit_transaction(global_tid);
   trackdb_close();
-  trackdb_deinit();
+  trackdb_deinit(NULL);
   D(("ntracks=%ld total_weight=%lld", ntracks, total_weight));
   if(!total_weight)
-    fatal(0, "no tracks match random choice criteria");
+    disorder_fatal(0, "no tracks match random choice criteria");
   if(!winning)
-    fatal(0, "internal: failed to pick a track");
+    disorder_fatal(0, "internal: failed to pick a track");
   /* Pick a track */
   xprintf("%s", winning);
   xfclose(stdout);

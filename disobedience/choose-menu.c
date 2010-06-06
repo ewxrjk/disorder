@@ -22,6 +22,15 @@
 #include "popup.h"
 #include "choose.h"
 
+static void choose_playchildren_callback(GtkTreeModel *model,
+                                         GtkTreePath *path,
+                                         GtkTreeIter *iter,
+                                         gpointer data);
+static void choose_playchildren_received(void *v,
+                                         const char *err,
+                                         int nvec, char **vec);
+static void choose_playchildren_played(void *v, const char *err);
+
 /** @brief Popup menu */
 static GtkWidget *choose_menu;
 
@@ -121,7 +130,7 @@ static void choose_properties_activate(GtkMenuItem attribute((unused)) *item,
   gtk_tree_selection_selected_foreach(choose_selection,
                                       choose_gather_selected_files_callback,
                                       v);
-  properties(v->nvec, (const char **)v->vec);
+  properties(v->nvec, (const char **)v->vec, toplevel);
 }
 
 /** @brief Set sensitivity for select children
@@ -210,10 +219,53 @@ static void choose_selectchildren_activate
                                       0);
 }
 
+/** @brief Play all children */
+static void choose_playchildren_activate
+    (GtkMenuItem attribute((unused)) *item,
+     gpointer attribute((unused)) userdata) {
+  /* Only one thing is selected */
+  gtk_tree_selection_selected_foreach(choose_selection,
+                                      choose_playchildren_callback,
+                                      0);
+}
+
+static void choose_playchildren_callback(GtkTreeModel attribute((unused)) *model,
+                                         GtkTreePath *path,
+                                         GtkTreeIter *iter,
+                                         gpointer attribute((unused)) data) {
+  /* Find the children and play them */
+  disorder_eclient_files(client, choose_playchildren_received,
+                         choose_get_track(iter),
+                         NULL/*re*/,
+                         NULL);
+  /* Expand the node */
+  gtk_tree_view_expand_row(GTK_TREE_VIEW(choose_view), path, FALSE);
+}
+
+static void choose_playchildren_received(void attribute((unused)) *v,
+                                         const char *err,
+                                         int nvec, char **vec) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+  for(int n = 0; n < nvec; ++n)
+    disorder_eclient_play(client, vec[n], choose_playchildren_played, NULL);
+}
+
+static void choose_playchildren_played(void attribute((unused)) *v,
+                                       const char *err) {
+  if(err) {
+    popup_protocol_error(0, err);
+    return;
+  }
+}
+
 /** @brief Pop-up menu for choose */
 static struct menuitem choose_menuitems[] = {
   {
     "Play track",
+    GTK_STOCK_MEDIA_PLAY,
     choose_play_activate,
     choose_play_sensitive,
     0,
@@ -221,6 +273,7 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Track properties",
+    GTK_STOCK_PROPERTIES,
     choose_properties_activate,
     choose_properties_sensitive,
     0,
@@ -228,13 +281,23 @@ static struct menuitem choose_menuitems[] = {
   },
   {
     "Select children",
+    NULL,
     choose_selectchildren_activate,
     choose_selectchildren_sensitive,
     0,
     0
   },
   {
+    "Play children",
+    NULL,
+    choose_playchildren_activate,
+    choose_selectchildren_sensitive,    /* re-use */
+    0,
+    0
+  },
+  {
     "Deselect all tracks",
+    NULL,
     choose_selectnone_activate,
     choose_selectnone_sensitive,
     0,

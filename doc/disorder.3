@@ -146,7 +146,7 @@ If the track or key are not found a null pointer is returned.
 .IP
 This function sets the value of \fBkey\fR for \fBtrack\fR to
 \fBvalue\fR.
-On success, 0 is returned; on error, -1 is returned.
+On success, 0 is returned; on error, \-1 is returned.
 .IP
 If \fBvalue\fR is a null pointer then the preference is deleted.
 .IP
@@ -292,7 +292,7 @@ match them back up to the right collection to call
 .fi
 .IP
 Check whether file \fBpath\fR under \fBroot\fR still exists.
-Should return 1 if it exists, 0 if it does not and -1 on error.
+Should return 1 if it exists, 0 if it does not and \-1 on error.
 This is run in the main server process.
 .PP
 Both scan and recheck are executed inside a subprocess, so it will not
@@ -318,8 +318,7 @@ A standalone player that writes directly to some suitable audio
 device.
 .TP
 .B DISORDER_PLAYER_RAW
-A player that writes raw samples to \fB$DISORDER_RAW_FD\fR, for
-instance by using the \fBdisorder\fR libao driver.
+A player that writes raw samples to \fB$DISORDER_RAW_FD\fR.
 .RE
 .IP
 Known capabilities are:
@@ -392,10 +391,10 @@ This function must never block, as it runs inside the main loop of the
 server.
 .IP
 On success, should return 0 and set \fB*playedp\fR to the number of
-seconds played so far of this track, or to -1 if this cannot be
+seconds played so far of this track, or to \-1 if this cannot be
 determined.
 .IP
-On error, should return -1.
+On error, should return \-1.
 .PP
 .nf
 \fBvoid disorder_play_resume(void *data);

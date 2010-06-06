@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ void *xmalloc(size_t n) {
   void *ptr;
 
   if(!(ptr = do_malloc(n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -102,7 +102,7 @@ void *xmalloc(size_t n) {
  */
 void *xrealloc(void *ptr, size_t n) {
   if(!(ptr = do_realloc(ptr, n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -116,7 +116,7 @@ void *xrealloc(void *ptr, size_t n) {
  */
 void *xcalloc(size_t count, size_t size) {
   if(count > SIZE_MAX / size)
-    fatal(0, "excessively large calloc");
+    disorder_fatal(0, "excessively large calloc");
   return xmalloc(count * size);
 }
 
@@ -132,8 +132,22 @@ void *xmalloc_noptr(size_t n) {
   void *ptr;
 
   if(!(ptr = do_malloc_atomic(n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
+}
+
+/** @brief Allocate memory
+ * @param count Number of objects to allocate
+ * @param size Size of one object
+ * @return Pointer to allocated memory
+ *
+ * Terminates the process on error.  IMPORTANT: the allocated memory is NOT
+ * 0-filled (unlike @c calloc()).
+ */
+void *xcalloc_noptr(size_t count, size_t size) {
+  if(count > SIZE_MAX / size)
+    disorder_fatal(0, "excessively large calloc");
+  return xmalloc_noptr(count * size);
 }
 
 /** @brief Reallocate memory
@@ -149,7 +163,7 @@ void *xrealloc_noptr(void *ptr, size_t n) {
   if(ptr == 0)
     return xmalloc_noptr(n);
   if(!(ptr = do_realloc(ptr, n)) && n)
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return ptr;
 }
 
@@ -163,7 +177,7 @@ char *xstrdup(const char *s) {
   char *t;
 
   if(!(t = do_malloc_atomic(strlen(s) + 1)))
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   return strcpy(t, s);
 }
 
@@ -179,7 +193,7 @@ char *xstrndup(const char *s, size_t n) {
   char *t;
 
   if(!(t = do_malloc_atomic(n + 1)))
-    fatal(errno, "error allocating memory");
+    disorder_fatal(errno, "error allocating memory");
   memcpy(t, s, n);
   t[n] = 0;
   return t;
@@ -196,5 +210,7 @@ void xfree(void *ptr) {
 Local Variables:
 c-basic-offset:2
 comment-column:40
+fill-column:79
+indent-tabs-mode:nil
 End:
 */

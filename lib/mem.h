@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,17 +35,18 @@ void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
 void *xcalloc(size_t count, size_t size);
 /* As malloc/realloc/calloc, but
- * 1) succeed or call fatal
+ * 1) succeed or call disorder_fatal
  * 2) always clear (the unused part of) the new allocation
  * 3) are garbage-collected
  */
 
 void *xmalloc_noptr(size_t);
 void *xrealloc_noptr(void *, size_t);
+void *xcalloc_noptr(size_t count, size_t size);
 char *xstrdup(const char *);
 char *xstrndup(const char *, size_t);
 /* As malloc/realloc/strdup, but
- * 1) succeed or call fatal
+ * 1) succeed or call disorder_fatal
  * 2) are garbage-collected
  * 3) allocated space must not contain any pointers
  *

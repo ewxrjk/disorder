@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+ <head>
+   <title>Disobedience: Appendix</title>
+   <link rel=stylesheet
+         type="text/css"
+         href="disobedience.css">
+ </head>
+ <body>
+   <h1>Appendix</h1>
+
+   <h2><a name=netplay>Network Play</a></h2>
+
+   <p>Network play uses a background copy
+   of <tt>disorder-playrtp</tt>.  If you quit Disobedience the
+   player will continue playing and can be disabled from a later
+   run of Disobedience.</p>
+
+   <p>The player will log to <tt>~/.disorder/HOSTNAME-rtp.log</tt> so
+   look there if it does not seem to be working.</p>
+
+   <p>You can stop it without running Disobedience by the command
+   <tt>killall disorder-playrtp</tt>.</p>
+
+   <h2><a name=bugs>Reporting Bugs</a></h2>
+
+   <p>Please report bugs using
+   DisOrder's <a href="http://code.google.com/p/disorder/issues/list">bug
+   tracker</a>.</p>
+
+   <p>Known problems include:</p>
+
+   <ul>
+
+     <li>There is no particular provision for multiple users of the
+     same computer sharing a single <tt>disorder-playrtp</tt> process.
+     This shouldn't be too much of a problem in practice but something
+     could perhaps be done given demand.</li>
+
+     <li>Try to do remote user management when the server is
+     configured to refuse this produces rather horrible error
+     behavior.</li>
+
+     <li>Resizing columns doesn't work very well.  This is a GTK+
+     bug.</li>
+
+   </ul>
+
+   <h2><a name=copyright>Copyright Notice</a></h2>
+
+   <p>Copyright &copy; 2003-2009 <a
+   href="http://www.greenend.org.uk/rjk/">Richard Kettlewell</a><br>
+
+   Portions copyright &copy; 2007 <a
+   href="http://www.chiark.greenend.org.uk/~ryounger/">Ross
+   Younger</a><br>
+
+   Portions copyright &copy; 2007, 2008 Mark Wooding<br>
+
+   Portions extracted from <a
+   href="http://mpg321.sourceforge.net/">MPG321</a>, Copyright &copy; 2001 Joe
+   Drew, Copyright &copy; 2000-2001 Robert Leslie<br>
+
+   Portions copyright &copy; 1997-2006 <a
+   href="http://www.fsf.org/">Free Software Foundation, Inc</a><br>
+   
+   Portions Copyright &copy; 2000 <a href="http://www.redhat.com">Red Hat,
+   Inc.</a>, Jonathan Blandford <jrb@redhat.com></p>
+
+   <p>This program is free software: you can redistribute it and/or modify it
+   under the terms of the <a href="http://www.gnu.org/licenses/gpl-3.0.html">GNU
+   General Public License</a> as published by the Free Software Foundation,
+   either version 3 of the License, or (at your option) any later version.</p>
+
+   <p>This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.</p>
+
+   <p>You should have received a copy of the GNU General Public License along
+   with this program.  If not, see <a
+   href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
+
+   <hr>
+
+   <a href="index.html">Back to contents</a>
+
+ </body>
+</html>

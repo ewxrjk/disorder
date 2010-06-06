@@ -38,6 +38,15 @@ that comments are prohibited.
 Bodies borrow their syntax from RFC821; they consist of zero or more ordinary
 lines, with any initial full stop doubled up, and are terminated by a line
 consisting of a full stop and a line feed.
+.PP
+Commands only have a body if explicitly stated below.
+If they do have a body then the body should always be sent immediately;
+unlike (for instance) the SMTP "DATA" command there is no intermediate step
+where the server asks for the body to be sent.
+.PP
+Replies also only have a body if stated below.
+The presence of a reply body can always be inferred from the response code;
+if the last digit is a 3 then a body is present, otherwise it is not.
 .SH COMMANDS
 Commands always have a command name as the first field of the line; responses
 always have a 3-digit response code as the first field.
@@ -47,8 +56,6 @@ All commands require the connection to have been already authenticated unless
 stated otherwise.
 If not stated otherwise, the \fBread\fR right is sufficient to execute
 the command.
-.PP
-Neither commands nor responses have a body unless stated otherwise.
 .TP
 .B adduser \fIUSERNAME PASSWORD \fR[\fIRIGHTS\fR]
 Create a new user with the given username and password.
@@ -115,7 +122,7 @@ List all the files in \fIDIRECTORY\fR in a response body.
 If \fIREGEXP\fR is present only matching files are returned.
 .TP
 .B get \fITRACK\fR \fIPREF\fR
-Getsa preference value.
+Gets a preference value.
 On success the second field of the response line will have the value.
 .IP
 If the track or preference do not exist then the response code is 555.
@@ -164,7 +171,7 @@ depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
 Send the most recently added \fIMAX\fR tracks in a response body.
-If the argument is ommitted, the \fBnew_max\fR most recent tracks are
+If the argument is omitted, the \fBnew_max\fR most recent tracks are
 listed (see \fBdisorder_config\fR(5)).
 .TP
 .B nop
@@ -200,6 +207,16 @@ Add a track to the queue.
 The response contains the queue ID of the track.
 Requires the \fBplay\fR right.
 .TP
+.B playafter \fITARGET\fR \fITRACK\fR ...
+Add all the tracks in the \fITRACK\fR list to the queue after \fITARGET\fR
+(which should be a track ID).
+If \fITARGET\fR is the empty string then the listed tracks are put
+at the head of the queue.
+.IP
+Currently the success result does \fInot\fR include the new track IDs.
+.IP
+Requires the \fBplay\fR right.
+.TP
 .B playing
 Report what track is playing.
 .IP
@@ -207,6 +224,44 @@ If the response is \fB252\fR then the rest of the response line consists of
 track information (see below).
 .IP
 If the response is \fB259\fR then nothing is playing.
+.TP
+.B playlist-delete \fIPLAYLIST\fR
+Delete a playlist.
+Requires permission to modify that playlist and the \fBplay\fR right.
+.TP
+.B playlist-get \fIPLAYLIST\fR
+Get the contents of a playlist, in a response body.
+Requires permission to read that playlist and the \fBread\fR right.
+If the playlist does not exist the response is 555.
+.TP
+.B playlist-get-share \fIPLAYLIST\fR
+Get the sharing status of a playlist.
+The result will be \fBpublic\fR, \fBprivate\fR or \fBshared\fR.
+Requires permission to read that playlist and the \fBread\fR right.
+.TP
+.B playlist-lock \fIPLAYLIST\fR
+Lock a playlist.
+Requires permission to modify that playlist and the \fBplay\fR right.
+Only one playlist may be locked at a time on a given connection and the lock
+automatically expires when the connection is closed.
+.TP
+.B playlist-set \fIPLAYLIST\fR
+Set the contents of a playlist.
+The new contents should be supplied in a command body.
+Requires permission to modify that playlist and the \fBplay\fR right.
+The playlist must be locked.
+.TP
+.B playlist-set-share \fIPLAYLIST\fR \fISHARE\fR
+Set the sharing status of a playlist to
+\fBpublic\fR, \fBprivate\fR or \fBshared\fR.
+Requires permission to modify that playlist and the \fBplay\fR right.
+.TP
+.B playlist-unlock\fR
+Unlock the locked playlist.
+.TP
+.B playlists
+List all playlists that this connection has permission to read.
+Requires the \fBread\fR right.
 .TP
 .B prefs \fBTRACK\fR
 Send back the preferences for \fITRACK\fR in a response body.
@@ -238,6 +293,11 @@ See below for the track information syntax.
 .B reconfigure
 Request that DisOrder reconfigure itself.
 Requires the \fBadmin\fR right.
+.IP
+Not all configuration options can be modified during the lifetime of the
+server; of those that can't, some will just be ignored if they change while
+others will cause the new configuration to be rejected.
+See \fBdisorder_config\fR(5) for details.
 .TP
 .B register \fIUSERNAME PASSWORD EMAIL
 Register a new user.
@@ -416,7 +476,7 @@ With two parameters sets each side independently.
 Setting the volume requires the \fBvolume\fR right.
 .SH RESPONSES
 Responses are three-digit codes.
-The first digit distinguishes errors from succesful responses:
+The first digit distinguishes errors from successful responses:
 .TP
 .B 2
 Operation succeeded.
@@ -592,6 +652,21 @@ Further details aren't included any more.
 .TP
 .B playing \fITRACK\fR [\fIUSERNAME\fR]
 Started playing \fITRACK\fR.
+.TP
+.B playlist_created \fIPLAYLIST\fR \fISHARING\fR
+Sent when a playlist is created.
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
+.TP
+.B playlist_deleted \fIPLAYLIST\fR
+Sent when a playlist is deleted.
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
+.TP
+.B playlist_modified \fIPLAYLIST\fR \fISHARING\fR
+Sent when a playlist is modified (either its contents or its sharing status).
+For private playlists this is intended to be sent only to the owner (but
+this is not currently implemented).
 .TP
 .B queue \fIQUEUE-ENTRY\fR...
 Added \fITRACK\fR to the queue.

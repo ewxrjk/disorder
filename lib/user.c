@@ -42,21 +42,30 @@ void become_mortal(void) {
   
   if(config->user) {
     if(!(pw = getpwnam(config->user)))
-      fatal(0, "cannot find user %s", config->user);
+      disorder_fatal(0, "cannot find user %s", config->user);
     if(pw->pw_uid != getuid()) {
       if(initgroups(config->user, pw->pw_gid))
-	fatal(errno, "error calling initgroups");
-      if(setgid(pw->pw_gid) < 0) fatal(errno, "error calling setgid");
-      if(setuid(pw->pw_uid) < 0) fatal(errno, "error calling setgid");
-      info("changed to user %s (uid %lu)", config->user, (unsigned long)getuid());
+	disorder_fatal(errno, "error calling initgroups");
+      if(setgid(pw->pw_gid) < 0)
+        disorder_fatal(errno, "error calling setgid");
+      if(setuid(pw->pw_uid) < 0)
+        disorder_fatal(errno, "error calling setgid");
+      disorder_info("changed to user %s (uid %lu)",
+                    config->user, (unsigned long)getuid());
     }
     /* sanity checks */
-    if(getuid() != pw->pw_uid) fatal(0, "wrong real uid");
-    if(geteuid() != pw->pw_uid) fatal(0, "wrong effective uid");
-    if(getgid() != pw->pw_gid) fatal(0, "wrong real gid");
-    if(getegid() != pw->pw_gid) fatal(0, "wrong effective gid");
-    if(setuid(0) != -1) fatal(0, "setuid(0) unexpectedly succeeded");
-    if(seteuid(0) != -1) fatal(0, "seteuid(0) unexpectedly succeeded");
+    if(getuid() != pw->pw_uid)
+      disorder_fatal(0, "wrong real uid");
+    if(geteuid() != pw->pw_uid)
+      disorder_fatal(0, "wrong effective uid");
+    if(getgid() != pw->pw_gid)
+      disorder_fatal(0, "wrong real gid");
+    if(getegid() != pw->pw_gid)
+      disorder_fatal(0, "wrong effective gid");
+    if(setuid(0) != -1)
+      disorder_fatal(0, "setuid(0) unexpectedly succeeded");
+    if(seteuid(0) != -1)
+      disorder_fatal(0, "seteuid(0) unexpectedly succeeded");
   }
 }
 
@@ -84,13 +93,13 @@ void make_home(void) {
     }
     /* create the directory itself */
     if(mkdir(config->home, 02755) < 0)
-      fatal(errno, "error creating %s", config->home);
+      disorder_fatal(errno, "error creating %s", config->home);
     /* make sure it has the right ownership */
     if(config->user) {
       if(!(pw = getpwnam(config->user)))
-        fatal(0, "cannot find user %s", config->user);
+        disorder_fatal(0, "cannot find user %s", config->user);
       if(chown(config->home, pw->pw_uid, pw->pw_gid) < 0)
-        fatal(errno, "error chowning %s", config->home);
+        disorder_fatal(errno, "error chowning %s", config->home);
     }
   }
 }

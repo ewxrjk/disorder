@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "event.h"
 
 #include <time.h>
+#include <sys/time.h>
 
 static int run1, run2, run3;
 static ev_timeout_handle t1, t2, t3;
@@ -50,13 +51,13 @@ static void test_event(void) {
   ev_source *ev;
 
   ev = ev_new();
-  w.tv_sec = time(0) + 2;
+  w.tv_sec = xtime(0) + 2;
   w.tv_usec = 0;
   ev_timeout(ev, &t1, &w, callback1, 0);
-  w.tv_sec = time(0) + 3;
+  w.tv_sec = xtime(0) + 3;
   w.tv_usec = 0;
   ev_timeout(ev, &t2, &w, callback2, 0);
-  w.tv_sec = time(0) + 4;
+  w.tv_sec = xtime(0) + 4;
   w.tv_usec = 0;
   ev_timeout(ev, &t3, &w, callback3, 0);
   check_integer(ev_run(ev), 1);

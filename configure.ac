@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2010 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AC_INIT([disorder], [4.3], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [5.0], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [4.3])
+AM_INIT_AUTOMAKE(disorder, [5.0])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
@@ -39,8 +39,24 @@ want_alsa=yes
 want_oss=yes
 want_coreaudio=yes
 
+# By default we don't want gtk-osx.  But if you ask for --with-gtk-osx...
+#
+# Disobedience can be built to a native OS X application.  There are some
+# caveats:
+#  - you will still need Fink (or something) for other libraries
+#  - if you wanted an application bundle you are out of luck
+#  - the menu bar is still in the main window (not at the top of the screen)
+#
+# So it's still rather rough and ready.  But it does work...
+#
+# See:
+#   http://www.gtk-osx.org/
+#   http://live.gnome.org/GTK%2B/OSX/Framework
+want_gtkosx=no
+
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_AWK
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
@@ -73,6 +89,10 @@ AC_ARG_WITH([tests],
 	    [AS_HELP_STRING([--without-tests],
 			    [do not build test suit])],
 	    [want_tests=$withval])
+AC_ARG_WITH([gtk-osx],
+	    [AS_HELP_STRING([--with-gtk-osx],
+			    [use native GTK+ (OS X only)])],
+	    [want_gtkosx=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -90,8 +110,11 @@ case "$host" in
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
+  # AudioHardwareGetProperty is deprecated in 10.6, but it's still _there_,
+  # so we'll just turn off the warning.
+  CC="$CC -Wno-deprecated-declarations"
   if test $want_coreaudio = yes; then
-    COREAUDIO="-framework CoreAudio"
+    COREAUDIO="-framework CoreFoundation -framework CoreServices -framework CoreAudio"
   fi
   browser=open
   AC_MSG_CHECKING([Mac OS X target version])
@@ -117,9 +140,11 @@ case "$host" in
   AC_DEFINE_UNQUOTED([MAC_OS_X_VERSION_MIN_REQUIRED], [$minver],
                      [define to minimum version of Mac OS X to support])
 
-  # Fink's GTK+ is hopelessly broken
-  PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
-  export PKG_CONFIG_PATH
+  if test $want_gtkosx = no; then
+    # Fink's GTK+ is hopelessly broken
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-/sw/lib/pango-ft219/lib/pkgconfig}
+    export PKG_CONFIG_PATH
+  fi
 
   ;;
 *-freebsd* )
@@ -261,7 +286,7 @@ if test $want_cgi = yes; then
         fi
       done
     ])
-    if test "$rjk_cv_cgiexecdir" = "not found"; then
+    if test "$rjk_cv_httpdir" = "not found"; then
       AC_MSG_ERROR([cannot identify httpd documentroot.  Set httpdir on configure command line])
     fi
     httpdir="$rjk_cv_httpdir"
@@ -301,6 +326,11 @@ if test -z "$pkghttpdir"; then
 fi
 AC_SUBST([pkghttpdir])
 
+if test -z "$dochtmldir"; then
+  dochtmldir='$(docdir)/html'
+fi
+AC_SUBST([dochtmldir])
+
 subdirs="scripts lib"
 if test $want_tests = yes; then
   subdirs="${subdirs} libtests"
@@ -308,7 +338,7 @@ fi
 subdirs="${subdirs} clients doc examples debian"
 
 if test $want_server = yes; then
-  subdirs="${subdirs} server plugins driver sounds"
+  subdirs="${subdirs} server plugins sounds"
 fi
 if test $want_cgi = yes; then
   subdirs="${subdirs} cgi templates images"
@@ -320,7 +350,7 @@ if test $want_gtk = yes; then
   fi
 fi
 if test $want_tests = yes && test $want_python = yes; then
-  AM_PATH_PYTHON([2.4])
+  AM_PATH_PYTHON([2.5])
   subdirs="${subdirs} python tests"
 fi
 AC_SUBST([subdirs])
@@ -359,16 +389,39 @@ AC_PATH_PROG([SENDMAIL],[sendmail],[none],[$PATH:/usr/sbin:/usr/lib])
 # Macs might have libraries under fink's root
 AC_PATH_PROG([FINK],[fink],[none],[$PATH:/sw/bin])
 if test "x$FINK" != xnone; then
+  # Find Fink prefix
   AC_CACHE_CHECK([fink install directory],[rjk_cv_finkprefix],[
     rjk_cv_finkprefix="`echo "$FINK" | sed 's,/bin/fink$,,'`"
   ])
+  # Add include and link paths
   finkdir="${rjk_cv_finkprefix}"
   finkbindir="${rjk_cv_finkprefix}/bin"
-  CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/gc -I${rjk_cv_finkprefix}/include"
+  CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/gc -isystem ${rjk_cv_finkprefix}/include"
   if test $want_server = yes; then
-    CPPFLAGS="${CPPFLAGS} -I${rjk_cv_finkprefix}/include/db4"
+    CPPFLAGS="${CPPFLAGS} -isystem ${rjk_cv_finkprefix}/include/db4"
   fi
   LDFLAGS="${LDFLAGS} -L${rjk_cv_finkprefix}/lib"
+  # Distinguish 32- and 64-bit fink
+  AC_CACHE_CHECK([whether Fink is 32-bit or 64-bit],[rjk_cv_finkbits],[
+    odata=`otool -v -h $finkbindir/dpkg`
+    case "$odata" in
+    *X86_64* )
+      rjk_cv_finkbits=64
+      ;;
+    *I386* )
+      rjk_cv_finkbits=32
+      ;;
+    * )
+      rjk_cv_finkbits=unknown
+      ;;
+    esac
+  ])
+  # Match Fink so we can use its libraries
+  case $rjk_cv_finkbits in
+  32 | 64 )
+    CC="$CC -m$rjk_cv_finkbits"
+    ;;
+  esac
 else
   finkbindir=""
 fi
@@ -390,6 +443,8 @@ if test $want_alsa = yes; then
   AC_CHECK_LIB([asound], [snd_pcm_open],
                [AC_SUBST(LIBASOUND,[-lasound])])
 fi
+AC_CHECK_LIB([samplerate],[src_new],
+             [AC_SUBST([LIBSAMPLERATE],[-lsamplerate])])
 if test $want_server = yes; then
   RJK_CHECK_LIB(db, db_create, [#include <db.h>],
 	       [AC_SUBST(LIBDB,[-ldb])],
@@ -416,8 +471,14 @@ AC_CHECK_LIB([pthread], [pthread_create],
 	     [missing_libraries="$missing_libraries libpthread"])
 
 if test $want_gtk = yes; then
-  AM_PATH_GLIB_2_0([],[],[missing_libraries="$missing_libraries libglib"])
-  AM_PATH_GTK_2_0([],[],[missing_libraries="$missing_libraries libgtk"])
+  if test $want_gtkosx = yes; then
+    GTK_CFLAGS="-isystem /Library/Frameworks/Gtk.framework/Headers -isystem /Library/Frameworks/Cairo.framework/Headers"
+    GLIB_CFLAGS="-isystem /Library/Frameworks/GLib.framework/Headers"
+    GTK_LIBS="-framework Gtk -framework GLib"
+  else
+    AM_PATH_GLIB_2_0([],[],[missing_libraries="$missing_libraries libglib"])
+    AM_PATH_GTK_2_0([],[],[missing_libraries="$missing_libraries libgtk"])
+  fi
 fi
 
 # Some platforms have iconv already
@@ -469,6 +530,7 @@ AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 	         syslog.h unistd.h],[:],[
   missing_headers="$missing_headers $ac_header"
 ])
+AC_CHECK_HEADERS([samplerate.h])
 
 if test ! -z "$missing_headers"; then
   AC_MSG_ERROR([missing headers:$missing_headers])
@@ -623,6 +685,7 @@ AM_CONDITIONAL([SERVER], [test x$want_server = xyes])
 if test $want_gtk = yes; then
   AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
 fi
+AM_CONDITIONAL([GTK], [test x$want_gtk = xyes])
 
 if test "x$GCC" = xyes; then
   # We need LLONG_MAX and annoyingly GCC doesn't always give it to us
@@ -667,6 +730,25 @@ if test "x$GCC" = xyes; then
   ])
   if test $rjk_cv_pr29478 = yes; then
     gcc_werror=''
+  fi
+
+  AC_CACHE_CHECK([checking for excessively strict -Wreturn-type],
+                 [rjk_cv_gcc44_stupidity],[
+    old_CC="$CC"
+    if test $GCC = yes; then
+      CC="$CC -Wreturn-type -Werror"
+    fi
+    AC_COMPILE_IFELSE([
+      static void *threadfn(void) {
+        for(;;)
+          ;
+      }],
+      [rjk_cv_gcc44_stupidity=no],
+      [rjk_cv_gcc44_stupidity=yes])
+    CC="$old_CC"
+  ])
+  if test $rjk_cv_gcc44_stupidity = yes; then
+    AC_DEFINE([HAVE_STUPID_GCC44],[1],[Define if your compiler has excessively strict -Wreturn-type])
   fi
 
   # a reasonable default set of warnings
@@ -747,10 +829,10 @@ AC_CONFIG_FILES([Makefile
 		 cgi/Makefile
 		 clients/Makefile
 		 disobedience/Makefile
+		 disobedience/manual/Makefile
 		 doc/Makefile
 		 templates/Makefile
 		 plugins/Makefile
-		 driver/Makefile
 		 debian/Makefile
 		 sounds/Makefile
 		 python/Makefile
@@ -764,6 +846,9 @@ if test $GCC = yes && test "$gcc_werror" = ''; then
 fi
 if test $want_python = no; then
   AC_MSG_WARN([cannot run the test suit without Python])
+fi
+if test $want_server = yes && test "$ac_cv_lib_samplerate_src_new" != yes; then
+  AC_MSG_WARN([libsamplerate will be required in a future version])
 fi
 
 # Local Variables:

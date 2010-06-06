@@ -41,6 +41,9 @@ const char pkgstatedir[] = PKGSTATEDIR;
 /** @brief Package fixed data directory */
 const char pkgdatadir[] = PKGDATADIR;
 
+/** @brief Package HTML documentation directory */
+const char dochtmldir[] = DOCHTMLDIR;
+
 /** @brief Binary directory */
 const char bindir[] = BINDIR;
 

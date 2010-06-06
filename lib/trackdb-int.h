@@ -22,6 +22,7 @@
 
 #include <db.h>
 
+#include "trackdb.h"
 #include "kvp.h"
 
 struct vector;                          /* forward declaration */
@@ -36,6 +37,7 @@ extern DB *trackdb_noticeddb;
 extern DB *trackdb_globaldb;
 extern DB *trackdb_usersdb;
 extern DB *trackdb_scheduledb;
+extern DB *trackdb_playlistsdb;
 
 DBC *trackdb_opencursor(DB *db, DB_TXN *tid);
 /* open a transaction */

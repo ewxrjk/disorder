@@ -79,7 +79,7 @@ char *mx_find(const char *name, int report) {
   if(name[0] == '/') {
     if(access(name, O_RDONLY) < 0) {
       if(report)
-        error(errno, "cannot read %s", name);
+        disorder_error(errno, "cannot read %s", name);
       return 0;
     }
     path = xstrdup(name);
@@ -92,7 +92,7 @@ char *mx_find(const char *name, int report) {
     }
     if(n >= include_path.nvec) {
       if(report)
-        error(0, "cannot find '%s' in search path", name);
+        disorder_error(0, "cannot find '%s' in search path", name);
       return 0;
     }
   }
@@ -137,11 +137,11 @@ static int exp_include(int attribute((unused)) nargs,
   /* Read the raw file.  As with mx_expand_file() we insist that the file is a
    * regular file. */
   if((fd = open(path, O_RDONLY)) < 0)
-    fatal(errno, "error opening %s", path);
+    disorder_fatal(errno, "error opening %s", path);
   if(fstat(fd, &sb) < 0)
-    fatal(errno, "error statting %s", path);
+    disorder_fatal(errno, "error statting %s", path);
   if(!S_ISREG(sb.st_mode))
-    fatal(0, "%s: not a regular file", path);
+    disorder_fatal(0, "%s: not a regular file", path);
   while((n = read(fd, buffer, sizeof buffer)) > 0) {
     if(sink_write(output, buffer, n) < 0) {
       xclose(fd);
@@ -149,14 +149,14 @@ static int exp_include(int attribute((unused)) nargs,
     }
   }
   if(n < 0)
-    fatal(errno, "error reading %s", path);
+    disorder_fatal(errno, "error reading %s", path);
   xclose(fd);
   return 0;
 }
 
 /*$ @include{COMMAND}
  *
- * Executes COMMAND via the shell (using "sh -c") and copies its
+ * Executes COMMAND via the shell (using "sh \-c") and copies its
  * standard output to the template output.  The shell command output
  * is not expanded or modified in any other way.
  *
@@ -180,7 +180,7 @@ static int exp_shell(int attribute((unused)) nargs,
     xdup2(p[1], 1);
     xclose(p[1]);
     execlp("sh", "sh", "-c", args[0], (char *)0);
-    fatal(errno, "error executing sh");
+    disorder_fatal(errno, "error executing sh");
   }
   xclose(p[1]);
   while((n = read(p[0], buffer, sizeof buffer))) {
@@ -188,7 +188,7 @@ static int exp_shell(int attribute((unused)) nargs,
       if(errno == EINTR)
 	continue;
       else
-	fatal(errno, "error reading from pipe");
+	disorder_fatal(errno, "error reading from pipe");
     }
     if(output->write(output, buffer, n) < 0)
       return -1;
@@ -197,9 +197,9 @@ static int exp_shell(int attribute((unused)) nargs,
   while((n = waitpid(pid, &w, 0)) < 0 && errno == EINTR)
     ;
   if(n < 0)
-    fatal(errno, "error calling waitpid");
+    disorder_fatal(errno, "error calling waitpid");
   if(w)
-    error(0, "shell command '%s' %s", args[0], wstat(w));
+    disorder_error(0, "shell command '%s' %s", args[0], wstat(w));
   return 0;
 }
 

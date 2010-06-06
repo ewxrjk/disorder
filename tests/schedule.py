@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 # This file is part of DisOrder.
-# Copyright (C) 2008 Richard Kettlewell
+# Copyright (C) 2008, 2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -66,6 +66,7 @@ def test():
                                      "schedule-list"]), ""),
     p = next_playing(c)
     assert p["track"] == track, "checking right track played"
+    print " when=%d expected at least %d" % (int(p["when"]), when)
     assert int(p["when"]) >= when, "checking track played at right time"
     assert c.schedule_list() == [], "checking schedule is empty"
     wait_idle(c)

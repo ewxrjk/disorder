@@ -77,7 +77,7 @@ static int sink_stdio_write(struct sink *s, const void *buffer, int nbytes) {
   int n = fwrite(buffer, 1, nbytes, S(s)->fp);
   if(n < nbytes) {
     if(S(s)->name)
-      fatal(errno, "error writing to %s", S(s)->name);
+      disorder_fatal(errno, "error writing to %s", S(s)->name);
     else
       return -1;
   }

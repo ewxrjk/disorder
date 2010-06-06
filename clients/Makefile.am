@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2006-2008 Richard Kettlewell
+# Copyright (C) 2006-2009 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 #
 
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
-noinst_PROGRAMS=filename-bytes
+noinst_PROGRAMS=filename-bytes rtpmon resample
 noinst_SCRIPTS=dump2wav
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
@@ -25,7 +25,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=disorder.c authorize.c authorize.h \
 	../lib/memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBDB)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBICONV) $(LIBDB) $(LIBPTHREAD)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c \
@@ -33,14 +33,19 @@ disorderfm_SOURCES=disorderfm.c \
 disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
-disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c \
-			 playrtp-alsa.c playrtp-coreaudio.c playrtp-oss.c
+disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c
 disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
-	$(LIBDB) $(LIBPTHREAD)
+	$(LIBDB) $(LIBPTHREAD) -lm
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
+rtpmon_SOURCES=rtpmon.c
+rtpmon_LDADD=$(LIBOBJS) ../lib/libdisorder.a
+
 filename_bytes_SOURCES=filename-bytes.c
+
+resample_SOURCES=resample.c
+resample_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBSAMPLERATE)
 
 install-exec-hook:
 	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)

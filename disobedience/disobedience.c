@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,12 @@
  */
 
 #include "disobedience.h"
-#include "mixer.h"
 #include "version.h"
 
 #include <getopt.h>
 #include <locale.h>
 #include <pcre.h>
+#include <gcrypt.h>
 
 /* Apologies for the numerous de-consting casts, but GLib et al do not seem to
  * have heard of const. */
@@ -43,6 +43,9 @@ GtkWidget *report_label;
 
 /** @brief Main tab group */
 GtkWidget *tabs;
+
+/** @brief Mini-mode widget for playing track */
+GtkWidget *playing_mini;
 
 /** @brief Main client */
 disorder_eclient *client;
@@ -68,6 +71,9 @@ int volume_l;
 /** @brief Right channel volume */
 int volume_r;
 
+/** @brief Audio backend */
+const struct uaudio *backend;
+
 double goesupto = 10;                   /* volume upper bound */
 
 /** @brief True if a NOP is in flight */
@@ -81,9 +87,6 @@ static int rights_lookup_in_flight;
 
 /** @brief Current rights bitmap */
 rights_type last_rights;
-
-/** @brief Global tooltip group */
-GtkTooltips *tips;
 
 /** @brief True if RTP play is available
  *
@@ -99,6 +102,10 @@ const char *server_version;
 
 /** @brief Parsed server version */
 long server_version_bytes;
+
+static GtkWidget *queue;
+
+static GtkWidget *notebook_box;
 
 static void check_rtp_address(const char *event,
                               void *eventdata,
@@ -154,7 +161,7 @@ static GtkWidget *notebook(void) {
    * produces not too dreadful appearance */
   gtk_widget_set_style(tabs, tool_style);
   g_signal_connect(tabs, "switch-page", G_CALLBACK(tab_switched), 0);
-  gtk_notebook_append_page(GTK_NOTEBOOK(tabs), queue_widget(),
+  gtk_notebook_append_page(GTK_NOTEBOOK(tabs), queue = queue_widget(),
                            gtk_label_new("Queue"));
   gtk_notebook_append_page(GTK_NOTEBOOK(tabs), recent_widget(),
                            gtk_label_new("Recent"));
@@ -165,18 +172,78 @@ static GtkWidget *notebook(void) {
   return tabs;
 }
 
+/* Tracking of window sizes */
+static int toplevel_width = 640, toplevel_height = 480;
+static int mini_width = 480, mini_height = 140;
+static struct timeval last_mode_switch;
+
+static void main_minimode(const char attribute((unused)) *event,
+                          void attribute((unused)) *evendata,
+                          void attribute((unused)) *callbackdata) {
+  if(full_mode) {
+    gtk_window_resize(GTK_WINDOW(toplevel), toplevel_width, toplevel_height);
+    gtk_widget_show(tabs);
+    gtk_widget_hide(playing_mini);
+    /* Show the queue (bit confusing otherwise!) */
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(tabs), 0);
+  } else {
+    gtk_window_resize(GTK_WINDOW(toplevel), mini_width, mini_height);
+    gtk_widget_hide(tabs);
+    gtk_widget_show(playing_mini);
+  }
+  xgettimeofday(&last_mode_switch, NULL);
+}
+
+/* Called when the window size is allocate */
+static void toplevel_size_allocate(GtkWidget attribute((unused)) *w,
+                                   GtkAllocation *a,
+                                   gpointer attribute((unused)) user_data) {
+  struct timeval now;
+  xgettimeofday(&now, NULL);
+  if(tvdouble(tvsub(now, last_mode_switch)) < 0.5) {
+    /* Suppress size-allocate signals that are within half a second of a mode
+     * switch: they are quite likely to be the result of re-arranging widgets
+     * within the old size, not the application of the new size.  Yes, this is
+     * a disgusting hack! */
+    return;                             /* OMG too soon! */
+  }
+  if(full_mode) {
+    toplevel_width = a->width;
+    toplevel_height = a->height;
+  } else {
+    mini_width = a->width;
+    mini_height = a->height;
+  }
+}
+
+/* Periodically check the toplevel's size
+ * (the hack in toplevel_size_allocate() means we could in principle
+ * miss a user-initiated resize)
+ */
+static void check_toplevel_size(const char attribute((unused)) *event,
+                                void attribute((unused)) *evendata,
+                                void attribute((unused)) *callbackdata) {
+  GtkAllocation a;
+  gtk_window_get_size(GTK_WINDOW(toplevel), &a.width, &a.height);
+  toplevel_size_allocate(NULL, &a, NULL);
+}
+
 /** @brief Create and populate the main window */
 static void make_toplevel_window(void) {
-  GtkWidget *const vbox = gtk_vbox_new(FALSE, 1);
+  GtkWidget *const vbox = gtk_vbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
   GtkWidget *const rb = report_box();
 
   D(("top_window"));
   toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   /* default size is too small */
-  gtk_window_set_default_size(GTK_WINDOW(toplevel), 640, 480);
+  gtk_window_set_default_size(GTK_WINDOW(toplevel),
+                              toplevel_width, toplevel_height);
   /* terminate on close */
   g_signal_connect(G_OBJECT(toplevel), "delete_event",
                    G_CALLBACK(delete_event), NULL);
+  /* track size */
+  g_signal_connect(G_OBJECT(toplevel), "size-allocate",
+                   G_CALLBACK(toplevel_size_allocate), NULL);
   /* lay out the window */
   gtk_window_set_title(GTK_WINDOW(toplevel), "Disobedience");
   gtk_container_add(GTK_CONTAINER(toplevel), vbox);
@@ -191,13 +258,23 @@ static void make_toplevel_window(void) {
                      FALSE,             /* expand */
                      FALSE,             /* fill */
                      0);
-  gtk_container_add(GTK_CONTAINER(vbox), notebook());
+  playing_mini = playing_widget();
+  gtk_box_pack_start(GTK_BOX(vbox),
+                     playing_mini,
+                     FALSE,
+                     FALSE,
+                     0);
+  notebook_box = gtk_vbox_new(FALSE, 0);
+  gtk_container_add(GTK_CONTAINER(notebook_box), notebook());
+  gtk_container_add(GTK_CONTAINER(vbox), notebook_box);
   gtk_box_pack_end(GTK_BOX(vbox),
                    rb,
                    FALSE,             /* expand */
                    FALSE,             /* fill */
                    0);
   gtk_widget_set_style(toplevel, tool_style);
+  event_register("mini-mode-changed", main_minimode, 0);
+  event_register("periodic-fast", check_toplevel_size, 0);
 }
 
 static void userinfo_rights_completed(void attribute((unused)) *v,
@@ -240,6 +317,7 @@ static gboolean periodic_slow(gpointer attribute((unused)) data) {
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
+  event_raise("periodic-slow", 0);
   /* Recheck RTP status too */
   check_rtp_address(0, 0, 0);
   return TRUE;                          /* don't remove me */
@@ -263,10 +341,10 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
   }
   last = now;
 #endif
-  if(rtp_supported && mixer_supported(DEFAULT_BACKEND)) {
+  if(rtp_supported && backend && backend->get_volume) {
     int nl, nr;
-    if(!mixer_control(DEFAULT_BACKEND, &nl, &nr, 0)
-       && (nl != volume_l || nr != volume_r)) {
+    backend->get_volume(&nl, &nr);
+    if(nl != volume_l || nr != volume_r) {
       volume_l = nl;
       volume_r = nr;
       event_raise("volume-changed", 0);
@@ -282,6 +360,7 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
     recheck_rights = 0;
   if(recheck_rights)
     check_rights();
+  event_raise("periodic-fast", 0);
   return TRUE;
 }
 
@@ -432,7 +511,7 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
+  if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
     switch(n) {
@@ -441,18 +520,29 @@ int main(int argc, char **argv) {
     case 'c': configfile = optarg; break;
     case 'd': debugging = 1; break;
     case 't': goesupto = 11; break;
-    default: fatal(0, "invalid option");
+    default: disorder_fatal(0, "invalid option");
     }
   }
   if(!gtkok)
-    fatal(0, "failed to initialize GTK+");
+    disorder_fatal(0, "failed to initialize GTK+");
+  /* gcrypt initialization */
+  if(!gcry_check_version(NULL))
+    disorder_fatal(0, "gcry_check_version failed");
+  gcry_control(GCRYCTL_INIT_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   signal(SIGPIPE, SIG_IGN);
   init_styles();
   load_settings();
   /* create the event loop */
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
-  if(config_read(0)) fatal(0, "cannot read configuration");
+  if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
+  /* we'll need mixer support */
+  backend = uaudio_apis[0];
+  if(backend->configure)
+    backend->configure();
+  if(backend->open_mixer)
+    backend->open_mixer();
   /* create the clients */
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))
@@ -460,12 +550,11 @@ int main(int argc, char **argv) {
   /* periodic operations (e.g. expiring the cache, checking local volume) */
   g_timeout_add(600000/*milliseconds*/, periodic_slow, 0);
   g_timeout_add(1000/*milliseconds*/, periodic_fast, 0);
-  /* global tooltips */
-  tips = gtk_tooltips_new();
   make_toplevel_window();
   /* reset styles now everything has its name */
   gtk_rc_reset_styles(gtk_settings_get_for_screen(gdk_screen_get_default()));
   gtk_widget_show_all(toplevel);
+  gtk_widget_hide(playing_mini);
   /* issue a NOP every so often */
   g_timeout_add_full(G_PRIORITY_LOW,
                      2000/*interval, ms*/,
@@ -479,6 +568,7 @@ int main(int argc, char **argv) {
   disorder_eclient_version(client, version_completed, 0);
   event_register("log-connected", check_rtp_address, 0);
   suppress_actions = 0;
+  playlists_init();
   /* If no password is set yet pop up a login box */
   if(!config->password)
     login_box();

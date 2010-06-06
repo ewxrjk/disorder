@@ -22,7 +22,7 @@ EXTRA_DIST=README.Debian config.disorder-server control \
 	   copyright README.RTP \
 	   etc.disorder.options.user etc.disorder.config \
 	   postinst.disorder-server prerm.disorder-server \
-	   postrm.disorder-server \
+	   postrm.disorder-server overrides.disorder-server \
 	   templates.disorder-server conffiles.disorder-server \
 	   rules changelog usr.share.menu.disobedience \
-	   postinst.disobedience
+	   postinst.disobedience disobedience-manual

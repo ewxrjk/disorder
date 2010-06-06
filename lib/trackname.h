@@ -51,7 +51,14 @@ int compare_path_raw(const unsigned char *ap, size_t an,
 /* Comparison function for path names that groups all entries in a directory
  * together */
 
-/* Convenient wrapper for compare_path_raw */
+/** @brief Compare two paths
+ * @param ap First path
+ * @param bp Second path
+ * @return -ve, 0 or +ve for ap <, = or > bp
+ *
+ * Sorts files within a directory together.
+ * A wrapper around compare_path_raw().
+ */
 static inline int compare_path(const char *ap, const char *bp) {
   return compare_path_raw((const unsigned char *)ap, strlen(ap),
 			  (const unsigned char *)bp, strlen(bp));

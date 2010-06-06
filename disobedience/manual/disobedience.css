@@ -1,0 +1,91 @@
+/*
+This file is part of DisOrder.
+Copyright (C) 2009 Richard Kettlewell
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* default font and colors */
+body {
+  color: black;
+  background-color: white;
+  font-family: times,serif;
+  font-weight: normal;
+  font-size: 12pt;
+  font-variant: normal
+}
+
+/* general link colors */
+a {
+  color: blue;
+  text-decoration: none
+}
+
+h2 a {
+  color: black
+}
+
+p.chapter a {
+  color: black;
+  font-family: helvetica,sans-serif;
+  font-weight: bold;
+  font-size: 18pt
+}
+
+a:active {
+  color: red
+}
+
+a:visited {
+  color: red
+}
+
+/* title bars */
+h1 {
+  font-family: helvetica,sans-serif;
+  font-weight: bold;
+  font-size: 18pt;
+  font-variant: normal;
+  text-align: center;
+  border: 1px solid black;
+  padding: 0.2em;
+  background-color: #e0e0e0;
+  display: block
+}
+
+/* secondary titles */
+h2 {
+  font-family: helvetica,sans-serif;
+  font-weight: bold;
+  font-size: 16pt;
+  font-variant: normal;
+  display: block
+}
+
+td {
+  vertical-align: top;
+  padding: 8px
+}
+
+td:first-child {
+  text-align: right
+}
+
+table {
+  margin-left: 2em
+}
+
+p.image {
+  text-align: center
+}

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
  * @param w Exit status (e.g. from waitpid())
  * @return Allocated string containing description of status
  */
-const char *wstat(int w) {
+char *wstat(int w) {
   int n;
   char *r;
 
@@ -48,7 +48,7 @@ const char *wstat(int w) {
   else
     n = byte_xasprintf(&r, "terminated with unknown wait status %#x",
 		      (unsigned)w);
-  return n >= 0 ? r : "[could not convert wait status]";
+  return n >= 0 ? r : xstrdup("[could not convert wait status]");
 }
 
 /*

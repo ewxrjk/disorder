@@ -34,7 +34,17 @@ void popup(GtkWidget **menup,
     g_signal_connect(menu, "destroy",
                      G_CALLBACK(gtk_widget_destroyed), menup);
     for(int n = 0; n < nitems; ++n) {
-      items[n].w = gtk_menu_item_new_with_label(items[n].name);
+      if(items[n].stock) {
+        GtkWidget *image = gtk_image_new_from_stock(items[n].stock,
+                                                    GTK_ICON_SIZE_MENU);
+        items[n].w = gtk_image_menu_item_new_with_label(items[n].name);
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(items[n].w),
+                                      image);
+      } else
+        items[n].w = gtk_menu_item_new_with_label(items[n].name);
+      /* TODO accelerators would be useful here.  There might be some
+       * interaction with the main menu accelerators, _except_ for playlist
+       * case!  */
       gtk_menu_attach(GTK_MENU(menu), items[n].w, 0, 1, n, n + 1);
     }
     set_tool_colors(menu);

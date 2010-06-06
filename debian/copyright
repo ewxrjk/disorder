@@ -11,6 +11,8 @@ Portions copyright (C) 2007 Mark Wooding
 Portions extracted from MPG321, http://mpg321.sourceforge.net/
   Copyright (C) 2001 Joe Drew
   Copyright (C) (C) 2000-2001 Robert Leslie
+Portions Copyright (C) 1997-2006 Free Software Foundation, Inc.
+Portions Copyright (C) 2000 Red Hat, Inc., Jonathan Blandford <jrb@redhat.com>
 Binaries may derive extra copyright owners through linkage
 (binary distributors are expected to do their own legwork)
 
@@ -27,5 +29,5 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-On Debian systems, look in /usr/share/common-licenses/GPL for a copy
+On Debian systems, look in /usr/share/common-licenses/GPL-3 for a copy
 of the GPL.

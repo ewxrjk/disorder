@@ -47,6 +47,7 @@
 #include "eventdist.h"
 #include "split.h"
 #include "timeval.h"
+#include "uaudio.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -84,6 +85,11 @@ struct button {
   void (*clicked)(GtkButton *button, gpointer userdata);
   const char *tip;
   GtkWidget *widget;
+  void (*pack)(GtkBox *box,
+               GtkWidget *child,
+               gboolean expand,
+               gboolean fill,
+               guint padding);
 };
 
 /* Variables --------------------------------------------------------------- */
@@ -100,10 +106,10 @@ extern int playing;                     /* true if playing some track */
 extern int volume_l, volume_r;          /* current volume */
 extern double goesupto;                 /* volume upper bound */
 extern int choosealpha;                 /* break up choose by letter */
-extern GtkTooltips *tips;
 extern int rtp_supported;
 extern int rtp_is_running;
 extern GtkItemFactory *mainmenufactory;
+extern const struct uaudio *backend;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
@@ -116,7 +122,8 @@ void popup_protocol_error(int code,
                           const char *msg);
 /* Report an error */
 
-void properties(int ntracks, const char **tracks);
+void properties(int ntracks, const char **tracks,
+                GtkWidget *parent);
 /* Pop up a properties window for a list of tracks */
 
 GtkWidget *scroll_widget(GtkWidget *child);
@@ -133,7 +140,8 @@ void popup_submsg(GtkWidget *parent, GtkMessageType mt, const char *msg);
 
 void fpopup_msg(GtkMessageType mt, const char *fmt, ...);
 
-struct progress_window *progress_window_new(const char *title);
+struct progress_window *progress_window_new(const char *title,
+                                            GtkWidget *parent);
 /* Pop up a progress window */
 
 void progress_window_progress(struct progress_window *pw,
@@ -158,6 +166,7 @@ void all_update(void);
 
 GtkWidget *menubar(GtkWidget *w);
 /* Create the menu bar */
+int full_mode;
 
 void users_set_sensitive(int sensitive);
 
@@ -171,6 +180,7 @@ extern int suppress_actions;
 /* Queue/Recent/Added */
 
 GtkWidget *queue_widget(void);
+GtkWidget *playing_widget(void);
 GtkWidget *recent_widget(void);
 GtkWidget *added_widget(void);
 /* Create widgets for displaying the queue, the recently played list and the
@@ -211,6 +221,8 @@ void choose_update(void);
 void play_completed(void *v,
                     const char *err);
 
+extern const GtkTargetEntry choose_targets[];
+
 /* Login details */
 
 void login_box(void);
@@ -223,7 +235,7 @@ void manage_users(void);
 
 /* Help */
 
-void popup_help(void);
+void popup_help(const char *what);
 
 /* RTP */
 
@@ -249,6 +261,18 @@ void save_settings(void);
 void load_settings(void);
 void set_tool_colors(GtkWidget *w);
 void popup_settings(void);
+
+/* Playlists */
+
+void playlists_init(void);
+void playlist_window_create(gpointer callback_data,
+                            guint callback_action,
+                            GtkWidget  *menu_item);
+extern char **playlists;
+extern int nplaylists;
+extern GtkWidget *menu_playlists_widget;
+extern GtkWidget *playlists_menu;
+extern GtkWidget *menu_editplaylists_widget;
 
 #endif /* DISOBEDIENCE_H */
 
