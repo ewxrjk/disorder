@@ -57,6 +57,20 @@ static inline int compare_path(const char *ap, const char *bp) {
 			  (const unsigned char *)bp, strlen(bp));
 }
 
+/** @brief Entry in a list of tracks or directories */
+struct tracksort_data {
+  /** @brief Track name */
+  const char *track;
+  /** @brief Sort key */
+  const char *sort;
+  /** @brief Display key */
+  const char *display;
+};
+
+struct tracksort_data *tracksort_init(int nvec,
+                                      char **vec,
+                                      const char *type);
+
 #endif /* TRACKNAME_H */
 
 /*

@@ -240,7 +240,7 @@ static void act_play(void) {
   const char *track, *dir;
   char **tracks;
   int ntracks, n;
-  struct dcgi_entry *e;
+  struct tracksort_data *tsd;
   
   if(dcgi_client) {
     if((track = cgi_get("track"))) {
@@ -248,15 +248,9 @@ static void act_play(void) {
     } else if((dir = cgi_get("dir"))) {
       if(disorder_files(dcgi_client, dir, 0, &tracks, &ntracks))
         ntracks = 0;
-      e = xmalloc(ntracks * sizeof (struct dcgi_entry));
-      for(n = 0; n < ntracks; ++n) {
-        e[n].track = tracks[n];
-        e[n].sort = trackname_transform("track", tracks[n], "sort");
-        e[n].display = trackname_transform("track", tracks[n], "display");
-      }
-      qsort(e, ntracks, sizeof (struct dcgi_entry), dcgi_compare_entry);
+      tsd = tracksort_init(ntracks, tracks, "track");
       for(n = 0; n < ntracks; ++n)
-        disorder_play(dcgi_client, e[n].track);
+        disorder_play(dcgi_client, tsd[n].track);
     }
   }
   redirect(0);
@@ -434,7 +428,7 @@ static void act_register(void) {
   }
   /* We could well do better address validation but for now we'll just do the
    * minimum */
-  if(!strchr(email, '@')) {
+  if(!email_valid(email)) {
     login_error("bademail");
     return;
   }
@@ -523,7 +517,7 @@ static void act_edituser(void) {
     }
   } else
     password = password2 = 0;
-  if(email && !strchr(email, '@')) {
+  if(email && !email_valid(email)) {
     login_error("bademail");
     return;
   }
@@ -742,7 +736,7 @@ void dcgi_expand(const char *name, int header) {
   if(!(found = mx_find(p, 0/*report*/)))
     fatal(errno, "cannot find %s", p);
   if(header) {
-    if(printf("Content-Type: text/html\n"
+    if(printf("Content-Type: text/html; charset=UTF-8\n"
               "%s\n"
               "\n", dcgi_cookie_header()) < 0)
       fatal(errno, "error writing to stdout");

@@ -26,9 +26,10 @@ AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
 PNGS:=$(shell export LC_COLLATE=C;echo ${top_srcdir}/images/*.png)
 
 disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
-		  choose.c misc.c control.c properties.c menu.c \
-		  log.c progress.c login.c rtp.c help.c \
-		  ../lib/memgc.c settings.c users.c
+	recent.c added.c queue-generic.c queue-generic.h queue-menu.c	\
+	choose.c choose-menu.c choose-search.c popup.c misc.c		\
+	control.c properties.c menu.c log.c progress.c login.c rtp.c	\
+	help.c ../lib/memgc.c settings.c users.c lookup.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBDB)
 disobedience_LDFLAGS=$(GTK_LIBS)
@@ -47,14 +48,15 @@ disobedience.html: ../doc/disobedience.1 $(top_srcdir)/scripts/htmlman
 misc.o: images.h
 
 images.h: $(PNGS)
+	set -e;								\
 	exec > @$.new;							\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
 	  gdk-pixbuf-csource --raw --name=image_$$name $$png;		\
 	done;								\
 	echo "static const struct image images[] = {";			\
 	for png in $(PNGS); do						\
-	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;			\
+	  name=`echo $$png | $(GNUSED) 's,.*/,,;s,\.png,,;'`;		\
 	  echo "  { \"$$name.png\", image_$$name },";			\
 	done;								\
 	echo "};"

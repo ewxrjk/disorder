@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,26 +18,38 @@
  * USA
  */
 
-#ifndef SENDMAIL_H
-#define SENDMAIL_H
+/** @file lib/email.c
+ * @brief Email addresses
+ */
 
-int sendmail(const char *sender,
-	     const char *pubsender,
-	     const char *recipient,
-	     const char *subject,
-	     const char *encoding,
-	     const char *content_type,
-	     const char *body);
-pid_t sendmail_subprocess(const char *sender,
-                          const char *pubsender,
-                          const char *recipient,
-                          const char *subject,
-                          const char *encoding,
-                          const char *content_type,
-                          const char *body);
-int email_valid(const char *address);
+#include "common.h"
 
-#endif /* SENDMAIL_H */
+#include "sendmail.h"
+
+/** @brief Test email address validity
+ * @param address to verify
+ * @return 1 if it might be valid, 0 if it is definitely not
+ *
+ * This function doesn't promise to tell you whether an address is deliverable,
+ * it just does basic syntax checks.
+ */
+int email_valid(const char *address) {
+  /* There must be an '@' sign */
+  const char *at = strchr(address, '@');
+  if(!at)
+    return 0;
+  /* There must be only one of them */
+  if(strchr(at + 1, '@'))
+    return 0;
+  /* It mustn't be the first or last character */
+  if(at == address || !at[1])
+    return 0;
+  /* Local part must be valid */
+  /* TODO */
+  /* Domain part must be valid */
+  /* TODO */
+  return 1;
+}
 
 /*
 Local Variables:

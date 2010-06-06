@@ -20,9 +20,9 @@
 # USA
 #
 
-AC_INIT([disorder], [4.0.2], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [4.1], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [4.0.2])
+AM_INIT_AUTOMAKE(disorder, [4.1])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 
@@ -46,6 +46,13 @@ AC_PROG_CC
 AC_SET_MAKE
 if test "x$GCC" = xyes; then
   gcc_werror=-Werror
+  case "$CC" in
+  *-std=* )
+    ;;
+  * )
+    CC="${CC} -std=gnu99"
+    ;;
+  esac
 else
   AC_MSG_ERROR([GNU C is required to build this program])
   gcc_werror=""

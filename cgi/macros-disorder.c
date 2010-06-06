@@ -814,15 +814,6 @@ static int exp_image(int attribute((unused)) nargs,
   return sink_writes(output, cgi_sgmlquote(url)) < 0 ? -1 : 0;
 }
 
-/** @brief Compare two @ref entry objects */
-int dcgi_compare_entry(const void *a, const void *b) {
-  const struct dcgi_entry *ea = a, *eb = b;
-
-  return compare_tracks(ea->sort, eb->sort,
-			ea->display, eb->display,
-			ea->track, eb->track);
-}
-
 /** @brief Implementation of exp_tracks() and exp_dirs() */
 static int exp__files_dirs(int nargs,
                            const struct mx_node **args,
@@ -837,7 +828,7 @@ static int exp__files_dirs(int nargs,
   char **tracks, *dir, *re;
   int n, ntracks, rc;
   const struct mx_node *m;
-  struct dcgi_entry *e;
+  struct tracksort_data *tsd;
 
   if((rc = mx_expandstr(args[0], &dir, u, "argument #0 (DIR)")))
     return rc;
@@ -855,24 +846,18 @@ static int exp__files_dirs(int nargs,
   if(fn(dcgi_client, dir, re, &tracks, &ntracks))
     return 0;
   /* Sort it.  NB trackname_transform() does not go to the server. */
-  e = xcalloc(ntracks, sizeof *e);
-  for(n = 0; n < ntracks; ++n) {
-    e[n].track = tracks[n];
-    e[n].sort = trackname_transform(type, tracks[n], "sort");
-    e[n].display = trackname_transform(type, tracks[n], "display");
-  }
-  qsort(e, ntracks, sizeof (struct dcgi_entry), dcgi_compare_entry);
+  tsd = tracksort_init(ntracks, tracks, type);
   /* Expand the subsiduary templates.  We chuck in @sort and @display because
    * it is particularly easy to do so. */
   for(n = 0; n < ntracks; ++n)
     if((rc = mx_expand(mx_rewritel(m,
                                    "index", make_index(n),
                                    "parity", n % 2 ? "odd" : "even",
-                                   "track", e[n].track,
+                                   "track", tsd[n].track,
                                    "first", n == 0 ? "true" : "false",
                                    "last", n + 1 == ntracks ? "false" : "true",
-                                   "sort", e[n].sort,
-                                   "display", e[n].display,
+                                   "sort", tsd[n].sort,
+                                   "display", tsd[n].display,
                                    (char *)0),
                        output, u)))
       return rc;

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2006-2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
-
+/** @file disobedience/properties.c
+ * @brief Track properties editor
+ *
+ * TODO:
+ * - return and escape keys should work 
+ */
 #include "disobedience.h"
-
-/* Track properties -------------------------------------------------------- */
 
 struct prefdata;
 
@@ -29,7 +32,7 @@ static void completed_namepart(struct prefdata *f);
 static const char *get_edited_namepart(struct prefdata *f);
 static void set_edited_namepart(struct prefdata *f, const char *value);
 static void set_namepart(struct prefdata *f, const char *value);
-static void set_namepart_completed(void *v);
+static void set_namepart_completed(void *v, const char *err);
 
 static void kickoff_string(struct prefdata *f);
 static void completed_string(struct prefdata *f);
@@ -43,7 +46,7 @@ static const char *get_edited_boolean(struct prefdata *f);
 static void set_edited_boolean(struct prefdata *f, const char *value);
 static void set_boolean(struct prefdata *f, const char *value);
 
-static void prefdata_completed(void *v, const char *value);
+static void prefdata_completed(void *v, const char *err, const char *value);
 static void prefdata_onerror(struct callbackdata *cbd,
                              int code,
                              const char *msg);
@@ -54,6 +57,10 @@ static void prefdata_completed_common(struct prefdata *f,
 static void properties_ok(GtkButton *button, gpointer userdata);
 static void properties_apply(GtkButton *button, gpointer userdata);
 static void properties_cancel(GtkButton *button, gpointer userdata);
+
+static void properties_logged_in(const char *event,
+                                 void *eventdata,
+                                 void *callbackdata);
 
 /** @brief Data for a single preference */
 struct prefdata {
@@ -157,6 +164,7 @@ static struct prefdata *prefdatas;      /* Current prefdatas */
 static GtkWidget *properties_window;
 static GtkWidget *properties_table;
 static struct progress_window *pw;
+static event_handle properties_event;
 
 static void propagate_clicked(GtkButton attribute((unused)) *button,
                               gpointer userdata) {
@@ -191,6 +199,7 @@ void properties(int ntracks, const char **tracks) {
     popup_msg(GTK_MESSAGE_ERROR, "Too many tracks selected");
     return;
   }
+  properties_event = event_register("logged-in", properties_logged_in, 0);
   /* Create a new properties window */
   properties_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_style(properties_window, tool_style);
@@ -324,24 +333,25 @@ static void set_edited_namepart(struct prefdata *f, const char *value) {
 
 static void set_namepart(struct prefdata *f, const char *value) {
   char *s;
-  struct callbackdata *cbd = xmalloc(sizeof *cbd);
 
-  cbd->u.f = f;
   byte_xasprintf(&s, "trackname_display_%s", f->p->part);
   /* We don't know what the default is so can never unset.  This is a bug
    * relative to the original design, which is supposed to only ever allow for
    * non-trivial namepart preferences.  I suppose the server could spot a
    * default being set and translate it into an unset. */
   disorder_eclient_set(client, set_namepart_completed, f->track, s, value,
-                       cbd);
+                       f);
 }
 
 /* Called when we've set a namepart */
-static void set_namepart_completed(void *v) {
-  struct callbackdata *cbd = v;
-  struct prefdata *f = cbd->u.f;
-
-  namepart_update(f->track, "display", f->p->part);
+static void set_namepart_completed(void *v, const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+  else {
+    struct prefdata *f = v;
+    
+    namepart_update(f->track, "display", f->p->part);
+  }
 }
 
 /* String preferences ------------------------------------------------------ */
@@ -366,15 +376,15 @@ static void set_edited_string(struct prefdata *f, const char *value) {
   gtk_entry_set_text(GTK_ENTRY(f->widget), value);
 }
 
+static void set_string_completed(void attribute((unused)) *v,
+                                 const char *err) {
+  if(err)
+    popup_protocol_error(0, err);
+}
+
 static void set_string(struct prefdata *f, const char *value) {
-  if(strcmp(f->p->default_value, value))
-    /* Different from default, set it */
-    disorder_eclient_set(client, 0/*completed*/, f->track, f->p->part,
-                         value, 0/*v*/);
-  else
-    /* Same as default, just unset */
-    disorder_eclient_unset(client, 0/*completed*/, f->track, f->p->part,
-                           0/*v*/);
+  disorder_eclient_set(client, set_string_completed, f->track, f->p->part,
+                       value, 0/*v*/);
 }
 
 /* Boolean preferences ----------------------------------------------------- */
@@ -402,17 +412,14 @@ static void set_edited_boolean(struct prefdata *f, const char *value) {
                                strcmp(value, "0"));
 }
 
+#define set_boolean_completed set_string_completed
+
 static void set_boolean(struct prefdata *f, const char *value) {
   char *s;
 
   byte_xasprintf(&s, "trackname_display_%s", f->p->part);
-  if(strcmp(value, f->p->default_value))
-    disorder_eclient_set(client, 0/*completed*/, f->track, f->p->part, value,
-                         0/*v*/);
-  else
-    /* If default value then delete the pref */
-    disorder_eclient_unset(client, 0/*completed*/, f->track, f->p->part,
-                           0/*v*/);
+  disorder_eclient_set(client, set_boolean_completed,
+                       f->track, f->p->part, value, 0/*v*/);
 }
 
 /* Querying preferences ---------------------------------------------------- */
@@ -434,10 +441,13 @@ static void prefdata_onerror(struct callbackdata *cbd,
 }
 
 /* Got the value of a pref */
-static void prefdata_completed(void *v, const char *value) {
-  struct callbackdata *cbd = v;
-
-  prefdata_completed_common(cbd->u.f, value);
+static void prefdata_completed(void *v, const char *err, const char *value) {
+  if(err) {
+  } else {
+    struct callbackdata *cbd = v;
+    
+    prefdata_completed_common(cbd->u.f, value);
+  }
 }
 
 static void prefdata_completed_common(struct prefdata *f,
@@ -488,13 +498,17 @@ static void properties_apply(GtkButton attribute((unused)) *button,
 static void properties_cancel(GtkButton attribute((unused)) *button,
                               gpointer attribute((unused)) userdata) {
   gtk_widget_destroy(properties_window);
+  event_cancel(properties_event);
+  properties_event = 0;
 }
 
-/** @brief Called on client reset
+/** @brief Called when we've just logged in
  *
  * Destroys the current properties window.
  */
-void properties_reset(void) {
+static void properties_logged_in(const char attribute((unused)) *event,
+                                 void attribute((unused)) *eventdata,
+                                 void attribute((unused)) *callbackdata) {
   if(properties_window)
     gtk_widget_destroy(properties_window);
 }

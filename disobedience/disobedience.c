@@ -78,6 +78,12 @@ static int nop_in_flight;
 /** @brief True if an rtp-address command is in flight */
 static int rtp_address_in_flight;
 
+/** @brief True if a rights lookup is in flight */
+static int rights_lookup_in_flight;
+
+/** @brief Current rights bitmap */
+rights_type last_rights;
+
 /** @brief Global tooltip group */
 GtkTooltips *tips;
 
@@ -90,11 +96,15 @@ int rtp_supported;
 /** @brief True if RTP play is enabled */
 int rtp_is_running;
 
-/** @brief Linked list of functions to call when we reset login parameters */
-static struct reset_callback_node {
-  struct reset_callback_node *next;
-  reset_callback *callback;
-} *resets;
+/** @brief Server version */
+const char *server_version;
+
+/** @brief Parsed server version */
+long server_version_bytes;
+
+static void check_rtp_address(const char *event,
+                              void *eventdata,
+                              void *callbackdata);
 
 /* Window creation --------------------------------------------------------- */
 
@@ -116,11 +126,15 @@ static gboolean delete_event(GtkWidget attribute((unused)) *widget,
  *
  * Updates the menu settings to correspond to the new page.
  */
-static void tab_switched(GtkNotebook attribute((unused)) *notebook,
+static void tab_switched(GtkNotebook *notebook,
                          GtkNotebookPage attribute((unused)) *page,
                          guint page_num,
                          gpointer attribute((unused)) user_data) {
-  menu_update(page_num);
+  GtkWidget *const tab = gtk_notebook_get_nth_page(notebook, page_num);
+  const struct tabtype *const t = g_object_get_data(G_OBJECT(tab), "type");
+  assert(t != 0);
+  if(t->selected)
+    t->selected();
 }
 
 /** @brief Create the report box */
@@ -188,109 +202,48 @@ static void make_toplevel_window(void) {
   gtk_widget_set_style(toplevel, tool_style);
 }
 
-#if MDEBUG
-static int widget_count, container_count;
+static void userinfo_rights_completed(void attribute((unused)) *v,
+                                      const char *err,
+                                      const char *value) {
+  rights_type r;
 
-static void count_callback(GtkWidget *w,
-                           gpointer attribute((unused)) data) {
-  ++widget_count;
-  if(GTK_IS_CONTAINER(w)) {
-    ++container_count;
-    gtk_container_foreach(GTK_CONTAINER(w), count_callback, 0);
+  if(err) {
+    popup_protocol_error(0, err);
+    r = 0;
+  } else {
+    if(parse_rights(value, &r, 0))
+      r = 0;
+  }
+  /* If rights have changed, signal everything that cares */
+  if(r != last_rights) {
+    last_rights = r;
+    ++suppress_actions;
+    event_raise("rights-changed", 0);
+    --suppress_actions;
+  }
+  rights_lookup_in_flight = 0;
+}
+
+static void check_rights(void) {
+  if(!rights_lookup_in_flight) {
+    rights_lookup_in_flight = 1;
+    disorder_eclient_userinfo(client,
+                              userinfo_rights_completed,
+                              config->username, "rights",
+                              0);
   }
 }
-
-static void count_widgets(void) {
-  widget_count = 0;
-  container_count = 1;
-  if(toplevel)
-    gtk_container_foreach(GTK_CONTAINER(toplevel), count_callback, 0);
-  fprintf(stderr, "widget count: %8d  container count: %8d\n",
-          widget_count, container_count);
-}
-#endif
-
-#if MTRACK
-const char *mtag = "init";
-static hash *mtrack_hash;
-
-static int *mthfind(const char *tag) {
-  static const int zero = 0;
-  int *cp = hash_find(mtrack_hash, tag);
-  if(!cp) {
-    hash_add(mtrack_hash, tag, &zero, HASH_INSERT);
-    cp = hash_find(mtrack_hash, tag);
-  }
-  return cp;
-}
-
-static void *trap_malloc(size_t n) {
-  void *ptr = malloc(n + sizeof(char *));
-
-  *(const char **)ptr = mtag;
-  ++*mthfind(mtag);
-  return (char *)ptr + sizeof(char *);
-}
-
-static void trap_free(void *ptr) {
-  const char *tag;
-  if(!ptr)
-    return;
-  ptr = (char *)ptr - sizeof(char *);
-  tag = *(const char **)ptr;
-  --*mthfind(tag);
-  free(ptr);
-}
-
-static void *trap_realloc(void *ptr, size_t n) {
-  if(!ptr)
-    return trap_malloc(n);
-  if(!n) {
-    trap_free(ptr);
-    return 0;
-  }
-  ptr = (char *)ptr - sizeof(char *);
-  ptr = realloc(ptr, n + sizeof(char *));
-  *(const char **)ptr = mtag;
-  return (char *)ptr + sizeof(char *);
-}
-
-static int report_tags_callback(const char *key, void *value,
-                                void attribute((unused)) *u) {
-  fprintf(stderr, "%16s: %d\n", key, *(int *)value);
-  return 0;
-}
-
-static void report_tags(void) {
-  hash_foreach(mtrack_hash, report_tags_callback, 0);
-  fprintf(stderr, "\n");
-}
-
-static const GMemVTable glib_memvtable = {
-  trap_malloc,
-  trap_realloc,
-  trap_free,
-  0,
-  0,
-  0
-};
-#endif
 
 /** @brief Called occasionally */
 static gboolean periodic_slow(gpointer attribute((unused)) data) {
-  D(("periodic"));
+  D(("periodic_slow"));
   /* Expire cached data */
   cache_expire();
   /* Update everything to be sure that the connection to the server hasn't
    * mysteriously gone stale on us. */
   all_update();
-#if MDEBUG
-  count_widgets();
-  fprintf(stderr, "cache size: %zu\n", cache_count());
-#endif
-#if MTRACK
-  report_tags();
-#endif
+  /* Recheck RTP status too */
+  check_rtp_address(0, 0, 0);
   return TRUE;                          /* don't remove me */
 }
 
@@ -318,14 +271,26 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
        && (nl != volume_l || nr != volume_r)) {
       volume_l = nl;
       volume_r = nr;
-      volume_update();
+      event_raise("volume-changed", 0);
     }
   }
+  /* Periodically check what our rights are */
+  int recheck_rights = 1;
+  if(server_version_bytes >= 0x04010000)
+    /* Server versions after 4.1 will send updates */
+    recheck_rights = 0;
+  if((server_version_bytes & 0xFF) == 0x01)
+    /* Development servers might do regardless of their version number */
+    recheck_rights = 0;
+  if(recheck_rights)
+    check_rights();
   return TRUE;
 }
 
 /** @brief Called when a NOP completes */
-static void nop_completed(void attribute((unused)) *v) {
+static void nop_completed(void attribute((unused)) *v,
+                          const char attribute((unused)) *err) {
+  /* TODO report the error somewhere */
   nop_in_flight = 0;
 }
 
@@ -340,44 +305,47 @@ static gboolean maybe_send_nop(gpointer attribute((unused)) data) {
     disorder_eclient_nop(client, nop_completed, 0);
   }
   if(rtp_supported) {
-    const int old_state = rtp_is_running;
+    const int rtp_was_running = rtp_is_running;
     rtp_is_running = rtp_running();
-    if(old_state != rtp_is_running)
-      control_monitor(0);
+    if(rtp_was_running != rtp_is_running)
+      event_raise("rtp-changed", 0);
   }
   return TRUE;                          /* keep call me please */
 }
 
 /** @brief Called when a rtp-address command succeeds */
 static void got_rtp_address(void attribute((unused)) *v,
+                            const char *err,
                             int attribute((unused)) nvec,
                             char attribute((unused)) **vec) {
-  ++suppress_actions;
-  rtp_address_in_flight = 0;
-  rtp_supported = 1;
-  rtp_is_running = rtp_running();
-  control_monitor(0);
-  --suppress_actions;
-}
+  const int rtp_was_supported = rtp_supported;
+  const int rtp_was_running = rtp_is_running;
 
-/** @brief Called when a rtp-address command fails */
-static void no_rtp_address(struct callbackdata attribute((unused)) *cbd,
-                           int attribute((unused)) code,
-                           const char attribute((unused)) *msg) {
   ++suppress_actions;
   rtp_address_in_flight = 0;
-  rtp_supported = 0;
-  rtp_is_running = 0;
-  control_monitor(0);
+  if(err) {
+    /* An error just means that we're not using network play */
+    rtp_supported = 0;
+    rtp_is_running = 0;
+  } else {
+    rtp_supported = 1;
+    rtp_is_running = rtp_running();
+  }
+  /*fprintf(stderr, "rtp supported->%d, running->%d\n",
+          rtp_supported, rtp_is_running);*/
+  if(rtp_supported != rtp_was_supported
+     || rtp_is_running != rtp_was_running)
+    event_raise("rtp-changed", 0);
   --suppress_actions;
 }
 
 /** @brief Called to check whether RTP play is available */
-static void check_rtp_address(void) {
+static void check_rtp_address(const char attribute((unused)) *event,
+                              void attribute((unused)) *eventdata,
+                              void attribute((unused)) *callbackdata) {
   if(!rtp_address_in_flight) {
-    struct callbackdata *const cbd = xmalloc(sizeof *cbd);
-    cbd->onerror = no_rtp_address;
-    disorder_eclient_rtp_address(client, got_rtp_address, cbd);
+    //fprintf(stderr, "checking rtp\n");
+    disorder_eclient_rtp_address(client, got_rtp_address, NULL);
   }
 }
 
@@ -409,27 +377,51 @@ static void help(void) {
   exit(0);
 }
 
-/* reset state */
-void reset(void) {
-  struct reset_callback_node *r;
+static void version_completed(void attribute((unused)) *v,
+                              const char attribute((unused)) *err,
+                              const char *ver) {
+  long major, minor, patch, dev;
 
+  if(!ver) {
+    server_version = 0;
+    server_version_bytes = 0;
+    return;
+  }
+  server_version = ver;
+  server_version_bytes = 0;
+  major = strtol(ver, (char **)&ver, 10);
+  if(*ver != '.')
+    return;
+  ++ver;
+  minor = strtol(ver, (char **)&ver, 10);
+  if(*ver == '.') {
+    ++ver;
+    patch = strtol(ver, (char **)&ver, 10);
+  } else
+    patch = 0;
+  if(*ver) {
+    if(*ver == '+') {
+      dev = 1;
+      ++ver;
+    }
+    if(*ver)
+      dev = 2;
+  } else
+    dev = 0;
+  server_version_bytes = (major << 24) + (minor << 16) + (patch << 8) + dev;
+}
+
+void logged_in(void) {
   /* reset the clients */
   disorder_eclient_close(client);
   disorder_eclient_close(logclient);
   rtp_supported = 0;
-  for(r = resets; r; r = r->next)
-    r->callback();
-  /* Might be a new server so re-check */
-  check_rtp_address();
-}
-
-/** @brief Register a reset callback */
-void register_reset(reset_callback *callback) {
-  struct reset_callback_node *const r = xmalloc(sizeof *r);
-
-  r->next = resets;
-  r->callback = callback;
-  resets = r;
+  event_raise("logged-in", 0);
+  /* Force the periodic checks */
+  periodic_slow(0);
+  periodic_fast(0);
+  /* Recheck server version */
+  disorder_eclient_version(client, version_completed, 0);
 }
 
 int main(int argc, char **argv) {
@@ -440,10 +432,6 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-#if MTRACK
-  mtrack_hash = hash_new(sizeof (int));
-  g_mem_set_vtable((GMemVTable *)&glib_memvtable);
-#endif
   if(!setlocale(LC_CTYPE, "")) fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
@@ -484,17 +472,17 @@ int main(int argc, char **argv) {
                      maybe_send_nop,
                      0/*data*/,
                      0/*notify*/);
-  register_reset(properties_reset);
   /* Start monitoring the log */
   disorder_eclient_log(logclient, &log_callbacks, 0);
-  /* See if RTP play supported */
-  check_rtp_address();
+  /* Initiate all the checks */
+  periodic_fast(0);
+  disorder_eclient_version(client, version_completed, 0);
+  event_register("log-connected", check_rtp_address, 0);
   suppress_actions = 0;
   /* If no password is set yet pop up a login box */
   if(!config->password)
     login_box();
   D(("enter main loop"));
-  MTAG("misc");
   g_main_loop_run(mainloop);
   return 0;
 }

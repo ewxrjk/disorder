@@ -33,8 +33,6 @@ struct image {
 
 /* Miscellaneous GTK+ stuff ------------------------------------------------ */
 
-WT(cached_image);
-
 /* Functions */
 
 /** @brief Put scrollbars around a widget
@@ -123,7 +121,6 @@ GdkPixbuf *find_image(const char *name) {
         return 0;
       }
     }
-    NW(cached_image);
     cache_put(&image_cache_type, name,  pb);
   }
   return pb;
@@ -167,13 +164,10 @@ GtkWidget *iconbutton(const char *path, const char *tip) {
   GtkWidget *button, *content;
   GdkPixbuf *pb;
 
-  NW(button);
   button = gtk_button_new();
   if((pb = find_image(path))) {
-    NW(image);
     content = gtk_image_new_from_pixbuf(pb);
   } else {
-    NW(label);
     content = gtk_label_new(path);
   }
   gtk_widget_set_style(button, tool_style);

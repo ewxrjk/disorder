@@ -180,6 +180,11 @@ static void logentry_scratched(disorder_eclient *c, int nvec, char **vec);
 static void logentry_state(disorder_eclient *c, int nvec, char **vec);
 static void logentry_volume(disorder_eclient *c, int nvec, char **vec);
 static void logentry_rescanned(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_add(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_confirm(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_delete(disorder_eclient *c, int nvec, char **vec);
+static void logentry_user_edit(disorder_eclient *c, int nvec, char **vec);
+static void logentry_rights_changed(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -205,8 +210,13 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(recent_removed, 1, 1),
   LE(removed, 1, 2),
   LE(rescanned, 0, 0),
+  LE(rights_changed, 1, 1),
   LE(scratched, 2, 2),
   LE(state, 1, 1),
+  LE(user_add, 1, 1),
+  LE(user_confirm, 1, 1),
+  LE(user_delete, 1, 1),
+  LE(user_edit, 2, 2),
   LE(volume, 2, 2)
 };
 
@@ -519,6 +529,7 @@ static void maybe_connected(disorder_eclient *c) {
 
 /* Authentication ************************************************************/
 
+/** @brief Called with the greeting from the server */
 static void authbanner_opcallback(disorder_eclient *c,
                                   struct operation *op) {
   size_t nonce_len;
@@ -577,6 +588,7 @@ static void authbanner_opcallback(disorder_eclient *c,
                 (char *)0);
 }
 
+/** @brief Called with the response to the @c user command */
 static void authuser_opcallback(disorder_eclient *c,
                                 struct operation *op) {
   char *r;
@@ -832,50 +844,71 @@ static void stash_command(disorder_eclient *c,
 
 /* Command support ***********************************************************/
 
+static const char *errorstring(disorder_eclient *c) {
+  char *s;
+
+  byte_xasprintf(&s, "%s: %s: %d", c->ident, c->line, c->rc);
+  return s;
+}
+
 /* for commands with a quoted string response */ 
 static void string_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
+  disorder_eclient_string_response *completed
+    = (disorder_eclient_string_response *)op->completed;
+    
   D(("string_response_callback"));
   if(c->rc / 100 == 2 || c->rc == 555) {
     if(op->completed) {
       if(c->rc == 555)
-        ((disorder_eclient_string_response *)op->completed)(op->v, NULL);
+        completed(op->v, NULL, NULL);
       else if(c->protocol >= 2) {
         char **rr = split(c->line + 4, 0, SPLIT_QUOTES, 0, 0);
         
         if(rr && *rr)
-          ((disorder_eclient_string_response *)op->completed)(op->v, *rr);
+          completed(op->v, NULL, *rr);
         else
-          protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+          /* TODO error message a is bit lame but generally indicates a server
+           * bug rather than anything the user can address */
+          completed(op->v, "error parsing response", NULL);
       } else
-        ((disorder_eclient_string_response *)op->completed)(op->v,
-                                                            c->line + 4);
+        completed(op->v, NULL, c->line + 4);
     }
   } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), NULL);
 }
 
 /* for commands with a simple integer response */ 
 static void integer_response_opcallback(disorder_eclient *c,
                                         struct operation *op) {
+  disorder_eclient_integer_response *completed
+    = (disorder_eclient_integer_response *)op->completed;
+
   D(("string_response_callback"));
   if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_integer_response *)op->completed)
-        (op->v, strtol(c->line + 4, 0, 10));
+    long n;
+    int e;
+
+    e = xstrtol(&n, c->line + 4, 0, 10);
+    if(e)
+      completed(op->v, strerror(e), 0);
+    else
+      completed(op->v, 0, n);
   } else
-    protocol_error(c, op,  c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 }
 
 /* for commands with no response */
 static void no_response_opcallback(disorder_eclient *c,
                                    struct operation *op) {
+  disorder_eclient_no_response *completed
+    = (disorder_eclient_no_response *)op->completed;
+
   D(("no_response_callback"));
-  if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_no_response *)op->completed)(op->v);
-  } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+  if(c->rc / 100 == 2)
+    completed(op->v, NULL);
+  else
+    completed(op->v, errorstring(c));
 }
 
 /* error callback for queue_unmarshall */
@@ -883,13 +916,17 @@ static void eclient_queue_error(const char *msg,
                                 void *u) {
   struct operation *op = u;
 
+  /* TODO don't use protocol_error here */
   protocol_error(op->client, op, -1, "error parsing queue entry: %s", msg);
 }
 
 /* for commands that expect a queue dump */
 static void queue_response_opcallback(disorder_eclient *c,
                                       struct operation *op) {
+  disorder_eclient_queue_response *const completed
+    = (disorder_eclient_queue_response *)op->completed;
   int n;
+  int parse_failed = 0;
   struct queue_entry *q, *qh = 0, **qtail = &qh, *qlast = 0;
   
   D(("queue_response_callback"));
@@ -898,22 +935,29 @@ static void queue_response_opcallback(disorder_eclient *c,
     for(n = 0; n < c->vec.nvec; ++n) {
       q = xmalloc(sizeof *q);
       D(("queue_unmarshall %s", c->vec.vec[n]));
-      if(!queue_unmarshall(q, c->vec.vec[n], eclient_queue_error, op)) {
+      if(!queue_unmarshall(q, c->vec.vec[n], NULL, op)) {
         q->prev = qlast;
         *qtail = q;
         qtail = &q->next;
         qlast = q;
-      }
+      } else
+        parse_failed = 1;
     }
-    if(op->completed)
-      ((disorder_eclient_queue_response *)op->completed)(op->v, qh);
+    /* Currently we pass the partial queue to the callback along with the
+     * error.  This might not be very useful in practice... */
+    if(parse_failed)
+      completed(op->v, "cannot parse result", qh);
+    else
+      completed(op->v, 0, qh);
   } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 } 
 
 /* for 'playing' */
 static void playing_response_opcallback(disorder_eclient *c,
                                         struct operation *op) {
+  disorder_eclient_queue_response *const completed
+    = (disorder_eclient_queue_response *)op->completed;
   struct queue_entry *q;
 
   D(("playing_response_callback"));
@@ -921,51 +965,52 @@ static void playing_response_opcallback(disorder_eclient *c,
     switch(c->rc % 10) {
     case 2:
       if(queue_unmarshall(q = xmalloc(sizeof *q), c->line + 4,
-                          eclient_queue_error, c))
-        return;
+                          NULL, c))
+        completed(op->v, "cannot parse result", 0);
+      else
+        completed(op->v, 0, q);
       break;
     case 9:
-      q = 0;
+      completed(op->v, 0, 0);
       break;
     default:
-      protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
-      return;
+      completed(op->v, errorstring(c), 0);
+      break;
     }
-    if(op->completed)
-      ((disorder_eclient_queue_response *)op->completed)(op->v, q);
   } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0);
 }
 
 /* for commands that expect a list of some sort */
 static void list_response_opcallback(disorder_eclient *c,
                                      struct operation *op) {
+  disorder_eclient_list_response *const completed =
+    (disorder_eclient_list_response *)op->completed;
+
   D(("list_response_callback"));
-  if(c->rc / 100 == 2) {
-    if(op->completed)
-      ((disorder_eclient_list_response *)op->completed)(op->v,
-                                                        c->vec.nvec,
-                                                        c->vec.vec);
-  } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+  if(c->rc / 100 == 2)
+    completed(op->v, NULL, c->vec.nvec, c->vec.vec);
+  else
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 /* for volume */
 static void volume_response_opcallback(disorder_eclient *c,
                                        struct operation *op) {
+  disorder_eclient_volume_response *completed
+    = (disorder_eclient_volume_response *)op->completed;
   int l, r;
 
   D(("volume_response_callback"));
   if(c->rc / 100 == 2) {
     if(op->completed) {
       if(sscanf(c->line + 4, "%d %d", &l, &r) != 2 || l < 0 || r < 0)
-        protocol_error(c, op, -1, "%s: invalid volume response: %s",
-                       c->ident, c->line);
+        completed(op->v, "cannot parse volume response", 0, 0);
       else
-        ((disorder_eclient_volume_response *)op->completed)(op->v, l, r);
+        completed(op->v, 0, l, r);
     }
   } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 static int simple(disorder_eclient *c,
@@ -1233,16 +1278,19 @@ int disorder_eclient_new_tracks(disorder_eclient *c,
 
 static void rtp_response_opcallback(disorder_eclient *c,
                                     struct operation *op) {
+  disorder_eclient_list_response *const completed =
+    (disorder_eclient_list_response *)op->completed;
   D(("rtp_response_opcallback"));
   if(c->rc / 100 == 2) {
-    if(op->completed) {
-      int nvec;
-      char **vec = split(c->line + 4, &nvec, SPLIT_QUOTES, 0, 0);
+    int nvec;
+    char **vec = split(c->line + 4, &nvec, SPLIT_QUOTES, 0, 0);
 
-      ((disorder_eclient_list_response *)op->completed)(op->v, nvec, vec);
-    }
+    if(vec)
+      completed(op->v, NULL, nvec, vec);
+    else
+      completed(op->v, "error parsing response", 0, 0);
   } else
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    completed(op->v, errorstring(c), 0, 0);
 }
 
 /** @brief Determine the RTP target address
@@ -1380,6 +1428,7 @@ static void log_opcallback(disorder_eclient *c,
 /* error callback for log line parsing */
 static void logline_error(const char *msg, void *u) {
   disorder_eclient *c = u;
+  /* TODO don't use protocol_error here */
   protocol_error(c, c->ops, -1, "error parsing log line: %s", msg);
 }
 
@@ -1395,16 +1444,23 @@ static void logline(disorder_eclient *c, const char *line) {
                                          * reported */
   if(sscanf(vec[0], "%"SCNxMAX, &when) != 1) {
     /* probably the wrong side of a format change */
+    /* TODO don't use protocol_error here */
     protocol_error(c, c->ops, -1, "invalid log timestamp '%s'", vec[0]);
     return;
   }
   /* TODO: do something with the time */
+  //fprintf(stderr, "log key: %s\n", vec[1]);
   n = TABLE_FIND(logentry_handlers, name, vec[1]);
-  if(n < 0) return;                     /* probably a future command */
+  if(n < 0) {
+    //fprintf(stderr, "...not found\n");
+    return;                     /* probably a future command */
+  }
   vec += 2;
   nvec -= 2;
-  if(nvec < logentry_handlers[n].min || nvec > logentry_handlers[n].max)
+  if(nvec < logentry_handlers[n].min || nvec > logentry_handlers[n].max) {
+    //fprintf(stderr, "...wrong # args\n");
     return;
+  }
   logentry_handlers[n].handler(c, nvec, vec);
 }
 
@@ -1489,6 +1545,39 @@ static void logentry_scratched(disorder_eclient *c,
     c->log_callbacks->scratched(c->log_v, vec[0], vec[1]);
   if(c->log_callbacks->state)
     c->log_callbacks->state(c->log_v, c->statebits | DISORDER_CONNECTED);
+}
+
+static void logentry_user_add(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_add)
+    c->log_callbacks->user_add(c->log_v, vec[0]);
+}
+
+static void logentry_user_confirm(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_confirm)
+    c->log_callbacks->user_confirm(c->log_v, vec[0]);
+}
+
+static void logentry_user_delete(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_delete)
+    c->log_callbacks->user_delete(c->log_v, vec[0]);
+}
+
+static void logentry_user_edit(disorder_eclient *c,
+                              int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->user_edit)
+    c->log_callbacks->user_edit(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_rights_changed(disorder_eclient *c,
+                                    int attribute((unused)) nvec, char **vec) {
+  if(c->log_callbacks->rights_changed) {
+    rights_type r;
+    if(!parse_rights(vec[0], &r, 0/*report*/))
+      c->log_callbacks->rights_changed(c->log_v, r);
+  }
 }
 
 static const struct {

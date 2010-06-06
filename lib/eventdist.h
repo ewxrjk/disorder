@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,26 +18,29 @@
  * USA
  */
 
-#ifndef SENDMAIL_H
-#define SENDMAIL_H
+#ifndef EVENTDIST_H
+#define EVENTDIST_H
 
-int sendmail(const char *sender,
-	     const char *pubsender,
-	     const char *recipient,
-	     const char *subject,
-	     const char *encoding,
-	     const char *content_type,
-	     const char *body);
-pid_t sendmail_subprocess(const char *sender,
-                          const char *pubsender,
-                          const char *recipient,
-                          const char *subject,
-                          const char *encoding,
-                          const char *content_type,
-                          const char *body);
-int email_valid(const char *address);
+/** @brief Signature for event handlers
+ * @param event Event type
+ * @param eventdata Event-specific data
+ * @param callbackdata Handler-specific data (as passed to event_register())
+ */
+typedef void event_handler(const char *event,
+                           void *eventdata,
+                           void *callbackdata);
 
-#endif /* SENDMAIL_H */
+/** @brief Handle identifying an event monitor */
+typedef struct event_data *event_handle;
+
+event_handle event_register(const char *event,
+                            event_handler *callback,
+                            void *callbackdata);
+void event_cancel(event_handle handle);
+void event_raise(const char *event,
+                 void *eventdata);
+
+#endif /* EVENTDIST_H */
 
 /*
 Local Variables:

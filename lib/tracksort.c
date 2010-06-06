@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2008 Richard Kettlewell
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,27 +17,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
+#include "common.h"
 
-#ifndef SENDMAIL_H
-#define SENDMAIL_H
+#include "trackname.h"
+#include "mem.h"
 
-int sendmail(const char *sender,
-	     const char *pubsender,
-	     const char *recipient,
-	     const char *subject,
-	     const char *encoding,
-	     const char *content_type,
-	     const char *body);
-pid_t sendmail_subprocess(const char *sender,
-                          const char *pubsender,
-                          const char *recipient,
-                          const char *subject,
-                          const char *encoding,
-                          const char *content_type,
-                          const char *body);
-int email_valid(const char *address);
+/** @brief Compare two @ref entry objects */
+static int tracksort_compare(const void *a, const void *b) {
+  const struct tracksort_data *ea = a, *eb = b;
 
-#endif /* SENDMAIL_H */
+  return compare_tracks(ea->sort, eb->sort,
+			ea->display, eb->display,
+			ea->track, eb->track);
+}
+
+struct tracksort_data *tracksort_init(int ntracks,
+                                      char **tracks,
+                                      const char *type) {
+  struct tracksort_data *td = xcalloc(ntracks, sizeof *td);
+  for(int n = 0; n < ntracks; ++n) {
+    td[n].track = tracks[n];
+    td[n].sort = trackname_transform(type, tracks[n], "sort");
+    td[n].display = trackname_transform(type, tracks[n], "display");
+  }
+  qsort(td, ntracks, sizeof *td, tracksort_compare);
+  return td;
+}
 
 /*
 Local Variables:

@@ -876,7 +876,18 @@ static void logclient(const char *msg, void *user) {
   if(!c->w || !c->r) {
     /* This connection has gone up in smoke for some reason */
     eventlog_remove(c->lo);
+    c->lo = 0;
     return;
+  }
+  /* user_* messages are restricted */
+  if(!strncmp(msg, "user_", 5)) {
+    /* They are only sent to admin users */
+    if(!(c->rights & RIGHT_ADMIN))
+      return;
+    /* They are not sent over TCP connections unless remote user-management is
+     * enabled */
+    if(!config->remote_userman && !(c->rights & RIGHT__LOCAL))
+      return;
   }
   sink_printf(ev_writer_sink(c->w), "%"PRIxMAX" %s\n",
 	      (uintmax_t)time(0), msg);
@@ -1234,10 +1245,21 @@ static int c_edituser(struct conn *c,
       /* Update rights for this user */
       rights_type r;
 
-      if(parse_rights(vec[2], &r, 1))
-	for(d = connections; d; d = d->next)
-	  if(!strcmp(d->who, vec[0]))
+      if(!parse_rights(vec[2], &r, 1)) {
+        const char *new_rights = rights_string(r);
+	for(d = connections; d; d = d->next) {
+	  if(!strcmp(d->who, vec[0])) {
+            /* Update rights */
 	    d->rights = r;
+            /* Notify any log connections */
+            if(d->lo)
+              sink_printf(ev_writer_sink(d->w),
+                          "%"PRIxMAX" rights_changed %s\n",
+                          (uintmax_t)time(0),
+                          quoteutf8(new_rights));
+          }
+        }
+      }
     }
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else {
@@ -1405,7 +1427,7 @@ static int c_reminder(struct conn *c,
     return 1;
   }
   if(!(email = kvp_get(k, "email"))
-     || !strchr(email, '@')) {
+     || !email_valid(email)) {
     error(0, "user '%s' has no valid email address", vec[0]);
     sink_writes(ev_writer_sink(c->w), "550 Cannot send a reminder email\n");
     return 1;
@@ -1751,6 +1773,7 @@ static int listen_callback(ev_source *ev,
   D(("server listen_callback fd %d (%s)", fd, l->name));
   nonblock(fd);
   cloexec(fd);
+  c->next = connections;
   c->tag = tags++;
   c->ev = ev;
   c->w = ev_writer_new(ev, fd, writer_error, c,
@@ -1762,6 +1785,7 @@ static int listen_callback(ev_source *ev,
   c->reader = reader_callback;
   c->l = l;
   c->rights = 0;
+  connections = c;
   gcry_randomize(c->nonce, sizeof c->nonce, GCRY_STRONG_RANDOM);
   sink_printf(ev_writer_sink(c->w), "231 %d %s %s\n",
 	      2,

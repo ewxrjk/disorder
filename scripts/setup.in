@@ -151,23 +151,31 @@ if [ -z "$roots" ]; then
     echo "(enter one or more directories separated by spaces)"
     read -r roots
     ok=true
+    anyroots=false
     for root in $roots; do
       if [ ! -d $root ]; then
 	echo "'$root' does not exist"
 	ok=false
+      else
+        anyroots=true
       fi
     done
-    if $ok; then
+    if $anyroots && $ok; then
       break
     fi
   done
 fi
 
 if [ -z "$encoding" ]; then
-  echo 
-  echo "What filesystem encoding should I assume for track names?"
-  echo "(e.g. UTF-8, ISO-8859-1, ...)"
-  read -r encoding
+  while :; do
+    echo 
+    echo "What filesystem encoding should I assume for track names?"
+    echo "(e.g. UTF-8, ISO-8859-1, ...)"
+    read -r encoding
+    if [ ! -z "$encoding" ]; then
+      break
+    fi
+  done
 fi
 
 if [ -z "$port" ]; then
@@ -180,7 +188,7 @@ if [ -z "$port" ]; then
     none )
       break
       ;;
-    [^0-9] )
+    [^0-9] | "" )
       echo "'$port' is not a valid port number"
       continue
       ;;
@@ -225,7 +233,7 @@ if [ "x$play" = xnetwork ]; then
       none )
 	break
 	;;
-      [^0-9] )
+      [^0-9] | "" )
 	echo "'$mcast_port' is not a valid port number"
 	continue
 	;;
@@ -269,7 +277,7 @@ fi
 echo
 echo "Proposed DisOrder setup:"
 echo " Music directory:       $roots"
-if [ $port = none ]; then
+if [ "$port" = none ]; then
   echo " Do not listen on a TCP port"
 else
   echo " TCP port to listen on: $port"

@@ -27,6 +27,10 @@
  * window remains.
  *
  * It you hit Cancel then the window disappears without saving anything.
+ *
+ * TODO
+ * - escape and return should work
+ * - cancel/close should be consistent with properties
  */
 
 #include "disobedience.h"
@@ -153,7 +157,7 @@ static void login_ok(GtkButton attribute((unused)) *button,
   if(!disorder_connect(c)) {
     /* Success; save the config and start using it */
     login_save_config();
-    reset();
+    logged_in();
     /* Pop down login window */
     gtk_widget_destroy(login_window);
   } else {

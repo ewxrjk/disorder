@@ -56,6 +56,7 @@ char *urlencodestring(const char *s);
 /* return the url-encoded form of @s@ */
 
 char *urldecodestring(const char *s, size_t ns);
+struct kvp *kvp_make(const char *key, ...);
 
 #endif /* KVP_H */
 
