@@ -377,6 +377,17 @@ int disorder_playlist_unlock(disorder_client *c);
  */
 int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp);
 
+/** @brief Get all the preferences for a track
+ *
+ * 
+ *
+ * @param c Client
+ * @param track Track name
+ * @param prefsp Track preferences
+ * @return 0 on success, non-0 on error
+ */
+int disorder_prefs(disorder_client *c, const char *track, struct kvp **prefsp);
+
 /** @brief List the queue
  *
  * 
@@ -524,6 +535,17 @@ int disorder_scratch(disorder_client *c, const char *id);
  * @return 0 on success, non-0 on error
  */
 int disorder_schedule_del(disorder_client *c, const char *event);
+
+/** @brief Get the details of scheduled event
+ *
+ * 
+ *
+ * @param c Client
+ * @param id Event ID
+ * @param actiondatap Details of event
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_get(disorder_client *c, const char *id, struct kvp **actiondatap);
 
 /** @brief List scheduled events
  *

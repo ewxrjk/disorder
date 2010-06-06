@@ -31,6 +31,7 @@ use strict;
 #    boolean        True or false.  "yes" or "no" on the wire.
 #    list           In commands: a list of strings in the command.
 #                   In returns: a list of lines in the response.
+#    pair-list      In returns: a list of key-value pairs in a response body.
 #    body           In commands: a list of strings as a command body.
 #                   In returns: a list of strings as a response body.
 #    queue          In returns: a list of queue entries in a response body.
@@ -86,6 +87,8 @@ sub c_out_decl {
     } elsif($type eq 'list' or $type eq 'body') {
 	return ("char ***${name}p",
 		"int *n${name}p");
+    } elsif($type eq 'pair-list') {
+	return ("struct kvp **${name}p");
     } elsif($type eq 'queue' or $type eq 'queue-one') {
 	return ("struct queue_entry **${name}p");
     } elsif($type eq 'user') {
@@ -123,6 +126,8 @@ sub c_return_docs {
     } elsif($type eq 'list' or $type eq 'body') {
 	return (" * \@param ${name}p $descr\n",
 	        " * \@param n${name}p Number of elements in ${name}p\n");
+    } elsif($type eq 'pair-list') {
+	return (" * \@param ${name}p $descr\n");
     } elsif($type eq 'queue' or $type eq 'queue-one') {
 	return (" * \@param ${name}p $descr\n");
     } elsif($type eq 'user') {
@@ -225,6 +230,9 @@ sub simple {
 	push(@c, "  return somequeue(c, \"$cmd\", $return->[1]p);\n");
     } elsif($return->[0] eq 'queue-one') {
 	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
+    } elsif($return->[0] eq 'pair-list') {
+	push(@c, "  return pairlist(c, $return->[1]p, \"$cmd\"",
+	     map(", $_->[1]", @$args), ", (char *)0);\n");
     } else {
 	die "$0: C API: unknown type '$return->[0]' for '$cmd'\n";
     }
@@ -475,7 +483,11 @@ simple("playlists",
        [],
        ["body", "playlists", "Playlist names"]);
 
-# TODO prefs
+simple("prefs",
+       "Get all the preferences for a track",
+       "",
+       [["string", "track", "Track name"]],
+       ["pair-list", "prefs", "Track preferences"]);
 
 simple("queue",
        "List the queue",
@@ -563,7 +575,11 @@ simple("schedule-del",
        "Users can always delete their own scheduled events; with the admin right you can delete any event.",
        [["string", "event", "ID of event to delete"]]);
 
-# TODO schedule-get
+simple("schedule-get",
+       "Get the details of scheduled event",
+       "",
+       [["string", "id", "Event ID"]],
+       ["pair-list", "actiondata", "Details of event"]);
 
 simple("schedule-list",
        "List scheduled events",

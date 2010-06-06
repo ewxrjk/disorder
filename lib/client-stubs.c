@@ -175,6 +175,10 @@ int disorder_playlists(disorder_client *c, char ***playlistsp, int *nplaylistsp)
   return disorder_simple_list(c, playlistsp, nplaylistsp, "playlists", (char *)0);
 }
 
+int disorder_prefs(disorder_client *c, const char *track, struct kvp **prefsp) {
+  return pairlist(c, prefsp, "prefs", track, (char *)0);
+}
+
 int disorder_queue(disorder_client *c, struct queue_entry **queuep) {
   return somequeue(c, "queue", queuep);
 }
@@ -237,6 +241,10 @@ int disorder_scratch(disorder_client *c, const char *id) {
 
 int disorder_schedule_del(disorder_client *c, const char *event) {
   return disorder_simple(c, 0, "schedule-del", event, (char *)0);
+}
+
+int disorder_schedule_get(disorder_client *c, const char *id, struct kvp **actiondatap) {
+  return pairlist(c, actiondatap, "schedule-get", id, (char *)0);
 }
 
 int disorder_schedule_list(disorder_client *c, char ***idsp, int *nidsp) {

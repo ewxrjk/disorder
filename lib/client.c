@@ -659,29 +659,36 @@ char *disorder_user(disorder_client *c) {
   return c->user;
 }
 
-static void pref_error_handler(const char *msg,
+static void pairlist_error_handler(const char *msg,
 			       void attribute((unused)) *u) {
-  disorder_error(0, "error handling 'prefs' reply: %s", msg);
+  disorder_error(0, "error handling key-value pair reply: %s", msg);
 }
 
-/** @brief Get all preferences for a trcak
+/** @brief Get a list of key-value pairs
  * @param c Client
- * @param track Track name
  * @param kp Where to store linked list of preferences
+ * @param cmd Command
+ * @param ... Arguments
  * @return 0 on success, non-0 on error
  */
-int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
+static int pairlist(disorder_client *c, struct kvp **kp, const char *cmd, ...) {
   char **vec, **pvec;
   int nvec, npvec, n, rc;
   struct kvp *k;
+  va_list ap;
 
-  if((rc = disorder_simple_list(c, &vec, &nvec, "prefs", track, (char *)0)))
+  va_start(ap, cmd);
+  rc = disorder_simple_v(c, 0, cmd, ap);
+  va_end(ap);
+  if(rc)
     return rc;
+  if((rc = readlist(c, &vec, &nvec)))
+     return rc;
   for(n = 0; n < nvec; ++n) {
-    if(!(pvec = split(vec[n], &npvec, SPLIT_QUOTES, pref_error_handler, 0)))
+    if(!(pvec = split(vec[n], &npvec, SPLIT_QUOTES, pairlist_error_handler, 0)))
       return -1;
     if(npvec != 2) {
-      pref_error_handler("malformed response", 0);
+      pairlist_error_handler("malformed response", 0);
       return -1;
     }
     *kp = k = xmalloc(sizeof *k);
@@ -805,35 +812,6 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   }
   *addressp = vec[0];
   *portp = vec[1];
-  return 0;
-}
-
-/** @brief Get details of a scheduled event
- * @param c Client
- * @param id Event ID
- * @param actiondatap Where to put details
- * @return 0 on success, non-0 on error
- */
-int disorder_schedule_get(disorder_client *c, const char *id,
-			  struct kvp **actiondatap) {
-  char **lines, **bits;
-  int rc, nbits;
-
-  *actiondatap = 0;
-  if((rc = disorder_simple_list(c, &lines, NULL,
-				"schedule-get", id, (char *)0)))
-    return rc;
-  while(*lines) {
-    if(!(bits = split(*lines++, &nbits, SPLIT_QUOTES, 0, 0))) {
-      disorder_error(0, "invalid schedule-get reply: cannot split line");
-      return -1;
-    }
-    if(nbits != 2) {
-      disorder_error(0, "invalid schedule-get reply: wrong number of fields");
-      return -1;
-    }
-    kvp_set(actiondatap, bits[0], bits[1]);
-  }
   return 0;
 }
 
