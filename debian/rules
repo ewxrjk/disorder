@@ -18,12 +18,12 @@
 # USA
 #
 
-cgidir=/usr/lib/cgi-bin
+cgiexecdir=/usr/lib/cgi-bin
 httpdir=/var/www
 browser=x-www-browser
 
 # Options to configure.  This can be overridden by the caller if necessary.
-CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man --with-browser=$browser cgidir="${cgidir}" httpdir="${httpdir}"
+CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man --with-browser=$browser cgiexecdir="${cgiexecdir}" httpdir="${httpdir}"
 
 # Set DEB_BUILD_OPTIONS=noopt to produce a non-optimized build.
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
@@ -149,7 +149,7 @@ pkg-disorder-server: build
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_protocol.5
 	$(MKDIR) debian/disorder-server/etc/disorder
 	$(MKDIR) debian/disorder-server/etc/init.d
-	$(MKDIR) debian/disorder-server/usr/lib/cgi-bin
+	$(MKDIR) debian/disorder-server${cgiexecdir}
 	$(MKDIR) debian/disorder-server/var/lib/disorder
 	$(INSTALL_SCRIPT) examples/disorder.init \
 		debian/disorder-server/etc/init.d/disorder
@@ -160,9 +160,9 @@ pkg-disorder-server: build
 	$(INSTALL_DATA) debian/etc.disorder.options.user \
 		debian/disorder-server/etc/disorder/options.user
 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) cgi/disorder \
-		$(shell pwd)/debian/disorder-server/usr/lib/cgi-bin/disorder
+		$(shell pwd)/debian/disorder-server${cgiexecdir}/disorder
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
-		debian/disorder-server/usr/lib/cgi-bin/disorder \
+		debian/disorder-server${cgiexecdir}/disorder \
 		debian/disorder-server/usr/sbin/* \
 		debian/disorder-server/usr/lib/disorder/*.so*
 	rm -rf debian/disorder-server/usr/share/doc/disorder-server

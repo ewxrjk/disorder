@@ -1,8 +1,13 @@
 Debian package for DisOrder
 ===========================
 
-The web interface should now start working automatically.  Test it at
-http://YOURHOSTNAME/cgi-bin/disorder/disorder If it doesn't work,
-always look at the web server error log.
+The web interface should now start working automatically.  Test it at:
 
- -- Richard Kettlewell <rjk@greenend.org.uk>, Sat, 29 Mar 2008 16:20:20 +0000
+    http://YOURHOSTNAME/cgi-bin/disorder
+
+You will need to create yourself a user.
+
+If it doesn't work, always look at the web server error log and at
+/var/log/daemon.log.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>, Sun, 15 Jun 2008 12:15:50 +0100

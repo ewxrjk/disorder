@@ -18,7 +18,7 @@
 # USA
 #
 
-cgi_PROGRAMS=disorder
+cgiexec_PROGRAMS=disorder
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
@@ -28,3 +28,6 @@ disorder_LDADD=../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBGCRYPT) $(LIBDL) $(LIBDB)
 disorder_LDFLAGS=-export-dynamic
 disorder_DEPENDENCIES=../lib/libdisorder.a
+
+install-exec-hook:
+	$(LIBTOOL) --mode=finish $(DESTDIR)$(cgiexecdir)
