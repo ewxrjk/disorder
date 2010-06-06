@@ -1,0 +1,12 @@
+Document: disobedience-manual
+Title: Disobedience Manual
+Author: Richard Kettlewell
+Abstract: This manual describes how to use Disobedience, the GUI
+ client for DisOrder.
+Section: Sound
+
+Format: HTML
+Index: /usr/share/doc/disorder/html/index.html
+Files: /usr/share/doc/disorder/html/*.html
+ /usr/share/doc/disorder/html/*.png
+ /usr/share/doc/disorder/html/*.css
