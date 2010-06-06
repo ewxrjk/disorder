@@ -171,7 +171,7 @@ depending on how the tracks came to be added to the queue.
 .TP
 .B new \fR[\fIMAX\fR]
 Send the most recently added \fIMAX\fR tracks in a response body.
-If the argument is ommitted, the \fBnew_max\fR most recent tracks are
+If the argument is omitted, the \fBnew_max\fR most recent tracks are
 listed (see \fBdisorder_config\fR(5)).
 .TP
 .B nop
@@ -476,7 +476,7 @@ With two parameters sets each side independently.
 Setting the volume requires the \fBvolume\fR right.
 .SH RESPONSES
 Responses are three-digit codes.
-The first digit distinguishes errors from succesful responses:
+The first digit distinguishes errors from successful responses:
 .TP
 .B 2
 Operation succeeded.
