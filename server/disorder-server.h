@@ -372,6 +372,18 @@ int play_background(ev_source *ev,
 #define START_HARDFAIL 1   /**< @brief Track is broken. */
 #define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
 
+void periodic_mount_check(ev_source *ev_);
+
+#ifndef MOUNT_CHECK_INTERVAL
+# ifdef PATH_MTAB
+// statting a file is really cheap so check once a second
+#  define MOUNT_CHECK_INTERVAL 1
+# else
+// hashing getfsstat() output could be more expensive so be less aggressive
+#  define MOUNT_CHECK_INTERVAL 5
+# endif
+#endif
+
 #endif /* DISORDER_SERVER_H */
 
 /*
