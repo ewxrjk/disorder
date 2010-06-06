@@ -20,6 +20,7 @@
  */
 
 #include "disorder-server.h"
+#include "hreader.h"
 
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
@@ -45,8 +46,7 @@ struct decoder {
   void (*decode)(void);
 };
 
-/** @brief Input file */
-static int inputfd;
+static struct hreader input[1];
 
 /** @brief Output file */
 static FILE *outputfp;
@@ -239,7 +239,9 @@ static enum mad_flow mp3_input(void attribute((unused)) *data,
     remain = 0;
   }
   /* Read new data */
-  n = read(inputfd, input_buffer + remain, (sizeof input_buffer) - remain);
+  n = hreader_read(input,
+                   input_buffer + remain, 
+                   (sizeof input_buffer) - remain);
   if(n < 0)
     disorder_fatal(errno, "reading from %s", path);
   /* Compute total number of bytes available */
@@ -267,8 +269,7 @@ static enum mad_flow mp3_error(void attribute((unused)) *data,
 static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
-  if((inputfd = open(path, O_RDONLY)) < 0)
-    disorder_fatal(errno, "opening %s", path);
+  hreader_init(path, input);
   mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
   if(mad_decoder_run(mad, MAD_DECODER_MODE_SYNC))

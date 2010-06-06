@@ -60,6 +60,7 @@ int hreader_fill(struct hreader *h) {
   if(n < 0)
     return -1;
   h->bytes = n;
+  h->offset += n;
   return n;
 }
 

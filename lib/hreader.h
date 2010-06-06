@@ -67,7 +67,6 @@ void hreader_consume(struct hreader *h, size_t n);
 
 #endif /* HREADER_H */
 
-
 /*
 Local Variables:
 c-basic-offset:2
