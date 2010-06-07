@@ -29,11 +29,11 @@
  */
 struct hreader {
   const char *path;		/* file to read */
-  off_t offset;			/* how far we've read so far */
+  off_t read_offset;            /* for next hreader_read() */
+  off_t buf_offset;             /* offset of start of buffer */
   char *buffer;			/* input buffer */
   size_t bufsize;		/* buffer size */
   size_t bytes;			/* size of last read */
-  size_t consumed;		/* bytes consumed by caller from last read */
 };
 
 /** @brief Initialize a hands-off reader
@@ -50,20 +50,14 @@ void hreader_init(const char *path, struct hreader *h);
  */
 int hreader_read(struct hreader *h, void *buffer, size_t n);
 
-/** @brief Read more bytes
- * @param h Reader to update
- * @return Bytes available to read
- *
- * If not all bytes were consumed so far then just returns the number
- * of bytes left to consume.
+/** @brief Read some bytes at a given offset
+ * @param h Reader to read from
+ * @param offset Offset to read at
+ * @param buffer Where to store bytes
+ * @param n Maximum bytes to read
+ * @return Bytes read, or 0 at EOF, or -1 on error
  */
-int hreader_fill(struct hreader *h);
-
-/** @brief Consume some bytes
- * @param h Reader to update
- * @param n Bytes to consume
- */
-void hreader_consume(struct hreader *h, size_t n);
+int hreader_pread(struct hreader *h, void *buffer, size_t n, off_t offset);
 
 #endif /* HREADER_H */
 

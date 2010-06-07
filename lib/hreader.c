@@ -23,6 +23,8 @@
 #include <string.h>
 #include <fcntl.h>
 
+static int hreader_fill(struct hreader *h, off_t offset);
+
 void hreader_init(const char *path, struct hreader *h) {
   memset(h, 0, sizeof *h);
   h->path = xstrdup(path);
@@ -31,41 +33,49 @@ void hreader_init(const char *path, struct hreader *h) {
 }
 
 int hreader_read(struct hreader *h, void *buffer, size_t n) {
-  if(h->consumed == h->bytes) {
-    int r;
-
-    if((r = hreader_fill(h)) <= 0)
-      return r;
-  }
-  if(n > h->bytes - h->consumed)
-    n = h->bytes - h->consumed;
-  memcpy(buffer, h->buffer + h->consumed, n);
-  h->consumed += n;
-  return n;
+  int r = hreader_pread(h, buffer, n, h->read_offset);
+  if(r > 0)
+    h->read_offset += r;
+  return r;
 }
 
-int hreader_fill(struct hreader *h) {
-  if(h->consumed < h->bytes)
-    return h->bytes - h->consumed;
-  h->bytes = h->consumed = 0;
+int hreader_pread(struct hreader *h, void *buffer, size_t n, off_t offset) {
+  size_t bytes_read = 0;
+
+  while(bytes_read < n) {
+    // If the desired byte range is outside the file, fetch new contents
+    if(offset < h->buf_offset || offset >= h->buf_offset + (off_t)h->bytes) {
+      int r = hreader_fill(h, offset);
+      if(r < 0)
+        return -1;                      /* disaster! */
+      else if(r == 0)
+        break;                          /* end of file */
+    }
+    // Figure out how much we can read this time round
+    size_t left = h->bytes - (offset - h->buf_offset);
+    // Truncate the read if we don't want that much
+    if(left > (n - bytes_read))
+      left = n - bytes_read;
+    memcpy((char *)buffer + bytes_read,
+           h->buffer + (offset - h->buf_offset),
+           left);
+    offset += left;
+    bytes_read += left;
+  }
+  return bytes_read;
+}
+
+static int hreader_fill(struct hreader *h, off_t offset) {
   int fd = open(h->path, O_RDONLY);
   if(fd < 0)
     return -1;
-  if(lseek(fd, h->offset, SEEK_SET) < 0) {
-    close(fd);
-    return -1;
-  }
-  int n = read(fd, h->buffer, h->bufsize);
+  int n = pread(fd, h->buffer, h->bufsize, offset);
   close(fd);
   if(n < 0)
     return -1;
+  h->buf_offset = offset;
   h->bytes = n;
-  h->offset += n;
   return n;
-}
-
-void hreader_consume(struct hreader *h, size_t n) {
-  h->consumed += n;
 }
 
 /*

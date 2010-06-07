@@ -128,9 +128,8 @@ int wav_init(struct wavfile *f, const char *path) {
   off_t where;
   
   memset(f, 0, sizeof *f);
-  f->fd = -1;
   f->data = -1;
-  if((f->fd = open(path, O_RDONLY)) < 0) goto error_errno;
+  hreader_init(path, f->input);
   /* Read the file header
    *
    *  offset  size  meaning
@@ -138,7 +137,7 @@ int wav_init(struct wavfile *f, const char *path) {
    *  04      4     length of rest of file
    *  08      4     'WAVE'
    * */
-  if((n = pread(f->fd, header, 12, 0)) < 0) goto error_errno;
+  if((n = hreader_pread(f->input, header, 12, 0)) < 0) goto error_errno;
   else if(n < 12) goto einval;
   if(strncmp(header, "RIFF", 4) || strncmp(header + 8, "WAVE", 4))
     goto einval;
@@ -151,7 +150,7 @@ int wav_init(struct wavfile *f, const char *path) {
      *  00      4     chunk ID
      *  04      4     length of rest of chunk
      */
-    if((n = pread(f->fd, header, 8, where)) < 0) goto error_errno;
+    if((n = hreader_pread(f->input, header, 8, where)) < 0) goto error_errno;
     else if(n < 8) goto einval;
     if(!strncmp(header,"fmt ", 4)) {
       /* This is the format chunk
@@ -168,7 +167,8 @@ int wav_init(struct wavfile *f, const char *path) {
        *  18      ?     extra undocumented rubbish
        */
       if(get32(header + 4) < 16) goto einval;
-      if((n = pread(f->fd, header + 8, 16, where + 8)) < 0) goto error_errno;
+      if((n = hreader_pread(f->input, header + 8, 16, where + 8)) < 0)
+        goto error_errno;
       else if(n < 16) goto einval;
       f->channels = get16(header + 0x0A);
       f->rate = get32(header + 0x0C);
@@ -196,14 +196,7 @@ error:
 }
 
 /** @brief Close a WAV file */
-void wav_destroy(struct wavfile *f) {
-  if(f) {
-    const int save_errno = errno;
-
-    if(f->fd >= 0)
-      close(f->fd);
-    errno = save_errno;
-  }
+void wav_destroy(struct wavfile attribute((unused)) *f) {
 }
 
 /** @brief Visit all the data in a WAV file
@@ -227,7 +220,7 @@ int wav_data(struct wavfile *f,
     size_t want = (off_t)sizeof buffer > left ? (size_t)left : sizeof buffer;
 
     want -= want % bytes_per_frame;
-    if((n = pread(f->fd, buffer, want, where)) < 0) return errno;
+    if((n = hreader_pread(f->input, buffer, want, where)) < 0) return errno;
     if((size_t)n < want) return EINVAL;
     if((err = callback(f, buffer, n, u))) return err;
     where += n;
