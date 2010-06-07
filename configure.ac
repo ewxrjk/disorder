@@ -522,7 +522,6 @@ if test $want_server = yes; then
   AC_CHECK_HEADERS([db.h],[:],[
     missing_headers="$missing_headers $ac_header"
   ])
-  AC_CHECK_HEADERS([FLAC/file_decoder.h])
 fi
 AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 		 getopt.h iconv.h langinfo.h \
