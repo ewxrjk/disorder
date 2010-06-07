@@ -69,6 +69,26 @@ int hreader_pread(struct hreader *h, void *buffer, size_t n, off_t offset);
  */
 off_t hreader_seek(struct hreader *h, off_t offset, int whence);
 
+/** @brief Return file size
+ * @param h Reader to find size of
+ * @return Size in bytes
+ */
+static inline off_t hreader_size(const struct hreader *h) {
+  return h->size;
+}
+
+/** @brief Test for end of file
+ * @param h Reader to test
+ * @return 1 at eof, 0 otherwise
+ *
+ * This tells you whether the next read will return 0 bytes, rather than
+ * whether the last read reached end of file.  So it is slightly different to
+ * feof().
+ */
+static inline int hreader_eof(const struct hreader *h) {
+  return h->read_offset == h->size;
+}
+
 #endif /* HREADER_H */
 
 /*

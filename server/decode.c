@@ -397,18 +397,80 @@ static FLAC__StreamDecoderWriteStatus flac_write
   return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
 
+static FLAC__StreamDecoderReadStatus flac_read(const FLAC__StreamDecoder attribute((unused)) *decoder,
+                                               FLAC__byte buffer[],
+                                               size_t *bytes,
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  int n = hreader_read(flacinput, buffer, *bytes);
+  if(n == 0) {
+    *bytes = 0;
+    return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
+  }
+  if(n < 0) {
+    *bytes = 0;
+    return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
+  }
+  *bytes = n;
+  return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
+}
+
+static FLAC__StreamDecoderSeekStatus flac_seek(const FLAC__StreamDecoder attribute((unused)) *decoder,
+                                               FLAC__uint64 absolute_byte_offset, 
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  if(hreader_seek(flacinput, absolute_byte_offset, SEEK_SET) < 0)
+    return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
+  else
+    return FLAC__STREAM_DECODER_SEEK_STATUS_OK;
+}
+
+static FLAC__StreamDecoderTellStatus flac_tell(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                                               FLAC__uint64 *absolute_byte_offset,
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  off_t offset = hreader_seek(flacinput, 0, SEEK_CUR);
+  if(offset < 0)
+    return FLAC__STREAM_DECODER_TELL_STATUS_ERROR;
+  *absolute_byte_offset = offset;
+  return FLAC__STREAM_DECODER_TELL_STATUS_OK;
+}
+
+static FLAC__StreamDecoderLengthStatus flac_length(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                                                   FLAC__uint64 *stream_length, 
+                                                   void *client_data) {
+  struct hreader *flacinput = client_data;
+  *stream_length = hreader_size(flacinput);
+  return FLAC__STREAM_DECODER_LENGTH_STATUS_OK;
+}
+
+static FLAC__bool flac_eof(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                           void *client_data) {
+  struct hreader *flacinput = client_data;
+  return hreader_eof(flacinput);
+}
 
 /** @brief FLAC file decoder */
 static void decode_flac(void) {
   FLAC__StreamDecoder *sd = FLAC__stream_decoder_new();
   FLAC__StreamDecoderInitStatus is;
+  struct hreader flacinput[1];
 
   if (!sd)
     disorder_fatal(0, "FLAC__stream_decoder_new failed");
+  if(hreader_init(path, flacinput))
+    disorder_fatal(errno, "error opening %s", path);
 
-  if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
-                                          flac_error, 0)))
-    disorder_fatal(0, "FLAC__stream_decoder_init_file %s: %s",
+  if((is = FLAC__stream_decoder_init_stream(sd,
+                                            flac_read,
+                                            flac_seek,
+                                            flac_tell,
+                                            flac_length,
+                                            flac_eof,
+                                            flac_write, flac_metadata,
+                                            flac_error, 
+                                            flacinput)))
+    disorder_fatal(0, "FLAC__stream_decoder_init_stream %s: %s",
                    path, FLAC__StreamDecoderInitStatusString[is]);
 
   FLAC__stream_decoder_process_until_end_of_stream(sd);
