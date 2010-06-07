@@ -129,7 +129,7 @@ int wav_init(struct wavfile *f, const char *path) {
   
   memset(f, 0, sizeof *f);
   f->data = -1;
-  hreader_init(path, f->input);
+  if(hreader_init(path, f->input)) goto error_errno;
   /* Read the file header
    *
    *  offset  size  meaning

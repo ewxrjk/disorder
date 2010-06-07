@@ -269,7 +269,8 @@ static enum mad_flow mp3_error(void attribute((unused)) *data,
 static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
-  hreader_init(path, input);
+  if(hreader_init(path, input))
+    disorder_fatal(errno, "opening %s", path);
   mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
   if(mad_decoder_run(mad, MAD_DECODER_MODE_SYNC))
@@ -277,21 +278,52 @@ static void decode_mp3(void) {
   mad_decoder_finish(mad);
 }
 
+static size_t ogg_read_func(void *ptr, size_t size, size_t nmemb, void *datasource) {
+  struct hreader *h = datasource;
+  
+  int n = hreader_read(h, ptr, size * nmemb);
+  if(n < 0) n = 0;
+  return n / size;
+}
+
+static int ogg_seek_func(void *datasource, ogg_int64_t offset, int whence) {
+  struct hreader *h = datasource;
+  
+  return hreader_seek(h, offset, whence) < 0 ? -1 : 0;
+}
+
+static int ogg_close_func(void attribute((unused)) *datasource) {
+  return 0;
+}
+
+static long ogg_tell_func(void *datasource) {
+  struct hreader *h = datasource;
+  
+  return hreader_seek(h, 0, SEEK_CUR);
+}
+
+static const ov_callbacks ogg_callbacks = {
+  ogg_read_func,
+  ogg_seek_func,
+  ogg_close_func,
+  ogg_tell_func,
+};
+
 /** @brief OGG decoder */
 static void decode_ogg(void) {
-  FILE *fp;
+  struct hreader ogginput[1];
   OggVorbis_File vf[1];
   int err;
   long n;
   int bitstream;
   vorbis_info *vi;
 
-  if(!(fp = fopen(path, "rb")))
-    disorder_fatal(errno, "cannot open %s", path);
+  hreader_init(path, ogginput);
   /* There doesn't seem to be any standard function for mapping the error codes
    * to strings l-( */
-  if((err = ov_open(fp, vf, 0/*initial*/, 0/*ibytes*/)))
-    disorder_fatal(0, "ov_fopen %s: %d", path, err);
+  if((err = ov_open_callbacks(ogginput, vf, 0/*initial*/, 0/*ibytes*/,
+                              ogg_callbacks)))
+    disorder_fatal(0, "ov_open_callbacks %s: %d", path, err);
   if(!(vi = ov_info(vf, 0/*link*/)))
     disorder_fatal(0, "ov_info %s: failed", path);
   while((n = ov_read(vf, input_buffer, sizeof input_buffer, 1/*bigendianp*/,

@@ -22,14 +22,21 @@
 #include "mem.h"
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 static int hreader_fill(struct hreader *h, off_t offset);
 
-void hreader_init(const char *path, struct hreader *h) {
+int hreader_init(const char *path, struct hreader *h) {
+  struct stat sb;
+  if(stat(path, &sb) < 0)
+    return -1;
   memset(h, 0, sizeof *h);
   h->path = xstrdup(path);
+  h->size = sb.st_size;
   h->bufsize = 65536;
   h->buffer = xmalloc_noptr(h->bufsize);
+  return 0;
 }
 
 int hreader_read(struct hreader *h, void *buffer, size_t n) {
@@ -76,6 +83,18 @@ static int hreader_fill(struct hreader *h, off_t offset) {
   h->buf_offset = offset;
   h->bytes = n;
   return n;
+}
+
+off_t hreader_seek(struct hreader *h, off_t offset, int whence) {
+  switch(whence) {
+  case SEEK_SET: break;
+  case SEEK_CUR: offset += h->read_offset; break;
+  case SEEK_END: offset += h->size; break;
+  default: einval: errno = EINVAL; return -1;
+  }
+  if(offset < 0) goto einval;
+  h->read_offset = offset;
+  return offset;
 }
 
 /*
