@@ -18,12 +18,14 @@
 /** @file lib/hreader.c
  * @brief Hands-off reader - read files without keeping them open
  */
+#include <config.h>
 #include "hreader.h"
 #include "mem.h"
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <unistd.h>
 
 static int hreader_fill(struct hreader *h, off_t offset);
 
