@@ -1080,6 +1080,7 @@ static const struct conf conf[] = {
   { C(lock),             &type_boolean,          validate_any },
   { C(mail_sender),      &type_string,           validate_any },
   { C(mixer),            &type_string,           validate_any },
+  { C(mount_rescan),     &type_boolean,          validate_any },
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
@@ -1373,6 +1374,7 @@ static struct config *config_default(void) {
   c->sox_generation = DEFAULT_SOX_GENERATION;
   c->playlist_max = INT_MAX;            /* effectively no limit */
   c->playlist_lock_timeout = 10;        /* 10s */
+  c->mount_rescan = 1;
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);

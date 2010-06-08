@@ -41,6 +41,8 @@ static int compare_fsstat(const void *av, const void *bv) {
 #endif
 
 void periodic_mount_check(ev_source *ev_) {
+  if(!config->mount_rescan)
+    return;
 #if HAVE_GETFSSTAT
   /* On OS X, we keep track of the hash of the kernel's mounted
    * filesystem list */
