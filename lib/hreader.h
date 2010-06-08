@@ -28,7 +28,7 @@
  * Allows files to be read without holding them open.
  */
 struct hreader {
-  const char *path;		/* file to read */
+  char *path;                   /* file to read */
   off_t size;                   /* file size */
   off_t read_offset;            /* for next hreader_read() */
   off_t buf_offset;             /* offset of start of buffer */
@@ -43,6 +43,11 @@ struct hreader {
  * @return 0 on success, -1 on error
  */
 int hreader_init(const char *path, struct hreader *h);
+
+/** @brief Close a hands-off reader
+ * @param h Reader to close
+ */
+void hreader_close(struct hreader *h);
 
 /** @brief Read some bytes
  * @param h Reader to read from

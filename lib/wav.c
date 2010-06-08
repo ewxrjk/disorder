@@ -196,7 +196,8 @@ error:
 }
 
 /** @brief Close a WAV file */
-void wav_destroy(struct wavfile attribute((unused)) *f) {
+void wav_destroy(struct wavfile *f) {
+  hreader_close(f->input);
 }
 
 /** @brief Visit all the data in a WAV file

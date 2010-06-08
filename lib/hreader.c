@@ -41,6 +41,11 @@ int hreader_init(const char *path, struct hreader *h) {
   return 0;
 }
 
+void hreader_close(struct hreader *h) {
+  xfree(h->path);
+  xfree(h->buffer);
+}
+
 int hreader_read(struct hreader *h, void *buffer, size_t n) {
   int r = hreader_pread(h, buffer, n, h->read_offset);
   if(r > 0)
