@@ -20,18 +20,12 @@
  */
 
 #include "disorder-server.h"
+#include "hreader.h"
 
 #include <mad.h>
 #include <vorbis/vorbisfile.h>
 
-/* libFLAC has had an API change and stupidly taken away the old API */
-#if HAVE_FLAC_FILE_DECODER_H
-# include <FLAC/file_decoder.h>
-#else
-# include <FLAC/stream_decoder.h>
-#define FLAC__FileDecoder FLAC__StreamDecoder
-#define FLAC__FileDecoderState FLAC__StreamDecoderState
-#endif
+#include <FLAC/stream_decoder.h>
 
 #include "wav.h"
 #include "speaker-protocol.h"
@@ -45,8 +39,7 @@ struct decoder {
   void (*decode)(void);
 };
 
-/** @brief Input file */
-static int inputfd;
+static struct hreader input[1];
 
 /** @brief Output file */
 static FILE *outputfp;
@@ -239,7 +232,9 @@ static enum mad_flow mp3_input(void attribute((unused)) *data,
     remain = 0;
   }
   /* Read new data */
-  n = read(inputfd, input_buffer + remain, (sizeof input_buffer) - remain);
+  n = hreader_read(input,
+                   input_buffer + remain, 
+                   (sizeof input_buffer) - remain);
   if(n < 0)
     disorder_fatal(errno, "reading from %s", path);
   /* Compute total number of bytes available */
@@ -267,7 +262,7 @@ static enum mad_flow mp3_error(void attribute((unused)) *data,
 static void decode_mp3(void) {
   struct mad_decoder mad[1];
 
-  if((inputfd = open(path, O_RDONLY)) < 0)
+  if(hreader_init(path, input))
     disorder_fatal(errno, "opening %s", path);
   mad_decoder_init(mad, 0/*data*/, mp3_input, 0/*header*/, 0/*filter*/,
 		   mp3_output, mp3_error, 0/*message*/);
@@ -276,21 +271,52 @@ static void decode_mp3(void) {
   mad_decoder_finish(mad);
 }
 
+static size_t ogg_read_func(void *ptr, size_t size, size_t nmemb, void *datasource) {
+  struct hreader *h = datasource;
+  
+  int n = hreader_read(h, ptr, size * nmemb);
+  if(n < 0) n = 0;
+  return n / size;
+}
+
+static int ogg_seek_func(void *datasource, ogg_int64_t offset, int whence) {
+  struct hreader *h = datasource;
+  
+  return hreader_seek(h, offset, whence) < 0 ? -1 : 0;
+}
+
+static int ogg_close_func(void attribute((unused)) *datasource) {
+  return 0;
+}
+
+static long ogg_tell_func(void *datasource) {
+  struct hreader *h = datasource;
+  
+  return hreader_seek(h, 0, SEEK_CUR);
+}
+
+static const ov_callbacks ogg_callbacks = {
+  ogg_read_func,
+  ogg_seek_func,
+  ogg_close_func,
+  ogg_tell_func,
+};
+
 /** @brief OGG decoder */
 static void decode_ogg(void) {
-  FILE *fp;
+  struct hreader ogginput[1];
   OggVorbis_File vf[1];
   int err;
   long n;
   int bitstream;
   vorbis_info *vi;
 
-  if(!(fp = fopen(path, "rb")))
-    disorder_fatal(errno, "cannot open %s", path);
+  hreader_init(path, ogginput);
   /* There doesn't seem to be any standard function for mapping the error codes
    * to strings l-( */
-  if((err = ov_open(fp, vf, 0/*initial*/, 0/*ibytes*/)))
-    disorder_fatal(0, "ov_fopen %s: %d", path, err);
+  if((err = ov_open_callbacks(ogginput, vf, 0/*initial*/, 0/*ibytes*/,
+                              ogg_callbacks)))
+    disorder_fatal(0, "ov_open_callbacks %s: %d", path, err);
   if(!(vi = ov_info(vf, 0/*link*/)))
     disorder_fatal(0, "ov_info %s: failed", path);
   while((n = ov_read(vf, input_buffer, sizeof input_buffer, 1/*bigendianp*/,
@@ -331,13 +357,13 @@ static void decode_wav(void) {
  *
  * This is a no-op here.
  */
-static void flac_metadata(const FLAC__FileDecoder attribute((unused)) *decoder,
+static void flac_metadata(const FLAC__StreamDecoder attribute((unused)) *decoder,
 			  const FLAC__StreamMetadata attribute((unused)) *metadata,
 			  void attribute((unused)) *client_data) {
 }
 
 /** @brief Error callback for FLAC decoder */
-static void flac_error(const FLAC__FileDecoder attribute((unused)) *decoder,
+static void flac_error(const FLAC__StreamDecoder attribute((unused)) *decoder,
 		       FLAC__StreamDecoderErrorStatus status,
 		       void attribute((unused)) *client_data) {
   disorder_fatal(0, "error decoding %s: %s", path,
@@ -346,7 +372,7 @@ static void flac_error(const FLAC__FileDecoder attribute((unused)) *decoder,
 
 /** @brief Write callback for FLAC decoder */
 static FLAC__StreamDecoderWriteStatus flac_write
-    (const FLAC__FileDecoder attribute((unused)) *decoder,
+    (const FLAC__StreamDecoder attribute((unused)) *decoder,
      const FLAC__Frame *frame,
      const FLAC__int32 *const buffer[],
      void attribute((unused)) *client_data) {
@@ -371,39 +397,85 @@ static FLAC__StreamDecoderWriteStatus flac_write
   return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
 
+static FLAC__StreamDecoderReadStatus flac_read(const FLAC__StreamDecoder attribute((unused)) *decoder,
+                                               FLAC__byte buffer[],
+                                               size_t *bytes,
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  int n = hreader_read(flacinput, buffer, *bytes);
+  if(n == 0) {
+    *bytes = 0;
+    return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
+  }
+  if(n < 0) {
+    *bytes = 0;
+    return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
+  }
+  *bytes = n;
+  return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
+}
+
+static FLAC__StreamDecoderSeekStatus flac_seek(const FLAC__StreamDecoder attribute((unused)) *decoder,
+                                               FLAC__uint64 absolute_byte_offset, 
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  if(hreader_seek(flacinput, absolute_byte_offset, SEEK_SET) < 0)
+    return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
+  else
+    return FLAC__STREAM_DECODER_SEEK_STATUS_OK;
+}
+
+static FLAC__StreamDecoderTellStatus flac_tell(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                                               FLAC__uint64 *absolute_byte_offset,
+                                               void *client_data) {
+  struct hreader *flacinput = client_data;
+  off_t offset = hreader_seek(flacinput, 0, SEEK_CUR);
+  if(offset < 0)
+    return FLAC__STREAM_DECODER_TELL_STATUS_ERROR;
+  *absolute_byte_offset = offset;
+  return FLAC__STREAM_DECODER_TELL_STATUS_OK;
+}
+
+static FLAC__StreamDecoderLengthStatus flac_length(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                                                   FLAC__uint64 *stream_length, 
+                                                   void *client_data) {
+  struct hreader *flacinput = client_data;
+  *stream_length = hreader_size(flacinput);
+  return FLAC__STREAM_DECODER_LENGTH_STATUS_OK;
+}
+
+static FLAC__bool flac_eof(const FLAC__StreamDecoder attribute((unused)) *decoder, 
+                           void *client_data) {
+  struct hreader *flacinput = client_data;
+  return hreader_eof(flacinput);
+}
 
 /** @brief FLAC file decoder */
 static void decode_flac(void) {
-#if HAVE_FLAC_FILE_DECODER_H
-  FLAC__FileDecoder *fd = 0;
-  FLAC__FileDecoderState fs;
-
-  if(!(fd = FLAC__file_decoder_new()))
-    disorder_fatal(0, "FLAC__file_decoder_new failed");
-  if(!(FLAC__file_decoder_set_filename(fd, path)))
-    disorder_fatal(0, "FLAC__file_set_filename failed");
-  FLAC__file_decoder_set_metadata_callback(fd, flac_metadata);
-  FLAC__file_decoder_set_error_callback(fd, flac_error);
-  FLAC__file_decoder_set_write_callback(fd, flac_write);
-  if((fs = FLAC__file_decoder_init(fd)))
-    disorder_fatal(0, "FLAC__file_decoder_init: %s", FLAC__FileDecoderStateString[fs]);
-  FLAC__file_decoder_process_until_end_of_file(fd);
-#else
   FLAC__StreamDecoder *sd = FLAC__stream_decoder_new();
   FLAC__StreamDecoderInitStatus is;
+  struct hreader flacinput[1];
 
   if (!sd)
     disorder_fatal(0, "FLAC__stream_decoder_new failed");
+  if(hreader_init(path, flacinput))
+    disorder_fatal(errno, "error opening %s", path);
 
-  if((is = FLAC__stream_decoder_init_file(sd, path, flac_write, flac_metadata,
-                                          flac_error, 0)))
-    disorder_fatal(0, "FLAC__stream_decoder_init_file %s: %s",
+  if((is = FLAC__stream_decoder_init_stream(sd,
+                                            flac_read,
+                                            flac_seek,
+                                            flac_tell,
+                                            flac_length,
+                                            flac_eof,
+                                            flac_write, flac_metadata,
+                                            flac_error, 
+                                            flacinput)))
+    disorder_fatal(0, "FLAC__stream_decoder_init_stream %s: %s",
                    path, FLAC__StreamDecoderInitStatusString[is]);
 
   FLAC__stream_decoder_process_until_end_of_stream(sd);
   FLAC__stream_decoder_finish(sd);
   FLAC__stream_decoder_delete(sd);
-#endif
 }
 
 /** @brief Lookup table of decoders */

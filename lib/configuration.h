@@ -290,7 +290,10 @@ struct config {
 
   /** @brief Maximum bias */
   long new_bias;
-  
+
+  /** @brief Rescan on (un)mount */
+  int mount_rescan;
+
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */

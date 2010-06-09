@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2008, 2009 Richard Kettlewell
+ * Copyright (C) 2008-2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -371,6 +371,18 @@ int play_background(ev_source *ev,
 #define START_OK 0	   /**< @brief Succeeded. */
 #define START_HARDFAIL 1   /**< @brief Track is broken. */
 #define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
+
+void periodic_mount_check(ev_source *ev_);
+
+#ifndef MOUNT_CHECK_INTERVAL
+# ifdef PATH_MTAB
+// statting a file is really cheap so check once a second
+#  define MOUNT_CHECK_INTERVAL 1
+# else
+// hashing getfsstat() output could be more expensive so be less aggressive
+#  define MOUNT_CHECK_INTERVAL 5
+# endif
+#endif
 
 #endif /* DISORDER_SERVER_H */
 

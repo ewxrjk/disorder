@@ -68,6 +68,26 @@ span.command {
 <p>This file documents recent user-visible changes to <a
  href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>.</p>
 
+<h2>Changes up to version 5.1</h2>
+
+<div class=section>
+
+  <h3>Removable Device Support</h3>
+
+  <div class=section>
+
+    <p>The server will now automatically initiate a rescan when a filesystem is
+    mounted or unmounted.  (Use the <tt>mount_rescan</tt> option if you want to
+    suppress this behavior.)</p>
+
+    <p>The server takes care not to hold audio files open unnecessarily, so
+    that devices can be unmounted even if tracks from them are currently being
+    buffered.</p>
+
+  </div>
+
+</div>
+
 <h2>Changes up to version 5.0</h2>
 
   <div class=section>

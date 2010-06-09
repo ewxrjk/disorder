@@ -522,7 +522,6 @@ if test $want_server = yes; then
   AC_CHECK_HEADERS([db.h],[:],[
     missing_headers="$missing_headers $ac_header"
   ])
-  AC_CHECK_HEADERS([FLAC/file_decoder.h])
 fi
 AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 		 getopt.h iconv.h langinfo.h \
@@ -546,6 +545,18 @@ AC_C_INLINE
 AC_C_BIGENDIAN
 AC_CHECK_TYPES([struct sockaddr_in6],,,[AC_INCLUDES_DEFAULT
 #include <netinet/in.h>])
+
+# Figure out how we'll check for devices being mounted and unmounted
+AC_CACHE_CHECK([for list of mounted filesystems],[rjk_cv_mtab],[
+  if test -e /etc/mtab; then
+    rjk_cv_mtab=/etc/mtab
+  else
+    rjk_cv_mtab=none
+  fi
+])
+if test $rjk_cv_mtab != none; then
+  AC_DEFINE_UNQUOTED([PATH_MTAB],["$rjk_cv_mtab"],[path to file containing mount list])
+fi
 
 # enable -Werror when we check for certain characteristics:
 
@@ -639,7 +650,7 @@ if test ! -z "$missing_functions"; then
 fi
 
 # Functions we can take or leave
-AC_CHECK_FUNCS([fls])
+AC_CHECK_FUNCS([fls getfsstat])
 
 if test $want_server = yes; then
   # <db.h> had better be version 3 or later

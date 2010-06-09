@@ -325,7 +325,6 @@ For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
-
 Output level for the audio device.
 This is probably what you want and is the default.
 .TP
@@ -456,6 +455,10 @@ For \fBapi alsa\fR, this is the index of the mixer control to use.
 The default is 0.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
+.TP
+.B mount_rescan yes\fR|\fBno
+Determines whether mounts and unmounts will cause an automatic rescan.
+The default is \fByes\fR.
 .TP
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.

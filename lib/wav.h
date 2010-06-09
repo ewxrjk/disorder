@@ -22,10 +22,12 @@
 #ifndef WAV_H
 #define WAV_H
 
+#include "hreader.h"
+
 /** @brief WAV file access structure */
 struct wavfile {
-  /** @brief File descriptor onto file */
-  int fd;
+  /** @brief File read handle */
+  struct hreader input[1];
 
   /** @brief File length */
   off_t length;

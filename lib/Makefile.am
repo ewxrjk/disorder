@@ -52,6 +52,7 @@ libdisorder_a_SOURCES=charset.c charset.h		\
 	heap.h						\
 	hex.c hex.h					\
 	hostname.c hostname.h				\
+	hreader.c hreader.h				\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
