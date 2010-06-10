@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2009 Richard Kettlewell
+# Copyright (C) 2004-2010 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,8 @@ disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPTHREAD)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_decode_SOURCES=decode.c disorder-server.h
+disorder_decode_SOURCES=decode.c decode.h disorder-server.h	\
+decode-mp3.c decode-ogg.c decode-wav.c decode-flac.c
 disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBMAD) $(LIBVORBISFILE) $(LIBFLAC)
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
