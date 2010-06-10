@@ -128,6 +128,9 @@ struct icon {
    * Can be NULL for always sensitive.
    */
   int (*sensitive)(void);
+
+  /** @brief True if the menu item has inverse sense to the button */
+  gboolean menu_invert;
   
   /** @brief Pointer to button */
   GtkWidget *button;
@@ -192,6 +195,7 @@ static struct icon icons[] = {
     action_go_on: disorder_eclient_pause,
     action_go_off: disorder_eclient_resume,
     events: "pause-changed playing-changed rights-changed playing-track-changed",
+    menu_invert: TRUE,
   },
   {
     stock: TRUE,
@@ -418,7 +422,8 @@ static void icon_changed(const char attribute((unused)) *event,
   /* Icons with an associated menu item */
   if(icon->item) {
     if(icon->toggle)
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item), on);
+      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(icon->item),
+                                     !!icon->menu_invert ^ !!on);
     gtk_widget_set_sensitive(icon->item, sensitive);
   }
   --suppress_actions;
