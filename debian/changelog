@@ -1,3 +1,10 @@
+disorder (5.0.1) unstable; urgency=low
+
+  * Disorder 5.0.1
+  * The sense of the Control -> Playing menu item was fixed.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Thu, 10 Jun 2010 09:18:58 +0100
+
 disorder (5.0) unstable; urgency=low
 
   * DisOrder 5.0
