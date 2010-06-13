@@ -763,7 +763,7 @@ if test "x$GCC" = xyes; then
   fi
 
   # a reasonable default set of warnings
-  CC="${CC} -Wall -W -Wpointer-arith -Wbad-function-cast \
+  CC="${CC} -Wall -W -Wpointer-arith \
 	-Wwrite-strings -Wmissing-prototypes \
 	-Wmissing-declarations -Wnested-externs"
 
