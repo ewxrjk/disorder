@@ -160,7 +160,7 @@ done:
   if(fp)
     xfclose(fp);
   if(pid)
-    while((r = waitpid(pid, &w, 0)) == -1 && errno == EINTR)
+    while((waitpid(pid, &w, 0)) == -1 && errno == EINTR)
       ;
 }
 

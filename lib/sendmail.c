@@ -118,7 +118,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
 		      const char *encoding,
 		      const char *content_type,
 		      const char *body) {
-  int rc, sol = 1;
+  int sol = 1;
   const char *ptr;
   uint8_t idbuf[20];
   char *id;
@@ -131,23 +131,23 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
   strftime(date, sizeof date, "%a, %d %b %Y %H:%M:%S +0000", &ut);
   gcry_create_nonce(idbuf, sizeof idbuf);
   id = mime_to_base64(idbuf, sizeof idbuf);
-  if((rc = getresponse(tag, in)) / 100 != 2)
+  if(getresponse(tag, in) / 100 != 2)
     return -1;
   if(sendcommand(tag, out, "HELO %s", local_hostname()))
     return -1;
-  if((rc = getresponse(tag, in)) / 100 != 2)
+  if(getresponse(tag, in) / 100 != 2)
     return -1;
   if(sendcommand(tag, out, "MAIL FROM:<%s>", sender))
     return -1;
-  if((rc = getresponse(tag, in)) / 100 != 2)
+  if(getresponse(tag, in) / 100 != 2)
     return -1;
   if(sendcommand(tag, out, "RCPT TO:<%s>", recipient))
     return -1;
-  if((rc = getresponse(tag, in)) / 100 != 2)
+  if(getresponse(tag, in) / 100 != 2)
     return -1;
   if(sendcommand(tag, out, "DATA", sender))
     return -1;
-  if((rc = getresponse(tag, in)) / 100 != 3)
+  if(getresponse(tag, in) / 100 != 3)
     return -1;
   if(fprintf(out, "From: %s\r\n", pubsender) < 0
      || fprintf(out, "To: %s\r\n", recipient) < 0
@@ -181,7 +181,7 @@ static int sendmailfp(const char *tag, FILE *in, FILE *out,
   if(fprintf(out, ".\r\n") < 0
      || fflush(out) < 0)
     goto write_error;
-  if((rc = getresponse(tag, in)) / 100 != 2)
+  if(getresponse(tag, in) / 100 != 2)
     return -1;
   return 0;
 }

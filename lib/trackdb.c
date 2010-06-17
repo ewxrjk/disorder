@@ -840,7 +840,7 @@ static char **dedupe(char **vec, int nvec) {
   int m, n;
 
   qsort(vec, nvec, sizeof (char *), wordcmp);
-  m = n = 0;
+  m = 0;
   if(nvec) {
     vec[m++] = vec[0];
     for(n = 1; n < nvec; ++n)
@@ -1823,7 +1823,7 @@ int trackdb_set(const char *track,
         if(trackdb_putdata(trackdb_prefsdb, track, p, tid, 0))
           goto fail;
       /* compute the new alias name */
-      if((err = compute_alias(&newalias, track, p, tid))) goto fail;
+      if(compute_alias(&newalias, track, p, tid)) goto fail;
       /* check whether alias has changed */
       if(!(oldalias == newalias
            || (oldalias && newalias && !strcmp(oldalias, newalias)))) {
@@ -2176,13 +2176,13 @@ const char *trackdb_getpart(const char *track,
   DB_TXN *tid;
   char *pref;
   const char *actual;
-  int used_db, err;
+  int used_db;
 
   /* construct the full pref */
   byte_xasprintf(&pref, "trackname_%s_%s", context, part);
   for(;;) {
     tid = trackdb_begin_transaction();
-    if((err = gettrackdata(track, 0, &p, &actual, 0, tid)) == DB_LOCK_DEADLOCK)
+    if(gettrackdata(track, 0, &p, &actual, 0, tid) == DB_LOCK_DEADLOCK)
       goto fail;
     break;
 fail:
@@ -2741,12 +2741,11 @@ void trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
   DB_TXN *tid;
-  int err;
   int state;
 
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(!(err = trackdb_set_global_tid(name, value, tid)))
+    if(!trackdb_set_global_tid(name, value, tid))
       break;
     trackdb_abort_transaction(tid);
   }
@@ -2803,12 +2802,11 @@ int trackdb_set_global_tid(const char *name,
  */
 const char *trackdb_get_global(const char *name) {
   DB_TXN *tid;
-  int err;
   const char *r;
 
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(!(err = trackdb_get_global_tid(name, tid, &r)))
+    if(!trackdb_get_global_tid(name, tid, &r))
       break;
     trackdb_abort_transaction(tid);
   }
@@ -2912,7 +2910,7 @@ static char **trackdb_new_tid(int *ntracksp,
   default:
     disorder_fatal(0, "error reading noticed.db: %s", db_strerror(err));
   }
-  if((err = trackdb_closecursor(c)))
+  if(trackdb_closecursor(c))
     return 0;                           /* deadlock */
   vector_terminate(tracks);
   if(ntracksp)

@@ -835,9 +835,7 @@ static int validate_positive(const struct config_state *cs,
 static int validate_isauser(const struct config_state *cs,
 			    int attribute((unused)) nvec,
 			    char **vec) {
-  struct passwd *pw;
-
-  if(!(pw = getpwnam(vec[0]))) {
+  if(!getpwnam(vec[0])) {
     disorder_error(0, "%s:%d: no such user as '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
