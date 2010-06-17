@@ -612,7 +612,7 @@ static int process_prefs(int numfile) {
     byte_xasprintf((char **)&name, "trackname_%s_%s", context, part);
     disorder_set(dcgi_client, file, name, value);
   }
-  if((value = numbered_arg("random", numfile)))
+  if(numbered_arg("random", numfile))
     disorder_unset(dcgi_client, file, "pick_at_random");
   else
     disorder_set(dcgi_client, file, "pick_at_random", "0");

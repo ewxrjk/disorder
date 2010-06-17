@@ -441,6 +441,7 @@ static gboolean choose_get_visible_range(GtkTreeView *tree_view,
  * @param direction -1 for prev, +1 for next
  */
 static void choose_move(int direction) {
+  assert(direction);                    /* placate analyzer */
   /* Refocus the main view so typahead find continues to work */
   gtk_widget_grab_focus(choose_view);
   /* If there's no results we have nothing to do */

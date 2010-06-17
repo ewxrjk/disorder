@@ -507,7 +507,7 @@ int disorder_close(disorder_client *c) {
   }
   c->ident = 0;
   c->user = 0;
-  return 0;
+  return ret;
 }
 
 /** @brief Play a track

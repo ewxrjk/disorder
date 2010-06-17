@@ -1177,7 +1177,7 @@ static int c_nop(struct conn *c,
 static int c_new(struct conn *c,
 		 char **vec,
 		 int nvec) {
-  int max, n;
+  int max;
   char **tracks;
 
   if(nvec > 0)
@@ -1188,7 +1188,6 @@ static int c_new(struct conn *c,
     max = config->new_max;
   tracks = trackdb_new(0, max);
   sink_printf(ev_writer_sink(c->w), "253 New track list follows\n");
-  n = 0;
   while(*tracks) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
 		**tracks == '.' ? "." : "", *tracks);

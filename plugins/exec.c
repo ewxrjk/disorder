@@ -39,7 +39,6 @@ void disorder_play_track(const char *const *parameters,
   const char **vec;
 
   vec = disorder_malloc((nparameters + 2) * sizeof (char *));
-  i = 0;
   j = 0;
   for(i = 0; i < nparameters; ++i)
     vec[j++] = parameters[i];
