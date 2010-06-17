@@ -601,7 +601,7 @@ static void playlist_new_details(char **namep,
   if(privatep) *privatep = private;
   if(namep) *namep = name;
   if(fullnamep) {
-    if(shared) *fullnamep = *namep;
+    if(shared) *fullnamep = name;
     else byte_xasprintf(fullnamep, "%s.%s", config->username, name);
   }
 }
