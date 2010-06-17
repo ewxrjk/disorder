@@ -300,7 +300,7 @@ static int start(ev_source *ev,
 
   D(("start %s", q->id));
   /* Find the player plugin. */
-  if(!(player = find_player(q)) < 0)
+  if(!(player = find_player(q)))
     return START_HARDFAIL;              /* No player */
   if(!(q->pl = open_plugin(player->s[1], 0)))
     return START_HARDFAIL;
@@ -395,7 +395,7 @@ int prepare(ev_source *ev,
   if(q->prepared || q->preparing)
     return START_OK;
   /* Find the player plugin */
-  if(!(player = find_player(q)) < 0) 
+  if(!(player = find_player(q))) 
     return START_HARDFAIL;              /* No player */
   q->pl = open_plugin(player->s[1], 0);
   q->type = play_get_type(q->pl);
