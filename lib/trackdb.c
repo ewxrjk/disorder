@@ -2493,6 +2493,9 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
     }
     if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
     cursor = 0;
+    if(err)
+      goto fail;
+    cursor = 0;
     /* do a naive search over that (hopefuly fairly small) list of tracks */
     u.nvec = 0;
     for(n = 0; n < v.nvec; ++n) {
