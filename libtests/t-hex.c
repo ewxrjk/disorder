@@ -52,12 +52,15 @@ static void test_hex(void) {
   check_string(hex(h, sizeof h), "00ff807f");
   check_string(hex(0, 0), "");
   u = unhex("00ff807f", &ul);
+  insist(u != 0);
   insist(ul == 4);
   insist(memcmp(u, h, 4) == 0);
   u = unhex("00FF807F", &ul);
+  insist(u != 0);
   insist(ul == 4);
   insist(memcmp(u, h, 4) == 0);
   u = unhex("", &ul);
+  insist(u != 0);
   insist(ul == 0);
   fprintf(stderr, "2 ERROR reports expected {\n");
   insist(unhex("F", 0) == 0);

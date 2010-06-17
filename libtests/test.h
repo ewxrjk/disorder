@@ -95,7 +95,7 @@ extern int skipped;
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
                                                                         \
-  if(want == 0) {                                                       \
+  if(got == 0) {                                                       \
     fprintf(stderr, "%s:%d: %s returned 0\n",                           \
             __FILE__, __LINE__, #GOT);                                  \
     count_error();                                                      \
