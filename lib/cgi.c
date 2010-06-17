@@ -226,7 +226,6 @@ void cgi_clear(void) {
  */
 char *cgi_sgmlquote(const char *src) {
   uint32_t *ucs, c;
-  int n;
   struct dynstr d[1];
   struct sink *s;
 
@@ -234,7 +233,6 @@ char *cgi_sgmlquote(const char *src) {
     exit(1);
   dynstr_init(d);
   s = sink_dynstr(d);
-  n = 1;
   /* format the string */
   while((c = *ucs++)) {
     switch(c) {

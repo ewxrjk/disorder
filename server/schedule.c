@@ -471,14 +471,12 @@ static int schedule_lookup(const char *id,
 static int schedule_trigger(ev_source *ev,
 			    const struct timeval attribute((unused)) *now,
 			    void *u) {
-  const char *action, *id = u;
+  const char *id = u;
   struct kvp *actiondata = schedule_get(id);
   int n;
 
   if(!actiondata)
     return 0;
-  /* schedule_get() enforces these being present */
-  action = kvp_get(actiondata, "action");
   /* Look up the action */
   n = schedule_lookup(id, actiondata);
   if(n < 0)

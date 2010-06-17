@@ -378,8 +378,8 @@ int main(int argc, char **argv) {
     case 'd': dump = 1; break;
     case 'u': undump = 1; break;
     case 'D': debugging = 1; break;
-    case 'r': recover = TRACKDB_NORMAL_RECOVER;
-    case 'R': recover = TRACKDB_FATAL_RECOVER;
+    case 'r': recover = TRACKDB_NORMAL_RECOVER; break;
+    case 'R': recover = TRACKDB_FATAL_RECOVER; break;
     case 'a': recompute = 1; break;
     case 'P': remove_pathless = 1; break;
     default: disorder_fatal(0, "invalid option");
