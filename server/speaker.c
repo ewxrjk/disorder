@@ -340,7 +340,8 @@ static int speaker_fill(struct track *t) {
         t->playable = 1;
       rc = 0;
     }
-  }
+  } else
+    rc = 0;
   return rc;
 }
 
