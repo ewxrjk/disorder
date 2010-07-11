@@ -156,7 +156,7 @@ case "$host" in
   # Look for a suitable version of libdb among the versions found in FreeBSD 7.0
   AC_CACHE_CHECK([looking for a libdb install],[rjk_cv_libdb],[
     rjk_cv_libdb="none"
-    for db in db43 db44 db45 db46; do
+    for db in db43 db44 db45 db47; do
       if test -e /usr/local/lib/$db; then
         rjk_cv_libdb=$db
         break
