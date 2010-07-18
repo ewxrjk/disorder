@@ -195,10 +195,10 @@ struct config {
   const char *home;
 
   /** @brief Login username */
-  const char *username;
+  char *username;
 
   /** @brief Login password */
-  const char *password;
+  char *password;
 
   /** @brief Address to connect to */
   struct netaddress connect;
@@ -327,6 +327,8 @@ char *config_private(void);
 /* get the private config file */
 
 int config_verify(void);
+
+void config_free(struct config *c);
 
 extern char *configfile;
 extern int config_per_user;

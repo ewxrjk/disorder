@@ -25,7 +25,7 @@ else
 TRACKDB=trackdb-stub.c
 endif
 
-libdisorder_a_SOURCES=charset.c charset.h		\
+libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	addr.c addr.h					\
 	arcfour.c arcfour.h				\
 	authhash.c authhash.h				\

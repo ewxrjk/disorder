@@ -287,6 +287,15 @@ struct kvp *kvp_make(const char *name, ...) {
   return kvp;
 }
 
+void kvp_free(struct kvp *k) {
+  if(k) {
+    kvp_free(k->next);
+    xfree((void *)k->name);
+    xfree((void *)k->value);
+    xfree(k);
+  }
+}
+
 /*
 Local Variables:
 c-basic-offset:2

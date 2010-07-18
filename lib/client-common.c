@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@ socklen_t find_server(struct config *c,
     strcpy(su.sun_path, name);
     sa = (struct sockaddr *)&su;
     len = sizeof su;
+    xfree(name);
   }
   *sap = xmalloc_noptr(len);
   memcpy(*sap, sa, len);

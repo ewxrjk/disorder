@@ -30,6 +30,7 @@
 #include "syscalls.h"
 #include "table.h"
 #include "printf.h"
+#include "vector.h"
 
 const char *const playing_states[] = {
   "failed",
@@ -95,16 +96,26 @@ static const char *marshall_long(const struct queue_entry *q, size_t offset) {
   return xstrdup(buffer);
 }
 
+static void free_none(struct queue_entry attribute((unused)) *q,
+                      size_t attribute((unused)) offset) {
+}
+
+#define free_long free_none
+
 static int unmarshall_string(char *data, struct queue_entry *q,
 			     size_t offset,
 			     void attribute((unused)) (*error_handler)(const char *, void *),
 			     void attribute((unused)) *u) {
-  VALUE(q, offset, char *) = data;
+  VALUE(q, offset, char *) = xstrdup(data);
   return 0;
 }
 
 static const char *marshall_string(const struct queue_entry *q, size_t offset) {
   return VALUE(q, offset, char *);
+}
+
+static void free_string(struct queue_entry *q, size_t offset) {
+  xfree(VALUE(q, offset, char *));
 }
 
 static int unmarshall_time_t(char *data, struct queue_entry *q,
@@ -133,6 +144,8 @@ static const char *marshall_time_t(const struct queue_entry *q, size_t offset) {
     disorder_fatal(0, "time converted to decimal is too long");
   return xstrdup(buffer);
 }
+
+#define free_time_t free_none
 
 static int unmarshall_state(char *data, struct queue_entry *q,
 			    size_t offset,
@@ -176,7 +189,10 @@ static const char *marshall_origin(const struct queue_entry *q, size_t offset) {
   return track_origins[VALUE(q, offset, enum track_origin)];
 }
 
-#define F(n, h) { #n, offsetof(struct queue_entry, n), marshall_##h, unmarshall_##h }
+#define free_state free_none
+#define free_origin free_none
+
+#define F(n, h) { #n, offsetof(struct queue_entry, n), marshall_##h, unmarshall_##h, free_##h }
 
 static const struct field {
   const char *name;
@@ -185,6 +201,7 @@ static const struct field {
   int (*unmarshall)(char *data, struct queue_entry *q, size_t offset,
 		    void (*error_handler)(const char *, void *),
 		    void *u);
+  void (*free)(struct queue_entry *q, size_t offset);
 } fields[] = {
   /* Keep this table sorted. */
   F(expected, time_t),
@@ -199,6 +216,7 @@ static const struct field {
   F(when, time_t),
   F(wstat, long)
 };
+#define NFIELDS (sizeof fields / sizeof *fields)
 
 int queue_unmarshall(struct queue_entry *q, const char *s,
 		     void (*error_handler)(const char *, void *),
@@ -209,7 +227,9 @@ int queue_unmarshall(struct queue_entry *q, const char *s,
   q->pid = -1;                          /* =none */
   if(!(vec = split(s, &nvec, SPLIT_QUOTES, error_handler, u)))
     return -1;
-  return queue_unmarshall_vec(q, nvec, vec, error_handler, u);
+  int rc = queue_unmarshall_vec(q, nvec, vec, error_handler, u);
+  free_strings(nvec, vec);
+  return rc;
 }
 
 int queue_unmarshall_vec(struct queue_entry *q, int nvec, char **vec,
@@ -256,6 +276,16 @@ char *queue_marshall(const struct queue_entry *q) {
       s += strlen(strcpy(s, vec[n]));
     }
   return r;
+}
+
+void queue_free(struct queue_entry *q, int rest) {
+  if(!q)
+    return;
+  if(rest)
+    queue_free(q->next, rest);
+  for(unsigned n = 0; n < NFIELDS; ++n)
+    fields[n].free(q, fields[n].offset);
+  xfree(q);
 }
 
 /*

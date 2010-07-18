@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -141,10 +141,12 @@ static int check_response(disorder_client *c, char **rp) {
   else if(rc / 100 == 2) {
     if(rp)
       *rp = (rc % 10 == 9) ? 0 : xstrdup(r + 4);
+    xfree(r);
     return 0;
   } else {
     if(c->verbose)
       disorder_error(0, "from %s: %s", c->ident, utf82mb(r));
+    xfree(r);
     return rc;
   }
 }
@@ -200,6 +202,7 @@ static int disorder_simple_v(disorder_client *c,
     D(("command: %s", d.vec));
     if(fputs(d.vec, c->fpout) < 0)
       goto write_error;
+    xfree(d.vec);
     if(body) {
       if(nbody < 0)
         for(nbody = 0; body[nbody]; ++nbody)
@@ -291,7 +294,9 @@ static int dequote(int rc, char **rp) {
 
   if(!rc) {
     if((rr = split(*rp, 0, SPLIT_QUOTES, 0, 0)) && *rr) {
+      xfree(*rp);
       *rp = *rr;
+      xfree(rr);
       return 0;
     }
     disorder_error(0, "invalid reply: %s", *rp);
@@ -316,13 +321,13 @@ int disorder_connect_generic(struct config *conf,
                              const char *username,
                              const char *password,
                              const char *cookie) {
-  int fd = -1, fd2 = -1, nrvec, rc;
-  unsigned char *nonce;
+  int fd = -1, fd2 = -1, nrvec = 0, rc;
+  unsigned char *nonce = NULL;
   size_t nl;
-  const char *res;
-  char *r, **rvec;
+  char *res = NULL;
+  char *r = NULL, **rvec = NULL;
   const char *protocol, *algorithm, *challenge;
-  struct sockaddr *sa;
+  struct sockaddr *sa = NULL;
   socklen_t salen;
 
   if((salen = find_server(conf, &sa, &c->ident)) == (socklen_t)-1)
@@ -364,14 +369,14 @@ int disorder_connect_generic(struct config *conf,
     disorder_error(0, "cannot parse server greeting %s", r);
     goto error;
   }
-  protocol = *rvec++;
+  protocol = rvec[0];
   if(strcmp(protocol, "2")) {
     c->last = "unknown protocol version";
     disorder_error(0, "unknown protocol version: %s", protocol);
     goto error;
   }
-  algorithm = *rvec++;
-  challenge = *rvec++;
+  algorithm = rvec[1];
+  challenge = rvec[2];
   if(!(nonce = unhex(challenge, &nl)))
     goto error;
   if(cookie) {
@@ -391,6 +396,11 @@ int disorder_connect_generic(struct config *conf,
   if((rc = disorder_simple(c, 0, "user", username, res, (char *)0)))
     goto error_rc;
   c->user = xstrdup(username);
+  xfree(res);
+  free_strings(nrvec, rvec);
+  xfree(nonce);
+  xfree(sa);
+  xfree(r);
   return 0;
 error:
   rc = -1;
@@ -505,7 +515,9 @@ int disorder_close(disorder_client *c) {
     }
     c->fpout = 0;
   }
+  xfree(c->ident);
   c->ident = 0;
+  xfree(c->user);
   c->user = 0;
   return ret;
 }
@@ -641,6 +653,7 @@ static int disorder_somequeue(disorder_client *c,
     if(!strcmp(l, ".")) {
       *qt = 0;
       *qp = qh;
+      xfree(l);
       return 0;
     }
     q = xmalloc(sizeof *q);
@@ -648,6 +661,7 @@ static int disorder_somequeue(disorder_client *c,
       *qt = q;
       qt = &q->next;
     }
+    xfree(l);
   }
   if(ferror(c->fpin)) {
     byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
@@ -700,9 +714,11 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
       if(nvecp)
 	*nvecp = v.nvec;
       *vecp = v.vec;
+      xfree(l);
       return 0;
     }
-    vector_append(&v, l + (*l == '.'));
+    vector_append(&v, xstrdup(l + (*l == '.')));
+    xfree(l);
   }
   if(ferror(c->fpin)) {
     byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
@@ -853,7 +869,9 @@ int disorder_prefs(disorder_client *c, const char *track, struct kvp **kp) {
     k->name = pvec[0];
     k->value = pvec[1];
     kp = &k->next;
+    xfree(pvec);
   }
+  free_strings(nvec, vec);
   *kp = 0;
   return 0;
 }

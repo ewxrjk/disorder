@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -237,6 +237,8 @@ int queue_unmarshall_vec(struct queue_entry *q, int nvec, char **vec,
 
 char *queue_marshall(const struct queue_entry *q);
 /* marshall @q@ into a UTF-8 string */
+
+void queue_free(struct queue_entry *q, int rest);
 
 #endif /* QUEUE_H */
 
