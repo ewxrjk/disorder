@@ -40,6 +40,7 @@ static int compare_fsstat(const void *av, const void *bv) {
 }
 #endif
 
+#if HAVE_GETFSSTAT || defined PATH_MTAB
 void periodic_mount_check(ev_source *ev_) {
   if(!config->mount_rescan)
     return;
@@ -88,6 +89,10 @@ void periodic_mount_check(ev_source *ev_) {
   }
 #endif
 }
+#else
+void periodic_mount_check(ev_source attribute((unused)) *ev_ ) {
+}
+#endif
 
 /*
 Local Variables:
