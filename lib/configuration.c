@@ -1106,6 +1106,7 @@ static const struct conf conf[] = {
   { C(replay_min),       &type_integer,          validate_non_negative },
   { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_verbose),      &type_boolean,          validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(sendmail),         &type_string,           validate_isabspath },

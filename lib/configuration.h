@@ -251,6 +251,9 @@ struct config {
 
   /** @brief RTP delay threshold */
   long rtp_delay_threshold;
+
+  /** @brief Verbose RTP transmission logging */
+  int rtp_verbose;
   
   /** @brief TTL for multicast packets */
   long multicast_ttl;
