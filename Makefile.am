@@ -22,6 +22,8 @@ SUBDIRS=@subdirs@
 
 DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(distdir)/_inst/cgiexecdir
 
+ACLOCAL_AMFLAGS=-I m4
+
 check-report: before-check check make-coverage-reports
 before-check:
 	rm -f */*.gcda */*.gcov

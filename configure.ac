@@ -23,6 +23,7 @@ AC_CONFIG_AUX_DIR([config.aux])
 AM_INIT_AUTOMAKE(disorder, [5.0])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Find host type
 AC_CANONICAL_HOST
@@ -655,7 +656,7 @@ AC_CHECK_FUNCS([fls getfsstat])
 if test $want_server = yes; then
   # <db.h> had better be version 3 or later
   AC_CACHE_CHECK([db.h version],[rjk_cv_db_version],[
-    AC_PREPROC_IFELSE([
+    AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
 		       #include <db.h>
 		       #ifndef DB_VERSION_MAJOR
 		       # error cannot determine db version
@@ -666,16 +667,16 @@ if test $want_server = yes; then
 		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR <= 2
 		       # error inadequate db version
 		       #endif
-		      ],
+		      ],[])],
 		      [rjk_cv_db_version=ok],
 		      [rjk_cv_db_version=inadequate])
     if test $rjk_cv_db_version = ok; then
-      AC_PREPROC_IFELSE([
+      AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
                          #include <db.h>
                          #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 6
                          # error http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=510270
                          #endif
-                        ],
+                        ],[])],
                         [rjk_cv_db_version=ok],
                         [rjk_cv_db_version=toxic])
     fi
@@ -727,13 +728,13 @@ if test "x$GCC" = xyes; then
     if test $GCC = yes; then
       CC="$CC -Wall -Werror"
     fi
-    AC_COMPILE_IFELSE([
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[
       static int x(char *f) {
        return *f;
       }
       int z(const char *g) {
 	return x((char *)g);
-      }],
+      }])],
       [rjk_cv_pr29478=no],
       [rjk_cv_pr29478=yes]
     )
@@ -749,11 +750,11 @@ if test "x$GCC" = xyes; then
     if test $GCC = yes; then
       CC="$CC -Wreturn-type -Werror"
     fi
-    AC_COMPILE_IFELSE([
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[
       static void *threadfn(void) {
         for(;;)
           ;
-      }],
+      }],[])],
       [rjk_cv_gcc44_stupidity=no],
       [rjk_cv_gcc44_stupidity=yes])
     CC="$old_CC"
