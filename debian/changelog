@@ -1,3 +1,9 @@
+disorder (5.0.DEV) unstable; urgency=low
+
+  * Development version.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 12 Feb 2011 15:44:33 +0000
+
 disorder (5.0) unstable; urgency=low
 
   * DisOrder 5.0
