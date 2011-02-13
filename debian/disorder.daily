@@ -1,0 +1,30 @@
+#! /bin/sh
+set -e
+
+# Maximum backup age
+MAXAGE=7
+
+# Enable backups
+BACKUP=true
+
+# Enable pruning
+PRUNE=true
+
+# All operator to override settings
+if test -e /etc/default/disorder; then
+  . /etc/default/disorder
+fi
+
+if ${BACKUP}; then
+  # Ensure the backup directory exists
+  mkdir -m 0700 -p /var/lib/disorder/backups
+
+  # Take a backup
+  disorder-dump --dump /var/lib/disorder/backups/$(date +%F)
+fi
+
+if ${PRUNE}; then
+  # Delete old backups
+  find /var/lib/disorder/backups -type -f -ctime +${MAXAGE} -print0 \
+  | xargs -r0 rm -f
+fi

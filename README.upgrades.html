@@ -1,0 +1,343 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+  <head>
+    <title>Upgrading DisOrder</title>
+    <link rel=StyleSheet type="text/css" href="docs.css">
+  </head>
+  <body>
+    <h1>Upgrading DisOrder</h1>
+
+    <ul>
+      <li><a href="#deb">.deb Installs</a></li>
+      <li><a href="#source">Source Installs</a></li>
+      <li><a href="#ver">Version-Specific Details</a></li>
+    </ul>
+
+    <h2><a name="deb">.deb Installs</a></h2>
+
+    <h3>Take A Backup</h3>
+    
+    <p>You should make a backup of DisOrder's databases before proceeding with
+    any upgrade.  You can generate a backup as follows:</p>
+
+    <pre># disorder-dump --dump <i>PATH</i></pre>
+
+    <p>where <i>PATH</i> is the filename to write the backup to.</p>
+
+    <p>As of version 5.1, the Debian version of the server will take a daily
+    backup of its databases to <tt>/var/lib/disorder/backups</tt>, so it should
+    not be a disaster if you neglect this step in <i>subsequent</i>
+    upgrades.</p>
+
+    <h3>Install The New Packages</h3>
+
+    <pre># dpkg -i *.deb</pre>
+
+    <h3>Upgrade Databases</h3>
+
+    <p>If you have changed version of <tt>libdb</tt> then the new one may not
+    be compatible with the old one's file format.  In this case the server will
+    not start, causing the upgrade to fail.  Remove the database files and
+    restore from the backup you took above.</p>
+
+    <pre># rm /var/lib/disorder/*
+# disorder-dump --restore PATH
+# dpkg --configure -a</pre>
+
+    <h2><a name=source>Source Installs</a></h2>
+
+    <h3>Take A Backup</h3>
+
+    <p>You should make a backup of DisOrder's databases before proceeding with
+    any upgrade.  You can generate a backup as follows:</p>
+
+    <pre># disorder-dump --dump PATH</pre>
+
+    <p>where PATH is the filename to write the backup to.</p>
+
+    <h3>Stop The Server</h3>
+
+    <p>Linux:</p>
+
+    <pre># /etc/init.d/disorder stop</pre>
+
+    <p>Mac:</p>
+
+    <pre># launchctl stop uk.org.greenend.rjk.disorder
+# launchctl unload /Library/LaunchDaemons/uk.org.greenend.rjk.disorder.plist</pre>
+
+    <p>If you are feeling cautious you can also make an exact copy of the
+    database files at this point (they are in
+    <tt>/usr/local/var/disorder</tt>).</p>
+
+    <h3>Build And Install The New Version</h3>
+
+    <p>See the top-level <a href="README">README</a>.</p>
+
+    <h3>Update Configuration Files</h3>
+
+    <p>See version-specific information below.</p>
+
+    <h3>Upgrade Databases</h3>
+
+    <p>If you have changed version of <tt>libdb</tt> you may need to remove the
+    database files and restore from the backup you took above.</p>
+
+    <pre># rm /usr/local/var/disorder/*
+# disorder-dump --restore PATH</pre>
+
+    <h3>Restart The Server</h3>
+
+    <p>Linux:</p>
+
+    <pre># /etc/init.d/disorder start</pre>
+
+    <p>Mac:</p>
+
+    <pre># cp examples/uk.org.greenend.rjk.disorder.plist /Library/LaunchDaemons/.
+# launchctl load /Library/LaunchDaemons
+# launchctl start uk.org.greenend.rjk.disorder</pre>
+
+    <h1><a name=ver>Version-Specific Details</a></h1>
+
+    <h2>4.x -> 5.0</h2>
+
+    <h3>Web Confirmation Strings</h3>
+
+    <p>The syntax of confirmation strings for online registrations has changed
+    and old ones no longer work.  This only affects users who registered before
+    the upgrade but have not yet confirmed their login.  You can delete such
+    half-created users with 'disorder deluser USERNAME' (as an administrative
+    user, for instance as root on the server) and they can start the
+    registration process again.</p>
+
+    <h3>Handling Of Configuration Changes</h3>
+
+    <p>There is a new mechanism to ensure that the search database and aliases
+    are reconstructed if any options that affect them change.  Unfortunately
+    this means that the reconstruction step always takes place on upgrade from
+    4.3 or earlier, as those versions don't record sufficient information for
+    the server to tell whether it needs to reconstruct or not.</p>
+
+    <p>The result will be a log message of the form:</p>
+
+    <pre>new database parameter string dbparams-0-sha256:61609f3e6395ec8dee317ee216fe2848d70c249d347dd03c6a219441a13dd456 - removing old data</pre>
+
+    <p>...and a slower rescan on startup.  Subsequent restarts should not have
+    this problem (unless of course you change a relevant option).</p>
+
+    <h3>Deprecation Notices</h3>
+
+    <p>The player <tt>--wait-for-device</tt> option is deprecated and will be
+    removed in a future version.</p>
+
+    <p>The 'lock' option no longer does anything.  You must delete it from any
+    configuration files that contain it.  The full set of deprecated options
+    is:</p>
+
+    <ul>
+    <li>allow</li>
+    <li>gap</li>
+    <li>lock</li>
+    <li>prefsync</li>
+    <li>restrict</li>
+    <li>trust</li>
+        </ul>
+
+    <h2>3.0 -> 4.x</h2>
+
+    <p>If you customized any of the templates, you will pretty much have to
+    start from scratch as the web interface has been rewritten.  See
+    disorder.cgi(8) for a starting point.</p>
+
+    <p>The 'gap' directive will no longer work.  You must delete it from any
+    configuration files that contain it.</p>
+
+    <p>You may prefer to remove any 'smtp_server' directive you have, as the
+    web interface will now use the local sendmail executable if available.</p>
+
+    <p>If you want to be able to do use management over non-local connections
+    (thereby potentially exposing passwords!) you must set 'remote_userman' to
+    'yes'.</p>
+
+    <h2>2.0 -> 3.0</h2>
+
+    <h3>Authentication</h3>
+
+    <p>Users are now stored in the database rather than in 'allow' directives
+    in a private configuration file.  'allow' is still understood in this
+    version, but is only used to populate the database on startup.  After the
+    first (successful) run of the server the remaining 'allow' directives
+    should be deleted.</p>
+
+    <p>'restrict' and 'trust' are replaced by a system of per-user rights.  The
+    default user rights are based on the 'restrict' setting, and the rights of
+    users created frow 'allow' directives preserve the meaning of 'trust', but
+    after the first run you should remove these directives and (optionally) add
+    a 'default_rights' directive.</p>
+
+    <p>'allow', 'restrict' and 'trust' will stop working entirely in a future
+    version but for now they will generate harmless error messages.  Remove
+    them and the error messages will go away.</p>
+
+    <p>See README for new setup instructions for the web interface.</p>
+
+    <h3>Other Server Configuration</h3>
+
+    <p>Sensible defaults for 'stopword', 'player' and 'tracklength' are now
+    built into the server.  If you haven't modified the values from the example
+    or Debian configuration files then you can remove them.</p>
+
+    <p>'gap' now defaults to 0 seconds instead of 2.</p>
+
+    <p>The sound output API is now configured with the 'api' command although
+    'speaker_backend' still works.  If you use 'api alsa' then you may need to
+    change your 'mixer' and 'channel' settings.</p>
+
+    <h3>Web Interface</h3>
+
+    <p>The web interface no longer uses HTTP basic authentication and the web
+    server configuration imposing access control on it should be removed.
+    Users now log in using their main DisOrder password and the one in the
+    htpassed file is now obsolete.  You should revisit the web interface setup
+    instructions in README from scratch.</p>
+
+    <p>As part of this, the DisOrder URL has changed from (e.g.)</p>
+
+    <pre>http://yourserver/cgi-bin/disorder/disorder</pre>
+
+    <p>to just</p>
+
+    <pre>http://yourserver/cgi-bin/disorder</pre>
+
+    <h3>Checklist</h3>
+
+    <ul>
+    <li>delete default 'stopword', 'player' and 'tracklength' directives</li>
+    <li>set 'gap' if you want a non-0 inter-track gap</li>
+    <li>set 'api' and maybe 'mixer' and 'channel'</li>
+    <li>perhaps add 'default_rights' directive</li>
+    <li>delete 'allow', 'restrict' and 'trust' directives after first run</li>
+    <li>follow new web interface setup in README</li>
+        </ul>
+
+    <h2>1.4/1.5 -> 2.0</h2>
+
+    <h3>'transform' and 'namepart' directives</h3>
+
+    <p>'transform' has moved from the web options to the main configuration
+    file, so that they can be used by other interfaces.  The syntax and
+    semantics are unchanged.</p>
+
+    <p>More importantly however both 'transform' and 'namepart' are now
+    optional, with sensible defaults being built in.  So if you were already
+    using the default values you can just delete all instances of both.</p>
+
+    <p>See disorder_config(5) for the default values.  Hopefuly they will be
+    suitable for many configurations.  Please do send feedback.</p>
+
+    <h3>'enabled' and 'random_enabled' directives</h3>
+
+    <p>These have been removed.  Instead the state persists from one run of the
+    server to the next.  If they appear in your configuration file they must be
+    removed; the server will not start if they are present.</p>
+
+    <h3>Database upgrade</h3>
+
+    <p>It is strongly recommended that you back up your database before
+    performing the upgrade.  For example, as root, with the server STOPPED:</p>
+
+    <pre># cd /var/disorder
+# mkdir BACKUP
+# cp -p * BACKUP</pre>
+
+    <p>To restore, again as root:</p>
+    <pre># cd /var/disorder
+# rm *
+# cp -p BACKUP/* .</pre>
+
+    <p>The first thing the server does when upgrading from 1.5 is run the
+    disorder-dbupgrade program.  This is necessary to modify any non-ASCII
+    track names to meet the latest version's stricter normalization practices.
+    The upgrade should succeed automtically; if not it should leave an error
+    message in syslog.</p>
+
+    <h2>1.3 -> 1.4</h2>
+
+    <h3>Raw Format Decoders</h3>
+
+    <p>You will probably want reconfigure your install to use the new
+    facilities (although the old way works fine).  See the example
+    configuration file and README.raw for more details.</p>
+
+    <p>Depending on how your system is configured you may need to link the
+    disorder libao driver into the right directory:</p>
+
+    <pre># ln -s /usr/local/lib/ao/plugins-2/libdisorder.so /usr/lib/ao/plugins-2/.</pre>
+
+    <h2>1.2 -> 1.3</h2>
+
+    <h3>Server Environment</h3>
+
+    <p>It is important that $sbindir is on the server's path.  The example init
+    script guarantees this.  You may need to modify the installed one.  You
+    will get "deadlock manager unexpectedly terminated" if you get this
+    wrong.</p>
+
+    <h3>namepart directives</h3>
+
+    <p>These have changed in three ways.</p>
+
+    <p>Firstly they have changed to substitute in a more convenient way.
+    Instead of matches for the regexp being substituted back into the original
+    track name, the replacement string now completely replaces it.  Given the
+    usual uses of namepart, this is much more convenient.  If you've stuck with
+    the defaults no changes should be needed for this.</p>
+
+    <p>Secondly they are matched against the track name with the collection
+    root stripped off.</p>
+
+    <p>Finally you will need to add an extra line to your config file as
+    follows for the new track aliasing mechanisms to work properly:</p>
+
+    <pre>namepart        ext     "(\\.[a-zA-Z0-9]+)$"                   "$1"    *</pre>
+
+    <h2>1.1 -> 1.2</h2>
+
+    <h3>Web Interface Changes</h3>
+
+    <p>The web interface now includes static content as well as templates.  The
+    static content must be given a name visible to HTTP clients which maps to
+    its location in the real filesystem.</p>
+
+    <p>The README suggests using a rule in httpd.conf to make /static in the
+    HTTP namespace point to /usr/local/share/disorder/static, which is where
+    DisOrder installs its static content (by default).  Alternatively you can
+    set the url.static label to the base URL of the static content.</p>
+
+    <h3>Configuration File Changes</h3>
+
+    <p>The trackname-part web interface directive has now gone, and the
+    options.trackname file with it.</p>
+
+    <p>It is replaced by a new namepart directive in the main configuration
+    file.  This has exactly the same syntax as trackname-part, only the name
+    and location have changed.</p>
+
+    <p>The reason for the change is to allow track name parsing to be centrally
+    configured, rather than every interface to DisOrder having to implement it
+    locally.</p>
+
+    <p>If you do not install new namepart directives into the main
+    configuration file then track titles will show up blank.</p>
+
+    <p>If you do not remove the trackname-part directives from the web
+    interface configuration then you will get error messages in the web
+    server's error log.</p>
+
+  </body>
+</html>
+
+<!-- Local Variables: -->
+<!-- fill-column:79 -->
+<!-- End: -->
