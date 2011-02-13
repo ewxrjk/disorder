@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008, 2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -408,8 +408,6 @@ int main(int argc, char **argv) {
   }
   if(config_read(0, NULL))
     disorder_fatal(0, "cannot read configuration");
-  trackdb_init(recover|TRACKDB_MAY_CREATE);
-  trackdb_open(TRACKDB_NO_UPGRADE);
   if(dump) {
     /* We write to a temporary file and rename into place.  We make
      * sure the permissions are tight from the start. */
@@ -418,6 +416,8 @@ int main(int argc, char **argv) {
       disorder_fatal(errno, "error opening %s", tmp);
     if(!(fp = fdopen(fd, "w")))
       disorder_fatal(errno, "fdopen on %s", tmp);
+    trackdb_init(recover|TRACKDB_MAY_CREATE);
+    trackdb_open(TRACKDB_NO_UPGRADE);
     do_dump(fp, tmp);
     if(fclose(fp) < 0) disorder_fatal(errno, "error closing %s", tmp);
     if(rename(tmp, path) < 0)
@@ -432,6 +432,8 @@ int main(int argc, char **argv) {
      * if new ones are created */
     if(getuid() == 0)
       disorder_info("you might need to chown database files");
+    trackdb_init(recover|TRACKDB_MAY_CREATE);
+    trackdb_open(TRACKDB_NO_UPGRADE);
     do_undump(fp, path, remove_pathless);
     xfclose(fp);
   } else if(recompute) {
