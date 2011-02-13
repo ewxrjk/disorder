@@ -206,3 +206,4 @@ libtests/t-resample
 clients/resample
 disobedience/manual/Makefile
 ./m4
+libtests/t-timeval
