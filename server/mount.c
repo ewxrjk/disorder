@@ -77,8 +77,46 @@ void periodic_mount_check(ev_source *ev_) {
   memcpy(last, current, sizeof last);
   first = 0;
   gcry_md_close(h);
+#elif defined PATH_PROC_MOUNTS
+  /* On Linux we hash /proc/mounts */
+  static int first = 1;
+  static unsigned char last[20];
+
+  unsigned char *current;
+  int fd = -1, n;
+  gcrypt_hash_handle h = 0;
+  gcry_error_t e;
+  char buffer[1024];
+
+  if((e = gcry_md_open(&h, GCRY_MD_SHA1, 0))) {
+    disorder_error(0, "gcry_md_open: %s", gcry_strerror(e));
+    goto done;
+  }
+  if((fd = open(PATH_PROC_MOUNTS, O_RDONLY)) < 0) {
+    disorder_error(errno, "open %s", PATH_PROC_MOUNTS);
+    goto done;
+  }
+  for(;;) {
+    n = read(fd, buffer, sizeof buffer);
+    if(n > 0)
+      gcry_md_write(h, buffer, n);
+    else if(n == 0)
+      break;
+    else if(errno != EINTR) {
+      disorder_error(errno, "reading %s", PATH_PROC_MOUNTS);
+      goto done;
+    }
+  }
+  current = gcry_md_read(h, GCRY_MD_SHA1);
+  if(!first && memcmp(current, last, sizeof last))
+    trackdb_rescan(ev_, 1/*check*/, 0, 0);
+  memcpy(last, current, sizeof last);
+  first = 0;
+ done:
+  if(h) gcry_md_close(h);
+  if(fd != -1) close(fd);
 #elif defined PATH_MTAB
-  /* On Linux we keep track of the modification time of /etc/mtab */
+  /* As a further alternative we track the modification time of /etc/mtab */
   static time_t last_mount;
   struct stat sb;
   

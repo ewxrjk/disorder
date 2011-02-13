@@ -374,15 +374,8 @@ int play_background(ev_source *ev,
 
 void periodic_mount_check(ev_source *ev_);
 
-#ifndef MOUNT_CHECK_INTERVAL
-# ifdef PATH_MTAB
-// statting a file is really cheap so check once a second
-#  define MOUNT_CHECK_INTERVAL 1
-# else
-// hashing getfsstat() output could be more expensive so be less aggressive
-#  define MOUNT_CHECK_INTERVAL 5
-# endif
-#endif
+/** @brief How often to check for new (or old) filesystems */
+# define MOUNT_CHECK_INTERVAL 5         /* seconds */
 
 #endif /* DISORDER_SERVER_H */
 

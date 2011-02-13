@@ -108,6 +108,7 @@ case "$host" in
  ;;
 *linux* | *Linux* )
   AC_MSG_RESULT([Linux])
+  AC_DEFINE_UNQUOTED([PATH_PROC_MOUNTS],["/proc/mounts"],[path to kernel mount list])
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
