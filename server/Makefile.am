@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2010 Richard Kettlewell
+# Copyright (C) 2004-2011 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
-	$(LIBASOUND) $(COREAUDIO)
+	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
@@ -58,7 +58,7 @@ disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
 	../lib/memgc.c disorder-server.h
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(LIBDL)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
