@@ -25,6 +25,6 @@ fi
 
 if ${PRUNE}; then
   # Delete old backups
-  find /var/lib/disorder/backups -type -f -ctime +${MAXAGE} -print0 \
+  find /var/lib/disorder/backups -type f -ctime +${MAXAGE} -print0 \
   | xargs -r0 rm -f
 fi
