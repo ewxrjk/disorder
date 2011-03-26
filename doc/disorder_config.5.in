@@ -54,7 +54,7 @@ DisOrder distinguishes between multiple users.
 This is for access control and reporting, not to provide different
 views of the world: i.e. preferences and so on are global.
 .PP
-Each user has an associated set of rights which contorl which commands they may
+Each user has an associated set of rights which control which commands they may
 execute.
 Normally you would give all users most rights, and expect them to
 cooperate (they are after all presumed to be in a shared sound environment).
