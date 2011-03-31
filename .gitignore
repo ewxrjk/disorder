@@ -200,6 +200,7 @@ libtests/t-timeval
 libtests/t-*.log
 libtests/t-*.trs
 libtests/test-suite.log
+libtests/t-ddb
 *.[oa]
 *~
 *.pyc

@@ -145,6 +145,7 @@ static const struct option options[] = {
   { "fail-first", no_argument, 0, 'F' },
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
+  { "debug", no_argument, 0, 'd' },
 };
 
 /* display usage message and terminate */
@@ -155,7 +156,8 @@ static void help(void) {
 	  "  --help, -h               Display usage message\n"
 	  "  --version, -V            Display version number\n"
           "  --verbose, -v            Verbose output\n"
-          "  --fail-first, -F         Stop on first failure\n",
+          "  --fail-first, -F         Stop on first failure\n"
+          "  --debug, -d              Debug output\n",
           progname);
   xfclose(stdout);
   exit(0);
@@ -170,17 +172,20 @@ void test_init(int argc, char **argv) {
 
   set_progname(argv);
   mem_init();
-  while((n = getopt_long(argc, argv, "vFhV", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "vFhVd", options, 0)) >= 0) {
     switch(n) {
     case 'v': verbose = 1; break;
     case 'F': fail_first = 1; break;
     case 'h': help();
     case 'V': version(progname);
+    case 'd': debugging = 1; break;
     default: exit(1);
     }
   }
   if(getenv("FAIL_FIRST"))
     fail_first = 1;
+  if(getenv("DISORDER_DEBUG"))
+    debugging = 1;
 }
 
 

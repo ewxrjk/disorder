@@ -29,6 +29,7 @@ disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	schedule.c dbparams.c background.c mount.c \
 	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(LIBSQLITE) \
 	$(LIBPCRE) $(LIBDB) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL) \
 	$(PULSEAUDIO_SIMPLE_LIBS) $(PULSEAUDIO_LIBS)

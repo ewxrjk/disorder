@@ -473,6 +473,9 @@ if test $want_server = yes; then
   AC_CHECK_LIB([FLAC], [FLAC__stream_decoder_new],
 	       [AC_SUBST(LIBFLAC,[-lFLAC])],
 	       [missing_libraries="$missing_libraries libFLAC"])
+  AC_CHECK_LIB([sqlite3], [sqlite3_open],
+               [AC_SUBST([LIBSQLITE],[-lsqlite3])],
+               [missing_libraries="$missing_libraries libsqlite3"])
 fi
 AC_CHECK_LIB([pthread], [pthread_create],
              [AC_SUBST(LIBPTHREAD,[-lpthread])],
@@ -528,7 +531,7 @@ AC_CHECK_HEADERS([inttypes.h sys/time.h sys/socket.h netinet/in.h \
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.
 if test $want_server = yes; then
-  AC_CHECK_HEADERS([db.h],[:],[
+  AC_CHECK_HEADERS([db.h sqlite3.h],[:],[
     missing_headers="$missing_headers $ac_header"
   ])
 fi

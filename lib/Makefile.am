@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2010, 2012, 2013 Richard Kettlewell
+# Copyright (C) 2004-2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	cookies.c cookies.h				\
 	coreaudio.c coreaudio.h				\
 	dateparse.c dateparse.h xgetdate.c		\
+	ddb-db.c ddb-db.h ddb-sql.c ddb-sqlite.c ddb-users.c ddb.h \
 	defs.c defs.h					\
 	eclient.c eclient.h eclient-stubs.h		\
 	email.c						\

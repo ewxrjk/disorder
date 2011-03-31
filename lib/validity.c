@@ -66,14 +66,16 @@ int playlist_parse_name(const char *name,
  * @param user Candidate username
  * @return Nonzero if it's valid
  *
- * Currently we only allow the letters and digits in ASCII.  We could be more
- * liberal than this but it is a nice simple test.  It is critical that
- * semicolons are never allowed.
+ * Currently we only allow the letters and digits in ASCII, and a maximum
+ * length of 32 octets.  We could be more liberal than this but it is a nice
+ * simple test.  It is critical that semicolons are never allowed.
  *
  * NB also used by playlist_parse_name() to validate playlist names!
  */
 int valid_username(const char *user) {
   if(!*user)
+    return 0;
+  if(strlen(user) > 32)
     return 0;
   while(*user) {
     const uint8_t c = *user++;

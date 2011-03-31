@@ -21,7 +21,7 @@ TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
 	t-kvp t-mime t-printf t-regsub t-selection t-signame t-sink	\
 	t-split t-syscalls t-trackname t-unicode t-url t-utf8 t-vector	\
 	t-words t-wstat t-macros t-cgi t-eventdist t-resample 		\
-	t-configuration t-timeval
+	t-configuration t-timeval t-ddb
 
 noinst_PROGRAMS=$(TESTS)
 
@@ -67,6 +67,8 @@ t_resample_LDADD=$(LDADD) $(LIBSAMPLERATE)
 t_configuration_SOURCES=t-configuration.c test.c test.h
 t_configuration_LDADD=$(LDADD) $(LIBGCRYPT)
 t_timeval_SOURCES=t-timeval.c test.c test.h
+t_ddb_SOURCES=t-ddb.c test.c test.h
+t_ddb_LDFLAGS=$(LIBSQLITE) $(LIBGCRYPT)
 
 check-report: before-check check make-coverage-reports
 before-check:
