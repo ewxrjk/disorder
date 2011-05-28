@@ -112,8 +112,8 @@ build() {
 }
 
 # Build various debs
-build chroot:lenny64 lenny lenny oldstable
-build ssh:leucomorph lenny lenny oldstable
+#build chroot:lenny64 lenny lenny oldstable
+#build ssh:leucomorph lenny lenny oldstable
 build ssh:araminta squeeze "" stable
 build ssh:sandestin squeeze "" stable
 
