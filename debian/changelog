@@ -1,3 +1,9 @@
+disorder (5.0.2) unstable; urgency=low
+
+  * Mention login cookie.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 28 May 2011 11:54:52 +0100
+
 disorder (5.0.1) unstable; urgency=low
 
   * Disorder 5.0.1
