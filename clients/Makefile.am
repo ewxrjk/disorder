@@ -47,9 +47,6 @@ filename_bytes_SOURCES=filename-bytes.c
 resample_SOURCES=resample.c
 resample_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBSAMPLERATE)
 
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
-
 check: check-help check-completions
 
 # check everything has working --help and --version

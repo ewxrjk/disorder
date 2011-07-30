@@ -88,9 +88,6 @@ trackname_SOURCES=trackname.c disorder-server.h
 trackname_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 trackname_DEPENDENCIES=../lib/libdisorder.a
 
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
-
 check: check-help check-decode
 
 # check everything has working --help and --version

@@ -33,9 +33,6 @@ disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBDB) $(LIBICONV)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
-
 check: check-help
 
 misc.o: ../images/images.h
