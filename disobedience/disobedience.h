@@ -237,6 +237,11 @@ void manage_users(void);
 
 void popup_help(const char *what);
 
+/* Filtering */
+
+void popup_filtering(void);
+void init_filtering(void);
+
 /* RTP */
 
 int rtp_running(void);
