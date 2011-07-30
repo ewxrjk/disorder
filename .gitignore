@@ -206,3 +206,4 @@ disobedience/manual/Makefile
 /m4
 libtests/t-timeval
 *.[oa]
+*~
