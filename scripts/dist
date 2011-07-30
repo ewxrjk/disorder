@@ -118,7 +118,7 @@ build ssh:araminta squeeze "" stable
 build ssh:sandestin squeeze "" stable
 
 # Update the web
-cp $src $web
+cp $src README CHANGES.html $web
 cd doc
 for f in *.[1-9].html; do
   echo $f
