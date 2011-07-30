@@ -240,7 +240,7 @@ void popup_help(const char *what);
 /* Filtering */
 
 void popup_filtering(void);
-void init_filtering(void);
+void filtering_init(void);
 
 /* RTP */
 

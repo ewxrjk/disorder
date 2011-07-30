@@ -125,6 +125,6 @@ static void filtering_global_pref_changed(const char *event,
 }
 
 /** @brief Initialize filtering infrastructure */
-void init_filtering() {
-  event_register("global-pref", NULL, filtering_global_pref_changed);
+void filtering_init() {
+  event_register("global-pref", filtering_global_pref_changed, NULL);
 }
