@@ -4,7 +4,7 @@ Dependencies:
      Automake         1.10           1.7 is no good; 1.8/9 might work
      Autoconf         2.61           Slightly older might work too
      Libtool          1.5.22         1.4 is no good
-     Bazaar (bzr)                    You might be able to manage without
+     git                             You might be able to manage without
      Python           2.5.2          2.4 won't work
 
    * On Debian and derivatives this should work:
@@ -30,7 +30,7 @@ Dependencies:
 
 Building:
 
-   * Compiled versions of configure and the makefiles are not included in bzr,
+   * Compiled versions of configure and the makefiles are not included in git,
      so if you didn't use a source tarball, you must start as follows:
 
         bash ./autogen.sh
@@ -183,7 +183,7 @@ Code And Patches:
      structure initializers are used; the configure script asks for -std=gnu99
      by default.  Some supported platforms are still on GCC 4.0.
 
-   * Please submit patches either using 'diff -u', or by publishing a bzr
+   * Please submit patches either using 'diff -u', or by publishing a git
      branch somewhere I can get at it.
 
    * Please make it clear that your changes can be distributed under DisOrder's
