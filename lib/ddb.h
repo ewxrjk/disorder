@@ -25,6 +25,8 @@
 
 #include "rights.h"
 
+/* Flags -------------------------------------------------------------------- */
+
 /** @brief Open database in read-write mode */
 #define DDB_READWRITE 1
 
@@ -33,6 +35,8 @@
 
 /** @brief Create database if it does not exist */
 #define DDB_CREATE 4
+
+/* Error codes -------------------------------------------------------------- */
 
 /** @brief Success */
 #define DDB_OK 0
@@ -49,6 +53,14 @@
 /** @brief No such user */
 #define DDB_NO_SUCH_USER 4
 
+/* @brief No such track */
+#define DDB_NO_SUCH_TRACK 5
+
+/* @brief No such preference */
+#define DDB_NO_SUCH_PREF 6
+
+/* Setup/teardown ----------------------------------------------------------- */
+
 /** @brief Open the database
  * @param ddbflags Flags
  *
@@ -61,6 +73,8 @@ void ddb_open(unsigned ddbflags);
 
 /** @brief Close the database */
 void ddb_close(void);
+
+/* Users -------------------------------------------------------------------- */
 
 /** @brief Create a user
  * @param name Username
@@ -122,6 +136,104 @@ int ddb_delete_user(const char *name);
  */
 int ddb_list_users(char ***namesp,
                    int *nnamesp);
+
+/* Tracks ------------------------------------------------------------------- */
+
+#define DEFAULT_WEIGHT 90000
+
+/** @brief Data about a track */
+struct ddb_track_data {
+  char *track;
+  char *artist;
+  char *album;
+  int sequence;
+  char *title;
+  char *tags;
+  int weight;
+  int pick_at_random;
+  int available;
+  time_t noticed;
+  int length;
+  time_t played_time;
+  int played;
+  int scratched;
+  int completed;
+  int requested;
+};
+
+/** @brief Add a track
+ * @param track Track name
+ * @param artist Artist name
+ * @param album Album name
+ * @param sequence Sequence number in album
+ * @param title Track title
+ * @return Status code
+ *
+ * "Notice" a track.  If the track is already in the database then it will not
+ * be added or modified other than to make it available for future queries.  If
+ * it is not then it is created with the given name fields.
+ */
+int ddb_track_notice(const char *track,
+                     const char *artist,
+                     const char *album,
+                     int sequence,
+                     const char *title);
+
+/** @brief Drop a track
+ * @param Track name
+ * @return Status code
+ *
+ * "Un-notice" a track.  The track metadata is preserved but it will not be
+ * available in future queries.
+ */
+int ddb_track_drop(const char *track);
+
+/** @brief Get track data
+ * @param track Track name
+ * @return Status code
+ */
+int ddb_track_get(const char *track,
+                  struct ddb_track_data *trackdata);
+
+/** @brief Get a track preference
+ * @param track Track name
+ * @param prefname Preference name
+ * @param prefvaluep Where value is stored
+ * @return Status code
+ */
+int ddb_track_get_pref(const char *track,
+                       const char *prefname,
+                       char **prefvaluep);
+
+/** @brief Set a track preference
+ * @param track Track name
+ * @param prefname Preference name
+ * @param prefvalue New value
+ * @return Status code
+ */
+int ddb_track_set_pref(const char *track,
+                       const char *prefname,
+                       const char *prefvalue);
+
+/** @brief Delete a track preference
+ * @param track Track name
+ * @param prefname Preference name
+ * @return Status code
+ */
+int ddb_track_delete_pref(const char *track,
+                          const char *prefname);
+
+/** @brief List track preferee names
+ * @param track Track name
+ * @param prefnamesp Where to store point to array of preference names
+ * @param nprefnamesp Where to store count of preference names
+ * @return Status code
+ */
+int ddb_track_list_prefs(const char *track,
+                         char ***prefnamesp,
+                         int *nprefnamesp);
+
+/* Miscellaneous ------------------------------------------------------------ */
 
 /** @brief Path to database file
  *

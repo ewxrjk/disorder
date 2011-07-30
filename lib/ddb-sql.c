@@ -23,6 +23,8 @@
 #include "ddb.h"
 #include "ddb-db.h"
 
+/* Schema creation */
+
 const char ddb_createdb_sql[] =
   "CREATE TABLE Users (\n"
   "  user VARCHAR(32) NOT NULL PRIMARY KEY,\n"
@@ -30,15 +32,43 @@ const char ddb_createdb_sql[] =
   "  email VARCHAR(128),\n"
   "  confirm VARCHAR(128),\n"
   "  rights INTEGER\n"
-  ")\n"
+  ");\n"
+  "\n"
+  "CREATE TABLE Tracks (\n"
+  "  track TEXT PRIMARY KEY,\n"
+  "  artist TEXT,\n"
+  "  album TEXT,\n"
+  "  sequence INTEGER,\n"
+  "  title TEXT,\n"
+  "  tags TEXT,\n"
+  "  weight INTEGER,\n"
+  "  pick_at_random BOOLEAN,\n"
+  "  available BOOLEAN,\n"
+  "  noticed INTEGER,\n"
+  "  length INTEGER,\n"
+  "  played_time INTEGER,\n"
+  "  played INTEGER NOT NULL,\n"
+  "  scratched INTEGER NOT NULL,\n"
+  "  completed INTEGER NOT NULL,\n"
+  "  requested INTEGER NOT NULL,\n"
+  ");\n"
+  "\n"
+  "CREATE TABLE TrackPreferences (\n"
+  "  track TEXT NOT NULL\n"
+  "  pref TEXT NOT NULL,\n"
+  "  value TEXT NOT NULL,\n"
+  "  CONSTRAINT pk PRIMARY KEY (track, pref)\n"
+  ");\n"
 ;
+
+/* Users */
 
 const char ddb_insert_user_sql[] =
   "INSERT INTO Users (user,password,email,confirm,rights) VALUES(?,?,?,?,?)"
 ;
 
 const char ddb_retrieve_user_sql[] =
-  "SELECT password,email,confirm,rights FROM Users WHERE user = ?";
+  "SELECT password,email,confirm,rights FROM Users WHERE user = ?"
 ;
 
 const char ddb_delete_user_sql[] =
@@ -47,6 +77,20 @@ const char ddb_delete_user_sql[] =
 
 const char ddb_list_users_sql[] =
   "SELECT user FROM Users ORDER BY user"
+;
+
+/* Tracks */
+
+const char ddb_track_get_sql[] =
+  "SELECT track,artist,album,sequence,title,tags,weight,pick_at_random,available,noticed,length,played_time,played,scratched,completed,requested FROM Tracks WHERE track = ?"
+;
+
+const char ddb_track_update_availability_sql[] =
+  "UPDATE Tracks SET available=? WHERE Track=?"
+;
+
+const char ddb_track_new_sql[] =
+  "INSERT INTO Tracks (track,artist,album,sequence,title,tags,weight,pick_at_random,available,noticed,played,scratched,completed,requested) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 ;
 
 /*

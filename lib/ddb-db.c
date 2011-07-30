@@ -32,14 +32,28 @@ int ddb_bind_params(const char *context,
   return rc;
 }
 
-int ddb_retrieve_columns(const char *context,
-			 void *stmt,
-			 ...) {
+int ddb_unpick_columns(const char *context,
+                       void *stmt,
+                       ...) {
   va_list ap;
   int rc;
 
   va_start(ap, stmt);
-  rc = ddb_vretrieve_columns(context, stmt, ap);
+  rc = ddb_vunpick_columns(context, stmt, ap);
+  va_end(ap);
+  return rc;
+}
+
+int ddb_unpick_row(const char *context,
+                   void *stmt,
+                   ...) {
+  va_list ap;
+  int rc;
+
+  if((rc = ddb_retrieve_row(context, stmt)))
+    return rc;
+  va_start(ap, stmt);
+  rc = ddb_vunpick_columns(context, stmt, ap);
   va_end(ap);
   return rc;
 }
@@ -53,7 +67,6 @@ int ddb_bind_and_execute(const char *context,
 
   if(ddb_create_statement(context, &stmt, sql))
     return DDB_DB_ERROR;
-
   va_start(ap, sql);
   rc = ddb_vbind_params(context, stmt, ap);
   va_end(ap);
@@ -77,6 +90,24 @@ int ddb_bind_and_execute(const char *context,
 int ddb_execute_sql(const char *context,
 		    const char *sql) {
   return ddb_bind_and_execute(context, sql, P_END);
+}
+
+int ddb_create_bind(const char *context, void **stmtp, const char *sql,
+                    ...) {
+  int rc;
+  va_list ap;
+  void *stmt;
+
+  if((rc = ddb_create_statement(context, &stmt, sql)))
+    return rc;
+  va_start(ap, sql);
+  rc = ddb_vbind_params(context, stmt, ap);
+  va_end(ap);
+  if(rc)
+    ddb_destroy_statement(context, stmt);
+  else
+    *stmtp = stmt;
+  return rc;
 }
 
 /*

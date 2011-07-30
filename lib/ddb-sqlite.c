@@ -170,6 +170,16 @@ int ddb_vbind_params(const char *context,
       }
       break;
     }
+    case P_TIME: {
+      time_t n = va_arg(ap, time_t);
+      D(("ddb_vbind_params %d P_TIME %"PRId64, param, (int64_t)n));
+      if((sqlite_error = sqlite3_bind_int64(stmt, param, n))) {
+	disorder_error(0, "%s: sqlite3_bind_int64: %s",
+		       context, sqlite3_errmsg(dbhandle));
+	goto error;
+      }
+      break;
+    }
     default:
       if(type & P_NULL) {
         D(("ddb_vbind_params %d P_NULL", param));
@@ -178,6 +188,7 @@ int ddb_vbind_params(const char *context,
 	case P_INT|P_NULL: va_arg(ap, int); break;
 	case P_INT64|P_NULL: va_arg(ap, int64_t); break;
 	case P_STRING|P_NULL: va_arg(ap, char *); break;
+	case P_TIME|P_NULL: va_arg(ap, time_t); break;
 	}
 	if((sqlite_error = sqlite3_bind_null(stmt, param))) {
 	  disorder_error(0, "%s: sqlite3_bind_null: %s",
@@ -211,16 +222,16 @@ int ddb_retrieve_row(const char *context,
   }
 }
 
-int ddb_vretrieve_columns(const char attribute((unused)) *context,
-			  void *stmt,
-			  va_list ap) {
+int ddb_vunpick_columns(const char attribute((unused)) *context,
+                        void *stmt,
+                        va_list ap) {
   int column = 0, type;
   while((type = va_arg(ap, int)) >= 0) {
     switch(type) {
     case P_INT: {
       int *resultp = va_arg(ap, int *);
       int result = sqlite3_column_int(stmt, column);
-      D(("ddb_vretrieve_columns %d P_INT %d", column, result));
+      D(("ddb_vunpick_columns %d P_INT %d", column, result));
       if(resultp)
 	*resultp = result;
       break;
@@ -228,7 +239,7 @@ int ddb_vretrieve_columns(const char attribute((unused)) *context,
     case P_INT64: {
       int64_t *resultp = va_arg(ap, int64_t *);
       int64_t result = sqlite3_column_int64(stmt, column);
-      D(("ddb_vretrieve_columns %d P_INT64 %"PRId64, column, result));
+      D(("ddb_vunpick_columns %d P_INT64 %"PRId64, column, result));
       if(resultp)
 	*resultp = result;
       break;
@@ -236,10 +247,18 @@ int ddb_vretrieve_columns(const char attribute((unused)) *context,
     case P_STRING: {
       char **resultp = va_arg(ap, char **);
       const unsigned char *result = sqlite3_column_text(stmt, column);
-      D(("ddb_vretrieve_columns %d P_STRING %s",
+      D(("ddb_vunpick_columns %d P_STRING %s",
          column, result ? (char *)result : "(null)"));
       if(resultp)
 	*resultp = result ? xstrdup((char *)result) : NULL;
+      break;
+    }
+    case P_TIME: {
+      time_t *resultp = va_arg(ap, time_t *);
+      int64_t result = sqlite3_column_int64(stmt, column);
+      D(("ddb_vunpick_columns %d P_TIME %"PRId64, column, result));
+      if(resultp)
+	*resultp = result;
       break;
     }
     default:

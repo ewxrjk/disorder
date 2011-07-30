@@ -41,7 +41,8 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	cookies.c cookies.h				\
 	coreaudio.c coreaudio.h				\
 	dateparse.c dateparse.h xgetdate.c		\
-	ddb-db.c ddb-db.h ddb-sql.c ddb-sqlite.c ddb-users.c ddb.h \
+	ddb-db.c ddb-db.h ddb-sql.c ddb-sqlite.c ddb.h  \
+	ddb-users.c ddb-tracks.c			\
 	defs.c defs.h					\
 	eclient.c eclient.h eclient-stubs.h		\
 	email.c						\

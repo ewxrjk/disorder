@@ -35,31 +35,26 @@ static int ddb_do_get_user(const char *name,
   void *stmt = NULL;
   int64_t rights64;
 
-  if((rc = ddb_create_statement(context, &stmt, ddb_retrieve_user_sql)))
-    return rc;
-  if((rc = ddb_bind_params(context,
-			   stmt,
-			   P_STRING, name,
+  if((rc = ddb_create_bind(context, &stmt, ddb_retrieve_user_sql,
+                           P_STRING, name,
 			   P_END)))
     goto error;
-  rc = ddb_retrieve_row(context, stmt);
-  if(rc == DDB_NO_ROW) {
-    if(ddb_destroy_statement(context, &stmt))
-      return DDB_DB_ERROR;
-    return DDB_NO_SUCH_USER;
+  switch(rc = ddb_unpick_row(context, stmt,
+                             P_STRING, passwordp,
+                             P_STRING, emailp,
+                             P_STRING, confirmp,
+                             P_INT64, &rights64,
+                             P_END)) {
+  case DDB_NO_ROW:
+    rc = DDB_NO_SUCH_USER;
+    goto error;
+  default:
+    goto error;
+  case DDB_OK:
+    if(rightsp)
+      *rightsp = rights64;
+    return ddb_destroy_statement(context, &stmt);
   }
-  if(rc != DDB_OK)
-    goto error;
-  if((rc = ddb_retrieve_columns(context, stmt,
-				P_STRING, passwordp,
-				P_STRING, emailp,
-				P_STRING, confirmp,
-				P_INT64, &rights64,
-                                P_END)))
-    goto error;
-  if(rightsp)
-    *rightsp = rights64;
-  return ddb_destroy_statement(context, &stmt);
  error:
   ddb_destroy_statement(context, &stmt);
   return rc;
@@ -144,9 +139,9 @@ static int ddb_do_list_users(char ***namesp,
   if((rc = ddb_create_statement(context, &stmt, ddb_list_users_sql)))
     return rc;
   while((rc = ddb_retrieve_row(context, stmt)) == DDB_OK) {
-    if((rc = ddb_retrieve_columns(context, stmt,
-				  P_STRING, &name,
-                                  P_END)))
+    if((rc = ddb_unpick_columns(context, stmt,
+                                P_STRING, &name,
+                                P_END)))
       goto error;
     vector_append(v, xstrdup(name));
   }

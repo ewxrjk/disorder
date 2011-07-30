@@ -30,6 +30,9 @@
 /** @brief Bind a string */
 #define P_STRING 3
 
+/** @brief Bind a @c time_t (as an integer) */
+#define P_TIME 4
+
 /** @brief Bind a NULL
  *
  * Also use @c P_NULL|P_INT etc to consume an argument.
@@ -90,6 +93,24 @@
  * - @ref DDB_DB_BUSY
  */
 int ddb_create_statement(const char *context, void **stmtp, const char *sql);
+
+/** @brief Create a SQL statement handle and bind parameters
+ * @param context Context string for errors
+ * @param stmtp Where to store statement handle
+ * @param sql SQL statement
+ * @param ... Parameters
+ * @return Status code
+ *
+ * Equivalent to calling ddb_create_statement() followed by
+ * ddb_bind_parameters().
+ *
+ * Possible return values:
+ * - @ref DDB_OK
+ * - @ref DDB_DB_ERROR
+ * - @ref DDB_DB_BUSY
+ */
+int ddb_create_bind(const char *context, void **stmtp, const char *sql,
+                    ...);
 
 /** @brief Destroy a SQL statement handle
  * @param context Context string for errors
@@ -155,7 +176,7 @@ int ddb_bind_params(const char *context,
 int ddb_retrieve_row(const char *context,
 		     void *stmt);
 
-/** @brief Retrieve column values
+/** @brief Extract column values
  * @param context Context string for errors
  * @param stmt Statement handle
  * @param ap Column specification
@@ -166,11 +187,11 @@ int ddb_retrieve_row(const char *context,
  * - @ref DDB_DB_ERROR
  * - @ref DDB_DB_BUSY
  */
-int ddb_vretrieve_columns(const char *context,
-			  void *stmt,
-			  va_list ap);
+int ddb_vunpick_columns(const char *context,
+                        void *stmt,
+                        va_list ap);
 
-/** @brief Retrieve column values
+/** @brief Extract column values
  * @param context Context string for errors
  * @param stmt Statement handle
  * @param ... Column specification
@@ -181,9 +202,27 @@ int ddb_vretrieve_columns(const char *context,
  * - @ref DDB_DB_ERROR
  * - @ref DDB_DB_BUSY
  */
-int ddb_retrieve_columns(const char *context,
-			 void *stmt,
-			 ...);
+int ddb_unpick_columns(const char *context,
+                       void *stmt,
+                       ...);
+
+/** @brief Retrieve a row and unpick column values
+ * @param context Context string for errors
+ * @param stmt Statement handle
+ * @param ... Column specification
+ * @return Status code
+ *
+ * Equivalent to calling ddb_retrieve_row() followed by ddb_unpick_columns().
+ *
+ * Possible return values:
+ * - @ref DDB_OK
+ * - @ref DDB_DB_ERROR
+ * - @ref DDB_DB_BUSY
+ * - @ref DDB_NO_ROW
+ */
+int ddb_unpick_row(const char *context,
+                   void *stmt,
+                   ...);
 
 /** @brief Execute a command with parameters bound
  * @param context Context string for errors
@@ -254,6 +293,9 @@ extern const char ddb_insert_user_sql[];
 extern const char ddb_retrieve_user_sql[];
 extern const char ddb_delete_user_sql[];
 extern const char ddb_list_users_sql[];
+extern const char ddb_track_get_sql[];
+extern const char ddb_track_update_availability_sql[];
+extern const char ddb_track_new_sql[];
 
 #endif /* DDB_DB_H */
 
