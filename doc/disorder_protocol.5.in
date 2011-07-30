@@ -646,6 +646,9 @@ Completed playing \fITRACK\fR
 .B failed \fITRACK\fR \fIERROR\fR
 Completed playing \fITRACK\fR with an error status
 .TP
+.B global_pref \fIPREF\fR [\fIVALUE\fR]
+A global preference was set or unset.
+.TP
 .B moved \fIUSERNAME\fR
 User \fIUSERNAME\fR moved some track(s).
 Further details aren't included any more.
