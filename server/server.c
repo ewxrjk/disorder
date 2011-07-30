@@ -1150,8 +1150,10 @@ static int c_set_global(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 cannot set internal global preferences\n");
     return 1;
   }
-  trackdb_set_global(vec[0], vec[1], c->who);
-  sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  if(trackdb_set_global(vec[0], vec[1], c->who))
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  else
+    sink_writes(ev_writer_sink(c->w), "550 not found\n");
   return 1;
 }
 
