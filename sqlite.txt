@@ -1,0 +1,212 @@
+* The plan
+
+Transition to using sqlite for data storage.
+
+(...and do it in a way that leaves the possibility of other databases
+open.)
+
+* Current data storage
+
+** users.db
+
+Each user has:
+   - a username
+   - a set of rights
+   - a password
+   - an email address (optional)
+   - confirmation status (if they are not confirmed they cannot log
+     in)
+
+In addition a confirmation string and cookie validity information are
+stored outside the database.
+
+** tracks.db
+
+Reconstructable data about tracks
+   - back-refs for aliases ("this is an alias for...")
+   - the raw path (i.e. the bytes of the filename)
+   - when the track was noticed
+
+** search.db
+
+Mapping from words to track names.  Reconstructable.
+
+** tags.db
+
+Mapping from tags to track names.  Reconstructable from preferences.
+
+** prefs.db
+
+Per-track preferences, which includes:
+   - tags
+   - track name overrides
+   - weight for random selection (plus pick_at_random)
+...and historical data:
+   - when last played
+   - how often played
+   - how often scratched
+   - how often NOT scratched
+   - how often requested
+
+** global.db
+
+Global preferences:
+   - required-tags and prohibited-tags
+   - playing enabled?
+   - random play enabled?
+   - a database version magic number, to allow upgrades to be detected
+
+It clearly ought to contain the stopwords for the search database and
+the default new user rights.
+
+** noticed.db
+
+Map from noticed timestamps to track names.
+
+This goes in TrackStats.
+
+** schedule.db
+
+Scheduled items, each of which has:
+   - when to act
+   - originating user
+   - what to do (play/set-global)
+   - track (for play)
+   - key/value (for set-global)
+   - priority (junk/normal)
+
+(Recurrent events have been planned but not implemented.)
+
+** playlists.db
+
+http://wiki.anjou.terraraq.org.uk/cgi-bin/twiki/view/Anjou/DisorderPlaylists
+
+Playlists, each of which has:
+   - a name [USER.]PLAYLIST
+   - a sharing status (public/private/shared for USER., shared for anything else)
+   - a list of tracks
+
+
+* Proposed Schema
+
+** Users
+
+-- The users table
+CREATE TABLE Users (
+  user VARCHAR(32) NOT NULL PRIMARY KEY,    -- name of the user
+  password VARCHAR(32),                     -- user's password; they might not have one
+  email VARCHAR(128),                       -- user's address; they might not have one
+  confirmed BOOLEAN,                        -- true if user confirmation has arrived
+  rights INTEGER                            -- bitmap of user rights
+)
+
+** Tracks
+
+-- Main track information
+--
+-- Track name information is inferred from internal tags and perhaps
+-- the filename; it can be overridden by users.
+--
+-- Built-in preferences are stored in this table.
+CREATE TABLE Tracks (
+  track TEXT PRIMARY KEY,                -- track name
+  artist TEXT,
+  album TEXT,
+  sequence INTEGER,                      -- index within the album
+  title TEXT,
+  weight INTEGER,                        -- weight
+  tags TEXT,                             -- tags for this track
+  pickAtRandom BOOLEAN,                  -- whether can be picked at random
+  available BOOLEAN,                     -- true if currently available
+  noticed DATETIME,                      -- when first noticed
+  length INTERVAL,                       -- length of track
+  lastPlayed DATETIME,                   -- when last played, or NULL
+  playCount INTEGER NOT NULL,            -- how many times started to play
+  scratchCount INTEGER NOT NULL,         -- how many times scratched
+  completedCount INTEGER NOT NULL,       -- how many times played to completion
+  requestedCount INTEGER NOT NULL        -- how many times requested
+)
+
+Will want to efficiently:
+  1) Select tracks by artist/artist+album
+
+TODO do we keep the inferred track name data around?
+
+-- User-assigned track preferences
+CREATE TABLE TrackPreferences (
+  track TEXT NOT NULL,
+  pref VARCHAR(32) NOT NULL,
+  value TEXT NOT NULL
+  CONSTRAINT pk PRIMARY KEY (track, pref)
+)
+
+Will want to efficiently:
+   1) Get a given track/pref
+   2) Get all prefs for a track
+   3) Delete a whole track
+   4) Walk the entire table (in any order)
+
+-- The search table
+CREATE TABLE TrackWords (
+  word VARCHAR(32) NOT NULL,
+  track TEXT NOT NULL
+  CONSTRAINT pk PRIMARY KEY (word, track)
+)
+
+Will want to efficiently:
+   1) Find all tracks containing all of a given set of search words.
+      It's acceptable to narrow to one such word and then do extra
+      queries (that's what the libdb-based version does).
+   2) Delete a whole track.
+
+-- The tags table
+--
+-- If you want to search by genre, tag tracks with their genre.
+-- (This allows a track to be in more than one genre!)
+CREATE TABLE TrackTags (
+  tag VARCHAR(32) NOT NULL,
+  track TEXT NOT NULL
+  CONSTRAINT pk PRIMARY KEY (tag, track)
+)
+
+Will want to efficiently:
+   1) Find all tracks of a given tag.
+   2) Find all tags of a given track (use Tracks table)
+   3) Find all tags.
+   4) Insert/delete a single tag/track pair.
+   5) Delete a whole track.
+
+** Global Preferences
+
+-- Global preferences
+CREATE TABLE GlobalPreferences (
+  pref VARCHAR(32) PRIMARY KEY,
+  value TEXT NOT NULL
+)
+
+Will want to efficiently:
+   1) Get single preferences
+   2) Get all preferences
+   3) Set single preferences
+
+** Scheduled Items
+
+-- Scheduled items
+CREATE TABLE Schedule (
+  when DATETIME NOT NULL,           -- when to act
+  user VARCHAR(32) NOT NULL,        -- originating user
+  action VARCHAR(16) NOT NULL,      -- 'play' or 'set-global'
+  priority VARCHAR(16) NOT NULL,    -- 'normal' or 'junk'
+  track TEXT,                       -- track to play if action=play
+  pref VARCHAR(32),                 -- global pref to set if action=set-global
+  value TEXT,                       -- value to set if action=set-global
+)
+
+Will want to efficently:
+   1) Identify Schedule items up to a given time
+   2) Drop all rows for a given user
+   3) Insert single Schedule items
+
+** Playlists
+
+TODO
