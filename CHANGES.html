@@ -32,6 +32,21 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
 
   </div>
 
+  <h3>Backups</h3>
+
+  <div class=section>
+
+    <p>The Debian package now includes a cronjob that backs up the database
+    daily.  See <tt>/etc/cron.d/disorder</tt>.  You can put settings
+    in <tt>/etc/default/disorder</tt> to turn this off or to control how long
+    the backups are kept for.</p>
+
+    <p>The <tt>disorder-dump -r</tt> option was broken.</p>
+
+    <p><tt>disorder-dump</tt> now gets permissions right automatically (a
+    href="http://code.google.com/p/disorder/issues/detail?id=56">issue
+    #56</a>).</p>
+
   <h3>General</h3>
 
   <div class=section>
@@ -39,6 +54,8 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
     <p>Unicode support has been upgraded to <a
     href="http://www.unicode.org/versions/Unicode6.0.0/">Unicode
     6.0.0</a>.</p>
+    
+    <p>Various minor bug fixes.</p>
 
   </div>
 
