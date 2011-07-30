@@ -177,6 +177,9 @@ typedef struct disorder_eclient_log_callbacks {
 
   /** @brief Called when a new playlist is deleted */
   void (*playlist_deleted)(void *v, const char *playlist);
+
+  /** @brief Called when a global pref is changed or delete */
+  void (*global_pref)(void *v, const char *pref, const char *value/*or NULL*/);
 } disorder_eclient_log_callbacks;
 
 /* State bits */
@@ -460,6 +463,21 @@ int disorder_eclient_unset(disorder_eclient *c,
                            const char *track, const char *pref, 
                            void *v);
 /* Get/set preference values */
+
+int disorder_eclient_get_global(disorder_eclient *c,
+                                disorder_eclient_string_response *completed,
+                                const char *pref,
+                                void *v);
+int disorder_eclient_set_global(disorder_eclient *c,
+                                disorder_eclient_no_response *completed,
+                                const char *pref,
+                                const char *value,
+                                void *v);
+int disorder_eclient_unset_global(disorder_eclient *c,
+                                  disorder_eclient_no_response *completed,
+                                  const char *pref,
+                                  void *v);
+/* Get/set global prefs */
 
 int disorder_eclient_search(disorder_eclient *c,
                             disorder_eclient_list_response *completed,
