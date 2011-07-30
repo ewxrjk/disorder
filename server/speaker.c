@@ -36,7 +36,7 @@
  * assumed that the main server won't start outrageously many decoders.
  *
  * Audio is supplied from this buffer to the uaudio play callback.  Playback is
- * enabled when a track is to be played and disabled when the its last bytes
+ * enabled when a track is to be played and disabled when its last bytes
  * have been returned by the callback; pause and resume is implemented the
  * obvious way.  If the callback finds itself required to play when there is no
  * playing track it returns dead air.
