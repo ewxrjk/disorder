@@ -1865,12 +1865,12 @@ static const struct command {
    */
   rights_type rights;
 } commands[] = {
-  { "adduser",        2, 3,       c_adduser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "adduser",        2, 3,       c_adduser,        RIGHT_ADMIN },
   { "adopt",          1, 1,       c_adopt,          RIGHT_PLAY },
   { "allfiles",       0, 2,       c_allfiles,       RIGHT_READ },
   { "confirm",        1, 1,       c_confirm,        0 },
   { "cookie",         1, 1,       c_cookie,         0 },
-  { "deluser",        1, 1,       c_deluser,        RIGHT_ADMIN|RIGHT__LOCAL },
+  { "deluser",        1, 1,       c_deluser,        RIGHT_ADMIN },
   { "dirs",           0, 2,       c_dirs,           RIGHT_READ },
   { "disable",        0, 1,       c_disable,        RIGHT_GLOBAL_PREFS },
   { "edituser",       3, 3,       c_edituser,       RIGHT_ADMIN|RIGHT_USERINFO },
@@ -1907,7 +1907,7 @@ static const struct command {
   { "random-enabled", 0, 0,       c_random_enabled, RIGHT_READ },
   { "recent",         0, 0,       c_recent,         RIGHT_READ },
   { "reconfigure",    0, 0,       c_reconfigure,    RIGHT_ADMIN },
-  { "register",       3, 3,       c_register,       RIGHT_REGISTER|RIGHT__LOCAL },
+  { "register",       3, 3,       c_register,       RIGHT_REGISTER },
   { "reminder",       1, 1,       c_reminder,       RIGHT__LOCAL },
   { "remove",         1, 1,       c_remove,         RIGHT_REMOVE__MASK },
   { "rescan",         0, INT_MAX, c_rescan,         RIGHT_RESCAN },
