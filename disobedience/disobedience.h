@@ -239,8 +239,8 @@ void popup_help(const char *what);
 
 /* Filtering */
 
-void popup_filtering(void);
-void filtering_init(void);
+void popup_globals(void);
+void globals_init(void);
 
 /* RTP */
 

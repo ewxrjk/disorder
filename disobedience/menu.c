@@ -361,9 +361,9 @@ GtkWidget *menubar(GtkWidget *w) {
       0                                 /* extra_data */
     },
     {
-      (char *)"/Control/Filtering",     /* path */
-      (char *)"<CTRL>F",                /* accelerator */
-      popup_filtering,                  /* callback */
+      (char *)"/Control/Global Preferences", /* path */
+      (char *)"<CTRL>G",                /* accelerator */
+      popup_globals,                    /* callback */
       0,                                /* callback_action */
       0,                                /* item_type */
       0                                 /* extra_data */
