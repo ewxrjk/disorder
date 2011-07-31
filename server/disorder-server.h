@@ -179,13 +179,16 @@ void play(ev_source *ev);
 /* try to play something, if playing is enabled and nothing is playing
  * already */
 
+/** @brief Return true if @p represents a true flag */
+int flag_enabled(const char *s);
+
 int playing_is_enabled(void);
 /* return true iff playing is enabled */
 
 void enable_playing(const char *who, ev_source *ev);
 /* enable playing */
 
-void disable_playing(const char *who);
+void disable_playing(const char *who, ev_source *ev);
 /* disable playing. */
 
 int random_is_enabled(void);
@@ -194,7 +197,7 @@ int random_is_enabled(void);
 void enable_random(const char *who, ev_source *ev);
 /* enable random play */
 
-void disable_random(const char *who);
+void disable_random(const char *who, ev_source *ev);
 /* disable random play */
 
 void scratch(const char *who, const char *id);

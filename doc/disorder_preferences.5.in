@@ -92,12 +92,10 @@ the listed tags.
 .B playing
 If unset or \fByes\fR then play is enabled.
 Otherwise it is disabled.
-Use \fBdisable\fR rather than setting it directly.
 .TP
 .B random\-play
 If unset or \fByes\fR then random play is enabled.
 Otherwise it is disabled.
-Use \fBdisable\fR rather than setting it directly.
 .PP
 Global preferences starting '_' are read-only (in the sense that you cannot
 modify them; the server may modify them as part of its normal operation).
