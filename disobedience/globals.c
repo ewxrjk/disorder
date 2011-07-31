@@ -43,6 +43,7 @@ struct globals_row {
   const char *pref;
   GtkWidget *widget;
   const struct global_handler *handler;
+  int initialized;
 };
 
 static void globals_close(GtkButton attribute((unused)) *button,
@@ -116,10 +117,10 @@ static const struct global_handler global_boolean = {
 
 /** @brief Table of global preferences */
 static struct globals_row globals_rows[] = {
-  { "Required tags", "required-tags", NULL, &global_string },
-  { "Prohibited tags", "prohibited-tags", NULL, &global_string },
-  { "Playing", "playing", NULL, &global_boolean },
-  { "Random play", "random-play", NULL, &global_boolean },
+  { "Required tags", "required-tags", NULL, &global_string, 0 },
+  { "Prohibited tags", "prohibited-tags", NULL, &global_string, 0 },
+  { "Playing", "playing", NULL, &global_boolean, 0 },
+  { "Random play", "random-play", NULL, &global_boolean, 0 },
 };
 #define NGLOBALS (sizeof globals_rows / sizeof *globals_rows)
 
@@ -147,6 +148,7 @@ static void globals_get_completed(void *v, const char *err,
   else if(globals_window) {
     struct globals_row *row = v;
     row->handler->set(row, value);
+    row->initialized = 1;
   }
 }
 
@@ -156,11 +158,13 @@ static void globals_get(struct globals_row *row) {
 }
 
 static void globals_row_changed(struct globals_row *row) {
-  const char *new_value = row->handler->get(row);
-  if(new_value)
-    disorder_eclient_set_global(client, NULL, row->pref, new_value, row);
-  else
-    disorder_eclient_unset_global(client, NULL, row->pref, row);
+  if(row->initialized) {
+    const char *new_value = row->handler->get(row);
+    if(new_value)
+      disorder_eclient_set_global(client, NULL, row->pref, new_value, row);
+    else
+      disorder_eclient_unset_global(client, NULL, row->pref, row);
+  }
 }
 
 /** @brief Display the globals window */
@@ -183,6 +187,7 @@ void popup_globals(void) {
   gtk_widget_set_style(table, tool_style);\
 
   for(size_t n = 0; n < NGLOBALS; ++n) {
+    globals_rows[n].initialized = 0;
     label = gtk_label_new(globals_rows[n].label);
     gtk_widget_set_style(label, tool_style);
     gtk_misc_set_alignment(GTK_MISC(label), 1/*right*/, 0/*bottom*/);
