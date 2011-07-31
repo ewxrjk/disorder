@@ -193,6 +193,7 @@ static void logentry_adopted(disorder_eclient *c, int nvec, char **vec);
 static void logentry_playlist_created(disorder_eclient *c, int nvec, char **vec);
 static void logentry_playlist_deleted(disorder_eclient *c, int nvec, char **vec);
 static void logentry_playlist_modified(disorder_eclient *c, int nvec, char **vec);
+static void logentry_global_pref(disorder_eclient *c, int nvec, char **vec);
 
 /* Tables ********************************************************************/
 
@@ -212,6 +213,7 @@ static const struct logentry_handler logentry_handlers[] = {
   LE(adopted, 2, 2),
   LE(completed, 1, 1),
   LE(failed, 2, 2),
+  LE(global_pref, 1, 2),
   LE(moved, 1, 1),
   LE(playing, 1, 2),
   LE(playlist_created, 2, 2),
@@ -916,8 +918,8 @@ static void string_response_opcallback(disorder_eclient *c,
     = (disorder_eclient_string_response *)op->completed;
     
   D(("string_response_callback"));
-  if(c->rc / 100 == 2 || c->rc == 555) {
-    if(op->completed) {
+  if(completed) {
+    if(c->rc / 100 == 2 || c->rc == 555) {
       if(c->rc == 555)
         completed(op->v, NULL, NULL);
       else if(c->protocol >= 2) {
@@ -931,9 +933,9 @@ static void string_response_opcallback(disorder_eclient *c,
           completed(op->v, "error parsing response", NULL);
       } else
         completed(op->v, NULL, c->line + 4);
-    }
-  } else
-    completed(op->v, errorstring(c), NULL);
+    } else
+      completed(op->v, errorstring(c), NULL);
+  }
 }
 
 /* for commands with a simple integer response */ 
@@ -963,10 +965,12 @@ static void no_response_opcallback(disorder_eclient *c,
     = (disorder_eclient_no_response *)op->completed;
 
   D(("no_response_callback"));
-  if(c->rc / 100 == 2)
-    completed(op->v, NULL);
-  else
-    completed(op->v, errorstring(c));
+  if(completed) {
+    if(c->rc / 100 == 2)
+      completed(op->v, NULL);
+    else
+      completed(op->v, errorstring(c));
+  }
 }
 
 /* error callback for queue_unmarshall */
@@ -1354,6 +1358,31 @@ int disorder_eclient_nop(disorder_eclient *c,
                          void *v) {
   return simple(c, no_response_opcallback, (void (*)())completed, v, 
                 "nop", (char *)0);
+}
+
+int disorder_eclient_get_global(disorder_eclient *c,
+                                disorder_eclient_string_response *completed,
+                                const char *pref,
+                                void *v) {
+  return simple(c, string_response_opcallback, (void (*)())completed, v,
+                "get-global", pref, (char *)0);
+}
+
+int disorder_eclient_set_global(disorder_eclient *c,
+                                disorder_eclient_no_response *completed,
+                                const char *pref,
+                                const char *value,
+                                void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v,
+                "set-global", pref, value, (char *)0);
+}
+
+int disorder_eclient_unset_global(disorder_eclient *c,
+                                  disorder_eclient_no_response *completed,
+                                  const char *pref,
+                                  void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v,
+                "unset-global", pref, (char *)0);
 }
 
 /** @brief Get the last @p max added tracks
@@ -1917,6 +1946,12 @@ static void logentry_adopted(disorder_eclient *c,
                              int attribute((unused)) nvec, char **vec) {
   if(c->log_callbacks->adopted) 
     c->log_callbacks->adopted(c->log_v, vec[0], vec[1]);
+}
+
+static void logentry_global_pref(disorder_eclient *c,
+                                 int nvec, char **vec) {
+  if(c->log_callbacks->global_pref) 
+    c->log_callbacks->global_pref(c->log_v, vec[0], nvec > 1 ? vec[1] : 0);
 }
 
 /*

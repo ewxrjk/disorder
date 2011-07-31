@@ -2765,6 +2765,7 @@ void trackdb_set_global(const char *name,
                   who ? who : "-");
     eventlog("state", state ? "enable_random" : "disable_random", (char *)0);
   }
+  eventlog("global_pref", name, value, (char *)0);
 }
 
 /** @brief Set a global preference
