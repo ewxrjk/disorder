@@ -1153,8 +1153,10 @@ static int c_set_global(struct conn *c,
   /* We special-case the 'magic' preferences here. */
   if(!strcmp(vec[0], "playing")) {
     (flag_enabled(vec[1]) ? enable_playing : disable_playing)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
   } else if(!strcmp(vec[0], "random-play")) {
     (flag_enabled(vec[1]) ? enable_random : disable_random)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
   } else {
     if(trackdb_set_global(vec[0], vec[1], c->who))
       sink_printf(ev_writer_sink(c->w), "250 OK\n");
