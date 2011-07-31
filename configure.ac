@@ -18,9 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AC_INIT([disorder], [5.0.2], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [5.0.3], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [5.0.2])
+AM_INIT_AUTOMAKE(disorder, [5.0.3])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 

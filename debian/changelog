@@ -1,3 +1,10 @@
+disorder (5.0.3) stable; urgency=emergency
+
+  * Security: Local connections can no longer create and delete users
+    unless they are properly authorized.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 31 Jul 2011 17:07:59 +0100
+
 disorder (5.0.2) unstable; urgency=low
 
   * Mention login cookie.
