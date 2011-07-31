@@ -640,11 +640,13 @@ void play(ev_source *ev) {
 
 /* Miscelleneous ------------------------------------------------------------ */
 
+int flag_enabled(const char *s) {
+  return !s || !strcmp(s, "yes");
+}
+
 /** @brief Return true if play is enabled */
 int playing_is_enabled(void) {
-  const char *s = trackdb_get_global("playing");
-
-  return !s || !strcmp(s, "yes");
+  return flag_enabled(trackdb_get_global("playing"));
 }
 
 /** @brief Enable play */
@@ -656,15 +658,13 @@ void enable_playing(const char *who, ev_source *ev) {
 }
 
 /** @brief Disable play */
-void disable_playing(const char *who) {
+void disable_playing(const char *who, ev_source attribute((unused)) *ev) {
   trackdb_set_global("playing", "no", who);
 }
 
 /** @brief Return true if random play is enabled */
 int random_is_enabled(void) {
-  const char *s = trackdb_get_global("random-play");
-
-  return !s || !strcmp(s, "yes");
+  return flag_enabled(trackdb_get_global("random-play"));
 }
 
 /** @brief Enable random play */
@@ -675,7 +675,7 @@ void enable_random(const char *who, ev_source *ev) {
 }
 
 /** @brief Disable random play */
-void disable_random(const char *who) {
+void disable_random(const char *who, ev_source attribute((unused)) *ev) {
   trackdb_set_global("random-play", "no", who);
 }
 

@@ -2736,16 +2736,18 @@ int trackdb_rescan_underway(void) {
  * @param name Global preference name
  * @param value New value
  * @param who Who is setting it
+ * @return 0 on success, -1 on error
  */
-void trackdb_set_global(const char *name,
+int trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
   DB_TXN *tid;
-  int state;
+  int state, err;
 
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(!trackdb_set_global_tid(name, value, tid))
+    err = trackdb_set_global_tid(name, value, tid);
+    if(err != DB_LOCK_DEADLOCK)
       break;
     trackdb_abort_transaction(tid);
   }
@@ -2766,6 +2768,7 @@ void trackdb_set_global(const char *name,
     eventlog("state", state ? "enable_random" : "disable_random", (char *)0);
   }
   eventlog("global_pref", name, value, (char *)0);
+  return err == 0 ? 0 : -1;
 }
 
 /** @brief Set a global preference
@@ -2791,7 +2794,7 @@ int trackdb_set_global_tid(const char *name,
     err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
   else
     err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
-  if(err == DB_LOCK_DEADLOCK) return err;
+  if(err == DB_LOCK_DEADLOCK || err == DB_NOTFOUND) return err;
   if(err)
     disorder_fatal(0, "error updating database: %s", db_strerror(err));
   return 0;

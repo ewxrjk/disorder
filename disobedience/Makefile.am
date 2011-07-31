@@ -28,7 +28,7 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	control.c properties.c menu.c log.c progress.c login.c rtp.c	\
 	help.c ../lib/memgc.c settings.c users.c lookup.c choose.h      \
 	popup.h playlists.c multidrag.c multidrag.h autoscroll.c	\
-	autoscroll.h
+	autoscroll.h globals.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBDB) $(LIBICONV)
 disobedience_LDFLAGS=$(GTK_LIBS)

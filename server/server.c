@@ -201,9 +201,9 @@ static int reader_error(ev_source attribute((unused)) *ev,
 
 static int c_disable(struct conn *c, char **vec, int nvec) {
   if(nvec == 0)
-    disable_playing(c->who);
+    disable_playing(c->who, c->ev);
   else if(nvec == 1 && !strcmp(vec[0], "now"))
-    disable_playing(c->who);
+    disable_playing(c->who, c->ev);
   else {
     sink_writes(ev_writer_sink(c->w), "550 invalid argument\n");
     return 1;			/* completed */
@@ -866,7 +866,7 @@ static int c_random_enable(struct conn *c,
 static int c_random_disable(struct conn *c,
 			    char attribute((unused)) **vec,
 			    int attribute((unused)) nvec) {
-  disable_random(c->who);
+  disable_random(c->who, c->ev);
   sink_writes(ev_writer_sink(c->w), "250 OK\n");
   return 1;			/* completed */
 }
@@ -1150,8 +1150,19 @@ static int c_set_global(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 cannot set internal global preferences\n");
     return 1;
   }
-  trackdb_set_global(vec[0], vec[1], c->who);
-  sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  /* We special-case the 'magic' preferences here. */
+  if(!strcmp(vec[0], "playing")) {
+    (flag_enabled(vec[1]) ? enable_playing : disable_playing)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  } else if(!strcmp(vec[0], "random-play")) {
+    (flag_enabled(vec[1]) ? enable_random : disable_random)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  } else {
+    if(trackdb_set_global(vec[0], vec[1], c->who))
+      sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    else
+      sink_writes(ev_writer_sink(c->w), "550 not found\n");
+  }
   return 1;
 }
 

@@ -148,9 +148,9 @@ int trackdb_rescan_cancel(void);
 void trackdb_gc(void);
 /* tidy up old database log files */
 
-void trackdb_set_global(const char *name,
-                        const char *value,
-                        const char *who);
+int trackdb_set_global(const char *name,
+                       const char *value,
+                       const char *who);
 /* set a global pref (remove if value=0). */
 
 const char *trackdb_get_global(const char *name);
