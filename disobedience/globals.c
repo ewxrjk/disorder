@@ -22,18 +22,104 @@
 #include "disobedience.h"
 
 static GtkWidget *globals_window;
-static void globals_close(GtkButton attribute((unused)) *button,
-			 gpointer attribute((unused)) userdata);
 
-static struct globals_row {
+struct globals_row;
+
+/** @brief Handler for the presentation form of a global preference */
+struct global_handler {
+  /** @brief Initialize */
+  void (*init)(struct globals_row *row);
+
+  /** @brief Convert presentation form to string */
+  const char *(*get)(struct globals_row *row);
+
+  /** @brief Convert string to presentation form */
+  void (*set)(struct globals_row *row, const char *value);
+};
+
+/** @brief Definition of a global preference */
+struct globals_row {
   const char *label;
   const char *pref;
-  GtkWidget *entry;
-} globals_rows[] = {
-  { "Required tags", "required-tags", NULL },
-  { "Prohibited tags", "prohibited-tags", NULL },
-  { "Plating", "playing", NULL },
-  { "Random play", "random-play", NULL },
+  GtkWidget *widget;
+  const struct global_handler *handler;
+};
+
+static void globals_close(GtkButton attribute((unused)) *button,
+			 gpointer attribute((unused)) userdata);
+static void globals_row_changed(struct globals_row *row);
+
+/** @brief Called when the user changes the contents of a string entry */
+static void global_string_entry_changed(GtkEditable attribute((unused)) *editable,
+					gpointer user_data) {
+  struct globals_row *row = user_data;
+  globals_row_changed(row);
+}
+
+/** @brief Initialize a global presented as a string */
+static void global_string_init(struct globals_row *row) {
+  row->widget = gtk_entry_new();
+  g_signal_connect(row->widget, "changed",
+		   G_CALLBACK(global_string_entry_changed), row);
+}
+
+static const char *global_string_get(struct globals_row *row) {
+  return gtk_entry_get_text(GTK_ENTRY(row->widget));
+}
+
+static void global_string_set(struct globals_row *row, const char *value) {
+  /* Identify unset and empty lists */
+  if(!value)
+    value = "";
+  /* Skip trivial updates (we'll see one as a consequence of each
+   * update we make...) */
+  if(strcmp(gtk_entry_get_text(GTK_ENTRY(row->widget)), value))
+    gtk_entry_set_text(GTK_ENTRY(row->widget), value);
+}
+
+/** @brief String global preference */
+static const struct global_handler global_string = {
+  global_string_init,
+  global_string_get,
+  global_string_set,
+};
+
+/** @brief Called when the user changes the contents of a string entry */
+static void global_boolean_toggled(GtkToggleButton attribute((unused)) *button,
+				   gpointer user_data) {
+  struct globals_row *row = user_data;
+  globals_row_changed(row);
+}
+
+static void global_boolean_init(struct globals_row *row) {
+  row->widget = gtk_check_button_new();
+  g_signal_connect(row->widget, "toggled",
+		   G_CALLBACK(global_boolean_toggled), row);
+}
+
+static const char *global_boolean_get(struct globals_row *row) {
+  return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(row->widget)) ? "yes" : "no";
+}
+
+static void global_boolean_set(struct globals_row *row, const char *value) {
+  gboolean new_state = !(value && strcmp(value, "yes"));
+  if(new_state != gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(row->widget)))
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(row->widget), new_state);
+}
+
+/** @brief Boolean global preference */
+static const struct global_handler global_boolean = {
+  global_boolean_init,
+  global_boolean_get,
+  global_boolean_set,
+};
+
+/** @brief Table of global preferences */
+static struct globals_row globals_rows[] = {
+  { "Required tags", "required-tags", NULL, &global_string },
+  { "Prohibited tags", "prohibited-tags", NULL, &global_string },
+  { "Playing", "playing", NULL, &global_boolean },
+  { "Random play", "random-play", NULL, &global_boolean },
 };
 #define NGLOBALS (sizeof globals_rows / sizeof *globals_rows)
 
@@ -60,13 +146,7 @@ static void globals_get_completed(void *v, const char *err,
     popup_protocol_error(0, err);
   else if(globals_window) {
     struct globals_row *row = v;
-    /* Identify unset and empty lists */
-    if(!value)
-      value = "";
-    /* Skip trivial updates (we'll see one as a consequence of each
-     * update we make...) */
-    if(strcmp(gtk_entry_get_text(GTK_ENTRY(row->entry)), value))
-      gtk_entry_set_text(GTK_ENTRY(row->entry), value);
+    row->handler->set(row, value);
   }
 }
 
@@ -75,11 +155,9 @@ static void globals_get(struct globals_row *row) {
   disorder_eclient_get_global(client, globals_get_completed, row->pref, row);
 }
 
-/** @brief Called when the user changes the contents of some entry */
-static void globals_entry_changed(GtkEditable *editable, gpointer user_data) {
-  struct globals_row *row = user_data;
-  const char *new_value = gtk_entry_get_text(GTK_ENTRY(editable));
-  if(*new_value)
+static void globals_row_changed(struct globals_row *row) {
+  const char *new_value = row->handler->get(row);
+  if(new_value)
     disorder_eclient_set_global(client, NULL, row->pref, new_value, row);
   else
     disorder_eclient_unset_global(client, NULL, row->pref, row);
@@ -113,15 +191,13 @@ void popup_globals(void) {
 		     n, n+1,		  /* top/bottom_attach */
 		     GTK_FILL, 0,         /* x/yoptions */
 		     1, 1);               /* x/ypadding */
-    globals_rows[n].entry = gtk_entry_new();
-    gtk_widget_set_style(globals_rows[n].entry, tool_style);
-    gtk_table_attach(GTK_TABLE(table), globals_rows[n].entry,
+    globals_rows[n].handler->init(&globals_rows[n]);
+    gtk_widget_set_style(globals_rows[n].widget, tool_style);
+    gtk_table_attach(GTK_TABLE(table), globals_rows[n].widget,
 		     1, 2,                /* left/right_attach */
 		     n, n+1,		  /* top/bottom_attach */
 		     GTK_FILL, 0,         /* x/yoptions */
 		     1, 1);               /* x/ypadding */
-    g_signal_connect(globals_rows[n].entry, "changed",
-		     G_CALLBACK(globals_entry_changed), &globals_rows[n]);
     globals_get(&globals_rows[n]);
   }
   hbox = create_buttons_box(globals_buttons,
