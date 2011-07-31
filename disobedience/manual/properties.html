@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
    <p class=image><img src="track-properties.png"></p>
 
    <p>This window can be invoked from any of the four tabs by
-   selecting one or more tracks and then either selected <b>Edit >
+   selecting one or more tracks and then either selecting <b>Edit >
    Track Properties</b> or via the right-click pop-up menu.</p>
 
    <h2><a name=names>4.1 Track Name Parts</a></h2>
@@ -66,12 +66,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
    <p>Each track has an associated collection of tags.  These can used
    when searching for tracks in the <b>Choose</b> tab or to control
-   which tracks are picked at random (although this functionality is
-   not readily available in current versions of Disobedience).</p>
+   which tracks are picked at random.</p>
 
    <p>To add tags to a track enter the tags you want to apply to it in
    the <b>Tags</b> field, separated by commas.  Tags cannot contain
    commas and are compared without regard to whitespace.</p>
+
+   <p>To search by tag, prefix it with <tt>tag:</tt> in the search box.</p>
+
+   <p>To control how tracks are picked at random, select <b>Control >
+   Global Preferences</b>.  If <b>Required Tags</b> contains a
+   comma-separated list of tags then only tracks with at least one of
+   the listed tags will be picked at random.  Similarly
+   if <b>Prohibited Tags</b> contains a comma-separated list of tags
+   then no track with any of the listed tags will be picked at
+   random.</p>
 
    <h2><a name=weight>4.3 Track Weight</a></h2>
 
