@@ -22,6 +22,8 @@
 #include "disobedience.h"
 
 static GtkWidget *filtering_window;
+static void filter_close(GtkButton attribute((unused)) *button,
+			 gpointer attribute((unused)) userdata);
 
 static struct filter_row {
   const char *label;
@@ -33,7 +35,21 @@ static struct filter_row {
 };
 #define NFILTER (sizeof filter_rows / sizeof *filter_rows)
 
-/* Getting values */
+/** @brief Buttons for filtering popup */
+static struct button filter_buttons[] = {
+  {
+    .stock = GTK_STOCK_CLOSE,
+    .clicked = filter_close,
+    .tip = "Close window",
+    .pack = gtk_box_pack_end,
+  },
+};
+#define NFILTER_BUTTONS (sizeof filter_buttons / sizeof *filter_buttons)
+
+static void filter_close(GtkButton attribute((unused)) *button,
+			 gpointer attribute((unused)) userdata) {
+  gtk_widget_destroy(filtering_window);
+}
 
 /** @brief Called with the latest setting for a row */
 static void filter_get_completed(void *v, const char *err,
@@ -69,7 +85,7 @@ static void filter_entry_changed(GtkEditable *editable, gpointer user_data) {
 
 /** @brief Display the filtering window */
 void popup_filtering(void) {
-  GtkWidget *label, *table;
+  GtkWidget *label, *table, *hbox;
   /* Pop up the window if it already exists */
   if(filtering_window) {
     gtk_window_present(GTK_WINDOW(filtering_window));
@@ -83,7 +99,7 @@ void popup_filtering(void) {
   gtk_window_set_title(GTK_WINDOW(filtering_window), "Filtering");
   g_signal_connect(filtering_window, "destroy",
 		   G_CALLBACK(gtk_widget_destroyed), &filtering_window);
-  table = gtk_table_new(NFILTER/*rows*/, 2/*cols*/, FALSE/*homogeneous*/);
+  table = gtk_table_new(NFILTER + 1/*rows*/, 2/*cols*/, FALSE/*homogeneous*/);
   gtk_widget_set_style(table, tool_style);\
 
   for(size_t n = 0; n < NFILTER; ++n) {
@@ -106,6 +122,12 @@ void popup_filtering(void) {
 		     G_CALLBACK(filter_entry_changed), &filter_rows[n]);
     filter_get(&filter_rows[n]);
   }
+  hbox = create_buttons_box(filter_buttons,
+			    NFILTER_BUTTONS,
+			    gtk_hbox_new(FALSE, 1));
+  gtk_table_attach_defaults(GTK_TABLE(table), hbox,
+			    0, 2,                /* left/right_attach */
+			    NFILTER, NFILTER+1); /* top/bottom_attach */
 
   gtk_container_add(GTK_CONTAINER(filtering_window), frame_widget(table, NULL));
   gtk_widget_show_all(filtering_window);
