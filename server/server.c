@@ -1158,7 +1158,7 @@ static int c_set_global(struct conn *c,
     (flag_enabled(vec[1]) ? enable_random : disable_random)(c->who, c->ev);
     sink_printf(ev_writer_sink(c->w), "250 OK\n");
   } else {
-    if(trackdb_set_global(vec[0], vec[1], c->who))
+    if(!trackdb_set_global(vec[0], vec[1], c->who))
       sink_printf(ev_writer_sink(c->w), "250 OK\n");
     else
       sink_writes(ev_writer_sink(c->w), "550 not found\n");
