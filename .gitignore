@@ -207,3 +207,4 @@ disobedience/manual/Makefile
 libtests/t-timeval
 *.[oa]
 *~
+*.pyc
