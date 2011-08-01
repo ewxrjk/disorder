@@ -623,7 +623,7 @@ class client:
     track -- the track to modify
     key -- the preference to remove
     """
-    self._simple("set", track, key, value)
+    self._simple("set", track, key)
 
   def get(self, track, key):
     """Get a preference value.
@@ -843,7 +843,7 @@ class client:
     Arguments:
     key -- the preference to remove
     """
-    self._simple("set-global", key, value)
+    self._simple("set-global", key)
 
   def getglobal(self, key):
     """Get a global preference value.
