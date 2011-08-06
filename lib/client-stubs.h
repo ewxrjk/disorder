@@ -533,6 +533,16 @@ int disorder_resume(disorder_client *c);
  */
 int disorder_revoke(disorder_client *c);
 
+/** @brief Get the server's RTP address information
+ *
+ * 
+ *
+ * @param c Client
+ * @param addressp Where to store hostname or address
+ * @return 0 on success, non-0 on error
+ */
+int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
+
 /** @brief Terminate the playing track.
  *
  * Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.
@@ -621,7 +631,7 @@ int disorder_shutdown(disorder_client *c);
 
 /** @brief Get server statistics
  *
- * The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..
+ * The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.
  *
  * @param c Client
  * @param statsp List of server information strings.
@@ -694,5 +704,26 @@ int disorder_users(disorder_client *c, char ***usersp, int *nusersp);
  * @return 0 on success, non-0 on error
  */
 int disorder_version(disorder_client *c, char **versionp);
+
+/** @brief Set the volume
+ *
+ * 
+ *
+ * @param c Client
+ * @param left Left channel volume
+ * @param right Right channel volume
+ * @return 0 on success, non-0 on error
+ */
+int disorder_set_volume(disorder_client *c, long left, long right);
+
+/** @brief Get the volume
+ *
+ * 
+ *
+ * @param c Client
+ * @param leftp Left channel volume
+ * @return 0 on success, non-0 on error
+ */
+int disorder_get_volume(disorder_client *c, long *leftp, long *rightp);
 
 #endif

@@ -51,10 +51,7 @@ int disorder_playing(disorder_client *c, struct queue_entry **qp);
 char *disorder_user(disorder_client *c);
 int disorder_prefs(disorder_client *c, const char *track,
 		   struct kvp **kp);
-int disorder_set_volume(disorder_client *c, int left, int right);
-int disorder_get_volume(disorder_client *c, int *left, int *right);
 int disorder_log(disorder_client *c, struct sink *s);
-int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
 const char *disorder_last(disorder_client *c);
 int disorder_schedule_get(disorder_client *c, const char *id,
 			  struct kvp **actiondatap);

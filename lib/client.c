@@ -184,7 +184,6 @@ static const char disorder_list[1];
  *
  * Usually you would call this via one of the following interfaces:
  * - disorder_simple()
- * - disorder_simple_list()
  */
 static int disorder_simple_v(disorder_client *c,
 			     char **rp,
@@ -557,14 +556,11 @@ static int onequeue(disorder_client *c, const char *cmd,
 }
 
 /** @brief Fetch the queue, recent list, etc */
-static int somequeue(disorder_client *c,
-		     const char *cmd, struct queue_entry **qp) {
+static int readqueue(disorder_client *c,
+		     struct queue_entry **qp) {
   struct queue_entry *qh, **qt = &qh, *q;
   char *l;
-  int rc;
 
-  if((rc = disorder_simple(c, 0, cmd, (char *)0)))
-    return rc;
   while(inputline(c->ident, c->fpin, &l, '\n') >= 0) {
     if(!strcmp(l, ".")) {
       *qt = 0;
@@ -583,7 +579,7 @@ static int somequeue(disorder_client *c,
     byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
     disorder_error(errno, "error reading %s", c->ident);
   } else {
-    c->last = "input error: unexpxected EOF";
+    c->last = "input error: unexpected EOF";
     disorder_error(0, "error reading %s: unexpected EOF", c->ident);
   }
   return -1;
@@ -622,33 +618,6 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
     disorder_error(0, "error reading %s: unexpected EOF", c->ident);
   }
   return -1;
-}
-
-/** @brief Issue a comamnd and get a list response
- * @param c Client
- * @param vecp Where to store list (UTF-8)
- * @param nvecp Where to store number of items, or NULL
- * @param cmd Command
- * @return 0 on success, non-0 on error
- *
- * The remaining arguments are command arguments, terminated by (char
- * *)0.  They should be in UTF-8.
- *
- * 5xx responses count as errors.
- *
- * See disorder_simple().
- */
-static int disorder_simple_list(disorder_client *c,
-				char ***vecp, int *nvecp,
-				const char *cmd, ...) {
-  va_list ap;
-  int ret;
-
-  va_start(ap, cmd);
-  ret = disorder_simple_v(c, 0, cmd, ap);
-  va_end(ap);
-  if(ret) return ret;
-  return readlist(c, vecp, nvecp);
 }
 
 /** @brief Return the user we logged in with
@@ -719,41 +688,6 @@ static int boolean(const char *cmd, const char *value,
   return 0;
 }
 
-/** @brief Set volume
- * @param c Client
- * @param left New left channel value
- * @param right New right channel value
- * @return 0 on success, non-0 on error
- */
-int disorder_set_volume(disorder_client *c, int left, int right) {
-  char *ls, *rs;
-
-  if(byte_asprintf(&ls, "%d", left) < 0
-     || byte_asprintf(&rs, "%d", right) < 0)
-    return -1;
-  return disorder_simple(c, 0, "volume", ls, rs, (char *)0);
-}
-
-/** @brief Get volume
- * @param c Client
- * @param left Where to store left channel value
- * @param right Where to store right channel value
- * @return 0 on success, non-0 on error
- */
-int disorder_get_volume(disorder_client *c, int *left, int *right) {
-  char *r;
-  int rc;
-
-  if((rc = disorder_simple(c, &r, "volume", (char *)0)))
-    return rc;
-  if(sscanf(r, "%d %d", left, right) != 2) {
-    c->last = "malformed volume response";
-    disorder_error(0, "error parsing response to 'volume': '%s'", r);
-    return -1;
-  }
-  return 0;
-}
-
 /** @brief Log to a sink
  * @param c Client
  * @param s Sink to write log lines to
@@ -772,30 +706,6 @@ int disorder_log(disorder_client *c, struct sink *s) {
 		   ferror(c->fpin) ? strerror(errno) : "unexpxected EOF");
     return -1;
   }
-  return 0;
-}
-
-/** @brief Get server's RTP address information
- * @param c Client
- * @param addressp Where to store address (UTF-8)
- * @param portp Where to store port (UTF-8)
- * @return 0 on success, non-0 on error
- */
-int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
-  char *r;
-  int rc, n;
-  char **vec;
-
-  if((rc = disorder_simple(c, &r, "rtp-address", (char *)0)))
-    return rc;
-  vec = split(r, &n, SPLIT_QUOTES, 0, 0);
-  if(n != 2) {
-    c->last = "malformed RTP address";
-    disorder_error(0, "malformed rtp-address reply");
-    return -1;
-  }
-  *addressp = vec[0];
-  *portp = vec[1];
   return 0;
 }
 

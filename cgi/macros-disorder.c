@@ -458,7 +458,7 @@ static int exp_volume(int attribute((unused)) nargs,
                       struct sink *output,
                       void attribute((unused)) *u) {
   dcgi_lookup(DCGI_VOLUME);
-  return sink_printf(output, "%d",
+  return sink_printf(output, "%ld",
                      !strcmp(args[0], "left")
                          ? dcgi_volume_left : dcgi_volume_right) < 0 ? -1 : 0;
 }

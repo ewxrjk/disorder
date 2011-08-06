@@ -27,6 +27,7 @@ use strict;
 # Types:
 #
 #    string         A (Unicode) string.
+#    string-raw     A string that is not subject to de-quoting (return only)
 #    integer        An integer.  Decimal on the wire.
 #    boolean        True or false.  "yes" or "no" on the wire.
 #    list           In commands: a list of strings in the command.
@@ -89,7 +90,7 @@ sub c_out_decl {
     return () unless defined $arg;
     my $type = $arg->[0];
     my $name = $arg->[1];
-    if($type eq 'string') {
+    if($type eq 'string' or $type eq 'string-raw') {
 	return ("char **${name}p");
     } elsif($type eq 'integer') {
 	return ("long *${name}p");
@@ -131,32 +132,35 @@ sub c_param_docs {
 #
 # Return the doc string for a C output parameter.
 sub c_return_docs {
-    my $return = shift;
-    return () unless defined $return;
-    my $type = $return->[0];
-    my $name = $return->[1];
-    my $descr = $return->[2];
-    if($type eq 'string'
-       or $type eq 'integer'
-       or $type eq 'boolean') {
-	return (" * \@param ${name}p $descr\n");
-    } elsif($type eq 'list' or $type eq 'body') {
-	return (" * \@param ${name}p $descr\n",
-	        " * \@param n${name}p Number of elements in ${name}p\n");
-    } elsif($type eq 'pair-list') {
-	return (" * \@param ${name}p $descr\n");
-    } elsif($type eq 'queue' or $type eq 'queue-one') {
-	return (" * \@param ${name}p $descr\n");
-    } elsif($type eq 'user') {
-	return ();
-    } else {
-	die "$0: c_return_docs: unknown type '$type'\n";
+    my $returns = shift;
+    return () unless defined $returns;
+    for my $return (@$returns) {
+        my $type = $return->[0];
+        my $name = $return->[1];
+        my $descr = $return->[2];
+        if($type eq 'string'
+           or $type eq 'string-raw'
+           or $type eq 'integer'
+           or $type eq 'boolean') {
+            return (" * \@param ${name}p $descr\n");
+        } elsif($type eq 'list' or $type eq 'body') {
+            return (" * \@param ${name}p $descr\n",
+                    " * \@param n${name}p Number of elements in ${name}p\n");
+        } elsif($type eq 'pair-list') {
+            return (" * \@param ${name}p $descr\n");
+        } elsif($type eq 'queue' or $type eq 'queue-one') {
+            return (" * \@param ${name}p $descr\n");
+        } elsif($type eq 'user') {
+            return ();
+        } else {
+            die "$0: c_return_docs: unknown type '$type'\n";
+        }
     }
 }
 
 # simple(CMD, SUMMARY, DETAIL,
 #        [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],
-#        [RETURN-TYPE, RETURN-NAME, RETURN_DESCR])
+#        [[RETURN-TYPE, RETURN-NAME, RETURN_DESCR]])
 #
 # CMD is normally just the name of the command, but can
 # be [COMMAND,FUNCTION] if the function name should differ
@@ -166,7 +170,7 @@ sub simple {
     my $summary = shift;
     my $detail = shift;
     my $args = shift;
-    my $return = shift;
+    my $returns = shift;
 
     my $cmdc;
     if(ref $cmd eq 'ARRAY') {
@@ -185,19 +189,19 @@ sub simple {
          " *\n",
 	 " * \@param c Client\n",
          c_param_docs($args),
-	 c_return_docs($return),
+	 c_return_docs($returns),
          " * \@return 0 on success, non-0 on error\n",
          " */\n",
          "int disorder_$cmdc(",
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
-	            c_out_decl($return)),
+	            map(c_out_decl($_), @$returns)),
          ");\n\n");
     print STDERR "C ";
     push(@c, "int disorder_$cmdc(",
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
-	            c_out_decl($return)),
+                    map(c_out_decl($_), @$returns)),
 	 ") {\n");
     my @cargs = ();
     for my $arg (@$args) {
@@ -213,67 +217,99 @@ sub simple {
             die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
         }
     }
-    if(!defined $return) {
+    if(!defined $returns or scalar @$returns == 0) {
+        # Simple case
 	push(@c, "  return disorder_simple(",
-	     join(", ", "c", 0, "\"$cmd\"", @cargs, "(char *)0"),
+	     join(", ", "c", "NULL", "\"$cmd\"", @cargs, "(char *)NULL"),
 	     ");\n");
-    } elsif($return->[0] eq 'string') {
-	push(@c, "  return dequote(disorder_simple(",
-             join(", ", "c", "$return->[1]p", "\"$cmd\"",
-                  @cargs,
-                  "(char *)0"),
-             "), $return->[1]p);\n");
-    } elsif($return->[0] eq 'boolean') {
-	push(@c, "  char *v;\n",
-	     "  int rc;\n",
-	     "  if((rc = disorder_simple(",
-             join(", ", "c", "&v", "\"$cmd\"",
-                  @cargs,
-                  "(char *)0"),
-             ")))\n",
-	     "    return rc;\n",
-	     "  return boolean(\"$cmd\", v, $return->[1]p);\n");
-    } elsif($return->[0] eq 'integer') {
-	push(@c, "  char *v;\n",
-	     "  int rc;\n",
-	     "\n",
-	     "  if((rc = disorder_simple(",
-             join(", ", "c", "&v", "\"$cmd\"",
-                  @cargs,
-                  "(char *)0"),
-             ")))\n",
-	     "    return rc;\n",
-	     "  *$return->[1]p = atol(v);\n",
-	     "  xfree(v);\n",
-	     "  return 0;\n");
-    } elsif($return->[0] eq 'user') {
-	push(@c, "  char *u;\n",
-	     "  int rc;\n",
-	     "  if((rc = disorder_simple(",
-             join(", ", "c", "&u", "\"$cmd\"",
-                  @cargs, "(char *)0"),
-             ")))\n",
-	     "    return rc;\n",
-	     "  c->user = u;\n",
-	     "  return 0;\n");
-    } elsif($return->[0] eq 'body') {
-	push(@c, "  return disorder_simple_list(",
-             join(", ", "c", "$return->[1]p", "n$return->[1]p", "\"$cmd\"",
-                  @cargs,
-                  "(char *)0"),
-            ");\n");
-    } elsif($return->[0] eq 'queue') {
-	push(@c, "  return somequeue(c, \"$cmd\", $return->[1]p);\n");
-    } elsif($return->[0] eq 'queue-one') {
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'queue-one') {
+        # Special case
+        my $return = $$returns[0];
 	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
-    } elsif($return->[0] eq 'pair-list') {
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'string-raw') {
+        # Special case
+        my $return = $$returns[0];
+	push(@c, "  return disorder_simple(",
+	     join(", ", "c", "$return->[1]p", "\"$cmd\"", @cargs, "(char *)NULL"),
+	     ");\n");
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'pair-list') {
+        # Special case
+        my $return = $$returns[0];
 	push(@c, "  return pairlist(",
              join(", ", "c", "$return->[1]p", "\"$cmd\"",
                   @cargs,
-                  "(char *)0"),
+                  "(char *)NULL"),
              ");\n");
     } else {
-	die "$0: C API: unknown type '$return->[0]' for '$cmd'\n";
+        my $split = 0;
+        for(my $n = 0; $n < scalar @$returns; ++$n) {
+            my $return = $returns->[$n];
+            my $type = $return->[0];
+            my $name = $return->[1];
+            if($type eq 'string'
+               or $type eq 'boolean'
+               or $type eq 'integer'
+               or $type eq 'user') {
+                $split = 1;
+            }
+        }
+        if($split) {
+            push(@c, "  char **v, *r;\n",
+                 "  int nv;\n");
+        }
+        push(@c, 
+             "  int rc = disorder_simple(",
+             join(", ",
+                  "c",
+                  $split ? "&r" : "NULL",
+                  "\"$cmd\"",
+                  @cargs,
+                  "(char *)NULL"),
+             ");\n",
+             "  if(rc)\n",
+             "    return rc;\n");
+        if($split) {
+            push(@c,
+                 "  v = split(r, &nv, SPLIT_QUOTES, 0, 0);\n",
+                 "  if(nv != ", scalar @$returns, ") {\n",
+                 "    disorder_error(0, \"malformed reply to %s\", \"$cmd\");\n",
+                 "    return -1;\n",
+                 "  }\n");
+        }
+        for(my $n = 0; $n < scalar @$returns; ++$n) {
+            my $return = $returns->[$n];
+            my $type = $return->[0];
+            my $name = $return->[1];
+            if($type eq 'string') {
+                push(@c,
+                     "  *${name}p = v[$n];\n");
+            } elsif($type eq 'boolean') {
+                push(@c,
+                     "  if(boolean(\"$cmd\", v[$n], ${name}p))\n",
+                     "    return -1;\n");
+            } elsif($type eq 'integer') {
+                push(@c,
+                     "  *${name}p = atol(v[$n]);\n");
+            } elsif($type eq 'user') {
+                push(@c,
+                     "  c->user = v[$n];\n");
+            } elsif($type eq 'body') {
+                push(@c,
+                     "  if(readlist(c, ${name}p, n${name}p))\n",
+                     "    return -1;\n");
+            } elsif($type eq 'queue') {
+                push(@c,
+                     "  if(readqueue(c, ${name}p))\n",
+                     "    return -1;\n");
+            } else {
+                die "$0: C API: unknown return type '$type' for '$name'\n";
+            }
+        }
+        push(@c, "  return 0;\n");
+        # TODO xfree unconsumed split output
     }
     push(@c, "}\n\n");
 
@@ -344,19 +380,19 @@ simple("allfiles",
        "See 'files' and 'dirs' for more specific lists.",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["body", "files", "List of matching files and directories"]);
+       [["body", "files", "List of matching files and directories"]]);
 
 simple("confirm",
        "Confirm registration",
        "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
        [["string", "confirmation", "Confirmation string"]],
-       ["user"]);
+       [["user"]]);
 
 simple("cookie",
        "Log in with a cookie",
        "The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.",
        [["string", "cookie", "Cookie string"]],
-       ["user"]);
+       [["user"]]);
 
 simple("deluser",
        "Delete user",
@@ -368,7 +404,7 @@ simple("dirs",
        "",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["body", "files", "List of matching directories"]);
+       [["body", "files", "List of matching directories"]]);
 
 simple("disable",
        "Disable play",
@@ -391,39 +427,39 @@ simple("enabled",
        "Detect whether play is enabled",
        "",
        [],
-       ["boolean", "enabled", "1 if play is enabled and 0 otherwise"]);
+       [["boolean", "enabled", "1 if play is enabled and 0 otherwise"]]);
 
 simple("exists",
        "Test whether a track exists",
        "",
        [["string", "track", "Track name"]],
-       ["boolean", "exists", "1 if the track exists and 0 otherwise"]);
+       [["boolean", "exists", "1 if the track exists and 0 otherwise"]]);
 
 simple("files",
        "List files in a directory",
        "",
        [["string", "dir", "Directory to list (optional)"],
 	["string", "re", "Regexp that results must match (optional)"]],
-       ["body", "files", "List of matching files"]);
+       [["body", "files", "List of matching files"]]);
 
 simple("get",
        "Get a track preference",
        "If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.",
        [["string", "track", "Track name"],
         ["string", "pref", "Preference name"]],
-       ["string", "value", "Preference value"]);
+       [["string", "value", "Preference value"]]);
 
 simple("get-global",
        "Get a global preference",
        "If the preference does exist not then a null value is returned.",
        [["string", "pref", "Global preference name"]],
-       ["string", "value", "Preference value"]);
+       [["string", "value", "Preference value"]]);
 
 simple("length",
        "Get a track's length",
        "If the track does not exist an error is returned.",
        [["string", "track", "Track name"]],
-       ["integer", "length", "Track length in seconds"]);
+       [["integer", "length", "Track length in seconds"]]);
 
 # TODO log
 
@@ -431,7 +467,7 @@ simple("make-cookie",
        "Create a login cookie for this user",
        "The cookie may be redeemed via the 'cookie' command",
        [],
-       ["string", "cookie", "Newly created cookie"]);
+       [["string", "cookie", "Newly created cookie"]]);
 
 simple("move",
        "Move a track",
@@ -449,7 +485,7 @@ simple(["new", "new_tracks"],
        "List recently added tracks",
        "",
        [["integer", "max", "Maximum tracks to fetch, or 0 for all available"]],
-       ["body", "tracks", "Recently added tracks"]);
+       [["body", "tracks", "Recently added tracks"]]);
 
 simple("nop",
        "Do nothing",
@@ -462,7 +498,7 @@ simple("part",
        [["string", "track", "Track name"],
         ["string", "context", "Context (\"sort\" or \"display\")"],
         ["string", "part", "Name part (\"artist\", \"album\" or \"title\")"]],
-       ["string", "part", "Value of name part"]);
+       [["string", "part", "Value of name part"]]);
 
 simple("pause",
        "Pause the currently playing track",
@@ -473,7 +509,7 @@ simple("play",
        "Play a track",
        "Requires the 'play' right.",
        [["string", "track", "Track to play"]],
-       ["string", "id", "Queue ID of new track"]);
+       [["string-raw", "id", "Queue ID of new track"]]);
 
 simple("playafter",
        "Play multiple tracks",
@@ -485,7 +521,7 @@ simple("playing",
        "Retrieve the playing track",
        "",
        [],
-       ["queue-one", "playing", "Details of the playing track"]);
+       [["queue-one", "playing", "Details of the playing track"]]);
 
 simple("playlist-delete",
        "Delete a playlist",
@@ -496,13 +532,13 @@ simple("playlist-get",
        "List the contents of a playlist",
        "Requires the 'read' right and oermission to read the playlist.",
        [["string", "playlist", "Playlist name"]],
-       ["body", "tracks", "List of tracks in playlist"]);
+       [["body", "tracks", "List of tracks in playlist"]]);
 
 simple("playlist-get-share",
        "Get a playlist's sharing status",
        "Requires the 'read' right and permission to read the playlist.",
        [["string", "playlist", "Playlist to read"]],
-       ["string", "share", "Sharing status (\"public\", \"private\" or \"shared\")"]);
+       [["string-raw", "share", "Sharing status (\"public\", \"private\" or \"shared\")"]]);
 
 simple("playlist-lock",
        "Lock a playlist",
@@ -530,19 +566,19 @@ simple("playlists",
        "List playlists",
        "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
        [],
-       ["body", "playlists", "Playlist names"]);
+       [["body", "playlists", "Playlist names"]]);
 
 simple("prefs",
        "Get all the preferences for a track",
        "",
        [["string", "track", "Track name"]],
-       ["pair-list", "prefs", "Track preferences"]);
+       [["pair-list", "prefs", "Track preferences"]]);
 
 simple("queue",
        "List the queue",
        "",
        [],
-       ["queue", "queue", "Current queue contents"]);
+       [["queue", "queue", "Current queue contents"]]);
 
 simple("random-disable",
        "Disable random play",
@@ -558,13 +594,13 @@ simple("random-enabled",
        "Detect whether random play is enabled",
        "Random play counts as enabled even if play is disabled.",
        [],
-       ["boolean", "enabled", "1 if random play is enabled and 0 otherwise"]);
+       [["boolean", "enabled", "1 if random play is enabled and 0 otherwise"]]);
 
 simple("recent",
        "List recently played tracks",
        "",
        [],
-       ["queue", "recent", "Recently played tracks"]);
+       [["queue", "recent", "Recently played tracks"]]);
 
 simple("reconfigure",
        "Re-read configuraiton file.",
@@ -577,7 +613,7 @@ simple("register",
        [["string", "username", "Requested new username"],
         ["string", "password", "Requested initial password"],
         ["string", "email", "New user's email address"]],
-       ["string", "confirmation", "Confirmation string"]);
+       [["string", "confirmation", "Confirmation string"]]);
 
 simple("reminder",
        "Send a password reminder.",
@@ -598,7 +634,7 @@ simple("resolve",
        "Resolve a track name",
        "Converts aliases to non-alias track names",
        [["string", "track", "Track name (might be an alias)"]],
-       ["string", "resolved", "Resolve track name (definitely not an alias)"]);
+       [["string", "resolved", "Resolve track name (definitely not an alias)"]]);
 
 simple("resume",
        "Resume the currently playing track",
@@ -610,7 +646,12 @@ simple("revoke",
        "It will not subsequently be possible to log in with the cookie.",
        []);
 
-# TODO rtp-address
+simple("rtp-address",
+       "Get the server's RTP address information",
+       "",
+       [],
+       [["string", "address", "Where to store hostname or address"],
+        ["string", "port", "Where to store service name or port number"]]);
 
 simple("scratch",
        "Terminate the playing track.",
@@ -628,19 +669,19 @@ simple("schedule-get",
        "Get the details of scheduled event",
        "",
        [["string", "id", "Event ID"]],
-       ["pair-list", "actiondata", "Details of event"]);
+       [["pair-list", "actiondata", "Details of event"]]);
 
 simple("schedule-list",
        "List scheduled events",
        "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
        [],
-       ["body", "ids", "List of event IDs"]);
+       [["body", "ids", "List of event IDs"]]);
 
 simple("search",
        "Search for tracks",
        "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
        [["string", "terms", "List of search terms"]],
-       ["body", "tracks", "List of matching tracks"]);
+       [["body", "tracks", "List of matching tracks"]]);
 
 simple("set",
        "Set a track preference",
@@ -662,15 +703,15 @@ simple("shutdown",
 
 simple("stats",
        "Get server statistics",
-       "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line..",
+       "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.",
        [],
-       ["body", "stats", "List of server information strings."]);
+       [["body", "stats", "List of server information strings."]]);
 
 simple("tags",
        "Get a list of known tags",
        "Only tags which apply to at least one track are returned.",
        [],
-       ["body", "tags", "List of tags"]);
+       [["body", "tags", "List of tags"]]);
 
 simple("unset",
        "Unset a track preference",
@@ -690,21 +731,32 @@ simple("userinfo",
        "If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.",
        [["string", "username", "User to read"],
         ["string", "property", "Property to read"]],
-       ["string", "value", "Value of property"]);
+       [["string", "value", "Value of property"]]);
 
 simple("users",
        "Get a list of users",
        "",
        [],
-       ["body", "users", "List of users"]);
+       [["body", "users", "List of users"]]);
 
 simple("version",
        "Get the server version",
        "",
        [],
-       ["string", "version", "Server version string"]);
+       [["string", "version", "Server version string"]]);
 
-# TODO volume
+simple(["volume", "set_volume"],
+       "Set the volume",
+       "",
+       [["integer", "left", "Left channel volume"],
+        ["integer", "right", "Right channel volume"]]);
+
+simple(["volume", "get_volume"],
+       "Get the volume",
+       "",
+       [],
+       [["integer", "left", "Left channel volume"],
+        ["integer", "right", "Right channel volume"]]);
 
 # End matter ------------------------------------------------------------------
 
