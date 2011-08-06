@@ -416,7 +416,7 @@ static int isarg_integer(const char *s) {
 static void cf_new(char **argv) {
   char **vec;
 
-  if(disorder_new_tracks(getclient(), &vec, 0, argv[0] ? atoi(argv[0]) : 0))
+  if(disorder_new_tracks(getclient(), argv[0] ? atol(argv[0]) : 0, &vec, 0))
     exit(EXIT_FAILURE);
   while(*vec)
     xprintf("%s\n", nullcheck(utf82mb(*vec++)));

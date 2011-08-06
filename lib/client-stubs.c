@@ -1,6 +1,11 @@
 /*
+ * Automatically generated file, see scripts/protocol
+ *
+ * DO NOT EDIT.
+ */
+/*
  * This file is part of DisOrder.
- * Copyright (C) 2010 Richard Kettlewell
+ * Copyright (C) 2010-11 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,6 +122,12 @@ int disorder_move(disorder_client *c, const char *track, long delta) {
 
 int disorder_moveafter(disorder_client *c, const char *target, char **ids, int nids) {
   return disorder_simple(c, 0, "moveafter", target, disorder_list, ids, nids, (char *)0);
+}
+
+int disorder_new_tracks(disorder_client *c, long max, char ***tracksp, int *ntracksp) {
+  char buf_max[16];
+  byte_snprintf(buf_max, sizeof buf_max, "%ld", max);
+  return disorder_simple_list(c, tracksp, ntracksp, "new", buf_max, (char *)0);
 }
 
 int disorder_nop(disorder_client *c) {

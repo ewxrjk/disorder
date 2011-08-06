@@ -775,22 +775,6 @@ int disorder_log(disorder_client *c, struct sink *s) {
   return 0;
 }
 
-/** @brief Get recently added tracks
- * @param c Client
- * @param vecp Where to store pointer to list (UTF-8)
- * @param nvecp Where to store count
- * @param max Maximum tracks to fetch, or 0 for all available
- * @return 0 on success, non-0 on error
- */
-int disorder_new_tracks(disorder_client *c,
-			char ***vecp, int *nvecp,
-			int max) {
-  char limit[32];
-
-  sprintf(limit, "%d", max);
-  return disorder_simple_list(c, vecp, nvecp, "new", limit, (char *)0);
-}
-
 /** @brief Get server's RTP address information
  * @param c Client
  * @param addressp Where to store address (UTF-8)

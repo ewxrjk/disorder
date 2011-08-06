@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 #
 # This file is part of DisOrder.
-# Copyright (C) 2010 Richard Kettlewell
+# Copyright (C) 2010-11 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -140,6 +140,10 @@ sub c_return_docs {
 # simple(CMD, SUMMARY, DETAIL,
 #        [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],
 #        [RETURN-TYPE, RETURN-NAME, RETURN_DESCR])
+#
+# CMD is normally just the name of the command, but can
+# be [COMMAND,FUNCTION] if the function name should differ
+# from the protocol command.
 sub simple {
     my $cmd = shift;
     my $summary = shift;
@@ -147,9 +151,15 @@ sub simple {
     my $args = shift;
     my $return = shift;
 
+    my $cmdc;
+    if(ref $cmd eq 'ARRAY') {
+        $cmdc = $$cmd[1];
+        $cmd = $$cmd[0];
+    } else {
+        $cmdc = $cmd;
+        $cmdc =~ s/-/_/g;
+    }
     print STDERR "Processing $cmd... ";
-    my $cmdc = $cmd;
-    $cmdc =~ s/-/_/g;
     # Synchronous C API
     print STDERR "H ";
     push(@h, "/** \@brief $summary\n",
@@ -172,33 +182,33 @@ sub simple {
 	            map(c_in_decl($_), @$args),
 	            c_out_decl($return)),
 	 ") {\n");
+    my @cargs = ();
+    for my $arg (@$args) {
+        if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
+            push(@cargs, "disorder_$arg->[0]", $arg->[1], "n$arg->[1]");
+        } elsif($arg->[0] eq 'string') {
+            push(@cargs, $arg->[1]);
+        } elsif($arg->[0] eq 'integer') {
+            push(@cargs, "buf_$arg->[1]");
+            push(@c, "  char buf_$arg->[1]\[16];\n",
+                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%ld\", $arg->[1]);\n");
+        } else {
+            die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
+        }
+    }
     if(!defined $return) {
-	my @cargs = ();
-	for my $arg (@$args) {
-	    if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
-		push(@cargs, "disorder_$arg->[0]", $arg->[1], "n$arg->[1]");
-	    } elsif($arg->[0] eq 'string') {
-		push(@cargs, $arg->[1]);
-	    } elsif($arg->[0] eq 'integer') {
-		push(@cargs, "buf_$arg->[1]");
-		push(@c, "  char buf_$arg->[1]\[16];\n",
-		     "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%ld\", $arg->[1]);\n");
-	    } else {
-		die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
-	    }
-	}
 	push(@c, "  return disorder_simple(",
 	     join(", ", "c", 0, "\"$cmd\"", @cargs, "(char *)0"),
 	     ");\n");
     } elsif($return->[0] eq 'string') {
 	push(@c, "  return dequote(disorder_simple(c, $return->[1]p, \"$cmd\"",
-	     map(", $_->[1]", @$args),
+	     map(", $_", @cargs),
 	     ", (char *)0), $return->[1]p);\n");
     } elsif($return->[0] eq 'boolean') {
 	push(@c, "  char *v;\n",
 	     "  int rc;\n",
 	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-	     map(", $_->[1]", @$args),
+	     map(", $_", @cargs),
 	     ", (char *)0)))\n",
 	     "    return rc;\n",
 	     "  return boolean(\"$cmd\", v, $return->[1]p);\n");
@@ -207,7 +217,7 @@ sub simple {
 	     "  int rc;\n",
 	     "\n",
 	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-	     map(", $_->[1]", @$args),
+	     map(", $_", @cargs),
 	     ", (char *)0)))\n",
 	     "    return rc;\n",
 	     "  *$return->[1]p = atol(v);\n",
@@ -217,14 +227,14 @@ sub simple {
 	push(@c, "  char *u;\n",
 	     "  int rc;\n",
 	     "  if((rc = disorder_simple(c, &u, \"$cmd\"",
-	     map(", $_->[1]", @$args),
+	     map(", $_", @cargs),
 	     "  )))\n",
 	     "    return rc;\n",
 	     "  c->user = u;\n",
 	     "  return 0;\n");
     } elsif($return->[0] eq 'body') {
 	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
-	     map(", $_->[1]", @$args),
+	     map(", $_", @cargs),
 	     ", (char *)0);\n");
     } elsif($return->[0] eq 'queue') {
 	push(@c, "  return somequeue(c, \"$cmd\", $return->[1]p);\n");
@@ -232,7 +242,7 @@ sub simple {
 	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
     } elsif($return->[0] eq 'pair-list') {
 	push(@c, "  return pairlist(c, $return->[1]p, \"$cmd\"",
-	     map(", $_->[1]", @$args), ", (char *)0);\n");
+	     map(", $_", @cargs), ", (char *)0);\n");
     } else {
 	die "$0: C API: unknown type '$return->[0]' for '$cmd'\n";
     }
@@ -253,9 +263,15 @@ sub simple {
 
 # Front matter ----------------------------------------------------------------
 
+our @generated = ("/*\n",
+                  " * Automatically generated file, see scripts/protocol\n",
+                  " *\n",
+                  " * DO NOT EDIT.\n",
+                  " */\n");
+
 our @gpl = ("/*\n",
             " * This file is part of DisOrder.\n",
-            " * Copyright (C) 2010 Richard Kettlewell\n",
+            " * Copyright (C) 2010-11 Richard Kettlewell\n",
             " *\n",
             " * This program is free software: you can redistribute it and/or modify\n",
             " * it under the terms of the GNU General Public License as published by\n",
@@ -272,12 +288,12 @@ our @gpl = ("/*\n",
             " */\n");
 
 
-push(@h, @gpl,
+push(@h, @generated, @gpl,
      "#ifndef CLIENT_STUBS_H\n",
      "#define CLIENT_STUBS_H\n",
      "\n");
 
-push(@c, @gpl,
+push(@c, @generated, @gpl,
      "\n");
 
 # The protocol ----------------------------------------------------------------
@@ -400,7 +416,11 @@ simple("moveafter",
        [["string", "target", "Move after this track, or to head if \"\""],
 	["list", "ids", "List of tracks to move by ID"]]);
 
-# TODO new
+simple(["new", "new_tracks"],
+       "List recently added tracks",
+       "",
+       [["integer", "max", "Maximum tracks to fetch, or 0 for all available"]],
+       ["body", "tracks", "Recently added tracks"]);
 
 simple("nop",
        "Do nothing",
