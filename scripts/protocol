@@ -43,6 +43,9 @@ use strict;
 our @h = ();
 our @c = ();
 
+# Write(PATH, LINES)
+#
+# Write array ref LINES to file PATH.
 sub Write {
     my $path = shift;
     my $lines = shift;
@@ -55,6 +58,10 @@ sub Write {
 
 # Command classes -------------------------------------------------------------
 
+# c_in_decl([TYPE, NAME])
+#
+# Return the C declaration for an input parameter of type TYPE with
+# name NAME.
 sub c_in_decl {
     my $arg = shift;
 
@@ -72,6 +79,10 @@ sub c_in_decl {
     }
 }
 
+# c_out_decl([TYPE, NAME])
+#
+# Return the C declaration for an output (reference) parameter of type
+# TYPE with name NAME.
 sub c_out_decl {
     my $arg = shift;
 
@@ -98,6 +109,9 @@ sub c_out_decl {
     }
 }
 
+# c_param_docs([TYPE, NAME})
+#
+# Return the doc string for a C input parameter.
 sub c_param_docs {
     my $args = shift;
     my @d = ();
@@ -113,6 +127,9 @@ sub c_param_docs {
     return @d;
 }
 
+# c_param_docs([TYPE, NAME})
+#
+# Return the doc string for a C output parameter.
 sub c_return_docs {
     my $return = shift;
     return () unless defined $return;
