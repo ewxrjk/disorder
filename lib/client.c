@@ -709,46 +709,6 @@ int disorder_log(disorder_client *c, struct sink *s) {
   return 0;
 }
 
-/** @brief Add a scheduled event
- * @param c Client
- * @param when When to trigger the event
- * @param priority Event priority ("normal" or "junk")
- * @param action What action to perform
- * @param ... Action-specific arguments
- * @return 0 on success, non-0 on error
- *
- * For action @c "play" the next argument is the track.
- *
- * For action @c "set-global" next argument is the global preference name
- * and the final argument the value to set it to, or (char *)0 to unset it.
- */
-int disorder_schedule_add(disorder_client *c,
-			  time_t when,
-			  const char *priority,
-			  const char *action,
-			  ...) {
-  va_list ap;
-  char when_str[64];
-  int rc;
-
-  snprintf(when_str, sizeof when_str, "%lld", (long long)when);
-  va_start(ap, action);
-  if(!strcmp(action, "play"))
-    rc = disorder_simple(c, 0, "schedule-add", when_str, priority,
-			 action, va_arg(ap, char *),
-			 (char *)0);
-  else if(!strcmp(action, "set-global")) {
-    const char *key = va_arg(ap, char *);
-    const char *value = va_arg(ap, char *);
-    rc = disorder_simple(c, 0,"schedule-add",  when_str, priority,
-			 action, key, value,
-			 (char *)0);
-  } else
-    disorder_fatal(0, "unknown action '%s'", action);
-  va_end(ap);
-  return rc;
-}
-
 #include "client-stubs.c"
 
 /*

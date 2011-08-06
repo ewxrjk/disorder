@@ -47,19 +47,9 @@ int disorder_connect_generic(struct config *conf,
                              const char *password,
                              const char *cookie);
 int disorder_close(disorder_client *c);
-int disorder_playing(disorder_client *c, struct queue_entry **qp);
 char *disorder_user(disorder_client *c);
-int disorder_prefs(disorder_client *c, const char *track,
-		   struct kvp **kp);
 int disorder_log(disorder_client *c, struct sink *s);
 const char *disorder_last(disorder_client *c);
-int disorder_schedule_get(disorder_client *c, const char *id,
-			  struct kvp **actiondatap);
-int disorder_schedule_add(disorder_client *c,
-			  time_t when,
-			  const char *priority,
-			  const char *action,
-			  ...);
 
 #include "client-stubs.h"
 

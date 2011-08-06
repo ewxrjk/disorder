@@ -553,6 +553,43 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
  */
 int disorder_scratch(disorder_client *c, const char *id);
 
+/** @brief Schedule a track to play in the future
+ *
+ * 
+ *
+ * @param c Client
+ * @param when When to play the track
+ * @param priority Event priority ("normal" or "junk")
+ * @param track Track to play
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_add_play(disorder_client *c, time_t when, const char *priority, const char *track);
+
+/** @brief Schedule a global setting to be changed in the future
+ *
+ * 
+ *
+ * @param c Client
+ * @param when When to change the setting
+ * @param priority Event priority ("normal" or "junk")
+ * @param pref Global preference to set
+ * @param value New value of global preference
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_add_set_global(disorder_client *c, time_t when, const char *priority, const char *pref, const char *value);
+
+/** @brief Schedule a global setting to be unset in the future
+ *
+ * 
+ *
+ * @param c Client
+ * @param when When to change the setting
+ * @param priority Event priority ("normal" or "junk")
+ * @param pref Global preference to set
+ * @return 0 on success, non-0 on error
+ */
+int disorder_schedule_add_unset_global(disorder_client *c, time_t when, const char *priority, const char *pref);
+
 /** @brief Delete a scheduled event.
  *
  * Users can always delete their own scheduled events; with the admin right you can delete any event.

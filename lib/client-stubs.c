@@ -412,6 +412,24 @@ int disorder_scratch(disorder_client *c, const char *id) {
   return disorder_simple(c, NULL, "scratch", id, (char *)NULL);
 }
 
+int disorder_schedule_add_play(disorder_client *c, time_t when, const char *priority, const char *track) {
+  char buf_when[16];
+  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
+  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "play", track, (char *)NULL);
+}
+
+int disorder_schedule_add_set_global(disorder_client *c, time_t when, const char *priority, const char *pref, const char *value) {
+  char buf_when[16];
+  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
+  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "set-global", pref, value, (char *)NULL);
+}
+
+int disorder_schedule_add_unset_global(disorder_client *c, time_t when, const char *priority, const char *pref) {
+  char buf_when[16];
+  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
+  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "set-global", pref, (char *)NULL);
+}
+
 int disorder_schedule_del(disorder_client *c, const char *event) {
   return disorder_simple(c, NULL, "schedule-del", event, (char *)NULL);
 }

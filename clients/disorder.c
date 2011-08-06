@@ -317,10 +317,10 @@ static void cf_stats(char attribute((unused)) **argv) {
 }
 
 static void cf_get_volume(char attribute((unused)) **argv) {
-  int l, r;
+  long l, r;
 
   if(disorder_get_volume(getclient(), &l, &r)) exit(EXIT_FAILURE);
-  xprintf("%d %d\n", l, r);
+  xprintf("%ld %ld\n", l, r);
 }
 
 static void cf_set_volume(char **argv) {
@@ -581,31 +581,27 @@ static void cf_schedule_del(char **argv) {
 }
 
 static void cf_schedule_play(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "play",
-			   argv[2]))
+  if(disorder_schedule_add_play(getclient(),
+                                dateparse(argv[0]),
+                                argv[1],
+                                argv[2]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_set_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   argv[3]))
+  if(disorder_schedule_add_set_global(getclient(),
+                                      dateparse(argv[0]),
+                                      argv[1],
+                                      argv[2],
+                                      argv[3]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_unset_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   (char *)0))
+  if(disorder_schedule_add_unset_global(getclient(),
+                                        dateparse(argv[0]),
+                                        argv[1],
+                                        argv[2]))
     exit(EXIT_FAILURE);
 }
 

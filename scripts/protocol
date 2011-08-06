@@ -29,6 +29,7 @@ use strict;
 #    string         A (Unicode) string.
 #    string-raw     A string that is not subject to de-quoting (return only)
 #    integer        An integer.  Decimal on the wire.
+#    time           A timestamp.  Decimal on the wire.
 #    boolean        True or false.  "yes" or "no" on the wire.
 #    list           In commands: a list of strings in the command.
 #                   In returns: a list of lines in the response.
@@ -37,6 +38,7 @@ use strict;
 #                   In returns: a list of strings as a response body.
 #    queue          In returns: a list of queue entries in a response body.
 #    queue-one      In returns: a queue entry in the response.
+#    literal        Constant string sent in sequence
 #
 
 # Variables and utilities -----------------------------------------------------
@@ -72,9 +74,13 @@ sub c_in_decl {
 	return "const char *$name";
     } elsif($type eq 'integer') {
 	return "long $name";
+    } elsif($type eq 'time') {
+	return "time_t $name";
     } elsif($type eq 'list' or $type eq 'body') {
 	return ("char **$name",
 		"int n$name");
+    } elsif($type eq 'literal') {
+        return ();
     } else {
 	die "$0: c_in_decl: unknown type '$type'\n";
     }
@@ -94,6 +100,8 @@ sub c_out_decl {
 	return ("char **${name}p");
     } elsif($type eq 'integer') {
 	return ("long *${name}p");
+    } elsif($type eq 'time') {
+	return ("time_t *${name}p");
     } elsif($type eq 'boolean') {
 	return ("int *${name}p");
     } elsif($type eq 'list' or $type eq 'body') {
@@ -117,12 +125,15 @@ sub c_param_docs {
     my $args = shift;
     my @d = ();
     for my $arg (@$args) {
-	if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
+        my $type = $arg->[0];
+        my $name = $arg->[1];
+        my $description = $arg->[2];
+	if($type eq 'body' or $type eq 'list') {
 	    push(@d,
-		 " * \@param $arg->[1] $arg->[2]\n",
-		 " * \@param n$arg->[1] Length of $arg->[1]\n");
-	} else {
-	    push(@d, " * \@param $arg->[1] $arg->[2]\n");
+		 " * \@param $name $description\n",
+		 " * \@param n$name Length of $name\n");
+	} elsif($type ne 'literal') {
+	    push(@d, " * \@param $name $description\n");
 	}
     }
     return @d;
@@ -141,6 +152,7 @@ sub c_return_docs {
         if($type eq 'string'
            or $type eq 'string-raw'
            or $type eq 'integer'
+           or $type eq 'time'
            or $type eq 'boolean') {
             return (" * \@param ${name}p $descr\n");
         } elsif($type eq 'list' or $type eq 'body') {
@@ -213,6 +225,12 @@ sub simple {
             push(@cargs, "buf_$arg->[1]");
             push(@c, "  char buf_$arg->[1]\[16];\n",
                  "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%ld\", $arg->[1]);\n");
+        } elsif($arg->[0] eq 'time') {
+            push(@cargs, "buf_$arg->[1]");
+            push(@c, "  char buf_$arg->[1]\[16];\n",
+                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%lld\", (long long)$arg->[1]);\n");
+        } elsif($arg->[0] eq 'literal') {
+            push(@cargs, "\"$arg->[1]\"");
         } else {
             die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
         }
@@ -252,6 +270,7 @@ sub simple {
             if($type eq 'string'
                or $type eq 'boolean'
                or $type eq 'integer'
+               or $type eq 'time'
                or $type eq 'user') {
                 $split = 1;
             }
@@ -293,6 +312,9 @@ sub simple {
             } elsif($type eq 'integer') {
                 push(@c,
                      "  *${name}p = atol(v[$n]);\n");
+            } elsif($type eq 'time') {
+                push(@c,
+                     "  *${name}p = atoll(v[$n]);\n");
             } elsif($type eq 'user') {
                 push(@c,
                      "  c->user = v[$n];\n");
@@ -658,7 +680,30 @@ simple("scratch",
        "Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.",
        [["string", "id", "Track ID (optional)"]]);
 
-# TODO schedule-add
+simple(["schedule-add", "schedule_add_play"],
+       "Schedule a track to play in the future",
+       "",
+       [["time", "when", "When to play the track"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "play", ""],
+        ["string", "track", "Track to play"]]);
+
+simple(["schedule-add", "schedule_add_set_global"],
+       "Schedule a global setting to be changed in the future",
+       "",
+       [["time", "when", "When to change the setting"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "set-global", ""],
+        ["string", "pref", "Global preference to set"],
+        ["string", "value", "New value of global preference"]]);
+
+simple(["schedule-add", "schedule_add_unset_global"],
+       "Schedule a global setting to be unset in the future",
+       "",
+       [["time", "when", "When to change the setting"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "set-global", ""],
+        ["string", "pref", "Global preference to set"]]);
 
 simple("schedule-del",
        "Delete a scheduled event.",
