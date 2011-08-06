@@ -218,24 +218,30 @@ sub simple {
 	     join(", ", "c", 0, "\"$cmd\"", @cargs, "(char *)0"),
 	     ");\n");
     } elsif($return->[0] eq 'string') {
-	push(@c, "  return dequote(disorder_simple(c, $return->[1]p, \"$cmd\"",
-	     map(", $_", @cargs),
-	     ", (char *)0), $return->[1]p);\n");
+	push(@c, "  return dequote(disorder_simple(",
+             join(", ", "c", "$return->[1]p", "\"$cmd\"",
+                  @cargs,
+                  "(char *)0"),
+             "), $return->[1]p);\n");
     } elsif($return->[0] eq 'boolean') {
 	push(@c, "  char *v;\n",
 	     "  int rc;\n",
-	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-	     map(", $_", @cargs),
-	     ", (char *)0)))\n",
+	     "  if((rc = disorder_simple(",
+             join(", ", "c", "&v", "\"$cmd\"",
+                  @cargs,
+                  "(char *)0"),
+             ")))\n",
 	     "    return rc;\n",
 	     "  return boolean(\"$cmd\", v, $return->[1]p);\n");
     } elsif($return->[0] eq 'integer') {
 	push(@c, "  char *v;\n",
 	     "  int rc;\n",
 	     "\n",
-	     "  if((rc = disorder_simple(c, &v, \"$cmd\"",
-	     map(", $_", @cargs),
-	     ", (char *)0)))\n",
+	     "  if((rc = disorder_simple(",
+             join(", ", "c", "&v", "\"$cmd\"",
+                  @cargs,
+                  "(char *)0"),
+             ")))\n",
 	     "    return rc;\n",
 	     "  *$return->[1]p = atol(v);\n",
 	     "  xfree(v);\n",
@@ -243,23 +249,29 @@ sub simple {
     } elsif($return->[0] eq 'user') {
 	push(@c, "  char *u;\n",
 	     "  int rc;\n",
-	     "  if((rc = disorder_simple(c, &u, \"$cmd\"",
-	     map(", $_", @cargs),
-	     "  )))\n",
+	     "  if((rc = disorder_simple(",
+             join(", ", "c", "&u", "\"$cmd\"",
+                  @cargs, "(char *)0"),
+             ")))\n",
 	     "    return rc;\n",
 	     "  c->user = u;\n",
 	     "  return 0;\n");
     } elsif($return->[0] eq 'body') {
-	push(@c, "  return disorder_simple_list(c, $return->[1]p, n$return->[1]p, \"$cmd\"",
-	     map(", $_", @cargs),
-	     ", (char *)0);\n");
+	push(@c, "  return disorder_simple_list(",
+             join(", ", "c", "$return->[1]p", "n$return->[1]p", "\"$cmd\"",
+                  @cargs,
+                  "(char *)0"),
+            ");\n");
     } elsif($return->[0] eq 'queue') {
 	push(@c, "  return somequeue(c, \"$cmd\", $return->[1]p);\n");
     } elsif($return->[0] eq 'queue-one') {
 	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
     } elsif($return->[0] eq 'pair-list') {
-	push(@c, "  return pairlist(c, $return->[1]p, \"$cmd\"",
-	     map(", $_", @cargs), ", (char *)0);\n");
+	push(@c, "  return pairlist(",
+             join(", ", "c", "$return->[1]p", "\"$cmd\"",
+                  @cargs,
+                  "(char *)0"),
+             ");\n");
     } else {
 	die "$0: C API: unknown type '$return->[0]' for '$cmd'\n";
     }

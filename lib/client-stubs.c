@@ -36,7 +36,7 @@ int disorder_allfiles(disorder_client *c, const char *dir, const char *re, char 
 int disorder_confirm(disorder_client *c, const char *confirmation) {
   char *u;
   int rc;
-  if((rc = disorder_simple(c, &u, "confirm", confirmation  )))
+  if((rc = disorder_simple(c, &u, "confirm", confirmation, (char *)0)))
     return rc;
   c->user = u;
   return 0;
@@ -45,7 +45,7 @@ int disorder_confirm(disorder_client *c, const char *confirmation) {
 int disorder_cookie(disorder_client *c, const char *cookie) {
   char *u;
   int rc;
-  if((rc = disorder_simple(c, &u, "cookie", cookie  )))
+  if((rc = disorder_simple(c, &u, "cookie", cookie, (char *)0)))
     return rc;
   c->user = u;
   return 0;
