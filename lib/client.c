@@ -285,6 +285,59 @@ static int disorder_simple(disorder_client *c,
   return ret;
 }
 
+/** @brief Issue a command and split the response
+ * @param c Client
+ * @param vecp Where to store results
+ * @param nvecp Where to store count of results
+ * @param expected Expected count (or -1 to not check)
+ * @param cmd Command
+ * @return 0 on success, non-0 on error
+ *
+ * The remaining arguments are command arguments, terminated by (char
+ * *)0.  They should be in UTF-8.
+ *
+ * 5xx responses count as errors.
+ *
+ * @p rp will NOT be filled in for xx9 responses (where it is just
+ * commentary for a command where it would normally be meaningful).
+ *
+ * NB that the response will NOT be converted to the local encoding
+ * nor will quotes be stripped.  See dequote().
+ */
+static int disorder_simple_split(disorder_client *c,
+				 char ***vecp,
+				 int *nvecp,
+				 int expected,
+				 const char *cmd, ...) {
+  va_list ap;
+  int ret;
+  char *r;
+  char **vec;
+  int nvec;
+
+  va_start(ap, cmd);
+  ret = disorder_simple_v(c, &r, cmd, ap);
+  va_end(ap);
+  if(!ret) {
+    vec = split(r, &nvec, SPLIT_QUOTES, 0, 0);
+    xfree(r);
+    if(expected < 0 || nvec == expected) {
+      *vecp = vec;
+      *nvecp = nvec;
+    } else {
+      disorder_error(0, "malformed reply to %s", cmd);
+      c->last = "malformed reply";
+      ret = -1;
+      free_strings(nvec, vec);
+    }
+  }
+  if(ret) {
+    *vecp = NULL;
+    *nvecp = 0;
+  }
+  return ret;
+}
+
 /** @brief Dequote a result string
  * @param rc 0 on success, non-0 on error
  * @param rp Where result string is stored (UTF-8)

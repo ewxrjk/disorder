@@ -262,7 +262,7 @@ sub simple {
                   "(char *)NULL"),
              ");\n");
     } else {
-        my $split = 0;
+        my $expected = 0;
         for(my $n = 0; $n < scalar @$returns; ++$n) {
             my $return = $returns->[$n];
             my $type = $return->[0];
@@ -272,32 +272,36 @@ sub simple {
                or $type eq 'integer'
                or $type eq 'time'
                or $type eq 'user') {
-                $split = 1;
+		++$expected;
             }
         }
-        if($split) {
-            push(@c, "  char **v, *r;\n",
-                 "  int nv;\n");
-        }
-        push(@c, 
-             "  int rc = disorder_simple(",
-             join(", ",
-                  "c",
-                  $split ? "&r" : "NULL",
-                  "\"$cmd\"",
-                  @cargs,
-                  "(char *)NULL"),
-             ");\n",
-             "  if(rc)\n",
-             "    return rc;\n");
-        if($split) {
-            push(@c,
-                 "  v = split(r, &nv, SPLIT_QUOTES, 0, 0);\n",
-                 "  if(nv != ", scalar @$returns, ") {\n",
-                 "    disorder_error(0, \"malformed reply to %s\", \"$cmd\");\n",
-                 "    return -1;\n",
-                 "  }\n");
-        }
+        if($expected) {
+            push(@c, "  char **v;\n",
+		 "  int nv, rc = disorder_simple_split(",
+		 join(", ",
+		      "c",
+		      "&v",
+		      "&nv",
+		      $expected,
+		      "\"$cmd\"",
+		      @cargs,
+		      "(char *)NULL"),
+		 ");\n",
+		 "  if(rc)\n",
+		 "    return rc;\n");
+        } else {
+	    push(@c,
+		 "  int rc = disorder_simple(",
+		 join(", ",
+		      "c",
+		      "NULL",
+		      "\"$cmd\"",
+		      @cargs,
+		      "(char *)NULL"),
+		 ");\n",
+		 "  if(rc)\n",
+		 "    return rc;\n");
+	}
         for(my $n = 0; $n < scalar @$returns; ++$n) {
             my $return = $returns->[$n];
             my $type = $return->[0];

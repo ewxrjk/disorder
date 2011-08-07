@@ -39,31 +39,19 @@ int disorder_allfiles(disorder_client *c, const char *dir, const char *re, char 
 }
 
 int disorder_confirm(disorder_client *c, const char *confirmation) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "confirm", confirmation, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "confirm", confirmation, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "confirm");
-    return -1;
-  }
   c->user = v[0];
   return 0;
 }
 
 int disorder_cookie(disorder_client *c, const char *cookie) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "cookie", cookie, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "cookie", cookie, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "cookie");
-    return -1;
-  }
   c->user = v[0];
   return 0;
 }
@@ -94,32 +82,20 @@ int disorder_enable(disorder_client *c) {
 }
 
 int disorder_enabled(disorder_client *c, int *enabledp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "enabled", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "enabled", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "enabled");
-    return -1;
-  }
   if(boolean("enabled", v[0], enabledp))
     return -1;
   return 0;
 }
 
 int disorder_exists(disorder_client *c, const char *track, int *existsp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "exists", track, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "exists", track, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "exists");
-    return -1;
-  }
   if(boolean("exists", v[0], existsp))
     return -1;
   return 0;
@@ -135,61 +111,37 @@ int disorder_files(disorder_client *c, const char *dir, const char *re, char ***
 }
 
 int disorder_get(disorder_client *c, const char *track, const char *pref, char **valuep) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "get", track, pref, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "get", track, pref, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "get");
-    return -1;
-  }
   *valuep = v[0];
   return 0;
 }
 
 int disorder_get_global(disorder_client *c, const char *pref, char **valuep) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "get-global", pref, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "get-global", pref, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "get-global");
-    return -1;
-  }
   *valuep = v[0];
   return 0;
 }
 
 int disorder_length(disorder_client *c, const char *track, long *lengthp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "length", track, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "length", track, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "length");
-    return -1;
-  }
   *lengthp = atol(v[0]);
   return 0;
 }
 
 int disorder_make_cookie(disorder_client *c, char **cookiep) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "make-cookie", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "make-cookie", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "make-cookie");
-    return -1;
-  }
   *cookiep = v[0];
   return 0;
 }
@@ -220,16 +172,10 @@ int disorder_nop(disorder_client *c) {
 }
 
 int disorder_part(disorder_client *c, const char *track, const char *context, const char *part, char **partp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "part", track, context, part, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "part", track, context, part, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "part");
-    return -1;
-  }
   *partp = v[0];
   return 0;
 }
@@ -314,16 +260,10 @@ int disorder_random_enable(disorder_client *c) {
 }
 
 int disorder_random_enabled(disorder_client *c, int *enabledp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "random-enabled", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "random-enabled", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "random-enabled");
-    return -1;
-  }
   if(boolean("random-enabled", v[0], enabledp))
     return -1;
   return 0;
@@ -343,16 +283,10 @@ int disorder_reconfigure(disorder_client *c) {
 }
 
 int disorder_register(disorder_client *c, const char *username, const char *password, const char *email, char **confirmationp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "register", username, password, email, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "register", username, password, email, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "register");
-    return -1;
-  }
   *confirmationp = v[0];
   return 0;
 }
@@ -370,16 +304,10 @@ int disorder_rescan(disorder_client *c) {
 }
 
 int disorder_resolve(disorder_client *c, const char *track, char **resolvedp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "resolve", track, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "resolve", track, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "resolve");
-    return -1;
-  }
   *resolvedp = v[0];
   return 0;
 }
@@ -393,16 +321,10 @@ int disorder_revoke(disorder_client *c) {
 }
 
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "rtp-address", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 2, "rtp-address", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 2) {
-    disorder_error(0, "malformed reply to %s", "rtp-address");
-    return -1;
-  }
   *addressp = v[0];
   *portp = v[1];
   return 0;
@@ -495,16 +417,10 @@ int disorder_unset_global(disorder_client *c, const char *pref) {
 }
 
 int disorder_userinfo(disorder_client *c, const char *username, const char *property, char **valuep) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "userinfo", username, property, (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "userinfo", username, property, (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "userinfo");
-    return -1;
-  }
   *valuep = v[0];
   return 0;
 }
@@ -519,16 +435,10 @@ int disorder_users(disorder_client *c, char ***usersp, int *nusersp) {
 }
 
 int disorder_version(disorder_client *c, char **versionp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "version", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "version", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 1) {
-    disorder_error(0, "malformed reply to %s", "version");
-    return -1;
-  }
   *versionp = v[0];
   return 0;
 }
@@ -542,16 +452,10 @@ int disorder_set_volume(disorder_client *c, long left, long right) {
 }
 
 int disorder_get_volume(disorder_client *c, long *leftp, long *rightp) {
-  char **v, *r;
-  int nv;
-  int rc = disorder_simple(c, &r, "volume", (char *)NULL);
+  char **v;
+  int nv, rc = disorder_simple_split(c, &v, &nv, 2, "volume", (char *)NULL);
   if(rc)
     return rc;
-  v = split(r, &nv, SPLIT_QUOTES, 0, 0);
-  if(nv != 2) {
-    disorder_error(0, "malformed reply to %s", "volume");
-    return -1;
-  }
   *leftp = atol(v[0]);
   *rightp = atol(v[1]);
   return 0;
