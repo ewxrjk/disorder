@@ -44,6 +44,8 @@ int disorder_confirm(disorder_client *c, const char *confirmation) {
   if(rc)
     return rc;
   c->user = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -53,6 +55,8 @@ int disorder_cookie(disorder_client *c, const char *cookie) {
   if(rc)
     return rc;
   c->user = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -88,6 +92,7 @@ int disorder_enabled(disorder_client *c, int *enabledp) {
     return rc;
   if(boolean("enabled", v[0], enabledp))
     return -1;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -98,6 +103,7 @@ int disorder_exists(disorder_client *c, const char *track, int *existsp) {
     return rc;
   if(boolean("exists", v[0], existsp))
     return -1;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -116,6 +122,8 @@ int disorder_get(disorder_client *c, const char *track, const char *pref, char *
   if(rc)
     return rc;
   *valuep = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -125,6 +133,8 @@ int disorder_get_global(disorder_client *c, const char *pref, char **valuep) {
   if(rc)
     return rc;
   *valuep = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -134,6 +144,7 @@ int disorder_length(disorder_client *c, const char *track, long *lengthp) {
   if(rc)
     return rc;
   *lengthp = atol(v[0]);
+  free_strings(nv, v);
   return 0;
 }
 
@@ -143,6 +154,8 @@ int disorder_make_cookie(disorder_client *c, char **cookiep) {
   if(rc)
     return rc;
   *cookiep = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -177,6 +190,8 @@ int disorder_part(disorder_client *c, const char *track, const char *context, co
   if(rc)
     return rc;
   *partp = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -266,6 +281,7 @@ int disorder_random_enabled(disorder_client *c, int *enabledp) {
     return rc;
   if(boolean("random-enabled", v[0], enabledp))
     return -1;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -288,6 +304,8 @@ int disorder_register(disorder_client *c, const char *username, const char *pass
   if(rc)
     return rc;
   *confirmationp = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -309,6 +327,8 @@ int disorder_resolve(disorder_client *c, const char *track, char **resolvedp) {
   if(rc)
     return rc;
   *resolvedp = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -326,7 +346,10 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   if(rc)
     return rc;
   *addressp = v[0];
+  v[0] = NULL;
   *portp = v[1];
+  v[1] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -422,6 +445,8 @@ int disorder_userinfo(disorder_client *c, const char *username, const char *prop
   if(rc)
     return rc;
   *valuep = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -440,6 +465,8 @@ int disorder_version(disorder_client *c, char **versionp) {
   if(rc)
     return rc;
   *versionp = v[0];
+  v[0] = NULL;
+  free_strings(nv, v);
   return 0;
 }
 
@@ -458,6 +485,7 @@ int disorder_get_volume(disorder_client *c, long *leftp, long *rightp) {
     return rc;
   *leftp = atol(v[0]);
   *rightp = atol(v[1]);
+  free_strings(nv, v);
   return 0;
 }
 

@@ -308,7 +308,8 @@ sub simple {
             my $name = $return->[1];
             if($type eq 'string') {
                 push(@c,
-                     "  *${name}p = v[$n];\n");
+                     "  *${name}p = v[$n];\n",
+		     "  v[$n] = NULL;\n");
             } elsif($type eq 'boolean') {
                 push(@c,
                      "  if(boolean(\"$cmd\", v[$n], ${name}p))\n",
@@ -321,7 +322,8 @@ sub simple {
                      "  *${name}p = atoll(v[$n]);\n");
             } elsif($type eq 'user') {
                 push(@c,
-                     "  c->user = v[$n];\n");
+                     "  c->user = v[$n];\n",
+		     "  v[$n] = NULL;\n");
             } elsif($type eq 'body') {
                 push(@c,
                      "  if(readlist(c, ${name}p, n${name}p))\n",
@@ -334,8 +336,11 @@ sub simple {
                 die "$0: C API: unknown return type '$type' for '$name'\n";
             }
         }
+	if($expected) {
+	    push(@c,
+		 "  free_strings(nv, v);\n");
+	}
         push(@c, "  return 0;\n");
-        # TODO xfree unconsumed split output
     }
     push(@c, "}\n\n");
 
