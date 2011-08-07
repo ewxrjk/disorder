@@ -253,7 +253,8 @@ static int playlistcmp(const void *ap, const void *bp) {
 /* Playlists menu ----------------------------------------------------------- */
 
 static void playlist_menu_playing(void attribute((unused)) *v,
-                                  const char *err) {
+                                  const char *err,
+                                  const char attribute((unused)) *id) {
   if(err)
     popup_submsg(playlist_window, GTK_MESSAGE_ERROR, err);
 }
@@ -270,7 +271,7 @@ static void playlist_menu_received_content(void attribute((unused)) *v,
     return;
   }
   for(int n = 0; n < nvec; ++n)
-    disorder_eclient_play(client, vec[n], playlist_menu_playing, NULL);
+    disorder_eclient_play(client, playlist_menu_playing, vec[n], NULL);
 }
 
 /** @brief Called to activate a playlist

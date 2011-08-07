@@ -74,6 +74,11 @@ socklen_t find_server(struct config *c,
   return len;
 }
 
+const char disorder__body[1];
+const char disorder__list[1];
+const char disorder__integer[1];
+const char disorder__time[1];
+
 /*
 Local Variables:
 c-basic-offset:2

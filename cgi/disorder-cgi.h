@@ -91,8 +91,8 @@ extern struct queue_entry *dcgi_queue;
 extern struct queue_entry *dcgi_playing;
 extern struct queue_entry *dcgi_recent;
 
-extern int dcgi_volume_left;
-extern int dcgi_volume_right;
+extern long dcgi_volume_left;
+extern long dcgi_volume_right;
 
 extern char **dcgi_new;
 extern int dcgi_nnew;

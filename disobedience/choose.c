@@ -364,7 +364,8 @@ static void choose_files_completed(void *v,
 }
 
 void choose_play_completed(void attribute((unused)) *v,
-                           const char *err) {
+                           const char *err,
+                           const char attribute((unused)) *id) {
   if(err)
     popup_protocol_error(0, err);
 }
@@ -386,7 +387,7 @@ static void choose_state_toggled
   const char *track = choose_get_track(it);
   if(queued(track))
     return;
-  disorder_eclient_play(client, track, choose_play_completed, 0);
+  disorder_eclient_play(client, choose_play_completed, track, 0);
   
 }
 

@@ -205,9 +205,10 @@ static void queue_drop(struct queuelike attribute((unused)) *ql,
     /* Tell the server to move them.  The log will tell us about the change (if
      * indeed it succeeds!), so no need to rearrange the model now. */
     disorder_eclient_moveafter(client,
+                               queue_drop_completed,
                                after_me ? after_me->id : "",
-                               ntracks, (const char **)ids,
-                               queue_drop_completed, NULL);
+                               (char **)ids, ntracks,
+                               NULL);
   } else {
     /* You can't tell the server to insert after the playing track by ID, you
      * have to send "". */
@@ -215,9 +216,10 @@ static void queue_drop(struct queuelike attribute((unused)) *ql,
       after_me = NULL;
     /* Play the tracks */
     disorder_eclient_playafter(client,
+                               queue_drop_completed,
                                after_me ? after_me->id : "",
-                               ntracks, (const char **)tracks,
-                               queue_drop_completed, NULL);
+                               (char **)tracks, ntracks,
+                               NULL);
   }
 }
 

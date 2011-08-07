@@ -1,0 +1,949 @@
+#! /usr/bin/perl -w
+#
+# This file is part of DisOrder.
+# Copyright (C) 2010-11 Richard Kettlewell
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+use strict;
+
+# This file contains the definition of the disorder protocol, plus
+# code to generates stubs for it in the various supported languages.
+#
+# At the time of writing it is a work in progress!
+
+#
+# Types:
+#
+#    string         A (Unicode) string.
+#    string-raw     A string that is not subject to de-quoting (return only)
+#    integer        An integer.  Decimal on the wire.
+#    time           A timestamp.  Decimal on the wire.
+#    boolean        True or false.  "yes" or "no" on the wire.
+#    list           In commands: a list of strings in the command.
+#                   In returns: a list of lines in the response.
+#    pair-list      In returns: a list of key-value pairs in a response body.
+#    body           In commands: a list of strings as a command body.
+#                   In returns: a list of strings as a response body.
+#    queue          In returns: a list of queue entries in a response body.
+#    queue-one      In returns: a queue entry in the response.
+#    literal        Constant string sent in sequence
+#
+
+# Variables and utilities -----------------------------------------------------
+
+our @h = ();
+our @c = ();
+our @ah = ();
+our @ac = ();
+our @missing = ();
+
+# Mapping of return type sequences to eclient callbacks
+our @eclient_return = (
+    ["no_response" => []],
+    ["string_response" => ["string"]],
+    ["string_response" => ["string-raw"]],
+    ["integer_response" => ["integer"]],
+    ["integer_response" => ["boolean"]],
+    ["time_response" => ["time"]],
+    ["pair_integer_response" => ["integer", "integer"]],
+    ["queue_response" => ["queue"]],
+    ["playing_response" => ["queue-one"]],
+    ["list_response" => ["body"]],
+    );
+
+# eclient_response_matces(RETURNS, VARIANT)
+#
+# Return true if VARIANT matches RETURNS
+sub eclient_response_matches {
+    my $returns = shift;
+    my $variant = shift;
+    my $types = $variant->[1];
+    if(scalar @$returns != scalar @$types) { return 0; }
+    for my $n (0 .. $#$returns) {
+	my $return = $returns->[$n];
+	my $type = $return->[0];
+	if($type ne $types->[$n]) { return 0; }
+    }
+    return 1;
+}
+
+# find_eclient_type(RETURNS)
+#
+# Find the result type for an eclient call
+sub find_eclient_response {
+    my $returns = shift;
+    if(!defined $returns) {
+	$returns = [];
+    }
+    for my $variant (@eclient_return) {
+	if(eclient_response_matches($returns, $variant)) {
+	    return $variant->[0];
+	}
+    }
+    return undef;
+}
+
+# Write(PATH, LINES)
+#
+# Write array ref LINES to file PATH.
+sub Write {
+    my $path = shift;
+    my $lines = shift;
+
+    (open(F, ">$path")
+     and print F @$lines
+     and close F)
+        or die "$0: $path: $!\n";
+}
+
+# Command classes -------------------------------------------------------------
+
+# c_in_decl([TYPE, NAME])
+#
+# Return the C declaration for an input parameter of type TYPE with
+# name NAME.
+sub c_in_decl {
+    my $arg = shift;
+
+    my $type = $arg->[0];
+    my $name = $arg->[1];
+    if($type eq 'string') {
+	return "const char *$name";
+    } elsif($type eq 'integer') {
+	return "long $name";
+    } elsif($type eq 'time') {
+	return "time_t $name";
+    } elsif($type eq 'list' or $type eq 'body') {
+	return ("char **$name",
+		"int n$name");
+    } elsif($type eq 'literal') {
+        return ();
+    } else {
+	die "$0: c_in_decl: unknown type '$type'\n";
+    }
+}
+
+# c_out_decl([TYPE, NAME])
+#
+# Return the C declaration for an output (reference) parameter of type
+# TYPE with name NAME.
+sub c_out_decl {
+    my $arg = shift;
+
+    return () unless defined $arg;
+    my $type = $arg->[0];
+    my $name = $arg->[1];
+    if($type eq 'string' or $type eq 'string-raw') {
+	return ("char **${name}p");
+    } elsif($type eq 'integer') {
+	return ("long *${name}p");
+    } elsif($type eq 'time') {
+	return ("time_t *${name}p");
+    } elsif($type eq 'boolean') {
+	return ("int *${name}p");
+    } elsif($type eq 'list' or $type eq 'body') {
+	return ("char ***${name}p",
+		"int *n${name}p");
+    } elsif($type eq 'pair-list') {
+	return ("struct kvp **${name}p");
+    } elsif($type eq 'queue' or $type eq 'queue-one') {
+	return ("struct queue_entry **${name}p");
+    } elsif($type eq 'user') {
+	return ();
+    } else {
+	die "$0: c_out_decl: unknown type '$type'\n";
+    }
+}
+
+# c_param_docs([TYPE, NAME})
+#
+# Return the doc string for a C input parameter.
+sub c_param_docs {
+    my $args = shift;
+    my @d = ();
+    for my $arg (@$args) {
+        my $type = $arg->[0];
+        my $name = $arg->[1];
+        my $description = $arg->[2];
+	if($type eq 'body' or $type eq 'list') {
+	    push(@d,
+		 " * \@param $name $description\n",
+		 " * \@param n$name Length of $name\n");
+	} elsif($type ne 'literal') {
+	    push(@d, " * \@param $name $description\n");
+	}
+    }
+    return @d;
+}
+
+# c_param_docs([TYPE, NAME})
+#
+# Return the doc string for a C output parameter.
+sub c_return_docs {
+    my $returns = shift;
+    return () unless defined $returns;
+    my @docs = ();
+    for my $return (@$returns) {
+        my $type = $return->[0];
+        my $name = $return->[1];
+        my $descr = $return->[2];
+        if($type eq 'string'
+           or $type eq 'string-raw'
+           or $type eq 'integer'
+           or $type eq 'time'
+           or $type eq 'boolean') {
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
+        } elsif($type eq 'list' or $type eq 'body') {
+            push(@docs,
+		 " * \@param ${name}p $descr\n",
+		 " * \@param n${name}p Number of elements in ${name}p\n");
+        } elsif($type eq 'pair-list') {
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
+        } elsif($type eq 'queue' or $type eq 'queue-one') {
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
+        } elsif($type eq 'user') {
+	    # nothing
+        } else {
+            die "$0: c_return_docs: unknown type '$type'\n";
+        }
+    }
+    return @docs;
+}
+
+# simple(CMD, SUMMARY, DETAIL,
+#        [[TYPE,NAME,DESCR], [TYPE,NAME,DESCR], ...],
+#        [[RETURN-TYPE, RETURN-NAME, RETURN_DESCR]])
+#
+# CMD is normally just the name of the command, but can
+# be [COMMAND,FUNCTION] if the function name should differ
+# from the protocol command.
+sub simple {
+    my $cmd = shift;
+    my $summary = shift;
+    my $detail = shift;
+    my $args = shift;
+    my $returns = shift;
+
+    my $cmdc;
+    if(ref $cmd eq 'ARRAY') {
+        $cmdc = $$cmd[1];
+        $cmd = $$cmd[0];
+    } else {
+        $cmdc = $cmd;
+        $cmdc =~ s/-/_/g;
+    }
+    print STDERR "Processing $cmd... ";
+    # C argument types
+    my @cargs = ();
+    for my $arg (@$args) {
+        if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
+            push(@cargs, "disorder__$arg->[0]", $arg->[1], "n$arg->[1]");
+        } elsif($arg->[0] eq 'string') {
+            push(@cargs, $arg->[1]);
+        } elsif($arg->[0] eq 'integer'
+		or $arg->[0] eq 'time') {
+            push(@cargs, "disorder__$arg->[0]", "$arg->[1]");
+        } elsif($arg->[0] eq 'literal') {
+            push(@cargs, "\"$arg->[1]\"");
+        } else {
+            die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
+        }
+    }
+    # Synchronous C API
+    print STDERR "H ";
+    push(@h, "/** \@brief $summary\n",
+         " *\n",
+         " * $detail\n",
+         " *\n",
+	 " * \@param c Client\n",
+         c_param_docs($args),
+	 c_return_docs($returns),
+         " * \@return 0 on success, non-0 on error\n",
+         " */\n",
+         "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+	            map(c_out_decl($_), @$returns)),
+         ");\n\n");
+    print STDERR "C ";
+    push(@c, "int disorder_$cmdc(",
+	 join(", ", "disorder_client *c",
+	            map(c_in_decl($_), @$args),
+                    map(c_out_decl($_), @$returns)),
+	 ") {\n");
+    if(!defined $returns or scalar @$returns == 0) {
+        # Simple case
+	push(@c, "  return disorder_simple(",
+	     join(", ", "c", "NULL", "\"$cmd\"", @cargs, "(char *)NULL"),
+	     ");\n");
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'queue-one') {
+        # Special case
+        my $return = $$returns[0];
+	push(@c, "  return onequeue(c, \"$cmd\", $return->[1]p);\n");
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'string-raw') {
+        # Special case
+        my $return = $$returns[0];
+	push(@c, "  return disorder_simple(",
+	     join(", ", "c", "$return->[1]p", "\"$cmd\"", @cargs, "(char *)NULL"),
+	     ");\n");
+    } elsif(scalar @$returns == 1
+            and $returns->[0]->[0] eq 'pair-list') {
+        # Special case
+        my $return = $$returns[0];
+	push(@c, "  return pairlist(",
+             join(", ", "c", "$return->[1]p", "\"$cmd\"",
+                  @cargs,
+                  "(char *)NULL"),
+             ");\n");
+    } else {
+        my $expected = 0;
+        for(my $n = 0; $n < scalar @$returns; ++$n) {
+            my $return = $returns->[$n];
+            my $type = $return->[0];
+            my $name = $return->[1];
+            if($type eq 'string'
+               or $type eq 'boolean'
+               or $type eq 'integer'
+               or $type eq 'time'
+               or $type eq 'user') {
+		++$expected;
+            }
+        }
+        if($expected) {
+            push(@c, "  char **v;\n",
+		 "  int nv, rc = disorder_simple_split(",
+		 join(", ",
+		      "c",
+		      "&v",
+		      "&nv",
+		      $expected,
+		      "\"$cmd\"",
+		      @cargs,
+		      "(char *)NULL"),
+		 ");\n",
+		 "  if(rc)\n",
+		 "    return rc;\n");
+        } else {
+	    push(@c,
+		 "  int rc = disorder_simple(",
+		 join(", ",
+		      "c",
+		      "NULL",
+		      "\"$cmd\"",
+		      @cargs,
+		      "(char *)NULL"),
+		 ");\n",
+		 "  if(rc)\n",
+		 "    return rc;\n");
+	}
+        for(my $n = 0; $n < scalar @$returns; ++$n) {
+            my $return = $returns->[$n];
+            my $type = $return->[0];
+            my $name = $return->[1];
+            if($type eq 'string') {
+                push(@c,
+                     "  *${name}p = v[$n];\n",
+		     "  v[$n] = NULL;\n");
+            } elsif($type eq 'boolean') {
+                push(@c,
+                     "  if(boolean(\"$cmd\", v[$n], ${name}p))\n",
+                     "    return -1;\n");
+            } elsif($type eq 'integer') {
+                push(@c,
+                     "  *${name}p = atol(v[$n]);\n");
+            } elsif($type eq 'time') {
+                push(@c,
+                     "  *${name}p = atoll(v[$n]);\n");
+            } elsif($type eq 'user') {
+                push(@c,
+                     "  c->user = v[$n];\n",
+		     "  v[$n] = NULL;\n");
+            } elsif($type eq 'body') {
+                push(@c,
+                     "  if(readlist(c, ${name}p, n${name}p))\n",
+                     "    return -1;\n");
+            } elsif($type eq 'queue') {
+                push(@c,
+                     "  if(readqueue(c, ${name}p))\n",
+                     "    return -1;\n");
+            } else {
+                die "$0: C API: unknown return type '$type' for '$name'\n";
+            }
+        }
+	if($expected) {
+	    push(@c,
+		 "  free_strings(nv, v);\n");
+	}
+        push(@c, "  return 0;\n");
+    }
+    push(@c, "}\n\n");
+
+    # Asynchronous C API
+    my $variant = find_eclient_response($returns);
+    if(defined $variant) {
+	print STDERR "AH ";
+	push(@ah,
+	     "/** \@brief $summary\n",
+	     " *\n",
+	     " * $detail\n",
+	     " *\n",
+	     " * \@param c Client\n",
+	     " * \@param completed Called upon completion\n",
+	     c_param_docs($args),
+	     " * \@param v Passed to \@p completed\n",
+	     " * \@return 0 if the command was queued successfuly, non-0 on error\n",
+	     " */\n",
+	     "int disorder_eclient_$cmdc(",
+	     join(", ", "disorder_eclient *c",
+		  "disorder_eclient_$variant *completed",
+		  map(c_in_decl($_), @$args),
+		  "void *v"),
+	     ");\n\n");
+
+	print STDERR "AC ";
+	push(@ac,
+	     "int disorder_eclient_$cmdc(",
+	     join(", ", "disorder_eclient *c",
+		  "disorder_eclient_$variant *completed",
+		  map(c_in_decl($_), @$args),
+		  "void *v"),
+	     ") {\n");
+	push(@ac, "  return simple(",
+	     join(", ", 
+		  "c",
+		  "${variant}_opcallback",
+		  "(void (*)())completed",
+		  "v",
+		  "\"$cmd\"",
+		  @cargs,
+		  "(char *)0"),
+	     ");\n");
+	push(@ac, "}\n\n");
+    } else {
+	push(@missing, "disorder_eclient_$cmdc");
+    }
+
+    # Python API
+    # TODO
+
+    # Java API
+    # TODO
+    print STDERR "\n";
+}
+
+# TODO other command classes
+
+# Front matter ----------------------------------------------------------------
+
+our @generated = ("/*\n",
+                  " * Automatically generated file, see scripts/protocol\n",
+                  " *\n",
+                  " * DO NOT EDIT.\n",
+                  " */\n");
+
+our @gpl = ("/*\n",
+            " * This file is part of DisOrder.\n",
+            " * Copyright (C) 2010-11 Richard Kettlewell\n",
+            " *\n",
+            " * This program is free software: you can redistribute it and/or modify\n",
+            " * it under the terms of the GNU General Public License as published by\n",
+            " * the Free Software Foundation, either version 3 of the License, or\n",
+            " * (at your option) any later version.\n",
+            " *\n",
+            " * This program is distributed in the hope that it will be useful,\n",
+            " * but WITHOUT ANY WARRANTY; without even the implied warranty of\n",
+            " * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n",
+            " * GNU General Public License for more details.\n",
+            " *\n",
+            " * You should have received a copy of the GNU General Public License\n",
+            " * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n",
+            " */\n");
+
+
+push(@h, @generated, @gpl,
+     "#ifndef CLIENT_STUBS_H\n",
+     "#define CLIENT_STUBS_H\n",
+     "/** \@file lib/client-stubs.h\n",
+     " * \@brief Generated client API\n",
+     " *\n",
+     " * Don't include this file directly - use \@ref lib/client.h instead.\n",
+     " */\n",
+     "\n");
+
+push(@c, @generated, @gpl,
+     "/** \@file lib/client-stubs.c\n",
+     " * \@brief Generated client API implementation\n",
+     " */\n",
+     "\n");
+
+push(@ah, @generated, @gpl,
+     "#ifndef ECLIENT_STUBS_H\n",
+     "#define ECLIENT_STUBS_H\n",
+     "/** \@file lib/client-stubs.h\n",
+     " * \@brief Generated asynchronous client API\n",
+     " *\n",
+     " * Don't include this file directly - use \@ref lib/eclient.h instead.\n",
+     " */\n",
+     "\n");
+
+push(@ac, @generated, @gpl,
+     "/** \@file lib/client-stubs.c\n",
+     " * \@brief Generated asynchronous client API implementation\n",
+     " */\n",
+     "\n");
+
+# The protocol ----------------------------------------------------------------
+
+simple("adopt",
+       "Adopt a track",
+       "Makes the calling user owner of a randomly picked track.",
+       [["string", "id", "Track ID"]]);
+
+simple("adduser",
+       "Create a user",
+       "Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.",
+       [["string", "user", "New username"],
+        ["string", "password", "Initial password"],
+        ["string", "rights", "Initial rights (optional)"]]);
+
+simple("allfiles",
+       "List files and directories in a directory",
+       "See 'files' and 'dirs' for more specific lists.",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       [["body", "files", "List of matching files and directories"]]);
+
+simple("confirm",
+       "Confirm registration",
+       "The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.",
+       [["string", "confirmation", "Confirmation string"]],
+       [["user"]]);
+
+simple("cookie",
+       "Log in with a cookie",
+       "The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.",
+       [["string", "cookie", "Cookie string"]],
+       [["user"]]);
+
+simple("deluser",
+       "Delete user",
+       "Requires the 'admin' right.",
+       [["string", "user", "User to delete"]]);
+
+simple("dirs",
+       "List directories in a directory",
+       "",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       [["body", "files", "List of matching directories"]]);
+
+simple("disable",
+       "Disable play",
+       "Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.",
+       []);
+
+simple("edituser",
+       "Set a user property",
+       "With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.",
+       [["string", "username", "User to modify"],
+        ["string", "property", "Property name"],
+	["string", "value", "New property value"]]);
+
+simple("enable",
+       "Enable play",
+       "Requires the 'global prefs' right.",
+       []);
+
+simple("enabled",
+       "Detect whether play is enabled",
+       "",
+       [],
+       [["boolean", "enabled", "1 if play is enabled and 0 otherwise"]]);
+
+simple("exists",
+       "Test whether a track exists",
+       "",
+       [["string", "track", "Track name"]],
+       [["boolean", "exists", "1 if the track exists and 0 otherwise"]]);
+
+simple("files",
+       "List files in a directory",
+       "",
+       [["string", "dir", "Directory to list (optional)"],
+	["string", "re", "Regexp that results must match (optional)"]],
+       [["body", "files", "List of matching files"]]);
+
+simple("get",
+       "Get a track preference",
+       "If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.",
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"]],
+       [["string", "value", "Preference value"]]);
+
+simple("get-global",
+       "Get a global preference",
+       "If the preference does exist not then a null value is returned.",
+       [["string", "pref", "Global preference name"]],
+       [["string", "value", "Preference value"]]);
+
+simple("length",
+       "Get a track's length",
+       "If the track does not exist an error is returned.",
+       [["string", "track", "Track name"]],
+       [["integer", "length", "Track length in seconds"]]);
+
+# TODO log
+
+simple("make-cookie",
+       "Create a login cookie for this user",
+       "The cookie may be redeemed via the 'cookie' command",
+       [],
+       [["string", "cookie", "Newly created cookie"]]);
+
+simple("move",
+       "Move a track",
+       "Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.",
+       [["string", "track", "Track ID or name"],
+	["integer", "delta", "How far to move the track towards the head of the queue"]]);
+
+simple("moveafter",
+       "Move multiple tracks",
+       "Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.",
+       [["string", "target", "Move after this track, or to head if \"\""],
+	["list", "ids", "List of tracks to move by ID"]]);
+
+simple(["new", "new_tracks"],
+       "List recently added tracks",
+       "",
+       [["integer", "max", "Maximum tracks to fetch, or 0 for all available"]],
+       [["body", "tracks", "Recently added tracks"]]);
+
+simple("nop",
+       "Do nothing",
+       "Used as a keepalive.  No authentication required.",
+       []);
+
+simple("part",
+       "Get a track name part",
+       "If the name part cannot be constructed an empty string is returned.",
+       [["string", "track", "Track name"],
+        ["string", "context", "Context (\"sort\" or \"display\")"],
+        ["string", "part", "Name part (\"artist\", \"album\" or \"title\")"]],
+       [["string", "part", "Value of name part"]]);
+
+simple("pause",
+       "Pause the currently playing track",
+       "Requires the 'pause' right.",
+       []);
+
+simple("play",
+       "Play a track",
+       "Requires the 'play' right.",
+       [["string", "track", "Track to play"]],
+       [["string-raw", "id", "Queue ID of new track"]]);
+
+simple("playafter",
+       "Play multiple tracks",
+       "Requires the 'play' right.",
+       [["string", "target", "Insert into queue after this track, or at head if \"\""],
+	["list", "tracks", "List of track names to play"]]);
+
+simple("playing",
+       "Retrieve the playing track",
+       "",
+       [],
+       [["queue-one", "playing", "Details of the playing track"]]);
+
+simple("playlist-delete",
+       "Delete a playlist",
+       "Requires the 'play' right and permission to modify the playlist.",
+       [["string", "playlist", "Playlist to delete"]]);
+
+simple("playlist-get",
+       "List the contents of a playlist",
+       "Requires the 'read' right and oermission to read the playlist.",
+       [["string", "playlist", "Playlist name"]],
+       [["body", "tracks", "List of tracks in playlist"]]);
+
+simple("playlist-get-share",
+       "Get a playlist's sharing status",
+       "Requires the 'read' right and permission to read the playlist.",
+       [["string", "playlist", "Playlist to read"]],
+       [["string-raw", "share", "Sharing status (\"public\", \"private\" or \"shared\")"]]);
+
+simple("playlist-lock",
+       "Lock a playlist",
+       "Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.",
+       [["string", "playlist", "Playlist to delete"]]);
+
+simple("playlist-set",
+       "Set the contents of a playlist",
+       "Requires the 'play' right and permission to modify the playlist, which must be locked.",
+       [["string", "playlist", "Playlist to modify"],
+	["body", "tracks", "New list of tracks for playlist"]]);
+
+simple("playlist-set-share",
+       "Set a playlist's sharing status",
+       "Requires the 'play' right and permission to modify the playlist.",
+       [["string", "playlist", "Playlist to modify"],
+        ["string", "share", "New sharing status (\"public\", \"private\" or \"shared\")"]]);
+
+simple("playlist-unlock",
+       "Unlock the locked playlist playlist",
+       "The playlist to unlock is implicit in the connection.",
+       []);
+
+simple("playlists",
+       "List playlists",
+       "Requires the 'read' right.  Only playlists that you have permission to read are returned.",
+       [],
+       [["body", "playlists", "Playlist names"]]);
+
+simple("prefs",
+       "Get all the preferences for a track",
+       "",
+       [["string", "track", "Track name"]],
+       [["pair-list", "prefs", "Track preferences"]]);
+
+simple("queue",
+       "List the queue",
+       "",
+       [],
+       [["queue", "queue", "Current queue contents"]]);
+
+simple("random-disable",
+       "Disable random play",
+       "Requires the 'global prefs' right.",
+       []);
+
+simple("random-enable",
+       "Enable random play",
+       "Requires the 'global prefs' right.",
+       []);
+
+simple("random-enabled",
+       "Detect whether random play is enabled",
+       "Random play counts as enabled even if play is disabled.",
+       [],
+       [["boolean", "enabled", "1 if random play is enabled and 0 otherwise"]]);
+
+simple("recent",
+       "List recently played tracks",
+       "",
+       [],
+       [["queue", "recent", "Recently played tracks"]]);
+
+simple("reconfigure",
+       "Re-read configuraiton file.",
+       "Requires the 'admin' right.",
+       []);
+
+simple("register",
+       "Register a new user",
+       "Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.",
+       [["string", "username", "Requested new username"],
+        ["string", "password", "Requested initial password"],
+        ["string", "email", "New user's email address"]],
+       [["string", "confirmation", "Confirmation string"]]);
+
+simple("reminder",
+       "Send a password reminder.",
+       "If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.",
+       [["string", "username", "User to remind"]]);
+
+simple("remove",
+       "Remove a track form the queue.",
+       "Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.",
+       [["string", "id", "Track ID"]]);
+
+simple("rescan",
+       "Rescan all collections for new or obsolete tracks.",
+       "Requires the 'rescan' right.",
+       []);     # TODO wait/fresh flags
+
+simple("resolve",
+       "Resolve a track name",
+       "Converts aliases to non-alias track names",
+       [["string", "track", "Track name (might be an alias)"]],
+       [["string", "resolved", "Resolve track name (definitely not an alias)"]]);
+
+simple("resume",
+       "Resume the currently playing track",
+       "Requires the 'pause' right.",
+       []);
+
+simple("revoke",
+       "Revoke a cookie.",
+       "It will not subsequently be possible to log in with the cookie.",
+       []);
+
+simple("rtp-address",
+       "Get the server's RTP address information",
+       "",
+       [],
+       [["string", "address", "Where to store hostname or address"],
+        ["string", "port", "Where to store service name or port number"]]);
+
+simple("scratch",
+       "Terminate the playing track.",
+       "Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.",
+       [["string", "id", "Track ID (optional)"]]);
+
+simple(["schedule-add", "schedule_add_play"],
+       "Schedule a track to play in the future",
+       "",
+       [["time", "when", "When to play the track"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "play", ""],
+        ["string", "track", "Track to play"]]);
+
+simple(["schedule-add", "schedule_add_set_global"],
+       "Schedule a global setting to be changed in the future",
+       "",
+       [["time", "when", "When to change the setting"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "set-global", ""],
+        ["string", "pref", "Global preference to set"],
+        ["string", "value", "New value of global preference"]]);
+
+simple(["schedule-add", "schedule_add_unset_global"],
+       "Schedule a global setting to be unset in the future",
+       "",
+       [["time", "when", "When to change the setting"],
+        ["string", "priority", "Event priority (\"normal\" or \"junk\")"],
+        ["literal", "set-global", ""],
+        ["string", "pref", "Global preference to set"]]);
+
+simple("schedule-del",
+       "Delete a scheduled event.",
+       "Users can always delete their own scheduled events; with the admin right you can delete any event.",
+       [["string", "event", "ID of event to delete"]]);
+
+simple("schedule-get",
+       "Get the details of scheduled event",
+       "",
+       [["string", "id", "Event ID"]],
+       [["pair-list", "actiondata", "Details of event"]]);
+
+simple("schedule-list",
+       "List scheduled events",
+       "This just lists IDs.  Use 'schedule-get' to retrieve more detail",
+       [],
+       [["body", "ids", "List of event IDs"]]);
+
+simple("search",
+       "Search for tracks",
+       "Terms are either keywords or tags formatted as 'tag:TAG-NAME'.",
+       [["string", "terms", "List of search terms"]],
+       [["body", "tracks", "List of matching tracks"]]);
+
+simple("set",
+       "Set a track preference",
+       "Requires the 'prefs' right.",
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"],
+	["string", "value", "New value"]]);
+
+simple("set-global",
+       "Set a global preference",
+       "Requires the 'global prefs' right.",
+       [["string", "pref", "Preference name"],
+	["string", "value", "New value"]]);
+
+simple("shutdown",
+       "Request server shutdown",
+       "Requires the 'admin' right.",
+       []);
+
+simple("stats",
+       "Get server statistics",
+       "The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.",
+       [],
+       [["body", "stats", "List of server information strings."]]);
+
+simple("tags",
+       "Get a list of known tags",
+       "Only tags which apply to at least one track are returned.",
+       [],
+       [["body", "tags", "List of tags"]]);
+
+simple("unset",
+       "Unset a track preference",
+       "Requires the 'prefs' right.",
+       [["string", "track", "Track name"],
+        ["string", "pref", "Preference name"]]);
+
+simple("unset-global",
+       "Set a global preference",
+       "Requires the 'global prefs' right.",
+       [["string", "pref", "Preference name"]]);
+
+# 'user' only used for authentication
+
+simple("userinfo",
+       "Get a user property.",
+       "If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.",
+       [["string", "username", "User to read"],
+        ["string", "property", "Property to read"]],
+       [["string", "value", "Value of property"]]);
+
+simple("users",
+       "Get a list of users",
+       "",
+       [],
+       [["body", "users", "List of users"]]);
+
+simple("version",
+       "Get the server version",
+       "",
+       [],
+       [["string", "version", "Server version string"]]);
+
+simple(["volume", "set_volume"],
+       "Set the volume",
+       "",
+       [["integer", "left", "Left channel volume"],
+        ["integer", "right", "Right channel volume"]]);
+
+simple(["volume", "get_volume"],
+       "Get the volume",
+       "",
+       [],
+       [["integer", "left", "Left channel volume"],
+        ["integer", "right", "Right channel volume"]]);
+
+# End matter ------------------------------------------------------------------
+
+push(@h, "#endif\n");
+
+push(@ah, "#endif\n");
+
+# Write it all out ------------------------------------------------------------
+
+Write("lib/client-stubs.h", \@h);
+Write("lib/client-stubs.c", \@c);
+
+Write("lib/eclient-stubs.h", \@ah);
+Write("lib/eclient-stubs.c", \@ac);
+
+if(scalar @missing) {
+  print "Missing:\n";
+  print map("  $_\n", @missing);
+}

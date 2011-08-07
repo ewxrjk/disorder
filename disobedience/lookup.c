@@ -74,8 +74,8 @@ static void namepart_fill(const char *track,
   D(("namepart_fill %s %s %s %s", track, context, part, key));
   ++namepart_lookups_outstanding;
   D(("namepart_lookups_outstanding -> %d\n", namepart_lookups_outstanding));
-  disorder_eclient_namepart(client, namepart_completed,
-                            track, context, part, (void *)key);
+  disorder_eclient_part(client, namepart_completed,
+                        track, context, part, (void *)key);
 }
 
 /** @brief Look up a namepart

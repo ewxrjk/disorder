@@ -129,7 +129,7 @@ static void ql_remove_activate_callback(GtkTreeModel *model,
   struct queue_entry *q = ql_iter_to_q(model, iter);
 
   if(q != playing_track)
-    disorder_eclient_remove(client, q->id, ql_remove_completed, q);
+    disorder_eclient_remove(client, ql_remove_completed, q->id, q);
 }
 
 void ql_remove_activate(GtkMenuItem attribute((unused)) *menuitem,
@@ -148,7 +148,8 @@ int ql_play_sensitive(void *extra) {
     && gtk_tree_selection_count_selected_rows(ql->selection) > 0;
 }
 
-static void ql_play_completed(void attribute((unused)) *v, const char *err) {
+static void ql_play_completed(void attribute((unused)) *v, const char *err,
+                              const char attribute((unused)) *id) {
   if(err)
     popup_protocol_error(0, err);
 }
@@ -159,7 +160,7 @@ static void ql_play_activate_callback(GtkTreeModel *model,
                                       gpointer attribute((unused)) data) {
   struct queue_entry *q = ql_iter_to_q(model, iter);
 
-  disorder_eclient_play(client, q->track, ql_play_completed, q);
+  disorder_eclient_play(client, ql_play_completed, q->track, q);
 }
 
 void ql_play_activate(GtkMenuItem attribute((unused)) *menuitem,

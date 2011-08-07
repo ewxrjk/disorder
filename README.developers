@@ -9,13 +9,12 @@ Dependencies:
 
    * On Debian and derivatives this should work:
 
-     apt-get install gcc libc-dev automake autoconf libtool libgtk2.0-dev \
+     apt-get install gcc libc6-dev automake autoconf libtool libgtk2.0-dev \
 		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
-		     libao-dev libmad0-dev libasound2-dev libdb4.3-dev \
+		     libao-dev libmad0-dev libasound2-dev libdb4.5-dev \
 		     libflac-dev vorbis-tools wget libsamplerate0-dev
 
-     On lenny use libdb4.5-deb.  libdb4.6 does not work (and configure will
-     refuse to use it).
+     libdb4.6 does not work (and configure will refuse to use it).
 
    * On FreeBSD you'll need at least these packages:
        autotools bash flac mad boehm-gc db43 gmake gsed libao libgcrypt wget
@@ -107,14 +106,11 @@ The Server:
    * To add a new command:
      1) Add a new c_ function and table entry in server/server.c
      2) Document the new command in doc/disorder_protocol.5.in
-     3) Add a new function to lib/client.c
+     3) Add a new function to scripts/protocol.
      4) Add a new function to lib/eclient.c
      5) Add a new function to python/disorder.py.in
      6) Add a new command to clients/disorder.c and update doc/disorder.1.in
      7) Add a new test somewhere in tests/*.py
-     Depending on the purpose of the command it may be acceptable to leave out
-     some of the client side work - for instance commands only ever used by the
-     web interface are not implemented in lib/eclient.c.
 
    * See disorder_protocol(5) for details of how the status code is
      constructed, and the existing commands for examples.
@@ -127,10 +123,13 @@ The Server:
 
 Web Interface:
 
+   * The support targets are current Firefox, Chrome, IE and Safari.  Obscure,
+     obsolete or text-only browsers are not of significant interest.
+
    * The web interface does not use Javascript or Flash and I would like to
-     keep it that way; Javascript might be acceptable but it must degrade
-     gracefuly if disabled.  Clever use of CSS is OK provided it works well on
-     the mainstream browsers.
+     keep it that way.  Javascript is likely to be acceptable if useful, but it
+     should degrade gracefuly if unavailable.  Clever use of CSS is OK provided
+     it works well on the mainstream browsers.
 
    * Update templates/help.tmpl for any changes you make.
 
@@ -148,7 +147,7 @@ Disobedience:
      a problem for Disobedience than the server.  Use the GLIB event loop to
      deal with long-running operations if you do need any.
 
-   * Update doc/disobedience.1.in for any changes you make.
+   * Update the contents of disobedience/manual/ for any changes you make.
 
 New Platforms:
 

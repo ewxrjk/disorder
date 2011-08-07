@@ -468,9 +468,7 @@ static void toggled_menu(GtkCheckMenuItem attribute((unused)) *menuitem,
 
 /** @brief Called when a volume command completes */
 static void volume_completed(void attribute((unused)) *v,
-                             const char *err,
-                             int attribute((unused)) l,
-                             int attribute((unused)) r) {
+                             const char *err) {
   if(err)
     popup_protocol_error(0, err);
   /* We don't set the UI's notion of the volume here, it is set from the log
@@ -498,10 +496,10 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
     if(backend && backend->set_volume)
       backend->set_volume(&l, &r);
   } else
-    disorder_eclient_volume(client, volume_completed,
-                            nearbyint(left(v, b) * 100),
-                            nearbyint(right(v, b) * 100),
-                            0);
+    disorder_eclient_set_volume(client, volume_completed,
+                                nearbyint(left(v, b) * 100),
+                                nearbyint(right(v, b) * 100),
+                                0);
 }
 
 /** @brief Formats the volume value */

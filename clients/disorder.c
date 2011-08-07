@@ -138,8 +138,9 @@ static void cf_playing(char attribute((unused)) **argv) {
 }
 
 static void cf_play(char **argv) {
+  char *id;
   while(*argv)
-    if(disorder_play(getclient(), *argv++)) exit(EXIT_FAILURE);
+    if(disorder_play(getclient(), *argv++, &id)) exit(EXIT_FAILURE);
 }
 
 static void cf_remove(char **argv) {
@@ -244,7 +245,7 @@ static int isarg_regexp(const char *s) {
 }
 
 static void cf_dirs(char **argv) {
-  cf_somelist(argv, disorder_directories);
+  cf_somelist(argv, disorder_dirs);
 }
 
 static void cf_files(char **argv) {
@@ -316,10 +317,10 @@ static void cf_stats(char attribute((unused)) **argv) {
 }
 
 static void cf_get_volume(char attribute((unused)) **argv) {
-  int l, r;
+  long l, r;
 
   if(disorder_get_volume(getclient(), &l, &r)) exit(EXIT_FAILURE);
-  xprintf("%d %d\n", l, r);
+  xprintf("%ld %ld\n", l, r);
 }
 
 static void cf_set_volume(char **argv) {
@@ -344,7 +345,7 @@ static void cf_move(char **argv) {
 static void cf_part(char **argv) {
   char *s;
 
-  if(disorder_part(getclient(), &s, argv[0], argv[1], argv[2])) exit(EXIT_FAILURE);
+  if(disorder_part(getclient(), argv[0], argv[1], argv[2], &s)) exit(EXIT_FAILURE);
   xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
@@ -359,7 +360,7 @@ static void cf_authorize(char **argv) {
 static void cf_resolve(char **argv) {
   char *track;
 
-  if(disorder_resolve(getclient(), &track, argv[0])) exit(EXIT_FAILURE);
+  if(disorder_resolve(getclient(), argv[0], &track)) exit(EXIT_FAILURE);
   xprintf("%s\n", nullcheck(utf82mb_f(track)));
 }
 
@@ -415,7 +416,7 @@ static int isarg_integer(const char *s) {
 static void cf_new(char **argv) {
   char **vec;
 
-  if(disorder_new_tracks(getclient(), &vec, 0, argv[0] ? atoi(argv[0]) : 0))
+  if(disorder_new_tracks(getclient(), argv[0] ? atol(argv[0]) : 0, &vec, 0))
     exit(EXIT_FAILURE);
   while(*vec)
     xprintf("%s\n", nullcheck(utf82mb(*vec++)));
@@ -586,31 +587,27 @@ static void cf_schedule_del(char **argv) {
 }
 
 static void cf_schedule_play(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "play",
-			   argv[2]))
+  if(disorder_schedule_add_play(getclient(),
+                                dateparse(argv[0]),
+                                argv[1],
+                                argv[2]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_set_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   argv[3]))
+  if(disorder_schedule_add_set_global(getclient(),
+                                      dateparse(argv[0]),
+                                      argv[1],
+                                      argv[2],
+                                      argv[3]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_unset_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   (char *)0))
+  if(disorder_schedule_add_unset_global(getclient(),
+                                        dateparse(argv[0]),
+                                        argv[1],
+                                        argv[2]))
     exit(EXIT_FAILURE);
 }
 

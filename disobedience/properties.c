@@ -338,8 +338,8 @@ static void kickoff_namepart(struct prefdata *f) {
    * wanted was the underlying preference, but in fact it should always match
    * and will supply a sane default without having to know how to parse tracks
    * names (which implies knowing collection roots). */
-  disorder_eclient_namepart(client, prefdata_completed,
-                            f->track, "display", f->p->part, f);
+  disorder_eclient_part(client, prefdata_completed,
+                        f->track, "display", f->p->part, f);
 }
 
 static void completed_namepart(struct prefdata *f) {
