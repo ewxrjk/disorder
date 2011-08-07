@@ -80,8 +80,12 @@ static int handle_sigterm(ev_source attribute((unused)) *ev_,
 
 /* periodic actions --------------------------------------------------------- */
 
+/** @brief A job executed periodically by the server */
 struct periodic_data {
+  /** @brief Callback to process job */
   void (*callback)(ev_source *);
+
+  /** @brief Period of job in seconds */
   int period;
 };
 

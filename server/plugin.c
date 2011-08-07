@@ -28,9 +28,15 @@
 # define SOSUFFIX ".so"
 #endif
 
+/** @brief A loaded plugin */
 struct plugin {
+  /** @brief Next plugin */
   struct plugin *next;
+
+  /** @brief Handle returned from dlopen() */
   void *dlhandle;
+
+  /** @brief Plugin name */
   const char *name;
 };
 

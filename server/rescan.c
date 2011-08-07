@@ -164,14 +164,33 @@ done:
       ;
 }
 
+/** @brief State for the recheck phase of the rescan */
 struct recheck_state {
+  /** @brief Collection being rechecked */
   const struct collection *c;
-  long nobsolete, nnocollection, nlength;
+
+  /** @brief Number of tracks obsoleted */
+  long nobsolete;
+
+  /** @brief Number of tracks belonging to no collection */
+  long nnocollection;
+
+  /** @brief Number of lengths computed */
+  long nlength;
+
+  /** @brief Linked list of tracks to recheck */
   struct recheck_track *tracks;
 };
 
+/** @brief A track to recheck
+ *
+ * A node in a linked list.
+ */
 struct recheck_track {
+  /** @brief Next track */
   struct recheck_track *next;
+
+  /** @brief Track */
   const char *track;
 };
 

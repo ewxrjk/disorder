@@ -227,6 +227,10 @@ void ql_update_list_store(struct queuelike *ql) {
   }
 }
 
+/** @brief Old and new queue data
+ *
+ * Used when updating a @ref queuelike with new data from the server.
+ */
 struct newqueue_data {
   struct queue_entry *old, *new;
 };

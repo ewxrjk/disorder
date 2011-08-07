@@ -61,23 +61,26 @@ struct prefdata {
   GtkWidget *widget;
 };
 
-/* The type of a preference is the collection of callbacks needed to get,
- * display and set it */
+/** @brief Type of a track preference
+ *
+ * The type of a preference is the collection of callbacks needed to get,
+ * display and set it.
+ */
 struct preftype {
+  /** @brief Kick off the request to fetch the pref from the server. */
   void (*kickoff)(struct prefdata *f);
-  /* Kick off the request to fetch the pref from the server. */
 
+  /** @brief Called when the value comes back in; creates the widget. */
   void (*completed)(struct prefdata *f);
-  /* Called when the value comes back in; creates the widget. */
 
+  /** @brief Get the edited value from the widget. */
   const char *(*get_edited)(struct prefdata *f);
-  /* Get the edited value from the widget. */
 
   /** @brief Update the edited value */
   void (*set_edited)(struct prefdata *f, const char *value);
 
+  /** @brief Set the new value and (if necessary) arrange for our display to update. */
   void (*set)(struct prefdata *f, const char *value);
-  /* Set the new value and (if necessary) arrange for our display to update. */
 };
 
 /* A namepart pref */
@@ -107,7 +110,7 @@ static const struct preftype preftype_boolean = {
   set_boolean
 };
 
-/* @brief The known prefs for each track */
+/** @brief The known prefs for each track */
 static const struct pref {
   const char *label;                    /**< @brief user-level description */
   const char *part;                     /**< @brief protocol-level tag */

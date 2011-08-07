@@ -24,8 +24,12 @@
 
 #include "disorder-cgi.h"
 
+/** @brief State for parsing an options file */
 struct read_options_state {
+  /** @brief Filename */
   const char *name;
+
+  /** @brief Line number */
   int line;
 };
 

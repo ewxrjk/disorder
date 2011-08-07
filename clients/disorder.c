@@ -504,9 +504,15 @@ static void cf_setup_guest(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+/** @brief A scheduled event read from the server */
 struct scheduled_event {
+  /** @brief When event should occur */
   time_t when;
+
+  /** @brief Details of action */
   struct kvp *actiondata;
+
+  /** @brief Event ID */
   char *id;
 };
 

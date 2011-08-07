@@ -87,6 +87,7 @@ class Error(Exception):
   """Base class for DisOrder exceptions."""
 
 class _splitError(Error):
+  """Error parsing a quoted string list"""
   # _split failed
   def __init__(self, value):
     self.value = value

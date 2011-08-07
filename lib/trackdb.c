@@ -1389,6 +1389,7 @@ int trackdb_obsolete(const char *track, DB_TXN *tid) {
 #define H(name) { #name, offsetof(DB_HASH_STAT, name) }
 #define B(name) { #name, offsetof(DB_BTREE_STAT, name) }
 
+/** @brief Table of libdb stats to return */
 static const struct statinfo {
   const char *name;
   size_t offset;
