@@ -278,8 +278,6 @@ int main(int argc, char **argv) {
   recent_read();
   /* Arrange timeouts for schedule actions */
   schedule_init(ev);
-  /* pull in old users */
-  trackdb_old_users();
   /* create a root login */
   trackdb_create_root();
   /* create sockets */

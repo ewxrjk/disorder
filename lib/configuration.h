@@ -112,14 +112,8 @@ struct config {
   /** @brief All tracklength plugins */
   struct stringlistlist tracklength;
 
-  /** @brief Allowed users */
-  struct stringlistlist allow;
-
   /** @brief Scratch tracks */
   struct stringlist scratch;
-
-  /** @brief Gap between tracks in seconds */
-  long gap;
 
   /** @brief Maximum number of recent tracks to record in history */
   long history;
@@ -127,9 +121,6 @@ struct config {
   /** @brief Expiry limit for noticed.db */
   long noticed_history;
   
-  /** @brief Trusted users */
-  struct stringlist trust;
-
   /** @brief User for server to run as */
   const char *user;
 
@@ -157,16 +148,11 @@ struct config {
   /** @brief Mixer channel to use */
   char *channel;
 
-  long prefsync;			/* preflog sync interval */
-
   /** @brief Secondary listen address */
   struct netaddress listen;
 
   /** @brief Alias format string */
   const char *alias;
-
-  /** @brief Enable server locking */
-  int lock;
 
   /** @brief Nice value for server */
   long nice_server;
@@ -221,16 +207,6 @@ struct config {
 
   /** @brief Minimum refresh interval for web interface (seconds) */
   long refresh_min;
-
-  /** @brief Facilities restricted to trusted users
-   *
-   * A bitmap of @ref RESTRICT_SCRATCH, @ref RESTRICT_REMOVE and @ref
-   * RESTRICT_MOVE.
-   */
-  unsigned restrictions;		/* restrictions */
-#define RESTRICT_SCRATCH 1		/**< Restrict scratching */
-#define RESTRICT_REMOVE 2		/**< Restrict removal */
-#define RESTRICT_MOVE 4			/**< Restrict rearrangement */
 
   /** @brief Target queue length */
   long queue_pad;

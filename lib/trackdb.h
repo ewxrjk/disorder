@@ -159,7 +159,6 @@ const char *trackdb_get_global(const char *name);
 char **trackdb_new(int *ntracksp, int maxtracks);
 
 void trackdb_expire_noticed(time_t when);
-void trackdb_old_users(void);
 void trackdb_create_root(void);
 const char *trackdb_get_password(const char *user);
 int trackdb_adduser(const char *user,

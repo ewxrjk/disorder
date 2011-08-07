@@ -76,14 +76,13 @@ static void act_playing(void) {
      && dcgi_playing->sofar >= 0) {
     /* Try to put the next refresh at the start of the next track. */
     xtime(&now);
-    fin = now + length - dcgi_playing->sofar + config->gap;
+    fin = now + length - dcgi_playing->sofar;
     if(now + refresh > fin)
       refresh = fin - now;
   }
   if(dcgi_queue && dcgi_queue->origin == origin_scratch) {
-    /* next track is a scratch, don't leave more than the inter-track gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
+    /* next track is a scratch, refresh immediately */
+    refresh = 0;
   }
   if(!dcgi_playing
      && ((dcgi_queue
@@ -91,9 +90,8 @@ static void act_playing(void) {
          || dcgi_random_enabled)
      && dcgi_enabled) {
     /* no track playing but playing is enabled and there is something coming
-     * up, must be in a gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
+     * up, so refresh immediately */
+    refresh = 0;
   }
   /* Bound the refresh interval below as a back-stop against the above
    * calculations coming up with a stupid answer */

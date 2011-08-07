@@ -348,8 +348,6 @@ struct pbgc_params {
   int argc;
   /** @brief Player command */
   const char **argv;
-  /** @brief Device to wait for or NULL */
-  const char *waitdevice;
   /** @brief Raw track name */
   const char *rawpath;
 };

@@ -3005,21 +3005,6 @@ void trackdb_gc(void) {
 
 /* user database *************************************************************/
 
-/** @brief Return true if @p user is trusted
- * @param user User to look up
- * @return Nonzero if they are in the 'trusted' list
- *
- * Now used only in upgrade from old versions.
- */
-static int trusted(const char *user) {
-  int n;
-
-  for(n = 0; (n < config->trust.n
-	      && strcmp(config->trust.s[n], user)); ++n)
-    ;
-  return n < config->trust.n;
-}
-
 /** @brief Add a user
  * @param user Username
  * @param password Initial password or NULL
@@ -3094,41 +3079,6 @@ static int one_old_user(const char *user, const char *password,
     rights = config->default_rights;
   return create_user(user, password, rights, 0/*email*/, 0/*confirmation*/,
                      tid, DB_NOOVERWRITE);
-}
-
-/** @brief Upgrade old users
- * @param tid Owning transaction
- * @return 0 or DB_LOCK_DEADLOCK
- */
-static int trackdb_old_users_tid(DB_TXN *tid) {
-  int n;
-
-  for(n = 0; n < config->allow.n; ++n) {
-    switch(one_old_user(config->allow.s[n].s[0], config->allow.s[n].s[1],
-                        tid)) {
-    case 0:
-      disorder_info("created user %s from 'allow' directive",
-                    config->allow.s[n].s[0]);
-      break;
-    case DB_KEYEXIST:
-      disorder_error(0, "user %s already exists, delete 'allow' directive",
-            config->allow.s[n].s[0]);
-          /* This won't ever become fatal - eventually 'allow' will be
-           * disabled. */
-      break;
-    case DB_LOCK_DEADLOCK:
-      return DB_LOCK_DEADLOCK;
-    }
-  }
-  return 0;
-}
-
-/** @brief Read old 'allow' directives and copy them to the users database */
-void trackdb_old_users(void) {
-  int e;
-
-  if(config->allow.n)
-    WITH_TRANSACTION(trackdb_old_users_tid(tid));
 }
 
 /** @brief Create a root user in the user database if there is none */

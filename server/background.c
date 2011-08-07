@@ -70,19 +70,9 @@ int play_background(ev_source *ev,
       --optc;
       break;
     }
-    if(!strcmp(optv[0], "--wait-for-device")
-       || !strncmp(optv[0], "--wait-for-device=", 18)) {
-      const char *waitdevice;
-      if((waitdevice = strchr(optv[0], '='))) {
-	params->waitdevice = waitdevice + 1;
-      } else
-        params->waitdevice = "";	/* use default */
-      ++optv;
-      --optc;
-    } else {
-      disorder_error(0, "unknown option %s", optv[0]);
-      return START_HARDFAIL;
-    }
+    /* Currently no options supported */
+    disorder_error(0, "unknown option %s", optv[0]);
+    return START_HARDFAIL;
   }
   params->argc = optc;
   params->argv = optv;

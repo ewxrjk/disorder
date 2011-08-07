@@ -398,8 +398,7 @@ For the possible values see
 .B "Users And Access Control"
 above.
 .IP
-The default is to allow everything except \fBadmin\fR and \fBregister\fR
-(modified in legacy configurations by the obsolete \fBrestrict\fR directive).
+The default is to allow everything except \fBadmin\fR and \fBregister\fR.
 .TP
 .B device \fINAME\fR
 Sound output device.
@@ -420,9 +419,6 @@ Remember to quote the name.
 The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
 .TP
-.B gap \fISECONDS\fR
-This option no longer does anything and will be removed in a future version.
-.TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including
 failed tracks and scratches).
@@ -440,9 +436,6 @@ implied by \fIHOST\fR.
 Note that IPv6 is not currently well tested.
 .IP
 Normally the server only listens on a UNIX domain socket.
-.TP
-.B lock yes\fR|\fBno
-This option no longer does anything and will be removed in a future version.
 .TP
 .B mixer \fIDEVICE\fR
 The mixer device name, if it needs to be specified separately from
@@ -585,14 +578,6 @@ Specifies the player for files matching the glob \fIPATTERN\fR.
 The following options are supported:
 .RS
 .TP
-.B \-\-wait\-for\-device\fR[\fB=\fIDEVICE\fR]
-\fBThis option is deprecated\fR.
-If you want gapless play use raw-format players and the speaker process instead.
-(This the default in any case.)
-.IP
-Waits (for up to a couple of seconds) for the default, or specified, libao
-device to become openable.
-.TP
 .B \-\-
 Defines the end of the list of options.
 Needed if the first argument to the plugin starts with a "\-".
@@ -640,9 +625,6 @@ is used without arguments, the list of players is cleared.
 Although players can be changed during the lifetime of the server, note that
 background decoders will not be stopped and restarted using changed
 configuration once they have been started.
-.TP
-.B prefsync \fISECONDS\fR
-This option no longer does anything and will be removed in a future version.
 .TP
 .B queue_pad \fICOUNT\fR
 The target size of the queue.

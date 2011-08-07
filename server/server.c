@@ -634,7 +634,7 @@ static int c_queue(struct conn *c,
       if((l = trackdb_get(playing->track, "_length"))
 	 && (length = atol(l))) {
 	xtime(&when);
-	when += length - playing->sofar + config->gap;
+	when += length - playing->sofar;
       }
     } else
       /* Nothing is playing but playing is enabled, so whatever is
@@ -649,7 +649,7 @@ static int c_queue(struct conn *c,
     if(when) {
       if((l = trackdb_get(q->track, "_length"))
 	 && (length = atol(l)))
-	when += length + config->gap;
+	when += length;
       else
 	when = 0;
     }

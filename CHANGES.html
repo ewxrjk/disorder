@@ -68,6 +68,24 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
     href="http://www.unicode.org/versions/Unicode6.0.0/">Unicode
     6.0.0</a>.</p>
     
+    <p>The following have been removed:</p>
+
+    <ul>
+
+      <li>The <tt>allow</tt>, <tt>gap</tt>, <tt>lock</tt>, <tt>prefsync</tt>, 
+      <tt>restrict</tt>, <tt>trust</tt> configuration commands.  If they still
+      appear in your configuration file then the server will not start.</li>
+
+      <li>The <tt>columns</tt> web interface option.  It will generate an
+      message in your error log but otherwise be ignored.</li>
+
+      <li>The <tt>--wait-for-device</tt> player option.  If it still appears in
+      any player commands, they will not work.</li>
+
+      <li>Support for automatically importing pre-3.0 users.</li>
+
+    </ul>
+
     <p>Various minor bug fixes.</p>
 
   </div>

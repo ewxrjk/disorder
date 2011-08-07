@@ -340,33 +340,6 @@ static int start_child(struct queue_entry *q,
                        void attribute((unused)) *bgdata) {
   int n;
 
-  /* Wait for a device to clear.  This ugliness is now deprecated and will
-   * eventually be removed. */
-  if(params->waitdevice) {
-    ao_initialize();
-    if(*params->waitdevice) {
-      n = ao_driver_id(params->waitdevice);
-      if(n == -1)
-        disorder_fatal(0, "invalid libao driver: %s", params->waitdevice);
-    } else
-      n = ao_default_driver_id();
-    /* Make up a format. */
-    ao_sample_format format;
-    memset(&format, 0, sizeof format);
-    format.bits = 8;
-    format.rate = 44100;
-    format.channels = 1;
-    format.byte_format = AO_FMT_NATIVE;
-    int retries = 20;
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000000;             /* 0.1s */
-    ao_device *device;
-    while((device = ao_open_live(n, &format, 0)) == 0 && retries-- > 0)
-      nanosleep(&ts, 0);
-    if(device)
-      ao_close(device);
-  }
   /* Play the track */
   play_track(q->pl,
              params->argv, params->argc,
