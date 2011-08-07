@@ -1,5 +1,8 @@
 #ifndef STRPTIME_H
 #define STRPTIME_H
+/** @file lib/strptime.h
+ * @brief strptime() reimplementation
+ */
 
 #include <time.h>
 

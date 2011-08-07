@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file server/decode.c
+/** @file server/decode-flac.c
  * @brief General-purpose decoder for use by speaker process
  */
 #include "decode.h"
