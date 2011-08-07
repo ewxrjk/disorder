@@ -82,9 +82,7 @@ int disorder_eclient_make_cookie(disorder_eclient *c, disorder_eclient_string_re
 }
 
 int disorder_eclient_move(disorder_eclient *c, disorder_eclient_no_response *completed, const char *track, long delta, void *v) {
-  char buf_delta[16];
-  byte_snprintf(buf_delta, sizeof buf_delta, "%ld", delta);
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "move", track, buf_delta, (char *)0);
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "move", track, disorder__integer, delta, (char *)0);
 }
 
 int disorder_eclient_moveafter(disorder_eclient *c, disorder_eclient_no_response *completed, const char *target, char **ids, int nids, void *v) {
@@ -92,9 +90,7 @@ int disorder_eclient_moveafter(disorder_eclient *c, disorder_eclient_no_response
 }
 
 int disorder_eclient_new_tracks(disorder_eclient *c, disorder_eclient_list_response *completed, long max, void *v) {
-  char buf_max[16];
-  byte_snprintf(buf_max, sizeof buf_max, "%ld", max);
-  return simple(c, list_response_opcallback, (void (*)())completed, v, "new", buf_max, (char *)0);
+  return simple(c, list_response_opcallback, (void (*)())completed, v, "new", disorder__integer, max, (char *)0);
 }
 
 int disorder_eclient_nop(disorder_eclient *c, disorder_eclient_no_response *completed, void *v) {
@@ -210,21 +206,15 @@ int disorder_eclient_scratch(disorder_eclient *c, disorder_eclient_no_response *
 }
 
 int disorder_eclient_schedule_add_play(disorder_eclient *c, disorder_eclient_no_response *completed, time_t when, const char *priority, const char *track, void *v) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", buf_when, priority, "play", track, (char *)0);
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", disorder__time, when, priority, "play", track, (char *)0);
 }
 
 int disorder_eclient_schedule_add_set_global(disorder_eclient *c, disorder_eclient_no_response *completed, time_t when, const char *priority, const char *pref, const char *value, void *v) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", buf_when, priority, "set-global", pref, value, (char *)0);
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", disorder__time, when, priority, "set-global", pref, value, (char *)0);
 }
 
 int disorder_eclient_schedule_add_unset_global(disorder_eclient *c, disorder_eclient_no_response *completed, time_t when, const char *priority, const char *pref, void *v) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", buf_when, priority, "set-global", pref, (char *)0);
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", disorder__time, when, priority, "set-global", pref, (char *)0);
 }
 
 int disorder_eclient_schedule_del(disorder_eclient *c, disorder_eclient_no_response *completed, const char *event, void *v) {
@@ -280,11 +270,7 @@ int disorder_eclient_version(disorder_eclient *c, disorder_eclient_string_respon
 }
 
 int disorder_eclient_set_volume(disorder_eclient *c, disorder_eclient_no_response *completed, long left, long right, void *v) {
-  char buf_left[16];
-  byte_snprintf(buf_left, sizeof buf_left, "%ld", left);
-  char buf_right[16];
-  byte_snprintf(buf_right, sizeof buf_right, "%ld", right);
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "volume", buf_left, buf_right, (char *)0);
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "volume", disorder__integer, left, disorder__integer, right, (char *)0);
 }
 
 int disorder_eclient_get_volume(disorder_eclient *c, disorder_eclient_pair_integer_response *completed, void *v) {

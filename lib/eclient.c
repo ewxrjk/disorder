@@ -888,6 +888,16 @@ static void vstash_command(disorder_eclient *c,
       } else if(arg == disorder__body) {
 	body = va_arg(ap, char **);
 	nbody = va_arg(ap, int);
+      } else if(arg == disorder__integer) {
+        long n = va_arg(ap, long);
+        char buffer[16];
+        snprintf(buffer, sizeof buffer, "%ld", n);
+        vector_append(&vec, xstrdup(buffer));
+      } else if(arg == disorder__time) {
+        time_t n = va_arg(ap, time_t);
+        char buffer[16];
+        snprintf(buffer, sizeof buffer, "%lld", (long long)n);
+        vector_append(&vec, xstrdup(buffer));
       } else
         vector_append(&vec, arg);
     }

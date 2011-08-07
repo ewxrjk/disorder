@@ -160,9 +160,7 @@ int disorder_make_cookie(disorder_client *c, char **cookiep) {
 }
 
 int disorder_move(disorder_client *c, const char *track, long delta) {
-  char buf_delta[16];
-  byte_snprintf(buf_delta, sizeof buf_delta, "%ld", delta);
-  return disorder_simple(c, NULL, "move", track, buf_delta, (char *)NULL);
+  return disorder_simple(c, NULL, "move", track, disorder__integer, delta, (char *)NULL);
 }
 
 int disorder_moveafter(disorder_client *c, const char *target, char **ids, int nids) {
@@ -170,9 +168,7 @@ int disorder_moveafter(disorder_client *c, const char *target, char **ids, int n
 }
 
 int disorder_new_tracks(disorder_client *c, long max, char ***tracksp, int *ntracksp) {
-  char buf_max[16];
-  byte_snprintf(buf_max, sizeof buf_max, "%ld", max);
-  int rc = disorder_simple(c, NULL, "new", buf_max, (char *)NULL);
+  int rc = disorder_simple(c, NULL, "new", disorder__integer, max, (char *)NULL);
   if(rc)
     return rc;
   if(readlist(c, tracksp, ntracksp))
@@ -358,21 +354,15 @@ int disorder_scratch(disorder_client *c, const char *id) {
 }
 
 int disorder_schedule_add_play(disorder_client *c, time_t when, const char *priority, const char *track) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "play", track, (char *)NULL);
+  return disorder_simple(c, NULL, "schedule-add", disorder__time, when, priority, "play", track, (char *)NULL);
 }
 
 int disorder_schedule_add_set_global(disorder_client *c, time_t when, const char *priority, const char *pref, const char *value) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "set-global", pref, value, (char *)NULL);
+  return disorder_simple(c, NULL, "schedule-add", disorder__time, when, priority, "set-global", pref, value, (char *)NULL);
 }
 
 int disorder_schedule_add_unset_global(disorder_client *c, time_t when, const char *priority, const char *pref) {
-  char buf_when[16];
-  byte_snprintf(buf_when, sizeof buf_when, "%lld", (long long)when);
-  return disorder_simple(c, NULL, "schedule-add", buf_when, priority, "set-global", pref, (char *)NULL);
+  return disorder_simple(c, NULL, "schedule-add", disorder__time, when, priority, "set-global", pref, (char *)NULL);
 }
 
 int disorder_schedule_del(disorder_client *c, const char *event) {
@@ -471,11 +461,7 @@ int disorder_version(disorder_client *c, char **versionp) {
 }
 
 int disorder_set_volume(disorder_client *c, long left, long right) {
-  char buf_left[16];
-  byte_snprintf(buf_left, sizeof buf_left, "%ld", left);
-  char buf_right[16];
-  byte_snprintf(buf_right, sizeof buf_right, "%ld", right);
-  return disorder_simple(c, NULL, "volume", buf_left, buf_right, (char *)NULL);
+  return disorder_simple(c, NULL, "volume", disorder__integer, left, disorder__integer, right, (char *)NULL);
 }
 
 int disorder_get_volume(disorder_client *c, long *leftp, long *rightp) {

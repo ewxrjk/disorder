@@ -74,11 +74,10 @@ socklen_t find_server(struct config *c,
   return len;
 }
 
-/** @brief Marker for a command body */
 const char disorder__body[1];
-
-/** @brief Marker for a list of args */
 const char disorder__list[1];
+const char disorder__integer[1];
+const char disorder__time[1];
 
 /*
 Local Variables:

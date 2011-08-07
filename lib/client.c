@@ -176,6 +176,13 @@ static int check_response(disorder_client *c, char **rp) {
  * then the list is assumed to be NULL-terminated.  This may be used
  * any number of times.
  *
+ * Put @ref disorder__integer in the argument list followed by a long to
+ * send its value in decimal.  This may be used any number of times.
+ *
+ * Put @ref disorder__time in the argument list followed by a time_t
+ * to send its value in decimal.  This may be used any number of
+ * times.
+ *
  * Usually you would call this via one of the following interfaces:
  * - disorder_simple()
  */
@@ -213,6 +220,18 @@ static int disorder_simple_v(disorder_client *c,
 	  dynstr_append(&d, ' ');
 	  dynstr_append_string(&d, quoteutf8(arg));
 	}
+      } else if(arg == disorder__integer) {
+	long n = va_arg(ap, long);
+	char buffer[16];
+	snprintf(buffer, sizeof buffer, "%ld", n);
+	dynstr_append(&d, ' ');
+	dynstr_append_string(&d, buffer);
+      } else if(arg == disorder__time) {
+	time_t n = va_arg(ap, time_t);
+	char buffer[16];
+	snprintf(buffer, sizeof buffer, "%lld", (long long)n);
+	dynstr_append(&d, ' ');
+	dynstr_append_string(&d, buffer);
       } else {
 	dynstr_append(&d, ' ');
 	dynstr_append_string(&d, quoteutf8(arg));
