@@ -539,6 +539,7 @@ int disorder_revoke(disorder_client *c);
  *
  * @param c Client
  * @param addressp Where to store hostname or address
+ * @param portp Where to store service name or port number
  * @return 0 on success, non-0 on error
  */
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
@@ -759,6 +760,7 @@ int disorder_set_volume(disorder_client *c, long left, long right);
  *
  * @param c Client
  * @param leftp Left channel volume
+ * @param rightp Right channel volume
  * @return 0 on success, non-0 on error
  */
 int disorder_get_volume(disorder_client *c, long *leftp, long *rightp);

@@ -194,6 +194,7 @@ sub c_param_docs {
 sub c_return_docs {
     my $returns = shift;
     return () unless defined $returns;
+    my @docs = ();
     for my $return (@$returns) {
         my $type = $return->[0];
         my $name = $return->[1];
@@ -203,20 +204,25 @@ sub c_return_docs {
            or $type eq 'integer'
            or $type eq 'time'
            or $type eq 'boolean') {
-            return (" * \@param ${name}p $descr\n");
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
         } elsif($type eq 'list' or $type eq 'body') {
-            return (" * \@param ${name}p $descr\n",
-                    " * \@param n${name}p Number of elements in ${name}p\n");
+            push(@docs,
+		 " * \@param ${name}p $descr\n",
+		 " * \@param n${name}p Number of elements in ${name}p\n");
         } elsif($type eq 'pair-list') {
-            return (" * \@param ${name}p $descr\n");
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
         } elsif($type eq 'queue' or $type eq 'queue-one') {
-            return (" * \@param ${name}p $descr\n");
+            push(@docs,
+		 " * \@param ${name}p $descr\n");
         } elsif($type eq 'user') {
-            return ();
+	    # nothing
         } else {
             die "$0: c_return_docs: unknown type '$type'\n";
         }
     }
+    return @docs;
 }
 
 # simple(CMD, SUMMARY, DETAIL,
