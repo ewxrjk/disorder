@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/client-stubs.c
+ * @brief Generated client API implementation
+ */
 
 int disorder_adopt(disorder_client *c, const char *id) {
   return disorder_simple(c, NULL, "adopt", id, (char *)NULL);

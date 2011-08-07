@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/** @file lib/client-stubs.c
+ * @brief Generated asynchronous client API implementation
+ */
 
 int disorder_eclient_adopt(disorder_eclient *c, disorder_eclient_no_response *completed, const char *id, void *v) {
   return simple(c, no_response_opcallback, (void (*)())completed, v, "adopt", id, (char *)0);

@@ -17,6 +17,8 @@
  */
 /** @file lib/eclient.h
  * @brief Client code for event-driven programs
+ *
+ * See @ref lib/eclient-stubs.h for the (generated) per-command entry points.
  */
 
 #ifndef ECLIENT_H

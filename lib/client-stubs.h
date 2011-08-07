@@ -22,6 +22,11 @@
  */
 #ifndef CLIENT_STUBS_H
 #define CLIENT_STUBS_H
+/** @file lib/client-stubs.h
+ * @brief Generated client API
+ *
+ * Don't include this file directly - use @ref client.h instead.
+ */
 
 /** @brief Adopt a track
  *

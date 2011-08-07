@@ -480,17 +480,33 @@ our @gpl = ("/*\n",
 push(@h, @generated, @gpl,
      "#ifndef CLIENT_STUBS_H\n",
      "#define CLIENT_STUBS_H\n",
+     "/** \@file lib/client-stubs.h\n",
+     " * \@brief Generated client API\n",
+     " *\n",
+     " * Don't include this file directly - use \@ref lib/client.h instead.\n",
+     " */\n",
      "\n");
 
 push(@c, @generated, @gpl,
+     "/** \@file lib/client-stubs.c\n",
+     " * \@brief Generated client API implementation\n",
+     " */\n",
      "\n");
 
 push(@ah, @generated, @gpl,
      "#ifndef ECLIENT_STUBS_H\n",
      "#define ECLIENT_STUBS_H\n",
+     "/** \@file lib/client-stubs.h\n",
+     " * \@brief Generated asynchronous client API\n",
+     " *\n",
+     " * Don't include this file directly - use \@ref lib/eclient.h instead.\n",
+     " */\n",
      "\n");
 
 push(@ac, @generated, @gpl,
+     "/** \@file lib/client-stubs.c\n",
+     " * \@brief Generated asynchronous client API implementation\n",
+     " */\n",
      "\n");
 
 # The protocol ----------------------------------------------------------------

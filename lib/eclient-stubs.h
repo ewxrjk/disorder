@@ -22,6 +22,11 @@
  */
 #ifndef ECLIENT_STUBS_H
 #define ECLIENT_STUBS_H
+/** @file lib/client-stubs.h
+ * @brief Generated asynchronous client API
+ *
+ * Don't include this file directly - use @ref client.h instead.
+ */
 
 /** @brief Adopt a track
  *

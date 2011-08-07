@@ -18,6 +18,9 @@
 /** @file lib/client.h
  * @brief Simple C client
  *
+ * See @ref lib/client-stubs.h for the (generated) per-command entry
+ * points.
+ *
  * See @ref lib/eclient.h for an asynchronous-capable client
  * implementation.
  */
