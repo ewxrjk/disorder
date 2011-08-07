@@ -193,6 +193,30 @@ sub simple {
         $cmdc =~ s/-/_/g;
     }
     print STDERR "Processing $cmd... ";
+    # C argument types and conversions
+    my @cargs = ();
+    my @conversions = ();
+    for my $arg (@$args) {
+        if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
+            push(@cargs, "disorder_$arg->[0]", $arg->[1], "n$arg->[1]");
+        } elsif($arg->[0] eq 'string') {
+            push(@cargs, $arg->[1]);
+        } elsif($arg->[0] eq 'integer') {
+            push(@cargs, "buf_$arg->[1]");
+            push(@conversions,
+		 "  char buf_$arg->[1]\[16];\n",
+                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%ld\", $arg->[1]);\n");
+        } elsif($arg->[0] eq 'time') {
+            push(@cargs, "buf_$arg->[1]");
+            push(@conversions,
+		 "  char buf_$arg->[1]\[16];\n",
+                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%lld\", (long long)$arg->[1]);\n");
+        } elsif($arg->[0] eq 'literal') {
+            push(@cargs, "\"$arg->[1]\"");
+        } else {
+            die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
+        }
+    }
     # Synchronous C API
     print STDERR "H ";
     push(@h, "/** \@brief $summary\n",
@@ -214,27 +238,8 @@ sub simple {
 	 join(", ", "disorder_client *c",
 	            map(c_in_decl($_), @$args),
                     map(c_out_decl($_), @$returns)),
-	 ") {\n");
-    my @cargs = ();
-    for my $arg (@$args) {
-        if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
-            push(@cargs, "disorder_$arg->[0]", $arg->[1], "n$arg->[1]");
-        } elsif($arg->[0] eq 'string') {
-            push(@cargs, $arg->[1]);
-        } elsif($arg->[0] eq 'integer') {
-            push(@cargs, "buf_$arg->[1]");
-            push(@c, "  char buf_$arg->[1]\[16];\n",
-                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%ld\", $arg->[1]);\n");
-        } elsif($arg->[0] eq 'time') {
-            push(@cargs, "buf_$arg->[1]");
-            push(@c, "  char buf_$arg->[1]\[16];\n",
-                 "  byte_snprintf(buf_$arg->[1], sizeof buf_$arg->[1], \"%lld\", (long long)$arg->[1]);\n");
-        } elsif($arg->[0] eq 'literal') {
-            push(@cargs, "\"$arg->[1]\"");
-        } else {
-            die "$0: unsupported arg type '$arg->[0]' for '$cmd'\n";
-        }
-    }
+	 ") {\n",
+	@conversions);
     if(!defined $returns or scalar @$returns == 0) {
         # Simple case
 	push(@c, "  return disorder_simple(",
