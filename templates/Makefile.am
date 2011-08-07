@@ -19,8 +19,7 @@
 pkgdata_DATA=about.tmpl choose.tmpl playing.tmpl recent.tmpl		\
 	     prefs.tmpl help.tmpl error.tmpl			\
 	     new.tmpl login.tmpl macros.tmpl				\
-	     options options.labels					\
-	     options.columns
+	     options options.labels
 pkghttp_DATA=disorder.css
 
 EXTRA_DIST=${pkgdata_DATA} $(pkghttp_DATA)

@@ -77,7 +77,6 @@ struct queue_entry *dcgi_findtrack(const char *id);
 void option_set(const char *name, const char *value);
 const char *option_label(const char *key);
 int option_label_exists(const char *key);
-char **option_columns(const char *name, int *ncolumns);
 
 #define DCGI_QUEUE 0x0001
 #define DCGI_PLAYING 0x0002
