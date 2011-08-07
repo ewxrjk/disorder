@@ -25,6 +25,7 @@
 #include "log.h"
 #include "kvp.h"
 
+/** @brief One entry in a hash table */
 struct entry {
   struct entry *next;                   /* next entry same key */
   size_t h;                             /* hash of KEY */
@@ -32,6 +33,7 @@ struct entry {
   void *value;                          /* value of this entry */
 };
 
+/** @brief A hash table */
 struct hash {
   size_t nslots;                        /* number of slots */
   size_t nitems;                        /* total number of entries */

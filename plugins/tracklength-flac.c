@@ -23,8 +23,12 @@
 
 /* libFLAC's "simplified" interface is rather heavyweight... */
 
+/** @brief State used when computing FLAC file length */
 struct flac_state {
+  /** @brief Duration or -1 */
   long duration;
+
+  /** @brief File being analyzed */
   const char *path;
 };
 

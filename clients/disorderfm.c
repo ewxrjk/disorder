@@ -73,7 +73,7 @@ static const char *nativeencoding;
 /* Count of errors */
 static long errors;
 
-/* Included/excluded filename patterns */
+/** @brief Included/excluded filename pattern */
 static struct pattern {
   struct pattern *next;
   const char *pattern;

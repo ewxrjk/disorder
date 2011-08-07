@@ -24,10 +24,22 @@
 #include "eventdist.h"
 #include "hash.h"
 
+/** @brief Event data
+ *
+ * @c event_data structures form linked lists; one list per event and one node
+ * per handler.
+ */
 struct event_data {
+  /** @brief Next handler */
   struct event_data *next;
+
+  /** @brief Name of event */
   const char *event;
+
+  /** @brief Handler callback */
   event_handler *callback;
+
+  /** @brief Passed to @ref callback */
   void *callbackdata;
 };
 

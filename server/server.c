@@ -1845,7 +1845,8 @@ static int c_playlist_unlock(struct conn *c,
   return 1;
 }
 
-static const struct command {
+/** @brief Server's definition of a command */
+static const struct server_command {
   /** @brief Command name */
   const char *name;
 

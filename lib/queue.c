@@ -194,13 +194,23 @@ static const char *marshall_origin(const struct queue_entry *q, size_t offset) {
 
 #define F(n, h) { #n, offsetof(struct queue_entry, n), marshall_##h, unmarshall_##h, free_##h }
 
-static const struct field {
+/** @brief A field in a @ref queue_entry */
+static const struct queue_field {
+  /** @brief Field name */
   const char *name;
+
+  /** @brief Offset of value in @ref queue_entry structure */
   size_t offset;
+
+  /** @brief Marshaling function */
   const char *(*marshall)(const struct queue_entry *q, size_t offset);
+
+  /** @brief Unmarshaling function */
   int (*unmarshall)(char *data, struct queue_entry *q, size_t offset,
 		    void (*error_handler)(const char *, void *),
 		    void *u);
+
+  /** @brief Destructor */
   void (*free)(struct queue_entry *q, size_t offset);
 } fields[] = {
   /* Keep this table sorted. */

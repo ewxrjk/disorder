@@ -58,9 +58,15 @@ static void option__columns(int nvec,
   hash_add(columns, vec[0], &c, HASH_INSERT_OR_REPLACE);
 }
 
+/** @brief Definition of an option command */
 static struct option {
+  /** @brief Command name */
   const char *name;
-  int minargs, maxargs;
+  /** @brief Minimum number of arguments */
+  int minargs;
+  /** @brief Maximum number of arguments */
+  int maxargs;
+  /** @brief Command handler */
   void (*handler)(int nvec, char **vec);
 } options[] = {
   { "columns", 1, INT_MAX, option__columns },

@@ -672,12 +672,28 @@ static void cf_playlist_set(char **argv) {
     exit(EXIT_FAILURE);
 }
 
-static const struct command {
+/** @brief Command-line client's definition of a command */
+static const struct client_command {
+  /** @brief Command name */
   const char *name;
-  int min, max;
+
+  /** @brief Minimum number of argument */
+  int min;
+
+  /** @brief Maximum number of argument */
+  int max;
+
+  /** @brief Pointer to function implementing command */
   void (*fn)(char **);
+
+  /** @brief Function to recognize a valid argument, or NULL */
   int (*isarg)(const char *);
-  const char *argstr, *desc;
+
+  /** @brief Summary of arguments */
+  const char *argstr;
+
+  /** @brief Description */
+  const char *desc;
 } commands[] = {
   { "adduser",        2, 3, cf_adduser, isarg_rights, "USERNAME PASSWORD [RIGHTS]",
                       "Create a new user" },

@@ -37,8 +37,12 @@
 #include <langinfo.h>
 #include "strptime.h"
 
+/** @brief Lookup table entry for locale-specific strings */
 struct locale_item_match {
+  /** @brief Locale key to try */
   nl_item key;
+
+  /** @brief Value to return if value of @ref key matches subject string */
   int value;
 };
 

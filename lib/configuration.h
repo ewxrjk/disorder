@@ -68,6 +68,7 @@ struct collectionlist {
   struct collection *s;
 };
 
+/** @brief A track name part */
 struct namepart {
   char *part;				/* part */
   pcre *re;				/* compiled regexp */
@@ -77,11 +78,13 @@ struct namepart {
   unsigned reflags;			/* regexp flags */
 };
 
+/** @brief A list of track name parts */
 struct namepartlist {
   int n;
   struct namepart *s;
 };
 
+/** @brief A track name transform */
 struct transform {
   char *type;				/* track or dir */
   char *context;			/* sort or choose */
@@ -90,6 +93,7 @@ struct transform {
   unsigned flags;			/* regexp flags */
 };
 
+/** @brief A list of track name transforms */
 struct transformlist {
   int n;
   struct transform *t;
