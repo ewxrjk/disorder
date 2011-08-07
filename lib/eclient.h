@@ -243,7 +243,7 @@ typedef void disorder_eclient_string_response(void *v,
                                               const char *err,
                                               const char *value);
 
-/** @brief String result completion callback
+/** @brief Integer result completion callback
  * @param v User data
  * @param err Error string or NULL on succes
  * @param value Result or 0
