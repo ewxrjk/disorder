@@ -45,6 +45,55 @@ use strict;
 
 our @h = ();
 our @c = ();
+our @ah = ();
+our @ac = ();
+our @missing = ();
+
+# Mapping of return type sequences to eclient callbacks
+our @eclient_return = (
+    ["no_response" => []],
+    ["string_response" => ["string"]],
+    ["string_response" => ["string-raw"]],
+    ["integer_response" => ["integer"]],
+    ["integer_response" => ["boolean"]],
+    ["time_response" => ["time"]],
+    ["pair_integer_response" => ["integer", "integer"]],
+    ["queue_response" => ["queue"]],
+    ["queue_response" => ["queue-one"]],
+    ["list_response" => ["body"]],
+    );
+
+# eclient_response_matces(RETURNS, VARIANT)
+#
+# Return true if VARIANT matches RETURNS
+sub eclient_response_matches {
+    my $returns = shift;
+    my $variant = shift;
+    my $types = $variant->[1];
+    if(scalar @$returns != scalar @$types) { return 0; }
+    for my $n (0 .. $#$returns) {
+	my $return = $returns->[$n];
+	my $type = $return->[0];
+	if($type ne $types->[$n]) { return 0; }
+    }
+    return 1;
+}
+
+# find_eclient_type(RETURNS)
+#
+# Find the result type for an eclient call
+sub find_eclient_response {
+    my $returns = shift;
+    if(!defined $returns) {
+	$returns = [];
+    }
+    for my $variant (@eclient_return) {
+	if(eclient_response_matches($returns, $variant)) {
+	    return $variant->[0];
+	}
+    }
+    return undef;
+}
 
 # Write(PATH, LINES)
 #
@@ -350,7 +399,29 @@ sub simple {
     push(@c, "}\n\n");
 
     # Asynchronous C API
-    # TODO
+    my $variant = find_eclient_response($returns);
+    if(defined $variant) {
+	print STDERR "AH ";
+	push(@ah,
+	     "/** \@brief $summary\n",
+	     " *\n",
+	     " * $detail\n",
+	     " *\n",
+	     " * \@param c Client\n",
+	     c_param_docs($args),
+	     " * \@param completed Called upon completion\n",
+	     " * \@return 0 if the command was queued successfuly, non-0 on error\n",
+	     " */\n",
+	     "int disorder_eclient_$cmdc(",
+	     join(", ", "disorder_eclient *c",
+		  map(c_in_decl($_), @$args),
+		  "disorder_eclient_$variant *completed"),
+	     ");\n\n");
+
+# TODO implementation
+    } else {
+	push(@missing, "disorder_eclient_$cmdc");
+    }
 
     # Python API
     # TODO
@@ -395,6 +466,14 @@ push(@h, @generated, @gpl,
      "\n");
 
 push(@c, @generated, @gpl,
+     "\n");
+
+push(@ah, @generated, @gpl,
+     "#ifndef ECLIENT_STUBS_H\n",
+     "#define ECLIENT_STUBS_H\n",
+     "\n");
+
+push(@ac, @generated, @gpl,
      "\n");
 
 # The protocol ----------------------------------------------------------------
@@ -821,7 +900,17 @@ simple(["volume", "get_volume"],
 
 push(@h, "#endif\n");
 
+push(@ah, "#endif\n");
+
 # Write it all out ------------------------------------------------------------
 
 Write("lib/client-stubs.h", \@h);
 Write("lib/client-stubs.c", \@c);
+
+Write("lib/eclient-stubs.h", \@ah);
+Write("lib/eclient-stubs.c", \@ac);
+
+if(scalar @missing) {
+  print "Missing:\n";
+  print map("  $_\n", @missing);
+}
