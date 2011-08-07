@@ -579,7 +579,7 @@ static const char *playlist_new_valid(void) {
 /** @brief Get entered new-playlist details
  * @param namep Where to store entered name (or NULL)
  * @param fullnamep Where to store computed full name (or NULL)
- * @param sharep Where to store 'shared' flag (or NULL)
+ * @param sharedp Where to store 'shared' flag (or NULL)
  * @param publicp Where to store 'public' flag (or NULL)
  * @param privatep Where to store 'private' flag (or NULL)
  */
@@ -663,7 +663,8 @@ static void playlist_picker_fill(const char attribute((unused)) *event,
 }
 
 /** @brief Update a section in the picker tree model
- * @param section Section name
+ * @param title Display name of section
+ * @param key Key to search for
  * @param start First entry in @ref playlists
  * @param end Past last entry in @ref playlists
  */
@@ -694,8 +695,7 @@ static void playlist_picker_update_section(const char *title, const char *key,
  * @param title Display name of section
  * @param key Key to search for
  * @param iter Iterator to point at key
- * @param create If TRUE, key will be created if it doesn't exist
- * @param compare Row comparison function
+ * @param create Whether to create the row
  * @return TRUE if key exists else FALSE
  *
  * If the @p key exists then @p iter will point to it and TRUE will be
