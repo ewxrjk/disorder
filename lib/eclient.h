@@ -267,9 +267,9 @@ typedef void disorder_eclient_integer_response(void *v,
  * @p error will be non-NULL on failure.  In this case @p l and @p r are always
  * 0.
  */
-typedef void disorder_eclient_volume_response(void *v,
-                                              const char *err,
-                                              int l, int r);
+typedef void disorder_eclient_pair_integer_response(void *v,
+                                                    const char *err,
+                                                    long l, long r);
 
 /** @brief Queue request completion callback
  * @param v User data
@@ -286,6 +286,8 @@ typedef void disorder_eclient_volume_response(void *v,
 typedef void disorder_eclient_queue_response(void *v,
                                              const char *err,
                                              struct queue_entry *q);
+
+#define disorder_eclient_playing_response disorder_eclient_queue_response
 
 /** @brief List request completion callback
  * @param v User data
@@ -317,131 +319,10 @@ void disorder_eclient_polled(disorder_eclient *c, unsigned mode);
 /* Should be called when c's FD is readable and/or writable, and in any case
  * from time to time (so that retries work). */
 
-int disorder_eclient_version(disorder_eclient *c,
-                             disorder_eclient_string_response *completed,
-                             void *v);
-/* fetch the server version */
-
-int disorder_eclient_play(disorder_eclient *c,
-                          const char *track,
-                          disorder_eclient_no_response *completed,
-                          void *v);
-/* add a track to the queue */
-
-int disorder_eclient_playafter(disorder_eclient *c,
-                               const char *target,
-                               int ntracks,
-                               const char **tracks,
-                               disorder_eclient_no_response *completed,
-                               void *v);
-/* insert multiple tracks to an arbitrary point in the queue */
-
-int disorder_eclient_pause(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           void *v);
-/* add a track to the queue */
-
-int disorder_eclient_resume(disorder_eclient *c,
-                            disorder_eclient_no_response *completed,
-                            void *v);
-/* add a track to the queue */
-
-int disorder_eclient_scratch(disorder_eclient *c,
-                             const char *id,
-                             disorder_eclient_no_response *completed,
-                             void *v);
-/* scratch a track by ID */
-
 int disorder_eclient_scratch_playing(disorder_eclient *c,
                                      disorder_eclient_no_response *completed,
                                      void *v);
 /* scratch the playing track whatever it is */
-
-int disorder_eclient_remove(disorder_eclient *c,
-                            const char *id,
-                            disorder_eclient_no_response *completed,
-                            void *v);
-/* remove a track from the queue */
-
-int disorder_eclient_moveafter(disorder_eclient *c,
-                               const char *target,
-                               int nids,
-                               const char **ids,
-                               disorder_eclient_no_response *completed,
-                               void *v);
-/* move tracks within the queue */
-
-int disorder_eclient_playing(disorder_eclient *c,
-                             disorder_eclient_queue_response *completed,
-                             void *v);
-/* find the currently playing track (0 for none) */
-
-int disorder_eclient_queue(disorder_eclient *c,
-                           disorder_eclient_queue_response *completed,
-                           void *v);
-/* list recently played tracks */
-
-int disorder_eclient_recent(disorder_eclient *c,
-                            disorder_eclient_queue_response *completed,
-                            void *v);
-/* list recently played tracks */
-
-int disorder_eclient_files(disorder_eclient *c,
-                           disorder_eclient_list_response *completed,
-                           const char *dir,
-                           const char *re,
-                           void *v);
-/* list files in a directory, matching RE if not a null pointer */
-
-int disorder_eclient_dirs(disorder_eclient *c,
-                          disorder_eclient_list_response *completed,
-                          const char *dir,
-                          const char *re,
-                          void *v);
-/* list directories in a directory, matching RE if not a null pointer */
-
-int disorder_eclient_namepart(disorder_eclient *c,
-                              disorder_eclient_string_response *completed,
-                              const char *track,
-                              const char *context,
-                              const char *part,
-                              void *v);
-/* look up a track name part */
-
-int disorder_eclient_length(disorder_eclient *c,
-                            disorder_eclient_integer_response *completed,
-                            const char *track,
-                            void *v);
-/* look up a track name length */
-
-int disorder_eclient_volume(disorder_eclient *c,
-                            disorder_eclient_volume_response *callback,
-                            int l, int r,
-                            void *v);
-/* If L and R are both -ve gets the volume.
- * If neither are -ve then sets the volume.
- * Otherwise asserts!
- */
-
-int disorder_eclient_enable(disorder_eclient *c,
-                            disorder_eclient_no_response *callback,
-                            void *v);
-int disorder_eclient_disable(disorder_eclient *c,
-                             disorder_eclient_no_response *callback,
-                             void *v);
-int disorder_eclient_random_enable(disorder_eclient *c,
-                                   disorder_eclient_no_response *callback,
-                                   void *v);
-int disorder_eclient_random_disable(disorder_eclient *c,
-                                    disorder_eclient_no_response *callback,
-                                    void *v);
-/* Enable/disable play/random play */
-
-int disorder_eclient_resolve(disorder_eclient *c,
-                             disorder_eclient_string_response *completed,
-                             const char *track,
-                             void *v);
-/* Resolve aliases */
 
 int disorder_eclient_log(disorder_eclient *c,
                          const disorder_eclient_log_callbacks *callbacks,
@@ -449,117 +330,14 @@ int disorder_eclient_log(disorder_eclient *c,
 /* Make this a log client (forever - it automatically becomes one again upon
  * reconnection) */
 
-int disorder_eclient_get(disorder_eclient *c,
-                         disorder_eclient_string_response *completed,
-                         const char *track, const char *pref,
-                         void *v);
-int disorder_eclient_set(disorder_eclient *c,
-                         disorder_eclient_no_response *completed,
-                         const char *track, const char *pref, 
-                         const char *value,
-                         void *v);
-int disorder_eclient_unset(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           const char *track, const char *pref, 
-                           void *v);
-/* Get/set preference values */
-
-int disorder_eclient_get_global(disorder_eclient *c,
-                                disorder_eclient_string_response *completed,
-                                const char *pref,
-                                void *v);
-int disorder_eclient_set_global(disorder_eclient *c,
-                                disorder_eclient_no_response *completed,
-                                const char *pref,
-                                const char *value,
-                                void *v);
-int disorder_eclient_unset_global(disorder_eclient *c,
-                                  disorder_eclient_no_response *completed,
-                                  const char *pref,
-                                  void *v);
-/* Get/set global prefs */
-
-int disorder_eclient_search(disorder_eclient *c,
-                            disorder_eclient_list_response *completed,
-                            const char *terms,
-                            void *v);
-
-int disorder_eclient_nop(disorder_eclient *c,
-                         disorder_eclient_no_response *completed,
-                         void *v);
-
-int disorder_eclient_new_tracks(disorder_eclient *c,
-                                disorder_eclient_list_response *completed,
-                                int max,
-                                void *v);
-
 int disorder_eclient_rtp_address(disorder_eclient *c,
                                  disorder_eclient_list_response *completed,
                                  void *v);
 
-int disorder_eclient_users(disorder_eclient *c,
-                           disorder_eclient_list_response *completed,
-                           void *v);
-int disorder_eclient_deluser(disorder_eclient *c,
-                             disorder_eclient_no_response *completed,
-                             const char *user,
-                             void *v);
-int disorder_eclient_userinfo(disorder_eclient *c,
-                              disorder_eclient_string_response *completed,
-                              const char *user,
-                              const char *property,
-                              void *v);
-int disorder_eclient_edituser(disorder_eclient *c,
-                              disorder_eclient_no_response *completed,
-                              const char *user,
-                              const char *property,
-                              const char *value,
-                              void *v);
-int disorder_eclient_adduser(disorder_eclient *c,
-                             disorder_eclient_no_response *completed,
-                             const char *user,
-                             const char *password,
-                             const char *rights,
-                             void *v);
 void disorder_eclient_enable_connect(disorder_eclient *c);
 void disorder_eclient_disable_connect(disorder_eclient *c);
-int disorder_eclient_adopt(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           const char *id,
-                           void *v);  
-int disorder_eclient_playlists(disorder_eclient *c,
-                               disorder_eclient_list_response *completed,
-                               void *v);
-int disorder_eclient_playlist_delete(disorder_eclient *c,
-                                     disorder_eclient_no_response *completed,
-                                     const char *playlist,
-                                     void *v);
-int disorder_eclient_playlist_lock(disorder_eclient *c,
-                                   disorder_eclient_no_response *completed,
-                                   const char *playlist,
-                                   void *v);
-int disorder_eclient_playlist_unlock(disorder_eclient *c,
-                                     disorder_eclient_no_response *completed,
-                                     void *v);
-int disorder_eclient_playlist_set_share(disorder_eclient *c,
-                                        disorder_eclient_no_response *completed,
-                                        const char *playlist,
-                                        const char *sharing,
-                                        void *v);
-int disorder_eclient_playlist_get_share(disorder_eclient *c,
-                                        disorder_eclient_string_response *completed,
-                                        const char *playlist,
-                                        void *v);
-int disorder_eclient_playlist_set(disorder_eclient *c,
-                                  disorder_eclient_no_response *completed,
-                                  const char *playlist,
-                                  char **tracks,
-                                  int ntracks,
-                                  void *v);
-int disorder_eclient_playlist_get(disorder_eclient *c,
-                                  disorder_eclient_list_response *completed,
-                                  const char *playlist,
-                                  void *v);
+
+#include "eclient-stubs.h"
 
 #endif
 

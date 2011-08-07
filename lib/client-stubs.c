@@ -166,7 +166,7 @@ int disorder_move(disorder_client *c, const char *track, long delta) {
 }
 
 int disorder_moveafter(disorder_client *c, const char *target, char **ids, int nids) {
-  return disorder_simple(c, NULL, "moveafter", target, disorder_list, ids, nids, (char *)NULL);
+  return disorder_simple(c, NULL, "moveafter", target, disorder__list, ids, nids, (char *)NULL);
 }
 
 int disorder_new_tracks(disorder_client *c, long max, char ***tracksp, int *ntracksp) {
@@ -204,7 +204,7 @@ int disorder_play(disorder_client *c, const char *track, char **idp) {
 }
 
 int disorder_playafter(disorder_client *c, const char *target, char **tracks, int ntracks) {
-  return disorder_simple(c, NULL, "playafter", target, disorder_list, tracks, ntracks, (char *)NULL);
+  return disorder_simple(c, NULL, "playafter", target, disorder__list, tracks, ntracks, (char *)NULL);
 }
 
 int disorder_playing(disorder_client *c, struct queue_entry **playingp) {
@@ -233,7 +233,7 @@ int disorder_playlist_lock(disorder_client *c, const char *playlist) {
 }
 
 int disorder_playlist_set(disorder_client *c, const char *playlist, char **tracks, int ntracks) {
-  return disorder_simple(c, NULL, "playlist-set", playlist, disorder_body, tracks, ntracks, (char *)NULL);
+  return disorder_simple(c, NULL, "playlist-set", playlist, disorder__body, tracks, ntracks, (char *)NULL);
 }
 
 int disorder_playlist_set_share(disorder_client *c, const char *playlist, const char *share) {

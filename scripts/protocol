@@ -59,7 +59,7 @@ our @eclient_return = (
     ["time_response" => ["time"]],
     ["pair_integer_response" => ["integer", "integer"]],
     ["queue_response" => ["queue"]],
-    ["queue_response" => ["queue-one"]],
+    ["playing_response" => ["queue-one"]],
     ["list_response" => ["body"]],
     );
 
@@ -247,7 +247,7 @@ sub simple {
     my @conversions = ();
     for my $arg (@$args) {
         if($arg->[0] eq 'body' or $arg->[0] eq 'list') {
-            push(@cargs, "disorder_$arg->[0]", $arg->[1], "n$arg->[1]");
+            push(@cargs, "disorder__$arg->[0]", $arg->[1], "n$arg->[1]");
         } elsif($arg->[0] eq 'string') {
             push(@cargs, $arg->[1]);
         } elsif($arg->[0] eq 'integer') {
@@ -408,17 +408,38 @@ sub simple {
 	     " * $detail\n",
 	     " *\n",
 	     " * \@param c Client\n",
-	     c_param_docs($args),
 	     " * \@param completed Called upon completion\n",
+	     c_param_docs($args),
+	     " * \@param v Passed to \@p completed\n",
 	     " * \@return 0 if the command was queued successfuly, non-0 on error\n",
 	     " */\n",
 	     "int disorder_eclient_$cmdc(",
 	     join(", ", "disorder_eclient *c",
+		  "disorder_eclient_$variant *completed",
 		  map(c_in_decl($_), @$args),
-		  "disorder_eclient_$variant *completed"),
+		  "void *v"),
 	     ");\n\n");
 
-# TODO implementation
+	print STDERR "AC ";
+	push(@ac,
+	     "int disorder_eclient_$cmdc(",
+	     join(", ", "disorder_eclient *c",
+		  "disorder_eclient_$variant *completed",
+		  map(c_in_decl($_), @$args),
+		  "void *v"),
+	     ") {\n",
+	     @conversions);
+	push(@ac, "  return simple(",
+	     join(", ", 
+		  "c",
+		  "${variant}_opcallback",
+		  "(void (*)())completed",
+		  "v",
+		  "\"$cmd\"",
+		  @cargs,
+		  "(char *)0"),
+	     ");\n");
+	push(@ac, "}\n\n");
     } else {
 	push(@missing, "disorder_eclient_$cmdc");
     }

@@ -217,9 +217,9 @@ void popup_globals(void) {
 }
 
 /** @brief Called when any global pref changes */
-static void globals_pref_changed(const char *event,
+static void globals_pref_changed(const char attribute((unused)) *event,
 				 void *eventdata,
-				 void *callbackdata) {
+				 void attribute((unused)) *callbackdata) {
   const char *pref = eventdata;
   if(!globals_window)
     return;			/* not paying attention */

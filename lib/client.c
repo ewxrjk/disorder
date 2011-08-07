@@ -151,12 +151,6 @@ static int check_response(disorder_client *c, char **rp) {
   }
 }
 
-/** @brief Marker for a command body */
-static const char disorder_body[1];
-
-/** @brief Marker for a list of args */
-static const char disorder_list[1];
-
 /** @brief Issue a command and parse a simple response
  * @param c Client
  * @param rp Where to store result, or NULL
@@ -172,12 +166,12 @@ static const char disorder_list[1];
  * NB that the response will NOT be converted to the local encoding
  * nor will quotes be stripped.  See dequote().
  *
- * Put @ref disorder_body in the argument list followed by a char **
+ * Put @ref disorder__body in the argument list followed by a char **
  * and int giving the body to follow the command.  If the int is @c -1
  * then the list is assumed to be NULL-terminated.  This may be used
  * only once.
  *
- * Put @ref disorder_list in the argument list followed by a char **
+ * Put @ref disorder__list in the argument list followed by a char **
  * and int giving a list of arguments to include.  If the int is @c -1
  * then the list is assumed to be NULL-terminated.  This may be used
  * any number of times.
@@ -204,11 +198,11 @@ static int disorder_simple_v(disorder_client *c,
     dynstr_init(&d);
     dynstr_append_string(&d, cmd);
     while((arg = va_arg(ap, const char *))) {
-      if(arg == disorder_body) {
+      if(arg == disorder__body) {
 	body = va_arg(ap, char **);
 	nbody = va_arg(ap, int);
 	has_body = 1;
-      } else if(arg == disorder_list) {
+      } else if(arg == disorder__list) {
 	char **list = va_arg(ap, char **);
 	int nlist = va_arg(ap, int);
 	if(nlist < 0) {

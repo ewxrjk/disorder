@@ -27,6 +27,12 @@
 
 socklen_t find_server(struct config *c, struct sockaddr **sap, char **namep);
 
+/** @brief Marker for a command body */
+extern const char disorder__body[1];
+
+/** @brief Marker for a list of args */
+extern const char disorder__list[1];
+
 #endif /* CLIENT_COMMON_H */
 
 /*

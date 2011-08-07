@@ -29,7 +29,9 @@ static void choose_playchildren_callback(GtkTreeModel *model,
 static void choose_playchildren_received(void *v,
                                          const char *err,
                                          int nvec, char **vec);
-static void choose_playchildren_played(void *v, const char *err);
+static void choose_playchildren_played(void *v,
+                                       const char *err,
+                                       const char *id);
 
 /** @brief Popup menu */
 static GtkWidget *choose_menu;
@@ -116,7 +118,7 @@ static void choose_play_activate(GtkMenuItem attribute((unused)) *item,
                                       choose_gather_selected_files_callback,
                                       v);
   for(int n = 0; n < v->nvec; ++n)
-    disorder_eclient_play(client, v->vec[n], choose_play_completed, 0);
+    disorder_eclient_play(client, choose_play_completed, v->vec[n], 0);
 }
   
 static int choose_properties_sensitive(void *extra) {
@@ -250,11 +252,12 @@ static void choose_playchildren_received(void attribute((unused)) *v,
     return;
   }
   for(int n = 0; n < nvec; ++n)
-    disorder_eclient_play(client, vec[n], choose_playchildren_played, NULL);
+    disorder_eclient_play(client, choose_playchildren_played, vec[n], NULL);
 }
 
 static void choose_playchildren_played(void attribute((unused)) *v,
-                                       const char *err) {
+                                       const char *err,
+                                       const char attribute((unused)) *id) {
   if(err) {
     popup_protocol_error(0, err);
     return;

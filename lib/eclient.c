@@ -876,8 +876,21 @@ static void vstash_command(disorder_eclient *c,
   if(cmd) {
     vector_init(&vec);
     vector_append(&vec, (char *)cmd);
-    while((arg = va_arg(ap, char *)))
-      vector_append(&vec, arg);
+    while((arg = va_arg(ap, char *))) {
+      if(arg == disorder__list) {
+	char **list = va_arg(ap, char **);
+	int nlist = va_arg(ap, int);
+	if(nlist < 0) {
+	  for(nlist = 0; list[nlist]; ++nlist)
+	    ;
+	}
+        vector_append_many(&vec, list, nlist);
+      } else if(arg == disorder__body) {
+	body = va_arg(ap, char **);
+	nbody = va_arg(ap, int);
+      } else
+        vector_append(&vec, arg);
+    }
     stash_command_vector(c, queuejump, opcallback, completed, v, 
                          nbody, body, vec.nvec, vec.vec);
   } else
@@ -1059,16 +1072,16 @@ static void list_response_opcallback(disorder_eclient *c,
 }
 
 /* for volume */
-static void volume_response_opcallback(disorder_eclient *c,
-                                       struct operation *op) {
-  disorder_eclient_volume_response *completed
-    = (disorder_eclient_volume_response *)op->completed;
-  int l, r;
+static void pair_integer_response_opcallback(disorder_eclient *c,
+                                             struct operation *op) {
+  disorder_eclient_pair_integer_response *completed
+    = (disorder_eclient_pair_integer_response *)op->completed;
+  long l, r;
 
   D(("volume_response_callback"));
   if(c->rc / 100 == 2) {
     if(op->completed) {
-      if(sscanf(c->line + 4, "%d %d", &l, &r) != 2 || l < 0 || r < 0)
+      if(sscanf(c->line + 4, "%ld %ld", &l, &r) != 2 || l < 0 || r < 0)
         completed(op->v, "cannot parse volume response", 0, 0);
       else
         completed(op->v, 0, l, r);
@@ -1092,316 +1105,12 @@ static int simple(disorder_eclient *c,
   return 0;
 }
 
-static int simple_body(disorder_eclient *c,
-                       operation_callback *opcallback,
-                       void (*completed)(),
-                       void *v,
-                       int nbody,
-                       char **body,
-                       const char *cmd, ...) {
-  va_list ap;
-
-  va_start(ap, cmd);
-  vstash_command(c, 0/*queuejump*/, opcallback, completed, v, nbody, body, cmd, ap);
-  va_end(ap);
-  /* Give the state machine a kick, since we might be in state_idle */
-  disorder_eclient_polled(c, 0);
-  return 0;
-}
-
 /* Commands ******************************************************************/
- 
-int disorder_eclient_version(disorder_eclient *c,
-                             disorder_eclient_string_response *completed,
-                             void *v) {
-  return simple(c, string_response_opcallback, (void (*)())completed, v,
-                "version", (char *)0);
-}
-
-int disorder_eclient_namepart(disorder_eclient *c,
-                              disorder_eclient_string_response *completed,
-                              const char *track,
-                              const char *context,
-                              const char *part,
-                              void *v) {
-  return simple(c, string_response_opcallback, (void (*)())completed, v,
-                "part", track, context, part, (char *)0);
-}
-
-int disorder_eclient_play(disorder_eclient *c,
-                          const char *track,
-                          disorder_eclient_no_response *completed,
-                          void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "play", track, (char *)0);
-}
-
-int disorder_eclient_playafter(disorder_eclient *c,
-                               const char *target,
-                               int ntracks,
-                               const char **tracks,
-                               disorder_eclient_no_response *completed,
-                               void *v) {
-  struct vector vec;
-  int n;
-
-  if(!target)
-    target = "";
-  vector_init(&vec);
-  vector_append(&vec, (char *)"playafter");
-  vector_append(&vec, (char *)target);
-  for(n = 0; n < ntracks; ++n)
-    vector_append(&vec, (char *)tracks[n]);
-  stash_command_vector(c, 0/*queuejump*/, no_response_opcallback, completed, v,
-                       -1, 0, vec.nvec, vec.vec);
-  disorder_eclient_polled(c, 0);
-  return 0;
-}
-
-int disorder_eclient_pause(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "pause", (char *)0);
-}
-
-int disorder_eclient_resume(disorder_eclient *c,
-                            disorder_eclient_no_response *completed,
-                            void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "resume", (char *)0);
-}
-
-int disorder_eclient_scratch(disorder_eclient *c,
-                             const char *id,
-                             disorder_eclient_no_response *completed,
-                             void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "scratch", id, (char *)0);
-}
 
 int disorder_eclient_scratch_playing(disorder_eclient *c,
                                      disorder_eclient_no_response *completed,
                                      void *v) {
-  return disorder_eclient_scratch(c, 0, completed, v);
-}
-
-int disorder_eclient_remove(disorder_eclient *c,
-                            const char *id,
-                            disorder_eclient_no_response *completed,
-                            void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "remove", id, (char *)0);
-}
-
-int disorder_eclient_moveafter(disorder_eclient *c,
-                               const char *target,
-                               int nids,
-                               const char **ids,
-                               disorder_eclient_no_response *completed,
-                               void *v) {
-  struct vector vec;
-  int n;
-
-  vector_init(&vec);
-  vector_append(&vec, (char *)"moveafter");
-  vector_append(&vec, (char *)target);
-  for(n = 0; n < nids; ++n)
-    vector_append(&vec, (char *)ids[n]);
-  stash_command_vector(c, 0/*queuejump*/, no_response_opcallback, completed, v,
-                       -1, 0, vec.nvec, vec.vec);
-  disorder_eclient_polled(c, 0);
-  return 0;
-}
-
-int disorder_eclient_recent(disorder_eclient *c,
-                            disorder_eclient_queue_response *completed,
-                            void *v) {
-  return simple(c, queue_response_opcallback, (void (*)())completed, v,
-                "recent", (char *)0);
-}
-
-int disorder_eclient_queue(disorder_eclient *c,
-                            disorder_eclient_queue_response *completed,
-                            void *v) {
-  return simple(c, queue_response_opcallback, (void (*)())completed, v,
-                "queue", (char *)0);
-}
-
-int disorder_eclient_files(disorder_eclient *c,
-                           disorder_eclient_list_response *completed,
-                           const char *dir,
-                           const char *re,
-                           void *v) {
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "files", dir, re, (char *)0);
-}
-
-int disorder_eclient_dirs(disorder_eclient *c,
-                          disorder_eclient_list_response *completed,
-                          const char *dir,
-                          const char *re,
-                          void *v) {
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "dirs", dir, re, (char *)0);
-}
-
-int disorder_eclient_playing(disorder_eclient *c,
-                             disorder_eclient_queue_response *completed,
-                             void *v) {
-  return simple(c, playing_response_opcallback, (void (*)())completed, v,
-                "playing", (char *)0);
-}
-
-int disorder_eclient_length(disorder_eclient *c,
-                            disorder_eclient_integer_response *completed,
-                            const char *track,
-                            void *v) {
-  return simple(c, integer_response_opcallback, (void (*)())completed, v,
-                "length", track, (char *)0);
-}
-
-int disorder_eclient_volume(disorder_eclient *c,
-                            disorder_eclient_volume_response *completed,
-                            int l, int r,
-                            void *v) {
-  char sl[64], sr[64];
-
-  if(l < 0 && r < 0) {
-    return simple(c, volume_response_opcallback, (void (*)())completed, v,
-                  "volume", (char *)0);
-  } else if(l >= 0 && r >= 0) {
-    assert(l <= 100);
-    assert(r <= 100);
-    byte_snprintf(sl, sizeof sl, "%d", l);
-    byte_snprintf(sr, sizeof sr, "%d", r);
-    return simple(c, volume_response_opcallback, (void (*)())completed, v,
-                  "volume", sl, sr, (char *)0);
-  } else {
-    assert(!"invalid arguments to disorder_eclient_volume");
-    return -1;                          /* gcc is being dim */
-  }
-}
-
-int disorder_eclient_enable(disorder_eclient *c,
-                            disorder_eclient_no_response *completed,
-                            void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "enable", (char *)0);
-}
-
-int disorder_eclient_disable(disorder_eclient *c,
-                             disorder_eclient_no_response *completed,
-                             void *v){
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "disable", (char *)0);
-}
-
-int disorder_eclient_random_enable(disorder_eclient *c,
-                                   disorder_eclient_no_response *completed,
-                                   void *v){
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "random-enable", (char *)0);
-}
-
-int disorder_eclient_random_disable(disorder_eclient *c,
-                                    disorder_eclient_no_response *completed,
-                                    void *v){
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "random-disable", (char *)0);
-}
-
-int disorder_eclient_get(disorder_eclient *c,
-                         disorder_eclient_string_response *completed,
-                         const char *track, const char *pref,
-                         void *v) {
-  return simple(c, string_response_opcallback, (void (*)())completed, v, 
-                "get", track, pref, (char *)0);
-}
-
-int disorder_eclient_set(disorder_eclient *c,
-                         disorder_eclient_no_response *completed,
-                         const char *track, const char *pref, 
-                         const char *value,
-                         void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "set", track, pref, value, (char *)0);
-}
-
-int disorder_eclient_unset(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           const char *track, const char *pref, 
-                           void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "unset", track, pref, (char *)0);
-}
-
-int disorder_eclient_resolve(disorder_eclient *c,
-                             disorder_eclient_string_response *completed,
-                             const char *track,
-                             void *v) {
-  return simple(c, string_response_opcallback,  (void (*)())completed, v, 
-                "resolve", track, (char *)0);
-}
-
-int disorder_eclient_search(disorder_eclient *c,
-                            disorder_eclient_list_response *completed,
-                            const char *terms,
-                            void *v) {
-  if(!split(terms, 0, SPLIT_QUOTES, 0, 0)) return -1;
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "search", terms, (char *)0);
-}
-
-int disorder_eclient_nop(disorder_eclient *c,
-                         disorder_eclient_no_response *completed,
-                         void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "nop", (char *)0);
-}
-
-int disorder_eclient_get_global(disorder_eclient *c,
-                                disorder_eclient_string_response *completed,
-                                const char *pref,
-                                void *v) {
-  return simple(c, string_response_opcallback, (void (*)())completed, v,
-                "get-global", pref, (char *)0);
-}
-
-int disorder_eclient_set_global(disorder_eclient *c,
-                                disorder_eclient_no_response *completed,
-                                const char *pref,
-                                const char *value,
-                                void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "set-global", pref, value, (char *)0);
-}
-
-int disorder_eclient_unset_global(disorder_eclient *c,
-                                  disorder_eclient_no_response *completed,
-                                  const char *pref,
-                                  void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v,
-                "unset-global", pref, (char *)0);
-}
-
-/** @brief Get the last @p max added tracks
- * @param c Client
- * @param completed Called with list
- * @param max Number of tracks to get, 0 for all
- * @param v Passed to @p completed
- *
- * The first track in the list is the most recently added.
- */
-int disorder_eclient_new_tracks(disorder_eclient *c,
-                                disorder_eclient_list_response *completed,
-                                int max,
-                                void *v) {
-  char limit[32];
-
-  sprintf(limit, "%d", max);
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "new", limit, (char *)0);
+  return disorder_eclient_scratch(c, completed, 0, v);
 }
 
 static void rtp_response_opcallback(disorder_eclient *c,
@@ -1434,217 +1143,6 @@ int disorder_eclient_rtp_address(disorder_eclient *c,
                                  void *v) {
   return simple(c, rtp_response_opcallback, (void (*)())completed, v,
                 "rtp-address", (char *)0);
-}
-
-/** @brief Get the list of users
- * @param c Client
- * @param completed Called with list of users
- * @param v Passed to @p completed
- *
- * The user list is not sorted in any particular order.
- */
-int disorder_eclient_users(disorder_eclient *c,
-                           disorder_eclient_list_response *completed,
-                           void *v) {
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "users", (char *)0);
-}
-
-/** @brief Delete a user
- * @param c Client
- * @param completed Called on completion
- * @param user User to delete
- * @param v Passed to @p completed
- */
-int disorder_eclient_deluser(disorder_eclient *c,
-                             disorder_eclient_no_response *completed,
-                             const char *user,
-                             void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "deluser", user, (char *)0);
-}
-
-/** @brief Get a user property
- * @param c Client
- * @param completed Called on completion
- * @param user User to look up
- * @param property Property to look up
- * @param v Passed to @p completed
- */
-int disorder_eclient_userinfo(disorder_eclient *c,
-                              disorder_eclient_string_response *completed,
-                              const char *user,
-                              const char *property,
-                              void *v) {
-  return simple(c, string_response_opcallback,  (void (*)())completed, v, 
-                "userinfo", user, property, (char *)0);
-}
-
-/** @brief Modify a user property
- * @param c Client
- * @param completed Called on completion
- * @param user User to modify
- * @param property Property to modify
- * @param value New property value
- * @param v Passed to @p completed
- */
-int disorder_eclient_edituser(disorder_eclient *c,
-                              disorder_eclient_no_response *completed,
-                              const char *user,
-                              const char *property,
-                              const char *value,
-                              void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "edituser", user, property, value, (char *)0);
-}
-
-/** @brief Create a new user
- * @param c Client
- * @param completed Called on completion
- * @param user User to create
- * @param password Initial password
- * @param rights Initial rights or NULL
- * @param v Passed to @p completed
- */
-int disorder_eclient_adduser(disorder_eclient *c,
-                             disorder_eclient_no_response *completed,
-                             const char *user,
-                             const char *password,
-                             const char *rights,
-                             void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "adduser", user, password, rights, (char *)0);
-}
-
-/** @brief Adopt a track
- * @param c Client
- * @param completed Called on completion
- * @param id Track ID
- * @param v Passed to @p completed
- */
-int disorder_eclient_adopt(disorder_eclient *c,
-                           disorder_eclient_no_response *completed,
-                           const char *id,
-                           void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, 
-                "adopt", id, (char *)0);
-}
-
-/** @brief Get the list of playlists
- * @param c Client
- * @param completed Called with list of playlists
- * @param v Passed to @p completed
- *
- * The playlist list is not sorted in any particular order.
- */
-int disorder_eclient_playlists(disorder_eclient *c,
-                               disorder_eclient_list_response *completed,
-                               void *v) {
-  return simple(c, list_response_opcallback, (void (*)())completed, v,
-                "playlists", (char *)0);
-}
-
-/** @brief Delete a playlist
- * @param c Client
- * @param completed Called on completion
- * @param playlist Playlist to delete
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_delete(disorder_eclient *c,
-                                     disorder_eclient_no_response *completed,
-                                     const char *playlist,
-                                     void *v) {
-  return simple(c, no_response_opcallback,  (void (*)())completed, v,
-                "playlist-delete", playlist, (char *)0);
-}
-
-/** @brief Lock a playlist
- * @param c Client
- * @param completed Called on completion
- * @param playlist Playlist to lock
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_lock(disorder_eclient *c,
-                                   disorder_eclient_no_response *completed,
-                                   const char *playlist,
-                                   void *v) {
-  return simple(c, no_response_opcallback,  (void (*)())completed, v,
-                "playlist-lock", playlist, (char *)0);
-}
-
-/** @brief Unlock the locked a playlist
- * @param c Client
- * @param completed Called on completion
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_unlock(disorder_eclient *c,
-                                     disorder_eclient_no_response *completed,
-                                     void *v) {
-  return simple(c, no_response_opcallback,  (void (*)())completed, v,
-                "playlist-unlock", (char *)0);
-}
-
-/** @brief Set a playlist's sharing
- * @param c Client
- * @param completed Called on completion
- * @param playlist Playlist to modify
- * @param sharing @c "public" or @c "private"
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_set_share(disorder_eclient *c,
-                                        disorder_eclient_no_response *completed,
-                                        const char *playlist,
-                                        const char *sharing,
-                                        void *v) {
-  return simple(c, no_response_opcallback,  (void (*)())completed, v,
-                "playlist-set-share", playlist, sharing, (char *)0);
-}
-
-/** @brief Get a playlist's sharing
- * @param c Client
- * @param completed Called with sharing status
- * @param playlist Playlist to inspect
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_get_share(disorder_eclient *c,
-                                        disorder_eclient_string_response *completed,
-                                        const char *playlist,
-                                        void *v) {
-  return simple(c, string_response_opcallback,  (void (*)())completed, v,
-                "playlist-get-share", playlist, (char *)0);
-}
-
-/** @brief Set a playlist
- * @param c Client
- * @param completed Called on completion
- * @param playlist Playlist to modify
- * @param tracks List of tracks
- * @param ntracks Number of tracks
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_set(disorder_eclient *c,
-                                  disorder_eclient_no_response *completed,
-                                  const char *playlist,
-                                  char **tracks,
-                                  int ntracks,
-                                  void *v) {
-  return simple_body(c, no_response_opcallback, (void (*)())completed, v,
-                     ntracks, tracks,
-                     "playlist-set", playlist, (char *)0);
-}
-
-/** @brief Get a playlist's contents
- * @param c Client
- * @param completed Called with playlist contents
- * @param playlist Playlist to inspect
- * @param v Passed to @p completed
- */
-int disorder_eclient_playlist_get(disorder_eclient *c,
-                                  disorder_eclient_list_response *completed,
-                                  const char *playlist,
-                                  void *v) {
-  return simple(c, list_response_opcallback,  (void (*)())completed, v,
-                "playlist-get", playlist, (char *)0);
 }
 
 /* Log clients ***************************************************************/
@@ -1953,6 +1451,8 @@ static void logentry_global_pref(disorder_eclient *c,
   if(c->log_callbacks->global_pref) 
     c->log_callbacks->global_pref(c->log_v, vec[0], nvec > 1 ? vec[1] : 0);
 }
+
+#include "eclient-stubs.c"
 
 /*
 Local Variables:
