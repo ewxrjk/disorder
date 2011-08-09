@@ -100,6 +100,13 @@ CREATE TABLE Users (
   rights INTEGER                            -- bitmap of user rights
 )
 
+Functions:
+   ddb_create_user()
+   ddb_delete_user()
+   ddb_list_users()
+   ddb_get_user()
+   ddb_set_user()
+
 ** Tracks
 
 -- Main track information
@@ -126,6 +133,12 @@ CREATE TABLE Tracks (
   completedCount INTEGER NOT NULL,       -- how many times played to completion
   requestedCount INTEGER NOT NULL        -- how many times requested
 )
+
+Functions:
+  ddb_track_get()
+  ddb_track_notice()
+  ddb_track_set()    TODO
+  ddb_track_drop()
 
 Will want to efficiently:
   1) Select tracks by artist/artist+album

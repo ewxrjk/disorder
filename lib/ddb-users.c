@@ -164,6 +164,45 @@ int ddb_list_users(char ***namesp,
                    ddb_do_list_users(namesp, nnamesp));
 }
 
+static int ddb_do_set_user(const char *name,
+                           const char **passwordp,
+                           const char **emailp,
+                           const char **confirmp,
+                           const rights_type *rightsp) {
+  static const char context[] = "updating user";
+  const char *password, *email, *confirm;
+  rights_type rights;
+  int rc;
+
+  if((rc = ddb_do_get_user(name,
+                           (char **)&password,
+                           (char **)&email,
+                           (char **)&confirm,
+                           &rights)))
+    return rc;
+  if(passwordp) password = *passwordp;
+  if(emailp) email = *emailp;
+  if(confirmp) confirm = *confirmp;
+  if(rightsp) rights = *rightsp;
+  return ddb_bind_and_execute(context,
+                              ddb_set_user_sql,
+                              password ? P_STRING : P_NULL|P_STRING, password,
+                              email ? P_STRING : P_NULL|P_STRING, email,
+                              confirm ? P_STRING : P_NULL|P_STRING, confirm,
+                              P_INT64, (int64_t)rights,
+                              P_STRING, name,
+                              P_END);
+}
+
+int ddb_set_user(const char *name,
+                 const char **passwordp,
+                 const char **emailp,
+                 const char **confirmp,
+                 const rights_type *rightsp) {
+  TRANSACTION_WRAP("setting user",
+                   ddb_do_set_user(name, passwordp, emailp, confirmp, rightsp));
+}
+
 /*
 Local Variables:
 c-basic-offset:2

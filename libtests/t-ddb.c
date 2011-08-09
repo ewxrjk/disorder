@@ -41,11 +41,38 @@ static void test_users(void) {
   assert(ddb_create_user("fred", "fredpw", NULL, NULL, RIGHTS__MASK) == DDB_USER_EXISTS);
 
   /* Retrieve user */
+  password = email = confirm = NULL; rights = 0;
   assert(ddb_get_user("fred", &password, &email, &confirm, &rights) == DDB_OK);
   assert(!strcmp(password, "fredpw"));
   assert(email == NULL);
   assert(confirm == NULL);
   assert(rights == RIGHTS__MASK);
+
+  /* Modify user */
+  assert(ddb_set_user("fred", NULL, NULL, NULL, NULL) == DDB_OK);
+  password = email = confirm = NULL; rights = 0;
+  assert(ddb_get_user("fred", &password, &email, &confirm, &rights) == DDB_OK);
+  assert(!strcmp(password, "fredpw"));
+  assert(email == NULL);
+  assert(confirm == NULL);
+  assert(rights == RIGHTS__MASK);
+  email = "fred@invalid";
+  confirm = "confirmation";
+  assert(ddb_set_user("fred", NULL, &email, &confirm, NULL) == DDB_OK);
+  password = email = confirm = NULL; rights = 0;
+  assert(ddb_get_user("fred", &password, &email, &confirm, &rights) == DDB_OK);
+  assert(!strcmp(password, "fredpw"));
+  assert(!strcmp(email, "fred@invalid"));
+  assert(!strcmp(confirm, "confirmation"));
+  assert(rights == RIGHTS__MASK);
+  rights = RIGHT_READ;
+  assert(ddb_set_user("fred", NULL, NULL, NULL, &rights) == DDB_OK);
+  password = email = confirm = NULL; rights = 0;
+  assert(ddb_get_user("fred", &password, &email, &confirm, &rights) == DDB_OK);
+  assert(!strcmp(password, "fredpw"));
+  assert(!strcmp(email, "fred@invalid"));
+  assert(!strcmp(confirm, "confirmation"));
+  assert(rights == RIGHT_READ);
 
   /* Retrieve nonexistent user */
   assert(ddb_get_user("bob", &password, &email, &confirm, &rights) == DDB_NO_SUCH_USER);

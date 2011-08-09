@@ -17,6 +17,8 @@
  */
 /** @file lib/ddb-sql.c
  * @brief DisOrder track database - SQL statements
+ *
+ * SQLite is (mostly) assumed.
  */
 #include "common.h"
 
@@ -77,6 +79,10 @@ const char ddb_delete_user_sql[] =
 
 const char ddb_list_users_sql[] =
   "SELECT user FROM Users ORDER BY user"
+;
+
+const char ddb_set_user_sql[] =
+  "UPDATE Users SET password=?,email=?,confirm=?,rights=? WHERE user=?"
 ;
 
 /* Tracks */

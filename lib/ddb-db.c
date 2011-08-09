@@ -19,6 +19,9 @@
 #include "ddb.h"
 #include "ddb-db.h"
 #include <stdarg.h>
+/** @file lib/ddb-db.c
+ * @brief Implememtation of DisOrder database abstraction.
+ */
 
 int ddb_bind_params(const char *context,
 		    void *stmt,

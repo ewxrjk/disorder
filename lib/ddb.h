@@ -137,6 +137,20 @@ int ddb_delete_user(const char *name);
 int ddb_list_users(char ***namesp,
                    int *nnamesp);
 
+/** @brief Set user properties
+ * @param name User name
+ * @param passwordp New password, or NULL unchanged
+ * @param emailp New email, or NULL to leave unchanged
+ * @param confirmp New confirmation string, or NULL to leave unchanged
+ * @param rights New rights, or NULL to leave unchanged
+ * @return Status code
+ */
+int ddb_set_user(const char *name,
+                 const char **passwordp,
+                 const char **emailp,
+                 const char **confirmp,
+                 const rights_type *rightsp);
+
 /* Tracks ------------------------------------------------------------------- */
 
 #define DEFAULT_WEIGHT 90000

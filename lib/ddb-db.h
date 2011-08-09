@@ -293,6 +293,7 @@ extern const char ddb_insert_user_sql[];
 extern const char ddb_retrieve_user_sql[];
 extern const char ddb_delete_user_sql[];
 extern const char ddb_list_users_sql[];
+extern const char ddb_set_user_sql[];
 extern const char ddb_track_get_sql[];
 extern const char ddb_track_update_availability_sql[];
 extern const char ddb_track_new_sql[];
