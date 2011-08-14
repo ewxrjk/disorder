@@ -586,7 +586,7 @@ static void authbanner_opcallback(disorder_eclient *c,
      || !(rvec = split(c->line + 4, &nrvec, SPLIT_QUOTES, 0, 0))
      || nrvec < 1) {
     /* Banner told us to go away, or was malformed.  We cannot proceed. */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    protocol_error(c, op, c->rc, "%s [%s]", c->line, c->ident);
     disorder_eclient_close(c);
     return;
   }
@@ -607,21 +607,21 @@ static void authbanner_opcallback(disorder_eclient *c,
     challenge = *rvec++;
     break;
   default:
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    protocol_error(c, op, c->rc, "%s [%s]", c->line, c->ident);
     disorder_eclient_close(c);
     return;
   }
   c->protocol = atoi(protocol);
   if(c->protocol < 1 || c->protocol > 2) {
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    protocol_error(c, op, c->rc, "%s [%s]", c->line, c->ident);
     disorder_eclient_close(c);
     return;
   }
   nonce = unhex(challenge, &nonce_len);
   res = authhash(nonce, nonce_len, config->password, algorithm);
   if(!res) {
-    protocol_error(c, op, c->rc, "%s: unknown authentication algorithm '%s'",
-                   c->ident, algorithm);
+    protocol_error(c, op, c->rc, "unknown authentication algorithm '%s' [%s]",
+                   algorithm, c->ident);
     disorder_eclient_close(c);
     return;
   }
@@ -639,7 +639,7 @@ static void authuser_opcallback(disorder_eclient *c,
   D(("authuser_opcallback"));
   if(c->rc / 100 != 2) {
     /* Wrong password or something.  We cannot proceed. */
-    protocol_error(c, op, c->rc, "%s: %s", c->ident, c->line);
+    protocol_error(c, op, c->rc, "%s [%s]", c->line, c->ident);
     c->enabled = 0;
     disorder_eclient_close(c);
     return;
@@ -930,7 +930,7 @@ static void stash_command(disorder_eclient *c,
 static const char *errorstring(disorder_eclient *c) {
   char *s;
 
-  byte_xasprintf(&s, "%s: %s: %d", c->ident, c->line, c->rc);
+  byte_xasprintf(&s, "%s [%s]", c->line, c->ident);
   return s;
 }
 
