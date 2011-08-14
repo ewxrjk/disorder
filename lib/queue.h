@@ -220,6 +220,12 @@ struct queue_entry {
   
   /** @brief Decoder (or player) process ID */
   pid_t pid;
+
+  /** @brief Termination signal sent to subprocess
+   *
+   * Used to supress 'terminated' messages.
+   */
+  int killed;
 };
 
 void queue_insert_entry(struct queue_entry *b, struct queue_entry *n);

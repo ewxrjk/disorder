@@ -250,10 +250,12 @@ static int player_finished(ev_source *ev,
       q->state = playing_ok;
     break;
   }
-  /* Regardless we always report and record the status and do cleanup for
-   * prefork calls. */
-  if(status)
-    disorder_error(0, "player for %s %s", q->track, wstat(status));
+  /* Report the status unless we killed it */
+  if(status) {
+    if(!(q->killed && WIFSIGNALED(status) && WTERMSIG(status) == q->killed))
+      disorder_error(0, "player for %s %s", q->track, wstat(status));
+  }
+  /* Clean up any prefork calls */
   if(q->type & DISORDER_PLAYER_PREFORK)
     play_cleanup(q->pl, q->data);
   q->wstat = status;
@@ -474,6 +476,15 @@ static int prepare_child(struct queue_entry *q,
   return 0;
 }
 
+/** @brief Kill a player
+ * @param q Queue entry corresponding to player
+ */
+static void kill_player(struct queue_entry *q) {
+  if(q->pid >= 0)
+    kill(-q->pid, config->signal);
+  q->killed = config->signal;
+}
+
 /** @brief Abandon a queue entry
  *
  * Called from c_remove() (but NOT when scratching a track).  Only does
@@ -489,7 +500,7 @@ void abandon(ev_source attribute((unused)) *ev,
   if((q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return;				/* Not a raw player. */
   /* Terminate the player. */
-  kill(-q->pid, config->signal);
+  kill_player(q);
   /* Cancel the track. */
   memset(&sm, 0, sizeof sm);
   sm.type = SM_CANCEL;
@@ -693,10 +704,8 @@ void scratch(const char *who, const char *id) {
     playing->state = playing_scratched;
     playing->scratched = who ? xstrdup(who) : 0;
     /* Find the player and kill the whole process group */
-    if(playing->pid >= 0) {
-      D(("kill -%d -%lu", config->signal, (unsigned long)playing->pid));
-      kill(-playing->pid, config->signal);
-    }
+    if(playing->pid >= 0)
+      kill_player(playing);
     /* Tell the speaker, if we think it'll care */
     if((playing->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       memset(&sm, 0, sizeof sm);
@@ -735,17 +744,13 @@ void quitting(ev_source *ev) {
   shutting_down = 1;
   /* Shut down the current player */
   if(playing) {
-    if(playing->pid >= 0)
-      kill(-playing->pid, config->signal);
+    kill_player(playing);
     playing->state = playing_quitting;
     finished(0);
   }
   /* Zap any background decoders that are going */
   for(q = qhead.next; q != &qhead; q = q->next)
-    if(q->pid >= 0) {
-      D(("kill -%d %lu", config->signal, (unsigned long)q->pid));
-      kill(-q->pid, config->signal);
-    }
+    kill_player(q);
   /* Don't need the speaker any more */
   ev_fd_cancel(ev, ev_read, speaker_fd);
   xclose(speaker_fd);
