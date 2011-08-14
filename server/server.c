@@ -1279,7 +1279,7 @@ static int c_revoke(struct conn *c,
     revoke_cookie(c->cookie);
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else
-    sink_writes(ev_writer_sink(c->w), "550 Did not log in with cookie\n");
+    sink_writes(ev_writer_sink(c->w), "510 Did not log in with cookie\n");
   return 1;
 }
 
@@ -1290,7 +1290,7 @@ static int c_adduser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote adduser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   if(nvec > 2) {
@@ -1316,7 +1316,7 @@ static int c_deluser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote deluser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   if(trackdb_deluser(vec[0])) {
@@ -1338,7 +1338,7 @@ static int c_edituser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote edituser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   /* RIGHT_ADMIN can do anything; otherwise you can only set your own email
@@ -1397,7 +1397,7 @@ static int c_userinfo(struct conn *c,
      && !(c->rights & RIGHT__LOCAL)
      && strcmp(vec[1], "rights")) {
     disorder_error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   /* RIGHT_ADMIN allows anything; otherwise you can only get your own email
@@ -1470,7 +1470,7 @@ static int c_confirm(struct conn *c,
   }
   user = xstrndup(vec[0], sep - vec[0]);
   if(trackdb_confirm(user, vec[0], &rights))
-    sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
+    sink_writes(ev_writer_sink(c->w), "510 Incorrect confirmation string\n");
   else {
     c->who = user;
     c->cookie = 0;
@@ -1620,7 +1620,7 @@ static int c_schedule_del(struct conn *c,
     const char *who = kvp_get(actiondata, "who");
 
     if(!who || !c->who || strcmp(who, c->who)) {
-      sink_writes(ev_writer_sink(c->w), "551 Not authorized\n");
+      sink_writes(ev_writer_sink(c->w), "510 Not authorized\n");
       return 1;				/* completed */
     }
   }
@@ -1705,7 +1705,7 @@ static int playlist_response(struct conn *c,
   case 0:
     assert(!"cannot cope with success");
   case EACCES:
-    sink_writes(ev_writer_sink(c->w), "550 Access denied\n");
+    sink_writes(ev_writer_sink(c->w), "510 Access denied\n");
     break;
   case EINVAL:
     sink_writes(ev_writer_sink(c->w), "550 Invalid playlist name\n");
