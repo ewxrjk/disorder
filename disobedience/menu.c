@@ -215,11 +215,23 @@ void users_set_sensitive(int sensitive) {
   gtk_widget_set_sensitive(w, sensitive);
 }
 
+static void menu_check_userman(void attribute((unused)) *v,
+                               const char *err,
+                               const char attribute((unused)) *value) {
+  if(err && !strncmp(err, "510", 3))
+    users_set_sensitive(FALSE);
+  else
+    users_set_sensitive(TRUE);
+}
+
 /** @brief Called when our rights change */
 static void menu_rights_changed(const char attribute((unused)) *event,
                                 void attribute((unused)) *eventdata,
                                 void attribute((unused)) *callbackdata) {
-  users_set_sensitive(!!(last_rights & RIGHT_ADMIN));
+  if(last_rights & RIGHT_ADMIN)
+    disorder_eclient_userinfo(client, menu_check_userman, "", "email", 0);
+  else
+    users_set_sensitive(FALSE);
 }
 
 /** @brief Create the menu bar widget */
