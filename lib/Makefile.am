@@ -42,7 +42,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	coreaudio.c coreaudio.h				\
 	dateparse.c dateparse.h xgetdate.c		\
 	defs.c defs.h					\
-	eclient.c eclient.h				\
+	eclient.c eclient.h eclient-stubs.h		\
 	email.c						\
 	eventdist.c eventdist.h				\
 	event.c event.h 				\
@@ -142,4 +142,4 @@ rebuild-unicode:
 CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
-EXTRA_DIST=trackdb.c trackdb-stub.c client-stubs.c
+EXTRA_DIST=trackdb.c trackdb-stub.c client-stubs.c eclient-stubs.c
