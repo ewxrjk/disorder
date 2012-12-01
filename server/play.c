@@ -340,8 +340,6 @@ static int start(ev_source *ev,
 static int start_child(struct queue_entry *q, 
                        const struct pbgc_params *params,
                        void attribute((unused)) *bgdata) {
-  int n;
-
   /* Play the track */
   play_track(q->pl,
              params->argv, params->argc,

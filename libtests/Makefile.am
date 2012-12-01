@@ -63,9 +63,9 @@ t_words_SOURCES=t-words.c test.c test.h
 t_wstat_SOURCES=t-wstat.c test.c test.h
 t_eventdist_SOURCES=t-eventdist.c test.c test.h
 t_resample_SOURCES=t-resample.c test.c test.h
-t_resample_LDFLAGS=$(LIBSAMPLERATE)
+t_resample_LDADD=$(LDADD) $(LIBSAMPLERATE)
 t_configuration_SOURCES=t-configuration.c test.c test.h
-t_configuration_LDFLAGS=$(LIBGCRYPT)
+t_configuration_LDADD=$(LDADD) $(LIBGCRYPT)
 t_timeval_SOURCES=t-timeval.c test.c test.h
 
 check-report: before-check check make-coverage-reports

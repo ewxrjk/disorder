@@ -119,14 +119,12 @@ xgetdate_r (const char *string, struct tm *tp,
 	    const char *const *template)
 {
   const char *line;
-  size_t len;
   char *result = NULL;
   time_t timer;
   struct tm tm;
   int mday_ok = 0;
 
   line = NULL;
-  len = 0;
   while((line = *template++))
     {
       /* Do the conversion.  */

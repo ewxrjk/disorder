@@ -3047,40 +3047,6 @@ static int create_user(const char *user,
   return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
 }
 
-/** @brief Add one pre-existing user 
- * @param user Username
- * @param password password
- * @param tid Owning transaction
- * @return 0, DB_KEYEXIST or DB_LOCK_DEADLOCK
- *
- * Used only in upgrade from old versions.
- */
-static int one_old_user(const char *user, const char *password,
-                        DB_TXN *tid) {
-  const char *rights;
-
-  /* www-data doesn't get added */
-  if(!strcmp(user, "www-data")) {
-    disorder_info("not adding www-data to user database");
-    return 0;
-  }
-  /* pick rights */
-  if(!strcmp(user, "root"))
-    rights = "all";
-  else if(trusted(user)) {
-    rights_type r;
-
-    parse_rights(config->default_rights, &r, 1);
-    r &= ~(rights_type)(RIGHT_SCRATCH__MASK|RIGHT_MOVE__MASK|RIGHT_REMOVE__MASK);
-    r |= (RIGHT_ADMIN|RIGHT_RESCAN
-          |RIGHT_SCRATCH_ANY|RIGHT_MOVE_ANY|RIGHT_REMOVE_ANY);
-    rights = rights_string(r);
-  } else
-    rights = config->default_rights;
-  return create_user(user, password, rights, 0/*email*/, 0/*confirmation*/,
-                     tid, DB_NOOVERWRITE);
-}
-
 /** @brief Create a root user in the user database if there is none */
 void trackdb_create_root(void) {
   int e;
