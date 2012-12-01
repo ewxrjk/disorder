@@ -422,7 +422,7 @@ static int prepare_child(struct queue_entry *q,
       memset(&addr, 0, sizeof addr);
       addr.sun_family = AF_UNIX;
       snprintf(addr.sun_path, sizeof addr.sun_path,
-               "%s/speaker/socket", config->home);
+               "%s/private/speaker", config->home);
       int sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
       if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
         disorder_fatal(errno, "connecting to %s", addr.sun_path);

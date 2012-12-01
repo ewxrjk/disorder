@@ -20,11 +20,13 @@
  */
 #include "disorder-server.h"
 
-/** @brief Current AF_UNIX socket path */
-static const char *current_unix;
+/** @brief A unix domain socket */
+struct unix_socket {
+  const char *path;
+  int fd;
+};
 
-/** @brief Current AF_UNIX socket */
-static int current_unix_fd;
+struct unix_socket main_socket[1], priv_socket[1];
 
 /** @brief TCP listener definition */
 struct listener {
@@ -77,40 +79,53 @@ static struct sockaddr *copy_sockaddr(const struct addrinfo *addr) {
   return sa;
 }
 
-/** @brief Create and destroy sockets to set current configuration */
-void reset_sockets(ev_source *ev) {
-  const char *new_unix;
-  struct addrinfo *res, *r;
-  struct listener *l, **ll;
+static void reset_unix_socket(ev_source *ev,
+                              struct unix_socket *s,
+                              const char *new_path,
+                              int privileged) {
   struct sockaddr_un sun;
-
-  /* unix first */
-  new_unix = config_get_file("socket");
-  if(!current_unix || strcmp(current_unix, new_unix)) {
+  if(!s->path || strcmp(s->path, new_path)) {
     /* either there was no socket, or there was but a different path */
-    if(current_unix) {
+    if(s->path) {
       /* stop the old one and remove it from the filesystem */
-      server_stop(ev, current_unix_fd);
-      if(unlink(current_unix) < 0)
-	disorder_fatal(errno, "unlink %s", current_unix);
+      server_stop(ev, s->fd);
+      if(unlink(s->path) < 0)
+	disorder_fatal(errno, "unlink %s", s->path);
     }
     /* start the new one */
-    if(strlen(new_unix) >= sizeof sun.sun_path)
-      disorder_fatal(0, "socket path %s is too long", new_unix);
+    if(strlen(new_path) >= sizeof sun.sun_path)
+      disorder_fatal(0, "socket path %s is too long", new_path);
     memset(&sun, 0, sizeof sun);
     sun.sun_family = AF_UNIX;
-    strcpy(sun.sun_path, new_unix);
-    if(unlink(new_unix) < 0 && errno != ENOENT)
-      disorder_fatal(errno, "unlink %s", new_unix);
-    if((current_unix_fd = server_start(ev, PF_UNIX, sizeof sun,
-				       (const struct sockaddr *)&sun,
-				       new_unix)) >= 0) {
-      current_unix = new_unix;
-      if(chmod(new_unix, 0777) < 0)
-	disorder_fatal(errno, "error calling chmod %s", new_unix);
+    strcpy(sun.sun_path, new_path);
+    if(unlink(new_path) < 0 && errno != ENOENT)
+      disorder_fatal(errno, "unlink %s", new_path);
+    if((s->fd = server_start(ev, PF_UNIX, sizeof sun,
+                             (const struct sockaddr *)&sun,
+                             new_path,
+                             privileged)) >= 0) {
+      s->path = new_path;
+      if(chmod(new_path, 0777) < 0)     /* TODO */
+	disorder_fatal(errno, "error calling chmod %s", new_path);
     } else
-      current_unix = 0;
+      s->path = 0;
   }
+}
+
+/** @brief Create and destroy sockets to set current configuration */
+void reset_sockets(ev_source *ev) {
+  struct addrinfo *res, *r;
+  struct listener *l, **ll;
+  const char *private_dir = config_get_file("private");
+  
+  /* create the private socket directory */
+  unlink(private_dir);
+  if(mkdir(private_dir, 0700) < 0 && errno != EEXIST)
+    disorder_fatal(errno, "error creating %s", private_dir);
+
+  /* unix first */
+  reset_unix_socket(ev, main_socket, config_get_file("socket"), 0);
+  reset_unix_socket(ev, priv_socket, config_get_file("private/socket"), 1);
 
   /* get the new listen config */
   if(config->listen.af != -1)
@@ -142,7 +157,7 @@ void reset_sockets(ev_source *ev) {
     if(!l) {
       /* Didn't find a match, need a new listener */
       int fd = server_start(ev, r->ai_family, r->ai_addrlen, r->ai_addr,
-			    format_sockaddr(r->ai_addr));
+			    format_sockaddr(r->ai_addr), 0);
       if(fd >= 0) {
 	l = xmalloc(sizeof *l);
 	l->next = listeners;

@@ -42,6 +42,7 @@ int wideopen;
 struct listener {
   const char *name;
   int pf;
+  int privileged;
 };
 
 struct conn;
@@ -589,7 +590,7 @@ static int c_user(struct conn *c,
   /* check whether the response is right */
   res = authhash(c->nonce, sizeof c->nonce, password,
 		 config->authorization_algorithm);
-  if(wideopen || (res && !strcmp(res, vec[1]))) {
+  if(wideopen || c->l->privileged || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
     c->rights = rights;
     /* currently we only bother logging remote connections */
@@ -2136,12 +2137,16 @@ static int listen_callback(ev_source *ev,
 
 int server_start(ev_source *ev, int pf,
 		 size_t socklen, const struct sockaddr *sa,
-		 const char *name) {
+		 const char *name,
+		 int privileged) {
   int fd;
   struct listener *l = xmalloc(sizeof *l);
   static const int one = 1;
 
-  D(("server_init socket %s", name));
+  D(("server_init socket %s privileged=%d", name, privileged));
+  /* Sanity check */
+  if(privileged && pf != AF_UNIX)
+    disorder_fatal(0, "cannot create a privileged listener on a non-local port");
   fd = xsocket(pf, SOCK_STREAM, 0);
   xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   if(bind(fd, sa, socklen) < 0) {
@@ -2153,6 +2158,7 @@ int server_start(ev_source *ev, int pf,
   cloexec(fd);
   l->name = name;
   l->pf = pf;
+  l->privileged = privileged;
   if(ev_listen(ev, fd, listen_callback, l, "server listener"))
     exit(EXIT_FAILURE);
   disorder_info("listening on %s", name);

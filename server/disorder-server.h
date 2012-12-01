@@ -234,7 +234,8 @@ void add_random_track(ev_source *ev);
 
 int server_start(ev_source *ev, int pf,
 		 size_t socklen, const struct sockaddr *sa,
-		 const char *name);
+		 const char *name,
+                 int privileged);
 /* start listening.  Return the fd. */
 
 int server_stop(ev_source *ev, int fd);

@@ -796,8 +796,8 @@ int main(int argc, char **argv) {
   if(backend->configure)
     backend->configure();
   backend->start(speaker_callback, NULL);
-  /* create the socket directory */
-  byte_xasprintf(&dir, "%s/speaker", config->home);
+  /* create the private socket directory */
+  byte_xasprintf(&dir, "%s/private", config->home);
   unlink(dir);                          /* might be a leftover socket */
   if(mkdir(dir, 0700) < 0 && errno != EEXIST)
     disorder_fatal(errno, "error creating %s", dir);
@@ -805,7 +805,7 @@ int main(int argc, char **argv) {
   listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
   memset(&addr, 0, sizeof addr);
   addr.sun_family = AF_UNIX;
-  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker/socket",
+  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/private/speaker",
            config->home);
   if(unlink(addr.sun_path) < 0 && errno != ENOENT)
     disorder_error(errno, "removing %s", addr.sun_path);
