@@ -208,3 +208,7 @@ libtests/t-timeval
 *.[oa]
 *~
 *.pyc
+/GPATH
+/GRTAGS
+/GSYMS
+/GTAGS
