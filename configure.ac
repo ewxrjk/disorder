@@ -729,13 +729,13 @@ if test "x$GCC" = xyes; then
     if test $GCC = yes; then
       CC="$CC -Wall -Werror"
     fi
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
       static int x(char *f) {
        return *f;
       }
       int z(const char *g) {
 	return x((char *)g);
-      }])],
+      }],[])],
       [rjk_cv_pr29478=no],
       [rjk_cv_pr29478=yes]
     )
