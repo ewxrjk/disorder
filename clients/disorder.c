@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,6 @@
 #include "vector.h"
 #include "version.h"
 #include "dateparse.h"
-#include "trackdb.h"
 #include "inputline.h"
 
 static disorder_client *client;
@@ -67,7 +66,6 @@ static const struct option options[] = {
   { "help-commands", no_argument, 0, 'H' },
   { "user", required_argument, 0, 'u' },
   { "password", required_argument, 0, 'p' },
-  { "wait-for-root", no_argument, 0, 'W' },
   { 0, 0, 0, 0 }
 };
 
@@ -844,28 +842,8 @@ static void help_commands(void) {
   exit(0);
 }
 
-static void wait_for_root(void) {
-  const char *password;
-
-  while(!trackdb_readable()) {
-    disorder_info("waiting for trackdb...");
-    sleep(1);
-  }
-  trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
-  for(;;) {
-    trackdb_open(TRACKDB_READ_ONLY);
-    password = trackdb_get_password("root");
-    trackdb_close();
-    if(password)
-      break;
-    disorder_info("waiting for root user to be created...");
-    sleep(1);
-  }
-  trackdb_deinit(NULL);
-}
-
 int main(int argc, char **argv) {
-  int n, i, j, local = 0, wfr = 0;
+  int n, i, j, local = 0;
   int status = 0;
   struct vector args;
   const char *user = 0, *password = 0;
@@ -876,7 +854,7 @@ int main(int argc, char **argv) {
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:W", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -887,7 +865,6 @@ int main(int argc, char **argv) {
     case 'N': config_per_user = 0; break;
     case 'u': user = optarg; break;
     case 'p': password = optarg; break;
-    case 'W': wfr = 1; break;
     default: disorder_fatal(0, "invalid option");
     }
   }
@@ -903,8 +880,6 @@ int main(int argc, char **argv) {
   }
   if(local)
     config->connect.af = -1;
-  if(wfr)
-    wait_for_root();
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
   /* gcrypt initialization */

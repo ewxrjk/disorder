@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ static const struct option options[] = {
   { "log", required_argument, 0, 'l' },
   { "pidfile", required_argument, 0, 'P' },
   { "wide-open", no_argument, 0, 'w' },
+  { "wait-for-root", no_argument, 0, 'W' },
   { "syslog", no_argument, 0, 's' },
   { 0, 0, 0, 0 }
 };
@@ -176,8 +177,29 @@ static void fix_path(void) {
   disorder_info("%s", newpath); 
 }
 
+/* Used by test scripts to wait for things to get ready */
+static void wait_for_root(void) {
+  const char *password;
+
+  while(!trackdb_readable()) {
+    disorder_info("waiting for trackdb...");
+    sleep(1);
+  }
+  trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
+  for(;;) {
+    trackdb_open(TRACKDB_READ_ONLY);
+    password = trackdb_get_password("root");
+    trackdb_close();
+    if(password)
+      break;
+    disorder_info("waiting for root user to be created...");
+    sleep(1);
+  }
+  trackdb_deinit(NULL);
+}
+
 int main(int argc, char **argv) {
-  int n, background = 1, logsyslog = 0;
+  int n, background = 1, logsyslog = 0, wfr = 0;
   const char *pidfile = 0;
   struct rlimit rl[1];
 
@@ -188,7 +210,7 @@ int main(int argc, char **argv) {
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-  while((n = getopt_long(argc, argv, "hVc:dfP:Ns", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dfP:NsW", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorderd");
@@ -198,8 +220,15 @@ int main(int argc, char **argv) {
     case 'P': pidfile = optarg; break;
     case 's': logsyslog = 1; break;
     case 'w': wideopen = 1; break;
+    case 'W': wfr = 1; break;
     default: disorder_fatal(0, "invalid option");
     }
+  }
+  if(wfr) {
+    if(config_read(1,  NULL))
+      disorder_fatal(0, "cannot read configuration");
+    wait_for_root();
+    return 0;
   }
   /* go into background if necessary */
   if(background)

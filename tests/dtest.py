@@ -255,8 +255,8 @@ Start the daemon."""
     if waited > 0:
         print "  took about %ss for socket to appear" % waited
     # Wait for root user to be created
-    command(["disorder",
-             "--config", disorder._configfile, "--no-per-user-config",
+    command(["disorderd",
+             "--config", disorder._configfile,
              "--wait-for-root"])
 
 def create_user(username="fred", password="fredpass"):
