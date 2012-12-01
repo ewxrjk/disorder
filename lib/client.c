@@ -50,7 +50,6 @@
 #include "authhash.h"
 #include "client-common.h"
 #include "rights.h"
-#include "trackdb.h"
 #include "kvp.h"
 
 /** @brief Client handle contents */
@@ -521,13 +520,13 @@ int disorder_connect(disorder_client *c) {
     return -1;
   }
   password = config->password;
-  /* Maybe we can read the database */
-  if(!password && trackdb_readable()) {
-    trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
-    trackdb_open(TRACKDB_READ_ONLY);
-    password = trackdb_get_password(username);
-    trackdb_close();
-  }
+  /* If we're connecting as 'root' guess that we're the system root
+   * user (or the jukebox user), both of which can use the privileged
+   * socket.  They can also furtle with the db directly: that is why
+   * privileged socket does not represent a privilege escalation. */
+  if(!password
+     && !strcmp(username, "root"))
+    password = "anything will do for root";
   if(!password) {
     /* Oh well */
     c->last = "no password";

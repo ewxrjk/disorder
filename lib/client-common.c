@@ -54,13 +54,11 @@ socklen_t find_server(struct config *c,
     sa = res->ai_addr;
     len = res->ai_addrlen;
   } else {
-    if(getuid() == 0) {
-      /* root will use the private socket if possible (which it should be) */
-      name = config_get_file2(c, "private/socket");
-      if(access(name, R_OK) != 0) {
-        xfree(name);
-        name = NULL;
-      }
+    /* use the private socket if possible (which it should be) */
+    name = config_get_file2(c, "private/socket");
+    if(access(name, R_OK) != 0) {
+      xfree(name);
+      name = NULL;
     }
     if(!name)
       name = config_get_file2(c, "socket");
