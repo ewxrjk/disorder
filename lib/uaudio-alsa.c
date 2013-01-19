@@ -170,7 +170,7 @@ static void alsa_open_mixer(void) {
   snd_mixer_selem_id_t *id;
   const char *device = uaudio_get("device", "default");
   const char *mixer = uaudio_get("mixer-control", "0");
-  const char *channel = uaudio_get("mixer-channel", "PCM");
+  const char *channel = uaudio_get("mixer-channel", "Master");
 
   snd_mixer_selem_id_alloca(&id);
   if((err = snd_mixer_open(&alsa_mixer_handle, 0)))
