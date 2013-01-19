@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,6 +105,7 @@ static void alsa_open(void) {
 			 SND_PCM_STREAM_PLAYBACK,
 			 0)))
     disorder_fatal(0, "error from snd_pcm_open: %d", err);
+  /* Hardware parameters */
   snd_pcm_hw_params_t *hwparams;
   snd_pcm_hw_params_alloca(&hwparams);
   if((err = snd_pcm_hw_params_any(alsa_pcm, hwparams)) < 0)
@@ -131,7 +132,16 @@ static void alsa_open(void) {
           uaudio_channels, err);
   if((err = snd_pcm_hw_params(alsa_pcm, hwparams)) < 0)
     disorder_fatal(0, "error calling snd_pcm_hw_params: %d", err);
-  
+  /* Software parameters */
+  snd_pcm_sw_params_t *swparams;
+  snd_pcm_sw_params_alloca(&swparams);
+  if((err = snd_pcm_sw_params_current(alsa_pcm, swparams)) < 0)
+    disorder_fatal(-err, "error calling snd_pcm_sw_params_current");
+  /* Bump the start threshold a bit since Pulseaudio sulks with the defaults */
+  if((err = snd_pcm_sw_params_set_start_threshold(alsa_pcm, swparams, 1024)) < 0)
+    disorder_fatal(-err, "error calling snd_pcm_sw_params_set_start_threshold");
+  if((err = snd_pcm_sw_params(alsa_pcm, swparams)) < 0)
+    disorder_fatal(-err, "error calling snd_pcm_sw_params");
 }
 
 static void alsa_start(uaudio_callback *callback,
