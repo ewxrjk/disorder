@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,9 @@ int uaudio_channels;
 
 /** @brief Whether samples are signed or unsigned */
 int uaudio_signed;
+
+/** @brief Frames of buffer to tolerate inside chosen API */
+int uaudio_buffer;
 
 /** @brief Sample size in bytes
  *

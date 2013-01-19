@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2010 Richard Kettlewell
+# Copyright (C) 2004-2010, 2012, 2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	speaker-protocol.c speaker-protocol.h		\
 	split.c split.h					\
 	strptime.c strptime.h				\
-	syscalls.c syscalls.h				\
+	syscalls.c syscallsrt.c syscalls.h		\
 	common.h					\
 	table.c table.h					\
 	timeval.h					\
