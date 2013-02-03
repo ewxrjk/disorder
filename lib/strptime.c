@@ -1,6 +1,6 @@
 /* strptime.c - partial strptime() reimplementation
  *
- * (c) 2008 Richard Kettlewell.
+ * Copyright (c) 2008, 2011 Richard Kettlewell.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
