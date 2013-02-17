@@ -840,7 +840,7 @@ static char **dedupe(char **vec, int nvec) {
   int m, n;
 
   qsort(vec, nvec, sizeof (char *), wordcmp);
-  m = n = 0;
+  m = 0;
   if(nvec) {
     vec[m++] = vec[0];
     for(n = 1; n < nvec; ++n)
@@ -1389,6 +1389,7 @@ int trackdb_obsolete(const char *track, DB_TXN *tid) {
 #define H(name) { #name, offsetof(DB_HASH_STAT, name) }
 #define B(name) { #name, offsetof(DB_BTREE_STAT, name) }
 
+/** @brief Table of libdb stats to return */
 static const struct statinfo {
   const char *name;
   size_t offset;
@@ -1823,7 +1824,7 @@ int trackdb_set(const char *track,
         if(trackdb_putdata(trackdb_prefsdb, track, p, tid, 0))
           goto fail;
       /* compute the new alias name */
-      if((err = compute_alias(&newalias, track, p, tid))) goto fail;
+      if(compute_alias(&newalias, track, p, tid)) goto fail;
       /* check whether alias has changed */
       if(!(oldalias == newalias
            || (oldalias && newalias && !strcmp(oldalias, newalias)))) {
@@ -2176,13 +2177,13 @@ const char *trackdb_getpart(const char *track,
   DB_TXN *tid;
   char *pref;
   const char *actual;
-  int used_db, err;
+  int used_db;
 
   /* construct the full pref */
   byte_xasprintf(&pref, "trackname_%s_%s", context, part);
   for(;;) {
     tid = trackdb_begin_transaction();
-    if((err = gettrackdata(track, 0, &p, &actual, 0, tid)) == DB_LOCK_DEADLOCK)
+    if(gettrackdata(track, 0, &p, &actual, 0, tid) == DB_LOCK_DEADLOCK)
       goto fail;
     break;
 fail:
@@ -2493,6 +2494,9 @@ char **trackdb_search(char **wordlist, int nwordlist, int *ntracks) {
     }
     if(trackdb_closecursor(cursor)) err = DB_LOCK_DEADLOCK;
     cursor = 0;
+    if(err)
+      goto fail;
+    cursor = 0;
     /* do a naive search over that (hopefuly fairly small) list of tracks */
     u.nvec = 0;
     for(n = 0; n < v.nvec; ++n) {
@@ -2733,17 +2737,18 @@ int trackdb_rescan_underway(void) {
  * @param name Global preference name
  * @param value New value
  * @param who Who is setting it
+ * @return 0 on success, -1 on error
  */
-void trackdb_set_global(const char *name,
+int trackdb_set_global(const char *name,
                         const char *value,
                         const char *who) {
   DB_TXN *tid;
-  int err;
-  int state;
+  int state, err;
 
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(!(err = trackdb_set_global_tid(name, value, tid)))
+    err = trackdb_set_global_tid(name, value, tid);
+    if(err != DB_LOCK_DEADLOCK)
       break;
     trackdb_abort_transaction(tid);
   }
@@ -2763,6 +2768,8 @@ void trackdb_set_global(const char *name,
                   who ? who : "-");
     eventlog("state", state ? "enable_random" : "disable_random", (char *)0);
   }
+  eventlog("global_pref", name, value, (char *)0);
+  return err == 0 ? 0 : -1;
 }
 
 /** @brief Set a global preference
@@ -2788,7 +2795,7 @@ int trackdb_set_global_tid(const char *name,
     err = trackdb_globaldb->put(trackdb_globaldb, tid, &k, &d, 0);
   else
     err = trackdb_globaldb->del(trackdb_globaldb, tid, &k, 0);
-  if(err == DB_LOCK_DEADLOCK) return err;
+  if(err == DB_LOCK_DEADLOCK || err == DB_NOTFOUND) return err;
   if(err)
     disorder_fatal(0, "error updating database: %s", db_strerror(err));
   return 0;
@@ -2800,12 +2807,11 @@ int trackdb_set_global_tid(const char *name,
  */
 const char *trackdb_get_global(const char *name) {
   DB_TXN *tid;
-  int err;
   const char *r;
 
   for(;;) {
     tid = trackdb_begin_transaction();
-    if(!(err = trackdb_get_global_tid(name, tid, &r)))
+    if(!trackdb_get_global_tid(name, tid, &r))
       break;
     trackdb_abort_transaction(tid);
   }
@@ -2909,7 +2915,7 @@ static char **trackdb_new_tid(int *ntracksp,
   default:
     disorder_fatal(0, "error reading noticed.db: %s", db_strerror(err));
   }
-  if((err = trackdb_closecursor(c)))
+  if(trackdb_closecursor(c))
     return 0;                           /* deadlock */
   vector_terminate(tracks);
   if(ntracksp)
@@ -2999,21 +3005,6 @@ void trackdb_gc(void) {
 
 /* user database *************************************************************/
 
-/** @brief Return true if @p user is trusted
- * @param user User to look up
- * @return Nonzero if they are in the 'trusted' list
- *
- * Now used only in upgrade from old versions.
- */
-static int trusted(const char *user) {
-  int n;
-
-  for(n = 0; (n < config->trust.n
-	      && strcmp(config->trust.s[n], user)); ++n)
-    ;
-  return n < config->trust.n;
-}
-
 /** @brief Add a user
  * @param user Username
  * @param password Initial password or NULL
@@ -3054,75 +3045,6 @@ static int create_user(const char *user,
   snprintf(s, sizeof s, "%jd", (intmax_t)xtime(0));
   kvp_set(&k, "created", s);
   return trackdb_putdata(trackdb_usersdb, user, k, tid, flags);
-}
-
-/** @brief Add one pre-existing user 
- * @param user Username
- * @param password password
- * @param tid Owning transaction
- * @return 0, DB_KEYEXIST or DB_LOCK_DEADLOCK
- *
- * Used only in upgrade from old versions.
- */
-static int one_old_user(const char *user, const char *password,
-                        DB_TXN *tid) {
-  const char *rights;
-
-  /* www-data doesn't get added */
-  if(!strcmp(user, "www-data")) {
-    disorder_info("not adding www-data to user database");
-    return 0;
-  }
-  /* pick rights */
-  if(!strcmp(user, "root"))
-    rights = "all";
-  else if(trusted(user)) {
-    rights_type r;
-
-    parse_rights(config->default_rights, &r, 1);
-    r &= ~(rights_type)(RIGHT_SCRATCH__MASK|RIGHT_MOVE__MASK|RIGHT_REMOVE__MASK);
-    r |= (RIGHT_ADMIN|RIGHT_RESCAN
-          |RIGHT_SCRATCH_ANY|RIGHT_MOVE_ANY|RIGHT_REMOVE_ANY);
-    rights = rights_string(r);
-  } else
-    rights = config->default_rights;
-  return create_user(user, password, rights, 0/*email*/, 0/*confirmation*/,
-                     tid, DB_NOOVERWRITE);
-}
-
-/** @brief Upgrade old users
- * @param tid Owning transaction
- * @return 0 or DB_LOCK_DEADLOCK
- */
-static int trackdb_old_users_tid(DB_TXN *tid) {
-  int n;
-
-  for(n = 0; n < config->allow.n; ++n) {
-    switch(one_old_user(config->allow.s[n].s[0], config->allow.s[n].s[1],
-                        tid)) {
-    case 0:
-      disorder_info("created user %s from 'allow' directive",
-                    config->allow.s[n].s[0]);
-      break;
-    case DB_KEYEXIST:
-      disorder_error(0, "user %s already exists, delete 'allow' directive",
-            config->allow.s[n].s[0]);
-          /* This won't ever become fatal - eventually 'allow' will be
-           * disabled. */
-      break;
-    case DB_LOCK_DEADLOCK:
-      return DB_LOCK_DEADLOCK;
-    }
-  }
-  return 0;
-}
-
-/** @brief Read old 'allow' directives and copy them to the users database */
-void trackdb_old_users(void) {
-  int e;
-
-  if(config->allow.n)
-    WITH_TRANSACTION(trackdb_old_users_tid(tid));
 }
 
 /** @brief Create a root user in the user database if there is none */

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2008, 2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,18 +24,16 @@
 
 #include "disorder-cgi.h"
 
-struct column {
-  int ncolumns;
-  char **columns;
-};
-
+/** @brief State for parsing an options file */
 struct read_options_state {
+  /** @brief Filename */
   const char *name;
+
+  /** @brief Line number */
   int line;
 };
 
 static hash *labels;
-static hash *columns;
 
 static void option__readfile(const char *name);
 
@@ -49,21 +47,17 @@ static void option__include(int attribute((unused)) nvec,
   option__readfile(vec[0]);
 }
 
-static void option__columns(int nvec,
-			   char **vec) {
-  struct column c;
-
-  c.ncolumns = nvec - 1;
-  c.columns = &vec[1];
-  hash_add(columns, vec[0], &c, HASH_INSERT_OR_REPLACE);
-}
-
+/** @brief Definition of an option command */
 static struct option {
+  /** @brief Command name */
   const char *name;
-  int minargs, maxargs;
+  /** @brief Minimum number of arguments */
+  int minargs;
+  /** @brief Maximum number of arguments */
+  int maxargs;
+  /** @brief Command handler */
   void (*handler)(int nvec, char **vec);
 } options[] = {
-  { "columns", 1, INT_MAX, option__columns },
   { "include", 1, 1, option__include },
   { "label", 2, 2, option__label },
 };
@@ -118,7 +112,6 @@ static void option__init(void) {
   if(!have_read_options) {
     have_read_options = 1;
     labels = hash_new(sizeof (char *));
-    columns = hash_new(sizeof (struct column));
     option__readfile("options");
   }
 }
@@ -184,27 +177,6 @@ const char *option_label(const char *key) {
 int option_label_exists(const char *key) {
   option__init();
   return !!hash_find(labels, key);
-}
-
-/** @brief Return a column list
- * @param name Context (playing/recent/etc)
- * @param ncolumns Where to store column count or NULL
- * @return Pointer to column list
- */
-char **option_columns(const char *name, int *ncolumns) {
-  struct column *c;
-
-  option__init();
-  c = hash_find(columns, name);
-  if(c) {
-    if(ncolumns)
-      *ncolumns = c->ncolumns;
-    return c->columns;
-  } else {
-    if(ncolumns)
-      *ncolumns = 0;
-    return 0;
-  }
 }
 
 /*

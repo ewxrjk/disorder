@@ -71,6 +71,8 @@ char *urlencodestring(const char *s);
 char *urldecodestring(const char *s, size_t ns);
 struct kvp *kvp_make(const char *key, ...);
 
+void kvp_free(struct kvp *k);
+
 #endif /* KVP_H */
 
 /*

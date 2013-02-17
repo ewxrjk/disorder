@@ -28,17 +28,33 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	control.c properties.c menu.c log.c progress.c login.c rtp.c	\
 	help.c ../lib/memgc.c settings.c users.c lookup.c choose.h      \
 	popup.h playlists.c multidrag.c multidrag.h autoscroll.c	\
-	autoscroll.h
+	autoscroll.h globals.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
-	$(LIBASOUND) $(COREAUDIO) $(LIBDB) $(LIBICONV)
+	$(LIBASOUND) $(COREAUDIO) $(LIBICONV)
 disobedience_LDFLAGS=$(GTK_LIBS)
 
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
+install-data-local:
+	$(MKDIR_P) ${DESTDIR}${datarootdir}/applications
+	$(INSTALL) -m 644 ${srcdir}/disobedience.desktop \
+		${DESTDIR}${datarootdir}/applications/disobedience.desktop
+	$(MKDIR_P) ${DESTDIR}${datarootdir}/icons/hicolor/48x48/apps
+	$(INSTALL) -m 644 ${top_srcdir}/images/disobedience48x48.png \
+		${DESTDIR}${datarootdir}/icons/hicolor/48x48/apps/disobedience.png
+	$(MKDIR_P) ${DESTDIR}${datarootdir}/icons/hicolor/64x64/apps
+	$(INSTALL) -m 644 ${top_srcdir}/images/disobedience64x64.png \
+		${DESTDIR}${datarootdir}/icons/hicolor/64x64/apps/disobedience.png
+	$(MKDIR_P) ${DESTDIR}${datarootdir}/icons/hicolor/128x128/apps
+	$(INSTALL) -m 644 ${top_srcdir}/images/disobedience128x128.png \
+		${DESTDIR}${datarootdir}/icons/hicolor/128x128/apps/disobedience.png
+	$(MKDIR_P) ${DESTDIR}${datarootdir}/icons/hicolor/256x256/apps
+	$(INSTALL) -m 644 ${top_srcdir}/images/disobedience256x256.png \
+		${DESTDIR}${datarootdir}/icons/hicolor/256x256/apps/disobedience.png
 
 check: check-help
 
 misc.o: ../images/images.h
+
+EXTRA_DIST=disobedience.desktop
 
 # check everything has working --help
 check-help: all

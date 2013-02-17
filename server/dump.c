@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,10 @@
  */
 #include "disorder-server.h"
 
+enum {
+  NO_SETUID = UCHAR_MAX + 1,
+};
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -31,6 +35,7 @@ static const struct option options[] = {
   { "recover-fatal", no_argument, 0, 'R' },
   { "recompute-aliases", no_argument, 0, 'a' },
   { "remove-pathless", no_argument, 0, 'P' },
+  { "no-setuid", no_argument, 0, NO_SETUID },
   { 0, 0, 0, 0 }
 };
 
@@ -48,6 +53,7 @@ static void help(void) {
 	  "  --recover, -r            Run database recovery\n"
 	  "  --recompute-aliases, -a  Recompute aliases\n"
 	  "  --remove-pathless, -P    Remove pathless tracks\n"
+          "  --no-setuid              Do not become jukebox user\n"
 	  "  --debug                  Debug mode\n");
   xfclose(stdout);
   exit(0);
@@ -365,12 +371,13 @@ fail:
 int main(int argc, char **argv) {
   int n, dump = 0, undump = 0, recover = TRACKDB_NO_RECOVER, recompute = 0;
   int remove_pathless = 0, fd;
+  int changeuid = !getuid();
   const char *path;
   char *tmp;
   FILE *fp;
 
   mem_init();
-  while((n = getopt_long(argc, argv, "hVc:dDurRaP", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dDurRaPR", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-dump");
@@ -378,10 +385,11 @@ int main(int argc, char **argv) {
     case 'd': dump = 1; break;
     case 'u': undump = 1; break;
     case 'D': debugging = 1; break;
-    case 'r': recover = TRACKDB_NORMAL_RECOVER;
-    case 'R': recover = TRACKDB_FATAL_RECOVER;
+    case 'r': recover = TRACKDB_NORMAL_RECOVER; break;
+    case 'R': recover = TRACKDB_FATAL_RECOVER; break;
     case 'a': recompute = 1; break;
     case 'P': remove_pathless = 1; break;
+    case NO_SETUID: changeuid = 0; break;
     default: disorder_fatal(0, "invalid option");
     }
   }
@@ -400,8 +408,6 @@ int main(int argc, char **argv) {
   }
   if(config_read(0, NULL))
     disorder_fatal(0, "cannot read configuration");
-  trackdb_init(recover|TRACKDB_MAY_CREATE);
-  trackdb_open(TRACKDB_NO_UPGRADE);
   if(dump) {
     /* We write to a temporary file and rename into place.  We make
      * sure the permissions are tight from the start. */
@@ -410,17 +416,24 @@ int main(int argc, char **argv) {
       disorder_fatal(errno, "error opening %s", tmp);
     if(!(fp = fdopen(fd, "w")))
       disorder_fatal(errno, "fdopen on %s", tmp);
+    trackdb_init(recover|TRACKDB_MAY_CREATE);
+    trackdb_open(TRACKDB_NO_UPGRADE);
     do_dump(fp, tmp);
     if(fclose(fp) < 0) disorder_fatal(errno, "error closing %s", tmp);
     if(rename(tmp, path) < 0)
       disorder_fatal(errno, "error renaming %s to %s", tmp, path);
   } else if(undump) {
+    /* Open the dump file before changing UID */
+    if(!(fp = fopen(path, "r")))
+      disorder_fatal(errno, "error opening %s", path);
+    if(changeuid)
+      become_mortal();
     /* the databases or logfiles might end up with wrong permissions
      * if new ones are created */
     if(getuid() == 0)
       disorder_info("you might need to chown database files");
-    if(!(fp = fopen(path, "r")))
-      disorder_fatal(errno, "error opening %s", path);
+    trackdb_init(recover|TRACKDB_MAY_CREATE);
+    trackdb_open(TRACKDB_NO_UPGRADE);
     do_undump(fp, path, remove_pathless);
     xfclose(fp);
   } else if(recompute) {

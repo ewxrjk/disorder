@@ -678,6 +678,12 @@ int main(int argc, char **argv) {
     }
   }
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
+  if(backend == &uaudio_rtp) {
+    /* This means that you have NO local sound output.  This can happen if you
+     * use a non-Apple GCC on a Mac (because it doesn't know how to compile
+     * CoreAudio/AudioHardware.h). */
+    disorder_fatal(0, "cannot play RTP through RTP");
+  }
   if(!maxbuffer)
     maxbuffer = 2 * minbuffer;
   argc -= optind;

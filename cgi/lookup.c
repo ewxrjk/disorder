@@ -33,8 +33,8 @@ struct queue_entry *dcgi_queue;
 struct queue_entry *dcgi_playing;
 struct queue_entry *dcgi_recent;
 
-int dcgi_volume_left;
-int dcgi_volume_right;
+long dcgi_volume_left;
+long dcgi_volume_right;
 
 char **dcgi_new;
 int dcgi_nnew;
@@ -68,7 +68,7 @@ void dcgi_lookup(unsigned want) {
     queuemap_add(dcgi_playing);
   }
   if(need & DCGI_NEW)
-    disorder_new_tracks(dcgi_client, &dcgi_new, &dcgi_nnew, 0);
+    disorder_new_tracks(dcgi_client, 0, &dcgi_new, &dcgi_nnew);
   if(need & DCGI_RECENT) {
     /* we need to reverse the order of the list */
     disorder_recent(dcgi_client, &r);

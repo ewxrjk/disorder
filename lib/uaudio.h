@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ extern int uaudio_bits;
 extern int uaudio_channels;
 extern int uaudio_signed;
 extern size_t uaudio_sample_size;
+extern int uaudio_buffer;
 
 /** @brief Callback to get audio data
  * @param buffer Where to put audio data

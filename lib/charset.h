@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,6 +48,16 @@ char *any2any(const char *from/*encoding or 0*/,
 /* Arbitrary conversions between any null-free byte-based encodings
  * that iconv knows.  If FROM and TO are both 0 then ANY is returned
  * unchanged. */
+
+char *mb2utf8_f(char *mb);
+char *utf82mb_f(char *utf8);
+char *any2utf8_f(const char *from/*encoding*/,
+                 char *any/*string*/);
+char *any2mb_f(const char *from/*encoding or 0*/,
+               char *any/*string*/);
+char *any2any_f(const char *from/*encoding or 0*/,
+                const char *to/*encoding to 0*/,
+                char *any/*string*/);
 
 /** @brief Insist that @p s is not null
  * @param s Pointer to check

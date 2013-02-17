@@ -76,14 +76,13 @@ static void act_playing(void) {
      && dcgi_playing->sofar >= 0) {
     /* Try to put the next refresh at the start of the next track. */
     xtime(&now);
-    fin = now + length - dcgi_playing->sofar + config->gap;
+    fin = now + length - dcgi_playing->sofar;
     if(now + refresh > fin)
       refresh = fin - now;
   }
   if(dcgi_queue && dcgi_queue->origin == origin_scratch) {
-    /* next track is a scratch, don't leave more than the inter-track gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
+    /* next track is a scratch, refresh immediately */
+    refresh = 0;
   }
   if(!dcgi_playing
      && ((dcgi_queue
@@ -91,9 +90,8 @@ static void act_playing(void) {
          || dcgi_random_enabled)
      && dcgi_enabled) {
     /* no track playing but playing is enabled and there is something coming
-     * up, must be in a gap */
-    if(refresh > config->gap)
-      refresh = config->gap;
+     * up, so refresh immediately */
+    refresh = 0;
   }
   /* Bound the refresh interval below as a back-stop against the above
    * calculations coming up with a stupid answer */
@@ -240,16 +238,17 @@ static void act_play(void) {
   char **tracks;
   int ntracks, n;
   struct tracksort_data *tsd;
+  char *id;
   
   if(dcgi_client) {
     if((track = cgi_get("track"))) {
-      disorder_play(dcgi_client, track);
+      disorder_play(dcgi_client, track, &id);
     } else if((dir = cgi_get("dir"))) {
       if(disorder_files(dcgi_client, dir, 0, &tracks, &ntracks))
         ntracks = 0;
       tsd = tracksort_init(ntracks, tracks, "track");
       for(n = 0; n < ntracks; ++n)
-        disorder_play(dcgi_client, tsd[n].track);
+        disorder_play(dcgi_client, tsd[n].track, &id);
     }
   }
   redirect(0);
@@ -612,7 +611,7 @@ static int process_prefs(int numfile) {
     byte_xasprintf((char **)&name, "trackname_%s_%s", context, part);
     disorder_set(dcgi_client, file, name, value);
   }
-  if((value = numbered_arg("random", numfile)))
+  if(numbered_arg("random", numfile))
     disorder_unset(dcgi_client, file, "pick_at_random");
   else
     disorder_set(dcgi_client, file, "pick_at_random", "0");

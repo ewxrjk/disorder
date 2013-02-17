@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2008, 2009 Richard Kettlewell
+ * Copyright (C) 2008-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -179,13 +179,16 @@ void play(ev_source *ev);
 /* try to play something, if playing is enabled and nothing is playing
  * already */
 
+/** @brief Return true if @p represents a true flag */
+int flag_enabled(const char *s);
+
 int playing_is_enabled(void);
 /* return true iff playing is enabled */
 
 void enable_playing(const char *who, ev_source *ev);
 /* enable playing */
 
-void disable_playing(const char *who);
+void disable_playing(const char *who, ev_source *ev);
 /* disable playing. */
 
 int random_is_enabled(void);
@@ -194,7 +197,7 @@ int random_is_enabled(void);
 void enable_random(const char *who, ev_source *ev);
 /* enable random play */
 
-void disable_random(const char *who);
+void disable_random(const char *who, ev_source *ev);
 /* disable random play */
 
 void scratch(const char *who, const char *id);
@@ -231,7 +234,8 @@ void add_random_track(ev_source *ev);
 
 int server_start(ev_source *ev, int pf,
 		 size_t socklen, const struct sockaddr *sa,
-		 const char *name);
+		 const char *name,
+                 int privileged);
 /* start listening.  Return the fd. */
 
 int server_stop(ev_source *ev, int fd);
@@ -345,8 +349,6 @@ struct pbgc_params {
   int argc;
   /** @brief Player command */
   const char **argv;
-  /** @brief Device to wait for or NULL */
-  const char *waitdevice;
   /** @brief Raw track name */
   const char *rawpath;
 };
@@ -371,6 +373,11 @@ int play_background(ev_source *ev,
 #define START_OK 0	   /**< @brief Succeeded. */
 #define START_HARDFAIL 1   /**< @brief Track is broken. */
 #define START_SOFTFAIL 2   /**< @brief Track OK, system (temporarily?) broken */
+
+void periodic_mount_check(ev_source *ev_);
+
+/** @brief How often to check for new (or old) filesystems */
+# define MOUNT_CHECK_INTERVAL 5         /* seconds */
 
 #endif /* DISORDER_SERVER_H */
 

@@ -54,7 +54,7 @@ DisOrder distinguishes between multiple users.
 This is for access control and reporting, not to provide different
 views of the world: i.e. preferences and so on are global.
 .PP
-Each user has an associated set of rights which contorl which commands they may
+Each user has an associated set of rights which control which commands they may
 execute.
 Normally you would give all users most rights, and expect them to
 cooperate (they are after all presumed to be in a shared sound environment).
@@ -325,7 +325,6 @@ For \fBapi oss\fR the possible values are:
 .RS
 .TP 8
 .B pcm
-
 Output level for the audio device.
 This is probably what you want and is the default.
 .TP
@@ -399,8 +398,7 @@ For the possible values see
 .B "Users And Access Control"
 above.
 .IP
-The default is to allow everything except \fBadmin\fR and \fBregister\fR
-(modified in legacy configurations by the obsolete \fBrestrict\fR directive).
+The default is to allow everything except \fBadmin\fR and \fBregister\fR.
 .TP
 .B device \fINAME\fR
 Sound output device.
@@ -421,9 +419,6 @@ Remember to quote the name.
 The default is \fBdefault\fR, which is intended to map to whatever the system's
 default is.
 .TP
-.B gap \fISECONDS\fR
-This option no longer does anything and will be removed in a future version.
-.TP
 .B history \fIINTEGER\fR
 Specifies the number of recently played tracks to remember (including
 failed tracks and scratches).
@@ -442,9 +437,6 @@ Note that IPv6 is not currently well tested.
 .IP
 Normally the server only listens on a UNIX domain socket.
 .TP
-.B lock yes\fR|\fBno
-This option no longer does anything and will be removed in a future version.
-.TP
 .B mixer \fIDEVICE\fR
 The mixer device name, if it needs to be specified separately from
 \fBdevice\fR.
@@ -456,6 +448,10 @@ For \fBapi alsa\fR, this is the index of the mixer control to use.
 The default is 0.
 .IP
 For \fBapi coreaudio\fR, volume setting is not currently supported.
+.TP
+.B mount_rescan yes\fR|\fBno
+Determines whether mounts and unmounts will cause an automatic rescan.
+The default is \fByes\fR.
 .TP
 .B multicast_loop yes\fR|\fBno
 Determines whether multicast packets are loop backed to the sending host.
@@ -582,14 +578,6 @@ Specifies the player for files matching the glob \fIPATTERN\fR.
 The following options are supported:
 .RS
 .TP
-.B \-\-wait\-for\-device\fR[\fB=\fIDEVICE\fR]
-\fBThis option is deprecated\fR.
-If you want gapless play use raw-format players and the speaker process instead.
-(This the default in any case.)
-.IP
-Waits (for up to a couple of seconds) for the default, or specified, libao
-device to become openable.
-.TP
 .B \-\-
 Defines the end of the list of options.
 Needed if the first argument to the plugin starts with a "\-".
@@ -637,9 +625,6 @@ is used without arguments, the list of players is cleared.
 Although players can be changed during the lifetime of the server, note that
 background decoders will not be stopped and restarted using changed
 configuration once they have been started.
-.TP
-.B prefsync \fISECONDS\fR
-This option no longer does anything and will be removed in a future version.
 .TP
 .B queue_pad \fICOUNT\fR
 The target size of the queue.

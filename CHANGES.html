@@ -1,65 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <head>
 <title>DisOrder Change History</title>
-<style type="text/css">
-body {
-  color: black;
-  background-color: white;
-  font-family: times,serif;
-  font-weight: normal;
-  font-size: 12pt;
-  font-variant: normal
-}
-
-div.section {
-  margin-left:1em
-}
-
-h1 {
-  background-color: #e0ffe0;
-  font-family: helvetica,sans-serif;
-  padding: 0.2em
-}
-
-h2 {
-  background-color: #e0ffe0;
-  font-family: helvetica,sans-serif;
-  padding: 0.2em
-}
-
-h3 {
-  background-color: #f0f0f0;
-  font-family: helvetica,sans-serif;
-  padding: 0.2em
-}
-
-h4 {
-  font-family: helvetica,sans-serif
-}
-
-table.bugs {
-  width: 100%;
-  font-size: 12pt;
-  border-collapse: collapse;
-  border:1px
-}
-
-table.bugs th {
-  text-align: left;
-  border: 1px solid black;
-  background-color: black;
-  color: white
-}
-
-table.bugs td {
-  border: 1px solid
-}
-
-span.command {
-  font-family: monospace
-}
-</style>
+<link rel=StyleSheet type="text/css" href="docs.css">
 </head>
 
 <body>
@@ -67,6 +10,96 @@ span.command {
 
 <p>This file documents recent user-visible changes to <a
  href="http://www.greenend.org.uk/rjk/disorder/">DisOrder</a>.</p>
+
+<p><b>IMPORTANT</b>: you should read <a
+href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
+
+<h2>Changes up to version 5.1</h2>
+
+<div class=section>
+
+  <h3>Removable Device Support</h3>
+
+  <div class=section>
+
+    <p>The server will now automatically initiate a rescan when a filesystem is
+    mounted or unmounted.  (Use the <tt>mount_rescan</tt> option if you want to
+    suppress this behavior.)</p>
+
+    <p>The server takes care not to hold audio files open unnecessarily, so
+    that devices can be unmounted even if tracks from them are currently being
+    buffered.</p>
+
+  </div>
+
+  <h3>Disobedience</h3>
+
+  <div class=section>
+
+    <p>You can now edit the <tt>required-tags</tt> and <tt>prohibited-tags</tt>
+    global preferences in Disobedience
+    (<a href="http://code.google.com/p/disorder/issues/detail?id=29">issue
+    #29</a>).</p>
+
+    <p>The &ldquo;Manage users&rdquo; option is now more reliably greyed out if
+    it will not work.  This depends on a server change too, so it may still be
+    wrong if a new Disobedience is used against an old server.</p>
+
+    <p>A <tt>.desktop</tt> file is now shipped, making Disobedience visible as
+    an application in freedesktop.org-compliant systems.</p>
+
+  </div>
+
+  <h3>Backups</h3>
+
+  <div class=section>
+
+    <p>The Debian package now includes a cronjob that backs up the database
+    daily.  See <tt>/etc/cron.d/disorder</tt>.  You can put settings
+    in <tt>/etc/default/disorder</tt> to turn this off or to control how long
+    the backups are kept for.</p>
+
+    <p>The <tt>disorder-dump -r</tt> option was broken.</p>
+
+    <p><tt>disorder-dump</tt> now gets permissions right automatically (<a
+    href="http://code.google.com/p/disorder/issues/detail?id=56">issue
+    #56</a>).</p>
+
+  </div>
+
+  <h3>General</h3>
+
+  <div class=section>
+
+    <p>Unicode support has been upgraded to <a
+    href="http://www.unicode.org/versions/Unicode6.0.0/">Unicode
+    6.0.0</a>.</p>
+
+    <p>Client programs no longer depend on libdb.</p>
+    
+    <p>The following have been removed:</p>
+
+    <ul>
+
+      <li>The <tt>allow</tt>, <tt>gap</tt>, <tt>lock</tt>, <tt>prefsync</tt>, 
+      <tt>restrict</tt>, <tt>trust</tt> configuration commands.  If they still
+      appear in your configuration file then the server will not start.</li>
+
+      <li>The <tt>columns</tt> web interface option.  It will generate an
+      message in your error log but otherwise be ignored.</li>
+
+      <li>The <tt>--wait-for-device</tt> player option.  If it still appears in
+      any player commands, they will not work.</li>
+
+      <li>Support for automatically importing pre-3.0 users.</li>
+
+    </ul>
+
+    <p>Various minor bug fixes.</p>
+
+  </div>
+
+</div>
 
 <h2>Changes up to version 5.0.3</h2>
 
@@ -158,7 +191,7 @@ unless they are properly authorized.</p>
 
       <p>Confirmation URLs should be cleaner (and in particular not end
       with punctuation).  (Please see <a
-      href="README.upgrades">README.upgrades</a> for more about this.)</p>
+      href="README.upgrades.html">README.upgrades</a> for more about this.)</p>
 
     </div>
       
@@ -214,67 +247,67 @@ unless they are properly authorized.</p>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=30">#30</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=30">#30</a></td>
           <td>mini disobedience interface</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=32">#32</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=32">#32</a></td>
           <td>Excessively verbose log chatter on shutdown</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=33">#33</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=33">#33</a></td>
           <td>(Some) plugins need -lm.</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=39">#39</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=39">#39</a></td>
           <td>Double bind() non-multicast AF_INET</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=40">#40</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=40">#40</a></td>
           <td>Missing stub function</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=41">#41</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=41">#41</a></td>
           <td>Missing includes for timeval</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=42">#42</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=42">#42</a></td>
           <td>syntax error in empeg_host section</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=43">#43</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=43">#43</a></td>
           <td>decoder segfault with FLAC 1.2.1</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=44">#44</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=44">#44</a></td>
           <td>gcc 4.3.2-1ubuntu12 SUYB patch</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=45">#45</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=45">#45</a></td>
           <td>disobedience doesn't configure its back end</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=46">#46</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=46">#46</a></td>
           <td>Sort search results in web interface</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=48">#48</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=48">#48</a></td>
           <td>build-time dependency on <tt>oggdec</tt> removed</td>
         </tr>
 
         <tr>
-          <td><a href="http://code.google.com/p/disorder/issues/detail?id=49">#49</a></d>
+          <td><a href="http://code.google.com/p/disorder/issues/detail?id=49">#49</a></td>
           <td>Disobedience's 'When' column gets out of date</td>
         </tr>
 
@@ -682,7 +715,7 @@ unless they are properly authorized.</p>
 <div class=section>
   
   <p><b>Important</b>!  See <a
-  href="README.upgrades">README.upgrades</a> when upgrading.</p>
+  href="README.upgrades.html">README.upgrades</a> when upgrading.</p>
   
   <h3>Platforms And Installation</h3>
   

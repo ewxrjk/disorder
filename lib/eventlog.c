@@ -28,6 +28,7 @@
 #include "eventlog.h"
 #include "split.h"
 
+/** @brief Linked list of event logs */
 static struct eventlog_output *outputs;
 
 void eventlog_add(struct eventlog_output *lo) {
@@ -44,6 +45,11 @@ void eventlog_remove(struct eventlog_output *lo) {
     *pp = lo->next;
 }
 
+/** @brief Write to the event log
+ * @param keyword Distinguishing keyword for event
+ * @param raw Unformatted data
+ * @param ap Extra data, terminated by (char *)0
+ */
 static void veventlog(const char *keyword, const char *raw, va_list ap) {
   struct eventlog_output *p, *pnext;
   struct dynstr d;

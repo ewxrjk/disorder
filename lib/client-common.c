@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2005, 2006, 2007 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2006, 2007, 2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <netdb.h>
+#include <unistd.h>
 
 #include "log.h"
 #include "configuration.h"
@@ -43,7 +44,7 @@ socklen_t find_server(struct config *c,
   struct sockaddr *sa;
   struct sockaddr_un su;
   struct addrinfo *res = 0;
-  char *name;
+  char *name = NULL;
   socklen_t len;
 
   if(c->connect.af != -1) {
@@ -53,7 +54,14 @@ socklen_t find_server(struct config *c,
     sa = res->ai_addr;
     len = res->ai_addrlen;
   } else {
-    name = config_get_file2(c, "socket");
+    /* use the private socket if possible (which it should be) */
+    name = config_get_file2(c, "private/socket");
+    if(access(name, R_OK) != 0) {
+      xfree(name);
+      name = NULL;
+    }
+    if(!name)
+      name = config_get_file2(c, "socket");
     if(strlen(name) >= sizeof su.sun_path) {
       disorder_error(errno, "socket path is too long");
       return -1;
@@ -63,6 +71,7 @@ socklen_t find_server(struct config *c,
     strcpy(su.sun_path, name);
     sa = (struct sockaddr *)&su;
     len = sizeof su;
+    xfree(name);
   }
   *sap = xmalloc_noptr(len);
   memcpy(*sap, sa, len);
@@ -72,6 +81,11 @@ socklen_t find_server(struct config *c,
     freeaddrinfo(res);
   return len;
 }
+
+const char disorder__body[1];
+const char disorder__list[1];
+const char disorder__integer[1];
+const char disorder__time[1];
 
 /*
 Local Variables:

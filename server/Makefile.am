@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2009 Richard Kettlewell
+# Copyright (C) 2004-2011 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
-	schedule.c dbparams.c background.c \
+	schedule.c dbparams.c background.c mount.c \
 	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBAO) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
-	$(LIBASOUND) $(COREAUDIO)
+	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
@@ -44,7 +44,8 @@ disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPTHREAD)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_decode_SOURCES=decode.c disorder-server.h
+disorder_decode_SOURCES=decode.c decode.h disorder-server.h	\
+decode-mp3.c decode-ogg.c decode-wav.c decode-flac.c
 disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBMAD) $(LIBVORBISFILE) $(LIBFLAC)
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
@@ -57,7 +58,7 @@ disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
 	../lib/memgc.c disorder-server.h
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
+	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(LIBDL)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
@@ -86,9 +87,6 @@ disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a
 trackname_SOURCES=trackname.c disorder-server.h
 trackname_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 trackname_DEPENDENCIES=../lib/libdisorder.a
-
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
 
 check: check-help check-decode
 

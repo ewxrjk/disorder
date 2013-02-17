@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2007-2009 Richard Kettlewell
+ * Copyright (C) 2007-2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 
 #include <time.h>
 #include <sys/time.h>
+#include <math.h>
 
 static inline struct timeval tvsub(const struct timeval a,
                                    const struct timeval b) {
@@ -97,6 +98,57 @@ static inline int tvge(const struct timeval *a, const struct timeval *b) {
 /** @brief Less-than-or-equal comparison for timevals */
 static inline int tvle(const struct timeval *a, const struct timeval *b) {
   return !tvgt(a, b);
+}
+
+/** @brief Return the sum of two timespecs */
+static inline struct timespec tsadd(const struct timespec a,
+                                    const struct timespec b) {
+  struct timespec r;
+
+  r.tv_sec = a.tv_sec + b.tv_sec;
+  r.tv_nsec = a.tv_nsec + b.tv_nsec;
+  if(r.tv_nsec < 0) {
+    r.tv_nsec += 1000000;
+    r.tv_sec--;
+  }
+  if(r.tv_nsec > 999999) {
+    r.tv_nsec -= 1000000;
+    r.tv_sec++;
+  }
+  return r;
+}
+
+/** @brief Subtract one timespec from another */
+static inline struct timespec tssub(const struct timespec a,
+                                    const struct timespec b) {
+  struct timespec r;
+
+  r.tv_sec = a.tv_sec - b.tv_sec;
+  r.tv_nsec = a.tv_nsec - b.tv_nsec;
+  if(r.tv_nsec < 0) {
+    r.tv_nsec += 1000000;
+    r.tv_sec--;
+  }
+  if(r.tv_nsec > 999999) {
+    r.tv_nsec -= 1000000;
+    r.tv_sec++;
+  }
+  return r;
+}
+
+/** @brief Convert a timespec to a double */
+static inline double ts_to_double(const struct timespec ts) {
+  return ts.tv_sec + ts.tv_nsec / 1000000000.0;
+}
+
+/** @brief Convert a double to a timespec */
+static inline struct timespec double_to_ts(double n) {
+  double i, f;
+  struct timespec r;
+  f = modf(n, &i);
+  r.tv_sec = i;
+  r.tv_nsec = 1000000000 * f;
+  return r;
 }
 
 #endif /* TIMEVAL_H */

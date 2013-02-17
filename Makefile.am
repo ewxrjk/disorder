@@ -17,10 +17,13 @@
 #
 
 EXTRA_DIST=CHANGES.html README.streams BUGS \
-README.upgrades README.client README.raw README.vhost README.developers
+README.upgrades.html README.client README.raw README.vhost README.developers \
+docs.css
 SUBDIRS=@subdirs@
 
 DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(distdir)/_inst/cgiexecdir
+
+ACLOCAL_AMFLAGS=-I m4
 
 check-report: before-check check make-coverage-reports
 before-check:

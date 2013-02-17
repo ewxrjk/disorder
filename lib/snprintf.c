@@ -30,10 +30,21 @@
 #include "printf.h"
 #include "sink.h"
 
+/** @brief A @ref sink that stores to a fixed buffer
+ *
+ * If there is too much output, it is truncated.
+ */
 struct fixedstr_sink {
+  /** @brief Base */
   struct sink s;
+
+  /** @brief Output buffer */
   char *buffer;
+
+  /** @brief Bytes written so far */
   int nbytes;
+
+  /** @brief Size of buffer */
   size_t size;
 };
 

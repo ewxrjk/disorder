@@ -1,6 +1,6 @@
 /* strptime.c - partial strptime() reimplementation
  *
- * (c) 2008 Richard Kettlewell.
+ * Copyright (c) 2008, 2011 Richard Kettlewell.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-/* strptime() is here reimplemented because the FreeBSD (and older MacOS) one
+/** @file lib/strptime.c
+ * @brief strptime() reimplementation
+ *
+ * strptime() is here reimplemented because the FreeBSD (and older MacOS) one
  * is broken and does not report errors properly.  See TODO remarks below for
- * some missing bits. */
+ * some missing bits.
+ */
 
 #include <ctype.h>
 #include <limits.h>
@@ -37,8 +40,12 @@
 #include <langinfo.h>
 #include "strptime.h"
 
+/** @brief Lookup table entry for locale-specific strings */
 struct locale_item_match {
+  /** @brief Locale key to try */
   nl_item key;
+
+  /** @brief Value to return if value of @ref key matches subject string */
   int value;
 };
 

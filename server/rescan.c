@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder 
- * Copyright (C) 2005-2008 Richard Kettlewell
+ * Copyright (C) 2005-2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -160,18 +160,37 @@ done:
   if(fp)
     xfclose(fp);
   if(pid)
-    while((r = waitpid(pid, &w, 0)) == -1 && errno == EINTR)
+    while((waitpid(pid, &w, 0)) == -1 && errno == EINTR)
       ;
 }
 
+/** @brief State for the recheck phase of the rescan */
 struct recheck_state {
+  /** @brief Collection being rechecked */
   const struct collection *c;
-  long nobsolete, nnocollection, nlength;
+
+  /** @brief Number of tracks obsoleted */
+  long nobsolete;
+
+  /** @brief Number of tracks belonging to no collection */
+  long nnocollection;
+
+  /** @brief Number of lengths computed */
+  long nlength;
+
+  /** @brief Linked list of tracks to recheck */
   struct recheck_track *tracks;
 };
 
+/** @brief A track to recheck
+ *
+ * A node in a linked list.
+ */
 struct recheck_track {
+  /** @brief Next track */
   struct recheck_track *next;
+
+  /** @brief Track */
   const char *track;
 };
 

@@ -1,3 +1,9 @@
+disorder (5.1) stable; urgency=low
+
+  * DisOrder 5.1
+
+ -- Richard Kettlewell <rjk@terraraq.org.uk>  Sun, 17 Feb 2013 16:22:14 +0000
+
 disorder (5.0.3) stable; urgency=emergency
 
   * Security: Local connections can no longer create and delete users

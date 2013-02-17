@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,11 +38,15 @@
 int byte_vasprintf(char **ptrp,
 		   const char *fmt,
 		   va_list ap) {
+  struct sink *s;
   struct dynstr d;
   int n;
 
   dynstr_init(&d);
-  if((n = byte_vsinkprintf(sink_dynstr(&d), fmt, ap)) >= 0) {
+  s = sink_dynstr(&d);
+  n = byte_vsinkprintf(s, fmt, ap);
+  xfree(s);
+  if(n >= 0) {
     dynstr_terminate(&d);
     *ptrp = d.vec;
   }

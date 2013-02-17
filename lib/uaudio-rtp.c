@@ -164,6 +164,20 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
   vec[1].iov_len = nsamples * uaudio_sample_size;
   const uint32_t timestamp = uaudio_schedule_sync();
   header.timestamp = htonl(rtp_base + (uint32_t)timestamp);
+
+  /* We send ~120 packets a second with current arrangements.  So if we log
+   * once every 8192 packets we log about once a minute. */
+
+  if(!(ntohs(header.seq) & 8191)
+     && config->rtp_verbose)
+    disorder_info("RTP: seq %04"PRIx16" %08"PRIx32"+%08"PRIx32"=%08"PRIx32" ns %zu%s",
+                  ntohs(header.seq),
+                  rtp_base,
+                  timestamp,
+                  header.timestamp,
+                  nsamples,
+                  flags & UAUDIO_PAUSED ? " [paused]" : "");
+
   /* If we're paused don't actually end a packet, we just pretend */
   if(flags & UAUDIO_PAUSED) {
     uaudio_schedule_sent(nsamples);
@@ -293,6 +307,8 @@ static void rtp_open(void) {
   if(connect(rtp_fd, res->ai_addr, res->ai_addrlen) < 0)
     disorder_fatal(errno, "error connecting broadcast socket to %s", 
                    format_sockaddr(res->ai_addr));
+  if(config->rtp_verbose)
+    disorder_info("RTP: prepared socket");
 }
 
 static void rtp_start(uaudio_callback *callback,
@@ -309,14 +325,22 @@ static void rtp_start(uaudio_callback *callback,
   else
     disorder_fatal(0, "asked for %d/%d/%d 16/44100/1 and 16/44100/2",
                    uaudio_bits, uaudio_rate, uaudio_channels); 
+  if(config->rtp_verbose)
+    disorder_info("RTP: %d channels %d bits %d Hz payload type %d",
+                  uaudio_channels, uaudio_bits, uaudio_rate, rtp_payload);
   /* Various fields are required to have random initial values by RFC3550.  The
    * packet contents are highly public so there's no point asking for very
    * strong randomness. */
   gcry_create_nonce(&rtp_id, sizeof rtp_id);
   gcry_create_nonce(&rtp_base, sizeof rtp_base);
   gcry_create_nonce(&rtp_sequence, sizeof rtp_sequence);
+  if(config->rtp_verbose)
+    disorder_info("RTP: id %08"PRIx32" base %08"PRIx32" initial seq %08"PRIx16,
+                  rtp_id, rtp_base, rtp_sequence);
   rtp_open();
   uaudio_schedule_init();
+  if(config->rtp_verbose)
+    disorder_info("RTP: initialized schedule");
   uaudio_thread_start(callback,
                       userdata,
                       rtp_play,
@@ -324,6 +348,8 @@ static void rtp_start(uaudio_callback *callback,
                       (NETWORK_BYTES - sizeof(struct rtp_header))
                       / uaudio_sample_size,
                       0);
+  if(config->rtp_verbose)
+    disorder_info("RTP: created thread");
 }
 
 static void rtp_stop(void) {
@@ -344,6 +370,8 @@ static void rtp_configure(void) {
   snprintf(buffer, sizeof buffer, "%ld", config->multicast_ttl);
   uaudio_set("multicast-ttl", buffer);
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
+  if(config->rtp_verbose)
+    disorder_info("RTP: configured");
 }
 
 const struct uaudio uaudio_rtp = {

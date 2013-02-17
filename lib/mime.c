@@ -110,7 +110,7 @@ static const char *skipwhite(const char *s, int rfc822_comments) {
   int c, depth;
   
   for(;;) {
-    switch(c = *s) {
+    switch(*s) {
     case ' ':
     case '\t':
     case '\r':
@@ -402,7 +402,7 @@ int mime_multipart(const char *s,
  * @param s Start of field
  * @param dispositionp Where to store disposition
  * @param parameternamep Where to store parameter name
- * @param parametervaluep Wher to store parameter value
+ * @param parametervaluep Where to store parameter value
  * @return 0 on success, non-0 on error
  *
  * See <a href="http://tools.ietf.org/html/rfc2388#section-3">RFC 2388 s3</a>

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005-2010 Richard Kettlewell
+ * Copyright (C) 2005-2012 Richard Kettlewell
  * Portions (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,8 +36,8 @@
  * assumed that the main server won't start outrageously many decoders.
  *
  * Audio is supplied from this buffer to the uaudio play callback.  Playback is
- * enabled when a track is to be played and disabled when the its last bytes
- * have been return by the callback; pause and resume is implemneted the
+ * enabled when a track is to be played and disabled when its last bytes
+ * have been returned by the callback; pause and resume is implemented the
  * obvious way.  If the callback finds itself required to play when there is no
  * playing track it returns dead air.
  *
@@ -75,7 +75,6 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <errno.h>
-#include <ao/ao.h>
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -117,7 +116,7 @@ struct track {
   struct track *next;
 
   /** @brief Input file descriptor */
-  int fd;                               /* input FD */
+  int fd;
 
   /** @brief Track ID */
   char id[24];
@@ -173,26 +172,37 @@ struct track {
  */
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-/** @brief Linked list of all prepared tracks */
+/** @brief Linked list of all prepared tracks
+ *
+ * This includes @ref playing and @ref pending_playing.
+ */
 static struct track *tracks;
 
 /** @brief Playing track, or NULL
  *
  * This means the track the speaker process intends to play.  It does not
  * reflect any other state (e.g. activation of uaudio backend).
+ *
+ * This track remains on @ref track.
  */
 static struct track *playing;
 
 /** @brief Pending playing track, or NULL
  *
  * This means the track the server wants the speaker to play.
+ *
+ * This track remains on @p track.
  */
 static struct track *pending_playing;
 
 /** @brief Array of file descriptors for poll() */
 static struct pollfd fds[NFDS];
 
-/** @brief Next free slot in @ref fds */
+/** @brief Next free slot in @ref fds
+ *
+ * This is used when filling in the @ref fds array each iteration through the
+ * event loop.
+ */
 static int fdno;
 
 /** @brief Listen socket */
@@ -243,7 +253,7 @@ static void help(void) {
 
 /** @brief Find track @p id, maybe creating it if not found
  * @param id Track ID to find
- * @param create If nonzero, create track structure of @p id not found
+ * @param create If nonzero, create track structure of @p id if not found
  * @return Pointer to track structure or NULL
  */
 static struct track *findtrack(const char *id, int create) {
@@ -294,6 +304,8 @@ static void destroy(struct track *t) {
  * This is effectively the read callback on @c t->fd.  It is called from the
  * main loop whenever the track's file descriptor is readable, assuming the
  * buffer has not reached the maximum allowed occupancy.
+ *
+ * Errors count as EOF.
  */
 static int speaker_fill(struct track *t) {
   size_t where, left;
@@ -340,7 +352,8 @@ static int speaker_fill(struct track *t) {
         t->playable = 1;
       rc = 0;
     }
-  }
+  } else
+    rc = 0;
   return rc;
 }
 
@@ -352,7 +365,9 @@ static int speaker_fill(struct track *t) {
  * We don't allow tracks to be paused if we've already told the server we've
  * finished them; that would cause such tracks to survive much longer than the
  * few samples they're supposed to, with report() remaining silent for the
- * duration.
+ * duration.  The effect is that if you hit pause towards the end of a track,
+ * what should happen is that it finished but the next one is paused right at
+ * its start.
  */
 static int playable(void) {
   return playing
@@ -429,7 +444,8 @@ static size_t speaker_callback(void *buffer,
       /* Wrap around to start of buffer */
       if(playing->start == sizeof playing->buffer)
         playing->start = 0;
-      /* See if we've reached the end of the track */
+      /* See if we've reached the end of the track; if so make sure the event
+       * loop wakes up. */
       if(playing->used == 0 && playing->eof) {
         int ignored = write(sigpipe[1], "", 1);
         (void) ignored;
@@ -459,8 +475,8 @@ static void mainloop(void) {
   struct speaker_message sm;
   int n, fd, stdin_slot, timeout, listen_slot, sigpipe_slot;
 
-  /* Keep going while our parent process is alive */
   pthread_mutex_lock(&lock);
+  /* Keep going while our parent process is alive */
   while(getppid() != 1) {
     int force_report = 0;
 
@@ -481,6 +497,8 @@ static void mainloop(void) {
       playing->slot = addfd(playing->fd, POLLIN);
     else if(playing)
       playing->slot = -1;
+    /* Allow the poll() to be interrupted at the end of a track */
+    sigpipe_slot = addfd(sigpipe[0], POLLIN);
     /* If any other tracks don't have a full buffer, try to read sample data
      * from them.  We do this last of all, so that if we run out of slots,
      * nothing important can't be monitored. */
@@ -493,7 +511,6 @@ static void mainloop(void) {
         } else
           t->slot = -1;
       }
-    sigpipe_slot = addfd(sigpipe[0], POLLIN);
     /* Wait for something interesting to happen */
     pthread_mutex_unlock(&lock);
     n = poll(fds, fdno, timeout);
@@ -510,6 +527,10 @@ static void mainloop(void) {
       char id[24];
 
       if((fd = accept(listenfd, (struct sockaddr *)&addr, &addrlen)) >= 0) {
+        /* We do blocking reads for the header.  In theory this means that the
+         * connecting process could wedge the speaker indefinitely.  In
+         * practice that would mean that the main server was broken anyway.
+         * Still, this is ugly, and a rewrite would be nice. */
         blocking(fd);
         if(read(fd, &l, sizeof l) < 4) {
           disorder_error(errno, "reading length from inbound connection");
@@ -668,6 +689,10 @@ static void mainloop(void) {
     }
     /* When the track is actually finished, deconfigure it */
     if(playing && playing->eof && !playing->used) {
+      if(!playing->finished) {
+        /* should never happen but we'd like to know if it does */
+        disorder_fatal(0, "track finish state inconsistent");
+      }
       removetrack(playing->id);
       destroy(playing);
       playing = 0;
@@ -771,8 +796,8 @@ int main(int argc, char **argv) {
   if(backend->configure)
     backend->configure();
   backend->start(speaker_callback, NULL);
-  /* create the socket directory */
-  byte_xasprintf(&dir, "%s/speaker", config->home);
+  /* create the private socket directory */
+  byte_xasprintf(&dir, "%s/private", config->home);
   unlink(dir);                          /* might be a leftover socket */
   if(mkdir(dir, 0700) < 0 && errno != EEXIST)
     disorder_fatal(errno, "error creating %s", dir);
@@ -780,7 +805,7 @@ int main(int argc, char **argv) {
   listenfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
   memset(&addr, 0, sizeof addr);
   addr.sun_family = AF_UNIX;
-  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/speaker/socket",
+  snprintf(addr.sun_path, sizeof addr.sun_path, "%s/private/speaker",
            config->home);
   if(unlink(addr.sun_path) < 0 && errno != ENOENT)
     disorder_error(errno, "removing %s", addr.sun_path);

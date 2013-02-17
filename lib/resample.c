@@ -41,10 +41,12 @@
  * @param input_channels Number of input channels
  * @param input_signed Whether input samples are signed or unsigned
  * @param input_rate Frames/second in input
+ * @param input_endian Input endianness (@c ENDIAN_BIG or @c ENDIAN_LITTLE)
  * @param output_bits Bits/sample in output
  * @param output_channels Number of output channels
  * @param output_rate Frames/second in output
  * @param output_signed Whether output samples are signed or unsigned
+ * @param output_endian Output endianness (@c ENDIAN_BIG or @c ENDIAN_LITTLE)
  *
  * For formats with more than two channels it's assume that the first
  * two channels are left and right.  No particular meaning is attached
@@ -199,7 +201,7 @@ static size_t resample_put_sample(const struct resampler *rs,
 /** @brief Convert input samples to floats
  * @param rs Resampler state
  * @param bytes Input bytes
- * @param nbytes Number of input bytes
+ * @param nframes Number of input frames
  * @param floats Where to store converted data
  *
  * @p floats must be big enough.  As well as converting to floats this

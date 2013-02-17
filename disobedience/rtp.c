@@ -1,6 +1,6 @@
 /*
  * This file is part of Disobedience
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007-2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ void start_rtp(void) {
   if(!(pid = xfork())) {
     if(setsid() < 0)
       disorder_fatal(errno, "error calling setsid");
-    if(!(pid = xfork())) {
+    if(!xfork()) {
       /* grandchild */
       exitfn = _exit;
       /* log errors and output somewhere reasonably sane.  rtp_running()

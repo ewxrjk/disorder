@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2009, 2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,15 @@
 # define SOSUFFIX ".so"
 #endif
 
+/** @brief A loaded plugin */
 struct plugin {
+  /** @brief Next plugin */
   struct plugin *next;
+
+  /** @brief Handle returned from dlopen() */
   void *dlhandle;
+
+  /** @brief Plugin name */
   const char *name;
 };
 

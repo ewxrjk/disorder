@@ -62,8 +62,9 @@ struct choosedata *choose_path_to_data(GtkTreePath *path);
 gboolean choose_button_event(GtkWidget *widget,
                              GdkEventButton *event,
                              gpointer user_data);
-void choose_play_completed(void attribute((unused)) *v,
-                           const char *err);
+void choose_play_completed(void *v,
+                           const char *err,
+                           const char *id);
 char *choose_get_track(GtkTreeIter *iter);
 char *choose_get_sort(GtkTreeIter *iter);
 char *choose_get_display(GtkTreeIter *iter);

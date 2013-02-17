@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2009 Richard Kettlewell
+# Copyright (C) 2008-2012 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
 	t-kvp t-mime t-printf t-regsub t-selection t-signame t-sink	\
 	t-split t-syscalls t-trackname t-unicode t-url t-utf8 t-vector	\
 	t-words t-wstat t-macros t-cgi t-eventdist t-resample 		\
-	t-configuration
+	t-configuration t-timeval
 
 noinst_PROGRAMS=$(TESTS)
 
@@ -63,9 +63,10 @@ t_words_SOURCES=t-words.c test.c test.h
 t_wstat_SOURCES=t-wstat.c test.c test.h
 t_eventdist_SOURCES=t-eventdist.c test.c test.h
 t_resample_SOURCES=t-resample.c test.c test.h
-t_resample_LDFLAGS=$(LIBSAMPLERATE)
+t_resample_LDADD=$(LDADD) $(LIBSAMPLERATE)
 t_configuration_SOURCES=t-configuration.c test.c test.h
-t_configuration_LDFLAGS=$(LIBGCRYPT)
+t_configuration_LDADD=$(LDADD) $(LIBGCRYPT)
+t_timeval_SOURCES=t-timeval.c test.c test.h
 
 check-report: before-check check make-coverage-reports
 before-check:

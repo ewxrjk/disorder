@@ -28,7 +28,8 @@ query.svg queryon.svg speaker.svg speakeron.svg cross32.png		\
 pause32.png play32.png playdisabled32.png playenabled32.png		\
 randomdisabled32.png randomenabled32.png rtpdisabled32.png		\
 rtpenabled32.png duck55.png cards24.png cards48.png 			\
-cards-simple-fanned.svg cards-thin.svg
+cards-simple-fanned.svg cards-thin.svg disobedience128x128.png 		\
+disobedience256x256.png disobedience48x48.png disobedience64x64.png
 
 DISOBEDIENCE_IMAGES=up.png down.png cards24.png logo256.png duck.png	\
 propagate.png

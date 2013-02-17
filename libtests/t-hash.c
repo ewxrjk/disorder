@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2008, 2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,8 +50,10 @@ static void test_hash(void) {
   
   for(i = 0; i < 10000; ++i) {
     insist((ip = hash_find(h, do_printf("%d", i))) != 0);
-    check_integer(*ip, i);
-    insist(hash_add(h, do_printf("%d", i), &i, HASH_REPLACE) == 0);
+    if(ip) {
+      check_integer(*ip, i);
+      insist(hash_add(h, do_printf("%d", i), &i, HASH_REPLACE) == 0);
+    }
   }
   check_integer(hash_count(h), 10000);
   keys = hash_keys(h);

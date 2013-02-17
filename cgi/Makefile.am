@@ -27,7 +27,4 @@ disorder_LDADD=../lib/libdisorder.a \
 disorder_LDFLAGS=-export-dynamic
 disorder_DEPENDENCIES=../lib/libdisorder.a
 
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(cgiexecdir)
-
 CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html

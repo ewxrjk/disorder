@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,8 @@ void xfclose(FILE *);
 int xnice(int);
 void xgettimeofday(struct timeval *, struct timezone *);
 time_t xtime(time_t *when);
+void xgettime(clockid_t clk_id, struct timespec *tp);
+void xnanosleep(const struct timespec *req, struct timespec *rem);
 /* the above all call @fatal@ if the system call fails */
 
 void nonblock(int fd);

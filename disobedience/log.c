@@ -48,6 +48,8 @@ static void log_playlist_modified(void *v,
                                   const char *playlist, const char *sharing);
 static void log_playlist_deleted(void *v,
                                  const char *playlist);
+static void log_global_pref(void *v,
+                            const char *name, const char *value);
 
 /** @brief Callbacks for server state monitoring */
 const disorder_eclient_log_callbacks log_callbacks = {
@@ -69,6 +71,7 @@ const disorder_eclient_log_callbacks log_callbacks = {
   .playlist_created = log_playlist_created,
   .playlist_modified = log_playlist_modified,
   .playlist_deleted = log_playlist_deleted,
+  .global_pref = log_global_pref,
 };
 
 /** @brief Update everything */
@@ -236,6 +239,12 @@ static void log_playlist_modified(void attribute((unused)) *v,
 static void log_playlist_deleted(void attribute((unused)) *v,
                                  const char *playlist) {
   event_raise("playlist-deleted", (void *)playlist);
+}
+
+static void log_global_pref(void attribute((unused)) *v,
+                            const char *name,
+                            const char attribute((unused)) *value) {
+  event_raise("global-pref", (void *)name);
 }
 
 /*

@@ -25,7 +25,7 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 disorder_SOURCES=disorder.c authorize.c authorize.h \
 	../lib/memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
-	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBICONV) $(LIBDB) $(LIBPTHREAD)
+	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBICONV) $(LIBPTHREAD)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorderfm_SOURCES=disorderfm.c \
@@ -36,7 +36,7 @@ disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c
 disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
-	$(LIBDB) $(LIBPTHREAD) -lm
+	$(LIBPTHREAD) -lm
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 rtpmon_SOURCES=rtpmon.c
@@ -46,9 +46,6 @@ filename_bytes_SOURCES=filename-bytes.c
 
 resample_SOURCES=resample.c
 resample_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBSAMPLERATE)
-
-install-exec-hook:
-	$(LIBTOOL) --mode=finish $(DESTDIR)$(libdir)
 
 check: check-help check-completions
 

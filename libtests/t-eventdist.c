@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2008 Richard Kettlewell
+ * Copyright (C) 2008, 2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +76,9 @@ static void test_eventdist(void) {
   check_integer(wibbles, 2);
   check_integer(wobbles, 2);
   check_integer(wobble2s, 3);
+
+  event_cancel(wibble_handle);
+  event_cancel(wobble2_handle);
 }
 
 TEST(eventdist);

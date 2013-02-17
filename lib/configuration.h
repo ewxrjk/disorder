@@ -68,6 +68,7 @@ struct collectionlist {
   struct collection *s;
 };
 
+/** @brief A track name part */
 struct namepart {
   char *part;				/* part */
   pcre *re;				/* compiled regexp */
@@ -77,11 +78,13 @@ struct namepart {
   unsigned reflags;			/* regexp flags */
 };
 
+/** @brief A list of track name parts */
 struct namepartlist {
   int n;
   struct namepart *s;
 };
 
+/** @brief A track name transform */
 struct transform {
   char *type;				/* track or dir */
   char *context;			/* sort or choose */
@@ -90,6 +93,7 @@ struct transform {
   unsigned flags;			/* regexp flags */
 };
 
+/** @brief A list of track name transforms */
 struct transformlist {
   int n;
   struct transform *t;
@@ -108,14 +112,8 @@ struct config {
   /** @brief All tracklength plugins */
   struct stringlistlist tracklength;
 
-  /** @brief Allowed users */
-  struct stringlistlist allow;
-
   /** @brief Scratch tracks */
   struct stringlist scratch;
-
-  /** @brief Gap between tracks in seconds */
-  long gap;
 
   /** @brief Maximum number of recent tracks to record in history */
   long history;
@@ -123,9 +121,6 @@ struct config {
   /** @brief Expiry limit for noticed.db */
   long noticed_history;
   
-  /** @brief Trusted users */
-  struct stringlist trust;
-
   /** @brief User for server to run as */
   const char *user;
 
@@ -153,16 +148,11 @@ struct config {
   /** @brief Mixer channel to use */
   char *channel;
 
-  long prefsync;			/* preflog sync interval */
-
   /** @brief Secondary listen address */
   struct netaddress listen;
 
   /** @brief Alias format string */
   const char *alias;
-
-  /** @brief Enable server locking */
-  int lock;
 
   /** @brief Nice value for server */
   long nice_server;
@@ -195,10 +185,10 @@ struct config {
   const char *home;
 
   /** @brief Login username */
-  const char *username;
+  char *username;
 
   /** @brief Login password */
-  const char *password;
+  char *password;
 
   /** @brief Address to connect to */
   struct netaddress connect;
@@ -217,16 +207,6 @@ struct config {
 
   /** @brief Minimum refresh interval for web interface (seconds) */
   long refresh_min;
-
-  /** @brief Facilities restricted to trusted users
-   *
-   * A bitmap of @ref RESTRICT_SCRATCH, @ref RESTRICT_REMOVE and @ref
-   * RESTRICT_MOVE.
-   */
-  unsigned restrictions;		/* restrictions */
-#define RESTRICT_SCRATCH 1		/**< Restrict scratching */
-#define RESTRICT_REMOVE 2		/**< Restrict removal */
-#define RESTRICT_MOVE 4			/**< Restrict rearrangement */
 
   /** @brief Target queue length */
   long queue_pad;
@@ -251,6 +231,9 @@ struct config {
 
   /** @brief RTP delay threshold */
   long rtp_delay_threshold;
+
+  /** @brief Verbose RTP transmission logging */
+  int rtp_verbose;
   
   /** @brief TTL for multicast packets */
   long multicast_ttl;
@@ -290,7 +273,10 @@ struct config {
 
   /** @brief Maximum bias */
   long new_bias;
-  
+
+  /** @brief Rescan on (un)mount */
+  int mount_rescan;
+
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */
@@ -324,6 +310,8 @@ char *config_private(void);
 /* get the private config file */
 
 int config_verify(void);
+
+void config_free(struct config *c);
 
 extern char *configfile;
 extern int config_per_user;

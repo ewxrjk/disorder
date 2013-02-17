@@ -1,7 +1,7 @@
 #! /bin/bash
 #
 # This file is part of DisOrder
-# Copyright (C) 2005-2009 Richard Kettlewell
+# Copyright (C) 2005-2009, 2011 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,51 +19,106 @@
 
 set -e
 web=$HOME/public_html/web/disorder
+chroots=/srv/chroot
 
 make
-make distcheck
+#make distcheck
 make dist-bzip2
 v=$(make echo-version)
 d=$(make echo-distdir)
 src=$d.tar.bz2
 
-# Report and execute a command remotely
-remote() {
-  local h=$1
-  shift
-  echo "$h:" "$@"
-  ssh $h "$@"
+v() {
+  echo ">" "$@"
+  "$@"
 }
 
-# Build .debs and copy to the right place
+# Execute a command in the build environment
+remote() {
+  local h=$1
+  local cmd="$2"
+  target=${h#*:}
+  case $h in
+  ssh:* )
+    v ssh ${target} "$cmd"
+    ;;
+  chroot:* )
+    v schroot -c${target} -- bash -c "cd && $cmd"
+    ;;
+  local:* )
+    cd
+    v "$cmd"
+    cd -
+    ;;
+  esac
+}
+
+# Put files into the build environment
+put() {
+  local src="$1"
+  local h=$2
+  local dst="$3"
+  target=${h#*:}
+  case $h in
+  ssh:* )
+    v scp $src ${target}:$dst
+    ;;
+  chroot:* )
+    v cp $src ${chroots}/${target}/home/${LOGNAME}/$dst
+    ;;
+  local:* )
+    v cp $src $dst
+    ;;
+  esac
+}
+
+# Retrieve files form the build environment
+get() {
+  local h=$1
+  local src="$2"
+  local dst="$3"
+  target=${h#*:}
+  case $h in
+  ssh:* )
+    v scp ${target}:$src $dst
+    ;;
+  chroot:* )
+    v cp ${chroots}/${target}/home/${LOGNAME}/$src $dst
+    ;;
+  local:* )
+    v cp $src $dst
+    ;;
+  esac
+}
+
+# Build a .deb in some build environment, and copy it to the distribution
+# location
 build() {
   local h=$1			# build host
-  local f=$2
-  local vs=$3
-  local dist=$4
+  local f=$2                    # distribution directory ("for")
+  local vs=$3                   # version suffix
+  local dist=$4                 # distribution (stable/oldstable)
 
   remote $h "mkdir -p _builds"
   remote $h "rm -rf _builds/*.deb _builds/$d"
-  scp $src $h:_builds
+  put $src $h _builds/$src
   remote $h "cd _builds && tar xfj $src"
   if [ "$vs" != "" ]; then
     remote $h "cd _builds/$d && scripts/setversion $v~$vs 'Backport to $vs' $dist"
   fi
   remote $h "cd _builds/$d && fakeroot debian/rules binary"
   mkdir -p $web/$f
-  scp $h:_builds/*.deb $web/$f/.
+  get $h _builds/\*.deb $web/$f/.
 }
 
 # Build various debs
-
-# Debian lenny (32-bit)
-build leucomorph lenny "" stable
-
-# Debian lenny (64-bit)
-build araminta lenny "" stable
+#build chroot:lenny64 lenny lenny oldstable
+#build ssh:leucomorph lenny lenny oldstable
+build ssh:araminta squeeze "" stable
+build ssh:sandestin squeeze "" stable
 
 # Update the web
-cp $src $web
+cp $src README README.developers CHANGES.html $web
 cd doc
 for f in *.[1-9].html; do
   echo $f

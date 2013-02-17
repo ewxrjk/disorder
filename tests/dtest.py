@@ -1,7 +1,7 @@
 #-*-python-*-
 #
 # This file is part of DisOrder.
-# Copyright (C) 2007-2009 Richard Kettlewell
+# Copyright (C) 2007-2012 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -170,7 +170,6 @@ def default_config(encoding="UTF-8"):
     """home %s/home
 collection fs %s %s/tracks
 scratch %s/scratch.ogg
-gap 0
 queue_pad 5
 stopword 01 02 03 04 05 06 07 08 09 10
 stopword 1 2 3 4 5 6 7 8 9
@@ -256,8 +255,8 @@ Start the daemon."""
     if waited > 0:
         print "  took about %ss for socket to appear" % waited
     # Wait for root user to be created
-    command(["disorder",
-             "--config", disorder._configfile, "--no-per-user-config",
+    command(["disorderd",
+             "--config", disorder._configfile,
              "--wait-for-root"])
 
 def create_user(username="fred", password="fredpass"):

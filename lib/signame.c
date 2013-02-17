@@ -26,8 +26,12 @@
 #include "table.h"
 #include "signame.h"
 
+/** @brief Mapping between signal names and numbers */
 static const struct sigtable {
+  /** @brief Signal number */
   int signal;
+
+  /* @brief Signal name ("SIGwhatever") */
   const char *name;
 } signals[] = {
 #define S(sig) { sig, #sig }

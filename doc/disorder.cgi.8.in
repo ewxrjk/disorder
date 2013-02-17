@@ -30,7 +30,7 @@ without.
 See \fBdisorder_actions\fR(5) for a description of what the CGI does.
 .PP
 See \fBdisorder_options\fR(5) for CGI-specific configuration and
-\dBdisorder_config\fR(5) for general configuration.
+\fBdisorder_config\fR(5) for general configuration.
 .PP
 See \fBdisorder_templates\fR(5) for the template language used.
 .SH "WHERE IS IT?"

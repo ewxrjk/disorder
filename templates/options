@@ -1,8 +1,5 @@
 # default label values
 include options.labels
 
-# default columns
-include options.columns
-
 # user overrides - you supply this
 include options.user

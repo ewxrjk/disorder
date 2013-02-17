@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #include "uaudio.h"
 #include "log.h"
 #include "mem.h"
+#include "syscalls.h"
+#include "timeval.h"
 
 /** @brief Number of buffers
  *
@@ -145,6 +147,44 @@ static void *uaudio_collect_thread_fn(void attribute((unused)) *arg) {
   return NULL;
 }
 
+static size_t uaudio_play_samples(void *buffer, size_t samples, unsigned flags) {
+  static struct timespec base;
+  static int64_t frames_supplied;
+  struct timespec now;
+  struct timespec delay_ts;
+  double target, delay;
+
+  if(!base.tv_sec)
+    xgettime(CLOCK_MONOTONIC, &base);
+  samples = uaudio_thread_play_callback(buffer, samples, flags);
+  frames_supplied += samples / uaudio_channels;
+  /* Set target to the approximate point at which we run out of buffered audio.
+   * If no buffer size has been specified, use 1/16th of a second. */
+  target = (frames_supplied - (uaudio_buffer ? uaudio_buffer : uaudio_rate / 16))
+    / (double)uaudio_rate + ts_to_double(base);
+  for(;;) {
+    xgettime(CLOCK_MONOTONIC, &now);
+    delay = target - ts_to_double(now);
+    if(delay <= 0) {
+      //putc('.', stderr);
+      break;
+    }
+    //putc('!', stderr);
+    /*
+    fprintf(stderr, "frames supplied %ld (%lds) base %f target %f now %f want delay %g\n", 
+            frames_supplied,
+            frames_supplied / uaudio_rate,
+            ts_to_double(base),
+            target, 
+            ts_to_double(now),
+            delay);
+    */
+    delay_ts = double_to_ts(delay);
+    xnanosleep(&delay_ts, NULL);
+  }
+  return samples;
+}
+
 /** @brief Background thread for audio playing 
  *
  * This thread plays data as long as there is something to play.  So the
@@ -163,8 +203,7 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
       unsigned flags = UAUDIO_PAUSED;
       if(last_flags & UAUDIO_PLAYING)
         flags |= UAUDIO_PAUSE;
-      uaudio_thread_play_callback(zero, uaudio_thread_max,
-                                  last_flags = flags);
+      uaudio_play_samples(zero, uaudio_thread_max, last_flags = flags);
       /* We expect the play callback to block for a reasonable period */
       pthread_mutex_lock(&uaudio_thread_lock);
       continue;
@@ -187,10 +226,10 @@ static void *uaudio_play_thread_fn(void attribute((unused)) *arg) {
         unsigned flags = UAUDIO_PLAYING;
         if(last_flags & UAUDIO_PAUSED)
           flags |= UAUDIO_RESUME;
-        played += uaudio_thread_play_callback((char *)b->samples
-                                              + played * uaudio_sample_size,
-                                              b->nsamples - played,
-                                              last_flags = flags);
+        played += uaudio_play_samples((char *)b->samples
+                                      + played * uaudio_sample_size,
+                                      b->nsamples - played,
+                                      last_flags = flags);
       }
       pthread_mutex_lock(&uaudio_thread_lock);
       /* Move to next buffer */

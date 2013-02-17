@@ -227,6 +227,10 @@ void ql_update_list_store(struct queuelike *ql) {
   }
 }
 
+/** @brief Old and new queue data
+ *
+ * Used when updating a @ref queuelike with new data from the server.
+ */
 struct newqueue_data {
   struct queue_entry *old, *new;
 };
@@ -636,7 +640,7 @@ static void ql_drag_data_get_collect(GtkTreeModel *model,
  * @param w Source widget (the tree view)
  * @param dc Drag context
  * @param data Where to put the answer
- * @param info_ Target @c info parameter
+ * @param info Target @c info parameter
  * @param time_ Time data requested (for some reason not a @c time_t)
  * @param user_data The queuelike
  *

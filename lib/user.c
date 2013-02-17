@@ -44,6 +44,9 @@ void become_mortal(void) {
     if(!(pw = getpwnam(config->user)))
       disorder_fatal(0, "cannot find user %s", config->user);
     if(pw->pw_uid != getuid()) {
+      disorder_info("becoming user %u group %u",
+                    (unsigned)pw->pw_uid,
+                    (unsigned)pw->pw_gid);
       if(initgroups(config->user, pw->pw_gid))
 	disorder_fatal(errno, "error calling initgroups");
       if(setgid(pw->pw_gid) < 0)

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2006, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2006-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@
 #ifndef AUTHHASH_H
 #define AUTHHASH_H
 
-const char *authhash(const void *challenge, size_t nchallenge,
-		     const char *user, const char *algo);
+char *authhash(const void *challenge, size_t nchallenge,
+               const char *user, const char *algo);
 int valid_authhash(const char *algo);
 
 #endif /* AUTHHASH_H */

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2008, 2010 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ extern int skipped;
   const char *got = GOT;                                                \
   const char *want = WANT;                                              \
                                                                         \
-  if(want == 0) {                                                       \
+  if(got == 0) {                                                       \
     fprintf(stderr, "%s:%d: %s returned 0\n",                           \
             __FILE__, __LINE__, #GOT);                                  \
     count_error();                                                      \

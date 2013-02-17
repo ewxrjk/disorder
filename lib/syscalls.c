@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <time.h>
 
 #include "syscalls.h"
 #include "log.h"
@@ -157,6 +158,10 @@ time_t xtime(time_t *whenp) {
   if(whenp)
     *whenp = tv.tv_sec;
   return tv.tv_sec;
+}
+
+void xnanosleep(const struct timespec *req, struct timespec *rem) {
+  mustnotbeminus1("nanosleep", nanosleep(req, rem));
 }
 
 /*

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007-2009 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 #include "printf.h"
 #include "sink.h"
+#include "mem.h"
 
 /** @brief vfprintf() workalike that always accepts UTF-8
  * @param fp Stream to write to
@@ -34,7 +35,10 @@
  * @return -1 on error or bytes written on success
  */
 int byte_vfprintf(FILE *fp, const char *fmt, va_list ap) {
-  return byte_vsinkprintf(sink_stdio(0, fp), fmt, ap);
+  struct sink *s = sink_stdio(0, fp);
+  int rc = byte_vsinkprintf(s, fmt, ap);
+  xfree(s);
+  return rc;
 }
 
 /** @brief fprintf() workalike that always accepts UTF-8

@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2008 Richard Kettlewell
+.\" Copyright (C) 2004-2011 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -21,39 +21,61 @@ disorder_protocol \- DisOrder communication protocol
 The DisOrder client and server communicate via the protocol described
 in this man page.
 .PP
-The protocol is liable to change without notice.
-You are recommended to check the implementation before believing this document.
-.SH "GENERAL SYNTAX"
-Everything is encoded using UTF-8.
-See
-.B "CHARACTER ENCODING"
-below for more detail on character encoding issues.
+The protocol is usually modified in each new version of the server.
+.SH "MESSAGE STRUCTURE"
+A \fIline\fR is a sequence of printable Unicode characters encoded in UTF-8 and
+terminated by the octet 0x0A.
+Note that unlike some other protocols, a carriage return is not used as part of
+the end-of-line sequence.
 .PP
-Commands and responses consist of a line perhaps followed (depending on the
-command or response) by a body.
+A \fIcommand message\fR consists of a \fIcommand line\fR followed, in some cases, by a \fIbody\fR.
+Similarly a \fIresponse message\fR consists of a \fIresponse line\fR followed
+sometimes by a \fIbody\fR.
 .PP
-The line syntax is the same as described in \fBdisorder_config\fR(5) except
-that comments are prohibited.
+A \fIbody\fR consists of a sequence of dot-stuffed lines followed by a line
+containing a single full stop character.
+Dot-stuffing means that any line in the body starting with a full stop have
+another full stop inserted at the start prior to transmission, and removed
+again after reception.
 .PP
-Bodies borrow their syntax from RFC821; they consist of zero or more ordinary
-lines, with any initial full stop doubled up, and are terminated by a line
-consisting of a full stop and a line feed.
+Whether a command message includes a body depends on the specific command being
+sent; see below for details.
+This is also true of reply messages, although it is guaranteed that if the is a
+response body then the reply status code (see below) will end with the digit 3.
 .PP
-Commands only have a body if explicitly stated below.
-If they do have a body then the body should always be sent immediately;
-unlike (for instance) the SMTP "DATA" command there is no intermediate step
-where the server asks for the body to be sent.
+Command lines, and some response lines, are split into \fIfields\fR.
+Fields are separated by one or more spaces and may be \fIunquoted\fR or
+\fIquoted\fR.
 .PP
-Replies also only have a body if stated below.
-The presence of a reply body can always be inferred from the response code;
-if the last digit is a 3 then a body is present, otherwise it is not.
+An \fIunquoted field\fR can contain any (non-control) characters except for a
+space, quotation mark or apostrophe.
+They are always at least one character long.
+.PP
+A \fIquoted field\fR begins with a quotation mark or apostrophe and is
+terminated by the same character.
+Any occurrence of the backslash or the surrounding quotation mark must be
+escaped.
+The full set of escapes permitted is:
+.TP
+.B \e\e
+Backslash
+.TP
+.B \e"
+Quotation mark
+.\" "
+.TP
+.B \e\(aq
+Apostrophe
+.TP
+.B \en
+Line feed
+.PP
 .SH COMMANDS
-Commands always have a command name as the first field of the line; responses
-always have a 3-digit response code as the first field.
-See below for more details about this field.
+Commands always have a command name as the first field of the line.
 .PP
 All commands require the connection to have been already authenticated unless
 stated otherwise.
+See \fBAUTHENTICATION\fR below.
 If not stated otherwise, the \fBread\fR right is sufficient to execute
 the command.
 .TP
@@ -75,7 +97,8 @@ If \fIREGEXP\fR is present only matching files and directories are returned.
 .B confirm \fICONFIRMATION
 Confirm user registration.
 \fICONFIRMATION\fR is as returned from \fBregister\fR below.
-This command can be used without logging in.
+This command logs the user in.
+The response contains the logged-in username.
 .TP
 .B cookie \fICOOKIE
 Log a user back in using a cookie created with \fBmake\-cookie\fR.
@@ -104,6 +127,8 @@ Otherwise the \fBuserinfo\fR right is required and only the
 User properties are syntax-checked before setting.  For instance \fBemail\fR
 must contain an "@" sign or you will get an error.  (Setting an empty value for
 \fBemail\fR is allowed and removes the property.)
+.IP
+See \fBUSER PROPERTIES\fR below.
 .TP
 .B enable
 Re-enable further playing, and is the opposite of \fBdisable\fR.
@@ -340,9 +365,9 @@ Resolve a track name, i.e. if this is an alias then return the real track name.
 Resume the current track after a \fBpause\fR command.
 Requires the \fBpause\fR right.
 .TP
-.B revoke \fBcookie\fR
-Revoke a cookie previously created with \fBmake\-cookie\fR.
-It will not be possible to use this cookie in the future.
+.B revoke
+Revoke the current login's cookie.
+It will not be possible to use the cookie in the future.
 .TP
 .B rtp\-address
 Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
@@ -360,7 +385,8 @@ added to the queue.
 Schedule an event for the future.
 .IP
 .I WHEN
-is the time when it should happen, as \fBtime_t\fR value.
+is the time when it should happen, as a timestamp.
+See \fBTIMESTAMPS\fR below.
 It must refer to a time in the future.
 .IP
 .I PRIORITY
@@ -436,6 +462,10 @@ Requires the \fBprefs\fR right.
 Set a global preference.
 Requires the \fBglobal prefs\fR right.
 .TP
+.B shutdown
+Requests server shutdown.
+Requires the \fBadmin\fR right.
+.TP
 .B stats
 Send server statistics in plain text in a response body.
 .TP
@@ -458,6 +488,7 @@ below.
 .TP
 .B userinfo \fIUSERNAME PROPERTY
 Get a user property.
+See \fBUSER PROPERTIES\fR below.
 .TP
 .B users
 Send the list of currently known users in a response body.
@@ -475,7 +506,10 @@ With one parameter sets both sides to the same value.
 With two parameters sets each side independently.
 Setting the volume requires the \fBvolume\fR right.
 .SH RESPONSES
-Responses are three-digit codes.
+Response lines start with a three-digit status code followed by a space.
+The meaning the response and the interpretation of the rest of the line depends
+on that code.
+.PP
 The first digit distinguishes errors from successful responses:
 .TP
 .B 2
@@ -488,7 +522,6 @@ The second digit breaks down the origin of the response:
 .TP
 .B 0
 Generic responses not specific to the handling of the command.
-Mostly this is parse errors.
 .TP
 .B 1
 51x errors indicate that the user had insufficient rights for the command.
@@ -502,10 +535,12 @@ Responses specific to the handling of the command.
 The third digit provides extra information about the response:
 .TP
 .B 0
-Text part is just commentary.
+Text part is just commentary, intended to be human-readable.
 .TP
 .B 1
-Text part is a constant result e.g. \fBversion\fR.
+Text part is a constant result (e.g. \fBversion\fR).
+It will not change on a subsequent use of the same command on the same
+conneciton.
 .TP
 .B 2
 Text part is a potentially variable result.
@@ -518,7 +553,7 @@ Text part is just commentary; an indefinite dot-stuffed body follows.
 (Used for \fBlog\fR.)
 .TP
 .B 5
-Used with "normal" errors, for instance a preference not being found.
+Used with "harmless" errors, for instance a preference not being found.
 The text part is commentary.
 .TP
 .B 9
@@ -526,24 +561,23 @@ The text part is just commentary (but would normally be a response for this
 command) e.g. \fBplaying\fR.
 .PP
 Result strings (not bodies) intended for machine parsing (i.e. xx1 and xx2
-responses) are quoted.
+responses) are structure into fields in the the same way as command lines.
 .SH AUTHENTICATION
 When a connection is made the server sends a \fB231\fR response before any
 command is received.
 This contains a protocol generation, an algorithm name and a
-challenge encoded in hex, all separated by whitespace.
+challenge encoded in hex, in the fields of the response line.
 .PP
 The current protocol generation is \fB2\fR.
 .PP
 The possible algorithms are (currently) \fBsha1\fR, \fBsha256\fR, \fBsha384\fR
 and \fBsha512\fR.
-\fBSHA1\fR etc work as synonyms.
+Completely upper-case names such as \fBSHA1\fR etc work as synonyms.
 .PP
 The \fBuser\fR response consists of the selected hash of the user's password
 concatenated with the challenge, encoded in hex.
 .SH "TRACK INFORMATION"
-Track information is encoded in a line (i.e. using the usual line syntax) as
-pairs of fields.
+Track information is encoded in a response line as pairs of fields.
 The first is a name, the second a value.
 The names have the following meanings:
 .TP 12
@@ -620,21 +654,10 @@ The wait status of the player in decimal.
 .PP
 Note that \fBorigin\fR is new with DisOrder 4.3, and obsoletes some old
 \fBstate\fR values.
-.SH NOTES
-Times are decimal integers using the server's \fBtime_t\fR.
-.PP
-For file listings, the regexp applies to the basename of the returned file, not
-the whole filename, and letter case is ignored.
-\fBpcrepattern\fR(3) describes the regexp syntax.
-.PP
-Filenames are in UTF-8 even if the collection they come from uses some other
-encoding - if you want to access the real file (in such cases as the filenames
-actually correspond to a real file) you'll have to convert to whatever the
-right encoding is.
 .SH "EVENT LOG"
 The event log consists of lines starting with a hexadecimal timestamp and a
-keyword followed by (optionally) parameters.
-The parameters are quoted in the usual DisOrder way.
+keyword followed by (optionally) parameters, which are structured into fields
+in the same way as command and response lines.
 Currently the following keywords are used:
 .TP
 .B adopted \fIID\fR \fIUSERNAME\fR
@@ -645,6 +668,9 @@ Completed playing \fITRACK\fR
 .TP
 .B failed \fITRACK\fR \fIERROR\fR
 Completed playing \fITRACK\fR with an error status
+.TP
+.B global_pref \fIPREF\fR [\fIVALUE\fR]
+A global preference was set or unset.
 .TP
 .B moved \fIUSERNAME\fR
 User \fIUSERNAME\fR moved some track(s).
@@ -752,71 +778,97 @@ above.
 .PP
 The \fBuser-*\fR messages are only sent to admin users, and are not sent over
 non-local connections unless \fBremote_userman\fR is enabled.
-.SH "CHARACTER ENCODING"
-All data sent by both server and client is encoded using UTF-8.
-Moreover it must be valid UTF-8, i.e. non-minimal sequences are not
-permitted, nor are surrogates, nor are code points outside the
-Unicode code space.
+.SH "USER PROPERTIES"
+The following user properties are defined:
+.TP
+.B created
+The timestamp when the user was created.
+See \fBTIMESTAMPS\fR below.
+This user property cannot be modified.
+.TP
+.B email
+The user's email address.
+.TP
+.B password
+The user's password.
+.TP
+.B rights
+The rights the user has, separated by commas.
+.SH RIGHTS
+The full set of rights are:
+.TP
+.B read
+User can perform read-only operations
+.TP
+.B play
+User can add tracks to the queue
+.TP
+.B "move any"
+User can move any track
+.TP
+.B "move mine"
+User can move their own tracks
+.TP
+.B "move random"
+User can move randomly chosen tracks
+.TP
+.B "remove any"
+User can remove any track
+.TP
+.B "remove mine"
+User can remove their own tracks
+.TP
+.B "remove random"
+User can remove randomly chosen tracks
+.TP
+.B "scratch any"
+User can scratch any track
+.TP
+.B "scratch mine"
+User can scratch their own tracks
+.TP
+.B "scratch random"
+User can scratch randomly chosen tracks
+.TP
+.B volume
+User can change the volume
+.TP
+.B admin
+User can perform admin operations
+.TP
+.B rescan
+User can initiate a rescan
+.TP
+.B register
+User can register new users.
+Normally only the
+.B guest
+user would have this right.
+.TP
+.B userinfo
+User can edit their own userinfo
+.TP
+.B prefs
+User can modify track preferences
+.TP
+.B "global prefs"
+User can modify global preferences
+.TP
+.B pause
+User can pause/resume
+.SH TIMESTAMPS
+A \fItimestamp\fR is a decimal integer giving a number of seconds past the
+epoch, disregarding counting leap seconds.
+The epoch is midnight, January 1 1970, UTC.
+.SH NOTES
+For file listings, the regexp applies to the basename of the returned file, not
+the whole filename, and letter case is ignored.
+\fBpcrepattern\fR(3) describes the regexp syntax.
 .PP
-There are no particular normalization requirements on either side of the
-protocol.
-The server currently converts internally to NFC, the client must
-normalize the responses returned if it needs some normalized form for further
-processing.
-.PP
-The various characters which divide up lines may not be followed by combining
-characters.
-For instance all of the following are prohibited:
-.TP
-.B o
-LINE FEED followed by a combining character.
-For example the sequence LINE FEED, COMBINING GRAVE ACCENT is never permitted.
-.TP
-.B o
-APOSTROPHE or QUOTATION MARK followed by a combining character when used to
-delimit fields.
-For instance a line starting APOSTROPHE, COMBINING CEDILLA is prohibited.
-.IP
-Note that such sequences are not prohibited when the quote character cannot be
-interpreted as a field delimiter.
-For instance APOSTROPHE, REVERSE SOLIDUS, APOSTROPHE, COMBINING CEDILLA,
-APOSTROPHE would be permitted.
-.TP
-.B o
-REVERSE SOLIDUS (BACKSLASH) followed by a combining character in a quoted
-string when it is the first character of an escape sequence.
-For instance a line starting APOSTROPHE, REVERSE SOLIDUS, COMBINING TILDE
-is prohibited.
-.IP
-As above such sequences are not prohibited when the character is not being used
-to start an escape sequence.
-For instance APOSTROPHE, REVERSE SOLIDUS, REVERSE SOLIDS, COMBINING TILDE,
-APOSTROPHE is permitted.
-.TP
-.B o
-Any of the field-splitting whitespace characters followed by a combining
-character when not part of a quoted field.
-For instance a line starting COLON, SPACE, COMBINING CANDRABINDU is prohibited.
-.IP
-As above non-delimiter uses are fine.
-.TP
-.B o
-The FULL STOP characters used to quote or delimit a body.
-.PP
-Furthermore none of these characters are permitted to appear in the context of
-a canonical decomposition (i.e. they must still be present when converted to
-NFC).
-In practice however this is not an issue in Unicode 5.0.
-.PP
-These rules are consistent with the observation that the split() function is
-essentially a naive ASCII parser.
-The implication is not that these sequences never actually appear in
-the protocol, merely that the server is not required to honor them in
-any useful way nor be consistent between versions: in current
-versions the result will be lines and fields that start with combining
-characters and are not necessarily split where you expect, but future versions
-may remove them, reject them or ignore some or all of the delimiters that have
-following combining characters, and no notice will be given of any change.
+Filenames are in UTF-8 even if the collection they come from uses some other
+encoding - if you want to access the real file (in such cases as the filenames
+actually correspond to a real file) you'll have to convert to whatever the
+right encoding is.
 .SH "SEE ALSO"
 \fBdisorder\fR(1),
 \fBtime\fR(2),

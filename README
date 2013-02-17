@@ -13,8 +13,8 @@ DisOrder is a multi-user software jukebox.
      GTK+ interface that runs on Linux and Mac systems.
    * Playing tracks can be paused or cancelled ("scratched").
 
-See CHANGES.html for details of recent changes to DisOrder and README.upgrades
-for upgrade instructions.
+See CHANGES.html for details of recent changes to DisOrder and
+README.upgrades.html for upgrade instructions.
 
 Platform support:
   Linux            Well tested on Debian
@@ -67,7 +67,8 @@ Installation
    "This place'd be a paradise tomorrow, if every department had a supervisor
    with a machine-gun"
 
-IMPORTANT: If you are upgrading from an earlier version, see README.upgrades.
+IMPORTANT: If you are upgrading from an earlier version, see
+README.upgrades.html.
 
 Debian/Ubuntu: steps 1 to 6 are dealt with automatically if you use the .deb
 files.
@@ -264,7 +265,7 @@ Copyright
   "Nothing but another drug, a licence that you buy and sell"
 
 DisOrder - select and play digital audio files
-Copyright (C) 2003-2009 Richard Kettlewell
+Copyright (C) 2003-2013 Richard Kettlewell
 Portions copyright (C) 2007 Ross Younger
 Portions copyright (C) 2007 Mark Wooding
 Portions extracted from MPG321, http://mpg321.sourceforge.net/

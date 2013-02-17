@@ -21,23 +21,45 @@
 #ifndef EVENTLOG_H
 #define EVENTLOG_H
 
-/* definition of an event log output.  The caller must allocate these
- * (since log.c isn't allowed to perform memory allocation). */
+/** @brief An output for the event log
+ *
+ * The caller must allocate these (since log.c isn't allowed to perform memory
+ * allocation).  They form a linked list, using eventlog_add() and
+ * eventlog_remove().
+ */
 struct eventlog_output {
+  /** @brief Next output */
   struct eventlog_output *next;
+
+  /** @brief Handler for this output */
   void (*fn)(const char *msg, void *user);
+
+  /** @brief Passed to @ref fn */
   void *user;
 };
 
+/** @brief Add an event log output
+ * @param lo Pointer to output to add
+ */
 void eventlog_add(struct eventlog_output *lo);
-/* add a log output */
 
+/** @brief Remove an event log output
+ * @param lo Pointer to output to remove
+ */
 void eventlog_remove(struct eventlog_output *lo);
-/* remove a log output */
 
+/** @brief Send a message to the event log
+ * @param keyword Distinguishing keyword for event
+ * @param ... Extra data, terminated by (char *)0
+ */
 void eventlog(const char *keyword, ...);
+
+/** @brief Send a message to the event log
+ * @param keyword Distinguishing keyword for event
+ * @param raw Unformatted data
+ * @param ... Extra data, terminated by (char *)0
+ */
 void eventlog_raw(const char *keyword, const char *raw, ...);
-/* send a message to the event log */
 
 #endif /* EVENTLOG_H */
 

@@ -18,11 +18,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AC_INIT([disorder], [5.0.3], [richard+disorder@sfere.greenend.org.uk])
+AC_INIT([disorder], [5.1], [richard+disorder@sfere.greenend.org.uk])
 AC_CONFIG_AUX_DIR([config.aux])
-AM_INIT_AUTOMAKE(disorder, [5.0.3])
+AM_INIT_AUTOMAKE(disorder, [5.1])
 AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Find host type
 AC_CANONICAL_HOST
@@ -107,6 +108,7 @@ case "$host" in
  ;;
 *linux* | *Linux* )
   AC_MSG_RESULT([Linux])
+  AC_DEFINE_UNQUOTED([PATH_PROC_MOUNTS],["/proc/mounts"],[path to kernel mount list])
   ;;
 *-apple-darwin* )
   AC_MSG_RESULT([Mac OS X])
@@ -156,7 +158,7 @@ case "$host" in
   # Look for a suitable version of libdb among the versions found in FreeBSD 7.0
   AC_CACHE_CHECK([looking for a libdb install],[rjk_cv_libdb],[
     rjk_cv_libdb="none"
-    for db in db43 db44 db45 db46; do
+    for db in db43 db44 db45 db47; do
       if test -e /usr/local/lib/$db; then
         rjk_cv_libdb=$db
         break
@@ -522,7 +524,6 @@ if test $want_server = yes; then
   AC_CHECK_HEADERS([db.h],[:],[
     missing_headers="$missing_headers $ac_header"
   ])
-  AC_CHECK_HEADERS([FLAC/file_decoder.h])
 fi
 AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 		 getopt.h iconv.h langinfo.h \
@@ -546,6 +547,18 @@ AC_C_INLINE
 AC_C_BIGENDIAN
 AC_CHECK_TYPES([struct sockaddr_in6],,,[AC_INCLUDES_DEFAULT
 #include <netinet/in.h>])
+
+# Figure out how we'll check for devices being mounted and unmounted
+AC_CACHE_CHECK([for list of mounted filesystems],[rjk_cv_mtab],[
+  if test -e /etc/mtab; then
+    rjk_cv_mtab=/etc/mtab
+  else
+    rjk_cv_mtab=none
+  fi
+])
+if test $rjk_cv_mtab != none; then
+  AC_DEFINE_UNQUOTED([PATH_MTAB],["$rjk_cv_mtab"],[path to file containing mount list])
+fi
 
 # enable -Werror when we check for certain characteristics:
 
@@ -639,12 +652,12 @@ if test ! -z "$missing_functions"; then
 fi
 
 # Functions we can take or leave
-AC_CHECK_FUNCS([fls])
+AC_CHECK_FUNCS([fls getfsstat])
 
 if test $want_server = yes; then
   # <db.h> had better be version 3 or later
   AC_CACHE_CHECK([db.h version],[rjk_cv_db_version],[
-    AC_PREPROC_IFELSE([
+    AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
 		       #include <db.h>
 		       #ifndef DB_VERSION_MAJOR
 		       # error cannot determine db version
@@ -655,16 +668,16 @@ if test $want_server = yes; then
 		       #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR <= 2
 		       # error inadequate db version
 		       #endif
-		      ],
+		      ],[])],
 		      [rjk_cv_db_version=ok],
 		      [rjk_cv_db_version=inadequate])
     if test $rjk_cv_db_version = ok; then
-      AC_PREPROC_IFELSE([
+      AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
                          #include <db.h>
                          #if DB_VERSION_MAJOR == 4 && DB_VERSION_MINOR == 6
                          # error http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=510270
                          #endif
-                        ],
+                        ],[])],
                         [rjk_cv_db_version=ok],
                         [rjk_cv_db_version=toxic])
     fi
@@ -716,13 +729,13 @@ if test "x$GCC" = xyes; then
     if test $GCC = yes; then
       CC="$CC -Wall -Werror"
     fi
-    AC_COMPILE_IFELSE([
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
       static int x(char *f) {
        return *f;
       }
       int z(const char *g) {
 	return x((char *)g);
-      }],
+      }],[])],
       [rjk_cv_pr29478=no],
       [rjk_cv_pr29478=yes]
     )
@@ -738,11 +751,11 @@ if test "x$GCC" = xyes; then
     if test $GCC = yes; then
       CC="$CC -Wreturn-type -Werror"
     fi
-    AC_COMPILE_IFELSE([
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[
       static void *threadfn(void) {
         for(;;)
           ;
-      }],
+      }],[])],
       [rjk_cv_gcc44_stupidity=no],
       [rjk_cv_gcc44_stupidity=yes])
     CC="$old_CC"
@@ -752,7 +765,7 @@ if test "x$GCC" = xyes; then
   fi
 
   # a reasonable default set of warnings
-  CC="${CC} -Wall -W -Wpointer-arith -Wbad-function-cast \
+  CC="${CC} -Wall -W -Wpointer-arith \
 	-Wwrite-strings -Wmissing-prototypes \
 	-Wmissing-declarations -Wnested-externs"
 

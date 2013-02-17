@@ -77,7 +77,6 @@ struct queue_entry *dcgi_findtrack(const char *id);
 void option_set(const char *name, const char *value);
 const char *option_label(const char *key);
 int option_label_exists(const char *key);
-char **option_columns(const char *name, int *ncolumns);
 
 #define DCGI_QUEUE 0x0001
 #define DCGI_PLAYING 0x0002
@@ -92,8 +91,8 @@ extern struct queue_entry *dcgi_queue;
 extern struct queue_entry *dcgi_playing;
 extern struct queue_entry *dcgi_recent;
 
-extern int dcgi_volume_left;
-extern int dcgi_volume_right;
+extern long dcgi_volume_left;
+extern long dcgi_volume_right;
 
 extern char **dcgi_new;
 extern int dcgi_nnew;

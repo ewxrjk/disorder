@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,6 @@
 #include "vector.h"
 #include "version.h"
 #include "dateparse.h"
-#include "trackdb.h"
 #include "inputline.h"
 
 static disorder_client *client;
@@ -67,7 +66,6 @@ static const struct option options[] = {
   { "help-commands", no_argument, 0, 'H' },
   { "user", required_argument, 0, 'u' },
   { "password", required_argument, 0, 'p' },
-  { "wait-for-root", no_argument, 0, 'W' },
   { 0, 0, 0, 0 }
 };
 
@@ -98,7 +96,9 @@ static void cf_version(char attribute((unused)) **argv) {
   char *v;
 
   if(disorder_version(getclient(), &v)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(v)));
+  v = nullcheck(utf82mb_f(v));
+  xprintf("%s\n", v);
+  xfree(v);
 }
 
 static void print_queue_entry(const struct queue_entry *q) {
@@ -136,8 +136,9 @@ static void cf_playing(char attribute((unused)) **argv) {
 }
 
 static void cf_play(char **argv) {
+  char *id;
   while(*argv)
-    if(disorder_play(getclient(), *argv++)) exit(EXIT_FAILURE);
+    if(disorder_play(getclient(), *argv++, &id)) exit(EXIT_FAILURE);
 }
 
 static void cf_remove(char **argv) {
@@ -173,13 +174,12 @@ static void cf_rescan(char attribute((unused)) **argv) {
 
 static void cf_somequeue(int (*fn)(disorder_client *c,
 				   struct queue_entry **qp)) {
-  struct queue_entry *q;
+  struct queue_entry *q, *qbase;
 
-  if(fn(getclient(), &q)) exit(EXIT_FAILURE);
-  while(q) {
+  if(fn(getclient(), &qbase)) exit(EXIT_FAILURE);
+  for(q = qbase; q; q = q->next)
     print_queue_entry(q);
-    q = q->next;
-  }
+  queue_free(qbase, 1);
 }
 
 static void cf_recent(char attribute((unused)) **argv) {
@@ -225,16 +225,17 @@ static void cf_somelist(char **argv,
 			int (*fn)(disorder_client *c,
 				  const char *arg, const char *re,
 				  char ***vecp, int *nvecp)) {
-  char **vec;
+  char **vec, **base;
   const char *re;
 
   if(argv[1])
     re = xstrdup(argv[1] + 1);
   else
     re = 0;
-  if(fn(getclient(), argv[0], re, &vec, 0)) exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  if(fn(getclient(), argv[0], re, &base, 0)) exit(EXIT_FAILURE);
+  for(vec = base; *vec; ++vec)
+    xprintf("%s\n", nullcheck(utf82mb_f(*vec)));
+  xfree(base);
 }
 
 static int isarg_regexp(const char *s) {
@@ -242,7 +243,7 @@ static int isarg_regexp(const char *s) {
 }
 
 static void cf_dirs(char **argv) {
-  cf_somelist(argv, disorder_directories);
+  cf_somelist(argv, disorder_dirs);
 }
 
 static void cf_files(char **argv) {
@@ -257,7 +258,7 @@ static void cf_get(char **argv) {
   char *value;
 
   if(disorder_get(getclient(), argv[0], argv[1], &value)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(value)));
+  xprintf("%s\n", nullcheck(utf82mb_f(value)));
 }
 
 static void cf_length(char **argv) {
@@ -276,12 +277,13 @@ static void cf_unset(char **argv) {
 }
 
 static void cf_prefs(char **argv) {
-  struct kvp *k;
+  struct kvp *k, *base;
 
-  if(disorder_prefs(getclient(), argv[0], &k)) exit(EXIT_FAILURE);
-  for(; k; k = k->next)
+  if(disorder_prefs(getclient(), argv[0], &base)) exit(EXIT_FAILURE);
+  for(k = base; k; k = k->next)
     xprintf("%s = %s\n",
 	    nullcheck(utf82mb(k->name)), nullcheck(utf82mb(k->value)));
+  kvp_free(base);
 }
 
 static void cf_search(char **argv) {
@@ -291,6 +293,7 @@ static void cf_search(char **argv) {
   if(disorder_search(getclient(), *argv, &results, &nresults)) exit(EXIT_FAILURE);
   for(n = 0; n < nresults; ++n)
     xprintf("%s\n", nullcheck(utf82mb(results[n])));
+  free_strings(nresults, results);
 }
 
 static void cf_random_disable(char attribute((unused)) **argv) {
@@ -303,17 +306,19 @@ static void cf_random_enable(char attribute((unused)) **argv) {
 
 static void cf_stats(char attribute((unused)) **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_stats(getclient(), &vec, 0)) exit(EXIT_FAILURE);
-  while(*vec)
-      xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  if(disorder_stats(getclient(), &vec, &nvec)) exit(EXIT_FAILURE);
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_get_volume(char attribute((unused)) **argv) {
-  int l, r;
+  long l, r;
 
   if(disorder_get_volume(getclient(), &l, &r)) exit(EXIT_FAILURE);
-  xprintf("%d %d\n", l, r);
+  xprintf("%ld %ld\n", l, r);
 }
 
 static void cf_set_volume(char **argv) {
@@ -338,8 +343,8 @@ static void cf_move(char **argv) {
 static void cf_part(char **argv) {
   char *s;
 
-  if(disorder_part(getclient(), &s, argv[0], argv[1], argv[2])) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(s)));
+  if(disorder_part(getclient(), argv[0], argv[1], argv[2], &s)) exit(EXIT_FAILURE);
+  xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
 static int isarg_filename(const char *s) {
@@ -353,8 +358,8 @@ static void cf_authorize(char **argv) {
 static void cf_resolve(char **argv) {
   char *track;
 
-  if(disorder_resolve(getclient(), &track, argv[0])) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(track)));
+  if(disorder_resolve(getclient(), argv[0], &track)) exit(EXIT_FAILURE);
+  xprintf("%s\n", nullcheck(utf82mb_f(track)));
 }
 
 static void cf_pause(char attribute((unused)) **argv) {
@@ -385,7 +390,7 @@ static void cf_get_global(char **argv) {
   char *value;
 
   if(disorder_get_global(getclient(), argv[0], &value)) exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(value)));
+  xprintf("%s\n", nullcheck(utf82mb_f(value)));
 }
 
 static void cf_set_global(char **argv) {
@@ -409,7 +414,7 @@ static int isarg_integer(const char *s) {
 static void cf_new(char **argv) {
   char **vec;
 
-  if(disorder_new_tracks(getclient(), &vec, 0, argv[0] ? atoi(argv[0]) : 0))
+  if(disorder_new_tracks(getclient(), argv[0] ? atol(argv[0]) : 0, &vec, 0))
     exit(EXIT_FAILURE);
   while(*vec)
     xprintf("%s\n", nullcheck(utf82mb(*vec++)));
@@ -446,7 +451,7 @@ static void cf_userinfo(char **argv) {
 
   if(disorder_userinfo(getclient(), argv[0], argv[1], &s))
     exit(EXIT_FAILURE);
-  xprintf("%s\n", nullcheck(utf82mb(s)));
+  xprintf("%s\n", nullcheck(utf82mb_f(s)));
 }
 
 static int isarg_option(const char *arg) {
@@ -498,9 +503,15 @@ static void cf_setup_guest(char **argv) {
     exit(EXIT_FAILURE);
 }
 
+/** @brief A scheduled event read from the server */
 struct scheduled_event {
+  /** @brief When event should occur */
   time_t when;
+
+  /** @brief Details of action */
   struct kvp *actiondata;
+
+  /** @brief Event ID */
   char *id;
 };
 
@@ -574,31 +585,27 @@ static void cf_schedule_del(char **argv) {
 }
 
 static void cf_schedule_play(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "play",
-			   argv[2]))
+  if(disorder_schedule_add_play(getclient(),
+                                dateparse(argv[0]),
+                                argv[1],
+                                argv[2]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_set_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   argv[3]))
+  if(disorder_schedule_add_set_global(getclient(),
+                                      dateparse(argv[0]),
+                                      argv[1],
+                                      argv[2],
+                                      argv[3]))
     exit(EXIT_FAILURE);
 }
 
 static void cf_schedule_unset_global(char **argv) {
-  if(disorder_schedule_add(getclient(),
-			   dateparse(argv[0]),
-			   argv[1],
-			   "set-global",
-			   argv[2],
-			   (char *)0))
+  if(disorder_schedule_add_unset_global(getclient(),
+                                        dateparse(argv[0]),
+                                        argv[1],
+                                        argv[2]))
     exit(EXIT_FAILURE);
 }
 
@@ -609,11 +616,13 @@ static void cf_adopt(char **argv) {
 
 static void cf_playlists(char attribute((unused)) **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_playlists(getclient(), &vec, 0))
+  if(disorder_playlists(getclient(), &vec, &nvec))
     exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_playlist_del(char **argv) {
@@ -623,11 +632,13 @@ static void cf_playlist_del(char **argv) {
 
 static void cf_playlist_get(char **argv) {
   char **vec;
+  int nvec;
 
-  if(disorder_playlist_get(getclient(), argv[0], &vec, 0))
+  if(disorder_playlist_get(getclient(), argv[0], &vec, &nvec))
     exit(EXIT_FAILURE);
-  while(*vec)
-    xprintf("%s\n", nullcheck(utf82mb(*vec++)));
+  for(int n = 0; n < nvec; ++n)
+    xprintf("%s\n", nullcheck(utf82mb(vec[n])));
+  free_strings(nvec, vec);
 }
 
 static void cf_playlist_set(char **argv) {
@@ -662,12 +673,28 @@ static void cf_playlist_set(char **argv) {
     exit(EXIT_FAILURE);
 }
 
-static const struct command {
+/** @brief Command-line client's definition of a command */
+static const struct client_command {
+  /** @brief Command name */
   const char *name;
-  int min, max;
+
+  /** @brief Minimum number of argument */
+  int min;
+
+  /** @brief Maximum number of argument */
+  int max;
+
+  /** @brief Pointer to function implementing command */
   void (*fn)(char **);
+
+  /** @brief Function to recognize a valid argument, or NULL */
   int (*isarg)(const char *);
-  const char *argstr, *desc;
+
+  /** @brief Summary of arguments */
+  const char *argstr;
+
+  /** @brief Description */
+  const char *desc;
 } commands[] = {
   { "adduser",        2, 3, cf_adduser, isarg_rights, "USERNAME PASSWORD [RIGHTS]",
                       "Create a new user" },
@@ -815,28 +842,8 @@ static void help_commands(void) {
   exit(0);
 }
 
-static void wait_for_root(void) {
-  const char *password;
-
-  while(!trackdb_readable()) {
-    disorder_info("waiting for trackdb...");
-    sleep(1);
-  }
-  trackdb_init(TRACKDB_NO_RECOVER|TRACKDB_NO_UPGRADE);
-  for(;;) {
-    trackdb_open(TRACKDB_READ_ONLY);
-    password = trackdb_get_password("root");
-    trackdb_close();
-    if(password)
-      break;
-    disorder_info("waiting for root user to be created...");
-    sleep(1);
-  }
-  trackdb_deinit(NULL);
-}
-
 int main(int argc, char **argv) {
-  int n, i, j, local = 0, wfr = 0;
+  int n, i, j, local = 0;
   int status = 0;
   struct vector args;
   const char *user = 0, *password = 0;
@@ -847,7 +854,7 @@ int main(int argc, char **argv) {
   pcre_free = xfree;
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:W", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -858,21 +865,21 @@ int main(int argc, char **argv) {
     case 'N': config_per_user = 0; break;
     case 'u': user = optarg; break;
     case 'p': password = optarg; break;
-    case 'W': wfr = 1; break;
     default: disorder_fatal(0, "invalid option");
     }
   }
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   if(user) {
-    config->username = user;
+    xfree(config->username);
+    config->username = xstrdup(user);
     config->password = 0;
   }
-  if(password)
-    config->password = password;
+  if(password) {
+    xfree(config->password);
+    config->password = xstrdup(password);
+  }
   if(local)
     config->connect.af = -1;
-  if(wfr)
-    wait_for_root();
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
   /* gcrypt initialization */
@@ -889,7 +896,7 @@ int main(int argc, char **argv) {
     vector_init(&args);
     /* Include the command name in the args, but at element -1, for
      * the benefit of subcommand getopt calls */
-    vector_append(&args, argv[n]);
+    vector_append(&args, xstrdup(argv[n]));
     n++;
     for(j = 0; j < commands[i].min; ++j)
       vector_append(&args, nullcheck(mb2utf8(argv[n + j])));
@@ -899,10 +906,13 @@ int main(int argc, char **argv) {
       vector_append(&args, nullcheck(mb2utf8(argv[n + j])));
     vector_terminate(&args);
     commands[i].fn(args.vec + 1);
+    vector_clear(&args);
     n += j;
   }
   if(client && disorder_close(client)) exit(EXIT_FAILURE);
   if(fclose(stdout) < 0) disorder_fatal(errno, "error closing stdout");
+  config_free(config);
+  xfree(client);
   return status;
 }
 

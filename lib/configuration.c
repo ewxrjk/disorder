@@ -240,6 +240,7 @@ static int set_string(const struct config_state *cs,
 		   cs->path, cs->line, whoami->name);
     return -1;
   }
+  xfree(VALUE(cs->config, char *));
   VALUE(cs->config, char *) = xstrdup(vec[0]);
   return 0;
 }
@@ -319,33 +320,6 @@ static int set_string_accum(const struct config_state *cs,
     sl->s = xrealloc(sl->s, (sl->n * sizeof (char *)));
     sl->s[sl->n - 1] = xstrdup(vec[n]);
   }
-  return 0;
-}
-
-static int set_restrict(const struct config_state *cs,
-			const struct conf *whoami,
-			int nvec, char **vec) {
-  unsigned r = 0;
-  int n, i;
-  
-  static const struct restriction {
-    const char *name;
-    unsigned bit;
-  } restrictions[] = {
-    { "remove", RESTRICT_REMOVE },
-    { "scratch", RESTRICT_SCRATCH },
-    { "move", RESTRICT_MOVE },
-  };
-
-  for(n = 0; n < nvec; ++n) {
-    if((i = TABLE_FIND(restrictions, name, vec[n])) < 0) {
-      disorder_error(0, "%s:%d: invalid restriction '%s'",
-		     cs->path, cs->line, vec[n]);
-      return -1;
-    }
-    r |= restrictions[i].bit;
-  }
-  VALUE(cs->config, unsigned) = r;
   return 0;
 }
 
@@ -520,8 +494,7 @@ static int set_rights(const struct config_state *cs,
 		   cs->path, cs->line, vec[0]);
     return -1;
   }
-  *ADDRESS(cs->config, char *) = vec[0];
-  return 0;
+  return set_string(cs, whoami, nvec, vec);
 }
 
 static int set_netaddress(const struct config_state *cs,
@@ -640,11 +613,10 @@ static const struct conftype
   type_stringlist_accum = { set_stringlist_accum, free_stringlistlist },
   type_string_accum = { set_string_accum, free_stringlist },
   type_sample_format = { set_sample_format, free_none },
-  type_restrict = { set_restrict, free_none },
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
   type_netaddress = { set_netaddress, free_netaddress },
-  type_rights = { set_rights, free_none };
+  type_rights = { set_rights, free_string };
 
 /* specific validation routine */
 
@@ -750,24 +722,6 @@ static int validate_tracklength(const struct config_state *cs,
   return 0;
 }
 
-/** @brief Validate an allow directive
- * @param cs Configuration state
- * @param nvec Length of (proposed) new value
- * @param vec Elements of new value
- * @return 0 on success, non-0 on error
- *
- * Obsolete - only used for parsing legacy configuration.
- */
-static int validate_allow(const struct config_state *cs,
-			  int nvec,
-			  char attribute((unused)) **vec) {
-  if(nvec != 2) {
-    disorder_error(0, "%s:%d: must be 'allow NAME PASS'", cs->path, cs->line);
-    return -1;
-  }
-  return 0;
-}
-
 /** @brief Validate a non-negative (@c long) integer
  * @param cs Configuration state
  * @param nvec Length of (proposed) new value
@@ -835,9 +789,7 @@ static int validate_positive(const struct config_state *cs,
 static int validate_isauser(const struct config_state *cs,
 			    int attribute((unused)) nvec,
 			    char **vec) {
-  struct passwd *pw;
-
-  if(!(pw = getpwnam(vec[0]))) {
+  if(!getpwnam(vec[0])) {
     disorder_error(0, "%s:%d: no such user as '%s'", cs->path, cs->line, vec[0]);
     return -1;
   }
@@ -1047,6 +999,7 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
     disorder_error(0, "%s:%d: destination address required", cs->path, cs->line);
     return -1;
   }
+  xfree(na->address);
   return 0;
 }
 
@@ -1058,7 +1011,6 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
 /** @brief All configuration items */
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
-  { C(allow),            &type_stringlist_accum, validate_allow },
   { C(api),              &type_string,           validate_backend },
   { C(authorization_algorithm), &type_string,    validate_algo },
   { C(broadcast),        &type_netaddress,       validate_destaddr },
@@ -1073,13 +1025,12 @@ static const struct conf conf[] = {
   { C(dbversion),        &type_integer,          validate_positive },
   { C(default_rights),   &type_rights,           validate_any },
   { C(device),           &type_string,           validate_any },
-  { C(gap),              &type_integer,          validate_non_negative },
   { C(history),          &type_integer,          validate_positive },
   { C(home),             &type_string,           validate_isabspath },
   { C(listen),           &type_netaddress,       validate_any },
-  { C(lock),             &type_boolean,          validate_any },
   { C(mail_sender),      &type_string,           validate_any },
   { C(mixer),            &type_string,           validate_any },
+  { C(mount_rescan),     &type_boolean,          validate_any },
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
   { C(namepart),         &type_namepart,         validate_any },
@@ -1097,15 +1048,14 @@ static const struct conf conf[] = {
   { C(playlist_lock_timeout), &type_integer,     validate_positive },
   { C(playlist_max) ,    &type_integer,          validate_positive },
   { C(plugins),          &type_string_accum,     validate_isdir },
-  { C(prefsync),         &type_integer,          validate_positive },
   { C(queue_pad),        &type_integer,          validate_positive },
   { C(refresh),          &type_integer,          validate_positive },
   { C(refresh_min),      &type_integer,          validate_non_negative },
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
   { C(replay_min),       &type_integer,          validate_non_negative },
-  { C2(restrict, restrictions),         &type_restrict,         validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_verbose),      &type_boolean,          validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
   { C(sendmail),         &type_string,           validate_isabspath },
@@ -1119,7 +1069,6 @@ static const struct conf conf[] = {
   { C(templates),        &type_string_accum,     validate_isdir },
   { C(tracklength),      &type_stringlist_accum, validate_tracklength },
   { C(transform),        &type_transform,        validate_any },
-  { C(trust),            &type_string_accum,     validate_any },
   { C(url),              &type_string,           validate_url },
   { C(user),             &type_string,           validate_isauser },
   { C(username),         &type_string,           validate_any },
@@ -1175,7 +1124,9 @@ static int config_set_args(const struct config_state *cs,
     vector_append(v, s);
   va_end(ap);
   vector_terminate(v);
-  return config_set(cs, v->nvec, v->vec);
+  int rc = config_set(cs, v->nvec, v->vec);
+  xfree(v->vec);
+  return rc;
 }
 
 /** @brief Error callback used by config_include()
@@ -1330,7 +1281,6 @@ static struct config *config_default(void) {
   cs.line = 0;
   cs.config = c;
   /* Strings had better be xstrdup'd as they will get freed at some point. */
-  c->gap = 0;
   c->history = 60;
   c->home = xstrdup(pkgstatedir);
   if(!(pw = getpwuid(getuid())))
@@ -1339,10 +1289,8 @@ static struct config *config_default(void) {
   c->username = xstrdup(logname);
   c->refresh = 15;
   c->refresh_min = 1;
-  c->prefsync = 0;
   c->signal = SIGKILL;
   c->alias = xstrdup("{/artist}{/album}{/title}{ext}");
-  c->lock = 1;
   c->device = xstrdup("default");
   c->nice_rescan = 10;
   c->speaker_command = 0;
@@ -1373,6 +1321,7 @@ static struct config *config_default(void) {
   c->sox_generation = DEFAULT_SOX_GENERATION;
   c->playlist_max = INT_MAX;            /* effectively no limit */
   c->playlist_lock_timeout = 10;        /* 10s */
+  c->mount_rescan = 1;
   /* Default stopwords */
   if(config_set(&cs, (int)NDEFAULT_STOPWORDS, (char **)default_stopwords))
     exit(1);
@@ -1417,7 +1366,7 @@ static void set_configfile(void) {
  *
  * @p c is indeterminate after this function is called.
  */
-static void config_free(struct config *c) {
+void config_free(struct config *c) {
   int n;
 
   if(c) {
@@ -1510,18 +1459,7 @@ static void config_postdefaults(struct config *c,
 				     |RIGHT_MOVE__MASK
 				     |RIGHT_SCRATCH__MASK
 				     |RIGHT_REMOVE__MASK);
-    /* The idea is to approximate the meaning of the old 'restrict' directive
-     * in the default rights if they are not overridden. */
-    if(c->restrictions & RESTRICT_SCRATCH)
-      r |= RIGHT_SCRATCH_MINE|RIGHT_SCRATCH_RANDOM;
-    else
-      r |= RIGHT_SCRATCH_ANY;
-    if(!(c->restrictions & RESTRICT_MOVE))
-      r |= RIGHT_MOVE_ANY;
-    if(c->restrictions & RESTRICT_REMOVE)
-      r |= RIGHT_REMOVE_MINE;
-    else
-      r |= RIGHT_REMOVE_ANY;
+    r |= RIGHT_SCRATCH_ANY|RIGHT_MOVE_ANY|RIGHT_REMOVE_ANY;
     c->default_rights = rights_string(r);
   }
 }
@@ -1608,18 +1546,6 @@ int config_read(int server,
   /* everything is good so we shall use the new config */
   config_free(config);
   /* warn about obsolete directives */
-  if(c->restrictions)
-    disorder_error(0, "'restrict' will be removed in a future version");
-  if(c->allow.n)
-    disorder_error(0, "'allow' will be removed in a future version");
-  if(c->trust.n)
-    disorder_error(0, "'trust' will be removed in a future version");
-  if(!c->lock)
-    disorder_error(0, "'lock' will be removed in a future version");
-  if(c->gap)
-    disorder_error(0, "'gap' will be removed in a future version");
-  if(c->prefsync)
-    disorder_error(0, "'prefsync' will be removed in a future version");
   config = c;
   return 0;
 }

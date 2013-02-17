@@ -60,6 +60,9 @@ Set the configuration file.
 The default is
 .IR /etc/disorder/config .
 .TP
+.B \-\-no\-setuid
+Do not change UID.
+.TP
 .B \-\-debug\fR
 Enable debugging.
 .TP
@@ -99,7 +102,11 @@ No other process should be accessing the database at the time.
 DisOrder does not currently support catastrophic recovery.
 .PP
 This program requires write access to DisOrder's databases.
-Ideally therefore it should be run as the same user as the server or as root.
+Therefore it should be run as the same user as the server or as root.
+.PP
+If a restore is done as root then it will automatically change to the
+server user, so that the new files end up with the right ownership.
+This can be suppressed with the \fB\-\-no\-setuid\fR option.
 .SH FILES
 .TP
 .I pkgconfdir/config

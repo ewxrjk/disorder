@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2005, 2007-2009, 2011 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ static FILE *open_unicode_test(const char *path) {
     base = path;
   if(!(fp = fopen(base, "r"))) {
     snprintf(buffer, sizeof buffer,
-             "wget http://www.unicode.org/Public/5.1.0/ucd/%s", path);
+             "wget http://www.unicode.org/Public/6.0.0/ucd/%s", path);
     if((w = system(buffer)))
       disorder_fatal(0, "%s: %s", buffer, wstat(w));
     if(chmod(base, 0444) < 0)

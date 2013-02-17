@@ -22,8 +22,11 @@
 #include "disobedience.h"
 #include "table.h"
 
+/** @brief Embedded image */
 struct image {
+  /** @brief Image name */
   const char *name;
+  /** @brief Image data in GDK pixbuf inline format */
   const guint8 *data;
 };
 

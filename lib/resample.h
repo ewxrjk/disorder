@@ -29,12 +29,45 @@
 
 #include "byte-order.h"
 
+/** @brief An audio resampler */
 struct resampler {
-  int input_bits, input_channels, input_rate, input_signed, input_endian;
-  int output_bits, output_channels, output_rate, output_signed, output_endian;
+  /** @brief Bits/sample in input */
+  int input_bits;
+
+  /** @brief Number of input channels */
+  int input_channels;
+
+  /** @brief Frames/second in input */
+  int input_rate;
+
+  /** @brief Whether input samples are signed or unsigned */
+  int input_signed;
+
+  /** @brief Input endianness (@c ENDIAN_BIG or @c ENDIAN_LITTLE) */
+  int input_endian;
+
+  /** @brief Bits/sample in output */
+  int output_bits;
+
+  /** @brief Number of output channels */
+  int output_channels;
+
+  /** @brief Frames/second in output */
+  int output_rate;
+
+  /** @brief Whether output samples are signed or unsigned */
+  int output_signed;
+
+  /** @brief Output endianness (@c ENDIAN_BIG or @c ENDIAN_LITTLE) */
+  int output_endian;
+
+  /** @brief  */
   int input_bytes_per_sample;
+
+  /** @brief  */
   int input_bytes_per_frame;
 #if HAVE_SAMPLERATE_H
+  /** @brief Libsamplerate handle */
   SRC_STATE *state;
 #endif
 };

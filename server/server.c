@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ int wideopen;
 struct listener {
   const char *name;
   int pf;
+  int privileged;
 };
 
 struct conn;
@@ -201,9 +202,9 @@ static int reader_error(ev_source attribute((unused)) *ev,
 
 static int c_disable(struct conn *c, char **vec, int nvec) {
   if(nvec == 0)
-    disable_playing(c->who);
+    disable_playing(c->who, c->ev);
   else if(nvec == 1 && !strcmp(vec[0], "now"))
-    disable_playing(c->who);
+    disable_playing(c->who, c->ev);
   else {
     sink_writes(ev_writer_sink(c->w), "550 invalid argument\n");
     return 1;			/* completed */
@@ -589,7 +590,7 @@ static int c_user(struct conn *c,
   /* check whether the response is right */
   res = authhash(c->nonce, sizeof c->nonce, password,
 		 config->authorization_algorithm);
-  if(wideopen || (res && !strcmp(res, vec[1]))) {
+  if(wideopen || c->l->privileged || (res && !strcmp(res, vec[1]))) {
     c->who = vec[0];
     c->rights = rights;
     /* currently we only bother logging remote connections */
@@ -634,7 +635,7 @@ static int c_queue(struct conn *c,
       if((l = trackdb_get(playing->track, "_length"))
 	 && (length = atol(l))) {
 	xtime(&when);
-	when += length - playing->sofar + config->gap;
+	when += length - playing->sofar;
       }
     } else
       /* Nothing is playing but playing is enabled, so whatever is
@@ -649,7 +650,7 @@ static int c_queue(struct conn *c,
     if(when) {
       if((l = trackdb_get(q->track, "_length"))
 	 && (length = atol(l)))
-	when += length + config->gap;
+	when += length;
       else
 	when = 0;
     }
@@ -866,7 +867,7 @@ static int c_random_enable(struct conn *c,
 static int c_random_disable(struct conn *c,
 			    char attribute((unused)) **vec,
 			    int attribute((unused)) nvec) {
-  disable_random(c->who);
+  disable_random(c->who, c->ev);
   sink_writes(ev_writer_sink(c->w), "250 OK\n");
   return 1;			/* completed */
 }
@@ -1150,8 +1151,19 @@ static int c_set_global(struct conn *c,
     sink_writes(ev_writer_sink(c->w), "550 cannot set internal global preferences\n");
     return 1;
   }
-  trackdb_set_global(vec[0], vec[1], c->who);
-  sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  /* We special-case the 'magic' preferences here. */
+  if(!strcmp(vec[0], "playing")) {
+    (flag_enabled(vec[1]) ? enable_playing : disable_playing)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  } else if(!strcmp(vec[0], "random-play")) {
+    (flag_enabled(vec[1]) ? enable_random : disable_random)(c->who, c->ev);
+    sink_printf(ev_writer_sink(c->w), "250 OK\n");
+  } else {
+    if(!trackdb_set_global(vec[0], vec[1], c->who))
+      sink_printf(ev_writer_sink(c->w), "250 OK\n");
+    else
+      sink_writes(ev_writer_sink(c->w), "550 not found\n");
+  }
   return 1;
 }
 
@@ -1177,7 +1189,7 @@ static int c_nop(struct conn *c,
 static int c_new(struct conn *c,
 		 char **vec,
 		 int nvec) {
-  int max, n;
+  int max;
   char **tracks;
 
   if(nvec > 0)
@@ -1188,7 +1200,6 @@ static int c_new(struct conn *c,
     max = config->new_max;
   tracks = trackdb_new(0, max);
   sink_printf(ev_writer_sink(c->w), "253 New track list follows\n");
-  n = 0;
   while(*tracks) {
     sink_printf(ev_writer_sink(c->w), "%s%s\n",
 		**tracks == '.' ? "." : "", *tracks);
@@ -1269,7 +1280,7 @@ static int c_revoke(struct conn *c,
     revoke_cookie(c->cookie);
     sink_writes(ev_writer_sink(c->w), "250 OK\n");
   } else
-    sink_writes(ev_writer_sink(c->w), "550 Did not log in with cookie\n");
+    sink_writes(ev_writer_sink(c->w), "510 Did not log in with cookie\n");
   return 1;
 }
 
@@ -1280,7 +1291,7 @@ static int c_adduser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote adduser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   if(nvec > 2) {
@@ -1306,7 +1317,7 @@ static int c_deluser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote deluser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   if(trackdb_deluser(vec[0])) {
@@ -1328,7 +1339,7 @@ static int c_edituser(struct conn *c,
 
   if(!config->remote_userman && !(c->rights & RIGHT__LOCAL)) {
     disorder_error(0, "S%x: remote edituser", c->tag);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   /* RIGHT_ADMIN can do anything; otherwise you can only set your own email
@@ -1387,7 +1398,7 @@ static int c_userinfo(struct conn *c,
      && !(c->rights & RIGHT__LOCAL)
      && strcmp(vec[1], "rights")) {
     disorder_error(0, "S%x: remote userinfo %s %s", c->tag, vec[0], vec[1]);
-    sink_writes(ev_writer_sink(c->w), "550 Remote user management is disabled\n");
+    sink_writes(ev_writer_sink(c->w), "510 Remote user management is disabled\n");
     return 1;
   }
   /* RIGHT_ADMIN allows anything; otherwise you can only get your own email
@@ -1460,7 +1471,7 @@ static int c_confirm(struct conn *c,
   }
   user = xstrndup(vec[0], sep - vec[0]);
   if(trackdb_confirm(user, vec[0], &rights))
-    sink_writes(ev_writer_sink(c->w), "550 Incorrect confirmation string\n");
+    sink_writes(ev_writer_sink(c->w), "510 Incorrect confirmation string\n");
   else {
     c->who = user;
     c->cookie = 0;
@@ -1610,7 +1621,7 @@ static int c_schedule_del(struct conn *c,
     const char *who = kvp_get(actiondata, "who");
 
     if(!who || !c->who || strcmp(who, c->who)) {
-      sink_writes(ev_writer_sink(c->w), "551 Not authorized\n");
+      sink_writes(ev_writer_sink(c->w), "510 Not authorized\n");
       return 1;				/* completed */
     }
   }
@@ -1695,7 +1706,7 @@ static int playlist_response(struct conn *c,
   case 0:
     assert(!"cannot cope with success");
   case EACCES:
-    sink_writes(ev_writer_sink(c->w), "550 Access denied\n");
+    sink_writes(ev_writer_sink(c->w), "510 Access denied\n");
     break;
   case EINVAL:
     sink_writes(ev_writer_sink(c->w), "550 Invalid playlist name\n");
@@ -1835,7 +1846,8 @@ static int c_playlist_unlock(struct conn *c,
   return 1;
 }
 
-static const struct command {
+/** @brief Server's definition of a command */
+static const struct server_command {
   /** @brief Command name */
   const char *name;
 
@@ -2125,12 +2137,16 @@ static int listen_callback(ev_source *ev,
 
 int server_start(ev_source *ev, int pf,
 		 size_t socklen, const struct sockaddr *sa,
-		 const char *name) {
+		 const char *name,
+		 int privileged) {
   int fd;
   struct listener *l = xmalloc(sizeof *l);
   static const int one = 1;
 
-  D(("server_init socket %s", name));
+  D(("server_init socket %s privileged=%d", name, privileged));
+  /* Sanity check */
+  if(privileged && pf != AF_UNIX)
+    disorder_fatal(0, "cannot create a privileged listener on a non-local port");
   fd = xsocket(pf, SOCK_STREAM, 0);
   xsetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
   if(bind(fd, sa, socklen) < 0) {
@@ -2142,6 +2158,7 @@ int server_start(ev_source *ev, int pf,
   cloexec(fd);
   l->name = name;
   l->pf = pf;
+  l->privileged = privileged;
   if(ev_listen(ev, fd, listen_callback, l, "server listener"))
     exit(EXIT_FAILURE);
   disorder_info("listening on %s", name);

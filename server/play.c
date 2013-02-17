@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2012 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -250,10 +250,12 @@ static int player_finished(ev_source *ev,
       q->state = playing_ok;
     break;
   }
-  /* Regardless we always report and record the status and do cleanup for
-   * prefork calls. */
-  if(status)
-    disorder_error(0, "player for %s %s", q->track, wstat(status));
+  /* Report the status unless we killed it */
+  if(status) {
+    if(!(q->killed && WIFSIGNALED(status) && WTERMSIG(status) == q->killed))
+      disorder_error(0, "player for %s %s", q->track, wstat(status));
+  }
+  /* Clean up any prefork calls */
   if(q->type & DISORDER_PLAYER_PREFORK)
     play_cleanup(q->pl, q->data);
   q->wstat = status;
@@ -300,7 +302,7 @@ static int start(ev_source *ev,
 
   D(("start %s", q->id));
   /* Find the player plugin. */
-  if(!(player = find_player(q)) < 0)
+  if(!(player = find_player(q)))
     return START_HARDFAIL;              /* No player */
   if(!(q->pl = open_plugin(player->s[1], 0)))
     return START_HARDFAIL;
@@ -338,35 +340,6 @@ static int start(ev_source *ev,
 static int start_child(struct queue_entry *q, 
                        const struct pbgc_params *params,
                        void attribute((unused)) *bgdata) {
-  int n;
-
-  /* Wait for a device to clear.  This ugliness is now deprecated and will
-   * eventually be removed. */
-  if(params->waitdevice) {
-    ao_initialize();
-    if(*params->waitdevice) {
-      n = ao_driver_id(params->waitdevice);
-      if(n == -1)
-        disorder_fatal(0, "invalid libao driver: %s", params->waitdevice);
-    } else
-      n = ao_default_driver_id();
-    /* Make up a format. */
-    ao_sample_format format;
-    memset(&format, 0, sizeof format);
-    format.bits = 8;
-    format.rate = 44100;
-    format.channels = 1;
-    format.byte_format = AO_FMT_NATIVE;
-    int retries = 20;
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000000;             /* 0.1s */
-    ao_device *device;
-    while((device = ao_open_live(n, &format, 0)) == 0 && retries-- > 0)
-      nanosleep(&ts, 0);
-    if(device)
-      ao_close(device);
-  }
   /* Play the track */
   play_track(q->pl,
              params->argv, params->argc,
@@ -395,7 +368,7 @@ int prepare(ev_source *ev,
   if(q->prepared || q->preparing)
     return START_OK;
   /* Find the player plugin */
-  if(!(player = find_player(q)) < 0) 
+  if(!(player = find_player(q))) 
     return START_HARDFAIL;              /* No player */
   q->pl = open_plugin(player->s[1], 0);
   q->type = play_get_type(q->pl);
@@ -449,7 +422,7 @@ static int prepare_child(struct queue_entry *q,
       memset(&addr, 0, sizeof addr);
       addr.sun_family = AF_UNIX;
       snprintf(addr.sun_path, sizeof addr.sun_path,
-               "%s/speaker/socket", config->home);
+               "%s/private/speaker", config->home);
       int sfd = xsocket(PF_UNIX, SOCK_STREAM, 0);
       if(connect(sfd, (const struct sockaddr *)&addr, sizeof addr) < 0)
         disorder_fatal(errno, "connecting to %s", addr.sun_path);
@@ -501,6 +474,15 @@ static int prepare_child(struct queue_entry *q,
   return 0;
 }
 
+/** @brief Kill a player
+ * @param q Queue entry corresponding to player
+ */
+static void kill_player(struct queue_entry *q) {
+  if(q->pid >= 0)
+    kill(-q->pid, config->signal);
+  q->killed = config->signal;
+}
+
 /** @brief Abandon a queue entry
  *
  * Called from c_remove() (but NOT when scratching a track).  Only does
@@ -516,7 +498,7 @@ void abandon(ev_source attribute((unused)) *ev,
   if((q->type & DISORDER_PLAYER_TYPEMASK) != DISORDER_PLAYER_RAW)
     return;				/* Not a raw player. */
   /* Terminate the player. */
-  kill(-q->pid, config->signal);
+  kill_player(q);
   /* Cancel the track. */
   memset(&sm, 0, sizeof sm);
   sm.type = SM_CANCEL;
@@ -640,11 +622,13 @@ void play(ev_source *ev) {
 
 /* Miscelleneous ------------------------------------------------------------ */
 
+int flag_enabled(const char *s) {
+  return !s || !strcmp(s, "yes");
+}
+
 /** @brief Return true if play is enabled */
 int playing_is_enabled(void) {
-  const char *s = trackdb_get_global("playing");
-
-  return !s || !strcmp(s, "yes");
+  return flag_enabled(trackdb_get_global("playing"));
 }
 
 /** @brief Enable play */
@@ -656,15 +640,13 @@ void enable_playing(const char *who, ev_source *ev) {
 }
 
 /** @brief Disable play */
-void disable_playing(const char *who) {
+void disable_playing(const char *who, ev_source attribute((unused)) *ev) {
   trackdb_set_global("playing", "no", who);
 }
 
 /** @brief Return true if random play is enabled */
 int random_is_enabled(void) {
-  const char *s = trackdb_get_global("random-play");
-
-  return !s || !strcmp(s, "yes");
+  return flag_enabled(trackdb_get_global("random-play"));
 }
 
 /** @brief Enable random play */
@@ -675,7 +657,7 @@ void enable_random(const char *who, ev_source *ev) {
 }
 
 /** @brief Disable random play */
-void disable_random(const char *who) {
+void disable_random(const char *who, ev_source attribute((unused)) *ev) {
   trackdb_set_global("random-play", "no", who);
 }
 
@@ -720,10 +702,8 @@ void scratch(const char *who, const char *id) {
     playing->state = playing_scratched;
     playing->scratched = who ? xstrdup(who) : 0;
     /* Find the player and kill the whole process group */
-    if(playing->pid >= 0) {
-      D(("kill -%d -%lu", config->signal, (unsigned long)playing->pid));
-      kill(-playing->pid, config->signal);
-    }
+    if(playing->pid >= 0)
+      kill_player(playing);
     /* Tell the speaker, if we think it'll care */
     if((playing->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       memset(&sm, 0, sizeof sm);
@@ -762,17 +742,13 @@ void quitting(ev_source *ev) {
   shutting_down = 1;
   /* Shut down the current player */
   if(playing) {
-    if(playing->pid >= 0)
-      kill(-playing->pid, config->signal);
+    kill_player(playing);
     playing->state = playing_quitting;
     finished(0);
   }
   /* Zap any background decoders that are going */
   for(q = qhead.next; q != &qhead; q = q->next)
-    if(q->pid >= 0) {
-      D(("kill -%d %lu", config->signal, (unsigned long)q->pid));
-      kill(-q->pid, config->signal);
-    }
+    kill_player(q);
   /* Don't need the speaker any more */
   ev_fd_cancel(ev, ev_read, speaker_fd);
   xclose(speaker_fd);

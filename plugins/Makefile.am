@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2008, 2010 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,10 @@ AM_CPPFLAGS=-I${top_srcdir}/lib
 notify_la_SOURCES=notify.c
 notify_la_LDFLAGS=-module
 
-disorder_tracklength_la_SOURCES=tracklength.c mad.c madshim.h ../lib/wav.h ../lib/wav.c
+disorder_tracklength_la_SOURCES=tracklength.c tracklength.h	\
+tracklength-mp3.c tracklength-ogg.c tracklength-wav.c		\
+tracklength-flac.c mad.c madshim.h ../lib/wav.h ../lib/wav.c	\
+../lib/hreader.h ../lib/hreader.c
 disorder_tracklength_la_LDFLAGS=-module
 disorder_tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC) -lm
 

@@ -92,7 +92,7 @@ sub input {
     my $path = shift;
     my $lpath = basename($path);
     if(!-e $lpath) {
-	system("wget http://www.unicode.org/Public/5.1.0/ucd/$path");
+	system("wget http://www.unicode.org/Public/6.0.0/ucd/$path");
 	chmod(0444, $lpath) or die "$lpath: $!\n";
     }
     open(STDIN, "<$lpath") or die "$lpath: $!\n";
@@ -562,9 +562,11 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
     my @t;
     for(my $c = $base; $c < $base + $modulus; ++$c) {
 	my $d = $data{$c};
-	my $decompsym = ($data{$c}->{decompsym} or "0");
-	my $cfsym = ($data{$c}->{cfsym} or "0");
-	my $compsym = ($data{$c}->{compsym} or "0");
+	my $decompsym = ($d->{decompsym} or "0");
+	my $cfsym = ($d->{cfsym} or "0");
+	my $compsym = ($d->{compsym} or "0");
+        my $ccc = ($d->{ccc} or "0");
+        my $gc = ($d->{gc} or "Cn");
 	my @flags = ();
 	if($data{$c}->{ypogegrammeni}) {
 	    push(@flags, "NBC");
@@ -573,15 +575,15 @@ for(my $base = 0; $base <= $max; $base += $modulus) {
 	    push(@flags, "CD");
 	}
 	my $flags = @flags ? join("|", @flags) : 0;
-	push(@t, "{".
+ 	push(@t, "{".
 	     join(",",
 		  $decompsym,
 		  $cfsym,
 		  $compsym,
 #		  $d->{ud},
 #		  $d->{ld},
-		  $d->{ccc},
-		  $d->{gc},
+		  $ccc,
+		  $gc,
 		  $flags,
 		  "GB$d->{gbreak}",
 		  "WB$d->{wbreak}",

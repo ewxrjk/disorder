@@ -17,9 +17,9 @@
 
 AC_DEFUN([RJK_FIND_GC_H],[
   AC_CACHE_CHECK([looking for <gc.h>],[rjk_cv_gc_h],[
-    AC_PREPROC_IFELSE([
+    AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
 		       #include <gc.h>
-		      ],
+		      ],[])],
 		      [rjk_cv_gc_h="on default include path"],[
       oldCPPFLAGS="${CPPFLAGS}"
       for dir in /usr/include/gc /usr/local/include/gc; do
@@ -28,9 +28,9 @@ AC_DEFUN([RJK_FIND_GC_H],[
 	else
 	  CPPFLAGS="${oldCPPFLAGS} -I$dir"
 	fi
-	AC_PREPROC_IFELSE([
+	AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
 			   #include <gc.h>
-			  ],
+			  ],[])],
 			  [rjk_cv_gc_h=$dir;break],[rjk_cv_gc_h="not found"])
       done
       CPPFLAGS="${oldCPPFLAGS}"
