@@ -1,8 +1,28 @@
-disorder (5.0.DEV) unstable; urgency=low
+disorder (5.1) stable; urgency=low
 
-  * Development version.
+  * DisOrder 5.1
 
- -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 12 Feb 2011 15:44:33 +0000
+ -- Richard Kettlewell <rjk@terraraq.org.uk>  Sun, 17 Feb 2013 16:22:14 +0000
+
+disorder (5.0.3) stable; urgency=emergency
+
+  * Security: Local connections can no longer create and delete users
+    unless they are properly authorized.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 31 Jul 2011 17:07:59 +0100
+
+disorder (5.0.2) unstable; urgency=low
+
+  * Mention login cookie.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sat, 28 May 2011 11:54:52 +0100
+
+disorder (5.0.1) unstable; urgency=low
+
+  * Disorder 5.0.1
+  * The sense of the Control -> Playing menu item was fixed.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Thu, 10 Jun 2010 09:18:58 +0100
 
 disorder (5.0) unstable; urgency=low
 
