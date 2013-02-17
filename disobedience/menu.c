@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2006-2009 Richard Kettlewell
+ * Copyright (C) 2006-2009, 2011, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
 
   if(!value)
     value = "[error]";
-  byte_xasprintf(&server_version_string, "Server version %s", value);
+  byte_xasprintf(&server_version_string, "DisOrder server version %s", value);
   byte_xasprintf(&short_version_string, "Disobedience %s",
                  disorder_short_version_string);
   w = gtk_dialog_new_with_buttons("About Disobedience",
@@ -182,7 +182,7 @@ static void about_popup_got_version(void attribute((unused)) *v,
                      FALSE/*fill*/,
                      1/*padding*/);
   gtk_box_pack_start(GTK_BOX(vbox),
-                     gtk_label_new("\xC2\xA9 2003-2011 Richard Kettlewell et al"),
+                     gtk_label_new("\xC2\xA9 2003-2013 Richard Kettlewell et al"),
                      FALSE/*expand*/,
                      FALSE/*fill*/,
                      1/*padding*/);
@@ -406,7 +406,7 @@ GtkWidget *menubar(GtkWidget *w) {
       GTK_STOCK_HELP,                   /* extra_data */
     },
     {
-      (char *)"/Help/About DisOrder",   /* path */
+      (char *)"/Help/About Disobedience", /* path */
       0,                                /* accelerator */
       about_popup,                      /* callback */
       0,                                /* callback_action */
