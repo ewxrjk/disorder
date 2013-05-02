@@ -22,6 +22,7 @@ sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 noinst_PROGRAMS=trackname endian
 
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
+AM_CFLAGS=
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
@@ -49,6 +50,16 @@ decode-mp3.c decode-ogg.c decode-wav.c decode-flac.c
 disorder_decode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBMAD) $(LIBVORBISFILE) $(LIBFLAC)
 disorder_decode_DEPENDENCIES=../lib/libdisorder.a
+
+if GSTDECODE
+AM_CFLAGS+=$(GSTREAMER_CFLAGS)
+sbin_PROGRAMS+=disorder-gstdecode
+disorder_gstdecode_SOURCES=gstdecode.c disorder-server.h
+disorder_gstdecode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(GSTREAMER_PLUGINS_BASE_LIBS) -lgstaudio-0.10 -lgstapp-0.10 \
+	$(GSTREAMER_LIBS)
+disorder_gstdecode_DEPENDENCIES=../lib/libdisorder.a
+endif
 
 disorder_normalize_SOURCES=normalize.c disorder-server.h
 disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \

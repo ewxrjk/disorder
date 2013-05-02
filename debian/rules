@@ -174,6 +174,7 @@ pkg-disorder-server: build
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_config.5
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_preferences.5
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_protocol.5
+	rm -f debian/disorder-server/usr/sbin/disorder-gstdecode
 	find debian/disorder-server -name '*.la' -print0 | xargs -r0 rm -f
 	find debian/disorder-server -name '*.so.0' -print0 | xargs -r0 rm -f
 	@for f in debian/disorder-server/usr/lib/disorder/*.so.0.0.0; do \
@@ -256,6 +257,40 @@ pkg-disorder-playrtp: build
 	chmod -R g-ws debian/disorder-playrtp
 	dpkg --build debian/disorder-playrtp ..
 
+pkg-disorder-gstdecode: build
+	rm -rf debian/disorder-gstdecode
+	$(MKDIR) debian/disorder-gstdecode
+	$(MKDIR) debian/disorder-gstdecode/DEBIAN
+	$(MKDIR) debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode
+	$(INSTALL_DATA) debian/copyright \
+		debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode/copyright
+	$(INSTALL_DATA) debian/changelog \
+		debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode/changelog
+	gzip -9 debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode/changelog*
+	@for f in preinst postinst prerm postrm conffiles templates config; do\
+	  if test -e debian/$$f.disorder-gstdecode; then\
+	    echo $(INSTALL_SCRIPT) debian/$$f.disorder-gstdecode debian/disorder-gstdecode/DEBIAN/$$f; \
+	    $(INSTALL_SCRIPT) debian/$$f.disorder-gstdecode debian/disorder-gstdecode/DEBIAN/$$f; \
+	  fi;\
+	done
+	$(MKDIR) debian/disorder-gstdecode/usr/sbin
+	: $(MKDIR) debian/disorder-gstdecode/usr/share/man/man1
+	$(INSTALL_PROGRAM) server/disorder-gstdecode \
+		debian/disorder-gstdecode/usr/sbin/disorder-gstdecode
+	strip --remove-section=.comment debian/disorder-gstdecode/usr/sbin/disorder-gstdecode
+	dpkg-shlibdeps -Tdebian/substvars.disorder-gstdecode \
+		debian/disorder-gstdecode/usr/sbin/*
+	$(INSTALL_DATA) CHANGES.html debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode/CHANGES.html
+	: gzip -9f debian/disorder-gstdecode/usr/share/man/man*/*
+	cd debian/disorder-gstdecode && \
+		find -name DEBIAN -prune -o -type f -print \
+			| sed 's/^\.\///' \
+			| xargs md5sum > DEBIAN/md5sums
+	dpkg-gencontrol -isp -pdisorder-gstdecode -Pdebian/disorder-gstdecode -Tdebian/substvars.disorder-gstdecode
+	chown -R root:root debian/disorder-gstdecode
+	chmod -R g-ws debian/disorder-gstdecode
+	dpkg --build debian/disorder-gstdecode ..
+
 pkg-disobedience: build
 	rm -rf debian/disobedience
 	$(MKDIR) debian/disobedience
@@ -321,7 +356,7 @@ source-check: source
 
 binary: binary-arch binary-indep
 binary-arch: pkg-disorder pkg-disorder-server pkg-disorder-playrtp \
-	     pkg-disobedience
+	     pkg-disorder-gstdecode pkg-disobedience
 binary-indep: 
 
 clean:

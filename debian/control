@@ -3,7 +3,7 @@ Maintainer: Richard Kettlewell <rjk@greenend.org.uk>
 Section: sound
 Priority: optional
 Standards-Version: 3.8.1.0
-Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev | libdb4.5-dev | libdb4.7-dev | libdb4.8-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libao-dev, python, libflac-dev, libgtk2.0-dev (>= 2.12.12)
+Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev | libdb4.5-dev | libdb4.7-dev | libdb4.8-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libao-dev, python, libflac-dev, libgtk2.0-dev (>= 2.12.12), pkg-config, libgstreamer0.10-dev, libgstreamer-plugins-base0.10-dev
 Vcs-Git: https://code.google.com/p/disorder/
 Homepage: http://www.greenend.org.uk/rjk/disorder/
 
@@ -52,6 +52,22 @@ Description: Network play client for DisOrder
  .
  This package contains the RTP player.  It can play audio streams generated
  by the server, received over a LAN.
+
+Package: disorder-gstdecode
+Architecture: any
+Section: sound
+Priority: extra
+Depends: ${shlibs:Depends}
+Enhances: disorder-server
+Description: GStreamer-based audio decoder for DisOrder
+ DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
+ and other formats with suitable configuration.  It is capable of playing
+ either via a locally attached sound device or over the network using
+ an RTP stream.
+ .
+ This package contains a GStreamer-based audio decoder.  This can (with
+ appropriate GStreamer plugins) decode different kinds of audio files, and
+ also apply ReplayGain to the decoded audio.
 
 Package: disobedience
 Architecture: any

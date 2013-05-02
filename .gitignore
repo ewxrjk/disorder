@@ -212,3 +212,5 @@ libtests/t-timeval
 /GRTAGS
 /GSYMS
 /GTAGS
+debian/disorder-gstdecode
+server/disorder-gstdecode
