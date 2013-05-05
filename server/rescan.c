@@ -233,8 +233,11 @@ static int recheck_track_tid(struct recheck_state *cs,
       return 0;
     }
   }
-  /* see if the track has evaporated */
-  if(check(c->module, c->root, path) == 0) {
+  /* see if the track has evaporated or no longer has a player */
+  for(n = 0; (n < config->player.n
+              && fnmatch(config->player.s[n].s[0], t->track, 0) != 0); ++n)
+    ;
+  if(n >= config->player.n || check(c->module, c->root, path) == 0) {
     D(("obsoleting %s", t->track));
     if((err = trackdb_obsolete(t->track, tid)))
       return err;
