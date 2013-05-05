@@ -697,7 +697,7 @@ static int validate_isreg(const struct config_state *cs,
 static int validate_player(const struct config_state *cs,
 			   int nvec,
 			   char attribute((unused)) **vec) {
-  if(nvec < 2) {
+  if(nvec && nvec < 2) {
     disorder_error(0, "%s:%d: should be at least 'player PATTERN MODULE'",
 		   cs->path, cs->line);
     return -1;
@@ -714,7 +714,7 @@ static int validate_player(const struct config_state *cs,
 static int validate_tracklength(const struct config_state *cs,
 				int nvec,
 				char attribute((unused)) **vec) {
-  if(nvec < 2) {
+  if(nvec && nvec < 2) {
     disorder_error(0, "%s:%d: should be at least 'tracklength PATTERN MODULE'",
 		   cs->path, cs->line);
     return -1;
