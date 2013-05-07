@@ -65,7 +65,19 @@ static const char *const modes[] = {
 #undef DEFNAME
   0
 };
+
+static const char *const dithers[] = {
+  "none", "rpdf", "tpdf", "tpdf-hf", 0
+};
+
+static const char *const shapes[] = {
+  "none", "error-feedback", "simple", "medium", "high", 0
+};
+
+static int dither = -1;
 static int mode = ALBUM;
+static int shape = -1;
+static gdouble fallback = 0.0;
 
 static struct stream_header hdr;
 
@@ -178,6 +190,12 @@ static void prepare_pipeline(void)
   g_object_set(source, "location", file, END);
   g_object_set(sink, "sync", FALSE, END);
 
+  /* Configure the converter.  Leave things as their defaults if the user
+   * hasn't made an explicit request.
+   */
+  if(dither >= 0) g_object_set(convert, "dithering", dither, END);
+  if(shape >= 0) g_object_set(convert, "noise-shaping", shape, END);
+
   /* Set up the sink's capabilities. */
   for(i = 0; i < N(widths); i++) {
     c = gst_caps_new_simple("audio/x-raw-int",
@@ -206,7 +224,10 @@ static void prepare_pipeline(void)
    */
   if(mode != OFF) {
     gain = gst_element_factory_make("rgvolume", "gain");
-    g_object_set(gain, "album-mode", mode == ALBUM, END);
+    g_object_set(gain,
+                 "album-mode", mode == ALBUM,
+                 "fallback-gain", fallback,
+                 END);
     gst_bin_add(GST_BIN(pipeline), gain);
     link_elements(gain, tail); tail = gain;
   }
@@ -361,9 +382,23 @@ static int getenum(const char *what, const char *s, const char *const *tags)
   disorder_fatal(0, "unknown %s `%s'", what, s);
 }
 
+static double getfloat(const char *what, const char *s)
+{
+  double d;
+  char *q;
+
+  errno = 0;
+  d = strtod(s, &q);
+  if(*q || errno) disorder_fatal(0, "invalid %s `%s'", what, s);
+  return d;
+}
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
+  { "dither", required_argument, 0, 'd' },
+  { "fallback-gain", required_argument, 0, 'f' },
+  { "noise-shape", required_argument, 0, 'n' },
   { "replay-gain", required_argument, 0, 'r' },
   { 0, 0, 0, 0 }
 };
@@ -375,6 +410,11 @@ static void help(void)
           "Options:\n"
           "  --help, -h                 Display usage message\n"
           "  --version, -V              Display version number\n"
+          "  --dither TYPE, -d TYPE     TYPE is `none', `rpdf', `tpdf', or "
+                                                "`tpdf-hf'\n"
+          "  --fallback-gain DB, -f DB  For tracks without ReplayGain data\n"
+          "  --noise-shape TYPE, -n TYPE  TYPE is `none', `error-feedback',\n"
+          "                                     `simple', `medium' or `high'\n"
           "  --replay-gain MODE, -r MODE  MODE is `off', `track' or `album'\n"
           "\n"
           "Alternative audio decoder for DisOrder.  Only intended to be\n"
@@ -394,10 +434,13 @@ int main(int argc, char *argv[])
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "calling setlocale");
 
   /* Parse command line. */
-  while((n = getopt_long(argc, argv, "hVr:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVd:f:n:r:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-gstdecode");
+    case 'd': dither = getenum("dither type", optarg, dithers); break;
+    case 'f': fallback = getfloat("fallback gain", optarg); break;
+    case 'n': shape = getenum("noise-shaping type", optarg, shapes); break;
     case 'r': mode = getenum("ReplayGain mode", optarg, modes); break;
     default: disorder_fatal(0, "invalid option");
     }
