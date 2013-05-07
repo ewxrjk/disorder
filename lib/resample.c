@@ -99,7 +99,7 @@ void resample_close(struct resampler *rs) {
   if(rs->state)
     src_delete(rs->state);
 #else
-  rs = 0;                               /* quieten compiler */
+  if(rs){}                              /* quieten compiler */
 #endif
 }
 
@@ -307,7 +307,7 @@ size_t resample_convert(const struct resampler *rs,
   if(output != input)
     xfree(output);
   xfree(input);
-  eof = 0;             /* quieten compiler */
+  if(eof){}                             /* quieten compiler */
   /* Report how many input bytes were actually consumed */
   //fprintf(stderr, "converted %zu frames\n", nframesin);
   return nframesin * rs->input_bytes_per_frame;
