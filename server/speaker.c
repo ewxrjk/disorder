@@ -418,8 +418,12 @@ static int addfd(int fd, int events) {
 static size_t speaker_callback(void *buffer,
                                size_t max_samples,
                                void attribute((unused)) *userdata) {
-  const size_t max_bytes = max_samples * uaudio_sample_size;
+  size_t max_bytes = max_samples * uaudio_sample_size;
   size_t provided_samples = 0;
+
+  /* Be sure to keep the amount of data in a buffer a whole number of frames:
+   * otherwise the playing threads can become stuck. */
+  max_bytes -= max_bytes % (uaudio_sample_size * uaudio_channels);
 
   pthread_mutex_lock(&lock);
   /* TODO perhaps we should immediately go silent if we've been asked to pause
@@ -437,6 +441,8 @@ static size_t speaker_callback(void *buffer,
       /* Limit to what we were asked for */
       if(bytes > max_bytes)
         bytes = max_bytes;
+      /* And truncate to a whole number of frames. */
+      bytes -= bytes % (uaudio_sample_size * uaudio_channels);
       /* Provide it */
       memcpy(buffer, playing->buffer + playing->start, bytes);
       playing->start += bytes;
