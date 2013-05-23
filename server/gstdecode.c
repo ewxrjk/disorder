@@ -76,6 +76,7 @@ static const char *const shapes[] = {
 
 static int dither = -1;
 static int mode = ALBUM;
+static int quality = -1;
 static int shape = -1;
 static gdouble fallback = 0.0;
 
@@ -173,14 +174,14 @@ static void prepare_pipeline(void)
 {
   GstElement *source = gst_element_factory_make("filesrc", "file");
   GstElement *decode = gst_element_factory_make("decodebin", "decode");
+  GstElement *resample = gst_element_factory_make("audioresample",
+                                                  "resample");
   GstElement *convert = gst_element_factory_make("audioconvert", "convert");
   GstElement *sink = gst_element_factory_make("appsink", "sink");
   GstElement *tail = sink;
   GstElement *gain;
-  GstCaps *caps = gst_caps_new_empty();
-  GstCaps *c;
-  static const int widths[] = { 8, 16 };
-  size_t i;
+  GstCaps *caps;
+  const struct stream_header *fmt = &config->sample_format;
 
   /* Set up the global variables. */
   pipeline = gst_pipeline_new("pipe");
@@ -190,34 +191,38 @@ static void prepare_pipeline(void)
   g_object_set(source, "location", file, END);
   g_object_set(sink, "sync", FALSE, END);
 
-  /* Configure the converter.  Leave things as their defaults if the user
-   * hasn't made an explicit request.
+  /* Configure the resampler and converter.  Leave things as their defaults
+   * if the user hasn't made an explicit request.
    */
+  if(quality >= 0) g_object_set(resample, "quality", quality, END);
   if(dither >= 0) g_object_set(convert, "dithering", dither, END);
   if(shape >= 0) g_object_set(convert, "noise-shaping", shape, END);
 
-  /* Set up the sink's capabilities. */
-  for(i = 0; i < N(widths); i++) {
-    c = gst_caps_new_simple("audio/x-raw-int",
-                            "width", G_TYPE_INT, widths[i],
-                            "depth", G_TYPE_INT, widths[i],
-                            "channels", GST_TYPE_INT_RANGE, 1, 2,
-                            "signed", G_TYPE_BOOLEAN, TRUE,
-                            "rate", GST_TYPE_INT_RANGE, 100, 1000000,
-                            END);
-    gst_caps_append(caps, c);
-  }
+  /* Set up the sink's capabilities from the configuration. */
+  caps = gst_caps_new_simple("audio/x-raw-int",
+                             "width", G_TYPE_INT, fmt->bits,
+                             "depth", G_TYPE_INT, fmt->bits,
+                             "channels", G_TYPE_INT, fmt->channels,
+                             "signed", G_TYPE_BOOLEAN, TRUE,
+                             "rate", G_TYPE_INT, fmt->rate,
+                             "endianness", G_TYPE_INT,
+                               fmt->endian == ENDIAN_BIG ?
+                                 G_BIG_ENDIAN : G_LITTLE_ENDIAN,
+                             END);
   gst_app_sink_set_caps(appsink, caps);
 
   /* Add the various elements into the pipeline.  We'll stitch them together
    * in pieces, because the pipeline is somewhat dynamic.
    */
-  gst_bin_add_many(GST_BIN(pipeline), source, decode, convert, sink, END);
+  gst_bin_add_many(GST_BIN(pipeline),
+                   source, decode,
+                   resample, convert, sink, END);
 
-  /* Link an audio conversion stage onto the front.  The rest of DisOrder
+  /* Link audio conversion stages onto the front.  The rest of DisOrder
    * doesn't handle much of the full panoply of exciting audio formats.
    */
   link_elements(convert, tail); tail = convert;
+  link_elements(resample, tail); tail = resample;
 
   /* If we're meant to do ReplayGain then insert it into the pipeline before
    * the converter.
@@ -393,12 +398,26 @@ static double getfloat(const char *what, const char *s)
   return d;
 }
 
+static int getint(const char *what, const char *s, int min, int max)
+{
+  long i;
+  char *q;
+
+  errno = 0;
+  i = strtol(s, &q, 10);
+  if(*q || errno || min > i || i > max)
+    disorder_fatal(0, "invalid %s `%s'", what, s);
+  return (int)i;
+}
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
+  { "config", required_argument, 0, 'c' },
   { "dither", required_argument, 0, 'd' },
   { "fallback-gain", required_argument, 0, 'f' },
   { "noise-shape", required_argument, 0, 'n' },
+  { "quality", required_argument, 0, 'q' },
   { "replay-gain", required_argument, 0, 'r' },
   { 0, 0, 0, 0 }
 };
@@ -410,11 +429,13 @@ static void help(void)
           "Options:\n"
           "  --help, -h                 Display usage message\n"
           "  --version, -V              Display version number\n"
+          "  --config PATH, -c PATH     Set configuration file\n"
           "  --dither TYPE, -d TYPE     TYPE is `none', `rpdf', `tpdf', or "
                                                 "`tpdf-hf'\n"
           "  --fallback-gain DB, -f DB  For tracks without ReplayGain data\n"
           "  --noise-shape TYPE, -n TYPE  TYPE is `none', `error-feedback',\n"
           "                                     `simple', `medium' or `high'\n"
+          "  --quality QUAL, -q QUAL    Resampling quality: 0 poor, 10 good\n"
           "  --replay-gain MODE, -r MODE  MODE is `off', `track' or `album'\n"
           "\n"
           "Alternative audio decoder for DisOrder.  Only intended to be\n"
@@ -434,13 +455,15 @@ int main(int argc, char *argv[])
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "calling setlocale");
 
   /* Parse command line. */
-  while((n = getopt_long(argc, argv, "hVd:f:n:r:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:d:f:n:q:r:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-gstdecode");
+    case 'c': configfile = optarg; break;
     case 'd': dither = getenum("dither type", optarg, dithers); break;
     case 'f': fallback = getfloat("fallback gain", optarg); break;
     case 'n': shape = getenum("noise-shaping type", optarg, shapes); break;
+    case 'q': quality = getint("resample quality", optarg, 0, 10); break;
     case 'r': mode = getenum("ReplayGain mode", optarg, modes); break;
     default: disorder_fatal(0, "invalid option");
     }
@@ -448,6 +471,7 @@ int main(int argc, char *argv[])
   if(optind >= argc) disorder_fatal(0, "missing filename");
   file = argv[optind++];
   if(optind < argc) disorder_fatal(0, "excess arguments");
+  if(config_read(1, 0)) disorder_fatal(0, "cannot read configuration");
 
   /* Set up the GStreamer machinery. */
   gst_init(0, 0);
