@@ -820,6 +820,8 @@ int main(int argc, char **argv) {
     disorder_fatal(errno, "error binding socket to %s", addr.sun_path);
   xlisten(listenfd, 128);
   nonblock(listenfd);
+  disorder_info("version "VERSION" process ID %lu",
+                (unsigned long)getpid());
   disorder_info("listening on %s", addr.sun_path);
   memset(&sm, 0, sizeof sm);
   sm.type = SM_READY;

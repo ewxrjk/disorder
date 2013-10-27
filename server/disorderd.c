@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
-  disorder_info("process ID %lu", (unsigned long)getpid());
+  disorder_info("version "VERSION" process ID %lu", (unsigned long)getpid());
   fix_path();
   srand(xtime(0));			/* don't start the same every time */
   /* gcrypt initialization */

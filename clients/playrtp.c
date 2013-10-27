@@ -708,6 +708,8 @@ int main(int argc, char **argv) {
   default:
     disorder_fatal(0, "usage: disorder-playrtp [OPTIONS] [[ADDRESS] PORT]");
   }
+  disorder_info("version "VERSION" process ID %lu",
+                (unsigned long)getpid());
   /* Look up address and port */
   if(!(res = get_address(&sl, &prefs, &sockname)))
     exit(1);
