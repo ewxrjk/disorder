@@ -1,3 +1,10 @@
+disorder (5.1.1) unstable; urgency=low
+
+  * Disorder 5.1.1
+  * Minor bug fixes.
+
+ -- Richard Kettlewell <rjk@greenend.org.uk>  Sun, 27 Oct 2013 14:45:36 +0000
+
 disorder (5.1) stable; urgency=low
 
   * DisOrder 5.1
