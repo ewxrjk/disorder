@@ -47,7 +47,7 @@ remote() {
     ;;
   local:* )
     cd
-    v "$cmd"
+    v bash -c "cd && $cmd"
     cd -
     ;;
   esac
@@ -67,7 +67,7 @@ put() {
     v cp $src ${chroots}/${target}/home/${LOGNAME}/$dst
     ;;
   local:* )
-    v cp $src $dst
+    v cp $src $HOME/$dst
     ;;
   esac
 }
@@ -86,7 +86,7 @@ get() {
     v cp ${chroots}/${target}/home/${LOGNAME}/$src $dst
     ;;
   local:* )
-    v cp $src $dst
+    v cp $HOME/$src $dst
     ;;
   esac
 }
@@ -112,10 +112,8 @@ build() {
 }
 
 # Build various debs
-#build chroot:lenny64 lenny lenny oldstable
-#build ssh:leucomorph lenny lenny oldstable
-build ssh:araminta squeeze "" stable
-build ssh:sandestin squeeze "" stable
+build local:araminta wheezy "" sid
+build chroot:wheezy32 wheezy "" sid
 
 # Update the web
 cp $src README README.developers CHANGES.html $web
