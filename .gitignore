@@ -6,13 +6,7 @@ Makefile.in
 /INSTALL
 /aclocal.m4
 /autom4te.cache
-config.aux/config.guess
-config.aux/config.sub
-config.aux/depcomp
-config.aux/install-sh
-config.aux/ltmain.sh
-config.aux/missing
-config.aux/py-compile
+config.aux
 ,*
 *.la
 *.lo
