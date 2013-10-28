@@ -11,13 +11,13 @@ Dependencies:
 
      apt-get install gcc libc6-dev automake autoconf libtool libgtk2.0-dev \
 		     libgc-dev libgcrypt-dev libpcre3-dev libvorbis-dev \
-		     libao-dev libmad0-dev libasound2-dev libdb4.5-dev \
+		     libmad0-dev libasound2-dev libdb4.5-dev \
 		     libflac-dev vorbis-tools wget libsamplerate0-dev
 
      libdb4.6 does not work (and configure will refuse to use it).
 
    * On FreeBSD you'll need at least these packages:
-       autotools bash flac mad boehm-gc db43 gmake gsed libao libgcrypt wget
+       autotools bash flac mad boehm-gc db43 gmake gsed libgcrypt wget
        vorbis-tools
 
    * On OS X with Fink:

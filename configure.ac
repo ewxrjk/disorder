@@ -462,9 +462,6 @@ if test $want_server = yes; then
   AC_CHECK_LIB(mad, mad_stream_init,
 	       [AC_SUBST(LIBMAD,[-lmad])],
 	       [missing_libraries="$missing_libraries libmad"])
-  AC_CHECK_LIB([ao], [ao_initialize],
-	       [AC_SUBST(LIBAO,[-lao])],
-	       [missing_libraries="$missing_libraries libao"])
   AC_CHECK_LIB([FLAC], [FLAC__stream_decoder_new],
 	       [AC_SUBST(LIBFLAC,[-lFLAC])],
 	       [missing_libraries="$missing_libraries libFLAC"])

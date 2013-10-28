@@ -22,7 +22,6 @@
  */
 
 #include "disorder-server.h"
-#include <ao/ao.h>
 
 #define SPEAKER "disorder-speaker"
 
