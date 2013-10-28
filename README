@@ -134,7 +134,7 @@ platform, please get in touch.
 
    See README.streams for how to set up network play.
 
-   If adding new 'player' commands, see README.raw for details on setting up
+   If adding new 'player' commands, see disorder(3) for details on setting up
    "raw format" players.  Non-raw players are still supported but not in all
    configurations and they cannot support pausing and gapless play.  If you
    want additional formats to be supported natively please point the author at

@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2008 Richard Kettlewell
+.\" Copyright (C) 2004-2008, 2013 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -318,7 +318,10 @@ A standalone player that writes directly to some suitable audio
 device.
 .TP
 .B DISORDER_PLAYER_RAW
-A player that writes raw samples to \fB$DISORDER_RAW_FD\fR.
+A player that writes blocks of raw samples to \fB$DISORDER_RAW_FD\fR.
+See
+.B "RAW FORMAT PLAYERS"
+below.
 .RE
 .IP
 Known capabilities are:
@@ -402,6 +405,53 @@ On error, should return \-1.
 .IP
 Resume playing the current track after a pause.
 This function must never block, as it runs inside the main loop of the server.
+.SH "RAW FORMAT PLAYERS"
+Raw format players should write data to the file descriptor given by
+the environment variable \fBDISORDER_RAW_FD\fR.
+.PP
+The output format is a series of chunks.  Each chunk has a header with
+the following format:
+.PP
+.nf
+struct stream_header {
+  uint32_t nbytes;
+  uint32_t rate;
+  uint8_t channels;
+  uint8_t bits;
+  uint8_t endian;
+} attribute((packed));
+.fi
+.PP
+The meanings of the fields are as follows:
+.TP
+.B nbytes
+The total number of bytes of sample data that follow the header.
+.TP
+.B rate
+The sample rate in samples per second.
+e.g. 44100.
+.TP
+.B channels
+The number of channels per frame.
+e.g. 2.
+.TP
+.B bits
+The number of bits per sample.
+e.g. 16.
+.TP
+.B endian
+The sample byte order.
+1 for big-endian samples and 2 for little-endian samples.
+.PP
+Any number of chunks are allowed.
+.PP
+Raw format players may be started before the track is to be played,
+and (if the track is then removed from the queue before it reaches the
+head) terminated before the track ever reaches a physical speaker.
+The point of this is to allow audio data to be ready to play the
+moment the previous track end, without having to wait for the player
+to start up.
+There is no way for a player to tell that this is going on.
 .SH NOTES
 There is no special DisOrder library to link against; the symbols are
 exported by the executables themselves.
