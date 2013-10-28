@@ -30,7 +30,7 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	popup.h playlists.c multidrag.c multidrag.h autoscroll.c	\
 	autoscroll.h globals.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
-	$(LIBASOUND) $(COREAUDIO) $(LIBICONV)
+	$(LIBASOUND) $(COREAUDIO) $(LIBICONV) -lm
 disobedience_LDFLAGS=$(GTK_LIBS)
 
 install-data-local:
