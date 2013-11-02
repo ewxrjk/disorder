@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 #
 # This file is part of DisOrder.
 # Copyright (C) 2004-2008 Richard Kettlewell
@@ -18,8 +18,6 @@
 #
 
 set -e
-srcdir=$(dirname $0)
-here=$(pwd)
-cd $srcdir
+cd $(dirname $0)
 mkdir -p m4
 autoreconf -si
