@@ -84,6 +84,7 @@
 #include "inputline.h"
 #include "version.h"
 #include "uaudio.h"
+#include "rate.h"
 
 /** @brief Obsolete synonym */
 #ifndef IPV6_JOIN_GROUP
@@ -193,6 +194,9 @@ size_t dump_index;
 /** @brief Size of debugging dump in samples */
 size_t dump_size = 44100/*Hz*/ * 2/*channels*/ * 20/*seconds*/;
 
+static struct rate receive_rate;
+static int report_rate;
+
 static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
@@ -255,6 +259,7 @@ static void *control_thread(void attribute((unused)) *arg) {
   if(listen(sfd, 128) < 0)
     disorder_fatal(errno, "error calling listen on %s", control_socket);
   disorder_info("listening on %s", control_socket);
+  rate_init(&receive_rate);
   for(;;) {
     salen = sizeof sa;
     cfd = accept(sfd, (struct sockaddr *)&sa, &salen);
@@ -408,6 +413,9 @@ static void *listen_thread(void attribute((unused)) *arg) {
     default:
       disorder_fatal(0, "unsupported RTP payload type %d", header.mpt & 0x7F);
     }
+    long long rate = rate_update(&receive_rate, p->nsamples);
+    if(rate >= 0 && report_rate)
+      disorder_info("receive rate %lld samples/second", rate);
     /* See if packet is silent */
     const uint16_t *s = p->samples_raw;
     n = p->nsamples;
@@ -701,7 +709,7 @@ int main(int argc, char **argv) {
   logdate = 1;
   mem_init();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:MA:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:MA:X", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
@@ -735,6 +743,7 @@ int main(int argc, char **argv) {
     case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;
     case 'P': uaudio_set("pause-mode", optarg); break;
     case 'M': monitor = 1; break;
+    case 'X': report_rate = 1; break;
     default: disorder_fatal(0, "invalid option");
     }
   }
