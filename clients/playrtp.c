@@ -432,11 +432,13 @@ static void *listen_thread(void attribute((unused)) *arg) {
      * This is rather unsatisfactory: it means that if packets get heavily
      * out of order then we guarantee dropouts.  But for now... */
     if(nsamples >= maxbuffer) {
+      disorder_error(0, "buffer full, suspending read thread");
       pthread_mutex_lock(&lock);
       while(nsamples >= maxbuffer) {
         pthread_cond_wait(&cond, &lock);
       }
       pthread_mutex_unlock(&lock);
+      disorder_info("resuming read thread");
     }
     /* Add the packet to the receive queue */
     pthread_mutex_lock(&receive_lock);
