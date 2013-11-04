@@ -195,6 +195,7 @@ size_t dump_index;
 size_t dump_size = 44100/*Hz*/ * 2/*channels*/ * 20/*seconds*/;
 
 static struct rate receive_rate;
+static struct rate play_rate;
 static int report_rate;
 
 static const struct option options[] = {
@@ -584,6 +585,9 @@ static size_t playrtp_callback(void *buffer,
       dump_index %= dump_size;
     }
   }
+  long long rate = rate_update(&play_rate, samples);
+  if(rate >= 0 && report_rate)
+    disorder_info("player supply rate %lld samples/second", rate);
   /* Advance timestamp */
   next_timestamp += samples;
   /* If we're getting behind then try to drop just silent packets
@@ -979,6 +983,7 @@ int main(int argc, char **argv) {
     next_timestamp = pheap_first(&packets)->timestamp;
     active = 1;
     pthread_mutex_unlock(&lock);
+    rate_init(&play_rate);
     backend->activate();
     pthread_mutex_lock(&lock);
     /* Wait until the buffer empties out
