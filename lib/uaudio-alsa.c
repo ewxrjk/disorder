@@ -27,6 +27,7 @@
 #include "log.h"
 #include "uaudio.h"
 #include "configuration.h"
+#include "rate.h"
 
 /** @brief The current PCM handle */
 static snd_pcm_t *alsa_pcm;
@@ -35,6 +36,7 @@ static const char *const alsa_options[] = {
   "device",
   "mixer-control",
   "mixer-channel",
+  "log-rate",
   NULL
 };
 
@@ -55,6 +57,9 @@ static long alsa_mixer_min;
 
 /** @brief Maximum level */
 static long alsa_mixer_max;
+
+static struct rate alsa_writei_rate;
+static int alsa_writei_rate_log;
 
 /** @brief Actually play sound via ALSA */
 static size_t alsa_play(void *buffer, size_t samples, unsigned flags) {
@@ -92,6 +97,9 @@ static size_t alsa_play(void *buffer, size_t samples, unsigned flags) {
       disorder_fatal(0, "error calling snd_pcm_writei: %d", (int)rc);
     }
   }
+  long long rate = rate_update(&alsa_writei_rate, samples);
+  if(rate >= 0 && alsa_writei_rate_log)
+    disorder_info("ALSA writei rate %lld samples/second", rate);
   return rc * uaudio_channels;
 }
 
@@ -100,6 +108,7 @@ static void alsa_open(void) {
   const char *device = uaudio_get("device", "default");
   int err;
 
+  alsa_writei_rate_log = atoi(uaudio_get("log-rate", "0"));
   if((err = snd_pcm_open(&alsa_pcm,
 			 device,
 			 SND_PCM_STREAM_PLAYBACK,
@@ -152,6 +161,7 @@ static void alsa_start(uaudio_callback *callback,
   if(uaudio_bits != 8 && uaudio_bits != 16)
     disorder_fatal(0, "asked for %d bits/channel but only support 8 or 16",
           uaudio_bits); 
+  rate_init(&alsa_writei_rate);
   alsa_open();
   uaudio_thread_start(callback, userdata, alsa_play,
                       32 / uaudio_sample_size,
@@ -275,6 +285,7 @@ static void alsa_configure(void) {
   uaudio_set("device", config->device);
   uaudio_set("mixer-control", config->mixer);
   uaudio_set("mixer-channel", config->channel);
+  uaudio_set("log-rate", "0");
 }
 
 const struct uaudio uaudio_alsa = {
