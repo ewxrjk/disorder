@@ -235,7 +235,7 @@ static void menu_rights_changed(const char attribute((unused)) *event,
 }
 
 /** @brief Create the menu bar widget */
-GtkWidget *menubar(GtkWidget *w) {
+GtkWidget *menubar(GtkWidget *window) {
   GtkWidget *m;
 
   static const GtkItemFactoryEntry entries[] = {
@@ -425,7 +425,7 @@ GtkWidget *menubar(GtkWidget *w) {
                                 sizeof entries / sizeof *entries,
                                 (GtkItemFactoryEntry *)entries,
                                 0);
-  gtk_window_add_accel_group(GTK_WINDOW(w), accel);
+  gtk_window_add_accel_group(GTK_WINDOW(window), accel);
   selectall_widget = gtk_item_factory_get_widget(mainmenufactory,
 						 "<GdisorderMain>/Edit/Select all tracks");
   selectnone_widget = gtk_item_factory_get_widget(mainmenufactory,
