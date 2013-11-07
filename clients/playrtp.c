@@ -207,6 +207,7 @@ static const struct option options[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   { "core-audio", no_argument, 0, 'c' },
 #endif
+  { "api", required_argument, 0, 'A' },
   { "dump", required_argument, 0, 'r' },
   { "command", required_argument, 0, 'e' },
   { "pause-mode", required_argument, 0, 'P' },
@@ -492,15 +493,19 @@ static void help(void) {
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
           "  --config, -C PATH       Set configuration file\n"
-#if HAVE_ALSA_ASOUNDLIB_H
-          "  --alsa, -a              Use ALSA to play audio\n"
-#endif
-#if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-          "  --oss, -o               Use OSS to play audio\n"
-#endif
-#if HAVE_COREAUDIO_AUDIOHARDWARE_H
-          "  --core-audio, -c        Use Core Audio to play audio\n"
-#endif
+          "  --api, -A API           Select audio API.  Possibilities:\n"
+          "                            ");
+  int first = 1;
+  for(int n = 0; uaudio_apis[n]; ++n) {
+    if(uaudio_apis[n]->flags & UAUDIO_API_CLIENT) {
+      if(first)
+        first = 0;
+      else
+        xprintf(", ");
+      xprintf("%s", uaudio_apis[n]->name);
+    }
+  }
+  xprintf("\n"
           "  --command, -e COMMAND   Pipe audio to command.\n"
           "  --pause-mode, -P silence  For -e: pauses send silence (default)\n"
           "  --pause-mode, -P suspend  For -e: pauses suspend writes\n"
@@ -648,7 +653,7 @@ int main(int argc, char **argv) {
   logdate = 1;
   mem_init();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:M", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:MA:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
@@ -659,14 +664,23 @@ int main(int argc, char **argv) {
     case 'L': logfp = fopen(optarg, "w"); break;
     case 'R': target_rcvbuf = atoi(optarg); break;
 #if HAVE_ALSA_ASOUNDLIB_H
-    case 'a': backend = &uaudio_alsa; break;
+    case 'a':
+      disorder_error(0, "deprecated option; use --api alsa instead");
+      backend = &uaudio_alsa; break;
 #endif
 #if HAVE_SYS_SOUNDCARD_H || EMPEG_HOST
-    case 'o': backend = &uaudio_oss; break;
+    case 'o':
+      disorder_error(0, "deprecated option; use --api oss instead");
+      backend = &uaudio_oss; 
+      break;
 #endif
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H      
-    case 'c': backend = &uaudio_coreaudio; break;
+    case 'c':
+      disorder_error(0, "deprecated option; use --api coreaudio instead");
+      backend = &uaudio_coreaudio;
+      break;
 #endif
+    case 'A': backend = uaudio_find(optarg); break;
     case 'C': configfile = optarg; break;
     case 's': control_socket = optarg; break;
     case 'r': dumpfile = optarg; break;

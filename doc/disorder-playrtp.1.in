@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2007-2009 Richard Kettlewell
+.\" Copyright (C) 2007-2009, 2013 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -37,20 +37,28 @@ broadcast to that port.
 If an address and a port are specified then the RTP stream is assumed to be
 multicast to that group address and port.
 .SH OPTIONS
-The default sound API is the first of the ones listed below that are available.
-Usually this implies ALSA under Linux and Core Audio under OS X.
 .TP
-.B \-\-alsa\fR, \fB\-a
-Use ALSA to play sound.
-Only available on Linux.
+.B \-\-api\fR, -\fB-A\fR \fIAPI\fR
+Select the playback API.
+The possibilities are, depending on platform and compilation options:
+.RS 8
 .TP
-.B \-\-oss\fR, \fB\-o
-Use OSS to play sound.
-Only available on Linux and FreeBSD.
+.B alsa
+ALSA.
+Linux only.
 .TP
-.B \-\-core\-audio\fR, \fB\-c
-Use Core Audio to play sound.
-Only available on Macs.
+.B oss
+OSS.
+.TP
+.B coreaudio
+Core Audio.
+OS X only.
+.TP
+.B command
+Pipe audio to a command.
+.RE
+.IP
+The default is the first of the possibilities above that is supported.
 .TP
 .B \-\-device \fIDEVICE\fR, \fB\-D \fIDEVICE\fR
 Specifies the audio device to use.
@@ -122,6 +130,21 @@ Periodically report how close to the buffer low watermark the buffer is.
 If you have trouble with poor playback quality, enable this option to see if
 the buffer is emptying out (or overfilling, though there are measures to
 prevent that from happening).
+.SS "Deprecated Options"
+These options may be removed in a future version.
+Use \fB\-\-api\fR instead.
+.TP
+.B \-\-alsa\fR, \fB\-a
+Use ALSA to play sound.
+Only available on Linux.
+.TP
+.B \-\-oss\fR, \fB\-o
+Use OSS to play sound.
+Only available on Linux and FreeBSD.
+.TP
+.B \-\-core\-audio\fR, \fB\-c
+Use Core Audio to play sound.
+Only available on Macs.
 .SH "REMOTE CONTROL"
 The
 .B \-\-socket
