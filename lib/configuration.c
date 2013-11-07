@@ -1429,7 +1429,8 @@ static void config_postdefaults(struct config *c,
     else if(c->broadcast.af != -1)
       c->api = xstrdup("rtp");
     else if(config_uaudio_apis)
-      c->api = xstrdup(config_uaudio_apis[0]->name);
+      c->api = xstrdup(uaudio_default(config_uaudio_apis,
+                                      UAUDIO_API_SERVER)->name);
     else
       c->api = xstrdup("<none>");
   }

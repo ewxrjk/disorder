@@ -149,8 +149,16 @@ struct uaudio {
 
   /** @brief Set configuration */
   void (*configure)(void);
-  
+
+  /** @brief Descriptive flags */
+  unsigned flags;
 };
+
+/** @brief API is suitable for clients */
+#define UAUDIO_API_CLIENT 0x0001
+
+/** @brief API is suitable for servers */
+#define UAUDIO_API_SERVER 0x0002
 
 void uaudio_set_format(int rate, int channels, int samplesize, int signed_);
 void uaudio_set(const char *name, const char *value);
@@ -169,6 +177,8 @@ uint32_t uaudio_schedule_sync(void);
 void uaudio_schedule_sent(size_t nsamples_sent);
 void uaudio_schedule_init(void);
 const struct uaudio *uaudio_find(const char *name);
+const struct uaudio *uaudio_default(const struct uaudio *const *apis,
+                                    unsigned context);
 
 extern uint64_t uaudio_schedule_timestamp;
 extern int uaudio_schedule_reactivated;

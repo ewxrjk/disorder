@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
   mainloop = g_main_loop_new(0, 0);
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   /* we'll need mixer support */
-  backend = uaudio_apis[0];
+  backend = uaudio_default(uaudio_apis, UAUDIO_API_CLIENT);
   if(backend->configure)
     backend->configure();
   if(backend->open_mixer)

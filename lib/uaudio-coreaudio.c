@@ -195,6 +195,7 @@ const struct uaudio uaudio_coreaudio = {
   .activate = coreaudio_activate,
   .deactivate = coreaudio_deactivate,
   .configure = coreaudio_configure,
+  .flags = UAUDIO_API_CLIENT | UAUDIO_API_SERVER,
 };
 
 #endif

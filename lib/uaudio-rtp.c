@@ -382,6 +382,7 @@ const struct uaudio uaudio_rtp = {
   .activate = uaudio_thread_activate,
   .deactivate = uaudio_thread_deactivate,
   .configure = rtp_configure,
+  .flags = UAUDIO_API_SERVER,
 };
 
 /*

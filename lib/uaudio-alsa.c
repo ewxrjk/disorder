@@ -145,7 +145,7 @@ static void alsa_open(void) {
 }
 
 static void alsa_start(uaudio_callback *callback,
-                      void *userdata) {
+                       void *userdata) {
   if(uaudio_channels != 1 && uaudio_channels != 2)
     disorder_fatal(0, "asked for %d channels but only support 1 or 2",
           uaudio_channels); 
@@ -288,7 +288,8 @@ const struct uaudio uaudio_alsa = {
   .close_mixer = alsa_close_mixer,
   .get_volume = alsa_get_volume,
   .set_volume = alsa_set_volume,
-  .configure = alsa_configure
+  .configure = alsa_configure,
+  .flags = UAUDIO_API_CLIENT | UAUDIO_API_SERVER,
 };
 
 #endif

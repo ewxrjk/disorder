@@ -232,6 +232,7 @@ const struct uaudio uaudio_oss = {
   .get_volume = oss_get_volume,
   .set_volume = oss_set_volume,
   .configure = oss_configure,
+  .flags = UAUDIO_API_CLIENT | UAUDIO_API_SERVER,
 };
 
 #endif

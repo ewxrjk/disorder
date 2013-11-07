@@ -125,7 +125,7 @@ static size_t command_play(void *buffer, size_t nsamples, unsigned flags) {
 }
 
 static void command_start(uaudio_callback *callback,
-                      void *userdata) {
+                          void *userdata) {
   const char *pausemode = uaudio_get("pause-mode", "silence");
   unsigned flags = 0;
 
@@ -163,6 +163,7 @@ const struct uaudio uaudio_command = {
   .activate = uaudio_thread_activate,
   .deactivate = uaudio_thread_deactivate,
   .configure = command_configure,
+  .flags = UAUDIO_API_CLIENT | UAUDIO_API_SERVER,
 };
 
 /*

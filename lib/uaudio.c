@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -75,7 +75,7 @@ char *uaudio_get(const char *name, const char *default_value) {
   return xstrdup(*valuep);
 }
 
-/** @brief Set sample format 
+/** @brief Set sample format
  * @param rate Sample rate in KHz
  * @param channels Number of channels (i.e. 2 for stereo)
  * @param bits Number of bits per channel (typically 8 or 16)
@@ -98,6 +98,21 @@ void uaudio_set_format(int rate, int channels, int bits, int signed_) {
   uaudio_bits = bits;
   uaudio_signed = signed_;
   uaudio_sample_size = bits / CHAR_BIT;
+}
+
+/** @brief Choose the default audio API by context
+ * @param apis Table of APIs or a null pointer
+ * @param context @ref UAUDIO_API_SERVER or @ref UAUDIO_API_CLIENT
+ * @return Default API or a null pointer
+ */
+const struct uaudio *uaudio_default(const struct uaudio *const *apis,
+                                    unsigned context) {
+  if(apis) {
+    for(int n = 0; apis[n]; ++n)
+      if(apis[n]->flags & context)
+        return apis[n];
+  }
+  return 0;
 }
 
 /*

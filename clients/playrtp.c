@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2007-2009 Richard Kettlewell
+ * Copyright (C) 2007-2009, 2011, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -648,7 +648,6 @@ int main(int argc, char **argv) {
   logdate = 1;
   mem_init();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
-  backend = uaudio_apis[0];
   while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:M", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
@@ -678,6 +677,12 @@ int main(int argc, char **argv) {
     }
   }
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
+  if(!backend) {
+    backend = uaudio_default(uaudio_apis, UAUDIO_API_CLIENT);
+    if(!backend)
+      disorder_fatal(0, "no default uaudio API found");
+    disorder_info("default audio API %s", backend->name);
+  }
   if(backend == &uaudio_rtp) {
     /* This means that you have NO local sound output.  This can happen if you
      * use a non-Apple GCC on a Mac (because it doesn't know how to compile
