@@ -29,7 +29,8 @@ disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	exports.c ../lib/memgc.c disorder-server.h
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
-	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL)
+	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL) \
+	$(PULSEAUDIO_SIMPLE_LIBS) $(PULSEAUDIO_LIBS)
 disorderd_LDFLAGS=-export-dynamic
 disorderd_DEPENDENCIES=../lib/libdisorder.a
 
@@ -41,7 +42,8 @@ disorder_deadlock_DEPENDENCIES=../lib/libdisorder.a
 disorder_speaker_SOURCES=speaker.c
 disorder_speaker_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
-	$(LIBPTHREAD)
+	$(LIBPTHREAD) \
+	$(PULSEAUDIO_SIMPLE_LIBS) $(PULSEAUDIO_LIBS)
 disorder_speaker_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_decode_SOURCES=decode.c decode.h disorder-server.h	\

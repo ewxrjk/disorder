@@ -801,6 +801,7 @@ int main(int argc, char **argv) {
   /* backend-specific initialization */
   if(backend->configure)
     backend->configure();
+  uaudio_set("application", "disorder-speaker");
   backend->start(speaker_callback, NULL);
   /* create the private socket directory */
   byte_xasprintf(&dir, "%s/private", config->home);

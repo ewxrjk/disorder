@@ -43,6 +43,9 @@ Select the playback API.
 The possibilities are, depending on platform and compilation options:
 .RS 8
 .TP
+.B pulseaudio
+PulseAudio.
+.TP
 .B alsa
 ALSA.
 Linux only.

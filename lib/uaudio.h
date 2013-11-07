@@ -195,6 +195,10 @@ extern const struct uaudio uaudio_alsa;
 extern const struct uaudio uaudio_oss;
 #endif
 
+#if HAVE_PULSEAUDIO
+extern const struct uaudio uaudio_pulseaudio;
+#endif
+
 extern const struct uaudio uaudio_rtp;
 
 extern const struct uaudio uaudio_command;

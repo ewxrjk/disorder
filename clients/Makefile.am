@@ -34,9 +34,10 @@ disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 disorder_playrtp_SOURCES=playrtp.c playrtp.h playrtp-mem.c
+disorder_playrtp_CFLAGS=$(PULSEAUDIO_CFLAGS) $(PULSEAUDIO_SIMPLE_CFLAGS)
 disorder_playrtp_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBASOUND) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(COREAUDIO) \
-	$(LIBPTHREAD) -lm
+	$(LIBPTHREAD) $(PULSEAUDIO_SIMPLE_LIBS) $(PULSEAUDIO_LIBS) -lm
 disorder_playrtp_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
 rtpmon_SOURCES=rtpmon.c

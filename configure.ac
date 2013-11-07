@@ -39,6 +39,7 @@ want_cgi=yes
 want_alsa=yes
 want_oss=yes
 want_coreaudio=yes
+want_pulseaudio=yes
 
 # By default we don't want gtk-osx.  But if you ask for --with-gtk-osx...
 #
@@ -79,6 +80,10 @@ AC_ARG_WITH([alsa],
 	    [AS_HELP_STRING([--without-alsa],
 			    [do not build with ALSA support])],
 	    [want_alsa=$withval])
+AC_ARG_WITH([pulseaudio],
+	    [AS_HELP_STRING([--without-pulseaudio],
+			    [do not build with PulseAudio support])],
+	    [want_pulseaudio=$withval])
 AC_ARG_WITH([oss],
 	    [AS_HELP_STRING([--without-oss],
 			    [do not build with OSS support])],
@@ -445,6 +450,13 @@ AC_CHECK_LIB(pcre, pcre_compile,
 if test $want_alsa = yes; then
   AC_CHECK_LIB([asound], [snd_pcm_open],
                [AC_SUBST(LIBASOUND,[-lasound])])
+fi
+if test $want_pulseaudio = yes; then
+  PKG_CHECK_MODULES([PULSEAUDIO],[libpulse],
+                    [AC_DEFINE([HAVE_PULSEAUDIO],[1],[define to 1 for PulseAudio support])],
+                    [missing_libraries="$missing_libraries libpulse"])
+  PKG_CHECK_MODULES([PULSEAUDIO_SIMPLE],[libpulse-simple],,
+                    [missing_libraries="$missing_libraries libpulse-simple"])
 fi
 AC_CHECK_LIB([samplerate],[src_new],
              [AC_SUBST([LIBSAMPLERATE],[-lsamplerate])])

@@ -85,6 +85,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	tracksort.c					\
 	uaudio.c uaudio-thread.c uaudio.h uaudio-apis.c	\
 	uaudio-oss.c uaudio-alsa.c 			\
+	uaudio-pulseaudio.c 				\
 	uaudio-coreaudio.c				\
 	uaudio-rtp.c uaudio-command.c uaudio-schedule.c	\
 	url.h url.c					\

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,9 @@ const struct uaudio *const uaudio_apis[] = {
 #if HAVE_COREAUDIO_AUDIOHARDWARE_H
   &uaudio_coreaudio,
 #endif  
+#if HAVE_PULSEAUDIO
+  &uaudio_pulseaudio,
+#endif
 #if HAVE_ALSA_ASOUNDLIB_H
   &uaudio_alsa,
 #endif
