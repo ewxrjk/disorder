@@ -30,6 +30,7 @@ GtkWidget *menu_playlists_widget;
 GtkWidget *playlists_menu;
 GtkWidget *menu_editplaylists_widget;
 static GtkWidget *menu_minimode_widget;
+static GtkWidget *apis_menu;
 
 /** @brief Main menu widgets */
 GtkItemFactory *mainmenufactory;
@@ -234,6 +235,13 @@ static void menu_rights_changed(const char attribute((unused)) *event,
     users_set_sensitive(FALSE);
 }
 
+/** @brief Called to select the network playback API */
+static void rtp_menu_activate(GtkMenuItem *menuitem,
+                              gpointer user_data) {
+  if(GTK_CHECK_MENU_ITEM(menuitem)->active)
+    change_rtp_api(user_data);
+}
+
 /** @brief Create the menu bar widget */
 GtkWidget *menubar(GtkWidget *window) {
   GtkWidget *m;
@@ -388,6 +396,14 @@ GtkWidget *menubar(GtkWidget *window) {
       (char *)"<Branch>",               /* item_type */
       0                                 /* extra_data */
     },
+    {
+      (char *)"/Control/Network Playback API", /* path */
+      0,                                /* accelerator */
+      0,                                /* callback */
+      0,                                /* callback_action */
+      (char *)"<Branch>",               /* item_type */
+      0                                 /* extra_data */
+    },
 
     {
       (char *)"/Help",                  /* path */
@@ -436,6 +452,8 @@ GtkWidget *menubar(GtkWidget *window) {
                                                "<GdisorderMain>/Control/Activate playlist");
   playlists_menu = gtk_item_factory_get_widget(mainmenufactory,
                                                "<GdisorderMain>/Control/Activate playlist");
+  apis_menu = gtk_item_factory_get_widget(mainmenufactory,
+                                               "<GdisorderMain>/Control/Network Playback API");
   menu_editplaylists_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                      "<GdisorderMain>/Edit/Edit playlists");
   menu_minimode_widget = gtk_item_factory_get_widget(mainmenufactory,
@@ -446,6 +464,7 @@ GtkWidget *menubar(GtkWidget *window) {
   assert(menu_playlists_widget != 0);
   assert(playlists_menu != 0);
   assert(menu_editplaylists_widget != 0);
+  assert(apis_menu != 0);
 
   GtkWidget *edit_widget = gtk_item_factory_get_widget(mainmenufactory,
                                                        "<GdisorderMain>/Edit");
@@ -459,6 +478,26 @@ GtkWidget *menubar(GtkWidget *window) {
   if(menu_minimode_widget)
     g_signal_connect(G_OBJECT(menu_minimode_widget), "toggled",
                      G_CALLBACK(toggled_minimode), NULL);
+
+  /* Populate the APIs menu */
+  GSList *playback_menu_group = NULL;
+  load_rtp_config();
+  assert(rtp_api != NULL);
+  for(int n = 0; uaudio_apis[n]; ++n) {
+    if(uaudio_apis[n]->flags & UAUDIO_API_CLIENT) {
+      GtkWidget *mw = gtk_radio_menu_item_new_with_label(playback_menu_group,
+                                                         uaudio_apis[n]->name);
+      playback_menu_group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(mw));
+      gtk_menu_shell_append(GTK_MENU_SHELL(apis_menu), mw);
+      /* Tick the currently selected API... */
+      if(!strcmp(uaudio_apis[n]->name, rtp_api))
+        gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(mw), TRUE);
+      /* ...and only then connect the signal */
+      g_signal_connect(mw, "toggled", G_CALLBACK(rtp_menu_activate),
+                       (char *)uaudio_apis[n]->name);
+    }
+  }
+
   return m;
 }
 

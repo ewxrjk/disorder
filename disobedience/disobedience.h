@@ -48,6 +48,7 @@
 #include "split.h"
 #include "timeval.h"
 #include "uaudio.h"
+#include "inputline.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -247,6 +248,10 @@ void globals_init(void);
 int rtp_running(void);
 void start_rtp(void);
 void stop_rtp(void);
+void load_rtp_config(void);
+void save_rtp_config(void);
+void change_rtp_api(const char *api);
+const char *rtp_api;
 
 /* Settings */
 

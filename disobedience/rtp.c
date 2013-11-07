@@ -129,7 +129,10 @@ void start_rtp(void) {
 	disorder_fatal(errno, "close");
       /* execute the player */
       execlp("disorder-playrtp",
-	     "disorder-playrtp", "--socket", rtp_socket, (char *)0);
+	     "disorder-playrtp",
+             "--socket", rtp_socket,
+             "--api", rtp_api,
+             (char *)0);
       disorder_fatal(errno, "disorder-playrtp");
     } else {
       /* child */
@@ -150,6 +153,75 @@ void stop_rtp(void) {
     return;                             /* already stopped */
   fprintf(fp, "stop\n");
   fclose(fp);
+}
+
+static char *rtp_config_file(void) {
+  static char *rtp_config;
+  const char *home = getenv("HOME");
+  if(!rtp_config)
+    byte_xasprintf(&rtp_config, "%s/.disorder/api", home);
+  return rtp_config;
+}
+
+const char *rtp_api;
+
+void load_rtp_config(void) {
+  char *rtp_config = rtp_config_file();
+  FILE *fp;
+  if((fp = fopen(rtp_config, "r"))) {
+    char *line;
+    if(inputline(rtp_config, fp, &line, '\n') == 0) {
+      for(int n = 0; uaudio_apis[n]; ++n)
+        if(!strcmp(uaudio_apis[n]->name, line))
+          rtp_api = line;
+    }
+    fclose(fp);
+  }
+  if(!rtp_api)
+    rtp_api = uaudio_default(uaudio_apis, UAUDIO_API_CLIENT)->name;
+}
+
+void save_rtp_config(void) {
+  if(rtp_api) {
+    char *rtp_config = rtp_config_file();
+    char *tmp;
+    byte_xasprintf(&tmp, "%s.tmp", rtp_config);
+    FILE *fp;
+    if(!(fp = fopen(tmp, "w"))){
+      fpopup_msg(GTK_MESSAGE_ERROR, "error opening %s: %s",
+                 tmp, strerror(errno));
+      return;
+    }
+    if(fprintf(fp, "%s\n", rtp_api) < 0) {
+      fpopup_msg(GTK_MESSAGE_ERROR, "error writing to %s: %s",
+                 tmp, strerror(errno));
+      fclose(fp);
+      return;
+    }
+    if(fclose(fp) < 0) {
+      fpopup_msg(GTK_MESSAGE_ERROR, "error closing %s: %s",
+                 tmp, strerror(errno));
+      return;
+    }
+    if(rename(tmp, rtp_config) < 0) {
+      fpopup_msg(GTK_MESSAGE_ERROR, "error renaming %s: %s",
+                 tmp, strerror(errno));
+    }
+  }
+}
+
+void change_rtp_api(const char *api) {
+  if(rtp_api && !strcmp(api, rtp_api))
+    return;                             /* no change */
+  int running = rtp_running();
+  if(running)
+    stop_rtp();
+  rtp_api = api;
+  save_rtp_config();
+  // TODO this is racy and does not work; the player doesn't shut down quickly
+  // enough.
+  if(running)
+    start_rtp();
 }
 
 /*
