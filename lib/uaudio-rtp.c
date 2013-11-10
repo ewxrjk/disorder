@@ -485,7 +485,7 @@ int rtp_add_recipient(const struct sockaddr_storage *sa) {
     rc = -1;
   else {
     r = xmalloc(sizeof *r);
-    memcpy(&r->sa, sa, sizeof sa);
+    memcpy(&r->sa, sa, sizeof *sa);
     r->next = rtp_recipient_list;
     rtp_recipient_list = r;
     rc = 0;
