@@ -23,6 +23,8 @@
 #ifndef UAUDIO_H
 #define UAUDIO_H
 
+struct sockaddr_storage;
+
 extern int uaudio_rate;
 extern int uaudio_bits;
 extern int uaudio_channels;
@@ -179,6 +181,9 @@ void uaudio_schedule_init(void);
 const struct uaudio *uaudio_find(const char *name);
 const struct uaudio *uaudio_default(const struct uaudio *const *apis,
                                     unsigned context);
+
+int rtp_add_recipient(const struct sockaddr_storage *sa);
+int rtp_remove_recipient(const struct sockaddr_storage *sa);
 
 extern uint64_t uaudio_schedule_timestamp;
 extern int uaudio_schedule_reactivated;

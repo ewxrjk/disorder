@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/uio.h>
+#include <pthread.h>
 
 #include "uaudio.h"
 #include "mem.h"
@@ -56,6 +57,9 @@ static int rtp_payload;
 /** @brief RTP output socket */
 static int rtp_fd;
 
+/** @brief RTP output socket (IPv6) */
+static int rtp_fd6;
+
 /** @brief RTP SSRC */
 static uint32_t rtp_id;
 
@@ -74,6 +78,27 @@ static int rtp_errors;
 /** @brief Set while paused */
 static volatile int rtp_paused;
 
+/** @brief RTP mode */
+static int rtp_mode;
+
+#define RTP_BROADCAST 1
+#define RTP_MULTICAST 2
+#define RTP_UNICAST 3
+#define RTP_REQUEST 4
+#define RTP_AUTO 5
+
+/** @brief A unicast client */
+struct rtp_recipient {
+  struct rtp_recipient *next;
+  struct sockaddr_storage sa;
+};
+
+/** @brief List of unicast clients */
+static struct rtp_recipient *rtp_recipient_list;
+
+/** @brief Mutex protecting data structures */
+static pthread_mutex_t rtp_lock = PTHREAD_MUTEX_INITIALIZER;
+
 static const char *const rtp_options[] = {
   "rtp-destination",
   "rtp-destination-port",
@@ -81,6 +106,7 @@ static const char *const rtp_options[] = {
   "rtp-source-port",
   "multicast-ttl",
   "multicast-loop",
+  "rtp-mode",
   NULL
 };
 
@@ -183,18 +209,36 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
     uaudio_schedule_sent(nsamples);
     return nsamples;
   }
-  int written_bytes;
-  do {
-    written_bytes = writev(rtp_fd, vec, 2);
-  } while(written_bytes < 0 && errno == EINTR);
-  if(written_bytes < 0) {
-    disorder_error(errno, "error transmitting audio data");
-    ++rtp_errors;
-    if(rtp_errors == 10)
-      disorder_fatal(0, "too many audio tranmission errors");
-    return 0;
-  } else
-    rtp_errors /= 2;                    /* gradual decay */
+  if(rtp_mode == RTP_REQUEST) {
+    struct rtp_recipient *r;
+    struct msghdr m;
+    memset(&m, 0, sizeof m);
+    m.msg_iov = vec;
+    m.msg_iovlen = 2;
+    pthread_mutex_lock(&rtp_lock);
+    for(r = rtp_recipient_list; r; r = r->next) {
+      m.msg_name = &r->sa;
+      m.msg_namelen = r->sa.ss_family == AF_INET ? 
+        sizeof(struct sockaddr_in) : sizeof (struct sockaddr_in6);
+      sendmsg(r->sa.ss_family == AF_INET ? rtp_fd : rtp_fd6,
+              &m, MSG_DONTWAIT|MSG_NOSIGNAL);
+      // TODO similar error handling to other case?
+    }
+    pthread_mutex_unlock(&rtp_lock);
+  } else {
+    int written_bytes;
+    do {
+      written_bytes = writev(rtp_fd, vec, 2);
+    } while(written_bytes < 0 && errno == EINTR);
+    if(written_bytes < 0) {
+      disorder_error(errno, "error transmitting audio data");
+      ++rtp_errors;
+      if(rtp_errors == 10)
+        disorder_fatal(0, "too many audio transmission errors");
+      return 0;
+    } else
+      rtp_errors /= 2;                    /* gradual decay */
+  }
   /* TODO what can we sensibly do about short writes here?  Really that's just
    * an error and we ought to be using smaller packets. */
   uaudio_schedule_sent(nsamples);
@@ -202,13 +246,21 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
 }
 
 static void rtp_open(void) {
-  struct addrinfo *res, *sres;
+  struct addrinfo *dres, *sres;
   static const int one = 1;
   int sndbuf, target_sndbuf = 131072;
   socklen_t len;
   struct netaddress dst[1], src[1];
+  const char *mode;
   
-  /* Get configuration */
+  /* Get the mode */
+  mode = uaudio_get("rtp-mode", "auto");
+  if(!strcmp(mode, "broadcast")) rtp_mode = RTP_BROADCAST;
+  else if(!strcmp(mode, "multicast")) rtp_mode = RTP_MULTICAST;
+  else if(!strcmp(mode, "unicast")) rtp_mode = RTP_UNICAST;
+  else if(!strcmp(mode, "request")) rtp_mode = RTP_REQUEST;
+  else rtp_mode = RTP_AUTO;
+  /* Get the source and destination addresses (which might be missing) */
   rtp_get_netconfig("rtp-destination-af",
                     "rtp-destination",
                     "rtp-destination-port",
@@ -217,28 +269,68 @@ static void rtp_open(void) {
                     "rtp-source",
                     "rtp-source-port",
                     src);
-  /* ...microseconds */
-
-  /* Resolve addresses */
-  res = netaddress_resolve(dst, 0, IPPROTO_UDP);
-  if(!res)
-    exit(-1);
+  if(dst->af != -1) {
+    dres = netaddress_resolve(dst, 0, IPPROTO_UDP);
+    if(!dres)
+      exit(-1);
+  } else
+    dres = 0;
   if(src->af != -1) {
     sres = netaddress_resolve(src, 1, IPPROTO_UDP);
     if(!sres)
       exit(-1);
   } else
     sres = 0;
+  /* _AUTO inspects the destination address and acts accordingly */
+  if(rtp_mode == RTP_AUTO) {
+    if(!dres)
+      rtp_mode = RTP_REQUEST;
+    else if(multicast(dres->ai_addr))
+      rtp_mode = RTP_MULTICAST;
+    else {
+      struct ifaddrs *ifs;
+
+      if(getifaddrs(&ifs) < 0)
+        disorder_fatal(errno, "error calling getifaddrs");
+      while(ifs) {
+        /* (At least on Darwin) IFF_BROADCAST might be set but ifa_broadaddr
+         * still a null pointer.  It turns out that there's a subsequent entry
+         * for he same interface which _does_ have ifa_broadaddr though... */
+        if((ifs->ifa_flags & IFF_BROADCAST)
+           && ifs->ifa_broadaddr
+           && sockaddr_equal(ifs->ifa_broadaddr, dres->ai_addr))
+          break;
+        ifs = ifs->ifa_next;
+      }
+      if(ifs) 
+        rtp_mode = RTP_BROADCAST;
+      else
+        rtp_mode = RTP_UNICAST;
+    }
+  }
   /* Create the socket */
-  if((rtp_fd = socket(res->ai_family,
-                      res->ai_socktype,
-                      res->ai_protocol)) < 0)
-    disorder_fatal(errno, "error creating broadcast socket");
-  if(multicast(res->ai_addr)) {
+  if(rtp_mode != RTP_REQUEST) {
+    if((rtp_fd = socket(dres->ai_family,
+                        dres->ai_socktype,
+                        dres->ai_protocol)) < 0)
+      disorder_fatal(errno, "error creating RTP transmission socket");
+  } else {                              /* request mode slightly different */
+    if((rtp_fd = socket(AF_INET,
+                        SOCK_DGRAM,
+                        IPPROTO_UDP)) < 0)
+      disorder_fatal(errno, "error creating v4 RTP transmission socket");
+    if((rtp_fd6 = socket(AF_INET6,
+                         SOCK_DGRAM,
+                         IPPROTO_UDP)) < 0)
+      disorder_fatal(errno, "error creating v6 RTP transmission socket");
+  }
+  /* Configure the socket according to the desired mode */
+  switch(rtp_mode) {
+  case RTP_MULTICAST: {
     /* Enable multicast options */
     const int ttl = atoi(uaudio_get("multicast-ttl", "1"));
     const int loop = !strcmp(uaudio_get("multicast-loop", "yes"), "yes");
-    switch(res->ai_family) {
+    switch(dres->ai_family) {
     case PF_INET: {
       if(setsockopt(rtp_fd, IPPROTO_IP, IP_MULTICAST_TTL,
                     &ttl, sizeof ttl) < 0)
@@ -258,32 +350,27 @@ static void rtp_open(void) {
       break;
     }
     default:
-      disorder_fatal(0, "unsupported address family %d", res->ai_family);
+      disorder_fatal(0, "unsupported address family %d", dres->ai_family);
     }
     disorder_info("multicasting on %s TTL=%d loop=%s", 
-                  format_sockaddr(res->ai_addr), ttl, loop ? "yes" : "no");
-  } else {
-    struct ifaddrs *ifs;
-
-    if(getifaddrs(&ifs) < 0)
-      disorder_fatal(errno, "error calling getifaddrs");
-    while(ifs) {
-      /* (At least on Darwin) IFF_BROADCAST might be set but ifa_broadaddr
-       * still a null pointer.  It turns out that there's a subsequent entry
-       * for he same interface which _does_ have ifa_broadaddr though... */
-      if((ifs->ifa_flags & IFF_BROADCAST)
-         && ifs->ifa_broadaddr
-         && sockaddr_equal(ifs->ifa_broadaddr, res->ai_addr))
-        break;
-      ifs = ifs->ifa_next;
-    }
-    if(ifs) {
-      if(setsockopt(rtp_fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
-        disorder_fatal(errno, "error setting SO_BROADCAST on broadcast socket");
-      disorder_info("broadcasting on %s (%s)", 
-           format_sockaddr(res->ai_addr), ifs->ifa_name);
-    } else
-      disorder_info("unicasting on %s", format_sockaddr(res->ai_addr));
+                  format_sockaddr(dres->ai_addr), ttl, loop ? "yes" : "no");
+    break;
+  }
+  case RTP_UNICAST: {
+    disorder_info("unicasting on %s", format_sockaddr(dres->ai_addr));
+    break;
+  }
+  case RTP_BROADCAST: {
+    if(setsockopt(rtp_fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
+      disorder_fatal(errno, "error setting SO_BROADCAST on broadcast socket");
+    disorder_info("broadcasting on %s", 
+                  format_sockaddr(dres->ai_addr));
+    break;
+  }
+  case RTP_REQUEST: {
+    disorder_info("will transmit on request");
+    break;
+  }
   }
   /* Enlarge the socket buffer */
   len = sizeof sndbuf;
@@ -296,17 +383,19 @@ static void rtp_open(void) {
       disorder_error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
     else
       disorder_info("changed socket send buffer size from %d to %d",
-           sndbuf, target_sndbuf);
+                    sndbuf, target_sndbuf);
   } else
     disorder_info("default socket send buffer is %d", sndbuf);
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
-  if(sres && bind(rtp_fd, sres->ai_addr, sres->ai_addrlen) < 0)
-    disorder_fatal(errno, "error binding broadcast socket to %s", 
-                   format_sockaddr(sres->ai_addr));
-  if(connect(rtp_fd, res->ai_addr, res->ai_addrlen) < 0)
-    disorder_fatal(errno, "error connecting broadcast socket to %s", 
-                   format_sockaddr(res->ai_addr));
+  if(rtp_mode != RTP_REQUEST) {
+    if(sres && bind(rtp_fd, sres->ai_addr, sres->ai_addrlen) < 0)
+      disorder_fatal(errno, "error binding broadcast socket to %s", 
+                     format_sockaddr(sres->ai_addr));
+    if(connect(rtp_fd, dres->ai_addr, dres->ai_addrlen) < 0)
+      disorder_fatal(errno, "error connecting broadcast socket to %s", 
+                     format_sockaddr(dres->ai_addr));
+  }
   if(config->rtp_verbose)
     disorder_info("RTP: prepared socket");
 }
@@ -356,6 +445,10 @@ static void rtp_stop(void) {
   uaudio_thread_stop();
   close(rtp_fd);
   rtp_fd = -1;
+  if(rtp_fd6 >= 0) {
+    close(rtp_fd6);
+    rtp_fd6 = -1;
+  }
 }
 
 static void rtp_configure(void) {
@@ -372,6 +465,57 @@ static void rtp_configure(void) {
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
   if(config->rtp_verbose)
     disorder_info("RTP: configured");
+}
+
+/** @brief Add an RTP recipient address
+ * @param sa Pointer to recipient address
+ * @return 0 on success, -1 on error
+ */
+int rtp_add_recipient(const struct sockaddr_storage *sa) {
+  struct rtp_recipient *r;
+  int rc;
+  pthread_mutex_lock(&rtp_lock);
+  for(r = rtp_recipient_list;
+      r && sockaddrcmp((struct sockaddr *)sa,
+                       (struct sockaddr *)&r->sa);
+      r = r->next)
+    ;
+  if(r)
+    rc = -1;
+  else {
+    r = xmalloc(sizeof *r);
+    memcpy(&r->sa, sa, sizeof sa);
+    r->next = rtp_recipient_list;
+    rtp_recipient_list = r;
+    rc = 0;
+  }
+  pthread_mutex_unlock(&rtp_lock);
+  return rc;
+}
+
+/** @brief Remove an RTP recipient address
+ * @param sa Pointer to recipient address
+ * @return 0 on success, -1 on error
+ */
+int rtp_remove_recipient(const struct sockaddr_storage *sa) {
+  struct rtp_recipient *r, **rr;
+  int rc;
+  pthread_mutex_lock(&rtp_lock);
+  for(rr = &rtp_recipient_list;
+      (r = *rr) && sockaddrcmp((struct sockaddr *)sa,
+                               (struct sockaddr *)&r->sa);
+      rr = &r->next)
+    ;
+  if(r) {
+    *rr = r->next;
+    xfree(r);
+    rc = 0;
+  } else {
+    disorder_error(0, "bogus rtp_remove_recipient");
+    rc = -1;
+  }
+  pthread_mutex_unlock(&rtp_lock);
+  return rc;
 }
 
 const struct uaudio uaudio_rtp = {
