@@ -18,7 +18,7 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
 
 <div class=section>
 
-  <h3>PulseAudio support</h3>
+  <h3>PulseAudio Support</h3>
 
   <div class=section>
 
@@ -26,24 +26,26 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
     build time.  It is the default for client applications, reflecting its
     widespread use in desktop environments.</p>
 
-    <p>Volume settings is not currently supported when PulseAudio is in
+    <p>Volume setting is not currently supported when PulseAudio is in
     use.</p>
 
   </div>
 
-  <h3>Disobedience</h3>
+  <h3>Changes To RTP Support</h3>
 
   <div class=section>
 
     <p>Disobedience now has a menu to select the network playback API.</p>
 
-  </div>
+    <p><code>disorder-playrtp</code> now selects playback API using
+    a <code>--api</code> option.  The old API-selection options remain
+    available but are deprecated and will be removed in the future.</p>
 
-  <h3><code>disorder-playrtp</code></h3>
-
-  <div class=section>
-
-    <p>Playback APIs are now selected using a <code>--api</code> option.</p>
+    <p>RTP playback can now transmit to multiple unicast destinations, added
+    and removed on demand.  This is controlled by the new <code>rtp_mode</code>
+    option.  The motivating use case is a bridged network with high- and
+    low-capacity components.  However it is may also be useful in a routed
+    network without multicast routing support.</p>
 
   </div>
 
