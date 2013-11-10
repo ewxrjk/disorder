@@ -660,6 +660,15 @@ static void mainloop(void) {
             disorder_error(0, "cannot read configuration");
           disorder_info("reloaded configuration");
 	  break;
+        case SM_RTP_REQUEST:
+          /* TODO the error behavior here is really unhelpful */
+          if(rtp_add_recipient(&sm.u.address))
+            disorder_error(0, "unacceptable RTP destination");
+          break;
+        case SM_RTP_CANCEL:
+          if(rtp_remove_recipient(&sm.u.address))
+            disorder_error(0, "unacceptable RTP destination for removal");
+          break;
 	default:
 	  disorder_error(0, "unknown message type %d", sm.type);
         }

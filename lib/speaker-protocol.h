@@ -26,6 +26,7 @@
 #define SPEAKER_PROTOCOL_H
 
 #include "byte-order.h"
+#include <netinet/in.h>
 
 /** @brief A message from the main server to the speaker, or vica versa */
 struct speaker_message {
@@ -37,6 +38,8 @@ struct speaker_message {
    * - @ref SM_RESUME
    * - @ref SM_CANCEL
    * - @ref SM_RELOAD
+   * - @ref SM_RTP_REQUEST
+   * - @ref SM_RTP_CANCEL
    *
    * Messages from the speaker:
    * - @ref SM_PAUSED
@@ -53,6 +56,9 @@ struct speaker_message {
   union {
     /** @brief Track ID (including 0 terminator) */
     char id[24];                          /* ID including terminator */
+
+    /** @brief An IP address (for @ref SM_RTP_REQUEST and @ref SM_RTP_CANCEL) */
+    struct sockaddr_storage address;
   } u;
 };
 
@@ -75,6 +81,12 @@ struct speaker_message {
 
 /** @brief Reload configuration */
 #define SM_RELOAD 5
+
+/** @brief Reload configuration */
+#define SM_RTP_REQUEST 6
+
+/** @brief Reload configuration */
+#define SM_RTP_CANCEL 7
 
 /* messages from the speaker */
 /** @brief Paused track @c id, @c data seconds in

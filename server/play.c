@@ -823,6 +823,24 @@ void resume_playing(const char *who) {
   eventlog("state", "resume", (char *)0);
 }
 
+/** @brief Request an RTP stream */
+void rtp_request(const struct sockaddr_storage *sa) {
+  struct speaker_message sm;
+  memset(&sm, 0, sizeof sm);
+  sm.type = SM_RTP_REQUEST;
+  sm.u.address = *sa;
+  speaker_send(speaker_fd, &sm);
+}
+
+/** @brief Cancel an RTP stream */
+void rtp_request_cancel(const struct sockaddr_storage *sa) {
+  struct speaker_message sm;
+  memset(&sm, 0, sizeof sm);
+  sm.type = SM_RTP_CANCEL;
+  sm.u.address = *sa;
+  speaker_send(speaker_fd, &sm);
+}
+
 /*
 Local Variables:
 c-basic-offset:2
