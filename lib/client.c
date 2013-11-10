@@ -66,6 +66,8 @@ struct disorder_client {
   int verbose;
   /** @brief Last error string */
   const char *last;
+  /** @brief Address family */
+  int family;
 };
 
 /** @brief Create a new client
@@ -80,7 +82,13 @@ disorder_client *disorder_new(int verbose) {
   disorder_client *c = xmalloc(sizeof (struct disorder_client));
 
   c->verbose = verbose;
+  c->family = -1;
   return c;
+}
+
+/** @brief Return the address family used by this client */
+int disorder_client_af(disorder_client *c) {
+  return c->family;
 }
 
 /** @brief Read a response line
@@ -407,6 +415,7 @@ int disorder_connect_generic(struct config *conf,
     disorder_error(errno, "error calling socket");
     return -1;
   }
+  c->family = sa->sa_family;
   if(connect(fd, sa, salen) < 0) {
     byte_xasprintf((char **)&c->last, "connect: %s", strerror(errno));
     disorder_error(errno, "error calling connect");
