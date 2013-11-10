@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2005, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 struct speaker_message {
   /** @brief Message type
    *
-   * Messges from the main server:
+   * Messages from the main server:
    * - @ref SM_PLAY
    * - @ref SM_PAUSE
    * - @ref SM_RESUME
@@ -50,8 +50,10 @@ struct speaker_message {
   /** @brief Message-specific data */
   long data;
 
-  /** @brief Track ID (including 0 terminator) */
-  char id[24];                          /* ID including terminator */
+  union {
+    /** @brief Track ID (including 0 terminator) */
+    char id[24];                          /* ID including terminator */
+  } u;
 };
 
 /* messages from the main DisOrder server */

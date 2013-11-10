@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005-2012 Richard Kettlewell
+ * Copyright (C) 2005-2013 Richard Kettlewell
  * Portions (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -386,7 +386,7 @@ static void report(void) {
       return;
     memset(&sm, 0, sizeof sm);
     sm.type = paused ? SM_PAUSED : SM_PLAYING;
-    strcpy(sm.id, playing->id);
+    strcpy(sm.u.id, playing->id);
     sm.data = playing->played / (uaudio_rate * uaudio_channels);
     speaker_send(1, &sm);
     xtime(&last_report);
@@ -563,7 +563,7 @@ static void mainloop(void) {
           }
           /* Notify the server that the connection arrived */
           sm.type = SM_ARRIVED;
-          strcpy(sm.id, id);
+          strcpy(sm.u.id, id);
           speaker_send(1, &sm);
         }
       } else
@@ -593,7 +593,7 @@ static void mainloop(void) {
             if(pending_playing)
               disorder_fatal(0, "got SM_PLAY but have a pending playing track");
           }
-	  t = findtrack(sm.id, 1);
+	  t = findtrack(sm.u.id, 1);
           D(("SM_PLAY %s fd %d", t->id, t->fd));
           if(t->fd == -1)
             disorder_error(0,
@@ -622,8 +622,8 @@ static void mainloop(void) {
           force_report = 1;
 	  break;
 	case SM_CANCEL:
-          D(("SM_CANCEL %s", sm.id));
-	  t = removetrack(sm.id);
+          D(("SM_CANCEL %s", sm.u.id));
+	  t = removetrack(sm.u.id);
 	  if(t) {
 	    if(t == playing || t == pending_playing) {
               /* Scratching the track that the server believes is playing,
@@ -640,16 +640,16 @@ static void mainloop(void) {
                * log more because there's been a bug here recently than because
                * it's particularly interesting; the log message will be removed
                * if no further problems show up. */
-              disorder_info("SM_CANCEL for nonplaying track %s", sm.id);
+              disorder_info("SM_CANCEL for nonplaying track %s", sm.u.id);
               sm.type = SM_STILLBORN;
             }
-            strcpy(sm.id, t->id);
+            strcpy(sm.u.id, t->id);
 	    destroy(t);
 	  } else {
             /* Probably scratching the playing track well before it's got
              * going, but could indicate a bug, so we log this as an error. */
             sm.type = SM_UNKNOWN;
-	    disorder_error(0, "SM_CANCEL for unknown track %s", sm.id);
+	    disorder_error(0, "SM_CANCEL for unknown track %s", sm.u.id);
           }
           speaker_send(1, &sm);
           force_report = 1;
@@ -689,7 +689,7 @@ static void mainloop(void) {
        && playing->used <= early_finish) {
       memset(&sm, 0, sizeof sm);
       sm.type = SM_FINISHED;
-      strcpy(sm.id, playing->id);
+      strcpy(sm.u.id, playing->id);
       speaker_send(1, &sm);
       playing->finished = 1;
     }

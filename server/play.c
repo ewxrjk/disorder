@@ -76,13 +76,13 @@ static int speaker_readable(ev_source *ev, int fd,
   switch(sm.type) {
   case SM_PAUSED:
     /* track ID is paused, DATA seconds played */
-    D(("SM_PAUSED %s %ld", sm.id, sm.data));
+    D(("SM_PAUSED %s %ld", sm.u.id, sm.data));
     playing->sofar = sm.data;
     break;
   case SM_FINISHED:			/* scratched the playing track */
   case SM_STILLBORN:			/* scratched too early */
   case SM_UNKNOWN:			/* scratched WAY too early */
-    if(playing && !strcmp(sm.id, playing->id)) {
+    if(playing && !strcmp(sm.u.id, playing->id)) {
       if((playing->state == playing_unplayed
           || playing->state == playing_started)
          && sm.type == SM_FINISHED)
@@ -92,13 +92,13 @@ static int speaker_readable(ev_source *ev, int fd,
     break;
   case SM_PLAYING:
     /* track ID is playing, DATA seconds played */
-    D(("SM_PLAYING %s %ld", sm.id, sm.data));
+    D(("SM_PLAYING %s %ld", sm.u.id, sm.data));
     playing->sofar = sm.data;
     break;
   case SM_ARRIVED: {
     /* track ID is now prepared */
     struct queue_entry *q;
-    for(q = qhead.next; q != &qhead && strcmp(q->id, sm.id); q = q->next)
+    for(q = qhead.next; q != &qhead && strcmp(q->id, sm.u.id); q = q->next)
       ;
     if(q && q->preparing) {
       q->preparing = 0;
@@ -316,10 +316,10 @@ static int start(ev_source *ev,
      * a subprocess.  See speaker.c for further discussion.  */
     struct speaker_message sm[1];
     memset(sm, 0, sizeof sm);
-    strcpy(sm->id, q->id);
+    strcpy(sm->u.id, q->id);
     sm->type = SM_PLAY;
     speaker_send(speaker_fd, sm);
-    D(("sent SM_PLAY for %s", sm->id));
+    D(("sent SM_PLAY for %s", sm->u.id));
     /* Our caller will set playing and playing->state = playing_started */
     return START_OK;
   } else {
@@ -501,7 +501,7 @@ void abandon(ev_source attribute((unused)) *ev,
   /* Cancel the track. */
   memset(&sm, 0, sizeof sm);
   sm.type = SM_CANCEL;
-  strcpy(sm.id, q->id);
+  strcpy(sm.u.id, q->id);
   speaker_send(speaker_fd, &sm);
 }
 
@@ -707,7 +707,7 @@ void scratch(const char *who, const char *id) {
     if((playing->type & DISORDER_PLAYER_TYPEMASK) == DISORDER_PLAYER_RAW) {
       memset(&sm, 0, sizeof sm);
       sm.type = SM_CANCEL;
-      strcpy(sm.id, playing->id);
+      strcpy(sm.u.id, playing->id);
       speaker_send(speaker_fd, &sm);
       D(("sending SM_CANCEL for %s", playing->id));
     }
