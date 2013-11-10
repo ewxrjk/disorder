@@ -199,6 +199,9 @@ clients/resample
 disobedience/manual/Makefile
 /m4
 libtests/t-timeval
+libtests/t-*.log
+libtests/t-*.trs
+libtests/test-suite.log
 *.[oa]
 *~
 *.pyc
