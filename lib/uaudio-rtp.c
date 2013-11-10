@@ -454,6 +454,7 @@ static void rtp_stop(void) {
 static void rtp_configure(void) {
   char buffer[64];
 
+  uaudio_set("rtp-mode", config->rtp_mode);
   rtp_set_netconfig("rtp-destination-af",
                     "rtp-destination",
                     "rtp-destination-port", &config->broadcast);

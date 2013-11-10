@@ -1,7 +1,7 @@
 #! /usr/bin/perl -w
 #
 # This file is part of DisOrder.
-# Copyright (C) 2010-11 Richard Kettlewell
+# Copyright (C) 2010-11, 13 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -800,6 +800,17 @@ simple("rtp-address",
        [],
        [["string", "address", "Where to store hostname or address"],
         ["string", "port", "Where to store service name or port number"]]);
+
+simple("rtp-cancel",
+       "Cancel RTP stream",
+       "",
+       []);
+
+simple("rtp-request",
+       "Request a unicast RTP stream",
+       "",
+       [["string", "address", "Destination address"],
+        ["string", "port", "Destination port number"]]);
 
 simple("scratch",
        "Terminate the playing track.",

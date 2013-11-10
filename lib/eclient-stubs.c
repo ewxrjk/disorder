@@ -204,6 +204,14 @@ int disorder_eclient_revoke(disorder_eclient *c, disorder_eclient_no_response *c
   return simple(c, no_response_opcallback, (void (*)())completed, v, "revoke", (char *)0);
 }
 
+int disorder_eclient_rtp_cancel(disorder_eclient *c, disorder_eclient_no_response *completed, void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "rtp-cancel", (char *)0);
+}
+
+int disorder_eclient_rtp_request(disorder_eclient *c, disorder_eclient_no_response *completed, const char *address, const char *port, void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "rtp-request", address, port, (char *)0);
+}
+
 int disorder_eclient_scratch(disorder_eclient *c, disorder_eclient_no_response *completed, const char *id, void *v) {
   return simple(c, no_response_opcallback, (void (*)())completed, v, "scratch", id, (char *)0);
 }

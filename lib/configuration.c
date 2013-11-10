@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2010 Richard Kettlewell
+ * Copyright (C) 2004-2011, 2013 Richard Kettlewell
  * Portions copyright (C) 2007 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
@@ -1055,6 +1055,7 @@ static const struct conf conf[] = {
   { C(remote_userman),   &type_boolean,          validate_any },
   { C(replay_min),       &type_integer,          validate_non_negative },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_mode),         &type_string,           validate_any },
   { C(rtp_verbose),      &type_boolean,          validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
@@ -1338,6 +1339,7 @@ static struct config *config_default(void) {
   c->broadcast_from.af = -1;
   c->listen.af = -1;
   c->connect.af = -1;
+  c->rtp_mode = xstrdup("auto");
   return c;
 }
 

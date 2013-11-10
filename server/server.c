@@ -118,6 +118,12 @@ struct conn {
   void *body_u;
   /** @brief Accumulating body */
   struct vector body[1];
+
+  /** @brief Nonzero if an active RTP request exists */
+  int rtp_requested;
+
+  /** @brief RTP destination (if @ref rtp_requested is nonzero) */
+  struct sockaddr_storage rtp_destination;
 };
 
 /** @brief Linked list of connections */
@@ -141,10 +147,18 @@ static int command(struct conn *c, char *line);
 
 static const char *noyes[] = { "no", "yes" };
 
-/** @brief Remove a connection from the connection list */
+/** @brief Remove a connection from the connection list
+ *
+ * This is a good place for cleaning things up when connections are closed for
+ * any reason.
+ */
 static void remove_connection(struct conn *c) {
   struct conn **cc;
 
+  if(c->rtp_requested) {
+    rtp_request_cancel(&c->rtp_destination);
+    c->rtp_requested = 0;
+  }
   for(cc = &connections; *cc && *cc != c; cc = &(*cc)->next)
     ;
   if(*cc)
@@ -1216,12 +1230,62 @@ static int c_rtp_address(struct conn *c,
   if(api == &uaudio_rtp) {
     char **addr;
 
-    netaddress_format(&config->broadcast, NULL, &addr);
-    sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
-		quoteutf8(addr[1]),
-		quoteutf8(addr[2]));
+    if(!strcmp(config->rtp_mode, "request"))
+      sink_printf(ev_writer_sink(c->w), "252 - -\n");
+    else {
+      netaddress_format(&config->broadcast, NULL, &addr);
+      sink_printf(ev_writer_sink(c->w), "252 %s %s\n",
+                  quoteutf8(addr[1]),
+                  quoteutf8(addr[2]));
+    }
   } else
     sink_writes(ev_writer_sink(c->w), "550 No RTP\n");
+  return 1;
+}
+
+static int c_rtp_cancel(struct conn *c,
+                        char attribute((unused)) **vec,
+                        int attribute((unused)) nvec) {
+  if(!c->rtp_requested) {
+    sink_writes(ev_writer_sink(c->w), "550 No active RTP stream\n");
+    return 1;
+  }
+  rtp_request_cancel(&c->rtp_destination);
+  c->rtp_requested = 0;
+  sink_writes(ev_writer_sink(c->w), "250 Cancelled RTP stream\n");
+  return 1;
+}
+
+static int c_rtp_request(struct conn *c,
+                         char **vec,
+                         int attribute((unused)) nvec) {
+  static const struct addrinfo hints = {
+    .ai_family = AF_UNSPEC,
+    .ai_socktype = SOCK_DGRAM,
+    .ai_protocol = IPPROTO_UDP,
+    .ai_flags = AI_NUMERICHOST|AI_NUMERICSERV,
+  };
+  struct addrinfo *res;
+  int rc = getaddrinfo(vec[0], vec[1], &hints, &res);
+  if(rc) {
+    disorder_error(0, "%s port %s: %s",
+                   vec[0], vec[1], gai_strerror(rc));
+    sink_writes(ev_writer_sink(c->w), "550 Invalid address\n");
+    return 1;
+  }
+  disorder_info("%s requested RTP stream to %s %s", c->who, vec[0], vec[1]);
+  /* TODO might be useful to tighten this up to restrict clients to targetting
+   * themselves only */
+  if(c->rtp_requested) {
+    rtp_request_cancel(&c->rtp_destination);
+    c->rtp_requested = 0;
+  }
+  memcpy(&c->rtp_destination, res->ai_addr, res->ai_addrlen);
+  freeaddrinfo(res);
+  rtp_request(&c->rtp_destination);
+  c->rtp_requested = 1;
+  sink_writes(ev_writer_sink(c->w), "250 Initiated RTP stream\n");
+  // TODO teardown on connection close
   return 1;
 }
 
@@ -1917,6 +1981,8 @@ static const struct server_command {
   { "resume",         0, 0,       c_resume,         RIGHT_PAUSE },
   { "revoke",         0, 0,       c_revoke,         RIGHT_READ },
   { "rtp-address",    0, 0,       c_rtp_address,    0 },
+  { "rtp-cancel",     0, 0,       c_rtp_cancel,     0 },
+  { "rtp-request",    2, 2,       c_rtp_request,    RIGHT_READ },
   { "schedule-add",   3, INT_MAX, c_schedule_add,   RIGHT_READ },
   { "schedule-del",   1, 1,       c_schedule_del,   RIGHT_READ },
   { "schedule-get",   1, 1,       c_schedule_get,   RIGHT_READ },

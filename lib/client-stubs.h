@@ -25,7 +25,7 @@
 /** @file lib/client-stubs.h
  * @brief Generated client API
  *
- * Don't include this file directly - use @ref client.h instead.
+ * Don't include this file directly - use @ref lib/client.h instead.
  */
 
 /** @brief Adopt a track
@@ -548,6 +548,26 @@ int disorder_revoke(disorder_client *c);
  * @return 0 on success, non-0 on error
  */
 int disorder_rtp_address(disorder_client *c, char **addressp, char **portp);
+
+/** @brief Cancel RTP stream
+ *
+ * 
+ *
+ * @param c Client
+ * @return 0 on success, non-0 on error
+ */
+int disorder_rtp_cancel(disorder_client *c);
+
+/** @brief Request a unicast RTP stream
+ *
+ * 
+ *
+ * @param c Client
+ * @param address Destination address
+ * @param port Destination port number
+ * @return 0 on success, non-0 on error
+ */
+int disorder_rtp_request(disorder_client *c, const char *address, const char *port);
 
 /** @brief Terminate the playing track.
  *

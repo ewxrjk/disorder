@@ -352,6 +352,14 @@ int disorder_rtp_address(disorder_client *c, char **addressp, char **portp) {
   return 0;
 }
 
+int disorder_rtp_cancel(disorder_client *c) {
+  return disorder_simple(c, NULL, "rtp-cancel", (char *)NULL);
+}
+
+int disorder_rtp_request(disorder_client *c, const char *address, const char *port) {
+  return disorder_simple(c, NULL, "rtp-request", address, port, (char *)NULL);
+}
+
 int disorder_scratch(disorder_client *c, const char *id) {
   return disorder_simple(c, NULL, "scratch", id, (char *)NULL);
 }

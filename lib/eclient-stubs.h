@@ -25,7 +25,7 @@
 /** @file lib/client-stubs.h
  * @brief Generated asynchronous client API
  *
- * Don't include this file directly - use @ref client.h instead.
+ * Don't include this file directly - use @ref lib/eclient.h instead.
  */
 
 /** @brief Adopt a track
@@ -569,6 +569,30 @@ int disorder_eclient_resume(disorder_eclient *c, disorder_eclient_no_response *c
  * @return 0 if the command was queued successfuly, non-0 on error
  */
 int disorder_eclient_revoke(disorder_eclient *c, disorder_eclient_no_response *completed, void *v);
+
+/** @brief Cancel RTP stream
+ *
+ * 
+ *
+ * @param c Client
+ * @param completed Called upon completion
+ * @param v Passed to @p completed
+ * @return 0 if the command was queued successfuly, non-0 on error
+ */
+int disorder_eclient_rtp_cancel(disorder_eclient *c, disorder_eclient_no_response *completed, void *v);
+
+/** @brief Request a unicast RTP stream
+ *
+ * 
+ *
+ * @param c Client
+ * @param completed Called upon completion
+ * @param address Destination address
+ * @param port Destination port number
+ * @param v Passed to @p completed
+ * @return 0 if the command was queued successfuly, non-0 on error
+ */
+int disorder_eclient_rtp_request(disorder_eclient *c, disorder_eclient_no_response *completed, const char *address, const char *port, void *v);
 
 /** @brief Terminate the playing track.
  *

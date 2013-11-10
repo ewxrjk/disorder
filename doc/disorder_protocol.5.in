@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2011 Richard Kettlewell
+.\" Copyright (C) 2004-2011, 2013 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -372,7 +372,16 @@ It will not be possible to use the cookie in the future.
 .B rtp\-address
 Report the RTP broadcast (or multicast) address, in the form \fIADDRESS
 PORT\fR.
+If the server is in RTP request mode then the result is \fB- -\fR.
 This command does not require authentication.
+.TP
+.B rtp\-cancel
+Cancel the unicast RTP stream associated with this connection.
+.TP
+.B rtp\-request \fIADDRESS PORT\fR
+Request that an RTP stream be transmitted to a given destination address.
+Only one unicast stream may be requested per connection.
+WHen the connection is closed the stream is terminated.
 .TP
 .B scratch \fR[\fIID\fR]
 Remove the track identified by \fIID\fR, or the currently playing track if no

@@ -1,5 +1,5 @@
 .\"
-.\" Copyright (C) 2004-2009 Richard Kettlewell
+.\" Copyright (C) 2004-2011, 2013 Richard Kettlewell
 .\"
 .\" This program is free software: you can redistribute it and/or modify
 .\" it under the terms of the GNU General Public License as published by
@@ -653,6 +653,28 @@ anything currently listed in the recently-played list.
 .IP
 New values of this option may be picked up from the configuration file even
 without a reload.
+.TP
+.B rtp_mode \fIMODE\fR
+The network transmission mode for the \fBrtp\fR backend.
+Possible values are:
+.RS
+.TP
+.B unicast
+Unicast transmission to the address given by \fBbroadcast\fR.
+.TP
+.B broadcast
+Broadcast transmission to the address given by \fBbroadcast\fR.
+.TP
+.B multicast
+Multicast transmission to the address given by \fBbroadcast\fR.
+.TP
+.B request
+Unicast transmission to addresses requested by clients.
+.TP
+.B auto
+Choose one of the above based on the destination address.
+This is the default, for backwards compatibility reasons.
+.RE
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).

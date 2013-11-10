@@ -241,6 +241,9 @@ int server_start(ev_source *ev, int pf,
 int server_stop(ev_source *ev, int fd);
 /* Stop listening on @fd@ */
 
+void rtp_request(const struct sockaddr_storage *sa);
+void rtp_request_cancel(const struct sockaddr_storage *sa);
+
 extern int volume_left, volume_right;	/* last known volume */
 
 extern int wideopen;			/* blindly accept all logins */

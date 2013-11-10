@@ -277,6 +277,9 @@ struct config {
   /** @brief Rescan on (un)mount */
   int mount_rescan;
 
+  /** @brief RTP mode */
+  const char *rtp_mode;
+
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */
