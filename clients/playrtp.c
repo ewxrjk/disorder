@@ -65,6 +65,9 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <math.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 
 #include "log.h"
 #include "mem.h"
@@ -618,6 +621,51 @@ static size_t playrtp_callback(void *buffer,
   return samples;
 }
 
+static int compare_family(const struct ifaddrs *a,
+                          const struct ifaddrs *b,
+                          int family) {
+  int afamily = a->ifa_addr->sa_family;
+  int bfamily = b->ifa_addr->sa_family;
+  if(afamily != bfamily) {
+    /* Preferred family wins */
+    if(afamily == family) return 1;
+    if(bfamily == family) return -1;
+    /* Either there's no preference or it doesn't help.  Prefer IPv4 */
+    if(afamily == AF_INET) return 1;
+    if(bfamily == AF_INET) return -1;
+    /* Failing that prefer IPv6 */
+    if(afamily == AF_INET6) return 1;
+    if(bfamily == AF_INET6) return -1;
+  }
+  return 0;
+}
+
+static int compare_flags(const struct ifaddrs *a,
+                         const struct ifaddrs *b) {
+  unsigned aflags = a->ifa_flags, bflags = b->ifa_flags;
+  /* Up interfaces are better than down ones */
+  unsigned aup = aflags & IFF_UP, bup = bflags & IFF_UP;
+  if(aup != bup)
+    return aup > bup ? 1 : -1;
+  /* Static addresses are better than dynamic */
+  unsigned adynamic = aflags & IFF_DYNAMIC, bdynamic = bflags & IFF_DYNAMIC;
+  if(adynamic != bdynamic)
+    return adynamic < bdynamic ? 1 : -1;
+  unsigned aloopback = aflags & IFF_LOOPBACK, bloopback = bflags & IFF_LOOPBACK;
+  /* Static addresses are better than dynamic */
+  if(aloopback != bloopback)
+    return aloopback < bloopback ? 1 : -1;
+  return 0;
+}
+
+static int compare_interfaces(const struct ifaddrs *a,
+                              const struct ifaddrs *b,
+                              int family) {
+  int c;
+  if((c = compare_family(a, b, family))) return c;
+  return compare_flags(a, b);
+}
+
 int main(int argc, char **argv) {
   int n, err;
   struct addrinfo *res;
@@ -627,7 +675,7 @@ int main(int argc, char **argv) {
   socklen_t len;
   struct ip_mreq mreq;
   struct ipv6_mreq mreq6;
-  disorder_client *c;
+  disorder_client *c = NULL;
   char *address, *port;
   int is_multicast;
   union any_sockaddr {
@@ -729,83 +777,130 @@ int main(int argc, char **argv) {
   }
   disorder_info("version "VERSION" process ID %lu",
                 (unsigned long)getpid());
-  /* Look up address and port */
-  if(!(res = get_address(&sl, &prefs, &sockname)))
-    exit(1);
-  /* Create the socket */
-  if((rtpfd = socket(res->ai_family,
-                     res->ai_socktype,
-                     res->ai_protocol)) < 0)
-    disorder_fatal(errno, "error creating socket");
-  /* Allow multiple listeners */
-  xsetsockopt(rtpfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
-  is_multicast = multicast(res->ai_addr);
-  /* The multicast and unicast/broadcast cases are different enough that they
-   * are totally split.  Trying to find commonality between them causes more
-   * trouble that it's worth. */
-  if(is_multicast) {
-    /* Stash the multicast group address */
-    memcpy(&mgroup, res->ai_addr, res->ai_addrlen);
-    switch(res->ai_addr->sa_family) {
-    case AF_INET:
-      mgroup.in.sin_port = 0;
-      break;
-    case AF_INET6:
-      mgroup.in6.sin6_port = 0;
-      break;
-    default:
-      disorder_fatal(0, "unsupported address family %d",
-                     (int)res->ai_addr->sa_family);
+  struct sockaddr *addr;
+  socklen_t addr_len;
+  if(!strcmp(sl.s[0], "-")) {
+    /* Pick address family to match known-working connectivity to the server */
+    int family = disorder_client_af(c);
+    /* Get a list of interfaces */
+    struct ifaddrs *ifa, *bestifa = NULL;
+    if(getifaddrs(&ifa) < 0)
+      disorder_fatal(errno, "error calling getifaddrs");
+    /* Try to pick a good one */
+    for(; ifa; ifa = ifa->ifa_next) {
+      if(bestifa == NULL
+         || compare_interfaces(ifa, bestifa, family) > 0)
+        bestifa = ifa;
     }
-    /* Bind to to the multicast group address */
-    if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      disorder_fatal(errno, "error binding socket to %s",
-                     format_sockaddr(res->ai_addr));
-    /* Add multicast group membership */
-    switch(mgroup.sa.sa_family) {
-    case PF_INET:
-      mreq.imr_multiaddr = mgroup.in.sin_addr;
-      mreq.imr_interface.s_addr = 0;      /* use primary interface */
-      if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                    &mreq, sizeof mreq) < 0)
-        disorder_fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
-      break;
-    case PF_INET6:
-      mreq6.ipv6mr_multiaddr = mgroup.in6.sin6_addr;
-      memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
-      if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-                    &mreq6, sizeof mreq6) < 0)
-        disorder_fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
-      break;
-    default:
-      disorder_fatal(0, "unsupported address family %d", res->ai_family);
-    }
+    if(!bestifa)
+      disorder_fatal(0, "failed to select a network interface");
+    family = bestifa->ifa_addr->sa_family;
+    if((rtpfd = socket(family,
+                       SOCK_DGRAM,
+                       IPPROTO_UDP)) < 0)
+      disorder_fatal(errno, "error creating socket (family %d)", family);
+    /* Bind the address */
+    if(bind(rtpfd, bestifa->ifa_addr,
+            family == AF_INET
+            ? sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6)) < 0)
+      disorder_fatal(errno, "error binding socket");
+    static struct sockaddr_storage bound_address;
+    addr = (struct sockaddr *)&bound_address;
+    addr_len = sizeof bound_address;
+    if(getsockname(rtpfd, addr, &addr_len) < 0)
+      disorder_fatal(errno, "error getting socket address");
+    /* Convert to string */
+    char addrname[128], portname[32];
+    if(getnameinfo(addr, addr_len,
+                   addrname, sizeof addrname,
+                   portname, sizeof portname,
+                   NI_NUMERICHOST|NI_NUMERICSERV) < 0)
+      disorder_fatal(errno, "getnameinfo");
+    /* Ask for audio data */
+    if(disorder_rtp_request(c, addrname, portname)) exit(EXIT_FAILURE);
     /* Report what we did */
-    disorder_info("listening on %s multicast group %s",
-                  format_sockaddr(res->ai_addr), format_sockaddr(&mgroup.sa));
+    disorder_info("listening on %s", format_sockaddr(addr));
   } else {
-    /* Bind to 0/port */
-    switch(res->ai_addr->sa_family) {
-    case AF_INET: {
-      struct sockaddr_in *in = (struct sockaddr_in *)res->ai_addr;
+    /* Look up address and port */
+    if(!(res = get_address(&sl, &prefs, &sockname)))
+      exit(1);
+    addr = res->ai_addr;
+    addr_len = res->ai_addrlen;
+    /* Create the socket */
+    if((rtpfd = socket(res->ai_family,
+                       res->ai_socktype,
+                       res->ai_protocol)) < 0)
+      disorder_fatal(errno, "error creating socket");
+    /* Allow multiple listeners */
+    xsetsockopt(rtpfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    is_multicast = multicast(addr);
+    /* The multicast and unicast/broadcast cases are different enough that they
+     * are totally split.  Trying to find commonality between them causes more
+     * trouble that it's worth. */
+    if(is_multicast) {
+      /* Stash the multicast group address */
+      memcpy(&mgroup, addr, addr_len);
+      switch(res->ai_addr->sa_family) {
+      case AF_INET:
+        mgroup.in.sin_port = 0;
+        break;
+      case AF_INET6:
+        mgroup.in6.sin6_port = 0;
+        break;
+      default:
+        disorder_fatal(0, "unsupported address family %d",
+                       (int)addr->sa_family);
+      }
+      /* Bind to to the multicast group address */
+      if(bind(rtpfd, addr, addr_len) < 0)
+        disorder_fatal(errno, "error binding socket to %s",
+                       format_sockaddr(addr));
+      /* Add multicast group membership */
+      switch(mgroup.sa.sa_family) {
+      case PF_INET:
+        mreq.imr_multiaddr = mgroup.in.sin_addr;
+        mreq.imr_interface.s_addr = 0;      /* use primary interface */
+        if(setsockopt(rtpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+                      &mreq, sizeof mreq) < 0)
+          disorder_fatal(errno, "error calling setsockopt IP_ADD_MEMBERSHIP");
+        break;
+      case PF_INET6:
+        mreq6.ipv6mr_multiaddr = mgroup.in6.sin6_addr;
+        memset(&mreq6.ipv6mr_interface, 0, sizeof mreq6.ipv6mr_interface);
+        if(setsockopt(rtpfd, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+                      &mreq6, sizeof mreq6) < 0)
+          disorder_fatal(errno, "error calling setsockopt IPV6_JOIN_GROUP");
+        break;
+      default:
+        disorder_fatal(0, "unsupported address family %d", res->ai_family);
+      }
+      /* Report what we did */
+      disorder_info("listening on %s multicast group %s",
+                    format_sockaddr(addr), format_sockaddr(&mgroup.sa));
+    } else {
+      /* Bind to 0/port */
+      switch(addr->sa_family) {
+      case AF_INET: {
+        struct sockaddr_in *in = (struct sockaddr_in *)addr;
       
-      memset(&in->sin_addr, 0, sizeof (struct in_addr));
-      break;
-    }
-    case AF_INET6: {
-      struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)res->ai_addr;
+        memset(&in->sin_addr, 0, sizeof (struct in_addr));
+        break;
+      }
+      case AF_INET6: {
+        struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)addr;
       
-      memset(&in6->sin6_addr, 0, sizeof (struct in6_addr));
-      break;
+        memset(&in6->sin6_addr, 0, sizeof (struct in6_addr));
+        break;
+      }
+      default:
+        disorder_fatal(0, "unsupported family %d", (int)addr->sa_family);
+      }
+      if(bind(rtpfd, addr, addr_len) < 0)
+        disorder_fatal(errno, "error binding socket to %s",
+                       format_sockaddr(addr));
+      /* Report what we did */
+      disorder_info("listening on %s", format_sockaddr(addr));
     }
-    default:
-      disorder_fatal(0, "unsupported family %d", (int)res->ai_addr->sa_family);
-    }
-    if(bind(rtpfd, res->ai_addr, res->ai_addrlen) < 0)
-      disorder_fatal(errno, "error binding socket to %s",
-                     format_sockaddr(res->ai_addr));
-    /* Report what we did */
-    disorder_info("listening on %s", format_sockaddr(res->ai_addr));
   }
   len = sizeof rcvbuf;
   if(getsockopt(rtpfd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, &len) < 0)
