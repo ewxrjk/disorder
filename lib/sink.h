@@ -25,6 +25,7 @@
 #include <stdarg.h>
 
 struct dynstr;
+struct socketio;
 
 /** @brief Sink type
  *
@@ -69,6 +70,9 @@ struct sink *sink_discard(void);
 
 struct sink *sink_error(void);
 /* return a sink which fails all writes */
+
+struct sink *sink_socketio(struct socketio *sio);
+/* return a sink which writes to a socket */
 
 int sink_vprintf(struct sink *s, const char *fmt, va_list ap);
 int sink_printf(struct sink *s, const char *fmt, ...)

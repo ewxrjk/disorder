@@ -26,6 +26,7 @@
 
 #include "mem.h"
 #include "vector.h"
+#include "socketio.h"
 #include "log.h"
 #include "sink.h"
 #include "printf.h"
@@ -183,6 +184,47 @@ struct sink *sink_error(void) {
   s->error = sink_generic_error;
   s->eclass = ec_errno;
   return s;
+}
+
+/* socket sink *************************************************************/
+
+/** @brief Sink that writes to a socket handle */
+struct socketio_sink {
+  /** @brief Base member */
+  struct sink s;
+
+  struct socketio *sio;
+};
+
+static int sink_socketio_flush(struct sink *s) {
+  struct socketio_sink *ss = (struct socketio_sink *)s;
+  return socketio_flush(ss->sio);
+}
+
+/** @brief Write callback for @ref stdio_sink */
+static int sink_socketio_write(struct sink *s, const void *buffer, int nbytes) {
+  struct socketio_sink *ss = (struct socketio_sink *)s;
+  return socketio_write(ss->sio, buffer, nbytes);
+}
+
+static int sink_socketio_error(struct sink *s) {
+  struct socketio_sink *ss = (struct socketio_sink *)s;
+  return socketio_error(ss->sio);
+}
+
+/** @brief Create a sink that writes to a socket
+ * @param sio Socket IO context
+ * @return Pointer to new sink
+ */
+struct sink *sink_socketio(struct socketio *sio) {
+  struct socketio_sink *s = xmalloc(sizeof *s);
+
+  s->s.write = sink_socketio_write;
+  s->s.flush = sink_socketio_flush;
+  s->s.error = sink_socketio_error;
+  s->s.eclass = ec_native;
+  s->sio = sio;
+  return &s->s;
 }
 
 /*
