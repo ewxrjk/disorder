@@ -570,7 +570,7 @@ int disorder_connect(disorder_client *c) {
  *
  * If @p cookie is NULL or does not work then we attempt to log in as
  * guest instead (so when the cookie expires only an extra round trip
- * is needed rathre than a complete new login).
+ * is needed rather than a complete new login).
  */
 int disorder_connect_cookie(disorder_client *c,
 			    const char *cookie) {

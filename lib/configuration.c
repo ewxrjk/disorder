@@ -676,7 +676,7 @@ static int validate_isabspath(const struct config_state *cs,
 
   for(n = 0; n < nvec; ++n)
     if(vec[n][0] != '/') {
-      disorder_error(errno, "%s:%d: %s: not an absolute path", 
+      disorder_error(0, "%s:%d: %s: not an absolute path", 
 		     cs->path, cs->line, vec[n]);
       return -1;
     }
