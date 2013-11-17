@@ -632,8 +632,10 @@ static const struct conftype
   type_stringlist_accum = { set_stringlist_accum, free_stringlistlist },
   type_string_accum = { set_string_accum, free_stringlist },
   type_sample_format = { set_sample_format, free_none },
+#if HAVE_PCRE_H
   type_namepart = { set_namepart, free_namepartlist },
   type_transform = { set_transform, free_transformlist },
+#endif
   type_netaddress = { set_netaddress, free_netaddress },
   type_rights = { set_rights, free_string };
 
