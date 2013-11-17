@@ -31,6 +31,8 @@
 # define declspec(x)
 # define socket_error() (errno)
 # define system_error() (errno)
+# define network_init()
+
 #if HAVE_INTTYPES_H
 # include <inttypes.h>
 #endif

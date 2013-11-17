@@ -864,6 +864,7 @@ int main(int argc, char **argv) {
   const char *user = 0, *password = 0;
 
   mem_init();
+  network_init();
 #if HAVE_PCRE_H
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
