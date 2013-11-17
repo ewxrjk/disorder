@@ -45,6 +45,7 @@ int mustnotbeminus1(const char *what, int ret) {
   return ret;
 }
 
+#if !_WIN32
 pid_t xfork(void) {
   pid_t pid;
 
@@ -86,27 +87,32 @@ void cloexec(int fd) {
 			mustnotbeminus1("fcntl F_GETFD",
 					fcntl(fd, F_GETFD)) | FD_CLOEXEC));
 }
+#endif
 
-void xlisten(int fd, int q) {
+void xlisten(SOCKET fd, int q) {
   mustnotbeminus1("listen", listen(fd, q));
 }
 
-void xshutdown(int fd, int how) {
+void xshutdown(SOCKET fd, int how) {
   mustnotbeminus1("shutdown", shutdown(fd, how));
 }
 
-void xsetsockopt(int fd, int l, int o, const void *v, socklen_t vl) {
+void xsetsockopt(SOCKET fd, int l, int o, const void *v, socklen_t vl) {
   mustnotbeminus1("setsockopt", setsockopt(fd, l, o, v, vl));
 }
 
-int xsocket(int d, int t, int p) {
-  return mustnotbeminus1("socket", socket(d, t, p));
+SOCKET xsocket(int d, int t, int p) {
+  SOCKET s = socket(d, t, p);
+  if(s == INVALID_SOCKET)
+    disorder_fatal(errno, "error calling socket");
+  return s;
 }
 
-void xconnect(int fd, const struct sockaddr *sa, socklen_t sl) {
+void xconnect(SOCKET fd, const struct sockaddr *sa, socklen_t sl) {
   mustnotbeminus1("connect", connect(fd, sa, sl));
 }
 
+#if !_WIN32
 void xsigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
   mustnotbeminus1("sigprocmask", sigprocmask(how, set, oldset));
 }
@@ -114,6 +120,7 @@ void xsigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
 void xsigaction(int sig, const struct sigaction *sa, struct sigaction *oldsa) {
   mustnotbeminus1("sigaction", sigaction(sig, sa, oldsa));
 }
+#endif
 
 int xprintf(const char *fmt, ...) {
   va_list ap;
@@ -141,6 +148,7 @@ int xstrtoll(long_long *n, const char *s, char **ep, int base) {
   return errno;
 }
 
+#if !_WIN32
 int xnice(int inc) {
   int ret;
 
@@ -152,6 +160,7 @@ int xnice(int inc) {
     disorder_fatal(errno, "error calling nice");
   return ret;
 }
+#endif
 
 void xgettimeofday(struct timeval *tv, struct timezone *tz) {
   mustnotbeminus1("gettimeofday", gettimeofday(tv, tz));
@@ -166,9 +175,11 @@ time_t xtime(time_t *whenp) {
   return tv.tv_sec;
 }
 
+#if !_WIN32
 void xnanosleep(const struct timespec *req, struct timespec *rem) {
   mustnotbeminus1("nanosleep", nanosleep(req, rem));
 }
+#endif
 
 /*
 Local Variables:

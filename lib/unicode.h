@@ -132,6 +132,15 @@ static inline uint16_t *utf8nt_to_utf16(const char *s) {
   return utf8_to_utf16(s, strlen(s), 0);
 }
 
+#if _WIN32
+static inline wchar_t *utf8nt_to_wchar(const char *s) {
+  return (wchar_t *)utf8nt_to_utf16(s);
+}
+
+static inline char *wcharnt_to_utf8(const wchar_t *s) {
+  return utf16nt_to_utf8((const uint16_t *)s);
+}
+#else
 static inline wchar_t *utf8nt_to_wchar(const char *s) {
   return (wchar_t *)utf8nt_to_utf32(s);
 }
@@ -139,6 +148,7 @@ static inline wchar_t *utf8nt_to_wchar(const char *s) {
 static inline char *wcharnt_to_utf8(const wchar_t *s) {
   return utf32nt_to_utf8((const uint32_t *)s);
 }
+#endif
 
 #endif /* UNICODE_H */
 

@@ -39,6 +39,9 @@
 #if HAVE_PCRE_H
 # include <pcre.h>
 #endif
+#if HAVE_SHLOBJ_H
+# include <Shlobj.h>
+#endif
 #include <signal.h>
 
 #include "rights.h"
@@ -58,7 +61,9 @@
 #include "signame.h"
 #include "authhash.h"
 #include "vector.h"
+#if !_WIN32
 #include "uaudio.h"
+#endif
 
 /** @brief Path to config file 
  *
@@ -72,11 +77,13 @@ char *configfile;
  */
 int config_per_user = 1;
 
+#if !_WIN32
 /** @brief Table of audio APIs
  *
  * Only set in server processes.
  */
 const struct uaudio *const *config_uaudio_apis;
+#endif
 
 /** @brief Config file parser state */
 struct config_state {
@@ -358,13 +365,13 @@ static int parse_sample_format(const struct config_state *cs,
 		   cs->path, cs->line, t);
     return -1;
   }
-  if(format) format->bits = t;
+  if(format) format->bits = (uint8_t)t;
   switch (*p) {
     case 'l': case 'L': t = ENDIAN_LITTLE; p++; break;
     case 'b': case 'B': t = ENDIAN_BIG; p++; break;
     default: t = ENDIAN_NATIVE; break;
   }
-  if(format) format->endian = t;
+  if(format) format->endian = (uint8_t)t;
   if(*p != '/') {
     disorder_error(errno, "%s:%d: expected `/' after bits-per-sample",
 	  cs->path, cs->line);
@@ -395,7 +402,7 @@ static int parse_sample_format(const struct config_state *cs,
 		   cs->path, cs->line, t);
     return -1;
   }
-  if(format) format->channels = t;
+  if(format) format->channels = (uint8_t)t;
   if(*p) {
     disorder_error(0, "%s:%d: junk after channels", cs->path, cs->line);
     return -1;
@@ -805,6 +812,7 @@ static int validate_positive(const struct config_state *cs,
   return 0;
 }
 
+#if !_WIN32
 /** @brief Validate a system username
  * @param cs Configuration state
  * @param nvec Length of (proposed) new value
@@ -820,6 +828,7 @@ static int validate_isauser(const struct config_state *cs,
   }
   return 0;
 }
+#endif
 
 /** @brief Validate a sample format string
  * @param cs Configuration state
@@ -958,6 +967,7 @@ static int validate_algo(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+#if !_WIN32
 /** @brief Validate a playback backend name
  * @param cs Configuration state
  * @param nvec Length of (proposed) new value
@@ -986,6 +996,7 @@ static int validate_backend(const struct config_state attribute((unused)) *cs,
   /* In non-server processes we have no idea what's valid */
   return 0;
 }
+#endif
 
 /** @brief Validate a pause mode string
  * @param cs Configuration state
@@ -1036,7 +1047,9 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
 /** @brief All configuration items */
 static const struct conf conf[] = {
   { C(alias),            &type_string,           validate_alias },
+#if !_WIN32
   { C(api),              &type_string,           validate_backend },
+#endif
   { C(authorization_algorithm), &type_string,    validate_algo },
   { C(broadcast),        &type_netaddress,       validate_destaddr },
   { C(broadcast_from),   &type_netaddress,       validate_any },
@@ -1051,7 +1064,9 @@ static const struct conf conf[] = {
   { C(default_rights),   &type_rights,           validate_any },
   { C(device),           &type_string,           validate_any },
   { C(history),          &type_integer,          validate_positive },
+#if !_WIN32
   { C(home),             &type_string,           validate_isabspath },
+#endif
   { C(listen),           &type_netaddress,       validate_any },
   { C(mail_sender),      &type_string,           validate_any },
   { C(mixer),            &type_string,           validate_any },
@@ -1086,12 +1101,16 @@ static const struct conf conf[] = {
   { C(rtp_verbose),      &type_boolean,          validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },
+#if !_WIN32
   { C(sendmail),         &type_string,           validate_isabspath },
+#endif
   { C(short_display),    &type_integer,          validate_positive },
   { C(signal),           &type_signal,           validate_any },
   { C(smtp_server),      &type_string,           validate_any },
   { C(sox_generation),   &type_integer,          validate_non_negative },
+#if !_WIN32
   { C2(speaker_backend, api),  &type_string,     validate_backend },
+#endif
   { C(speaker_command),  &type_string,           validate_any },
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
@@ -1100,7 +1119,9 @@ static const struct conf conf[] = {
   { C(transform),        &type_transform,        validate_any },
 #endif
   { C(url),              &type_string,           validate_url },
+#if !_WIN32
   { C(user),             &type_string,           validate_isauser },
+#endif
   { C(username),         &type_string,           validate_any },
 };
 
@@ -1303,8 +1324,10 @@ static const char *const default_players[] = {
  */
 static struct config *config_default(void) {
   struct config *c = xmalloc(sizeof *c);
+#if !_WIN32
   const char *logname;
   struct passwd *pw;
+#endif
   struct config_state cs;
   size_t n;
 
@@ -1313,14 +1336,30 @@ static struct config *config_default(void) {
   cs.config = c;
   /* Strings had better be xstrdup'd as they will get freed at some point. */
   c->history = 60;
+#if !_WIN32
   c->home = xstrdup(pkgstatedir);
+#endif
+#if _WIN32
+  {
+    char buffer[128];
+    DWORD bufsize = sizeof buffer;
+    if(!GetUserNameA(buffer, &bufsize))
+      disorder_fatal(0, "cannot determine our username");
+    c->username = xstrdup(buffer);
+  }
+#else
   if(!(pw = getpwuid(getuid())))
     disorder_fatal(0, "cannot determine our username");
   logname = pw->pw_name;
   c->username = xstrdup(logname);
+#endif
   c->refresh = 15;
   c->refresh_min = 1;
+#ifdef SIGKILL
   c->signal = SIGKILL;
+#else
+  c->signal = SIGTERM;
+#endif
   c->alias = xstrdup("{/artist}{/album}{/title}{ext}");
   c->device = xstrdup("default");
   c->nice_rescan = 10;
@@ -1342,8 +1381,10 @@ static struct config *config_default(void) {
   c->dbversion = 2;
   c->cookie_login_lifetime = 86400;
   c->cookie_key_lifetime = 86400 * 7;
+#if !_WIN32
   if(sendmail_binary[0] && strcmp(sendmail_binary, "none"))
     c->sendmail = xstrdup(sendmail_binary);
+#endif
   c->smtp_server = xstrdup("127.0.0.1");
   c->new_max = 100;
   c->reminder_interval = 600;		/* 10m */
@@ -1373,6 +1414,7 @@ static struct config *config_default(void) {
   return c;
 }
 
+#if !_WIN32
 /** @brief Construct a filename
  * @param c Configuration
  * @param name Base filename
@@ -1386,11 +1428,14 @@ char *config_get_file2(struct config *c, const char *name) {
   byte_xasprintf(&s, "%s/%s", c->home, name);
   return s;
 }
+#endif
 
 /** @brief Set the default configuration file */
 static void set_configfile(void) {
+#if !_WIN32
   if(!configfile)
     byte_xasprintf(&configfile, "%s/config", pkgconfdir);
+#endif
 }
 
 /** @brief Free a configuration object
@@ -1466,9 +1511,11 @@ static void config_postdefaults(struct config *c,
       c->api = xstrdup("command");
     else if(c->broadcast.af != -1)
       c->api = xstrdup("rtp");
+#if !_WIN32
     else if(config_uaudio_apis)
       c->api = xstrdup(uaudio_default(config_uaudio_apis,
                                       UAUDIO_API_SERVER)->name);
+#endif
     else
       c->api = xstrdup("<none>");
   }
@@ -1515,14 +1562,15 @@ int config_read(int server,
                 const struct config *oldconfig) {
   struct config *c;
   char *privconf;
-  struct passwd *pw;
+  struct passwd *pw = NULL;
 
   set_configfile();
   c = config_default();
-  /* standalone Disobedience installs might not have a global config file */
-  if(access(configfile, F_OK) == 0)
-    if(config_include(c, configfile))
-      return -1;
+  /* standalone client installs might not have a global config file */
+  if(configfile)
+    if(access(configfile, F_OK) == 0)
+      if(config_include(c, configfile))
+        return -1;
   /* if we can read the private config file, do */
   if((privconf = config_private())
      && access(privconf, R_OK) == 0
@@ -1531,6 +1579,7 @@ int config_read(int server,
   xfree(privconf);
   /* if there's a per-user system config file for this user, read it */
   if(config_per_user) {
+#if !_WIN32
     if(!(pw = getpwuid(getuid())))
       disorder_fatal(0, "cannot determine our username");
     if((privconf = config_usersysconf(pw))
@@ -1538,6 +1587,7 @@ int config_read(int server,
        && config_include(c, privconf))
       return -1;
     xfree(privconf);
+#endif
     /* if we have a password file, read it */
     if((privconf = config_userconf(0, pw))
        && access(privconf, F_OK) == 0
@@ -1549,10 +1599,12 @@ int config_read(int server,
   config_postdefaults(c, server);
   if(oldconfig)  {
     int failed = 0;
+#if !_WIN32
     if(strcmp(c->home, oldconfig->home)) {
       disorder_error(0, "'home' cannot be changed without a restart");
       failed = 1;
     }
+#endif
     if(strcmp(c->alias, oldconfig->alias)) {
       disorder_error(0, "'alias' cannot be changed without a restart");
       failed = 1;
@@ -1593,23 +1645,37 @@ int config_read(int server,
 
 /** @brief Return the path to the private configuration file */
 char *config_private(void) {
+#if _WIN32
+  return NULL;
+#else
   char *s;
 
   set_configfile();
   byte_xasprintf(&s, "%s.private", configfile);
   return s;
+#endif
 }
 
 /** @brief Return the path to user's personal configuration file */
 char *config_userconf(const char *home, const struct passwd *pw) {
   char *s;
-
+#if _WIN32
+  wchar_t *wpath = 0;
+  char *appdata;
+  if(SHGetKnownFolderPath(&FOLDERID_RoamingAppData, 0, NULL, &wpath) != S_OK)
+    disorder_fatal(0, "error calling SHGetKnownFolderPath");
+  appdata = win_wtomb(wpath);
+  CoTaskMemFree(wpath);
+  byte_xasprintf(&s, "%s\\DisOrder\\passwd", appdata);
+#else
   if(!home && !pw && !(pw = getpwuid(getuid())))
     disorder_fatal(0, "cannot determine our username");
   byte_xasprintf(&s, "%s/.disorder/passwd", home ? home : pw->pw_dir);
+#endif
   return s;
 }
 
+#if !_WIN32
 /** @brief Return the path to user-specific system configuration */
 char *config_usersysconf(const struct passwd *pw) {
   char *s;
@@ -1629,6 +1695,7 @@ char *config_usersysconf(const struct passwd *pw) {
 char *config_get_file(const char *name) {
   return config_get_file2(config, name);
 }
+#endif
 
 /** @brief Order two stringlists
  * @param a First stringlist

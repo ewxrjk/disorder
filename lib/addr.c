@@ -33,6 +33,9 @@
 #if HAVE_SYS_UN_H
 # include <sys/un.h>
 #endif
+#if HAVE_WS2TCPIP_H
+# include <Ws2tcpip.h>
+#endif
 
 #include "log.h"
 #include "printf.h"
@@ -170,12 +173,12 @@ static inline char *format_sockaddr4(const struct sockaddr_in *sin4) {
 
   if(sin4->sin_port)
     byte_xasprintf(&r, "%s port %u",
-		   inet_ntop(sin4->sin_family, &sin4->sin_addr,
+		   inet_ntop(sin4->sin_family, (void *)&sin4->sin_addr,
 			     buffer, sizeof buffer),
 		   ntohs(sin4->sin_port));
   else
     byte_xasprintf(&r, "%s",
-		   inet_ntop(sin4->sin_family, &sin4->sin_addr,
+		   inet_ntop(sin4->sin_family, (void *)&sin4->sin_addr,
 			     buffer, sizeof buffer));
   return r;
 }
@@ -186,12 +189,12 @@ static inline char *format_sockaddr6(const struct sockaddr_in6 *sin6) {
 
   if(sin6->sin6_port)
     byte_xasprintf(&r, "%s port %u",
-		   inet_ntop(sin6->sin6_family, &sin6->sin6_addr,
+		   inet_ntop(sin6->sin6_family, (void *)&sin6->sin6_addr,
 			     buffer, sizeof buffer),
 		   ntohs(sin6->sin6_port));
   else
     byte_xasprintf(&r, "%s",
-		   inet_ntop(sin6->sin6_family, &sin6->sin6_addr,
+		   inet_ntop(sin6->sin6_family, (void *)&sin6->sin6_addr,
 			     buffer, sizeof buffer));
   return r;
 }

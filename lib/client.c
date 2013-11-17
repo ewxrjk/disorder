@@ -749,6 +749,10 @@ static int pairlist(disorder_client *c, struct kvp **kp, const char *cmd, ...) {
   return 0;
 }
 
+#if _WIN32
+# define boolean bodge_boolean
+#endif
+
 /** @brief Parse a boolean response
  * @param cmd Command for use in error messsage
  * @param value Result from server
@@ -788,6 +792,7 @@ int disorder_log(disorder_client *c, struct sink *s) {
     byte_xasprintf((char **)&c->last, "input error: unexpected EOF");
     return -1;
   }
+
   return 0;
 }
 

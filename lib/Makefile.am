@@ -145,4 +145,7 @@ rebuild-unicode:
 CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
-EXTRA_DIST=trackdb.c trackdb-stub.c client-stubs.c eclient-stubs.c
+EXTRA_DIST=trackdb.c trackdb-stub.c client-stubs.c eclient-stubs.c \
+	getopt.c getopt.h getopt1.c \
+	disorder-win32.c disorder-win32.h \
+	lib.vcxproj lib.vcxproj.filters

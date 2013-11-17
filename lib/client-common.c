@@ -34,6 +34,9 @@
 #if HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+#if HAVE_WS2TCPIP_H
+# include <Ws2tcpip.h>
+#endif
 
 #include "log.h"
 #include "configuration.h"
@@ -50,7 +53,9 @@
 socklen_t find_server(struct config *c,
                       struct sockaddr **sap, char **namep) {
   struct sockaddr *sa;
+#if !_WIN32
   struct sockaddr_un su;
+#endif
   struct addrinfo *res = 0;
   char *name = NULL;
   socklen_t len;
@@ -62,6 +67,9 @@ socklen_t find_server(struct config *c,
     sa = res->ai_addr;
     len = res->ai_addrlen;
   } else {
+#if _WIN32
+    disorder_fatal(0, "local connections are not supported on Windows");
+#else
     /* use the private socket if possible (which it should be) */
     name = config_get_file2(c, "private/socket");
     if(access(name, R_OK) != 0) {
@@ -80,6 +88,7 @@ socklen_t find_server(struct config *c,
     sa = (struct sockaddr *)&su;
     len = sizeof su;
     xfree(name);
+#endif
   }
   *sap = xmalloc_noptr(len);
   memcpy(*sap, sa, len);

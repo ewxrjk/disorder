@@ -138,8 +138,10 @@ static void logfp(int pri, const char *msg, void *user) {
   if(logdate) {
     char timebuf[64];
     struct tm *tm;
+    time_t t;
     gettimeofday(&tv, 0);
-    tm = localtime(&tv.tv_sec);
+    t = tv.tv_sec;
+    tm = localtime(&t);
     strftime(timebuf, sizeof timebuf, "%Y-%m-%d %H:%M:%S %Z", tm);
     fprintf(fp, "%s: ", timebuf);
   } 
@@ -165,6 +167,7 @@ static void logfp(int pri, const char *msg, void *user) {
   }
   fputs(msg, fp);
   fputc('\n', fp);
+  fflush(fp);
 }
 
 #if HAVE_SYSLOG_H
@@ -308,8 +311,34 @@ void set_progname(char **argv) {
  *
  * The return value may or may not be @p buffer.
  */
+#if !_WIN32
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 const char *format_error(enum error_class ec, int err, char buffer[], size_t bufsize) {
+#if _WIN32
+  size_t n;
+  switch(ec) {
+  default:
+    if(!FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       err,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       buffer,
+                       bufsize,
+                       NULL))
+      disorder_fatal(0, "FormatMessage failed");
+    n = strlen(buffer);
+    while(n > 0 && isspace((unsigned char)buffer[n-1]))
+      --n;
+    buffer[n] = 0;
+    return buffer;
+  case ec_errno:
+    strerror_s(buffer, bufsize, err);
+    return buffer;
+  case ec_none:
+    return "(none)";
+  }
+#else
   switch(ec) {
   default:
     return strerror(err);
@@ -318,6 +347,7 @@ const char *format_error(enum error_class ec, int err, char buffer[], size_t buf
   case ec_none:
     return "(none)";
   }
+#endif
 }
 
 /*

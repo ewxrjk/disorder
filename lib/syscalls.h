@@ -32,27 +32,29 @@ struct timezone;
 #endif
 #include <signal.h>
 
+#if !_WIN32
 pid_t xfork(void);
 void xclose_guts(const char *, int, int);
 #define xclose(fd) xclose_guts(__FILE__, __LINE__, fd)
 void xdup2(int, int);
 void xpipe(int *);
 int xfcntl(int, int, long);
-void xlisten(int, int);
-void xshutdown(int, int);
-void xsetsockopt(int, int, int, const void *, socklen_t);
-int xsocket(int, int, int);
-void xconnect(int, const struct sockaddr *, socklen_t);
 void xsigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 void xsigaction(int sig, const struct sigaction *sa, struct sigaction *oldsa);
+int xnice(int);
+void xgettime(clockid_t clk_id, struct timespec *tp);
+void xnanosleep(const struct timespec *req, struct timespec *rem);
+#endif
+void xlisten(SOCKET, int);
+void xshutdown(SOCKET, int);
+void xsetsockopt(SOCKET, int, int, const void *, socklen_t);
+SOCKET xsocket(int, int, int);
+void xconnect(SOCKET, const struct sockaddr *, socklen_t);
 int xprintf(const char *, ...)
   attribute((format (printf, 1, 2)));
 void xfclose(FILE *);
-int xnice(int);
 void xgettimeofday(struct timeval *, struct timezone *);
 time_t xtime(time_t *when);
-void xgettime(clockid_t clk_id, struct timespec *tp);
-void xnanosleep(const struct timespec *req, struct timespec *rem);
 /* the above all call @fatal@ if the system call fails */
 
 void nonblock(int fd);

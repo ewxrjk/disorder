@@ -18,7 +18,8 @@
 
 EXTRA_DIST=CHANGES.html README.streams BUGS \
 README.upgrades.html README.client README.vhost README.developers \
-docs.css
+docs.css \
+disorder.sln
 SUBDIRS=@subdirs@
 
 DISTCHECK_CONFIGURE_FLAGS:=httpdir=$(distdir)/_inst/httpdir cgiexecdir=$(shell pwd)/$(distdir)/_inst/cgiexecdir

@@ -34,6 +34,7 @@ char *utf82mb_f(char *utf8) {
   return s;
 }
 
+#if !_WIN32
 char *any2utf8_f(const char *from,
                  char *any) {
   char *s = any2utf8(from, any);
@@ -55,6 +56,7 @@ char *any2any_f(const char *from,
   xfree(any);
   return s;
 }
+#endif
 
 /*
 Local Variables:

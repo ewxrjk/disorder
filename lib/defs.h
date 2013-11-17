@@ -19,8 +19,9 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-extern const char disorder_short_version_string[];
 extern const char disorder_version_string[];
+#if !_WIN32
+extern const char disorder_short_version_string[];
 extern const char pkglibdir[];
 extern const char pkgconfdir[];
 extern const char pkgstatedir[];
@@ -30,6 +31,7 @@ extern const char bindir[];
 extern const char sbindir[];
 extern const char finkbindir[];
 extern const char sendmail_binary[];
+#endif
 
 #endif /* DEFS_H */
 

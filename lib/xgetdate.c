@@ -131,8 +131,10 @@ xgetdate_r (const char *string, struct tm *tp,
       tp->tm_year = tp->tm_mon = tp->tm_mday = tp->tm_wday = INT_MIN;
       tp->tm_hour = tp->tm_sec = tp->tm_min = INT_MIN;
       tp->tm_isdst = -1;
+#if !_WIN32
       tp->tm_gmtoff = 0;
       tp->tm_zone = NULL;
+#endif
       result = my_strptime (string, line, tp);
       if (result && *result == '\0')
 	break;
@@ -143,7 +145,11 @@ xgetdate_r (const char *string, struct tm *tp,
 
   /* Get current time.  */
   time (&timer);
-  localtime_r (&timer, &tm);
+#if _WIN32
+  localtime_s(&tm, &timer);
+#else
+  localtime_r(&timer, &tm);
+#endif
 
   /* If only the weekday is given, today is assumed if the given day
      is equal to the current day and next week if it is less.  */

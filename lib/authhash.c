@@ -22,6 +22,9 @@
 #include <stddef.h>
 #if HAVE_GCRYPT_H
 # include <gcrypt.h>
+#elif HAVE_BCRYPT_H
+# include <bcrypt.h>
+# pragma comment(lib, "bcrypt")
 #else
 # error No crypto API available
 #endif
@@ -29,6 +32,7 @@
 #include "hex.h"
 #include "log.h"
 #include "authhash.h"
+#include "vector.h"
 
 /** @brief Structure of algorithm lookup table */
 struct algorithm {
@@ -38,6 +42,9 @@ struct algorithm {
 #if HAVE_GCRYPT_H
   /** @brief gcrypt algorithm ID */
   int id;
+#elif HAVE_BCRYPT_H
+  /** @brief CNG algorithm ID */
+  const wchar_t *id;
 #endif
 
 };
@@ -57,6 +64,15 @@ static const struct algorithm algorithms[] = {
   { "sha384", GCRY_MD_SHA384 },
   { "SHA512", GCRY_MD_SHA512 },
   { "sha512", GCRY_MD_SHA512 },
+#elif HAVE_BCRYPT_H
+  { "SHA1", BCRYPT_SHA1_ALGORITHM },
+  { "sha1", BCRYPT_SHA1_ALGORITHM },
+  { "SHA256", BCRYPT_SHA256_ALGORITHM },
+  { "sha256", BCRYPT_SHA256_ALGORITHM },
+  { "SHA384", BCRYPT_SHA384_ALGORITHM },
+  { "sha384", BCRYPT_SHA384_ALGORITHM },
+  { "SHA512", BCRYPT_SHA512_ALGORITHM },
+  { "sha512", BCRYPT_SHA512_ALGORITHM },
 #endif
 };
 
@@ -78,6 +94,13 @@ char *authhash(const void *challenge, size_t nchallenge,
 #if HAVE_GCRYPT_H
   gcrypt_hash_handle h;
   int id;
+#elif HAVE_BCRYPT_H
+  BCRYPT_ALG_HANDLE alg = 0;
+  BCRYPT_HASH_HANDLE hash = 0;
+  DWORD hashlen, hashlenlen;
+  PBYTE hashed = 0;
+  NTSTATUS rc;
+  struct dynstr d;
 #endif
   char *res;
   size_t n;
@@ -108,6 +131,25 @@ char *authhash(const void *challenge, size_t nchallenge,
   gcry_md_write(h, challenge, nchallenge);
   res = hex(gcry_md_read(h, id), gcry_md_get_algo_dlen(id));
   gcry_md_close(h);
+#elif HAVE_BCRYPT_H
+  dynstr_init(&d);
+  dynstr_append_string(&d, password);
+  dynstr_append_bytes(&d, challenge, nchallenge);
+#define DO(fn, args) do { \
+  if((rc = fn args)) { disorder_error(0, "%s: %d", #fn, rc); goto error; } \
+  } while(0)
+  res = NULL;
+  DO(BCryptOpenAlgorithmProvider, (&alg, algorithms[n].id, NULL, 0));
+  DO(BCryptGetProperty, (alg, BCRYPT_HASH_LENGTH, (PBYTE)&hashlen, sizeof hashlen, &hashlenlen, 0));
+  DO(BCryptCreateHash, (alg, &hash, NULL, 0, NULL, 0, 0));
+  DO(BCryptHashData, (hash, d.vec, d.nvec, 0));
+  hashed = xmalloc(hashlen);
+  DO(BCryptFinishHash, (hash, hashed, hashlen, 0));
+  res = hex(hashed, hashlen);
+error:
+  if(hash) BCryptDestroyHash(hash);
+  if(alg) BCryptCloseAlgorithmProvider(alg, 0);
+  xfree(hashed);
 #endif
   return res;
 }

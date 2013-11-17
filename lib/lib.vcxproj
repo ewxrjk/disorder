@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{46E26F86-F1D2-40D1-B9DC-AF844622D65D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>lib</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="addr.c" />
+    <ClCompile Include="arcfour.c" />
+    <ClCompile Include="asprintf.c" />
+    <ClCompile Include="authhash.c" />
+    <ClCompile Include="base64.c" />
+    <ClCompile Include="basen.c" />
+    <ClCompile Include="bits.c" />
+    <ClCompile Include="cache.c" />
+    <ClCompile Include="charset.c" />
+    <ClCompile Include="charsetf.c" />
+    <ClCompile Include="client-common.c" />
+    <ClCompile Include="client-stubs.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="client.c" />
+    <ClCompile Include="configuration.c" />
+    <ClCompile Include="dateparse.c" />
+    <ClCompile Include="disorder-win32.c" />
+    <ClCompile Include="eventdist.c" />
+    <ClCompile Include="eventlog.c" />
+    <ClCompile Include="fprintf.c" />
+    <ClCompile Include="getopt.c" />
+    <ClCompile Include="getopt1.c" />
+    <ClCompile Include="hash.c" />
+    <ClCompile Include="hex.c" />
+    <ClCompile Include="inputline.c" />
+    <ClCompile Include="kvp.c" />
+    <ClCompile Include="log.c" />
+    <ClCompile Include="mem.c" />
+    <ClCompile Include="mime.c" />
+    <ClCompile Include="printf.c" />
+    <ClCompile Include="queue-rights.c" />
+    <ClCompile Include="queue.c" />
+    <ClCompile Include="rights.c" />
+    <ClCompile Include="selection.c" />
+    <ClCompile Include="signame.c" />
+    <ClCompile Include="sink.c" />
+    <ClCompile Include="snprintf.c" />
+    <ClCompile Include="socketio.c" />
+    <ClCompile Include="split.c" />
+    <ClCompile Include="strptime.c" />
+    <ClCompile Include="syscalls.c" />
+    <ClCompile Include="table.c" />
+    <ClCompile Include="unicode.c" />
+    <ClCompile Include="unidata.c" />
+    <ClCompile Include="url.c" />
+    <ClCompile Include="validity.c" />
+    <ClCompile Include="vector.c" />
+    <ClCompile Include="version.c" />
+    <ClCompile Include="versionstring.c" />
+    <ClCompile Include="xgetdate.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="addr.h" />
+    <ClInclude Include="arcfour.h" />
+    <ClInclude Include="authhash.h" />
+    <ClInclude Include="base64.h" />
+    <ClInclude Include="basen.h" />
+    <ClInclude Include="bits.h" />
+    <ClInclude Include="byte-order.h" />
+    <ClInclude Include="cache.h" />
+    <ClInclude Include="charset.h" />
+    <ClInclude Include="client-common.h" />
+    <ClInclude Include="client-stubs.h" />
+    <ClInclude Include="client.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="configuration.h" />
+    <ClInclude Include="dateparse.h" />
+    <ClInclude Include="defs.h" />
+    <ClInclude Include="disorder-win32.h" />
+    <ClInclude Include="disorder.h" />
+    <ClInclude Include="eventdist.h" />
+    <ClInclude Include="eventlog.h" />
+    <ClInclude Include="getopt.h" />
+    <ClInclude Include="hash.h" />
+    <ClInclude Include="heap.h" />
+    <ClInclude Include="hex.h" />
+    <ClInclude Include="inputline.h" />
+    <ClInclude Include="kvp.h" />
+    <ClInclude Include="log.h" />
+    <ClInclude Include="mem.h" />
+    <ClInclude Include="mime.h" />
+    <ClInclude Include="printf.h" />
+    <ClInclude Include="queue.h" />
+    <ClInclude Include="rights.h" />
+    <ClInclude Include="selection.h" />
+    <ClInclude Include="signame.h" />
+    <ClInclude Include="sink.h" />
+    <ClInclude Include="socketio.h" />
+    <ClInclude Include="speaker-protocol.h" />
+    <ClInclude Include="split.h" />
+    <ClInclude Include="strptime.h" />
+    <ClInclude Include="syscalls.h" />
+    <ClInclude Include="table.h" />
+    <ClInclude Include="timeval.h" />
+    <ClInclude Include="unicode.h" />
+    <ClInclude Include="unidata.h" />
+    <ClInclude Include="url.h" />
+    <ClInclude Include="vacopy.h" />
+    <ClInclude Include="validity.h" />
+    <ClInclude Include="vector.h" />
+    <ClInclude Include="version.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

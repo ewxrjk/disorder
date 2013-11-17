@@ -207,3 +207,10 @@ libtests/test-suite.log
 /GRTAGS
 /GSYMS
 /GTAGS
+/Debug
+/lib/Debug
+/clients/Debug
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user

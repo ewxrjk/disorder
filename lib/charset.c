@@ -34,6 +34,17 @@
 #include "vector.h"
 #include "unicode.h"
 
+#if _WIN32
+// TODO WIN32 we assume UTF-8 here, which is *definitely wrong*
+char *mb2utf8(const char *mb) {
+  return xstrdup(mb);
+}
+
+char *utf82mb(const char *utf8) {
+  return xstrdup(utf8);
+}
+#else
+
 /** @brief Low-level converstion routine
  * @param from Source encoding
  * @param to Destination encoding
@@ -116,6 +127,8 @@ char *any2any(const char *from,
   if(from || to) return convert(from, to, any, strlen(any) + 1);
   else return xstrdup(any);
 }
+
+#endif
 
 /** @brief Truncate a string for display purposes
  * @param s Pointer to UTF-8 string

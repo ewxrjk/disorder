@@ -26,12 +26,16 @@
 # include <config.h>
 #endif
 
+#if _WIN32
+# include "disorder-win32.h"
+#else
 # define SOCKET int
 # define INVALID_SOCKET (-1)
 # define declspec(x)
 # define socket_error() (errno)
 # define system_error() (errno)
 # define network_init()
+#endif
 
 #if HAVE_INTTYPES_H
 # include <inttypes.h>

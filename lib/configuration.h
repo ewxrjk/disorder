@@ -185,8 +185,10 @@ struct config {
   /** @brief Maximum lifetime of a playlist lock */
   long playlist_lock_timeout;
 
+#if !_WIN32
   /** @brief Home directory for state files */
   const char *home;
+#endif
 
   /** @brief Login username */
   char *username;

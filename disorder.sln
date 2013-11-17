@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib", "lib\lib.vcxproj", "{46E26F86-F1D2-40D1-B9DC-AF844622D65D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "disorder", "clients\disorder.vcxproj", "{FC369CF3-3F09-4053-82DC-739ECCFA514B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{46E26F86-F1D2-40D1-B9DC-AF844622D65D} = {46E26F86-F1D2-40D1-B9DC-AF844622D65D}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{46E26F86-F1D2-40D1-B9DC-AF844622D65D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{46E26F86-F1D2-40D1-B9DC-AF844622D65D}.Debug|Win32.Build.0 = Debug|Win32
+		{46E26F86-F1D2-40D1-B9DC-AF844622D65D}.Release|Win32.ActiveCfg = Release|Win32
+		{46E26F86-F1D2-40D1-B9DC-AF844622D65D}.Release|Win32.Build.0 = Release|Win32
+		{FC369CF3-3F09-4053-82DC-739ECCFA514B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FC369CF3-3F09-4053-82DC-739ECCFA514B}.Debug|Win32.Build.0 = Debug|Win32
+		{FC369CF3-3F09-4053-82DC-739ECCFA514B}.Release|Win32.ActiveCfg = Release|Win32
+		{FC369CF3-3F09-4053-82DC-739ECCFA514B}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

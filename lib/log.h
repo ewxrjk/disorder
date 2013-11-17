@@ -36,17 +36,27 @@ enum error_class {
   /** @brief @c errno number space */
   ec_errno,
 
+  /** @brief Windows GetLastError/WSAGetLastError return value */
+  ec_windows,
+
   /** @brief getaddrinfo() return value */
   ec_getaddrinfo,
 };
 
+#if _WIN32
+# define ec_native ec_windows
+# define ec_socket ec_windows
+#else
 # define ec_native ec_errno
 # define ec_socket ec_errno
+#endif
 
 void elog(int pri, enum error_class, int errno_value, const char *fmt, va_list ap);
 
+declspec(noreturn)
 void disorder_fatal(int errno_value, const char *msg, ...) attribute((noreturn))
   attribute((format (printf, 2, 3)));
+declspec(noreturn)
 void disorder_fatal_ec(enum error_class ec, int errno_value, const char *msg, ...) attribute((noreturn))
   attribute((format (printf, 3, 4)));
 void disorder_error(int errno_value, const char *msg, ...)

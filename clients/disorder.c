@@ -52,7 +52,9 @@
 #include "log.h"
 #include "queue.h"
 #include "client.h"
-#include "wstat.h"
+#if !_WIN32
+# include "wstat.h"
+#endif
 #include "table.h"
 #include "charset.h"
 #include "kvp.h"
@@ -60,7 +62,9 @@
 #include "sink.h"
 #include "mem.h"
 #include "defs.h"
-#include "authorize.h"
+#if !_WIN32
+# include "authorize.h"
+#endif
 #include "vector.h"
 #include "version.h"
 #include "dateparse.h"
@@ -134,7 +138,11 @@ static void print_queue_entry(const struct queue_entry *q) {
   if(q->scratched) xprintf("  scratched by %s\n",
 			   nullcheck(utf82mb(q->scratched)));
   else xprintf("  %s\n", playing_states[q->state]);
+#if _WIN32
+  if(q->wstat) xprintf("  %#x\n", q->wstat);
+#else
   if(q->wstat) xprintf("  %s\n", wstat(q->wstat));
+#endif
 }
 
 static void cf_playing(char attribute((unused)) **argv) {
@@ -201,6 +209,10 @@ static void cf_recent(char attribute((unused)) **argv) {
 static void cf_queue(char attribute((unused)) **argv) {
   cf_somequeue(disorder_queue);
 }
+
+#if _WIN32
+# define nl_langinfo(whatever) "ascii" /* hack */
+#endif
 
 static void cf_quack(char attribute((unused)) **argv) {
   if(!strcasecmp(nl_langinfo(CODESET), "utf-8")) {
@@ -364,9 +376,11 @@ static int isarg_filename(const char *s) {
   return s[0] == '/';
 }
 
+#if !_WIN32
 static void cf_authorize(char **argv) {
   authorize(getclient(), argv[0], argv[1]);
 }
+#endif
 
 static void cf_resolve(char **argv) {
   char *track;
@@ -717,8 +731,10 @@ static const struct client_command {
                       "Adopt a randomly picked track" },
   { "allfiles",       1, 2, cf_allfiles, isarg_regexp, "DIR [~REGEXP]",
                       "List all files and directories in DIR" },
+#if !_WIN32
   { "authorize",      1, 2, cf_authorize, isarg_rights, "USERNAME [RIGHTS]",
                       "Authorize user USERNAME to connect" },
+#endif
   { "deluser",        1, 1, cf_deluser, 0, "USERNAME",
                       "Delete user USERNAME" },
   { "dirs",           1, 2, cf_dirs, isarg_regexp, "DIR [~REGEXP]",

@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2006-2009 Richard Kettlewell
+# Copyright (C) 2006-2009, 2011-2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,4 +81,4 @@ check-completions: disorder
 CLEANFILES=,commands ,completions \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
-EXTRA_DIST=dump2wav
+EXTRA_DIST=dump2wav disorder.vcxproj disorder.vcxproj.filters
