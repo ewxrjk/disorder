@@ -227,6 +227,78 @@ struct sink *sink_socketio(struct socketio *sio) {
   return &s->s;
 }
 
+/* stdio source *************************************************************/
+
+/** @brief Source that reads from a socket handle */
+struct stdio_source {
+  /** @brief Base member */
+  struct source s;
+
+  FILE *fp;
+};
+
+static int source_stdio_getc(struct source *s) {
+  return getc(((struct stdio_source *)s)->fp);
+}
+
+static int source_stdio_error(struct source *s) {
+  FILE *fp = ((struct stdio_source *)s)->fp;
+  if(ferror(fp)) {
+#if _WIN32
+    return GetLastError();
+#else
+    return errno;
+#endif
+  }
+  return 0;
+}
+
+static int source_stdio_eof(struct source *s) {
+  FILE *fp = ((struct stdio_source *)s)->fp;
+  return feof(fp);
+}
+
+struct source *source_stdio(FILE *fp) {
+  struct stdio_source *ss = xmalloc(sizeof *ss);
+  ss->s.getch = source_stdio_getc;
+  ss->s.error = source_stdio_error;
+  ss->s.eof = source_stdio_eof;
+  ss->s.eclass = ec_errno;
+  ss->fp = fp;
+  return (struct source *)ss;
+}
+
+/* socket source ***********************************************************/
+
+/** @brief Source that reads from a socket handle */
+struct socket_source {
+  /** @brief Base member */
+  struct source s;
+
+  struct socketio *sio;
+};
+
+static int source_socketio_getc(struct source *s) {
+  return socketio_getc(((struct socket_source *)s)->sio);
+}
+
+static int source_socketio_error(struct source *s) {
+  return socketio_error(((struct socket_source *)s)->sio);
+}
+static int source_socketio_eof(struct source *s) {
+  return socketio_eof(((struct socket_source *)s)->sio);
+}
+
+struct source *source_socketio(struct socketio *sio) {
+  struct socket_source *ss = xmalloc(sizeof *ss);
+  ss->s.getch = source_socketio_getc;
+  ss->s.error = source_socketio_error;
+  ss->s.eof = source_socketio_eof;
+  ss->s.eclass = ec_native;
+  ss->sio = sio;
+  return (struct source *)ss;
+}
+
 /*
 Local Variables:
 c-basic-offset:2

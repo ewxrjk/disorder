@@ -115,6 +115,29 @@ static inline int sink_err(struct sink *s) {
   return s->error(s);
 }
 
+struct source {
+  int (*getch)(struct source *s);
+  int (*error)(struct source *s);
+  int (*eof)(struct source *s);
+
+  enum error_class eclass;
+};
+
+struct source *source_stdio(FILE *fp);
+struct source *source_socketio(struct socketio *sio);
+
+static inline int source_getc(struct source *s) {
+  return s->getch(s);
+}
+
+static inline int source_err(struct source *s) {
+  return s->error(s);
+}
+
+static inline int source_eof(struct source *s) {
+  return s->eof(s);
+}
+
 #endif /* SINK_H */
 
 /*
