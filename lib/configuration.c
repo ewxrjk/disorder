@@ -25,12 +25,20 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #include <ctype.h>
 #include <stddef.h>
-#include <pwd.h>
-#include <langinfo.h>
-#include <pcre.h>
+#if HAVE_PWD_H
+# include <pwd.h>
+#endif
+#if HAVE_LANGINFO_H
+# include <langinfo.h>
+#endif
+#if HAVE_PCRE_H
+# include <pcre.h>
+#endif
 #include <signal.h>
 
 #include "rights.h"
@@ -44,7 +52,9 @@
 #include "charset.h"
 #include "defs.h"
 #include "printf.h"
-#include "regsub.h"
+#if HAVE_PCRE_H
+# include "regsub.h"
+#endif
 #include "signame.h"
 #include "authhash.h"
 #include "vector.h"
@@ -200,8 +210,13 @@ static int set_collections(const struct config_state *cs,
   /* Defaults */
   if(!module)
     module = "fs";
+#if HAVE_LANGINFO_H
   if(!encoding)
     encoding = nl_langinfo(CODESET);
+#else
+  if(!encoding)
+    encoding = "ascii";
+#endif
   cl = ADDRESS(cs->config, struct collectionlist);
   ++cl->n;
   cl->s = xrealloc(cl->s, cl->n * sizeof (struct collection));
@@ -395,6 +410,7 @@ static int set_sample_format(const struct config_state *cs,
 			     nvec, vec);
 }
 
+#if HAVE_PCRE_H
 static int set_namepart(const struct config_state *cs,
 			const struct conf *whoami,
 			int nvec, char **vec) {
@@ -480,6 +496,7 @@ static int set_transform(const struct config_state *cs,
   ++tl->n;
   return 0;
 }
+#endif
 
 static int set_rights(const struct config_state *cs,
 		      const struct conf *whoami,
@@ -561,6 +578,7 @@ static void free_collectionlist(struct config *c,
   xfree(cll->s);
 }
 
+#if HAVE_PCRE_H
 static void free_namepartlist(struct config *c,
 			      const struct conf *whoami) {
   struct namepartlist *npl = ADDRESS(c, struct namepartlist);
@@ -593,6 +611,7 @@ static void free_transformlist(struct config *c,
   }
   xfree(tl->t);
 }
+#endif
 
 static void free_netaddress(struct config *c,
 			    const struct conf *whoami) {
@@ -1033,7 +1052,9 @@ static const struct conf conf[] = {
   { C(mount_rescan),     &type_boolean,          validate_any },
   { C(multicast_loop),   &type_boolean,          validate_any },
   { C(multicast_ttl),    &type_integer,          validate_non_negative },
+#if HAVE_PCRE_H
   { C(namepart),         &type_namepart,         validate_any },
+#endif
   { C(new_bias),         &type_integer,          validate_positive },
   { C(new_bias_age),     &type_integer,          validate_positive },
   { C(new_max),          &type_integer,          validate_positive },
@@ -1069,7 +1090,9 @@ static const struct conf conf[] = {
   { C(stopword),         &type_string_accum,     validate_any },
   { C(templates),        &type_string_accum,     validate_isdir },
   { C(tracklength),      &type_stringlist_accum, validate_tracklength },
+#if HAVE_PCRE_H
   { C(transform),        &type_transform,        validate_any },
+#endif
   { C(url),              &type_string,           validate_url },
   { C(user),             &type_string,           validate_isauser },
   { C(username),         &type_string,           validate_any },
@@ -1391,9 +1414,12 @@ void config_free(struct config *c) {
 static void config_postdefaults(struct config *c,
 				int server) {
   struct config_state cs;
+#if HAVE_PCRE_H
   const struct conf *whoami;
   int n;
+#endif
 
+#if HAVE_PCRE_H
   static const char *namepart[][4] = {
     { "title",  "/([0-9]+ *[-:]? *)?([^/]+)\\.[a-zA-Z0-9]+$", "$2", "display" },
     { "title",  "/([^/]+)\\.[a-zA-Z0-9]+$",           "$1", "sort" },
@@ -1411,10 +1437,12 @@ static void config_postdefaults(struct config *c,
     { "dir",   "[[:punct:]]",                           "", "sort", "g", }
   };
 #define NTRANSFORM (int)(sizeof transform / sizeof *transform)
+#endif
 
   cs.path = "<internal>";
   cs.line = 0;
   cs.config = c;
+#if HAVE_PCRE_H
   if(!c->namepart.n) {
     whoami = find("namepart");
     for(n = 0; n < NNAMEPART; ++n)
@@ -1425,6 +1453,7 @@ static void config_postdefaults(struct config *c,
     for(n = 0; n < NTRANSFORM; ++n)
       set_transform(&cs, whoami, 5, (char **)transform[n]);
   }
+#endif
   if(!c->api) {
     if(c->speaker_command)
       c->api = xstrdup("command");
@@ -1533,10 +1562,12 @@ int config_read(int server,
       disorder_error(0, "'nice_server' cannot be changed without a restart");
       /* ...but we accept the new config anyway */
     }
+#if HAVE_PCRE_H
     if(namepartlist_compare(&c->namepart, &oldconfig->namepart)) {
       disorder_error(0, "'namepart' settings cannot be changed without a restart");
       failed = 1;
     }
+#endif
     if(stringlist_compare(&c->stopword, &oldconfig->stopword)) {
       disorder_error(0, "'stopword' settings cannot be changed without a restart");
       failed = 1;
@@ -1614,6 +1645,7 @@ static int stringlist_compare(const struct stringlist *a,
     return 0;
 }
 
+#if HAVE_PCRE_H
 /** @brief Order two namepart definitions
  * @param a First namepart definition
  * @param b Second namepart definition
@@ -1659,6 +1691,7 @@ static int namepartlist_compare(const struct namepartlist *a,
   else
     return 0;
 }
+#endif
 
 /** @brief Verify configuration table.
  * @return The number of problems found

@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2010 Richard Kettlewell
+ * Copyright (C) 2004-13 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,25 @@
 #include "common.h"
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/un.h>
-#include <unistd.h>
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+#if HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif
+#if HAVE_SYS_UN_H
+# include <sys/un.h>
+#endif
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #include <errno.h>
-#include <netdb.h>
-#include <pcre.h>
+#if HAVE_NETDB_H
+# include <netdb.h>
+#endif
+#if HAVE_PCRE_H
+# include <pcre.h>
+#endif
 
 #include "log.h"
 #include "mem.h"

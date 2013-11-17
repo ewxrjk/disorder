@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004-2007 Richard Kettlewell
+ * Copyright (C) 2004-8, 2011, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
 #define CLIENT_COMMON_H
 
 #include <sys/types.h>
-#include <sys/socket.h>
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
 
 socklen_t find_server(struct config *c, struct sockaddr **sap, char **namep);
 

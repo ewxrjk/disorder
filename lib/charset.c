@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,13 @@
 
 #include "common.h"
 
-#include <iconv.h>
+#if HAVE_ICONV_H
+# include <iconv.h>
+#endif
 #include <errno.h>
-#include <langinfo.h>
+#if HAVE_LANGINFO_H
+# include <langinfo.h>
+#endif
 
 #include "mem.h"
 #include "log.h"

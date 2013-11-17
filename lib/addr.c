@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,18 @@
 #include "common.h"
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/un.h>
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+#if HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif
+#if HAVE_ARPA_INET_H
+# include <arpa/inet.h>
+#endif
+#if HAVE_SYS_UN_H
+# include <sys/un.h>
+#endif
 
 #include "log.h"
 #include "printf.h"
@@ -185,10 +193,12 @@ static inline char *format_sockaddr6(const struct sockaddr_in6 *sin6) {
   return r;
 }
 
+#if HAVE_SYS_UN_H
 /** @brief Format a UNIX socket address */
 static inline char *format_sockaddrun(const struct sockaddr_un *sun) {
   return xstrdup(sun->sun_path);
 }
+#endif
     
 /** @brief Construct a text description a sockaddr
  * @param sa Socket address
@@ -200,8 +210,10 @@ char *format_sockaddr(const struct sockaddr *sa) {
     return format_sockaddr4((const struct sockaddr_in *)sa);
   case AF_INET6:
     return format_sockaddr6((const struct sockaddr_in6 *)sa);
+#if HAVE_SYS_UN_H
   case AF_UNIX:
     return format_sockaddrun((const struct sockaddr_un *)sa);
+#endif
   default:
     return 0;
   }

@@ -27,7 +27,9 @@ struct sockaddr;
 struct sigaction;
 struct timezone;
 
-#include <sys/socket.h>
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
 #include <signal.h>
 
 pid_t xfork(void);

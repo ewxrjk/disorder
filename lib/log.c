@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2008 Richard Kettlewell
+ * Copyright (C) 2004-9, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,8 +37,19 @@
 #include "common.h"
 
 #include <errno.h>
-#include <syslog.h>
-#include <sys/time.h>
+#include <sys/types.h>
+#if HAVE_SYSLOG_H
+# include <syslog.h>
+#endif
+#if HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+#if HAVE_NETDB_H
+# include <netdb.h>
+#endif
 #include <time.h>
 
 #include "log.h"
@@ -156,6 +167,7 @@ static void logfp(int pri, const char *msg, void *user) {
   fputc('\n', fp);
 }
 
+#if HAVE_SYSLOG_H
 /** @brief Log to syslog */
 static void logsyslog(int pri, const char *msg,
 		      void attribute((unused)) *user) {
@@ -164,12 +176,15 @@ static void logsyslog(int pri, const char *msg,
   else
     syslog(pri, "%s:%d: %s", debug_filename, debug_lineno, msg);
 }
+#endif
 
 /** @brief Log output that writes to @c stderr */
 struct log_output log_stderr = { logfp, 0 };
 
+#if HAVE_SYSLOG_H
 /** @brief Log output that sends to syslog */
 struct log_output log_syslog = { logsyslog, 0 };
+#endif
 
 /** @brief Format and log a message */
 static void vlogger(int pri, const char *fmt, va_list ap) {

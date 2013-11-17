@@ -526,7 +526,8 @@ fi
 if test $want_coreaudio = yes; then
   AC_CHECK_HEADERS([CoreAudio/AudioHardware.h])
 fi
-AC_CHECK_HEADERS([inttypes.h])
+AC_CHECK_HEADERS([inttypes.h sys/time.h sys/socket.h netinet/in.h \
+                  arpa/inet.h sys/un.h netdb.h pcre.h pwd.h langinfo.h])
 # We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.

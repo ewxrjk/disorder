@@ -1,6 +1,6 @@
 /* strptime.c - partial strptime() reimplementation
  *
- * Copyright (c) 2008, 2011 Richard Kettlewell.
+ * Copyright (c) 2008, 2011, 2013 Richard Kettlewell.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,118 @@
  * some missing bits.
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <ctype.h>
 #include <limits.h>
 #include <string.h>
-#include <langinfo.h>
+#if HAVE_LANGINFO_H
+# include <langinfo.h>
+#endif
 #include "strptime.h"
+
+#if !HAVE_LANGINFO_H
+/* Fake plastic langinfo.  Primarily for Windows.
+ * TODO WIN32 can we get these values out of the win32 api instead? */
+typedef enum {
+  DAY_1,
+  DAY_2,
+  DAY_3,
+  DAY_4,
+  DAY_5,
+  DAY_6,
+  DAY_7,
+  ABDAY_1,
+  ABDAY_2,
+  ABDAY_3,
+  ABDAY_4,
+  ABDAY_5,
+  ABDAY_6,
+  ABDAY_7,
+  MON_1,
+  MON_2,
+  MON_3,
+  MON_4,
+  MON_5,
+  MON_6,
+  MON_7,
+  MON_8,
+  MON_9,
+  MON_10,
+  MON_11,
+  MON_12,
+  ABMON_1,
+  ABMON_2,
+  ABMON_3,
+  ABMON_4,
+  ABMON_5,
+  ABMON_6,
+  ABMON_7,
+  ABMON_8,
+  ABMON_9,
+  ABMON_10,
+  ABMON_11,
+  ABMON_12,
+  D_FMT,
+  T_FMT,
+  D_T_FMT,
+  ERA_D_FMT,
+  ERA_T_FMT,
+  ERA_D_T_FMT,
+} nl_item;
+
+const char *nl_langinfo(nl_item item) {
+  switch(item) {
+  case DAY_1: return "Sunday";
+  case DAY_2: return "Monday";
+  case DAY_3: return "Tuesday";
+  case DAY_4: return "Wednesday";
+  case DAY_5: return "Thursday";
+  case DAY_6: return "Friday";
+  case DAY_7: return "Saturday";
+  case ABDAY_1: return "Sun";
+  case ABDAY_2: return "Mon";
+  case ABDAY_3: return "Tue";
+  case ABDAY_4: return "Wed";
+  case ABDAY_5: return "Thu";
+  case ABDAY_6: return "Fri";
+  case ABDAY_7: return "Sat";
+  case MON_1: return "January";
+  case MON_2: return "February";
+  case MON_3: return "March";
+  case MON_4: return "April";
+  case MON_5: return "May";
+  case MON_6: return "June";
+  case MON_7: return "July";
+  case MON_8: return "August";
+  case MON_9: return "September";
+  case MON_10: return "October";
+  case MON_11: return "November";
+  case MON_12: return "December";
+  case ABMON_1: return "Jan";
+  case ABMON_2: return "Feb";
+  case ABMON_3: return "Mar";
+  case ABMON_4: return "Apr";
+  case ABMON_5: return "May";
+  case ABMON_6: return "Jun";
+  case ABMON_7: return "Jul";
+  case ABMON_8: return "Aug";
+  case ABMON_9: return "Sep";
+  case ABMON_10: return "Oct";
+  case ABMON_11: return "Nov";
+  case ABMON_12: return "Dec";
+  case D_FMT: return "%d/%m/%y";
+  case T_FMT: return "%H:%M:%S";
+  case D_T_FMT: return "%a %d %b %Y %H:%M:%S %Z";
+  case ERA_D_FMT: return "";
+  case ERA_T_FMT: return "";
+  case ERA_D_T_FMT: return "";
+  default: return 0;
+  }
+}
+#endif
 
 /** @brief Lookup table entry for locale-specific strings */
 struct locale_item_match {

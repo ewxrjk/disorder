@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2010 Richard Kettlewell
+ * Copyright (C) 2004-2011, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,9 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <pcre.h>
+#if HAVE_PCRE_H
+# include <pcre.h>
+#endif
 
 #include "speaker-protocol.h"
 #include "rights.h"
@@ -68,6 +70,7 @@ struct collectionlist {
   struct collection *s;
 };
 
+#if HAVE_PCRE_H
 /** @brief A track name part */
 struct namepart {
   char *part;				/* part */
@@ -98,6 +101,7 @@ struct transformlist {
   int n;
   struct transform *t;
 };
+#endif
 
 /** @brief System configuration */
 struct config {
@@ -214,14 +218,19 @@ struct config {
   /** @brief Minimum time between a track being played again */
   long replay_min;
   
+#if HAVE_PCRE_H
   struct namepartlist namepart;		/* transformations */
+#endif
 
   /** @brief Termination signal for subprocesses */
   int signal;
 
   /** @brief ALSA output device */
   const char *device;
+
+#if HAVE_PCRE_H
   struct transformlist transform;	/* path name transformations */
+#endif
 
   /** @brief Address to send audio data to */
   struct netaddress broadcast;

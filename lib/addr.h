@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,9 @@
 #ifndef ADDR_H
 #define ADDR_H
 
-#include <netdb.h>
+#if HAVE_NETDB_H
+# include <netdb.h>
+#endif
 
 struct stringlist;
 

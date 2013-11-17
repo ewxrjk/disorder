@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2009 Richard Kettlewell
+ * Copyright (C) 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,9 @@
 #ifndef BYTE_ORDER_H
 #define BYTE_ORDER_H
 
-#include <config.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #define ENDIAN_BIG 1
 #define ENDIAN_LITTLE 2

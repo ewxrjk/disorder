@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2012 Richard Kettlewell
+ * Copyright (C) 2004-2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,17 +23,29 @@
 
 #include <getopt.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#if HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+#if HAVE_SYS_UN_H
+# include <sys/un.h>
+#endif
 #include <errno.h>
 #include <locale.h>
 #include <time.h>
 #include <stddef.h>
-#include <unistd.h>
-#include <pcre.h>
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#if HAVE_PCRE_H
+# include <pcre.h>
+#endif
 #include <ctype.h>
-#include <gcrypt.h>
-#include <langinfo.h>
+#if HAVE_GCRYPT_H
+# include <gcrypt.h>
+#endif
+#if HAVE_LANGINFO_H
+# include <langinfo.h>
+#endif
 
 #include "configuration.h"
 #include "syscalls.h"
@@ -849,9 +861,11 @@ int main(int argc, char **argv) {
   const char *user = 0, *password = 0;
 
   mem_init();
+#if HAVE_PCRE_H
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
+#endif
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
@@ -882,11 +896,13 @@ int main(int argc, char **argv) {
     config->connect.af = -1;
   n = optind;
   optind = 1;				/* for subsequent getopt calls */
+#if HAVE_GCRYPT_H
   /* gcrypt initialization */
   if(!gcry_check_version(NULL))
     disorder_fatal(0, "gcry_check_version failed");
   gcry_control(GCRYCTL_INIT_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+#endif
   /* accumulate command args */
   while(n < argc) {
     if((i = TABLE_FIND(commands, name, argv[n])) < 0)

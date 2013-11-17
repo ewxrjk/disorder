@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2006, 2007, 2009 Richard Kettlewell
+ * Copyright (C) 2004, 2006, 2007, 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,11 @@
 #include "common.h"
 
 #include <stddef.h>
-#include <gcrypt.h>
+#if HAVE_GCRYPT_H
+# include <gcrypt.h>
+#else
+# error No crypto API available
+#endif
 
 #include "hex.h"
 #include "log.h"
@@ -31,8 +35,11 @@ struct algorithm {
   /** @brief DisOrder algorithm name */
   const char *name;
 
+#if HAVE_GCRYPT_H
   /** @brief gcrypt algorithm ID */
   int id;
+#endif
+
 };
 
 /** @brief Algorithm lookup table
@@ -41,6 +48,7 @@ struct algorithm {
  * the disorder protocol.
  */
 static const struct algorithm algorithms[] = {
+#if HAVE_GCRYPT_H
   { "SHA1", GCRY_MD_SHA1 },
   { "sha1", GCRY_MD_SHA1 },
   { "SHA256", GCRY_MD_SHA256 },
@@ -49,6 +57,7 @@ static const struct algorithm algorithms[] = {
   { "sha384", GCRY_MD_SHA384 },
   { "SHA512", GCRY_MD_SHA512 },
   { "sha512", GCRY_MD_SHA512 },
+#endif
 };
 
 /** @brief Number of supported algorithms */
@@ -66,10 +75,12 @@ static const struct algorithm algorithms[] = {
  */
 char *authhash(const void *challenge, size_t nchallenge,
                const char *password, const char *algo) {
+#if HAVE_GCRYPT_H
   gcrypt_hash_handle h;
+  int id;
+#endif
   char *res;
   size_t n;
-  int id;
 
   assert(challenge != 0);
   assert(password != 0);
@@ -79,6 +90,7 @@ char *authhash(const void *challenge, size_t nchallenge,
       break;
   if(n >= NALGORITHMS)
     return NULL;
+#if HAVE_GCRYPT_H
   id = algorithms[n].id;
 #if HAVE_GCRY_ERROR_T
   {
@@ -96,6 +108,7 @@ char *authhash(const void *challenge, size_t nchallenge,
   gcry_md_write(h, challenge, nchallenge);
   res = hex(gcry_md_read(h, id), gcry_md_get_algo_dlen(id));
   gcry_md_close(h);
+#endif
   return res;
 }
 

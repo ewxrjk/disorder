@@ -26,7 +26,9 @@
 #define SPEAKER_PROTOCOL_H
 
 #include "byte-order.h"
-#include <netinet/in.h>
+#if HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif
 
 /** @brief A message from the main server to the speaker, or vica versa */
 struct speaker_message {

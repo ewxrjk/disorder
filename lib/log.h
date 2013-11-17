@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-9, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,10 @@ extern void (*exitfn)(int) attribute((noreturn));
 extern const char *progname;
 /* program name */
 
-extern struct log_output log_stderr, log_syslog, *log_default;
+extern struct log_output log_stderr, *log_default;
+#if HAVE_SYSLOG_H
+extern struct log_output log_syslog;
+#endif
 /* some typical outputs */
 
 extern const char *debug_filename;
