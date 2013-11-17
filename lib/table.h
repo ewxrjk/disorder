@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,15 @@
 
 #include <stddef.h>
 
+#if _WIN32
+#define OFFSETOF_IN_OBJECT(OBJECT,FIELD) ((char *)&(OBJECT).FIELD - (char *)&(OBJECT))
+#else
+#define OFFSETOF_IN_OBJECT(OBJECT,FIELD) offsetof(typeof(OBJECT),FIELD)
+#endif
+
 #define TABLE_FIND(TABLE, FIELD, NAME)			\
   table_find((void *)TABLE,				\
-	     offsetof(typeof((TABLE)[0]), FIELD),	\
+             OFFSETOF_IN_OBJECT(TABLE[0], FIELD),       \
 	     sizeof ((TABLE)[0]),			\
 	     sizeof TABLE / sizeof ((TABLE)[0]),	\
 	     NAME)
