@@ -38,12 +38,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "log.h"
 #include "hash.h"
 #include "mem.h"
 #include "macros.h"
 #include "sink.h"
 #include "syscalls.h"
-#include "log.h"
 #include "wstat.h"
 #include "kvp.h"
 #include "split.h"
