@@ -319,9 +319,10 @@ static void cf_random_enable(char attribute((unused)) **argv) {
 static void cf_stats(char attribute((unused)) **argv) {
   char **vec;
   int nvec;
+  int n;
 
   if(disorder_stats(getclient(), &vec, &nvec)) exit(EXIT_FAILURE);
-  for(int n = 0; n < nvec; ++n)
+  for(n = 0; n < nvec; ++n)
     xprintf("%s\n", nullcheck(utf82mb(vec[n])));
   free_strings(nvec, vec);
 }
@@ -629,10 +630,11 @@ static void cf_adopt(char **argv) {
 static void cf_playlists(char attribute((unused)) **argv) {
   char **vec;
   int nvec;
+  int n;
 
   if(disorder_playlists(getclient(), &vec, &nvec))
     exit(EXIT_FAILURE);
-  for(int n = 0; n < nvec; ++n)
+  for(n = 0; n < nvec; ++n)
     xprintf("%s\n", nullcheck(utf82mb(vec[n])));
   free_strings(nvec, vec);
 }
@@ -645,10 +647,11 @@ static void cf_playlist_del(char **argv) {
 static void cf_playlist_get(char **argv) {
   char **vec;
   int nvec;
+  int n;
 
   if(disorder_playlist_get(getclient(), argv[0], &vec, &nvec))
     exit(EXIT_FAILURE);
-  for(int n = 0; n < nvec; ++n)
+  for(n = 0; n < nvec; ++n)
     xprintf("%s\n", nullcheck(utf82mb(vec[n])));
   free_strings(nvec, vec);
 }

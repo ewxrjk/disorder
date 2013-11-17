@@ -1140,6 +1140,7 @@ static int config_set_args(const struct config_state *cs,
   va_list ap;
   struct vector v[1];
   char *s;
+  int rc;
 
   vector_init(v);
   vector_append(v, (char *)which);
@@ -1148,7 +1149,7 @@ static int config_set_args(const struct config_state *cs,
     vector_append(v, s);
   va_end(ap);
   vector_terminate(v);
-  int rc = config_set(cs, v->nvec, v->vec);
+  rc = config_set(cs, v->nvec, v->vec);
   xfree(v->vec);
   return rc;
 }
@@ -1698,7 +1699,8 @@ static int namepartlist_compare(const struct namepartlist *a,
 */
 int config_verify(void) {
   int fails = 0;
-  for(size_t n = 1; n < sizeof conf / sizeof *conf; ++n)
+  size_t n;
+  for(n = 1; n < sizeof conf / sizeof *conf; ++n)
     if(strcmp(conf[n-1].name, conf[n].name) >= 0) {
       fprintf(stderr, "%s >= %s\n", conf[n-1].name, conf[n].name);
       ++fails;

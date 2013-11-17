@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007-2009 Richard Kettlewell
+ * Copyright (C) 2004, 2007-2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,8 @@ void dynstr_append_bytes(struct dynstr *v, const char *ptr, size_t n) {
 
 /** @brief Free a string list */
 void free_strings(int nvec, char **vec) {
-  for(int n = 0; n < nvec; ++n)
+  int n;
+  for(n = 0; n < nvec; ++n)
     xfree(vec[n]);
   xfree(vec);
 }

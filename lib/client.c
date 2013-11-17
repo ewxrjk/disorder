@@ -231,11 +231,12 @@ static int disorder_simple_v(disorder_client *c,
       } else if(arg == disorder__list) {
 	char **list = va_arg(ap, char **);
 	int nlist = va_arg(ap, int);
+        int n;
 	if(nlist < 0) {
 	  for(nlist = 0; list[nlist]; ++nlist)
 	    ;
 	}
-	for(int n = 0; n < nlist; ++n) {
+	for(n = 0; n < nlist; ++n) {
 	  dynstr_append(&d, ' ');
 	  dynstr_append_string(&d, quoteutf8(arg));
 	}
@@ -263,10 +264,11 @@ static int disorder_simple_v(disorder_client *c,
       goto write_error;
     xfree(d.vec);
     if(has_body) {
+      int n;
       if(nbody < 0)
         for(nbody = 0; body[nbody]; ++nbody)
           ;
-      for(int n = 0; n < nbody; ++n) {
+      for(n = 0; n < nbody; ++n) {
         if(body[n][0] == '.')
           if(fputc('.', c->fpout) < 0)
             goto write_error;

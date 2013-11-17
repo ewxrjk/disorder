@@ -234,12 +234,12 @@ int queue_unmarshall(struct queue_entry *q, const char *s,
 		     void (*error_handler)(const char *, void *),
 		     void *u) {
   char **vec;
-  int nvec;
+  int nvec, rc;
 
   q->pid = -1;                          /* =none */
   if(!(vec = split(s, &nvec, SPLIT_QUOTES, error_handler, u)))
     return -1;
-  int rc = queue_unmarshall_vec(q, nvec, vec, error_handler, u);
+  rc = queue_unmarshall_vec(q, nvec, vec, error_handler, u);
   free_strings(nvec, vec);
   return rc;
 }
@@ -291,11 +291,12 @@ char *queue_marshall(const struct queue_entry *q) {
 }
 
 void queue_free(struct queue_entry *q, int rest) {
+  unsigned n;
   if(!q)
     return;
   if(rest)
     queue_free(q->next, rest);
-  for(unsigned n = 0; n < NFIELDS; ++n)
+  for(n = 0; n < NFIELDS; ++n)
     fields[n].free(q, fields[n].offset);
   xfree(q);
 }

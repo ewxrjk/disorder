@@ -232,6 +232,8 @@ int netaddress_parse(struct netaddress *na,
 		     int nvec,
 		     char **vec) {
   const char *port;
+  long p;
+  int e;
 
   na->af = AF_UNSPEC;
   if(nvec > 0 && vec[0][0] == '-') {
@@ -282,8 +284,7 @@ int netaddress_parse(struct netaddress *na,
     }
     if(port[strspn(port, "0123456789")])
       return -1;
-    long p;
-    int e = xstrtol(&p, port, NULL, 10);
+    e = xstrtol(&p, port, NULL, 10);
 
     if(e)
       return -1;
