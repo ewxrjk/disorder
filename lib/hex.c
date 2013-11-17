@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-9, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "hex.h"
 #include "mem.h"
 #include "log.h"
+#include "printf.h"
 
 /** @brief Convert a byte sequence to hex
  * @param ptr Pointer to first byte
@@ -32,7 +33,7 @@ char *hex(const uint8_t *ptr, size_t n) {
   char *buf = xmalloc_noptr(n * 2 + 1), *p = buf;
 
   while(n-- > 0)
-    p += sprintf(p, "%02x", (unsigned)*ptr++);
+    p += byte_snprintf(p, 3, "%02x", (unsigned)*ptr++);
   *p = 0;
   return buf;
 }

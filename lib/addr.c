@@ -321,7 +321,7 @@ void netaddress_format(const struct netaddress *na,
   if(na->port != -1) {
     char buffer[64];
 
-    snprintf(buffer, sizeof buffer, "%d", na->port);
+    byte_snprintf(buffer, sizeof buffer, "%d", na->port);
     vector_append(v, xstrdup(buffer));
   }
   vector_terminate(v);
@@ -349,7 +349,7 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
   hints->ai_family = na->af;
   hints->ai_protocol = protocol;
   hints->ai_flags = passive ? AI_PASSIVE : 0;
-  snprintf(service, sizeof service, "%d", na->port);
+  byte_snprintf(service, sizeof service, "%d", na->port);
   rc = getaddrinfo(na->address, service, hints, &res);
   if(rc) {
     disorder_error(0, "getaddrinfo %s %d: %s",

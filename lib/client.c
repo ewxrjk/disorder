@@ -243,13 +243,13 @@ static int disorder_simple_v(disorder_client *c,
       } else if(arg == disorder__integer) {
 	long n = va_arg(ap, long);
 	char buffer[16];
-	snprintf(buffer, sizeof buffer, "%ld", n);
+	byte_snprintf(buffer, sizeof buffer, "%ld", n);
 	dynstr_append(&d, ' ');
 	dynstr_append_string(&d, buffer);
       } else if(arg == disorder__time) {
 	time_t n = va_arg(ap, time_t);
 	char buffer[16];
-	snprintf(buffer, sizeof buffer, "%lld", (long long)n);
+	byte_snprintf(buffer, sizeof buffer, "%lld", (long long)n);
 	dynstr_append(&d, ' ');
 	dynstr_append_string(&d, buffer);
       } else {

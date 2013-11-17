@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2005, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2005, 2007-10, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "log.h"
 #include "base64.h"
 #include "kvp.h"
+#include "printf.h"
 
 /** @brief Match whitespace characters */
 static int whitespace(int c) {
@@ -712,7 +713,7 @@ char *mime_to_qp(const char *text) {
       ++linelength;
     } else {
       /* Anything else that needs encoding */
-      snprintf(buffer, sizeof buffer, "=%02X", c);
+      byte_snprintf(buffer, sizeof buffer, "=%02X", c);
       dynstr_append_string(d, buffer);
       linelength += 3;
     }
