@@ -28,6 +28,7 @@
 #include <stddef.h>
 
 #include "printf.h"
+#include "log.h"
 #include "sink.h"
 
 /** @brief A @ref sink that stores to a fixed buffer

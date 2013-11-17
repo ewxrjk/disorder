@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,20 @@ struct sink {
    * @return non-negative on success, -1 on error
    */
   int (*write)(struct sink *s, const void *buffer, int nbytes);
+
+  /** @brief Flush callback
+   * @param s Sink to write to
+   * @return non-negative on success, -1 on error
+   */
+  int (*flush)(struct sink *s);
+
+  /** @brief Error callback
+   * @param s Sink
+   * @return Last error code
+   */
+  int (*error)(struct sink *s);
+
+  enum error_class eclass;
 };
 
 struct sink *sink_stdio(const char *name, FILE *fp);
@@ -80,6 +94,10 @@ static inline int sink_writes(struct sink *s, const char *str) {
   return s->write(s, str, strlen(str));
 }
 
+static inline int sink_flush(struct sink *s) {
+  return s->flush(s);
+}
+
 /** @brief Write one byte to a sink
  * @param s Sink to write to
  * @param c Byte to write (as a @c char)
@@ -89,8 +107,11 @@ static inline int sink_writec(struct sink *s, char c) {
   return s->write(s, &c, 1);
 }
 
-#endif /* SINK_H */
+static inline int sink_err(struct sink *s) {
+  return s->error(s);
+}
 
+#endif /* SINK_H */
 
 /*
 Local Variables:

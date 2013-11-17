@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include <stddef.h>
 
+#include "log.h"
 #include "mem.h"
 #include "kvp.h"
 #include "queue.h"
@@ -46,7 +47,6 @@
 #include "table.h"
 #include "vector.h"
 #include "url.h"
-#include "log.h"
 #include "inputline.h"
 #include "split.h"
 #include "mime.h"

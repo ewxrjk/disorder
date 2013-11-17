@@ -24,10 +24,10 @@
 #include <errno.h>
 
 #include "printf.h"
+#include "log.h"
 #include "sink.h"
 #include "mem.h"
 #include "vector.h"
-#include "log.h"
 
 /** @brief vasprintf() workalike without encoding errors
  *

@@ -29,6 +29,7 @@
 #include <stddef.h>
 
 #include "printf.h"
+#include "log.h"
 #include "sink.h"
 #include "vacopy.h"
 

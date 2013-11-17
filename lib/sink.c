@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007-9, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@
 
 #include "mem.h"
 #include "vector.h"
-#include "sink.h"
 #include "log.h"
+#include "sink.h"
 #include "printf.h"
 
 /** @brief Formatted output to a sink
@@ -55,6 +55,14 @@ int sink_printf(struct sink *s, const char *fmt, ...) {
   return n;
 }
 
+static int sink_generic_flush(struct sink attribute((unused)) *s) {
+  return 0;
+}
+
+static int sink_generic_error(struct sink attribute((unused)) *s) {
+  return 0;
+}
+
 /* stdio sink *****************************************************************/
 
 /** @brief Sink that writes to a stdio @c FILE */
@@ -67,6 +75,8 @@ struct stdio_sink {
 
   /** @brief Stream to write to */
   FILE *fp;
+
+  int error;
 };
 
 /** @brief Reinterpret a @ref sink as a @ref stdio_sink */
@@ -76,12 +86,17 @@ struct stdio_sink {
 static int sink_stdio_write(struct sink *s, const void *buffer, int nbytes) {
   int n = fwrite(buffer, 1, nbytes, S(s)->fp);
   if(n < nbytes) {
+    S(s)->error = errno;
     if(S(s)->name)
       disorder_fatal(errno, "error writing to %s", S(s)->name);
     else
       return -1;
   }
   return n;
+}
+
+static int sink_stdio_error(struct sink *s) {
+  return S(s)->error;
 }
 
 /** @brief Create a sink that writes to a stdio stream
@@ -93,6 +108,9 @@ struct sink *sink_stdio(const char *name, FILE *fp) {
   struct stdio_sink *s = xmalloc(sizeof *s);
 
   s->s.write = sink_stdio_write;
+  s->s.flush = sink_generic_flush;
+  s->s.error = sink_stdio_error;
+  s->s.eclass = ec_errno;
   s->name = name;
   s->fp = fp;
   return (struct sink *)s;
@@ -122,6 +140,9 @@ struct sink *sink_dynstr(struct dynstr *output) {
   struct dynstr_sink *s = xmalloc(sizeof *s);
 
   s->s.write = sink_dynstr_write;
+  s->s.flush = sink_generic_flush;
+  s->s.error = sink_generic_error;
+  s->s.eclass = ec_errno;
   s->d = output;
   return (struct sink *)s;
 }
@@ -139,6 +160,9 @@ struct sink *sink_discard(void) {
   struct sink *s = xmalloc(sizeof *s);
 
   s->write = sink_discard_write;
+  s->flush = sink_generic_flush;
+  s->error = sink_generic_error;
+  s->eclass = ec_errno;
   return s;
 }
 
@@ -155,6 +179,9 @@ struct sink *sink_error(void) {
   struct sink *s = xmalloc(sizeof *s);
 
   s->write = sink_error_write;
+  s->flush = sink_generic_flush;
+  s->error = sink_generic_error;
+  s->eclass = ec_errno;
   return s;
 }
 
