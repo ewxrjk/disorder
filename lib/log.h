@@ -28,18 +28,39 @@ struct log_output;
 
 void set_progname(char **argv);
 
-void elog(int pri, int errno_value, const char *fmt, va_list ap);
+/** @brief Possible error number spaces */
+enum error_class {
+  /** @brief Invalid number space */
+  ec_none,
+
+  /** @brief @c errno number space */
+  ec_errno,
+
+  /** @brief getaddrinfo() return value */
+  ec_getaddrinfo,
+};
+
+# define ec_native ec_errno
+# define ec_socket ec_errno
+
+void elog(int pri, enum error_class, int errno_value, const char *fmt, va_list ap);
 
 void disorder_fatal(int errno_value, const char *msg, ...) attribute((noreturn))
   attribute((format (printf, 2, 3)));
+void disorder_fatal_ec(enum error_class ec, int errno_value, const char *msg, ...) attribute((noreturn))
+  attribute((format (printf, 3, 4)));
 void disorder_error(int errno_value, const char *msg, ...)
   attribute((format (printf, 2, 3)));
+void disorder_error_ec(enum error_class ec, int errno_value, const char *msg, ...)
+  attribute((format (printf, 3, 4)));
 void disorder_info(const char *msg, ...)
   attribute((format (printf, 1, 2)));
 void disorder_debug(const char *msg, ...)
   attribute((format (printf, 1, 2)));
 /* report a message of the given class.  @errno_value@ if present an
  * non-zero is included.  @fatal@ terminates the process. */
+
+const char *format_error(enum error_class ec, int err, char buffer[], size_t bufsize);
 
 extern int debugging;
 /* set when debugging enabled */

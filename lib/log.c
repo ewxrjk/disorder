@@ -205,12 +205,14 @@ static void logger(int pri, const char *fmt, ...) {
 
 /** @brief Format and log a message
  * @param pri Message priority (as per syslog)
+ * @param ec Error class
  * @param fmt Format string
  * @param errno_value Errno value to include as a string, or 0
  * @param ap Argument list
  */
-void elog(int pri, int errno_value, const char *fmt, va_list ap) {
+void elog(int pri, enum error_class ec, int errno_value, const char *fmt, va_list ap) {
   char buffer[1024];
+  char errbuf[1024];
 
   if(errno_value == 0)
     vlogger(pri, fmt, ap);
@@ -218,7 +220,8 @@ void elog(int pri, int errno_value, const char *fmt, va_list ap) {
     memset(buffer, 0, sizeof buffer);
     byte_vsnprintf(buffer, sizeof buffer, fmt, ap);
     buffer[sizeof buffer - 1] = 0;
-    logger(pri, "%s: %s", buffer, strerror(errno_value));
+    logger(pri, "%s: %s", buffer,
+           format_error(ec, errno_value, errbuf, sizeof errbuf));
   }
 }
 
@@ -231,7 +234,22 @@ void disorder_fatal(int errno_value, const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);
-  elog(LOG_CRIT, errno_value, msg, ap);
+  elog(LOG_CRIT, ec_errno, errno_value, msg, ap);
+  va_end(ap);
+  if(getenv("DISORDER_FATAL_ABORT")) abort();
+  exitfn(EXIT_FAILURE);
+}
+
+/** @brief Log an error and quit
+ *
+ * If @c ${DISORDER_FATAL_ABORT} is defined (as anything) then the process
+ * is aborted, so you can get a backtrace.
+ */
+void disorder_fatal_ec(enum error_class ec, int errno_value, const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_CRIT, ec, errno_value, msg, ap);
   va_end(ap);
   if(getenv("DISORDER_FATAL_ABORT")) abort();
   exitfn(EXIT_FAILURE);
@@ -242,7 +260,16 @@ void disorder_error(int errno_value, const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);
-  elog(LOG_ERR, errno_value, msg, ap);
+  elog(LOG_ERR, ec_errno, errno_value, msg, ap);
+  va_end(ap);
+}
+
+/** @brief Log an error */
+void disorder_error_ec(enum error_class ec, int errno_value, const char *msg, ...) {
+  va_list ap;
+
+  va_start(ap, msg);
+  elog(LOG_ERR, ec, errno_value, msg, ap);
   va_end(ap);
 }
 
@@ -251,7 +278,7 @@ void disorder_info(const char *msg, ...) {
   va_list ap;
 
   va_start(ap, msg);
-  elog(LOG_INFO, 0, msg, ap);
+  elog(LOG_INFO, ec_none, 0, msg, ap);
   va_end(ap);
 }
 
@@ -270,6 +297,27 @@ void set_progname(char **argv) {
     ++progname;
   else
     progname = argv[0];
+}
+
+/** @brief Format an error string
+ * @param ec Error class
+ * @param err Error code (interpretation defined by @p ec)
+ * @param buffer Output buffer
+ * @param bufsize Size of output buffer
+ * @return Pointer to error string
+ *
+ * The return value may or may not be @p buffer.
+ */
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+const char *format_error(enum error_class ec, int err, char buffer[], size_t bufsize) {
+  switch(ec) {
+  default:
+    return strerror(err);
+  case ec_getaddrinfo:
+    return gai_strerror(err);
+  case ec_none:
+    return "(none)";
+  }
 }
 
 /*

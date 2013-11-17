@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004-2009 Richard Kettlewell
+ * Copyright (C) 2004-2009, 2011, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,8 +77,9 @@ static int unmarshall_long(char *data, struct queue_entry *q,
 			   size_t offset,
 			   void (*error_handler)(const char *, void *),
 			   void *u) {
+  char errbuf[1024];
   if(xstrtol(&VALUE(q, offset, long), data, 0, 0)) {
-    error_handler(strerror(errno), u);
+    error_handler(format_error(ec_errno, errno, errbuf, sizeof errbuf), u);
     return -1;
   }
   return 0;
@@ -123,9 +124,10 @@ static int unmarshall_time_t(char *data, struct queue_entry *q,
 			     void (*error_handler)(const char *, void *),
 			     void *u) {
   long_long ul;
+  char errbuf[1024];
 
   if(xstrtoll(&ul, data, 0, 0)) {
-    error_handler(strerror(errno), u);
+    error_handler(format_error(ec_errno, errno, errbuf, sizeof errbuf), u);
     return -1;
   }
   VALUE(q, offset, time_t) = ul;

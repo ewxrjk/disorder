@@ -66,12 +66,14 @@ struct addrinfo *get_address(const struct stringlist *a,
   struct addrinfo *res;
   char *name;
   int rc;
+  char errbuf[1024];
 
   switch(a->n) {  
   case 1:
     byte_xasprintf(&name, "host * service %s", a->s[0]);
     if((rc = getaddrinfo(0, a->s[0], pref, &res))) {
-      disorder_error(0, "getaddrinfo %s: %s", a->s[0], gai_strerror(rc));
+      disorder_error(0, "getaddrinfo %s: %s", a->s[0],
+                     format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
       return 0;
     }
     break;
@@ -79,7 +81,8 @@ struct addrinfo *get_address(const struct stringlist *a,
     byte_xasprintf(&name, "host %s service %s", a->s[0], a->s[1]);
     if((rc = getaddrinfo(a->s[0], a->s[1], pref, &res))) {
       disorder_error(0, "getaddrinfo %s %s: %s",
-		     a->s[0], a->s[1], gai_strerror(rc));
+                     a->s[0], a->s[1],
+                     format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
       return 0;
     }
     break;
@@ -339,6 +342,7 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
   struct addrinfo *res, hints[1];
   char service[64];
   int rc;
+  char errbuf[1024];
 
   memset(hints, 0, sizeof hints);
   hints->ai_family = na->af;
@@ -349,7 +353,8 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
   if(rc) {
     disorder_error(0, "getaddrinfo %s %d: %s",
 		   na->address ? na->address : "*",
-		   na->port, gai_strerror(rc));
+                   na->port,
+                   format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
     return NULL;
   }
   return res;
