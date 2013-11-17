@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2007, 2008 Richard Kettlewell
+ * Copyright (C) 2004, 2007-9, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 #include "vector.h"
 #include "charset.h"
 #include "inputline.h"
+#include "sink.h"
 
 /** @brief Read a line from @p fp
  * @param tag Used in error messages
@@ -46,12 +47,20 @@
  * @p *lp is only set if the return value was 0.
  */
 int inputline(const char *tag, FILE *fp, char **lp, int newline) {
+  struct source *s = source_stdio(fp);
+  int rc = inputlines(tag, s, lp, newline);
+  xfree(s);
+  return rc;
+}
+
+int inputlines(const char *tag, struct source *s, char **lp, int newline) {
   struct dynstr d;
-  int ch;
+  int ch, err;
+  char errbuf[1024];
 
   dynstr_init(&d);
-  while((ch = getc(fp)),
-	(!ferror(fp) && !feof(fp) && ch != newline)) {
+  while((ch = source_getc(s)),
+	(!source_err(s) && !source_eof(s) && ch != newline)) {
     dynstr_append(&d, ch);
     if(newline == CRLF && d.nvec >= 2
        && d.vec[d.nvec - 2] == 0x0D && d.vec[d.nvec - 1] == 0x0A) {
@@ -59,10 +68,11 @@ int inputline(const char *tag, FILE *fp, char **lp, int newline) {
       break;
     }
   }
-  if(ferror(fp)) {
-    disorder_error(errno, "error reading %s", tag);
+  if((err = source_err(s))) {
+    disorder_error(0, "error reading %s: %s", tag,
+                   format_error(s->eclass, err, errbuf, sizeof errbuf));
     return -1;
-  } else if(feof(fp)) {
+  } else if(source_eof(s)) {
     if(d.nvec != 0)
       disorder_error(0, "error reading %s: unexpected EOF", tag);
     return -1;

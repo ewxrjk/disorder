@@ -22,6 +22,9 @@
 #ifndef INPUTLINE_H
 #define INPUTLINE_H
 
+struct source;
+
+int inputlines(const char *tag, struct source *s, char **lp, int newline);
 int inputline(const char *tag, FILE *fp, char **lp, int newline);
 /* read characters from @fp@ until @newline@ is encountered.  Store
  * them (excluding @newline@) via @lp@.  Return 0 on success, -1 on
