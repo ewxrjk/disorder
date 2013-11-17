@@ -130,8 +130,6 @@ lib/index.html
 server/index.html
 .DS_Store
 tests/disorder-udplog
-lib/version-string
-lib/versionstring.h
 scripts/setup
 examples/disorder.rc
 scripts/teardown

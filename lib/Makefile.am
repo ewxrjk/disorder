@@ -96,6 +96,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	validity.c validity.h				\
 	vector.c vector.h				\
 	version.c version.h				\
+	versionstring.c					\
 	wav.h wav.c					\
 	wstat.c wstat.h					\
 	disorder.h
@@ -106,7 +107,7 @@ version-string: ../config.status ${top_srcdir}/scripts/make-version-string
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi
 
-versionstring.h: version-string ${top_srcdir}/scripts/text2c
+versionstring.c: version-string ${top_srcdir}/scripts/text2c
 	${top_srcdir}/scripts/text2c -extern disorder_version_string \
 		version-string > $@.new
 	@if cmp $@.new $@; then \
@@ -132,8 +133,8 @@ definitions.h: Makefile
 	@if cmp $@.new $@; then \
 		echo rm -f $@.new; rm -f $@.new; else \
 		echo mv $@.new $@; mv $@.new $@; fi
-defs.o: definitions.h versionstring.h
-defs.lo: definitions.h versionstring.h
+defs.o: definitions.h
+defs.lo: definitions.h
 
 client.o: client-stubs.c
 

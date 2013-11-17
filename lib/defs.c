@@ -59,8 +59,6 @@ const char sendmail_binary[] = SENDMAIL;
  */
 const char finkbindir[] = FINKBINDIR;
 
-#include "versionstring.h"
-
 /*
 Local Variables:
 c-basic-offset:2
