@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2006-2008 Richard Kettlewell
+ * Copyright (C) 2004, 2006-2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 #include "mem.h"
 #include "split.h"
 #include "log.h"
-#include "charset.h"
 #include "vector.h"
 
 static inline int space(int c) {

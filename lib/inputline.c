@@ -26,7 +26,6 @@
 #include "log.h"
 #include "mem.h"
 #include "vector.h"
-#include "charset.h"
 #include "inputline.h"
 #include "sink.h"
 
