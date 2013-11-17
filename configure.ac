@@ -663,7 +663,7 @@ if test ! -z "$missing_functions"; then
 fi
 
 # Functions we can take or leave
-AC_CHECK_FUNCS([fls getfsstat])
+AC_CHECK_FUNCS([fls getfsstat closesocket])
 
 if test $want_server = yes; then
   # <db.h> had better be version 3 or later

@@ -26,6 +26,11 @@
 # include <config.h>
 #endif
 
+# define SOCKET int
+# define INVALID_SOCKET (-1)
+# define declspec(x)
+# define socket_error() (errno)
+# define system_error() (errno)
 #if HAVE_INTTYPES_H
 # include <inttypes.h>
 #endif
@@ -110,6 +115,10 @@ typedef unsigned char uint32_t;
 # else
 #  error cannot determine uint32_t
 # endif
+#endif
+
+#if !HAVE_CLOSESOCKET
+# define closesocket close
 #endif
 
 #endif /* COMMENT_H */

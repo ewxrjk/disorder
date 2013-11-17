@@ -73,6 +73,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	sendmail.c sendmail.h				\
 	signame.c signame.h				\
 	sink.c sink.h					\
+	socketio.c socketio.h				\
 	speaker-protocol.c speaker-protocol.h		\
 	split.c split.h					\
 	strptime.c strptime.h				\
