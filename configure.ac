@@ -575,7 +575,7 @@ fi
 
 old_CFLAGS="${CFLAGS}"
 CFLAGS="${CFLAGS} $gcc_werror"
-AC_CHECK_TYPES([long long,uint32_t,uint8_t,intmax_t,uintmax_t])
+AC_CHECK_TYPES([long long,uint32_t,uint16_t,uint8_t,intmax_t,uintmax_t])
 
 # Some GCC invocations warn for converting function pointers to void *.
 # This is fair enough, as it's technically forbidden, but we use dlsym()

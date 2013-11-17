@@ -117,6 +117,14 @@ typedef unsigned char uint32_t;
 # endif
 #endif
 
+#if ! HAVE_UINT16_T
+# if USHRT_MAX == 65535
+typedef unsigned short uint16_t;
+# else
+#  error cannot determine uint16_t
+# endif
+#endif
+
 #if !HAVE_CLOSESOCKET
 # define closesocket close
 #endif
