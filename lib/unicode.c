@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder
- * Copyright (C) 2007, 2009 Richard Kettlewell
+ * Copyright (C) 2007, 2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -297,6 +297,133 @@ uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *ndp) {
     ns -= r->count;
   }
   dynstr_ucs4_terminate(&d);
+  if(ndp)
+    *ndp = d.nvec;
+  return d.vec;
+error:
+  xfree(d.vec);
+  return 0;
+}
+
+/** @brief Convert UTF-16 to UTF-8
+ * @param s Source string
+ * @param ns Length of source string in code points
+ * @param ndp Where to store length of destination string (or NULL)
+ * @return Newly allocated destination string or NULL on error
+ *
+ * If the UTF-16 is not valid then NULL is returned.  A UTF-16 sequence t is
+ * invalid if it contains an incomplete surrogate.
+ *
+ * The return value is always 0-terminated.  The value returned via @p *ndp
+ * does not include the terminator.
+ */
+char *utf16_to_utf8(const uint16_t *s, size_t ns, size_t *ndp) {
+  struct dynstr d;
+  uint32_t c;
+
+  dynstr_init(&d);
+  while(ns > 0) {
+    c = *s++;
+    --ns;
+    if(c >= 0xD800 && c <= 0xDBFF) {
+      if(ns && *s >= 0xDC00 && c <= 0xDFFF)
+        c = ((c - 0xD800) << 10) + (*s++ - 0xDC00) + 0x10000;
+      else
+        goto error;
+    } else if(c >= 0xDC00 && c <= 0xDFFF)
+      goto error;
+    if(c < 0x80)
+      dynstr_append(&d, c);
+    else if(c < 0x0800) {
+      dynstr_append(&d, 0xC0 | (c >> 6));
+      dynstr_append(&d, 0x80 | (c & 0x3F));
+    } else if(c < 0x10000) {
+      if(c >= 0xD800 && c <= 0xDFFF)
+	goto error;
+      dynstr_append(&d, 0xE0 | (c >> 12));
+      dynstr_append(&d, 0x80 | ((c >> 6) & 0x3F));
+      dynstr_append(&d, 0x80 | (c & 0x3F));
+    } else if(c < 0x110000) {
+      dynstr_append(&d, 0xF0 | (c >> 18));
+      dynstr_append(&d, 0x80 | ((c >> 12) & 0x3F));
+      dynstr_append(&d, 0x80 | ((c >> 6) & 0x3F));
+      dynstr_append(&d, 0x80 | (c & 0x3F));
+    } else
+      goto error;
+  }
+  dynstr_terminate(&d);
+  if(ndp)
+    *ndp = d.nvec;
+  return d.vec;
+error:
+  xfree(d.vec);
+  return 0;
+}
+
+/** @brief Convert UTF-8 to UTF-16
+ * @param s Source string
+ * @param ns Length of source string in code points
+ * @param ndp Where to store length of destination string (or NULL)
+ * @return Newly allocated destination string or NULL on error
+ *
+ * The return value is always 0-terminated.  The value returned via @p *ndp
+ * does not include the terminator.
+ *
+ * If the UTF-8 is not valid then NULL is returned.  A UTF-8 sequence
+ * for a code point is invalid if:
+ * - it is not the shortest possible sequence for the code point
+ * - it codes for a UTF-16 surrogate
+ * - it codes for a value outside the unicode code space
+ */
+uint16_t *utf8_to_utf16(const char *s, size_t ns, size_t *ndp) {
+  struct dynstr_utf16 d;
+  uint32_t c32;
+  const uint8_t *ss = (const uint8_t *)s;
+  int n;
+
+  dynstr_utf16_init(&d);
+  while(ns > 0) {
+    const struct unicode_utf8_row *const r = &unicode_utf8_valid[*ss];
+    if(r->count <= ns) {
+      switch(r->count) {
+      case 1:
+        c32 = *ss;
+        break;
+      case 2:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x1F;
+        break;
+      case 3:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x0F;
+        break;
+      case 4:
+        if(ss[1] < r->min2 || ss[1] > r->max2)
+          goto error;
+        c32 = *ss & 0x07;
+        break;
+      default:
+        goto error;
+      }
+    } else
+      goto error;
+    for(n = 1; n < r->count; ++n) {
+      if(ss[n] < 0x80 || ss[n] > 0xBF)
+        goto error;
+      c32 = (c32 << 6) | (ss[n] & 0x3F);
+    }
+    if(c32 >= 0x10000) {
+      c32 -= 0x10000;
+      dynstr_utf16_append(&d, 0xD800 + (c32 >> 10));
+      dynstr_utf16_append(&d, 0xDC00 + (c32 & 0x03FF));
+    } else
+      dynstr_utf16_append(&d, c32);
+    ss += r->count;
+    ns -= r->count;
+  }
+  dynstr_utf16_terminate(&d);
   if(ndp)
     *ndp = d.nvec;
   return d.vec;
@@ -1577,6 +1704,20 @@ error:
 
 
 /*@}*/
+
+/** @brief Return the length of a 0-terminated UTF-16 string
+ * @param s Pointer to 0-terminated string
+ * @return Length of string in code points (excluding terminator)
+ *
+ * Unlike the conversion functions no validity checking is done on the string.
+ */
+size_t utf16_len(const uint16_t *s) {
+  const uint16_t *t = s;
+
+  while(*t)
+    ++t;
+  return (size_t)(t - s);
+}
 
 /*
 Local Variables:

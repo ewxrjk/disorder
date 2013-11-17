@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2004, 2005, 2007-2009 Richard Kettlewell
+ * Copyright (C) 2004, 2005, 2007-2009, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,6 +79,8 @@ VECTOR_TYPE(vector, char *, xrealloc);
 /** @brief A dynamic string */
 VECTOR_TYPE(dynstr, char, xrealloc_noptr);
 /** @brief A dynamic unicode string */
+VECTOR_TYPE(dynstr_utf16, uint16_t, xrealloc_noptr);
+/** @brief A dynamic wide character string */
 VECTOR_TYPE(dynstr_ucs4, uint32_t, xrealloc_noptr);
 /** @brief A dynamic array of pointers to unicode string */
 VECTOR_TYPE(vector32, uint32_t *, xrealloc);

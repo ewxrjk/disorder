@@ -1,6 +1,6 @@
 /*
  * This file is part of DisOrde
- * Copyright (C) 2007 Richard Kettlewell
+ * Copyright (C) 2007, 2008, 2013 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,11 +44,14 @@ typedef int unicode_property_tailor(uint32_t c);
 
 char *utf32_to_utf8(const uint32_t *s, size_t ns, size_t *nd);
 uint32_t *utf8_to_utf32(const char *s, size_t ns, size_t *nd);
+char *utf16_to_utf8(const uint16_t *s, size_t ns, size_t *nd);
+uint16_t *utf8_to_utf16(const char *s, size_t ns, size_t *nd);
 int utf8_valid(const char *s, size_t ns);
 
 int utf32_combining_class(uint32_t c);
 
 size_t utf32_len(const uint32_t *s);
+size_t utf16_len(const uint16_t *s);
 int utf32_cmp(const uint32_t *a, const uint32_t *b);
 
 uint32_t *utf32_decompose_canon(const uint32_t *s, size_t ns, size_t *ndp);
@@ -99,6 +102,16 @@ static inline char *utf32nt_to_utf8(const uint32_t *s) {
   return utf32_to_utf8(s, utf32_len(s), 0);
 }
 
+/** @brief Convert 0-terminated UTF-16 to UTF-8
+ * @param s 0-terminated UTF-16 string
+ * @return 0-terminated UTF-8 string or 0 on error
+ *
+ * See utf16_to_utf8() for possible causes of errors.
+ */
+static inline char *utf16nt_to_utf8(const uint16_t *s) {
+  return utf16_to_utf8(s, utf16_len(s), 0);
+}
+
 /** @brief Convert 0-terminated UTF-8 to UTF-32
  * @param s 0-terminated UTF-8 string
  * @return 0-terminated UTF-32 string or 0 on error
@@ -107,6 +120,24 @@ static inline char *utf32nt_to_utf8(const uint32_t *s) {
  */
 static inline uint32_t *utf8nt_to_utf32(const char *s) {
   return utf8_to_utf32(s, strlen(s), 0);
+}
+
+/** @brief Convert 0-terminated UTF-8 to UTF-16
+ * @param s 0-terminated UTF-8 string
+ * @return 0-terminated UTF-16 string or 0 on error
+ *
+ * See utf8_to_utf16() for possible causes of errors.
+ */
+static inline uint16_t *utf8nt_to_utf16(const char *s) {
+  return utf8_to_utf16(s, strlen(s), 0);
+}
+
+static inline wchar_t *utf8nt_to_wchar(const char *s) {
+  return (wchar_t *)utf8nt_to_utf32(s);
+}
+
+static inline char *wcharnt_to_utf8(const wchar_t *s) {
+  return utf32nt_to_utf8((const uint32_t *)s);
 }
 
 #endif /* UNICODE_H */
