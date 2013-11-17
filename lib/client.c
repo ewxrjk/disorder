@@ -63,13 +63,14 @@
 #include "client-common.h"
 #include "rights.h"
 #include "kvp.h"
+#include "socketio.h"
 
 /** @brief Client handle contents */
 struct disorder_client {
   /** @brief Stream to read from */
-  FILE *fpin;
+  struct source *input;
   /** @brief Stream to write to */
-  FILE *fpout;
+  struct sink *output;
   /** @brief Peer description */
   char *ident;
   /** @brief Username */
@@ -80,6 +81,10 @@ struct disorder_client {
   const char *last;
   /** @brief Address family */
   int family;
+  /** @brief True if open */
+  int open;
+  /** @brief Socket I/O context */
+  struct socketio sio;
 };
 
 /** @brief Create a new client
@@ -110,9 +115,11 @@ int disorder_client_af(disorder_client *c) {
  */
 static int response(disorder_client *c, char **rp) {
   char *r;
+  char errbuf[1024];
 
-  if(inputline(c->ident, c->fpin, &r, '\n')) {
-    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
+  if(inputlines(c->ident, c->input, &r, '\n')) {
+    byte_xasprintf((char **)&c->last, "input error: %s",
+                   format_error(c->input->eclass, source_err(c->input), errbuf, sizeof errbuf));
     return -1;
   }
   D(("response: %s", r));
@@ -214,8 +221,9 @@ static int disorder_simple_v(disorder_client *c,
   char **body = NULL;
   int nbody = 0;
   int has_body = 0;
+  char errbuf[1024];
 
-  if(!c->fpout) {
+  if(!c->open) {
     c->last = "not connected";
     disorder_error(0, "not connected to server");
     return -1;
@@ -260,7 +268,7 @@ static int disorder_simple_v(disorder_client *c,
     dynstr_append(&d, '\n');
     dynstr_terminate(&d);
     D(("command: %s", d.vec));
-    if(fputs(d.vec, c->fpout) < 0)
+    if(sink_write(c->output, d.vec, d.nvec) < 0)
       goto write_error;
     xfree(d.vec);
     if(has_body) {
@@ -270,23 +278,24 @@ static int disorder_simple_v(disorder_client *c,
           ;
       for(n = 0; n < nbody; ++n) {
         if(body[n][0] == '.')
-          if(fputc('.', c->fpout) < 0)
+          if(sink_writec(c->output, '.') < 0)
             goto write_error;
-        if(fputs(body[n], c->fpout) < 0)
+        if(sink_writes(c->output, body[n]) < 0)
           goto write_error;
-        if(fputc('\n', c->fpout) < 0)
+        if(sink_writec(c->output, '\n') < 0)
           goto write_error;
       }
-      if(fputs(".\n", c->fpout) < 0)
+      if(sink_writes(c->output, ".\n") < 0)
         goto write_error;
     }
-    if(fflush(c->fpout))
+    if(sink_flush(c->output))
       goto write_error;
   }
   return check_response(c, rp);
 write_error:
-  byte_xasprintf((char **)&c->last, "write error: %s", strerror(errno));
-  disorder_error(errno, "error writing to %s", c->ident);
+  byte_xasprintf((char **)&c->last, "write error: %s", 
+                 format_error(c->output->eclass, sink_err(c->output), errbuf, sizeof errbuf));
+  disorder_error(0, "%s: %s", c->ident, c->last);
   return -1;
 }
 
@@ -412,7 +421,8 @@ int disorder_connect_generic(struct config *conf,
                              const char *username,
                              const char *password,
                              const char *cookie) {
-  int fd = -1, fd2 = -1, nrvec = 0, rc;
+  SOCKET sd = INVALID_SOCKET;
+  int nrvec = 0, rc;
   unsigned char *nonce = NULL;
   size_t nl;
   char *res = NULL;
@@ -420,38 +430,30 @@ int disorder_connect_generic(struct config *conf,
   const char *protocol, *algorithm, *challenge;
   struct sockaddr *sa = NULL;
   socklen_t salen;
+  char errbuf[1024];
 
   if((salen = find_server(conf, &sa, &c->ident)) == (socklen_t)-1)
     return -1;
-  c->fpin = c->fpout = 0;
-  if((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
-    byte_xasprintf((char **)&c->last, "socket: %s", strerror(errno));
-    disorder_error(errno, "error calling socket");
+  c->input = 0;
+  c->output = 0;
+  if((sd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0) {
+    byte_xasprintf((char **)&c->last, "socket: %s",
+                   format_error(ec_socket, socket_error(), errbuf, sizeof errbuf));
+    disorder_error(0, "%s", c->last);
     return -1;
   }
   c->family = sa->sa_family;
-  if(connect(fd, sa, salen) < 0) {
-    byte_xasprintf((char **)&c->last, "connect: %s", strerror(errno));
-    disorder_error(errno, "error calling connect");
+  if(connect(sd, sa, salen) < 0) {
+    byte_xasprintf((char **)&c->last, "connect: %s",
+                   format_error(ec_socket, socket_error(), errbuf, sizeof errbuf));
+    disorder_error(0, "%s", c->last);
     goto error;
   }
-  if((fd2 = dup(fd)) < 0) {
-    byte_xasprintf((char **)&c->last, "dup: %s", strerror(errno));
-    disorder_error(errno, "error calling dup");
-    goto error;
-  }
-  if(!(c->fpin = fdopen(fd, "rb"))) {
-    byte_xasprintf((char **)&c->last, "fdopen: %s", strerror(errno));
-    disorder_error(errno, "error calling fdopen");
-    goto error;
-  }
-  fd = -1;
-  if(!(c->fpout = fdopen(fd2, "wb"))) {
-    byte_xasprintf((char **)&c->last, "fdopen: %s", strerror(errno));
-    disorder_error(errno, "error calling fdopen");
-    goto error;
-  }
-  fd2 = -1;
+  socketio_init(&c->sio, sd);
+  c->open = 1;
+  sd = INVALID_SOCKET;
+  c->output = sink_socketio(&c->sio);
+  c->input = source_socketio(&c->sio);
   if((rc = disorder_simple(c, &r, 0, (const char *)0)))
     goto error_rc;
   if(!(rvec = split(r, &nrvec, SPLIT_QUOTES, 0, 0)))
@@ -497,16 +499,12 @@ int disorder_connect_generic(struct config *conf,
 error:
   rc = -1;
 error_rc:
-  if(c->fpin) {
-    fclose(c->fpin);
-    c->fpin = 0;
-  }
-  if(c->fpout) {
-    fclose(c->fpout);
-    c->fpout = 0;
-  }
-  if(fd2 != -1) close(fd2);
-  if(fd != -1) close(fd);
+  xfree(c->output);
+  c->output = NULL;
+  xfree(c->input);
+  c->input = NULL;
+  if(c->open) { socketio_close(&c->sio); c->open = 0; }
+  if(sd != INVALID_SOCKET) closesocket(sd);
   return rc;
 }
 
@@ -591,22 +589,12 @@ int disorder_connect_cookie(disorder_client *c,
 int disorder_close(disorder_client *c) {
   int ret = 0;
 
-  if(c->fpin) {
-    if(fclose(c->fpin) < 0) {
-      byte_xasprintf((char **)&c->last, "fclose: %s", strerror(errno));
-      disorder_error(errno, "error calling fclose");
-      ret = -1;
-    }
-    c->fpin = 0;
-  }
-  if(c->fpout) {
-    if(fclose(c->fpout) < 0) {
-      byte_xasprintf((char **)&c->last, "fclose: %s", strerror(errno));
-      disorder_error(errno, "error calling fclose");
-      ret = -1;
-    }
-    c->fpout = 0;
-  }
+  if(c->open)
+    socketio_close(&c->sio);
+  xfree(c->output);
+  c->output = NULL;
+  xfree(c->input);
+  c->input = NULL;
   xfree(c->ident);
   c->ident = 0;
   xfree(c->user);
@@ -648,8 +636,9 @@ static int readqueue(disorder_client *c,
 		     struct queue_entry **qp) {
   struct queue_entry *qh, **qt = &qh, *q;
   char *l;
+  char errbuf[1024];
 
-  while(inputline(c->ident, c->fpin, &l, '\n') >= 0) {
+  while(inputlines(c->ident, c->input, &l, '\n') >= 0) {
     if(!strcmp(l, ".")) {
       *qt = 0;
       *qp = qh;
@@ -663,13 +652,13 @@ static int readqueue(disorder_client *c,
     }
     xfree(l);
   }
-  if(ferror(c->fpin)) {
-    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
-    disorder_error(errno, "error reading %s", c->ident);
+  if(source_err(c->input)) {
+    byte_xasprintf((char **)&c->last, "input error: %s",
+                   format_error(c->input->eclass, source_err(c->input), errbuf, sizeof errbuf));
   } else {
     c->last = "input error: unexpected EOF";
-    disorder_error(0, "error reading %s: unexpected EOF", c->ident);
   }
+  disorder_error(0, "%s: %s", c->ident, c->last);
   return -1;
 }
 
@@ -684,9 +673,10 @@ static int readqueue(disorder_client *c,
 static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
   char *l;
   struct vector v;
+  char errbuf[1024];
 
   vector_init(&v);
-  while(inputline(c->ident, c->fpin, &l, '\n') >= 0) {
+  while(inputlines(c->ident, c->input, &l, '\n') >= 0) {
     if(!strcmp(l, ".")) {
       vector_terminate(&v);
       if(nvecp)
@@ -698,13 +688,13 @@ static int readlist(disorder_client *c, char ***vecp, int *nvecp) {
     vector_append(&v, xstrdup(l + (*l == '.')));
     xfree(l);
   }
-  if(ferror(c->fpin)) {
-    byte_xasprintf((char **)&c->last, "input error: %s", strerror(errno));
-    disorder_error(errno, "error reading %s", c->ident);
+  if(source_err(c->input)) {
+    byte_xasprintf((char **)&c->last, "input error: %s",
+                   format_error(c->input->eclass, source_err(c->input), errbuf, sizeof errbuf));
   } else {
     c->last = "input error: unexpxected EOF";
-    disorder_error(0, "error reading %s: unexpected EOF", c->ident);
   }
+  disorder_error(0, "%s: %s", c->ident, c->last);
   return -1;
 }
 
@@ -784,14 +774,18 @@ static int boolean(const char *cmd, const char *value,
 int disorder_log(disorder_client *c, struct sink *s) {
   char *l;
   int rc;
+  char errbuf[1024];
     
   if((rc = disorder_simple(c, 0, "log", (char *)0)))
     return rc;
-  while(inputline(c->ident, c->fpin, &l, '\n') >= 0 && strcmp(l, "."))
+  while(inputlines(c->ident, c->input, &l, '\n') >= 0 && strcmp(l, "."))
     if(sink_printf(s, "%s\n", l) < 0) return -1;
-  if(ferror(c->fpin) || feof(c->fpin)) {
+  if(source_err(c->input)) {
     byte_xasprintf((char **)&c->last, "input error: %s",
-		   ferror(c->fpin) ? strerror(errno) : "unexpxected EOF");
+		   format_error(c->input->eclass, source_err(c->input), errbuf, sizeof errbuf));
+    return -1;
+  } else if(source_eof(c->input)) {
+    byte_xasprintf((char **)&c->last, "input error: unexpected EOF");
     return -1;
   }
   return 0;
