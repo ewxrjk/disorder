@@ -752,6 +752,7 @@ static int validate_tracklength(const struct config_state *cs,
 static int validate_non_negative(const struct config_state *cs,
 				 int nvec, char **vec) {
   long n;
+  char errbuf[1024];
 
   if(nvec < 1) {
     disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
@@ -762,7 +763,8 @@ static int validate_non_negative(const struct config_state *cs,
     return -1;
   }
   if(xstrtol(&n, vec[0], 0, 0)) {
-    disorder_error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
+    disorder_error(0, "%s:%d: %s", cs->path, cs->line,
+                   format_error(ec_errno, errno, errbuf, sizeof errbuf));
     return -1;
   }
   if(n < 0) {
@@ -781,6 +783,7 @@ static int validate_non_negative(const struct config_state *cs,
 static int validate_positive(const struct config_state *cs,
 			  int nvec, char **vec) {
   long n;
+  char errbuf[1024];
 
   if(nvec < 1) {
     disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
@@ -791,7 +794,8 @@ static int validate_positive(const struct config_state *cs,
     return -1;
   }
   if(xstrtol(&n, vec[0], 0, 0)) {
-    disorder_error(0, "%s:%d: %s", cs->path, cs->line, strerror(errno));
+    disorder_error(0, "%s:%d: %s", cs->path, cs->line,
+                   format_error(ec_errno, errno, errbuf, sizeof errbuf));
     return -1;
   }
   if(n <= 0) {
