@@ -20,6 +20,7 @@ bin_PROGRAMS=disorder disorderfm disorder-playrtp
 noinst_PROGRAMS=filename-bytes rtpmon resample
 noinst_SCRIPTS=dump2wav
 
+AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorder_SOURCES=disorder.c authorize.c authorize.h \

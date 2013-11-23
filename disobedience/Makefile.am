@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2006-2010 Richard Kettlewell
+# Copyright (C) 2006-2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 bin_PROGRAMS=disobedience
 SUBDIRS=manual
 
+AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 AM_CFLAGS=$(GLIB_CFLAGS) $(GTK_CFLAGS)
 

@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder
-# Copyright (C) 2004-2008, 2010 Richard Kettlewell
+# Copyright (C) 2004-2008, 2010, 2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 pkglib_LTLIBRARIES=disorder-tracklength.la fs.la notify.la exec.la shell.la \
 		   execraw.la
+AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib
 
 notify_la_SOURCES=notify.c

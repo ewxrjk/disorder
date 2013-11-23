@@ -1,6 +1,6 @@
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2011 Richard Kettlewell
+# Copyright (C) 2004-2011, 2013 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-stats disorder-dbupgrade disorder-choose
 noinst_PROGRAMS=trackname endian
 
+AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
