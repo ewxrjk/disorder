@@ -216,3 +216,5 @@ libtests/test-suite.log
 *.vcxproj.user
 .dirstamp
 tests/*.trs
+obj
+bin

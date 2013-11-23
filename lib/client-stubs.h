@@ -5,7 +5,7 @@
  */
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2010-11 Richard Kettlewell
+ * Copyright (C) 2010-11, 13 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -265,11 +265,11 @@ int disorder_nop(disorder_client *c);
  * @param c Client
  * @param track Track name
  * @param context Context ("sort" or "display")
- * @param part Name part ("artist", "album" or "title")
+ * @param namepart Name part ("artist", "album" or "title")
  * @param partp Value of name part
  * @return 0 on success, non-0 on error
  */
-int disorder_part(disorder_client *c, const char *track, const char *context, const char *part, char **partp);
+int disorder_part(disorder_client *c, const char *track, const char *context, const char *namepart, char **partp);
 
 /** @brief Pause the currently playing track
  *
@@ -621,10 +621,10 @@ int disorder_schedule_add_unset_global(disorder_client *c, time_t when, const ch
  * Users can always delete their own scheduled events; with the admin right you can delete any event.
  *
  * @param c Client
- * @param event ID of event to delete
+ * @param id ID of event to delete
  * @return 0 on success, non-0 on error
  */
-int disorder_schedule_del(disorder_client *c, const char *event);
+int disorder_schedule_del(disorder_client *c, const char *id);
 
 /** @brief Get the details of scheduled event
  *

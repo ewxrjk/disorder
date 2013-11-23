@@ -5,7 +5,7 @@
  */
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2010-11 Richard Kettlewell
+ * Copyright (C) 2010-11, 13 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,8 +100,8 @@ int disorder_eclient_nop(disorder_eclient *c, disorder_eclient_no_response *comp
   return simple(c, no_response_opcallback, (void (*)())completed, v, "nop", (char *)0);
 }
 
-int disorder_eclient_part(disorder_eclient *c, disorder_eclient_string_response *completed, const char *track, const char *context, const char *part, void *v) {
-  return simple(c, string_response_opcallback, (void (*)())completed, v, "part", track, context, part, (char *)0);
+int disorder_eclient_part(disorder_eclient *c, disorder_eclient_string_response *completed, const char *track, const char *context, const char *namepart, void *v) {
+  return simple(c, string_response_opcallback, (void (*)())completed, v, "part", track, context, namepart, (char *)0);
 }
 
 int disorder_eclient_pause(disorder_eclient *c, disorder_eclient_no_response *completed, void *v) {
@@ -228,8 +228,8 @@ int disorder_eclient_schedule_add_unset_global(disorder_eclient *c, disorder_ecl
   return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-add", disorder__time, when, priority, "set-global", pref, (char *)0);
 }
 
-int disorder_eclient_schedule_del(disorder_eclient *c, disorder_eclient_no_response *completed, const char *event, void *v) {
-  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-del", event, (char *)0);
+int disorder_eclient_schedule_del(disorder_eclient *c, disorder_eclient_no_response *completed, const char *id, void *v) {
+  return simple(c, no_response_opcallback, (void (*)())completed, v, "schedule-del", id, (char *)0);
 }
 
 int disorder_eclient_schedule_list(disorder_eclient *c, disorder_eclient_list_response *completed, void *v) {

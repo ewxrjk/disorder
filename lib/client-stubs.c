@@ -5,7 +5,7 @@
  */
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2010-11 Richard Kettlewell
+ * Copyright (C) 2010-11, 13 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -183,9 +183,9 @@ int disorder_nop(disorder_client *c) {
   return disorder_simple(c, NULL, "nop", (char *)NULL);
 }
 
-int disorder_part(disorder_client *c, const char *track, const char *context, const char *part, char **partp) {
+int disorder_part(disorder_client *c, const char *track, const char *context, const char *namepart, char **partp) {
   char **v;
-  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "part", track, context, part, (char *)NULL);
+  int nv, rc = disorder_simple_split(c, &v, &nv, 1, "part", track, context, namepart, (char *)NULL);
   if(rc)
     return rc;
   *partp = v[0];
@@ -376,8 +376,8 @@ int disorder_schedule_add_unset_global(disorder_client *c, time_t when, const ch
   return disorder_simple(c, NULL, "schedule-add", disorder__time, when, priority, "set-global", pref, (char *)NULL);
 }
 
-int disorder_schedule_del(disorder_client *c, const char *event) {
-  return disorder_simple(c, NULL, "schedule-del", event, (char *)NULL);
+int disorder_schedule_del(disorder_client *c, const char *id) {
+  return disorder_simple(c, NULL, "schedule-del", id, (char *)NULL);
 }
 
 int disorder_schedule_get(disorder_client *c, const char *id, struct kvp **actiondatap) {

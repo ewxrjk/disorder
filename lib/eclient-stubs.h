@@ -5,7 +5,7 @@
  */
 /*
  * This file is part of DisOrder.
- * Copyright (C) 2010-11 Richard Kettlewell
+ * Copyright (C) 2010-11, 13 Richard Kettlewell
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -270,11 +270,11 @@ int disorder_eclient_nop(disorder_eclient *c, disorder_eclient_no_response *comp
  * @param completed Called upon completion
  * @param track Track name
  * @param context Context ("sort" or "display")
- * @param part Name part ("artist", "album" or "title")
+ * @param namepart Name part ("artist", "album" or "title")
  * @param v Passed to @p completed
  * @return 0 if the command was queued successfuly, non-0 on error
  */
-int disorder_eclient_part(disorder_eclient *c, disorder_eclient_string_response *completed, const char *track, const char *context, const char *part, void *v);
+int disorder_eclient_part(disorder_eclient *c, disorder_eclient_string_response *completed, const char *track, const char *context, const char *namepart, void *v);
 
 /** @brief Pause the currently playing track
  *
@@ -655,11 +655,11 @@ int disorder_eclient_schedule_add_unset_global(disorder_eclient *c, disorder_ecl
  *
  * @param c Client
  * @param completed Called upon completion
- * @param event ID of event to delete
+ * @param id ID of event to delete
  * @param v Passed to @p completed
  * @return 0 if the command was queued successfuly, non-0 on error
  */
-int disorder_eclient_schedule_del(disorder_eclient *c, disorder_eclient_no_response *completed, const char *event, void *v);
+int disorder_eclient_schedule_del(disorder_eclient *c, disorder_eclient_no_response *completed, const char *id, void *v);
 
 /** @brief List scheduled events
  *

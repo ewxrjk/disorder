@@ -47,6 +47,7 @@ our @h = ();
 our @c = ();
 our @ah = ();
 our @ac = ();
+our @cs = ();
 our @missing = ();
 
 # Mapping of return type sequences to eclient callbacks
@@ -446,11 +447,75 @@ sub simple {
 	push(@missing, "disorder_eclient_$cmdc");
     }
 
+    # C# API
+    my @csargspass = ("\"$cmd\"");
+    my @csargsdecl = ();
+    my $cskip = 0;
+    my $cmdcs = $cmdc;
+    $cmdcs =~ s/_(.)/uc($1)/ge;
+    $cmdcs =~ s/^./uc($&)/e;
+    my $retno = 0;
+    my @csretparse = ();
+    for my $ret (@$returns) {
+	my $type = $ret->[0];
+	my $name = $ret->[1];
+	if($type eq 'string') {
+	    push(@csargsdecl, "out string $name");
+	    push(@csretparse, "      $name = bits[$retno];\n");
+	} elsif($type eq 'integer') {
+	    push(@csargsdecl, "out int $name");
+	    push(@csretparse, "      $name = int.Parse(bits[$retno]);\n");
+	} else {
+	    $cskip = 1;
+	}
+	++$retno;
+    }
+    for my $arg (@$args) {
+	my $type = $arg->[0];
+	my $name = $arg->[1];
+	if($type eq 'body' or $type eq 'list') {
+	    $cskip = 1;
+	} elsif($type eq 'string') {
+	    push(@csargsdecl, "string $name");
+	    push(@csargspass, $name);
+	} elsif($type eq 'integer') {
+	    push(@csargsdecl, "int $name");
+	    push(@csargspass, $name);
+	} elsif($type eq 'time') {
+	    push(@csargsdecl, "DateTime $name");
+	    push(@csargspass, $name);
+	} elsif($type eq 'literal') {
+	    push(@csargspass, "\"$name\"");
+	} else {
+            die "$0: unsupported arg type '$type' for '$cmd'\n";
+	}
+    }
+    if(!$cskip) {
+	push(@cs, "    public void $cmdcs(",
+	     join(", ", @csargsdecl), ") {\n");
+	if($retno == 0) {
+	    push(@cs, "      Transact(", join(", ", @csargspass), ");\n");
+	} else {
+	    push(@cs,
+		 "      string response = Transact(", join(", ", @csargspass), ");\n",
+		 "      IList<string> bits = Configuration.Split(response, false);\n",
+		 "      if(bits.Count != $retno)\n",
+		 "        throw new Exception(\"malformed response from server\");\n");
+	    push(@cs, @csretparse);
+	}
+	push(@cs, "    }\n",
+	     "\n");
+    } else {
+	push(@cs, "    // $cmdcs not yet implemented\n", "\n");
+	push(@missing, "uk.org.greenend.DisOrder.$cmdcs");
+    }
+
     # Python API
     # TODO
 
     # Java API
     # TODO
+
     print STDERR "\n";
 }
 
@@ -466,7 +531,7 @@ our @generated = ("/*\n",
 
 our @gpl = ("/*\n",
             " * This file is part of DisOrder.\n",
-            " * Copyright (C) 2010-11 Richard Kettlewell\n",
+            " * Copyright (C) 2010-11, 13 Richard Kettlewell\n",
             " *\n",
             " * This program is free software: you can redistribute it and/or modify\n",
             " * it under the terms of the GNU General Public License as published by\n",
@@ -514,6 +579,17 @@ push(@ac, @generated, @gpl,
      " * \@brief Generated asynchronous client API implementation\n",
      " */\n",
      "\n");
+
+push(@cs, @generated, @gpl,
+     "/* Generated synchronous client API implemenattion */\n",
+     "\n",
+     "using System;\n",
+     "using System.Collections.Generic;\n",
+     "\n",
+     "namespace uk.org.greenend.DisOrder\n",
+     "{\n",
+     "  public partial class Connection\n",
+     "  {\n");
 
 # The protocol ----------------------------------------------------------------
 
@@ -651,7 +727,7 @@ simple("part",
        "If the name part cannot be constructed an empty string is returned.",
        [["string", "track", "Track name"],
         ["string", "context", "Context (\"sort\" or \"display\")"],
-        ["string", "part", "Name part (\"artist\", \"album\" or \"title\")"]],
+        ["string", "namepart", "Name part (\"artist\", \"album\" or \"title\")"]],
        [["string", "part", "Value of name part"]]);
 
 simple("pause",
@@ -851,7 +927,7 @@ simple(["schedule-add", "schedule_add_unset_global"],
 simple("schedule-del",
        "Delete a scheduled event.",
        "Users can always delete their own scheduled events; with the admin right you can delete any event.",
-       [["string", "event", "ID of event to delete"]]);
+       [["string", "id", "ID of event to delete"]]);
 
 simple("schedule-get",
        "Get the details of scheduled event",
@@ -952,6 +1028,10 @@ push(@h, "#endif\n");
 
 push(@ah, "#endif\n");
 
+push(@cs,
+     "  }\n",
+     "}\n");
+
 # Write it all out ------------------------------------------------------------
 
 Write("lib/client-stubs.h", \@h);
@@ -959,6 +1039,8 @@ Write("lib/client-stubs.c", \@c);
 
 Write("lib/eclient-stubs.h", \@ah);
 Write("lib/eclient-stubs.c", \@ac);
+
+Write("csharp/DisorderCS/Connection-stubs.cs", \@cs);
 
 if(scalar @missing) {
   print "Missing:\n";
