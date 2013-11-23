@@ -102,6 +102,12 @@ sub Write {
     my $path = shift;
     my $lines = shift;
 
+    if($^O eq 'msys') {
+	for my $line (@$lines) {
+	    $line =~ s/\n/\r\n/g;
+	}
+    }
+
     (open(F, ">$path")
      and print F @$lines
      and close F)
