@@ -11,10 +11,11 @@ namespace dcstest
   {
     static void Main(string[] args)
     {
-      Connection c = new Connection();
-      string v;
-      c.Version(out v);
-      Console.WriteLine("version: {0}", v);
+      using (Connection c = new Connection()) {
+        string v;
+        c.Version(out v);
+        Console.WriteLine("version: {0}", v);
+      }
     }
   }
 }
