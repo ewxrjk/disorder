@@ -182,7 +182,7 @@ namespace uk.org.greenend.DisOrder
           sb.Append(' '); // separator
         object o = command[i];
         if (o is string)
-          sb.Append(Quote((string)o));
+          sb.Append(Configuration.Quote((string)o));
         else if (o is int)
           sb.AppendFormat("{0}", (int)o);
         else if (o is DateTime)
@@ -231,37 +231,6 @@ namespace uk.org.greenend.DisOrder
       else
         throw new Exception("malformed line received from server");
     }
-
-    private static string Quote(string s)
-    {
-      bool needQuote = (s.Length == 0);
-      foreach (char c in s) {
-        if (c <= ' ' || c == '"' || c == '\\' || c == '\'' || c == '#') {
-          needQuote = true;
-          break;
-        }
-      }
-      if (!needQuote)
-        return s;
-      StringBuilder sb = new StringBuilder();
-      foreach (char c in s) {
-        switch (c) {
-          case '"':
-          case '\\':
-            sb.Append('\\');
-            sb.Append(c);
-            break;
-          case '\n':
-            sb.Append("\\n");
-            break;
-          default:
-            sb.Append(c);
-            break;
-        }
-      }
-      return sb.ToString();
-    }
-
     private static long DateTimeToUnix(DateTime dt)
     {
       DateTime zero = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);

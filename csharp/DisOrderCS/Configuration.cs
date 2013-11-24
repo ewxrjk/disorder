@@ -10,6 +10,13 @@ namespace uk.org.greenend.DisOrder
   /// <summary>
   /// Configuration for DisOrder
   /// </summary>
+  /// <remarks>
+  /// <para>Only a very small subset of DisOrder configuration is supported: username,
+  /// password and host/port to connect to.</para>
+  /// <para>Configuration is stored in %APPDATA%/DisOrder/passwd.</para>
+  /// <para>You must use the Read() method to load configuration before reading the configuration properties.</para>
+  /// <para>If you change the configuration properties you can use Write() to persist the new values.</para>
+  /// </remarks>
   public class Configuration
   {
     #region Public Properties
@@ -21,17 +28,17 @@ namespace uk.org.greenend.DisOrder
     /// <summary>
     /// Username to pass to server
     /// </summary>
-    public string Username { get; private set; }
+    public string Username { get; set; }
 
     /// <summary>
     /// Password to pass to server
     /// </summary>
-    public string Password { get; private set; }
+    public string Password { get; set; }
 
     /// <summary>
     /// Hostname or address of server
     /// </summary>
-    public string Address { get; private set; }
+    public string Address { get; set; }
 
     /// <summary>
     /// Port number of server
@@ -55,6 +62,27 @@ namespace uk.org.greenend.DisOrder
     {
       // There is currently no support for global configuration
       Read(UserPath);
+    }
+
+    /// <summary>
+    /// Save user configuration
+    /// </summary>
+    public void Write()
+    {
+      if (File.Exists(UserPath)) {
+        File.Copy(UserPath, UserPath + ".bak", true);
+      }
+      using (StreamWriter sw = new StreamWriter(UserPath)) {
+        if (Username != null) {
+          Console.WriteLine("username {0}", Quote(Username));
+        }
+        if (Password != null) {
+          Console.WriteLine("password {0}", Quote(Password));
+        }
+        if (Address != null) {
+          Console.WriteLine("connect {0} {1}", Quote(Address), Port);
+        }
+      }
     }
 
     private void Read(string path)
@@ -151,6 +179,37 @@ namespace uk.org.greenend.DisOrder
       }
       return bits;
     }
+
+    internal static string Quote(string s)
+    {
+      bool needQuote = (s.Length == 0);
+      foreach (char c in s) {
+        if (c <= ' ' || c == '"' || c == '\\' || c == '\'' || c == '#') {
+          needQuote = true;
+          break;
+        }
+      }
+      if (!needQuote)
+        return s;
+      StringBuilder sb = new StringBuilder();
+      foreach (char c in s) {
+        switch (c) {
+          case '"':
+          case '\\':
+            sb.Append('\\');
+            sb.Append(c);
+            break;
+          case '\n':
+            sb.Append("\\n");
+            break;
+          default:
+            sb.Append(c);
+            break;
+        }
+      }
+      return sb.ToString();
+    }
+
     #endregion
 
   }
