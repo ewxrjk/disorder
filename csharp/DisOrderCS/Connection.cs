@@ -12,6 +12,10 @@ namespace uk.org.greenend.DisOrder
   /// <summary>
   /// A connection to a DisOrder server
   /// </summary>
+  /// <remarks><para>
+  /// You can use a connection object from multiple threads safely.  However in the current
+  /// implementation all requests are serialized, so this isn't very efficient.  A future implementation
+  /// may pipeline requests.</para></remarks>
   public partial class Connection: IDisposable
   {
     #region Public properties
@@ -26,6 +30,7 @@ namespace uk.org.greenend.DisOrder
     private TextReader reader = null;
     private TextWriter writer = null;
     private Socket socket = null;
+    private object mutex = new object();
 
     private Dictionary<string, string> Hashes = new Dictionary<string, string>()
     {
@@ -51,6 +56,13 @@ namespace uk.org.greenend.DisOrder
     /// <para>This is automatically called when necessary.</para></remarks>
     public void Connect()
     {
+      lock (mutex) {
+        ConnectLocked();
+      }
+    }
+
+    private void ConnectLocked()
+    {
       if (writer != null)
         return;
       if (Configuration == null) {
@@ -65,7 +77,7 @@ namespace uk.org.greenend.DisOrder
         reader = new StreamReader(ns, Encoding);
         writer = new StreamWriter(ns, Encoding);
         // Get protocol version and challenge
-        IList<string> greeting = Configuration.Split(Wait(), false);
+        IList<string> greeting = Configuration.Split(WaitLocked(), false);
         if (greeting.Count < 1 || greeting[0] != "2")
           throw new Exception("unrecognized protocol generation");
         if (greeting.Count() != 3)
@@ -79,12 +91,12 @@ namespace uk.org.greenend.DisOrder
         input.AddRange(FromHex(challenge));
         using (System.Security.Cryptography.HashAlgorithm hash = System.Security.Cryptography.HashAlgorithm.Create(Hashes[algorithm])) {
           string response = ToHex(hash.ComputeHash(input.ToArray()));
-          // Send the response, Transact will throw if user or password wrong
-          Transact("user", Configuration.Username, response);
+          // Send the response, TransactLocked will throw if user or password wrong
+          TransactLocked(new object[] { "user", Configuration.Username, response });
         }
       } catch {
         // If anything went wrong, tear it all down
-        Disconnect();
+        DisconnectLocked();
         throw;
       }
     }
@@ -94,6 +106,13 @@ namespace uk.org.greenend.DisOrder
     /// </summary>
     /// <remarks><para>If not connected, does nothing.</para></remarks>
     public void Disconnect()
+    {
+      lock (mutex) {
+        DisconnectLocked();
+      }
+    }
+
+    private void DisconnectLocked()
     {
       if (reader != null) {
         reader.Dispose();
@@ -113,8 +132,15 @@ namespace uk.org.greenend.DisOrder
     #region Protocol IO
     private string Transact(params object[] command)
     {
+      lock (mutex) {
+        return TransactLocked(command);
+      }
+    }
+
+    private string TransactLocked(object[] command)
+    {
       if (writer == null)
-        Connect();
+        ConnectLocked();
       for (int i = 0; i < command.Length; ++i) {
         if (i > 0)
           writer.Write(' '); // separator
@@ -130,10 +156,10 @@ namespace uk.org.greenend.DisOrder
       }
       writer.Write('\n'); // terminator
       writer.Flush();
-      return Wait();
+      return WaitLocked();
     }
 
-    private string Wait()
+    private string WaitLocked()
     {
       StringBuilder sb = new StringBuilder();
       int c;
