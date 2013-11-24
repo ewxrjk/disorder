@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace uk.org.greenend.DisOrder
 {
@@ -13,9 +14,8 @@ namespace uk.org.greenend.DisOrder
   /// A connection to a DisOrder server
   /// </summary>
   /// <remarks><para>
-  /// You can use a connection object from multiple threads safely.  However in the current
-  /// implementation all requests are serialized, so this isn't very efficient.  A future implementation
-  /// may pipeline requests.</para></remarks>
+  /// You can use a connection object from multiple threads safely.  Requests are pipelined,
+  /// so concurrent usage is relatively efficient.</para></remarks>
   public partial class Connection: IDisposable
   {
     #region Public properties
@@ -30,7 +30,11 @@ namespace uk.org.greenend.DisOrder
     private TextReader reader = null;
     private TextWriter writer = null;
     private Socket socket = null;
-    private object mutex = new object();
+    private object monitor = new object();
+    private UInt64 nextRequest = 0; // ID for next request sent
+    private UInt64 nextResponse = 0; // ID for next response received
+    // Careful - nextRequest and nextResponse cannot safely be compared for order;
+    // only for equality.  The ID after 0xffffffffffffffff is 0.
 
     private Dictionary<string, string> Hashes = new Dictionary<string, string>()
     {
@@ -56,7 +60,7 @@ namespace uk.org.greenend.DisOrder
     /// <para>This is automatically called when necessary.</para></remarks>
     public void Connect()
     {
-      lock (mutex) {
+      lock (monitor) {
         ConnectLocked();
       }
     }
@@ -91,8 +95,9 @@ namespace uk.org.greenend.DisOrder
         input.AddRange(FromHex(challenge));
         using (System.Security.Cryptography.HashAlgorithm hash = System.Security.Cryptography.HashAlgorithm.Create(Hashes[algorithm])) {
           string response = ToHex(hash.ComputeHash(input.ToArray()));
-          // Send the response, TransactLocked will throw if user or password wrong
-          TransactLocked(new object[] { "user", Configuration.Username, response });
+          // Send the response, WaitLocked will throw if user or password wrong
+          SendLocked(new object[] { "user", Configuration.Username, response });
+          WaitLocked();
         }
       } catch {
         // If anything went wrong, tear it all down
@@ -104,10 +109,16 @@ namespace uk.org.greenend.DisOrder
     /// <summary>
     /// Disconnect from the server
     /// </summary>
-    /// <remarks><para>If not connected, does nothing.</para></remarks>
+    /// <remarks>
+    /// <para>If not connected, does nothing.</para>
+    /// <para>If any requests are outstanding, blocks until they are complete.</para>
+    /// </remarks>
     public void Disconnect()
     {
-      lock (mutex) {
+      lock (monitor) {
+        while (nextRequest != nextResponse) {
+          Monitor.Wait(monitor);
+        }
         DisconnectLocked();
       }
     }
@@ -132,42 +143,75 @@ namespace uk.org.greenend.DisOrder
     #region Protocol IO
     private string Transact(params object[] command)
     {
-      lock (mutex) {
-        return TransactLocked(command);
+      string response;
+      lock (monitor) {
+        // Don't consume the request ID until after SendLocked has returned,
+        // so that the response/request IDs aren't desynchronized on error.
+        SendLocked(command);
+        UInt64 id = nextRequest++;
+        try {
+          // Wait for this thread's turn.
+          while (nextResponse != id) {
+            Monitor.Wait(monitor);
+          }
+          response = WaitLocked();
+        }
+        finally {
+          // Having consumed a request ID we must be sure to consume
+          // the response ID too.
+          nextResponse++;
+          // Awaken other threads running Transact or Disconnect().
+          Monitor.PulseAll(monitor);
+        }
       }
+      return response;
     }
 
-    private string TransactLocked(object[] command)
+    private void SendLocked(object[] command)
     {
       if (writer == null)
         ConnectLocked();
+      StringBuilder sb = new StringBuilder();
       for (int i = 0; i < command.Length; ++i) {
         if (i > 0)
-          writer.Write(' '); // separator
+          sb.Append(' '); // separator
         object o = command[i];
         if (o is string)
-          writer.Write(Quote((string)o));
+          sb.Append(Quote((string)o));
         else if (o is int)
-          writer.Write((int)o);
+          sb.AppendFormat("{0}", (int)o);
         else if (o is DateTime)
-          writer.Write(DateTimeToUnix((DateTime)o));
+          sb.AppendFormat("{0}", DateTimeToUnix((DateTime)o));
         else
           throw new NotImplementedException();
       }
-      writer.Write('\n'); // terminator
-      writer.Flush();
-      return WaitLocked();
+      sb.Append('\n'); // Terminator
+      try {
+        writer.Write(sb.ToString());
+        writer.Flush();
+      }
+      catch {
+        // If an IO error occurs, disconnect.
+        DisconnectLocked();
+        throw;
+      }
     }
 
     private string WaitLocked()
     {
       StringBuilder sb = new StringBuilder();
       int c;
-      while ((c = reader.Read()) != -1 && c != '\n') {
-        sb.Append((char)c);
+      try {
+        while ((c = reader.Read()) != -1 && c != '\n') {
+          sb.Append((char)c);
+        }
+        if (c == -1)
+          throw new Exception("unterminated line received from server");
+      } catch {
+        // If an IO error occurs, disconnect.
+        DisconnectLocked();
+        throw;
       }
-      if (c == -1)
-        throw new Exception("unterminated line received from server");
       string response = sb.ToString();
       // Extract the initial code
       int rc;
