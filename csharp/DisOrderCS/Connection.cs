@@ -154,6 +154,11 @@ namespace uk.org.greenend.DisOrder
           while (nextResponse != id) {
             Monitor.Wait(monitor);
           }
+          if (writer == null) {
+            // Can't reconnect because all subsequent commands have been
+            // lost.
+            throw new Exception("lost connection");
+          }
           response = WaitLocked();
         }
         finally {
