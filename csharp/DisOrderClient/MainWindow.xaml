@@ -1,0 +1,32 @@
+﻿<Window x:Class="DisOrderClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DisOrderClient"
+        Title="DisOrder"
+        SizeToContent="WidthAndHeight"
+        Height="auto"
+        Width="auto">
+  <Window.CommandBindings>
+    <CommandBinding Command="{x:Static local:MainWindow.ConnectCommand}" Executed="ConnectExecuted"/>
+    <CommandBinding Command="{x:Static local:MainWindow.DisconnectCommand}" Executed="DisconnectExecuted"/>
+    <CommandBinding Command="{x:Static local:MainWindow.OptionsCommand}" Executed="OptionsExecuted"/>
+    <CommandBinding Command="ApplicationCommands.Close" Executed="CloseExecuted"/>
+  </Window.CommandBindings>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+    </Grid.RowDefinitions>
+    <Menu Grid.Row="0" IsMainMenu="True">
+      <MenuItem Header="_File">
+        <MenuItem Header="Connect" Command="{x:Static local:MainWindow.ConnectCommand}"></MenuItem>
+        <MenuItem Header="Disconnect" Command="{x:Static local:MainWindow.DisconnectCommand}"></MenuItem>
+        <MenuItem Header="Options" Command="{x:Static local:MainWindow.OptionsCommand}"></MenuItem>
+        <MenuItem Header="Exit" Command="ApplicationCommands.Close"></MenuItem>
+      </MenuItem>
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About" Click="About"></MenuItem>
+      </MenuItem>
+    </Menu>
+  </Grid>
+</Window>

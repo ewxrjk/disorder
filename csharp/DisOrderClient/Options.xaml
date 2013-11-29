@@ -1,0 +1,31 @@
+﻿<Window x:Class="DisOrderClient.Options"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Title="DisOrder Options">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="auto"></ColumnDefinition>
+      <ColumnDefinition Width="auto"></ColumnDefinition>
+    </Grid.ColumnDefinitions>
+    <Label Grid.Row="0" Grid.Column="0" Margin="2" Target="{Binding ElementName=HostnameEntry}">_Hostname</Label>
+    <TextBox Grid.Row="0" Grid.Column="1" Margin="2" Name="HostnameEntry" MinWidth="128" TextChanged="SomethingChanged"></TextBox>
+    <Label Grid.Row="1" Grid.Column="0" Margin="2" Target="{Binding ElementName=PortEntry}">_Port</Label>
+    <TextBox Grid.Row="1" Grid.Column="1" Margin="2" Name="PortEntry" MinWidth="64" TextChanged="SomethingChanged"></TextBox>
+    <Label Grid.Row="2" Grid.Column="0" Margin="2" Target="{Binding ElementName=PasswordEntry}">Password</Label>
+    <PasswordBox Grid.Row="2" Grid.Column="1" Margin="2" Name="PasswordEntry" MinWidth="128"></PasswordBox>
+    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+      <Button Click="OK" Margin="2" Width="64" Name="OKButton" IsDefault="True">OK</Button>
+      <Button Click="Cancel" Margin="2" Width="64">Cancel</Button>
+    </StackPanel>
+  </Grid>
+</Window>

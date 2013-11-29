@@ -1,0 +1,28 @@
+﻿<Window x:Class="DisOrderClient.About"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight"
+        Title="About DisOrder"
+        Loaded="OnLoaded"
+        Height="auto" Width="auto">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions></Grid.ColumnDefinitions>
+    <TextBlock Grid.Column="0" Grid.Row="0" FontSize="32" Margin="4" TextAlignment="Center">DisOrder</TextBlock>
+    <TextBlock Grid.Column="0" Grid.Row="1" FontSize="12" Margin="4" TextAlignment="Center" Name="ServerVersion">(getting server version)</TextBlock>
+    <TextBlock Grid.Column="0" Grid.Row="2" FontSize="12" Margin="4" TextAlignment="Center">
+      <Hyperlink Name="link" NavigateUri="http://www.greenend.org.uk/rjk/disorder/" RequestNavigate="VisitHomePage">http://www.greenend.org.uk/rjk/disorder/</Hyperlink> <!-- TODO -->
+    </TextBlock>
+    <TextBlock Grid.Column="0" Grid.Row="3" FontSize="12" Margin="4"  TextAlignment="Center">© 2013 Richard Kettlewell</TextBlock>
+    <Button Grid.Column="0" Grid.Row="4" Click="OK"  Margin="4"  Width="64" Height="auto" IsDefault="True">OK</Button>
+  </Grid>
+</Window>
