@@ -43,7 +43,7 @@ namespace uk.org.greenend.DisOrder
     /// <summary>
     /// Port number of server
     /// </summary>
-    public int Port { get; private set; }
+    public int Port { get; set; }
     #endregion
 
     /// <summary>
@@ -74,13 +74,13 @@ namespace uk.org.greenend.DisOrder
       }
       using (StreamWriter sw = new StreamWriter(UserPath)) {
         if (Username != null) {
-          Console.WriteLine("username {0}", Quote(Username));
+          sw.WriteLine("username {0}", Quote(Username));
         }
         if (Password != null) {
-          Console.WriteLine("password {0}", Quote(Password));
+          sw.WriteLine("password {0}", Quote(Password));
         }
         if (Address != null) {
-          Console.WriteLine("connect {0} {1}", Quote(Address), Port);
+          sw.WriteLine("connect {0} {1}", Quote(Address), Port);
         }
       }
     }
