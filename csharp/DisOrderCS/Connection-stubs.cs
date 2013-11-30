@@ -29,282 +29,473 @@ namespace uk.org.greenend.DisOrder
 {
   public partial class Connection
   {
-    public void Adopt(string id) {
-      Transact("adopt", id);
+    public int Adopt(string id) {
+      string response;
+      return Transact(out response, "adopt", id);
     }
 
-    public void Adduser(string user, string password, string rights) {
-      Transact("adduser", user, password, rights);
+    public int Adduser(string user, string password, string rights) {
+      string response;
+      return Transact(out response, "adduser", user, password, rights);
     }
 
-    // Allfiles not yet implemented
+    public int Allfiles(IList<string> files, string dir, string re) {
+      files.Clear();
+      string response;
+      int rc = Transact(out response, "allfiles", dir, re);
+      WaitBody(files);
+      return rc;
+    }
 
     // Confirm not yet implemented
 
     // Cookie not yet implemented
 
-    public void Deluser(string user) {
-      Transact("deluser", user);
+    public int Deluser(string user) {
+      string response;
+      return Transact(out response, "deluser", user);
     }
 
-    // Dirs not yet implemented
-
-    public void Disable() {
-      Transact("disable");
+    public int Dirs(IList<string> files, string dir, string re) {
+      files.Clear();
+      string response;
+      int rc = Transact(out response, "dirs", dir, re);
+      WaitBody(files);
+      return rc;
     }
 
-    public void Edituser(string username, string property, string value) {
-      Transact("edituser", username, property, value);
+    public int Disable() {
+      string response;
+      return Transact(out response, "disable");
     }
 
-    public void Enable() {
-      Transact("enable");
+    public int Edituser(string username, string property, string value) {
+      string response;
+      return Transact(out response, "edituser", username, property, value);
     }
 
-    // Enabled not yet implemented
+    public int Enable() {
+      string response;
+      return Transact(out response, "enable");
+    }
 
-    // Exists not yet implemented
+    public int Enabled(out bool enabled) {
+      enabled = false;
+      string response;
+      int rc = Transact(out response, "enabled");
+      IList<string> bits = Utils.Split(response, false);
+      if(bits.Count != 1)
+        throw new Exception("malformed response from server");
+      enabled = (bits[0] == "yes");
+      return rc;
+    }
 
-    // Files not yet implemented
+    public int Exists(out bool exists, string track) {
+      exists = false;
+      string response;
+      int rc = Transact(out response, "exists", track);
+      IList<string> bits = Utils.Split(response, false);
+      if(bits.Count != 1)
+        throw new Exception("malformed response from server");
+      exists = (bits[0] == "yes");
+      return rc;
+    }
 
-    public void Get(out string value, string track, string pref) {
-      string response = Transact("get", track, pref);
-      IList<string> bits = Configuration.Split(response, false);
+    public int Files(IList<string> files, string dir, string re) {
+      files.Clear();
+      string response;
+      int rc = Transact(out response, "files", dir, re);
+      WaitBody(files);
+      return rc;
+    }
+
+    public int Get(out string value, string track, string pref) {
+      value = null;
+      string response;
+      int rc = Transact(out response, "get", track, pref);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       value = bits[0];
+      return rc;
     }
 
-    public void GetGlobal(out string value, string pref) {
-      string response = Transact("get-global", pref);
-      IList<string> bits = Configuration.Split(response, false);
+    public int GetGlobal(out string value, string pref) {
+      value = null;
+      string response;
+      int rc = Transact(out response, "get-global", pref);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       value = bits[0];
+      return rc;
     }
 
-    public void Length(out int length, string track) {
-      string response = Transact("length", track);
-      IList<string> bits = Configuration.Split(response, false);
+    public int Length(out int length, string track) {
+      length = 0;
+      string response;
+      int rc = Transact(out response, "length", track);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       length = int.Parse(bits[0]);
+      return rc;
     }
 
-    public void MakeCookie(out string cookie) {
-      string response = Transact("make-cookie");
-      IList<string> bits = Configuration.Split(response, false);
+    public int MakeCookie(out string cookie) {
+      cookie = null;
+      string response;
+      int rc = Transact(out response, "make-cookie");
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       cookie = bits[0];
+      return rc;
     }
 
-    public void Move(string track, int delta) {
-      Transact("move", track, delta);
+    public int Move(string track, int delta) {
+      string response;
+      return Transact(out response, "move", track, delta);
     }
 
     // Moveafter not yet implemented
 
-    // NewTracks not yet implemented
-
-    public void Nop() {
-      Transact("nop");
+    public int NewTracks(IList<string> tracks, int max) {
+      tracks.Clear();
+      string response;
+      int rc = Transact(out response, "new", max);
+      WaitBody(tracks);
+      return rc;
     }
 
-    public void Part(out string part, string track, string context, string namepart) {
-      string response = Transact("part", track, context, namepart);
-      IList<string> bits = Configuration.Split(response, false);
+    public int Nop() {
+      string response;
+      return Transact(out response, "nop");
+    }
+
+    public int Part(out string part, string track, string context, string namepart) {
+      part = null;
+      string response;
+      int rc = Transact(out response, "part", track, context, namepart);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       part = bits[0];
+      return rc;
     }
 
-    public void Pause() {
-      Transact("pause");
+    public int Pause() {
+      string response;
+      return Transact(out response, "pause");
     }
 
-    // Play not yet implemented
+    public int Play(out string id, string track) {
+      id = null;
+      string response;
+      int rc = Transact(out response, "play", track);
+      id = response;
+      return rc;
+    }
 
     // Playafter not yet implemented
 
-    // Playing not yet implemented
-
-    public void PlaylistDelete(string playlist) {
-      Transact("playlist-delete", playlist);
+    public int Playing(QueueEntry playing) {
+      string response;
+      int rc = Transact(out response, "playing");
+      playing.Set(response);
+      return rc;
     }
 
-    // PlaylistGet not yet implemented
+    public int PlaylistDelete(string playlist) {
+      string response;
+      return Transact(out response, "playlist-delete", playlist);
+    }
 
-    // PlaylistGetShare not yet implemented
+    public int PlaylistGet(IList<string> tracks, string playlist) {
+      tracks.Clear();
+      string response;
+      int rc = Transact(out response, "playlist-get", playlist);
+      WaitBody(tracks);
+      return rc;
+    }
 
-    public void PlaylistLock(string playlist) {
-      Transact("playlist-lock", playlist);
+    public int PlaylistGetShare(out string share, string playlist) {
+      share = null;
+      string response;
+      int rc = Transact(out response, "playlist-get-share", playlist);
+      share = response;
+      return rc;
+    }
+
+    public int PlaylistLock(string playlist) {
+      string response;
+      return Transact(out response, "playlist-lock", playlist);
     }
 
     // PlaylistSet not yet implemented
 
-    public void PlaylistSetShare(string playlist, string share) {
-      Transact("playlist-set-share", playlist, share);
+    public int PlaylistSetShare(string playlist, string share) {
+      string response;
+      return Transact(out response, "playlist-set-share", playlist, share);
     }
 
-    public void PlaylistUnlock() {
-      Transact("playlist-unlock");
+    public int PlaylistUnlock() {
+      string response;
+      return Transact(out response, "playlist-unlock");
     }
 
-    // Playlists not yet implemented
+    public int Playlists(IList<string> playlists) {
+      playlists.Clear();
+      string response;
+      int rc = Transact(out response, "playlists");
+      WaitBody(playlists);
+      return rc;
+    }
 
     // Prefs not yet implemented
 
-    // Queue not yet implemented
-
-    public void RandomDisable() {
-      Transact("random-disable");
+    public int Queue(IList<QueueEntry> queue) {
+      queue.Clear();
+      string response;
+      int rc = Transact(out response, "queue");
+      WaitBodyQueue(queue);
+      return rc;
     }
 
-    public void RandomEnable() {
-      Transact("random-enable");
+    public int RandomDisable() {
+      string response;
+      return Transact(out response, "random-disable");
     }
 
-    // RandomEnabled not yet implemented
-
-    // Recent not yet implemented
-
-    public void Reconfigure() {
-      Transact("reconfigure");
+    public int RandomEnable() {
+      string response;
+      return Transact(out response, "random-enable");
     }
 
-    public void Register(out string confirmation, string username, string password, string email) {
-      string response = Transact("register", username, password, email);
-      IList<string> bits = Configuration.Split(response, false);
+    public int RandomEnabled(out bool enabled) {
+      enabled = false;
+      string response;
+      int rc = Transact(out response, "random-enabled");
+      IList<string> bits = Utils.Split(response, false);
+      if(bits.Count != 1)
+        throw new Exception("malformed response from server");
+      enabled = (bits[0] == "yes");
+      return rc;
+    }
+
+    public int Recent(IList<QueueEntry> recent) {
+      recent.Clear();
+      string response;
+      int rc = Transact(out response, "recent");
+      WaitBodyQueue(recent);
+      return rc;
+    }
+
+    public int Reconfigure() {
+      string response;
+      return Transact(out response, "reconfigure");
+    }
+
+    public int Register(out string confirmation, string username, string password, string email) {
+      confirmation = null;
+      string response;
+      int rc = Transact(out response, "register", username, password, email);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       confirmation = bits[0];
+      return rc;
     }
 
-    public void Reminder(string username) {
-      Transact("reminder", username);
+    public int Reminder(string username) {
+      string response;
+      return Transact(out response, "reminder", username);
     }
 
-    public void Remove(string id) {
-      Transact("remove", id);
+    public int Remove(string id) {
+      string response;
+      return Transact(out response, "remove", id);
     }
 
-    public void Rescan() {
-      Transact("rescan");
+    public int Rescan() {
+      string response;
+      return Transact(out response, "rescan");
     }
 
-    public void Resolve(out string resolved, string track) {
-      string response = Transact("resolve", track);
-      IList<string> bits = Configuration.Split(response, false);
+    public int Resolve(out string resolved, string track) {
+      resolved = null;
+      string response;
+      int rc = Transact(out response, "resolve", track);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       resolved = bits[0];
+      return rc;
     }
 
-    public void Resume() {
-      Transact("resume");
+    public int Resume() {
+      string response;
+      return Transact(out response, "resume");
     }
 
-    public void Revoke() {
-      Transact("revoke");
+    public int Revoke() {
+      string response;
+      return Transact(out response, "revoke");
     }
 
-    public void RtpAddress(out string address, out string port) {
-      string response = Transact("rtp-address");
-      IList<string> bits = Configuration.Split(response, false);
+    public int RtpAddress(out string address, out string port) {
+      address = null;
+      port = null;
+      string response;
+      int rc = Transact(out response, "rtp-address");
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
         throw new Exception("malformed response from server");
       address = bits[0];
       port = bits[1];
+      return rc;
     }
 
-    public void RtpCancel() {
-      Transact("rtp-cancel");
+    public int RtpCancel() {
+      string response;
+      return Transact(out response, "rtp-cancel");
     }
 
-    public void RtpRequest(string address, string port) {
-      Transact("rtp-request", address, port);
+    public int RtpRequest(string address, string port) {
+      string response;
+      return Transact(out response, "rtp-request", address, port);
     }
 
-    public void Scratch(string id) {
-      Transact("scratch", id);
+    public int Scratch(string id) {
+      string response;
+      return Transact(out response, "scratch", id);
     }
 
-    public void ScheduleAddPlay(DateTime when, string priority, string track) {
-      Transact("schedule-add", when, priority, "play", track);
+    public int ScheduleAddPlay(DateTime when, string priority, string track) {
+      string response;
+      return Transact(out response, "schedule-add", when, priority, "play", track);
     }
 
-    public void ScheduleAddSetGlobal(DateTime when, string priority, string pref, string value) {
-      Transact("schedule-add", when, priority, "set-global", pref, value);
+    public int ScheduleAddSetGlobal(DateTime when, string priority, string pref, string value) {
+      string response;
+      return Transact(out response, "schedule-add", when, priority, "set-global", pref, value);
     }
 
-    public void ScheduleAddUnsetGlobal(DateTime when, string priority, string pref) {
-      Transact("schedule-add", when, priority, "set-global", pref);
+    public int ScheduleAddUnsetGlobal(DateTime when, string priority, string pref) {
+      string response;
+      return Transact(out response, "schedule-add", when, priority, "set-global", pref);
     }
 
-    public void ScheduleDel(string id) {
-      Transact("schedule-del", id);
+    public int ScheduleDel(string id) {
+      string response;
+      return Transact(out response, "schedule-del", id);
     }
 
     // ScheduleGet not yet implemented
 
-    // ScheduleList not yet implemented
-
-    // Search not yet implemented
-
-    public void Set(string track, string pref, string value) {
-      Transact("set", track, pref, value);
+    public int ScheduleList(IList<string> ids) {
+      ids.Clear();
+      string response;
+      int rc = Transact(out response, "schedule-list");
+      WaitBody(ids);
+      return rc;
     }
 
-    public void SetGlobal(string pref, string value) {
-      Transact("set-global", pref, value);
+    public int Search(IList<string> tracks, string terms) {
+      tracks.Clear();
+      string response;
+      int rc = Transact(out response, "search", terms);
+      WaitBody(tracks);
+      return rc;
     }
 
-    public void Shutdown() {
-      Transact("shutdown");
+    public int Set(string track, string pref, string value) {
+      string response;
+      return Transact(out response, "set", track, pref, value);
     }
 
-    // Stats not yet implemented
-
-    // Tags not yet implemented
-
-    public void Unset(string track, string pref) {
-      Transact("unset", track, pref);
+    public int SetGlobal(string pref, string value) {
+      string response;
+      return Transact(out response, "set-global", pref, value);
     }
 
-    public void UnsetGlobal(string pref) {
-      Transact("unset-global", pref);
+    public int Shutdown() {
+      string response;
+      return Transact(out response, "shutdown");
     }
 
-    public void Userinfo(out string value, string username, string property) {
-      string response = Transact("userinfo", username, property);
-      IList<string> bits = Configuration.Split(response, false);
+    public int Stats(IList<string> stats) {
+      stats.Clear();
+      string response;
+      int rc = Transact(out response, "stats");
+      WaitBody(stats);
+      return rc;
+    }
+
+    public int Tags(IList<string> tags) {
+      tags.Clear();
+      string response;
+      int rc = Transact(out response, "tags");
+      WaitBody(tags);
+      return rc;
+    }
+
+    public int Unset(string track, string pref) {
+      string response;
+      return Transact(out response, "unset", track, pref);
+    }
+
+    public int UnsetGlobal(string pref) {
+      string response;
+      return Transact(out response, "unset-global", pref);
+    }
+
+    public int Userinfo(out string value, string username, string property) {
+      value = null;
+      string response;
+      int rc = Transact(out response, "userinfo", username, property);
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       value = bits[0];
+      return rc;
     }
 
-    // Users not yet implemented
+    public int Users(IList<string> users) {
+      users.Clear();
+      string response;
+      int rc = Transact(out response, "users");
+      WaitBody(users);
+      return rc;
+    }
 
-    public void Version(out string version) {
-      string response = Transact("version");
-      IList<string> bits = Configuration.Split(response, false);
+    public int Version(out string version) {
+      version = null;
+      string response;
+      int rc = Transact(out response, "version");
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new Exception("malformed response from server");
       version = bits[0];
+      return rc;
     }
 
-    public void SetVolume(int left, int right) {
-      Transact("volume", left, right);
+    public int SetVolume(int left, int right) {
+      string response;
+      return Transact(out response, "volume", left, right);
     }
 
-    public void GetVolume(out int left, out int right) {
-      string response = Transact("volume");
-      IList<string> bits = Configuration.Split(response, false);
+    public int GetVolume(out int left, out int right) {
+      left = 0;
+      right = 0;
+      string response;
+      int rc = Transact(out response, "volume");
+      IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
         throw new Exception("malformed response from server");
       left = int.Parse(bits[0]);
       right = int.Parse(bits[1]);
+      return rc;
     }
 
   }

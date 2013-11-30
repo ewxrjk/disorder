@@ -27,12 +27,16 @@ namespace uk.org.greenend.DisOrder
     #endregion
 
     #region Private state
-    private TextReader reader = null;
     private TextWriter writer = null;
+    private Stream inputStream = null;
+    private byte[] inputBuffer = new byte[4096];
+    private int inputOffset = 0, inputLimit = 0;
+    private CancellationTokenSource inputCancel = new CancellationTokenSource();
     private Socket socket = null;
     private object monitor = new object();
     private UInt64 nextRequest = 0; // ID for next request sent
     private UInt64 nextResponse = 0; // ID for next response received
+    private DateTime lastConnect = new DateTime();
     // Careful - nextRequest and nextResponse cannot safely be compared for order;
     // only for equality.  The ID after 0xffffffffffffffff is 0.
 
@@ -73,15 +77,23 @@ namespace uk.org.greenend.DisOrder
         Configuration = new Configuration();
         Configuration.Read();
       }
+      // Crude rate-limiting of reconnection
+      DateTime now = DateTime.UtcNow;
+      if (now.Subtract(lastConnect).TotalSeconds < 1)
+        Thread.Sleep(1000);
+      lastConnect = now;
       socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
       try {
         // Connect to the server
         socket.Connect(Configuration.Address, Configuration.Port);
-        NetworkStream ns = new NetworkStream(socket);
-        reader = new StreamReader(ns, Encoding);
-        writer = new StreamWriter(ns, Encoding);
+        inputStream = new NetworkStream(socket);
+        inputOffset = 0;
+        inputLimit = 0;
+        writer = new StreamWriter(inputStream, Encoding);
         // Get protocol version and challenge
-        IList<string> greeting = Configuration.Split(WaitLocked(), false);
+        string response;
+        int rc = WaitLocked(out response);
+        IList<string> greeting = Utils.Split(response, false);
         if (greeting.Count < 1 || greeting[0] != "2")
           throw new Exception("unrecognized protocol generation");
         if (greeting.Count() != 3)
@@ -92,12 +104,12 @@ namespace uk.org.greenend.DisOrder
           throw new Exception("server requested unrecognized hash algorithm");
         List<byte> input = new List<byte>();
         input.AddRange(Encoding.UTF8.GetBytes(Configuration.Password));
-        input.AddRange(FromHex(challenge));
+        input.AddRange(Utils.FromHex(challenge));
         using (System.Security.Cryptography.HashAlgorithm hash = System.Security.Cryptography.HashAlgorithm.Create(Hashes[algorithm])) {
-          string response = ToHex(hash.ComputeHash(input.ToArray()));
+          string hashed = Utils.ToHex(hash.ComputeHash(input.ToArray()));
           // Send the response, WaitLocked will throw if user or password wrong
-          SendLocked(new object[] { "user", Configuration.Username, response });
-          WaitLocked();
+          SendLocked(new object[] { "user", Configuration.Username, hashed });
+          WaitLocked(out response);
         }
       } catch {
         // If anything went wrong, tear it all down
@@ -111,10 +123,12 @@ namespace uk.org.greenend.DisOrder
     /// </summary>
     /// <remarks>
     /// <para>If not connected, does nothing.</para>
-    /// <para>If any requests are outstanding, blocks until they are complete.</para>
+    /// <para>Outstanding requests in other threads will fail.</para>
     /// </remarks>
     public void Disconnect()
     {
+      inputCancel.Cancel();
+      inputCancel = new CancellationTokenSource();
       lock (monitor) {
         while (nextRequest != nextResponse) {
           Monitor.Wait(monitor);
@@ -125,10 +139,6 @@ namespace uk.org.greenend.DisOrder
 
     private void DisconnectLocked()
     {
-      if (reader != null) {
-        reader.Dispose();
-        reader = null;
-      }
       if (writer != null) {
         writer.Dispose();
         writer = null;
@@ -140,36 +150,72 @@ namespace uk.org.greenend.DisOrder
     }
     #endregion
 
-    #region Protocol IO
-    private string Transact(params object[] command)
+    #region Input buffering
+    private void InputFill(CancellationToken ct)
     {
-      string response;
+      Task<int> t = inputStream.ReadAsync(inputBuffer, 0, inputBuffer.Count(), ct);
+      t.Wait(ct);
+      if (t.Status == TaskStatus.Canceled)
+        throw new OperationCanceledException();
+      int bytes = t.Result;
+      if (bytes == 0)
+        throw new Exception("server closed connection");
+      inputLimit = bytes;
+      inputOffset = 0;
+    }
+
+    private int InputByte(CancellationToken ct)
+    {
+      if (inputOffset >= inputLimit)
+        InputFill(ct);
+      return inputBuffer[inputOffset++];
+    }
+
+    private string InputLine(CancellationToken ct)
+    {
+      List<byte> line = new List<byte>();
+      int c;
+      while ((c = InputByte(ct)) >= 0 && c != 0x0A)
+        line.Add((byte)c);
+      return Encoding.UTF8.GetString(line.ToArray());
+    }
+    #endregion
+
+    #region Protocol IO
+    private int Transact(out string response, params object[] command)
+    {
       lock (monitor) {
-        // Don't consume the request ID until after SendLocked has returned,
-        // so that the response/request IDs aren't desynchronized on error.
-        SendLocked(command);
-        UInt64 id = nextRequest++;
-        try {
-          // Wait for this thread's turn.
-          while (nextResponse != id) {
-            Monitor.Wait(monitor);
-          }
-          if (writer == null) {
-            // Can't reconnect because all subsequent commands have been
-            // lost.
-            throw new Exception("lost connection");
-          }
-          response = WaitLocked();
-        }
-        finally {
-          // Having consumed a request ID we must be sure to consume
-          // the response ID too.
-          nextResponse++;
-          // Awaken other threads running Transact or Disconnect().
-          Monitor.PulseAll(monitor);
-        }
+        return TransactLocked(out response, command);
       }
-      return response;
+    }
+
+    private int TransactLocked(out string response, object[] command)
+    {
+      int rc;
+      // Don't consume the request ID until after SendLocked has returned,
+      // so that the response/request IDs aren't desynchronized on error.
+      SendLocked(command);
+      Socket expectedSocket = socket;
+      UInt64 id = nextRequest++;
+      try {
+        // Wait for this thread's turn.
+        while (nextResponse != id) {
+          Monitor.Wait(monitor);
+        }
+        if (!object.ReferenceEquals(socket, expectedSocket)) {
+          // Automatic retries would need to be implemented in here somewhere
+          throw new Exception("lost connection");
+        }
+        rc = WaitLocked(out response);
+      }
+      finally {
+        // Having consumed a request ID we must be sure to consume
+        // the response ID too.
+        nextResponse++;
+        // Awaken other threads running Transact or Disconnect().
+        Monitor.PulseAll(monitor);
+      }
+      return rc;
     }
 
     private void SendLocked(object[] command)
@@ -182,11 +228,11 @@ namespace uk.org.greenend.DisOrder
           sb.Append(' '); // separator
         object o = command[i];
         if (o is string)
-          sb.Append(Configuration.Quote((string)o));
+          sb.Append(Utils.Quote((string)o));
         else if (o is int)
           sb.AppendFormat("{0}", (int)o);
         else if (o is DateTime)
-          sb.AppendFormat("{0}", DateTimeToUnix((DateTime)o));
+          sb.AppendFormat("{0}", Utils.DateTimeToUnix((DateTime)o));
         else
           throw new NotImplementedException();
       }
@@ -202,61 +248,102 @@ namespace uk.org.greenend.DisOrder
       }
     }
 
-    private string WaitLocked()
+    private string ReadLine()
     {
-      StringBuilder sb = new StringBuilder();
-      int c;
       try {
-        while ((c = reader.Read()) != -1 && c != '\n') {
-          sb.Append((char)c);
-        }
-        if (c == -1)
-          throw new Exception("unterminated line received from server");
-      } catch {
+        return InputLine(inputCancel.Token);
+      }
+      catch {
         // If an IO error occurs, disconnect.
         DisconnectLocked();
         throw;
       }
-      string response = sb.ToString();
+    }
+
+    private int WaitLocked(out string response)
+    {
+      string line = ReadLine();
       // Extract the initial code
       int rc;
-      if (response.Length >= 3 && int.TryParse(response.Substring(0, 3), out rc)) {
+      if (line.Length >= 3 && int.TryParse(line.Substring(0, 3), out rc)) {
         if (rc / 100 != 2)
-          throw new Exception("error from server: " + response);
-        else if (rc % 10 == 9)
-          return null;
+          throw new Exception("error from server: " + line);
         else
-          return response.Substring(4);
+          response = line.Substring(4);
+        return rc;
       } 
       else
         throw new Exception("malformed line received from server");
     }
-    private static long DateTimeToUnix(DateTime dt)
+
+    private void WaitBody(IList<string> body)
     {
-      DateTime zero = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-      return (long)(dt - zero).TotalSeconds;
+      body.Clear();
+      string line;
+      while ((line = ReadLine()) != ".") {
+        if (line[0] != '.')
+          body.Add(line);
+        else
+          body.Add(line.Substring(1));
+      }
+    }
+
+    private void WaitBodyQueue(IList<QueueEntry> queue) {
+      queue.Clear();
+      List<string> lines = new List<string>();
+      WaitBody(lines);
+      foreach (string line in lines) {
+        queue.Add(new QueueEntry(line));
+      }
     }
     #endregion
 
-    #region Hexadecimal Conversion
-    private IList<byte> FromHex(string s)
+    /// <summary>
+    /// Monitor the server log
+    /// </summary>
+    /// <param name="consumer">Callback instance</param>
+    /// <remarks><para>This method hogs the connection; other attempts to use the same connection will block.</para>
+    /// <para>When the connection closes (e.g. due to a network error or the server terminating) this method
+    /// will return.  The connection can then be used in the normal way.</para></remarks>
+    public void Log(LogConsumer consumer)
     {
-      List<byte> bytes = new List<byte>();
-      for (int i = 0; i < s.Length; i += 2) {
-        bytes.Add((byte)int.Parse(s.Substring(i, 2), System.Globalization.NumberStyles.HexNumber));
+      lock (monitor) {
+        try {
+          string response;
+          TransactLocked(out response, new object[] { "log" });
+          for (; ; ) {
+            string line = ReadLine();
+            IList<string> bits = Utils.Split(line, false);
+            if (bits.Count < 2)
+              throw new Exception("malformed server log response");
+            DateTime when = Utils.UnixToDateTime(long.Parse(bits[0], System.Globalization.NumberStyles.HexNumber));
+            string what = bits[1];
+            if (what == "adopted") consumer.Adopted(when, bits[2], bits[3]);
+            else if (what == "completed") consumer.Completed(when, bits[2]);
+            else if (what == "failed") consumer.Failed(when, bits[2], bits[3]);
+            else if (what == "moved") consumer.Moved(when, bits[2]);
+            else if (what == "playing") consumer.Playing(when, bits[2], bits.Count() > 3 ? bits[3] : null);
+            else if (what == "queue") consumer.Queue(when, new QueueEntry(bits, 2));
+            else if (what == "recent_added") consumer.RecentAdded(when, new QueueEntry(bits, 2));
+            else if (what == "recent_removed") consumer.RecentRemoved(when, bits[2]);
+            else if (what == "removed") consumer.Removed(when, bits[2], bits.Count() > 3 ? bits[3] : null);
+            else if (what == "scratched") consumer.Scratched(when, bits[2], bits[3]);
+            else if (what == "state") consumer.State(when, bits[2]);
+            else if (what == "user_add") consumer.UserAdd(when, bits[2]);
+            else if (what == "user_delete") consumer.UserDelete(when, bits[2]);
+            else if (what == "user_edit") consumer.UserEdit(when, bits[2], bits[3]);
+            else if (what == "user_confirm") consumer.UserConfirm(when, bits[2]);
+            else if (what == "volume") consumer.Volume(when, int.Parse(bits[2]), int.Parse(bits[3]));
+            // ...unknown entries ignored...
+          }
+        }
+        catch {
+          // Mustn't exit in a state where the server is still sending log messages
+          DisconnectLocked();
+          throw;
+        }
       }
-      return bytes;
     }
-
-    private string ToHex(byte[] bytes)
-    {
-      StringBuilder sb = new StringBuilder();
-      foreach (byte b in bytes) {
-        sb.Append(string.Format("{0:x2}", b));
-      }
-      return sb.ToString();
-    }
-    #endregion
 
     #region Dispose logic
     public void Dispose()

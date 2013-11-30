@@ -74,13 +74,13 @@ namespace uk.org.greenend.DisOrder
       }
       using (StreamWriter sw = new StreamWriter(UserPath)) {
         if (Username != null) {
-          sw.WriteLine("username {0}", Quote(Username));
+          sw.WriteLine("username {0}", Utils.Quote(Username));
         }
         if (Password != null) {
-          sw.WriteLine("password {0}", Quote(Password));
+          sw.WriteLine("password {0}", Utils.Quote(Password));
         }
         if (Address != null) {
-          sw.WriteLine("connect {0} {1}", Quote(Address), Port);
+          sw.WriteLine("connect {0} {1}", Utils.Quote(Address), Port);
         }
       }
     }
@@ -97,7 +97,7 @@ namespace uk.org.greenend.DisOrder
 
     private void ProcessLine(string line)
     {
-      IList<string> bits = Split(line, true/*comments*/);
+      IList<string> bits = Utils.Split(line, true/*comments*/);
       if (bits.Count() == 0)
         return;
       if (bits[0] == "username") {
@@ -125,92 +125,6 @@ namespace uk.org.greenend.DisOrder
         throw new Exception("unrecognized configuration command");
     }
 
-    #region String splitting
-    static private bool isspace(char c)
-    {
-      return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-    }
-
-    static internal IList<string> Split(string s, bool comments)
-    {
-      int pos = 0;
-      List<string> bits = new List<string>();
-      while (pos < s.Length) {
-        if (isspace(s[pos])) {
-          ++pos;
-          continue;
-        }
-        if (comments && s[pos] == '#') {
-          break;
-        }
-        if (s[pos] == '\'' || s[pos] == '"') {
-          StringBuilder sb = new StringBuilder();
-          char q = s[pos++];
-          while (pos < s.Length && s[pos] != q) {
-            if (s[pos] == '\\') {
-              ++pos;
-              if (pos >= s.Length)
-                throw new Exception("unterminated quoted string"); // TODO exception type
-              switch (s[pos]) {
-                case '\'':
-                case '\\':
-                case '"':
-                  sb.Append(s[pos++]);
-                  break;
-                case 'n':
-                  sb.Append('\n');
-                  ++pos;
-                  break;
-                default:
-                  throw new Exception("invalid escape sequence"); // TODO exception type
-              }
-            }
-            else
-              sb.Append(s[pos++]);
-          }
-          bits.Add(sb.ToString());
-        }
-        else {
-          int start = pos;
-          while (pos < s.Length && !isspace(s[pos]))
-            ++pos;
-          bits.Add(s.Substring(start, pos - start));
-        }
-      }
-      return bits;
-    }
-
-    internal static string Quote(string s)
-    {
-      bool needQuote = (s.Length == 0);
-      foreach (char c in s) {
-        if (c <= ' ' || c == '"' || c == '\\' || c == '\'' || c == '#') {
-          needQuote = true;
-          break;
-        }
-      }
-      if (!needQuote)
-        return s;
-      StringBuilder sb = new StringBuilder();
-      foreach (char c in s) {
-        switch (c) {
-          case '"':
-          case '\\':
-            sb.Append('\\');
-            sb.Append(c);
-            break;
-          case '\n':
-            sb.Append("\\n");
-            break;
-          default:
-            sb.Append(c);
-            break;
-        }
-      }
-      return sb.ToString();
-    }
-
-    #endregion
 
   }
 }

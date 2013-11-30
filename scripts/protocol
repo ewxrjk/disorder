@@ -455,20 +455,59 @@ sub simple {
     $cmdcs =~ s/_(.)/uc($1)/ge;
     $cmdcs =~ s/^./uc($&)/e;
     my $retno = 0;
+    my @csinit = ();
+    my @csbitscheck = ();
     my @csretparse = ();
+    my $csrettype = '';
     for my $ret (@$returns) {
 	my $type = $ret->[0];
 	my $name = $ret->[1];
 	if($type eq 'string') {
+	    $csrettype = 'split';
 	    push(@csargsdecl, "out string $name");
+	    push(@csinit,     "      $name = null;\n");
 	    push(@csretparse, "      $name = bits[$retno];\n");
 	} elsif($type eq 'integer') {
+	    $csrettype = 'split';
 	    push(@csargsdecl, "out int $name");
+	    push(@csinit,     "      $name = 0;\n");
 	    push(@csretparse, "      $name = int.Parse(bits[$retno]);\n");
+	} elsif($type eq 'boolean') {
+	    $csrettype = 'split';
+	    push(@csargsdecl, "out bool $name");
+	    push(@csinit,     "      $name = false;\n");
+	    push(@csretparse, "      $name = (bits[$retno] == \"yes\");\n");
+	} elsif($type eq 'string-raw') {
+	    $csrettype = $type;
+	    push(@csargsdecl, "out string $name");
+	    push(@csinit,     "      $name = null;\n");
+	    push(@csretparse, "      $name = response;\n");
+	} elsif($type eq 'queue-one') {
+	    $csrettype = $type;
+	    push(@csargsdecl,
+		 "QueueEntry $name");
+	    push(@csretparse,
+		 "      $name.Set(response);\n");
+	} elsif($type eq 'body') {
+	    push(@csargsdecl,
+		 "IList<string> $name");
+	    push(@csinit,     "      $name.Clear();\n");
+	    push(@csretparse, "      WaitBody($name);\n");
+	} elsif($type eq 'queue') {
+	    push(@csargsdecl,
+		 "IList<QueueEntry> $name");
+	    push(@csinit,     "      $name.Clear();\n");
+	    push(@csretparse, "      WaitBodyQueue($name);\n");
 	} else {
 	    $cskip = 1;
 	}
 	++$retno;
+    }
+    if($csrettype eq 'split') {
+	unshift(@csretparse,
+		"      IList<string> bits = Utils.Split(response, false);\n",
+		"      if(bits.Count != $retno)\n",
+		"        throw new Exception(\"malformed response from server\");\n");
     }
     for my $arg (@$args) {
 	my $type = $arg->[0];
@@ -491,19 +530,22 @@ sub simple {
 	}
     }
     if(!$cskip) {
-	push(@cs, "    public void $cmdcs(",
-	     join(", ", @csargsdecl), ") {\n");
+	push(@cs, "    public int $cmdcs(",
+	     join(", ", @csargsdecl), ") {\n",
+	     @csinit,
+	     "      string response;\n");
 	if($retno == 0) {
-	    push(@cs, "      Transact(", join(", ", @csargspass), ");\n");
+	    push(@cs, "      return Transact(", join(", ", "out response", @csargspass), ");\n");
 	} else {
 	    push(@cs,
-		 "      string response = Transact(", join(", ", @csargspass), ");\n",
-		 "      IList<string> bits = Configuration.Split(response, false);\n",
-		 "      if(bits.Count != $retno)\n",
-		 "        throw new Exception(\"malformed response from server\");\n");
-	    push(@cs, @csretparse);
+		 "      int rc = Transact(", join(", ",
+						  "out response", @csargspass),
+					  ");\n",
+		 @csretparse,
+		 "      return rc;\n");
 	}
-	push(@cs, "    }\n",
+	push(@cs,
+	     "    }\n",
 	     "\n");
     } else {
 	push(@cs, "    // $cmdcs not yet implemented\n", "\n");
