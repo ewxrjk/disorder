@@ -32,8 +32,8 @@ namespace DisOrderClient
     {
       ThreadPool.QueueUserWorkItem((_) =>
       {
-        string v;
         try {
+          string v;
           Connection.Version(out v);
           Dispatcher.Invoke(() =>
           {

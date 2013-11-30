@@ -17,10 +17,14 @@
       <RowDefinition Height="auto"></RowDefinition>
       <RowDefinition Height="auto"></RowDefinition>
     </Grid.RowDefinitions>
-    <Menu Grid.Row="0" IsMainMenu="True">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="auto"></ColumnDefinition>
+      <ColumnDefinition Width="auto"></ColumnDefinition>
+    </Grid.ColumnDefinitions>
+    <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" IsMainMenu="True">
       <MenuItem Header="_File">
-        <MenuItem Header="Connect" Command="{x:Static local:MainWindow.ConnectCommand}"></MenuItem>
-        <MenuItem Header="Disconnect" Command="{x:Static local:MainWindow.DisconnectCommand}"></MenuItem>
+        <!--<MenuItem Header="Connect" Command="{x:Static local:MainWindow.ConnectCommand}"></MenuItem>-->
+        <!--<MenuItem Header="Disconnect" Command="{x:Static local:MainWindow.DisconnectCommand}"></MenuItem>-->
         <MenuItem Header="Options" Command="{x:Static local:MainWindow.OptionsCommand}"></MenuItem>
         <MenuItem Header="Exit" Command="ApplicationCommands.Close"></MenuItem>
       </MenuItem>
@@ -28,5 +32,7 @@
         <MenuItem Header="_About" Click="About"></MenuItem>
       </MenuItem>
     </Menu>
+    <Label Grid.Row="1" Grid.Column="0">Playing:</Label>
+    <Label Grid.Row="1" Grid.Column="1" Name="PlayingLabel" MinWidth="256"></Label>
   </Grid>
 </Window>

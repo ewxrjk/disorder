@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using uk.org.greenend.DisOrder;
+using System;
 
 namespace DisOrderClient
 {
@@ -15,6 +16,7 @@ namespace DisOrderClient
     }
 
     #region Properties Set By Caller
+    public Action Reconfigure { get; set; }
     private Configuration _Configuration;
     public Configuration Configuration
     {
@@ -46,7 +48,8 @@ namespace DisOrderClient
         _Configuration.Port = int.Parse(PortEntry.Text);
         _Configuration.Password = PasswordEntry.Password;
         _Configuration.Write();
-        // TODO perhaps should reconnect to server
+        if(Reconfigure != null)
+          Reconfigure();
       }
       this.Close();
     }
