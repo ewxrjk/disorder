@@ -97,8 +97,22 @@ namespace uk.org.greenend.DisOrder
     {
       using (StreamReader sr = new StreamReader(path)) {
         string s;
+        int line = 1;
         while ((s = sr.ReadLine()) != null) {
-          ProcessLine(s);
+          try {
+            try {
+              ProcessLine(s);
+            }
+            catch (InvalidStringException e) {
+              throw new InvalidConfigurationException(e.Message, e);
+            }
+          }
+          catch (InvalidConfigurationException e) {
+            e.Path = path;
+            e.Line = line;
+            throw;
+          }
+          ++line;
         }
       }
     }
@@ -110,37 +124,37 @@ namespace uk.org.greenend.DisOrder
         return;
       if (bits[0] == "username") {
         if (bits.Count() != 2)
-          throw new Exception("wrong number of arguments to 'username'");
+          throw new InvalidConfigurationException("wrong number of arguments to 'username'");
         Username = bits[1];
       }
       else if (bits[0] == "password") {
         if (bits.Count() != 2)
-          throw new Exception("wrong number of arguments to 'password'");
+          throw new InvalidConfigurationException("wrong number of arguments to 'password'");
         Password = bits[1];
       }
       else if (bits[0] == "connect") {
         if (bits.Count() != 3)
-          throw new Exception("wrong number of arguments to 'connect'");
+          throw new InvalidConfigurationException("wrong number of arguments to 'connect'");
         int port;
         if (!int.TryParse(bits[2], out port))
-          throw new Exception("cannot parse port number");
+          throw new InvalidConfigurationException("port number is not a number");
         if (port < 1 || port > 65535)
-          throw new Exception("port number out of range");
+          throw new InvalidConfigurationException("port number out of range");
         Address = bits[1];
         Port = port;
       }
       else if (bits[0] == "rtp_local") {
         if (bits.Count() != 2)
-          throw new Exception("wrong number of arguments to 'rtp_local'");
+          throw new InvalidConfigurationException("wrong number of arguments to 'rtp_local'");
         int port;
         if (!int.TryParse(bits[2], out port))
-          throw new Exception("cannot parse port number");
+          throw new InvalidConfigurationException("port number is not a number");
         if (port < 1 || port > 65535)
-          throw new Exception("port number out of range");
+          throw new InvalidConfigurationException("port number out of range");
         RtpLocal = port;
       }
       else
-        throw new Exception("unrecognized configuration command");
+        throw new InvalidConfigurationException("unrecognized configuration command");
     }
   }
 }

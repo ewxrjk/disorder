@@ -93,15 +93,21 @@ namespace uk.org.greenend.DisOrder
         // Get protocol version and challenge
         string response;
         int rc = WaitLocked(out response);
-        IList<string> greeting = Utils.Split(response, false);
+        IList<string> greeting;
+        try {
+          greeting = Utils.Split(response, false);
+        }
+        catch (InvalidStringException e) {
+          throw new InvalidServerResponseException(e.Message, e);
+        }
         if (greeting.Count < 1 || greeting[0] != "2")
-          throw new Exception("unrecognized protocol generation");
+          throw new InvalidServerResponseException("unrecognized protocol generation");
         if (greeting.Count() != 3)
-          throw new Exception("malformed server greeting");
+          throw new InvalidServerResponseException("malformed server greeting");
         string algorithm = greeting[1], challenge = greeting[2];
         // Put together the response
         if (!Hashes.ContainsKey(algorithm))
-          throw new Exception("server requested unrecognized hash algorithm");
+          throw new InvalidServerResponseException("server requested unrecognized hash algorithm");
         List<byte> input = new List<byte>();
         input.AddRange(Encoding.UTF8.GetBytes(Configuration.Password));
         input.AddRange(Utils.FromHex(challenge));
@@ -159,7 +165,7 @@ namespace uk.org.greenend.DisOrder
         throw new OperationCanceledException();
       int bytes = t.Result;
       if (bytes == 0)
-        throw new Exception("server closed connection");
+        throw new InvalidServerResponseException("server closed connection");
       inputLimit = bytes;
       inputOffset = 0;
     }
@@ -204,7 +210,7 @@ namespace uk.org.greenend.DisOrder
         }
         if (!object.ReferenceEquals(socket, expectedSocket)) {
           // Automatic retries would need to be implemented in here somewhere
-          throw new Exception("lost connection");
+          throw new InvalidServerResponseException("lost connection");
         }
         rc = WaitLocked(out response);
       }
@@ -267,13 +273,13 @@ namespace uk.org.greenend.DisOrder
       int rc;
       if (line.Length >= 3 && int.TryParse(line.Substring(0, 3), out rc)) {
         if (rc / 100 != 2)
-          throw new Exception("error from server: " + line);
+          throw new InvalidStringException("error from server: " + line);
         else
           response = line.Substring(4);
         return rc;
       } 
       else
-        throw new Exception("malformed line received from server");
+        throw new InvalidServerResponseException("malformed line received from server");
     }
 
     private void WaitBody(IList<string> body)
@@ -313,9 +319,15 @@ namespace uk.org.greenend.DisOrder
           TransactLocked(out response, new object[] { "log" });
           for (; ; ) {
             string line = ReadLine();
-            IList<string> bits = Utils.Split(line, false);
+            IList<string> bits;
+            try {
+              bits = Utils.Split(line, false);
+            }
+            catch (InvalidStringException e) {
+              throw new InvalidServerResponseException(e.Message, e);
+            }
             if (bits.Count < 2)
-              throw new Exception("malformed server log response");
+              throw new InvalidServerResponseException("malformed server log response");
             DateTime when = Utils.UnixToDateTime(long.Parse(bits[0], System.Globalization.NumberStyles.HexNumber));
             string what = bits[1];
             if (what == "adopted") consumer.Adopted(when, bits[2], bits[3]);

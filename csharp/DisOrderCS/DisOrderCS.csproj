@@ -42,6 +42,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Connection-stubs.cs" />
     <Compile Include="Connection.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="LogConsumer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueueEntry.cs" />

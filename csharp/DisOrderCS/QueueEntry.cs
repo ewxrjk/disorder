@@ -60,7 +60,7 @@ namespace uk.org.greenend.DisOrder
     public void Set(IList<string> bits, int offset = 0)
     {
       if ((bits.Count - offset) % 2 != 0)
-        throw new Exception("invalid track information"); // TODO exception type
+        throw new InvalidServerResponseException("invalid track information");
       Clear();
       for (int i = offset; i < bits.Count(); i += 2) {
         SetBit(bits[i], bits[i + 1]);

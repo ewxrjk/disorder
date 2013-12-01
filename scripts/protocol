@@ -507,7 +507,7 @@ sub simple {
 	unshift(@csretparse,
 		"      IList<string> bits = Utils.Split(response, false);\n",
 		"      if(bits.Count != $retno)\n",
-		"        throw new Exception(\"malformed response from server\");\n");
+		"        throw new InvalidServerResponseException(\"wrong number of fields in response to '$cmd'\");\n");
     }
     for my $arg (@$args) {
 	my $type = $arg->[0];
@@ -530,6 +530,7 @@ sub simple {
 	}
     }
     if(!$cskip) {
+	print STDERR "CS ";
 	push(@cs, "    public int $cmdcs(",
 	     join(", ", @csargsdecl), ") {\n",
 	     @csinit,

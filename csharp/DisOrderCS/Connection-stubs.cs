@@ -85,7 +85,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "enabled");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'enabled'");
       enabled = (bits[0] == "yes");
       return rc;
     }
@@ -96,7 +96,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "exists", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'exists'");
       exists = (bits[0] == "yes");
       return rc;
     }
@@ -115,7 +115,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "get", track, pref);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'get'");
       value = bits[0];
       return rc;
     }
@@ -126,7 +126,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "get-global", pref);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'get-global'");
       value = bits[0];
       return rc;
     }
@@ -137,7 +137,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "length", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'length'");
       length = int.Parse(bits[0]);
       return rc;
     }
@@ -148,7 +148,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "make-cookie");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'make-cookie'");
       cookie = bits[0];
       return rc;
     }
@@ -179,7 +179,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "part", track, context, namepart);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'part'");
       part = bits[0];
       return rc;
     }
@@ -278,7 +278,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "random-enabled");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'random-enabled'");
       enabled = (bits[0] == "yes");
       return rc;
     }
@@ -302,7 +302,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "register", username, password, email);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'register'");
       confirmation = bits[0];
       return rc;
     }
@@ -328,7 +328,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "resolve", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'resolve'");
       resolved = bits[0];
       return rc;
     }
@@ -350,7 +350,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "rtp-address");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'rtp-address'");
       address = bits[0];
       port = bits[1];
       return rc;
@@ -456,7 +456,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "userinfo", username, property);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'userinfo'");
       value = bits[0];
       return rc;
     }
@@ -475,7 +475,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "version");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'version'");
       version = bits[0];
       return rc;
     }
@@ -492,7 +492,7 @@ namespace uk.org.greenend.DisOrder
       int rc = Transact(out response, "volume");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
-        throw new Exception("malformed response from server");
+        throw new InvalidServerResponseException("wrong number of fields in response to 'volume'");
       left = int.Parse(bits[0]);
       right = int.Parse(bits[1]);
       return rc;

@@ -34,7 +34,7 @@ namespace uk.org.greenend.DisOrder
             if (s[pos] == '\\') {
               ++pos;
               if (pos >= s.Length)
-                throw new Exception("unterminated quoted string"); // TODO exception type
+                throw new InvalidStringException("unterminated quoted string");
               switch (s[pos]) {
                 case '\'':
                 case '\\':
@@ -46,14 +46,14 @@ namespace uk.org.greenend.DisOrder
                   ++pos;
                   break;
                 default:
-                  throw new Exception("invalid escape sequence"); // TODO exception type
+                  throw new InvalidStringException("invalid escape sequence");
               }
             }
             else
               sb.Append(s[pos++]);
           }
           if(pos >= s.Length)
-            throw new Exception("unterminated quoted string");
+            throw new InvalidStringException("unterminated quoted string");
           ++pos;
           bits.Add(sb.ToString());
         }
