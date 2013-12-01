@@ -291,6 +291,9 @@ struct config {
   /** @brief RTP mode */
   const char *rtp_mode;
 
+  /** @brief Client RTP port */
+  int rtp_local;
+
   /* derived values: */
   int nparts;				/* number of distinct name parts */
   char **parts;				/* name part list  */

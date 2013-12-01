@@ -241,9 +241,15 @@ namespace DisOrderClient
       NetworkPlaySocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
       // Ramp up the input buffer size
       NetworkPlaySocket.ReceiveBufferSize = 44100 * 4;
-      // Bind to some local address
+      // Bind to some local address.  By default we use the same port as the server
+      // but rtp_local can override this.
       IPAddress localAddress = GetLocalAddress();
-      NetworkPlaySocket.Bind(new IPEndPoint(localAddress, 0));
+      IPEndPoint localEndpoint = new IPEndPoint(localAddress, 0);
+      if (Configuration.RtpLocal != 0)
+        localEndpoint.Port = Configuration.RtpLocal;
+      else
+        localEndpoint.Port = Configuration.Port;
+      NetworkPlaySocket.Bind(localEndpoint);
       // Await incoming traffic
       NetworkPlayOffsetSet = false;
       NetworkPlayWait();

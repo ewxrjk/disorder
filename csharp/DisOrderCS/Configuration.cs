@@ -44,6 +44,11 @@ namespace uk.org.greenend.DisOrder
     /// Port number of server
     /// </summary>
     public int Port { get; set; }
+
+    /// <summary>
+    /// Local RTP port
+    /// </summary>
+    public int RtpLocal { get; set; }
     #endregion
 
     /// <summary>
@@ -81,6 +86,9 @@ namespace uk.org.greenend.DisOrder
         }
         if (Address != null) {
           sw.WriteLine("connect {0} {1}", Utils.Quote(Address), Port);
+        }
+        if (RtpLocal != 0) {
+          sw.WriteLine("rtp_local {0}", RtpLocal);
         }
       }
     }
@@ -121,10 +129,18 @@ namespace uk.org.greenend.DisOrder
         Address = bits[1];
         Port = port;
       }
+      else if (bits[0] == "rtp_local") {
+        if (bits.Count() != 2)
+          throw new Exception("wrong number of arguments to 'rtp_local'");
+        int port;
+        if (!int.TryParse(bits[2], out port))
+          throw new Exception("cannot parse port number");
+        if (port < 1 || port > 65535)
+          throw new Exception("port number out of range");
+        RtpLocal = port;
+      }
       else
         throw new Exception("unrecognized configuration command");
     }
-
-
   }
 }
