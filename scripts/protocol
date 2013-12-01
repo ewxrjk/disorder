@@ -465,22 +465,18 @@ sub simple {
 	if($type eq 'string') {
 	    $csrettype = 'split';
 	    push(@csargsdecl, "out string $name");
-	    push(@csinit,     "      $name = null;\n");
 	    push(@csretparse, "      $name = bits[$retno];\n");
 	} elsif($type eq 'integer') {
 	    $csrettype = 'split';
 	    push(@csargsdecl, "out int $name");
-	    push(@csinit,     "      $name = 0;\n");
 	    push(@csretparse, "      $name = int.Parse(bits[$retno]);\n");
 	} elsif($type eq 'boolean') {
 	    $csrettype = 'split';
 	    push(@csargsdecl, "out bool $name");
-	    push(@csinit,     "      $name = false;\n");
 	    push(@csretparse, "      $name = (bits[$retno] == \"yes\");\n");
 	} elsif($type eq 'string-raw') {
 	    $csrettype = $type;
 	    push(@csargsdecl, "out string $name");
-	    push(@csinit,     "      $name = null;\n");
 	    push(@csretparse, "      $name = response;\n");
 	} elsif($type eq 'queue-one') {
 	    $csrettype = $type;
@@ -491,12 +487,10 @@ sub simple {
 	} elsif($type eq 'body') {
 	    push(@csargsdecl,
 		 "IList<string> $name");
-	    push(@csinit,     "      $name.Clear();\n");
 	    push(@csretparse, "      WaitBody($name);\n");
 	} elsif($type eq 'queue') {
 	    push(@csargsdecl,
 		 "IList<QueueEntry> $name");
-	    push(@csinit,     "      $name.Clear();\n");
 	    push(@csretparse, "      WaitBodyQueue($name);\n");
 	} else {
 	    $cskip = 1;

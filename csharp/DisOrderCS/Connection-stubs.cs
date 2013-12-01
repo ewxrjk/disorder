@@ -40,7 +40,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Allfiles(IList<string> files, string dir, string re) {
-      files.Clear();
       string response;
       int rc = Transact(out response, "allfiles", dir, re);
       WaitBody(files);
@@ -57,7 +56,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Dirs(IList<string> files, string dir, string re) {
-      files.Clear();
       string response;
       int rc = Transact(out response, "dirs", dir, re);
       WaitBody(files);
@@ -80,7 +78,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Enabled(out bool enabled) {
-      enabled = false;
       string response;
       int rc = Transact(out response, "enabled");
       IList<string> bits = Utils.Split(response, false);
@@ -91,7 +88,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Exists(out bool exists, string track) {
-      exists = false;
       string response;
       int rc = Transact(out response, "exists", track);
       IList<string> bits = Utils.Split(response, false);
@@ -102,7 +98,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Files(IList<string> files, string dir, string re) {
-      files.Clear();
       string response;
       int rc = Transact(out response, "files", dir, re);
       WaitBody(files);
@@ -110,7 +105,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Get(out string value, string track, string pref) {
-      value = null;
       string response;
       int rc = Transact(out response, "get", track, pref);
       IList<string> bits = Utils.Split(response, false);
@@ -121,7 +115,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int GetGlobal(out string value, string pref) {
-      value = null;
       string response;
       int rc = Transact(out response, "get-global", pref);
       IList<string> bits = Utils.Split(response, false);
@@ -132,7 +125,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Length(out int length, string track) {
-      length = 0;
       string response;
       int rc = Transact(out response, "length", track);
       IList<string> bits = Utils.Split(response, false);
@@ -143,7 +135,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int MakeCookie(out string cookie) {
-      cookie = null;
       string response;
       int rc = Transact(out response, "make-cookie");
       IList<string> bits = Utils.Split(response, false);
@@ -161,7 +152,6 @@ namespace uk.org.greenend.DisOrder
     // Moveafter not yet implemented
 
     public int NewTracks(IList<string> tracks, int max) {
-      tracks.Clear();
       string response;
       int rc = Transact(out response, "new", max);
       WaitBody(tracks);
@@ -174,7 +164,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Part(out string part, string track, string context, string namepart) {
-      part = null;
       string response;
       int rc = Transact(out response, "part", track, context, namepart);
       IList<string> bits = Utils.Split(response, false);
@@ -190,7 +179,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Play(out string id, string track) {
-      id = null;
       string response;
       int rc = Transact(out response, "play", track);
       id = response;
@@ -212,7 +200,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int PlaylistGet(IList<string> tracks, string playlist) {
-      tracks.Clear();
       string response;
       int rc = Transact(out response, "playlist-get", playlist);
       WaitBody(tracks);
@@ -220,7 +207,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int PlaylistGetShare(out string share, string playlist) {
-      share = null;
       string response;
       int rc = Transact(out response, "playlist-get-share", playlist);
       share = response;
@@ -245,7 +231,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Playlists(IList<string> playlists) {
-      playlists.Clear();
       string response;
       int rc = Transact(out response, "playlists");
       WaitBody(playlists);
@@ -255,7 +240,6 @@ namespace uk.org.greenend.DisOrder
     // Prefs not yet implemented
 
     public int Queue(IList<QueueEntry> queue) {
-      queue.Clear();
       string response;
       int rc = Transact(out response, "queue");
       WaitBodyQueue(queue);
@@ -273,7 +257,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int RandomEnabled(out bool enabled) {
-      enabled = false;
       string response;
       int rc = Transact(out response, "random-enabled");
       IList<string> bits = Utils.Split(response, false);
@@ -284,7 +267,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Recent(IList<QueueEntry> recent) {
-      recent.Clear();
       string response;
       int rc = Transact(out response, "recent");
       WaitBodyQueue(recent);
@@ -297,7 +279,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Register(out string confirmation, string username, string password, string email) {
-      confirmation = null;
       string response;
       int rc = Transact(out response, "register", username, password, email);
       IList<string> bits = Utils.Split(response, false);
@@ -323,7 +304,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Resolve(out string resolved, string track) {
-      resolved = null;
       string response;
       int rc = Transact(out response, "resolve", track);
       IList<string> bits = Utils.Split(response, false);
@@ -344,8 +324,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int RtpAddress(out string address, out string port) {
-      address = null;
-      port = null;
       string response;
       int rc = Transact(out response, "rtp-address");
       IList<string> bits = Utils.Split(response, false);
@@ -394,7 +372,6 @@ namespace uk.org.greenend.DisOrder
     // ScheduleGet not yet implemented
 
     public int ScheduleList(IList<string> ids) {
-      ids.Clear();
       string response;
       int rc = Transact(out response, "schedule-list");
       WaitBody(ids);
@@ -402,7 +379,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Search(IList<string> tracks, string terms) {
-      tracks.Clear();
       string response;
       int rc = Transact(out response, "search", terms);
       WaitBody(tracks);
@@ -425,7 +401,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Stats(IList<string> stats) {
-      stats.Clear();
       string response;
       int rc = Transact(out response, "stats");
       WaitBody(stats);
@@ -433,7 +408,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Tags(IList<string> tags) {
-      tags.Clear();
       string response;
       int rc = Transact(out response, "tags");
       WaitBody(tags);
@@ -451,7 +425,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Userinfo(out string value, string username, string property) {
-      value = null;
       string response;
       int rc = Transact(out response, "userinfo", username, property);
       IList<string> bits = Utils.Split(response, false);
@@ -462,7 +435,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Users(IList<string> users) {
-      users.Clear();
       string response;
       int rc = Transact(out response, "users");
       WaitBody(users);
@@ -470,7 +442,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int Version(out string version) {
-      version = null;
       string response;
       int rc = Transact(out response, "version");
       IList<string> bits = Utils.Split(response, false);
@@ -486,8 +457,6 @@ namespace uk.org.greenend.DisOrder
     }
 
     public int GetVolume(out int left, out int right) {
-      left = 0;
-      right = 0;
       string response;
       int rc = Transact(out response, "volume");
       IList<string> bits = Utils.Split(response, false);
