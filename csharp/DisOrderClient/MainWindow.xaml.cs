@@ -122,6 +122,7 @@ namespace DisOrderClient
     #endregion
 
     #region Server Monitoring
+    string CurrentTrack = null;
     private void MonitorLog()
     {
       LogConsumer lc = new LogConsumer()
@@ -146,19 +147,51 @@ namespace DisOrderClient
 
     private void RecheckState()
     {
+      string newTrack = null;
       try {
         QueueEntry playing = new QueueEntry();
         if (Connection.Playing(playing) == 252) {
-          Dispatcher.Invoke(() => { PlayingLabel.Content = playing.Track; });
-        }
-        else {
-          // nothing playing
-          Dispatcher.Invoke(() => { PlayingLabel.Content = "(nothing)"; });
+          newTrack = playing.Track;
         }
       }
-      catch(Exception e) {
-        Dispatcher.Invoke(() => { PlayingLabel.Content = string.Format("(error: {0})", e.Message); });
+      catch(Exception) {
         // nom
+      }
+      if (newTrack == null) {
+        Dispatcher.Invoke(() =>
+        {
+          CurrentTrack = null;
+          ArtistLabel.Content = "";
+          AlbumLabel.Content = "";
+          TitleLabel.Content = "";
+        });
+      } else {
+        Dispatcher.Invoke(() =>
+        {
+          if (CurrentTrack == null || CurrentTrack != newTrack) {
+            CurrentTrack = newTrack;
+            ArtistLabel.Content = "";
+            AlbumLabel.Content = "";
+            TitleLabel.Content = "";
+            ThreadPool.QueueUserWorkItem((_) =>
+            {
+              string artist = "", album = "", title = "";
+              // TODO could parallelize this lot, for the benefit of high-latency connections
+              Connection.Part(out artist, newTrack, "display", "artist");
+              Connection.Part(out album, newTrack, "display", "album");
+              Connection.Part(out title, newTrack, "display", "title");
+              Dispatcher.Invoke(() =>
+              {
+                // Situation might have changed by the time we're done
+                if (CurrentTrack != null && CurrentTrack == newTrack) {
+                  ArtistLabel.Content = artist;
+                  AlbumLabel.Content = album;
+                  TitleLabel.Content = title;
+                }
+              });
+            });
+          }
+        });
       }
     }
     #endregion

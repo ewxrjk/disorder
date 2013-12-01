@@ -17,6 +17,8 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="auto"></RowDefinition>
       <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
+      <RowDefinition Height="auto"></RowDefinition>
     </Grid.RowDefinitions>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="auto"></ColumnDefinition>
@@ -34,7 +36,11 @@
         <MenuItem Header="_About" Click="About"></MenuItem>
       </MenuItem>
     </Menu>
-    <Label Grid.Row="1" Grid.Column="0">Playing:</Label>
-    <Label Grid.Row="1" Grid.Column="1" Name="PlayingLabel" MinWidth="256"></Label>
+    <Label Grid.Row="1" Grid.Column="0">Artist:</Label>
+    <Label Grid.Row="1" Grid.Column="1" Name="ArtistLabel" MinWidth="256"></Label>
+    <Label Grid.Row="2" Grid.Column="0">Album:</Label>
+    <Label Grid.Row="2" Grid.Column="1" Name="AlbumLabel" MinWidth="256"></Label>
+    <Label Grid.Row="3" Grid.Column="0">Title:</Label>
+    <Label Grid.Row="3" Grid.Column="1" Name="TitleLabel" MinWidth="256"></Label>
   </Grid>
 </Window>
