@@ -290,12 +290,13 @@ namespace DisOrderClient
             first = true;
           }
           timestamp -= NetworkPlayOffset;
-          // Byte order is wrong
-          // TODO only do this on little-endian platforms
-          for (int i = 8; i < n; i += 2) {
-            byte t = NetworkPlayBuffer[i];
-            NetworkPlayBuffer[i] = NetworkPlayBuffer[i + 1];
-            NetworkPlayBuffer[i + 1] = t;
+          if (BitConverter.IsLittleEndian) {
+            // Byte order is wrong
+            for (int i = 12; i < n; i += 2) {
+              byte t = NetworkPlayBuffer[i];
+              NetworkPlayBuffer[i] = NetworkPlayBuffer[i + 1];
+              NetworkPlayBuffer[i + 1] = t;
+            }
           }
           fixed (byte* p = NetworkPlayBuffer) {
             dxbridge.dxbridgeBuffer(2 * timestamp, (IntPtr)p + 12, (IntPtr)n - 12);
