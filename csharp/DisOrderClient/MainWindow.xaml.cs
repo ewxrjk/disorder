@@ -173,22 +173,17 @@ namespace DisOrderClient
             ArtistLabel.Content = "";
             AlbumLabel.Content = "";
             TitleLabel.Content = "";
-            ThreadPool.QueueUserWorkItem((_) =>
+            Connection.PartAsync(newTrack, "display", "artist", (rc, part) =>
             {
-              string artist = "", album = "", title = "";
-              // TODO could parallelize this lot, for the benefit of high-latency connections
-              Connection.Part(out artist, newTrack, "display", "artist");
-              Connection.Part(out album, newTrack, "display", "album");
-              Connection.Part(out title, newTrack, "display", "title");
-              Dispatcher.Invoke(() =>
-              {
-                // Situation might have changed by the time we're done
-                if (CurrentTrack != null && CurrentTrack == newTrack) {
-                  ArtistLabel.Content = artist;
-                  AlbumLabel.Content = album;
-                  TitleLabel.Content = title;
-                }
-              });
+              Dispatcher.Invoke(() => { ArtistLabel.Content = part; });
+            });
+            Connection.PartAsync(newTrack, "display", "album", (rc, part) =>
+            {
+              Dispatcher.Invoke(() => { AlbumLabel.Content = part; });
+            });
+            Connection.PartAsync(newTrack, "display", "title", (rc, part) =>
+            {
+              Dispatcher.Invoke(() => { TitleLabel.Content = part; });
             });
           }
         });
