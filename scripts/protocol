@@ -449,7 +449,13 @@ sub simple {
 
     # C# API
     my @csargspass = ("\"$cmd\"");
+    my @csretsdecl = ();
     my @csargsdecl = ();
+    my @cscbtype = ();
+    my @cscbinit = ();
+    my @csretspass = ();
+    my @csargsfwd = ();
+    my @csretsfwd = ();
     my $cskip = 0;
     my $cmdcs = $cmdc;
     $cmdcs =~ s/_(.)/uc($1)/ge;
@@ -464,38 +470,66 @@ sub simple {
 	my $name = $ret->[1];
 	if($type eq 'string') {
 	    $csrettype = 'split';
-	    push(@csargsdecl, "out string $name");
+	    push(@csretsdecl, "out string $name");
+	    push(@cscbtype,   "string");
+	    push(@cscbinit,   "          string $name;\n");
+	    push(@csretspass,   "out $name");
 	    push(@csretparse, "      $name = bits[$retno];\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'integer') {
 	    $csrettype = 'split';
-	    push(@csargsdecl, "out int $name");
+	    push(@csretsdecl, "out int $name");
+	    push(@cscbtype,   "int");
+	    push(@cscbinit,   "          int $name;\n");
+	    push(@csretspass,   "out $name");
 	    push(@csretparse, "      $name = int.Parse(bits[$retno]);\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'boolean') {
 	    $csrettype = 'split';
-	    push(@csargsdecl, "out bool $name");
+	    push(@csretsdecl, "out bool $name");
+	    push(@cscbtype,   "bool");
+	    push(@cscbinit,   "          bool $name;\n");
+	    push(@csretspass,   "out $name");
 	    push(@csretparse, "      $name = (bits[$retno] == \"yes\");\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'string-raw') {
 	    $csrettype = $type;
-	    push(@csargsdecl, "out string $name");
+	    push(@csretsdecl, "out string $name");
+	    push(@cscbtype,   "string");
+	    push(@cscbinit,   "          string $name;\n");
+	    push(@csretspass,   "out $name");
 	    push(@csretparse, "      $name = response;\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'queue-one') {
 	    $csrettype = $type;
-	    push(@csargsdecl,
-		 "QueueEntry $name");
+	    push(@csretsdecl, "QueueEntry $name");
+	    push(@cscbtype,   "QueueEntry");
+	    push(@cscbinit,   "          QueueEntry $name = new QueueEntry();\n");
+	    push(@csretspass,   "$name");
 	    push(@csretparse,
 		 "      $name.Set(response);\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'body') {
-	    push(@csargsdecl,
-		 "IList<string> $name");
+	    push(@csretsdecl, "IList<string> $name");
+	    push(@cscbtype,   "IList<string>");
+	    push(@cscbinit,   "          IList<string> $name = new List<string>();\n");
+	    push(@csretspass,   "$name");
 	    push(@csretparse, "      WaitBody($name);\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'pair-list') {
-	    push(@csargsdecl,
-		 "IDictionary<string,string> $name");
+	    push(@csretsdecl, "IDictionary<string,string> $name");
+	    push(@cscbtype,   "IDictionary<string,string>");
+	    push(@cscbinit,   "          IDictionary<string,string> $name = new Dictionary<string,string>();\n");
+	    push(@csretspass,   "$name");
 	    push(@csretparse, "      WaitBodyPairs($name);\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'queue') {
-	    push(@csargsdecl,
-		 "IList<QueueEntry> $name");
+	    push(@csretsdecl, "IList<QueueEntry> $name");
+	    push(@cscbtype,   "IList<QueueEntry>");
+	    push(@cscbinit,   "          IList<QueueEntry> $name = new List<QueueEntry>();\n");
+	    push(@csretspass,   "$name");
 	    push(@csretparse, "      WaitBodyQueue($name);\n");
+	    push(@csretsfwd,  $name)
 	} elsif($type eq 'user') {
 	    # ignored
 	} else {
@@ -515,20 +549,25 @@ sub simple {
 	if($type eq 'string') {
 	    push(@csargsdecl, "string $name");
 	    push(@csargspass, $name);
+	    push(@csargsfwd,  $name);
 	} elsif($type eq 'integer') {
 	    push(@csargsdecl, "int $name");
 	    push(@csargspass, $name);
+	    push(@csargsfwd,  $name);
 	} elsif($type eq 'time') {
 	    push(@csargsdecl, "DateTime $name");
 	    push(@csargspass, $name);
+	    push(@csargsfwd,  $name);
 	} elsif($type eq 'literal') {
 	    push(@csargspass, "\"$name\"");
 	} elsif($type eq 'list') {
 	    push(@csargsdecl, "IList<string> $name");
 	    push(@csargspass, $name);
+	    push(@csargsfwd,  $name);
 	} elsif($type eq 'body') {
 	    push(@csargsdecl, "IList<string> $name");
 	    push(@csargspass, "new SendAsBody($name)");
+	    push(@csargsfwd,  $name);
 	} else {
             die "$0: unsupported arg type '$type' for '$cmd'\n";
 	}
@@ -536,7 +575,7 @@ sub simple {
     if(!$cskip) {
 	print STDERR "CS ";
 	push(@cs, "    public int $cmdcs(",
-	     join(", ", @csargsdecl), ") {\n",
+	     join(", ", @csretsdecl, @csargsdecl), ") {\n",
 	     @csinit,
 	     "      string response;\n");
 	if($retno == 0) {
@@ -549,6 +588,29 @@ sub simple {
 		 @csretparse,
 		 "      return rc;\n");
 	}
+	push(@cs,
+	     "    }\n",
+	     "\n");
+	push(@cs,
+	     "    public void ${cmdcs}Async(",
+	     join(", ", @csargsdecl,
+		  ("Action<" . join(",", "int",
+				   @cscbtype)) . "> callback = null",
+		  "Action<Exception> exception = null"),
+	     ") {\n");
+	push(@cs,
+	     "      ThreadPool.QueueUserWorkItem((_) => {\n",
+	     "        try {\n",
+	     @cscbinit,
+	     "          int rc = $cmdcs(", join(", ", @csretspass, @csargsfwd), ");\n",
+	     "          if(callback != null)\n",
+	     "            callback(", join(", ",
+					   "rc", @csretsfwd), ");\n",
+	     "        } catch(Exception e) {\n",
+	     "          if(exception != null)\n",
+	     "            exception(e);\n",
+	     "        }\n",
+	     "      });\n");
 	push(@cs,
 	     "    }\n",
 	     "\n");
@@ -632,6 +694,7 @@ push(@cs, @generated, @gpl,
      "\n",
      "using System;\n",
      "using System.Collections.Generic;\n",
+     "using System.Threading;\n",
      "\n",
      "namespace uk.org.greenend.DisOrder\n",
      "{\n",
