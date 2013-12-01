@@ -780,10 +780,25 @@ int main(int argc, char **argv) {
   struct sockaddr *addr;
   socklen_t addr_len;
   if(!strcmp(sl.s[0], "-")) {
-    /* Pick address family to match known-working connectivity to the server */
-    int family = disorder_client_af(c);
-    /* Get a list of interfaces */
+    int family, localport;
     struct ifaddrs *ifa, *bestifa = NULL;
+    union {
+      struct sockaddr_in v4;
+      struct sockaddr_in6 v6;
+      struct sockaddr generic;
+    } sa;
+    socklen_t salen;
+    /* Pick local UDP port */
+    if(config->rtp_local)
+      localport = config->rtp_local;
+    else if(config->connect.af == AF_INET
+            || config->connect.af == AF_INET6)
+      localport = config->connect.port;
+    else
+      localport = 0;
+    /* Pick address family to match known-working connectivity to the server */
+    family = disorder_client_af(c);
+    /* Get a list of interfaces */
     if(getifaddrs(&ifa) < 0)
       disorder_fatal(errno, "error calling getifaddrs");
     /* Try to pick a good one */
@@ -795,14 +810,27 @@ int main(int argc, char **argv) {
     if(!bestifa)
       disorder_fatal(0, "failed to select a network interface");
     family = bestifa->ifa_addr->sa_family;
+    switch(family) {
+    case AF_INET:
+      salen = sizeof (struct sockaddr_in);
+      memcpy(&sa.v4, bestifa->ifa_addr, salen);
+      sa.v4.sin_port = htons(localport);
+      break;
+    case AF_INET6:
+      salen = sizeof (struct sockaddr_in6);
+      memcpy(&sa.v6, bestifa->ifa_addr, salen);
+      sa.v6.sin6_port = htons(localport);
+      break;
+    default:
+      disorder_fatal(0, "unsupported address family %d", family);
+    }
+    /* Create the socket */
     if((rtpfd = socket(family,
                        SOCK_DGRAM,
                        IPPROTO_UDP)) < 0)
       disorder_fatal(errno, "error creating socket (family %d)", family);
     /* Bind the address */
-    if(bind(rtpfd, bestifa->ifa_addr,
-            family == AF_INET
-            ? sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6)) < 0)
+    if(bind(rtpfd, &sa.generic, salen) < 0)
       disorder_fatal(errno, "error binding socket");
     static struct sockaddr_storage bound_address;
     addr = (struct sockaddr *)&bound_address;

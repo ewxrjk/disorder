@@ -654,6 +654,12 @@ anything currently listed in the recently-played list.
 New values of this option may be picked up from the configuration file even
 without a reload.
 .TP
+.B rtp_local \fIPORT\fR
+Overrides the local port number used by RTP clients when the \fBrtp_mode\fR
+is \fBrequest\fR.
+If this is not set but \fBconnect\fR is set then that port number is used.
+If neither are set then the system will asign a port number.
+.TP
 .B rtp_mode \fIMODE\fR
 The network transmission mode for the \fBrtp\fR backend.
 Possible values are:
