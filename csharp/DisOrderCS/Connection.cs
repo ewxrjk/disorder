@@ -224,11 +224,21 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    private class SendAsBody
+    {
+      public IList<string> Body;
+      public SendAsBody(IList<string> s)
+      {
+        Body = s;
+      }
+    }
+
     private void SendLocked(object[] command)
     {
       if (writer == null)
         ConnectLocked();
       StringBuilder sb = new StringBuilder();
+      IList<String> body = null;
       for (int i = 0; i < command.Length; ++i) {
         if (i > 0)
           sb.Append(' '); // separator
@@ -239,10 +249,29 @@ namespace uk.org.greenend.DisOrder
           sb.AppendFormat("{0}", (int)o);
         else if (o is DateTime)
           sb.AppendFormat("{0}", Utils.DateTimeToUnix((DateTime)o));
+        else if (o is IList<string>) {
+          IList<string> l = (IList<string>)o;
+          for (int j = 0; j < l.Count; ++j) {
+            if (j > 0)
+              sb.Append(' '); // separator
+            sb.Append(Utils.Quote(l[j]));
+          }
+        }
+        else if(o is SendAsBody)
+          body = ((SendAsBody)o).Body;
         else
           throw new NotImplementedException();
       }
       sb.Append('\n'); // Terminator
+      if (body != null) {
+        foreach (string line in body) {
+          if (line.Length > 0 && line[0] == '.')
+            sb.Append('.');
+          sb.Append(line);
+          sb.Append('\n');
+        }
+        sb.Append(".\n");
+      }
       try {
         writer.Write(sb.ToString());
         writer.Flush();
@@ -294,12 +323,26 @@ namespace uk.org.greenend.DisOrder
       }
     }
 
-    private void WaitBodyQueue(IList<QueueEntry> queue) {
+    private void WaitBodyQueue(IList<QueueEntry> queue)
+    {
       queue.Clear();
       List<string> lines = new List<string>();
       WaitBody(lines);
       foreach (string line in lines) {
         queue.Add(new QueueEntry(line));
+      }
+    }
+
+    private void WaitBodyPairs(IDictionary<string,string> pairs)
+    {
+      pairs.Clear();
+      List<string> lines = new List<string>();
+      WaitBody(lines);
+      foreach (string line in lines) {
+        IList<string> bits = Utils.Split(line, false);
+        if(bits.Count != 2)
+          throw new InvalidServerResponseException("malformed pair received from server");
+        pairs.Add(bits[0], bits[1]);
       }
     }
     #endregion

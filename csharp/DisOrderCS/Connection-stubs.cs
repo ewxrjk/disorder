@@ -46,9 +46,17 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
-    // Confirm not yet implemented
+    public int Confirm(string confirmation) {
+      string response;
+      int rc = Transact(out response, "confirm", confirmation);
+      return rc;
+    }
 
-    // Cookie not yet implemented
+    public int Cookie(string cookie) {
+      string response;
+      int rc = Transact(out response, "cookie", cookie);
+      return rc;
+    }
 
     public int Deluser(string user) {
       string response;
@@ -149,7 +157,10 @@ namespace uk.org.greenend.DisOrder
       return Transact(out response, "move", track, delta);
     }
 
-    // Moveafter not yet implemented
+    public int Moveafter(string target, IList<string> ids) {
+      string response;
+      return Transact(out response, "moveafter", target, ids);
+    }
 
     public int NewTracks(IList<string> tracks, int max) {
       string response;
@@ -185,7 +196,10 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
-    // Playafter not yet implemented
+    public int Playafter(string target, IList<string> tracks) {
+      string response;
+      return Transact(out response, "playafter", target, tracks);
+    }
 
     public int Playing(QueueEntry playing) {
       string response;
@@ -218,7 +232,10 @@ namespace uk.org.greenend.DisOrder
       return Transact(out response, "playlist-lock", playlist);
     }
 
-    // PlaylistSet not yet implemented
+    public int PlaylistSet(string playlist, IList<string> tracks) {
+      string response;
+      return Transact(out response, "playlist-set", playlist, new SendAsBody(tracks));
+    }
 
     public int PlaylistSetShare(string playlist, string share) {
       string response;
@@ -237,7 +254,12 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
-    // Prefs not yet implemented
+    public int Prefs(IDictionary<string,string> prefs, string track) {
+      string response;
+      int rc = Transact(out response, "prefs", track);
+      WaitBodyPairs(prefs);
+      return rc;
+    }
 
     public int Queue(IList<QueueEntry> queue) {
       string response;
@@ -369,7 +391,12 @@ namespace uk.org.greenend.DisOrder
       return Transact(out response, "schedule-del", id);
     }
 
-    // ScheduleGet not yet implemented
+    public int ScheduleGet(IDictionary<string,string> actiondata, string id) {
+      string response;
+      int rc = Transact(out response, "schedule-get", id);
+      WaitBodyPairs(actiondata);
+      return rc;
+    }
 
     public int ScheduleList(IList<string> ids) {
       string response;

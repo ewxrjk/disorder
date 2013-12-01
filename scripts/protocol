@@ -488,10 +488,16 @@ sub simple {
 	    push(@csargsdecl,
 		 "IList<string> $name");
 	    push(@csretparse, "      WaitBody($name);\n");
+	} elsif($type eq 'pair-list') {
+	    push(@csargsdecl,
+		 "IDictionary<string,string> $name");
+	    push(@csretparse, "      WaitBodyPairs($name);\n");
 	} elsif($type eq 'queue') {
 	    push(@csargsdecl,
 		 "IList<QueueEntry> $name");
 	    push(@csretparse, "      WaitBodyQueue($name);\n");
+	} elsif($type eq 'user') {
+	    # ignored
 	} else {
 	    $cskip = 1;
 	}
@@ -506,9 +512,7 @@ sub simple {
     for my $arg (@$args) {
 	my $type = $arg->[0];
 	my $name = $arg->[1];
-	if($type eq 'body' or $type eq 'list') {
-	    $cskip = 1;
-	} elsif($type eq 'string') {
+	if($type eq 'string') {
 	    push(@csargsdecl, "string $name");
 	    push(@csargspass, $name);
 	} elsif($type eq 'integer') {
@@ -519,6 +523,12 @@ sub simple {
 	    push(@csargspass, $name);
 	} elsif($type eq 'literal') {
 	    push(@csargspass, "\"$name\"");
+	} elsif($type eq 'list') {
+	    push(@csargsdecl, "IList<string> $name");
+	    push(@csargspass, $name);
+	} elsif($type eq 'body') {
+	    push(@csargsdecl, "IList<string> $name");
+	    push(@csargspass, "new SendAsBody($name)");
 	} else {
             die "$0: unsupported arg type '$type' for '$cmd'\n";
 	}
