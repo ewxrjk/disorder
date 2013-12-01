@@ -251,7 +251,6 @@ namespace DisOrderClient
       IPEndPoint endpoint = (IPEndPoint)NetworkPlaySocket.LocalEndPoint;
       string address = endpoint.Address.ToString();
       string port = string.Format("{0}", endpoint.Port);
-      Console.WriteLine("chose {0} {1}", address, port);
       ThreadPool.QueueUserWorkItem((_) =>
       {
         try {

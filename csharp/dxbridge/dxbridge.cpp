@@ -70,7 +70,6 @@ DXBRIDGE_API int dxbridgeBuffer(unsigned offset, const char *data, size_t bytes)
     Sleep(1/*ms*/);
   }
   if(cleared != play) {
-    //printf("clear %u play %u offset %u\n", cleared, play, offset);
     // Clear the buffer region most recently played
     hr = dsb8->Lock(cleared, (play - cleared) % DXBRIDGE_BUFFER_SIZE, &a1, &n1, &a2, &n2, 0); 
     if(hr == DSERR_BUFFERLOST) {
@@ -99,8 +98,6 @@ DXBRIDGE_API int dxbridgeBuffer(unsigned offset, const char *data, size_t bytes)
   data += n2;
   hr = dsb8->Unlock(a1, n1, a2, n2);
   return hr;
-  // TODO what erases this data, in order that we get silence when it comes around again
-  // and nothing's sending any audio?
 }
 
 // Start playing
