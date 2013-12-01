@@ -79,6 +79,7 @@ namespace uk.org.greenend.DisOrder
       if (!needQuote)
         return s;
       StringBuilder sb = new StringBuilder();
+      sb.Append('"');
       foreach (char c in s) {
         switch (c) {
           case '"':
@@ -94,6 +95,7 @@ namespace uk.org.greenend.DisOrder
             break;
         }
       }
+      sb.Append('"');
       return sb.ToString();
     }
 
