@@ -4,6 +4,7 @@
         xmlns:local="clr-namespace:DisOrderClient"
         Title="DisOrder"
         SizeToContent="WidthAndHeight"
+        Loaded="OnLoaded"
         Height="auto"
         Width="auto">
   <Window.CommandBindings>
@@ -26,6 +27,7 @@
         <!--<MenuItem Header="Connect" Command="{x:Static local:MainWindow.ConnectCommand}"></MenuItem>-->
         <!--<MenuItem Header="Disconnect" Command="{x:Static local:MainWindow.DisconnectCommand}"></MenuItem>-->
         <MenuItem Header="Options" Command="{x:Static local:MainWindow.OptionsCommand}"></MenuItem>
+        <MenuItem Header="RTP Play" IsCheckable="true" Checked="RtpCheck" Unchecked="RtpUncheck"></MenuItem>
         <MenuItem Header="Exit" Command="ApplicationCommands.Close"></MenuItem>
       </MenuItem>
       <MenuItem Header="_Help">

@@ -207,9 +207,7 @@ libtests/test-suite.log
 /GRTAGS
 /GSYMS
 /GTAGS
-/Debug
-/lib/Debug
-/clients/Debug
+Debug
 *.suo
 *.sdf
 *.opensdf
@@ -218,3 +216,4 @@ libtests/test-suite.log
 tests/*.trs
 obj
 bin
+/ipch
