@@ -30,17 +30,30 @@ namespace uk.org.greenend.DisOrder
 {
   public partial class Connection
   {
+    /// <summary>Adopt a track</summary>
+    /// <remarks>
+    /// <para>Makes the calling user owner of a randomly picked track.</para>
+    /// </remarks>
     public int Adopt(string id) {
       string response;
       return Transact(out response, "adopt", id);
     }
 
+    /// <summary>Adopt a track (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Makes the calling user owner of a randomly picked track.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void AdoptAsync(string id, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Adopt(id);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -48,17 +61,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Create a user</summary>
+    /// <remarks>
+    /// <para>Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.</para>
+    /// </remarks>
     public int Adduser(string user, string password, string rights) {
       string response;
       return Transact(out response, "adduser", user, password, rights);
     }
 
+    /// <summary>Create a user (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void AdduserAsync(string user, string password, string rights, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Adduser(user, password, rights);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -66,6 +92,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List files and directories in a directory</summary>
+    /// <remarks>
+    /// <para>See 'files' and 'dirs' for more specific lists.</para>
+    /// </remarks>
     public int Allfiles(IList<string> files, string dir, string re) {
       string response;
       int rc = Transact(out response, "allfiles", dir, re);
@@ -73,13 +103,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List files and directories in a directory (asynchronous)</summary>
+    /// <remarks>
+    /// <para>See 'files' and 'dirs' for more specific lists.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void AllfilesAsync(string dir, string re, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
           int rc = Allfiles(files, dir, re);
-          if(callback != null)
-            callback(rc, files);
+          if(callback != null) {
+            try {
+              callback(rc, files);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -87,18 +126,31 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Confirm registration</summary>
+    /// <remarks>
+    /// <para>The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.</para>
+    /// </remarks>
     public int Confirm(string confirmation) {
       string response;
       int rc = Transact(out response, "confirm", confirmation);
       return rc;
     }
 
+    /// <summary>Confirm registration (asynchronous)</summary>
+    /// <remarks>
+    /// <para>The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ConfirmAsync(string confirmation, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Confirm(confirmation);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -106,18 +158,31 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Log in with a cookie</summary>
+    /// <remarks>
+    /// <para>The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.</para>
+    /// </remarks>
     public int Cookie(string cookie) {
       string response;
       int rc = Transact(out response, "cookie", cookie);
       return rc;
     }
 
+    /// <summary>Log in with a cookie (asynchronous)</summary>
+    /// <remarks>
+    /// <para>The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void CookieAsync(string cookie, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Cookie(cookie);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -125,17 +190,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Delete user</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// </remarks>
     public int Deluser(string user) {
       string response;
       return Transact(out response, "deluser", user);
     }
 
+    /// <summary>Delete user (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void DeluserAsync(string user, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Deluser(user);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -143,6 +221,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List directories in a directory</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Dirs(IList<string> files, string dir, string re) {
       string response;
       int rc = Transact(out response, "dirs", dir, re);
@@ -150,13 +232,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List directories in a directory (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void DirsAsync(string dir, string re, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
           int rc = Dirs(files, dir, re);
-          if(callback != null)
-            callback(rc, files);
+          if(callback != null) {
+            try {
+              callback(rc, files);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -164,17 +255,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Disable play</summary>
+    /// <remarks>
+    /// <para>Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int Disable() {
       string response;
       return Transact(out response, "disable");
     }
 
+    /// <summary>Disable play (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void DisableAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Disable();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -182,17 +286,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set a user property</summary>
+    /// <remarks>
+    /// <para>With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.</para>
+    /// </remarks>
     public int Edituser(string username, string property, string value) {
       string response;
       return Transact(out response, "edituser", username, property, value);
     }
 
+    /// <summary>Set a user property (asynchronous)</summary>
+    /// <remarks>
+    /// <para>With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void EdituserAsync(string username, string property, string value, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Edituser(username, property, value);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -200,17 +317,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Enable play</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int Enable() {
       string response;
       return Transact(out response, "enable");
     }
 
+    /// <summary>Enable play (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void EnableAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Enable();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -218,6 +348,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Detect whether play is enabled</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Enabled(out bool enabled) {
       string response;
       int rc = Transact(out response, "enabled");
@@ -228,13 +362,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Detect whether play is enabled (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void EnabledAsync(Action<int,bool> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           bool enabled;
           int rc = Enabled(out enabled);
-          if(callback != null)
-            callback(rc, enabled);
+          if(callback != null) {
+            try {
+              callback(rc, enabled);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -242,6 +385,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Test whether a track exists</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Exists(out bool exists, string track) {
       string response;
       int rc = Transact(out response, "exists", track);
@@ -252,13 +399,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Test whether a track exists (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ExistsAsync(string track, Action<int,bool> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           bool exists;
           int rc = Exists(out exists, track);
-          if(callback != null)
-            callback(rc, exists);
+          if(callback != null) {
+            try {
+              callback(rc, exists);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -266,6 +422,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List files in a directory</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Files(IList<string> files, string dir, string re) {
       string response;
       int rc = Transact(out response, "files", dir, re);
@@ -273,13 +433,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List files in a directory (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void FilesAsync(string dir, string re, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
           int rc = Files(files, dir, re);
-          if(callback != null)
-            callback(rc, files);
+          if(callback != null) {
+            try {
+              callback(rc, files);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -287,6 +456,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a track preference</summary>
+    /// <remarks>
+    /// <para>If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.</para>
+    /// </remarks>
     public int Get(out string value, string track, string pref) {
       string response;
       int rc = Transact(out response, "get", track, pref);
@@ -297,13 +470,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a track preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void GetAsync(string track, string pref, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string value;
           int rc = Get(out value, track, pref);
-          if(callback != null)
-            callback(rc, value);
+          if(callback != null) {
+            try {
+              callback(rc, value);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -311,6 +493,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a global preference</summary>
+    /// <remarks>
+    /// <para>If the preference does exist not then a null value is returned.</para>
+    /// </remarks>
     public int GetGlobal(out string value, string pref) {
       string response;
       int rc = Transact(out response, "get-global", pref);
@@ -321,13 +507,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a global preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the preference does exist not then a null value is returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void GetGlobalAsync(string pref, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string value;
           int rc = GetGlobal(out value, pref);
-          if(callback != null)
-            callback(rc, value);
+          if(callback != null) {
+            try {
+              callback(rc, value);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -335,6 +530,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a track's length</summary>
+    /// <remarks>
+    /// <para>If the track does not exist an error is returned.</para>
+    /// </remarks>
     public int Length(out int length, string track) {
       string response;
       int rc = Transact(out response, "length", track);
@@ -345,13 +544,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a track's length (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the track does not exist an error is returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void LengthAsync(string track, Action<int,int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int length;
           int rc = Length(out length, track);
-          if(callback != null)
-            callback(rc, length);
+          if(callback != null) {
+            try {
+              callback(rc, length);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -359,6 +567,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Create a login cookie for this user</summary>
+    /// <remarks>
+    /// <para>The cookie may be redeemed via the 'cookie' command</para>
+    /// </remarks>
     public int MakeCookie(out string cookie) {
       string response;
       int rc = Transact(out response, "make-cookie");
@@ -369,13 +581,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Create a login cookie for this user (asynchronous)</summary>
+    /// <remarks>
+    /// <para>The cookie may be redeemed via the 'cookie' command</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void MakeCookieAsync(Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string cookie;
           int rc = MakeCookie(out cookie);
-          if(callback != null)
-            callback(rc, cookie);
+          if(callback != null) {
+            try {
+              callback(rc, cookie);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -383,17 +604,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Move a track</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
+    /// </remarks>
     public int Move(string track, int delta) {
       string response;
       return Transact(out response, "move", track, delta);
     }
 
+    /// <summary>Move a track (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void MoveAsync(string track, int delta, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Move(track, delta);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -401,17 +635,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Move multiple tracks</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
+    /// </remarks>
     public int Moveafter(string target, IList<string> ids) {
       string response;
       return Transact(out response, "moveafter", target, ids);
     }
 
+    /// <summary>Move multiple tracks (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void MoveafterAsync(string target, IList<string> ids, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Moveafter(target, ids);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -419,6 +666,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List recently added tracks</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int NewTracks(IList<string> tracks, int max) {
       string response;
       int rc = Transact(out response, "new", max);
@@ -426,13 +677,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List recently added tracks (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void NewTracksAsync(int max, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
           int rc = NewTracks(tracks, max);
-          if(callback != null)
-            callback(rc, tracks);
+          if(callback != null) {
+            try {
+              callback(rc, tracks);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -440,17 +700,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Do nothing</summary>
+    /// <remarks>
+    /// <para>Used as a keepalive.  No authentication required.</para>
+    /// </remarks>
     public int Nop() {
       string response;
       return Transact(out response, "nop");
     }
 
+    /// <summary>Do nothing (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Used as a keepalive.  No authentication required.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void NopAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Nop();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -458,6 +731,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a track name part</summary>
+    /// <remarks>
+    /// <para>If the name part cannot be constructed an empty string is returned.</para>
+    /// </remarks>
     public int Part(out string part, string track, string context, string namepart) {
       string response;
       int rc = Transact(out response, "part", track, context, namepart);
@@ -468,13 +745,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a track name part (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the name part cannot be constructed an empty string is returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PartAsync(string track, string context, string namepart, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string part;
           int rc = Part(out part, track, context, namepart);
-          if(callback != null)
-            callback(rc, part);
+          if(callback != null) {
+            try {
+              callback(rc, part);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -482,17 +768,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Pause the currently playing track</summary>
+    /// <remarks>
+    /// <para>Requires the 'pause' right.</para>
+    /// </remarks>
     public int Pause() {
       string response;
       return Transact(out response, "pause");
     }
 
+    /// <summary>Pause the currently playing track (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'pause' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PauseAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Pause();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -500,6 +799,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Play a track</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right.</para>
+    /// </remarks>
     public int Play(out string id, string track) {
       string response;
       int rc = Transact(out response, "play", track);
@@ -507,13 +810,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Play a track (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlayAsync(string track, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string id;
           int rc = Play(out id, track);
-          if(callback != null)
-            callback(rc, id);
+          if(callback != null) {
+            try {
+              callback(rc, id);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -521,17 +833,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Play multiple tracks</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right.</para>
+    /// </remarks>
     public int Playafter(string target, IList<string> tracks) {
       string response;
       return Transact(out response, "playafter", target, tracks);
     }
 
+    /// <summary>Play multiple tracks (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlayafterAsync(string target, IList<string> tracks, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Playafter(target, tracks);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -539,6 +864,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Retrieve the playing track</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Playing(QueueEntry playing) {
       string response;
       int rc = Transact(out response, "playing");
@@ -546,13 +875,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Retrieve the playing track (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlayingAsync(Action<int,QueueEntry> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           QueueEntry playing = new QueueEntry();
           int rc = Playing(playing);
-          if(callback != null)
-            callback(rc, playing);
+          if(callback != null) {
+            try {
+              callback(rc, playing);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -560,17 +898,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Delete a playlist</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.</para>
+    /// </remarks>
     public int PlaylistDelete(string playlist) {
       string response;
       return Transact(out response, "playlist-delete", playlist);
     }
 
+    /// <summary>Delete a playlist (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistDeleteAsync(string playlist, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = PlaylistDelete(playlist);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -578,6 +929,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List the contents of a playlist</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right and oermission to read the playlist.</para>
+    /// </remarks>
     public int PlaylistGet(IList<string> tracks, string playlist) {
       string response;
       int rc = Transact(out response, "playlist-get", playlist);
@@ -585,13 +940,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List the contents of a playlist (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right and oermission to read the playlist.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistGetAsync(string playlist, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
           int rc = PlaylistGet(tracks, playlist);
-          if(callback != null)
-            callback(rc, tracks);
+          if(callback != null) {
+            try {
+              callback(rc, tracks);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -599,6 +963,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a playlist's sharing status</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right and permission to read the playlist.</para>
+    /// </remarks>
     public int PlaylistGetShare(out string share, string playlist) {
       string response;
       int rc = Transact(out response, "playlist-get-share", playlist);
@@ -606,13 +974,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a playlist's sharing status (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right and permission to read the playlist.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistGetShareAsync(string playlist, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string share;
           int rc = PlaylistGetShare(out share, playlist);
-          if(callback != null)
-            callback(rc, share);
+          if(callback != null) {
+            try {
+              callback(rc, share);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -620,17 +997,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Lock a playlist</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.</para>
+    /// </remarks>
     public int PlaylistLock(string playlist) {
       string response;
       return Transact(out response, "playlist-lock", playlist);
     }
 
+    /// <summary>Lock a playlist (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistLockAsync(string playlist, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = PlaylistLock(playlist);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -638,17 +1028,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set the contents of a playlist</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist, which must be locked.</para>
+    /// </remarks>
     public int PlaylistSet(string playlist, IList<string> tracks) {
       string response;
       return Transact(out response, "playlist-set", playlist, new SendAsBody(tracks));
     }
 
+    /// <summary>Set the contents of a playlist (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist, which must be locked.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistSetAsync(string playlist, IList<string> tracks, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = PlaylistSet(playlist, tracks);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -656,17 +1059,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set a playlist's sharing status</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.</para>
+    /// </remarks>
     public int PlaylistSetShare(string playlist, string share) {
       string response;
       return Transact(out response, "playlist-set-share", playlist, share);
     }
 
+    /// <summary>Set a playlist's sharing status (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'play' right and permission to modify the playlist.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistSetShareAsync(string playlist, string share, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = PlaylistSetShare(playlist, share);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -674,17 +1090,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Unlock the locked playlist playlist</summary>
+    /// <remarks>
+    /// <para>The playlist to unlock is implicit in the connection.</para>
+    /// </remarks>
     public int PlaylistUnlock() {
       string response;
       return Transact(out response, "playlist-unlock");
     }
 
+    /// <summary>Unlock the locked playlist playlist (asynchronous)</summary>
+    /// <remarks>
+    /// <para>The playlist to unlock is implicit in the connection.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistUnlockAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = PlaylistUnlock();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -692,6 +1121,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List playlists</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right.  Only playlists that you have permission to read are returned.</para>
+    /// </remarks>
     public int Playlists(IList<string> playlists) {
       string response;
       int rc = Transact(out response, "playlists");
@@ -699,13 +1132,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List playlists (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'read' right.  Only playlists that you have permission to read are returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PlaylistsAsync(Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> playlists = new List<string>();
           int rc = Playlists(playlists);
-          if(callback != null)
-            callback(rc, playlists);
+          if(callback != null) {
+            try {
+              callback(rc, playlists);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -713,6 +1155,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get all the preferences for a track</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Prefs(IDictionary<string,string> prefs, string track) {
       string response;
       int rc = Transact(out response, "prefs", track);
@@ -720,13 +1166,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get all the preferences for a track (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void PrefsAsync(string track, Action<int,IDictionary<string,string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IDictionary<string,string> prefs = new Dictionary<string,string>();
           int rc = Prefs(prefs, track);
-          if(callback != null)
-            callback(rc, prefs);
+          if(callback != null) {
+            try {
+              callback(rc, prefs);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -734,6 +1189,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List the queue</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Queue(IList<QueueEntry> queue) {
       string response;
       int rc = Transact(out response, "queue");
@@ -741,13 +1200,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List the queue (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void QueueAsync(Action<int,IList<QueueEntry>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<QueueEntry> queue = new List<QueueEntry>();
           int rc = Queue(queue);
-          if(callback != null)
-            callback(rc, queue);
+          if(callback != null) {
+            try {
+              callback(rc, queue);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -755,17 +1223,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Disable random play</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int RandomDisable() {
       string response;
       return Transact(out response, "random-disable");
     }
 
+    /// <summary>Disable random play (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RandomDisableAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = RandomDisable();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -773,17 +1254,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Enable random play</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int RandomEnable() {
       string response;
       return Transact(out response, "random-enable");
     }
 
+    /// <summary>Enable random play (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RandomEnableAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = RandomEnable();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -791,6 +1285,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Detect whether random play is enabled</summary>
+    /// <remarks>
+    /// <para>Random play counts as enabled even if play is disabled.</para>
+    /// </remarks>
     public int RandomEnabled(out bool enabled) {
       string response;
       int rc = Transact(out response, "random-enabled");
@@ -801,13 +1299,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Detect whether random play is enabled (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Random play counts as enabled even if play is disabled.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RandomEnabledAsync(Action<int,bool> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           bool enabled;
           int rc = RandomEnabled(out enabled);
-          if(callback != null)
-            callback(rc, enabled);
+          if(callback != null) {
+            try {
+              callback(rc, enabled);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -815,6 +1322,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List recently played tracks</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Recent(IList<QueueEntry> recent) {
       string response;
       int rc = Transact(out response, "recent");
@@ -822,13 +1333,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List recently played tracks (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RecentAsync(Action<int,IList<QueueEntry>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<QueueEntry> recent = new List<QueueEntry>();
           int rc = Recent(recent);
-          if(callback != null)
-            callback(rc, recent);
+          if(callback != null) {
+            try {
+              callback(rc, recent);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -836,17 +1356,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Re-read configuraiton file.</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// </remarks>
     public int Reconfigure() {
       string response;
       return Transact(out response, "reconfigure");
     }
 
+    /// <summary>Re-read configuraiton file. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ReconfigureAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Reconfigure();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -854,6 +1387,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Register a new user</summary>
+    /// <remarks>
+    /// <para>Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.</para>
+    /// </remarks>
     public int Register(out string confirmation, string username, string password, string email) {
       string response;
       int rc = Transact(out response, "register", username, password, email);
@@ -864,13 +1401,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Register a new user (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RegisterAsync(string username, string password, string email, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string confirmation;
           int rc = Register(out confirmation, username, password, email);
-          if(callback != null)
-            callback(rc, confirmation);
+          if(callback != null) {
+            try {
+              callback(rc, confirmation);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -878,17 +1424,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Send a password reminder.</summary>
+    /// <remarks>
+    /// <para>If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.</para>
+    /// </remarks>
     public int Reminder(string username) {
       string response;
       return Transact(out response, "reminder", username);
     }
 
+    /// <summary>Send a password reminder. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ReminderAsync(string username, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Reminder(username);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -896,17 +1455,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Remove a track form the queue.</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.</para>
+    /// </remarks>
     public int Remove(string id) {
       string response;
       return Transact(out response, "remove", id);
     }
 
+    /// <summary>Remove a track form the queue. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RemoveAsync(string id, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Remove(id);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -914,17 +1486,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Rescan all collections for new or obsolete tracks.</summary>
+    /// <remarks>
+    /// <para>Requires the 'rescan' right.</para>
+    /// </remarks>
     public int Rescan() {
       string response;
       return Transact(out response, "rescan");
     }
 
+    /// <summary>Rescan all collections for new or obsolete tracks. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'rescan' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RescanAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Rescan();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -932,6 +1517,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Resolve a track name</summary>
+    /// <remarks>
+    /// <para>Converts aliases to non-alias track names</para>
+    /// </remarks>
     public int Resolve(out string resolved, string track) {
       string response;
       int rc = Transact(out response, "resolve", track);
@@ -942,13 +1531,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Resolve a track name (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Converts aliases to non-alias track names</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ResolveAsync(string track, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string resolved;
           int rc = Resolve(out resolved, track);
-          if(callback != null)
-            callback(rc, resolved);
+          if(callback != null) {
+            try {
+              callback(rc, resolved);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -956,17 +1554,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Resume the currently playing track</summary>
+    /// <remarks>
+    /// <para>Requires the 'pause' right.</para>
+    /// </remarks>
     public int Resume() {
       string response;
       return Transact(out response, "resume");
     }
 
+    /// <summary>Resume the currently playing track (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'pause' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ResumeAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Resume();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -974,17 +1585,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Revoke a cookie.</summary>
+    /// <remarks>
+    /// <para>It will not subsequently be possible to log in with the cookie.</para>
+    /// </remarks>
     public int Revoke() {
       string response;
       return Transact(out response, "revoke");
     }
 
+    /// <summary>Revoke a cookie. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>It will not subsequently be possible to log in with the cookie.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RevokeAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Revoke();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -992,6 +1616,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get the server's RTP address information</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int RtpAddress(out string address, out string port) {
       string response;
       int rc = Transact(out response, "rtp-address");
@@ -1003,14 +1631,23 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get the server's RTP address information (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RtpAddressAsync(Action<int,string,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string address;
           string port;
           int rc = RtpAddress(out address, out port);
-          if(callback != null)
-            callback(rc, address, port);
+          if(callback != null) {
+            try {
+              callback(rc, address, port);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1018,17 +1655,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Cancel RTP stream</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int RtpCancel() {
       string response;
       return Transact(out response, "rtp-cancel");
     }
 
+    /// <summary>Cancel RTP stream (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RtpCancelAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = RtpCancel();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1036,17 +1686,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Request a unicast RTP stream</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int RtpRequest(string address, string port) {
       string response;
       return Transact(out response, "rtp-request", address, port);
     }
 
+    /// <summary>Request a unicast RTP stream (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void RtpRequestAsync(string address, string port, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = RtpRequest(address, port);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1054,17 +1717,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Terminate the playing track.</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.</para>
+    /// </remarks>
     public int Scratch(string id) {
       string response;
       return Transact(out response, "scratch", id);
     }
 
+    /// <summary>Terminate the playing track. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScratchAsync(string id, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Scratch(id);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1072,17 +1748,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Schedule a track to play in the future</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int ScheduleAddPlay(DateTime when, string priority, string track) {
       string response;
       return Transact(out response, "schedule-add", when, priority, "play", track);
     }
 
+    /// <summary>Schedule a track to play in the future (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleAddPlayAsync(DateTime when, string priority, string track, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = ScheduleAddPlay(when, priority, track);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1090,17 +1779,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Schedule a global setting to be changed in the future</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int ScheduleAddSetGlobal(DateTime when, string priority, string pref, string value) {
       string response;
       return Transact(out response, "schedule-add", when, priority, "set-global", pref, value);
     }
 
+    /// <summary>Schedule a global setting to be changed in the future (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleAddSetGlobalAsync(DateTime when, string priority, string pref, string value, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = ScheduleAddSetGlobal(when, priority, pref, value);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1108,17 +1810,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Schedule a global setting to be unset in the future</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int ScheduleAddUnsetGlobal(DateTime when, string priority, string pref) {
       string response;
       return Transact(out response, "schedule-add", when, priority, "set-global", pref);
     }
 
+    /// <summary>Schedule a global setting to be unset in the future (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleAddUnsetGlobalAsync(DateTime when, string priority, string pref, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = ScheduleAddUnsetGlobal(when, priority, pref);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1126,17 +1841,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Delete a scheduled event.</summary>
+    /// <remarks>
+    /// <para>Users can always delete their own scheduled events; with the admin right you can delete any event.</para>
+    /// </remarks>
     public int ScheduleDel(string id) {
       string response;
       return Transact(out response, "schedule-del", id);
     }
 
+    /// <summary>Delete a scheduled event. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Users can always delete their own scheduled events; with the admin right you can delete any event.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleDelAsync(string id, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = ScheduleDel(id);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1144,6 +1872,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get the details of scheduled event</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int ScheduleGet(IDictionary<string,string> actiondata, string id) {
       string response;
       int rc = Transact(out response, "schedule-get", id);
@@ -1151,13 +1883,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get the details of scheduled event (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleGetAsync(string id, Action<int,IDictionary<string,string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IDictionary<string,string> actiondata = new Dictionary<string,string>();
           int rc = ScheduleGet(actiondata, id);
-          if(callback != null)
-            callback(rc, actiondata);
+          if(callback != null) {
+            try {
+              callback(rc, actiondata);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1165,6 +1906,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>List scheduled events</summary>
+    /// <remarks>
+    /// <para>This just lists IDs.  Use 'schedule-get' to retrieve more detail</para>
+    /// </remarks>
     public int ScheduleList(IList<string> ids) {
       string response;
       int rc = Transact(out response, "schedule-list");
@@ -1172,13 +1917,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>List scheduled events (asynchronous)</summary>
+    /// <remarks>
+    /// <para>This just lists IDs.  Use 'schedule-get' to retrieve more detail</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ScheduleListAsync(Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> ids = new List<string>();
           int rc = ScheduleList(ids);
-          if(callback != null)
-            callback(rc, ids);
+          if(callback != null) {
+            try {
+              callback(rc, ids);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1186,6 +1940,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Search for tracks</summary>
+    /// <remarks>
+    /// <para>Terms are either keywords or tags formatted as 'tag:TAG-NAME'.</para>
+    /// </remarks>
     public int Search(IList<string> tracks, string terms) {
       string response;
       int rc = Transact(out response, "search", terms);
@@ -1193,13 +1951,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Search for tracks (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Terms are either keywords or tags formatted as 'tag:TAG-NAME'.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void SearchAsync(string terms, Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
           int rc = Search(tracks, terms);
-          if(callback != null)
-            callback(rc, tracks);
+          if(callback != null) {
+            try {
+              callback(rc, tracks);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1207,17 +1974,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set a track preference</summary>
+    /// <remarks>
+    /// <para>Requires the 'prefs' right.</para>
+    /// </remarks>
     public int Set(string track, string pref, string value) {
       string response;
       return Transact(out response, "set", track, pref, value);
     }
 
+    /// <summary>Set a track preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void SetAsync(string track, string pref, string value, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Set(track, pref, value);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1225,17 +2005,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set a global preference</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int SetGlobal(string pref, string value) {
       string response;
       return Transact(out response, "set-global", pref, value);
     }
 
+    /// <summary>Set a global preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void SetGlobalAsync(string pref, string value, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = SetGlobal(pref, value);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1243,17 +2036,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Request server shutdown</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// </remarks>
     public int Shutdown() {
       string response;
       return Transact(out response, "shutdown");
     }
 
+    /// <summary>Request server shutdown (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'admin' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void ShutdownAsync(Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Shutdown();
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1261,6 +2067,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get server statistics</summary>
+    /// <remarks>
+    /// <para>The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.</para>
+    /// </remarks>
     public int Stats(IList<string> stats) {
       string response;
       int rc = Transact(out response, "stats");
@@ -1268,13 +2078,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get server statistics (asynchronous)</summary>
+    /// <remarks>
+    /// <para>The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void StatsAsync(Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> stats = new List<string>();
           int rc = Stats(stats);
-          if(callback != null)
-            callback(rc, stats);
+          if(callback != null) {
+            try {
+              callback(rc, stats);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1282,6 +2101,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a list of known tags</summary>
+    /// <remarks>
+    /// <para>Only tags which apply to at least one track are returned.</para>
+    /// </remarks>
     public int Tags(IList<string> tags) {
       string response;
       int rc = Transact(out response, "tags");
@@ -1289,13 +2112,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a list of known tags (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Only tags which apply to at least one track are returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void TagsAsync(Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tags = new List<string>();
           int rc = Tags(tags);
-          if(callback != null)
-            callback(rc, tags);
+          if(callback != null) {
+            try {
+              callback(rc, tags);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1303,17 +2135,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Unset a track preference</summary>
+    /// <remarks>
+    /// <para>Requires the 'prefs' right.</para>
+    /// </remarks>
     public int Unset(string track, string pref) {
       string response;
       return Transact(out response, "unset", track, pref);
     }
 
+    /// <summary>Unset a track preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void UnsetAsync(string track, string pref, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = Unset(track, pref);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1321,17 +2166,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set a global preference</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// </remarks>
     public int UnsetGlobal(string pref) {
       string response;
       return Transact(out response, "unset-global", pref);
     }
 
+    /// <summary>Set a global preference (asynchronous)</summary>
+    /// <remarks>
+    /// <para>Requires the 'global prefs' right.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void UnsetGlobalAsync(string pref, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = UnsetGlobal(pref);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1339,6 +2197,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a user property.</summary>
+    /// <remarks>
+    /// <para>If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.</para>
+    /// </remarks>
     public int Userinfo(out string value, string username, string property) {
       string response;
       int rc = Transact(out response, "userinfo", username, property);
@@ -1349,13 +2211,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a user property. (asynchronous)</summary>
+    /// <remarks>
+    /// <para>If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.</para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void UserinfoAsync(string username, string property, Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string value;
           int rc = Userinfo(out value, username, property);
-          if(callback != null)
-            callback(rc, value);
+          if(callback != null) {
+            try {
+              callback(rc, value);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1363,6 +2234,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get a list of users</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Users(IList<string> users) {
       string response;
       int rc = Transact(out response, "users");
@@ -1370,13 +2245,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get a list of users (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void UsersAsync(Action<int,IList<string>> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> users = new List<string>();
           int rc = Users(users);
-          if(callback != null)
-            callback(rc, users);
+          if(callback != null) {
+            try {
+              callback(rc, users);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1384,6 +2268,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get the server version</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int Version(out string version) {
       string response;
       int rc = Transact(out response, "version");
@@ -1394,13 +2282,22 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get the server version (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void VersionAsync(Action<int,string> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           string version;
           int rc = Version(out version);
-          if(callback != null)
-            callback(rc, version);
+          if(callback != null) {
+            try {
+              callback(rc, version);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1408,17 +2305,30 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Set the volume</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int SetVolume(int left, int right) {
       string response;
       return Transact(out response, "volume", left, right);
     }
 
+    /// <summary>Set the volume (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void SetVolumeAsync(int left, int right, Action<int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int rc = SetVolume(left, right);
-          if(callback != null)
-            callback(rc);
+          if(callback != null) {
+            try {
+              callback(rc);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
@@ -1426,6 +2336,10 @@ namespace uk.org.greenend.DisOrder
       });
     }
 
+    /// <summary>Get the volume</summary>
+    /// <remarks>
+    /// <para></para>
+    /// </remarks>
     public int GetVolume(out int left, out int right) {
       string response;
       int rc = Transact(out response, "volume");
@@ -1437,14 +2351,23 @@ namespace uk.org.greenend.DisOrder
       return rc;
     }
 
+    /// <summary>Get the volume (asynchronous)</summary>
+    /// <remarks>
+    /// <para></para>
+    /// <para>On success, calls callback in a background thread, if it is not null.</para>
+    /// <para>On error, calls exception in a background thread, if it is not null.</para>
+    /// </remarks>
     public void GetVolumeAsync(Action<int,int,int> callback = null, Action<Exception> exception = null) {
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           int left;
           int right;
           int rc = GetVolume(out left, out right);
-          if(callback != null)
-            callback(rc, left, right);
+          if(callback != null) {
+            try {
+              callback(rc, left, right);
+            } catch { /* nom */ }
+          }
         } catch(Exception e) {
           if(exception != null)
             exception(e);
