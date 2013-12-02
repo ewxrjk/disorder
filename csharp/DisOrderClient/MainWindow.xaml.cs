@@ -300,16 +300,7 @@ namespace DisOrderClient
       IPEndPoint endpoint = (IPEndPoint)NetworkPlaySocket.LocalEndPoint;
       string address = endpoint.Address.ToString();
       string port = string.Format("{0}", endpoint.Port);
-      ThreadPool.QueueUserWorkItem((_) =>
-      {
-        try {
-          Connection.RtpRequest(address, port);
-        }
-        catch {
-          // If that didn't work then turn it all off
-          StopNetworkPlay();
-        }
-      });
+      Connection.RtpRequestAsync(address, port, null, (error) => { Dispatcher.Invoke(() => { StopNetworkPlay(); }); });
     }
 
     void NetworkPlayWait()
@@ -358,23 +349,11 @@ namespace DisOrderClient
     {
       if (NetworkPlaySocket == null)
         return;
-      ThreadPool.QueueUserWorkItem((_) =>
-      {
-        try {
-          Connection.RtpCancel();
-        }
-        catch {
-          // nom
-        }
-        Dispatcher.Invoke(() =>
-        {
-          NetworkPlaySocket.Close();
-          NetworkPlaySocket = null;
-          dxbridge.dxbridgeStop();
-        });
-      });
+      Connection.RtpCancelAsync();
+      NetworkPlaySocket.Close(0);
+      NetworkPlaySocket = null;
+      dxbridge.dxbridgeStop();
     }
-
 
     #endregion
   }
