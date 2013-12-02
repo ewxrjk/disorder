@@ -175,15 +175,30 @@ namespace DisOrderClient
             TitleLabel.Content = "";
             Connection.PartAsync(newTrack, "display", "artist", (rc, part) =>
             {
-              Dispatcher.Invoke(() => { ArtistLabel.Content = part; });
+              Dispatcher.Invoke(() =>
+              {
+                if (CurrentTrack == newTrack) {
+                  ArtistLabel.Content = part;
+                }
+              });
             });
             Connection.PartAsync(newTrack, "display", "album", (rc, part) =>
             {
-              Dispatcher.Invoke(() => { AlbumLabel.Content = part; });
+              Dispatcher.Invoke(() =>
+              {
+                if (CurrentTrack == newTrack) {
+                  AlbumLabel.Content = part;
+                }
+              });
             });
             Connection.PartAsync(newTrack, "display", "title", (rc, part) =>
             {
-              Dispatcher.Invoke(() => { TitleLabel.Content = part; });
+              Dispatcher.Invoke(() =>
+              {
+                if (CurrentTrack == newTrack) {
+                  TitleLabel.Content = part;
+                }
+              });
             });
           }
         });
