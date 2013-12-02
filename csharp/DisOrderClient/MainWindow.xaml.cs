@@ -279,23 +279,24 @@ namespace DisOrderClient
     private bool NetworkPlayOffsetSet;
     private void StartNetworkPlay()
     {
-      if (NetworkPlaySocket != null)
-        return;
-      NetworkPlaySocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-      // Ramp up the input buffer size
-      NetworkPlaySocket.ReceiveBufferSize = 44100 * 4;
-      // Bind to some local address.  By default we use the same port as the server
-      // but rtp_local can override this.
-      IPAddress localAddress = GetLocalAddress();
-      IPEndPoint localEndpoint = new IPEndPoint(localAddress, 0);
-      if (Configuration.RtpLocal != 0)
-        localEndpoint.Port = Configuration.RtpLocal;
-      else
-        localEndpoint.Port = Configuration.Port;
-      NetworkPlaySocket.Bind(localEndpoint);
-      // Await incoming traffic
-      NetworkPlayOffsetSet = false;
-      NetworkPlayWait();
+      // Create the socket if it doesn't exist
+      if (NetworkPlaySocket == null) {
+        NetworkPlaySocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        // Ramp up the input buffer size
+        NetworkPlaySocket.ReceiveBufferSize = 44100 * 4;
+        // Bind to some local address.  By default we use the same port as the server
+        // but rtp_local can override this.
+        IPAddress localAddress = GetLocalAddress();
+        IPEndPoint localEndpoint = new IPEndPoint(localAddress, 0);
+        if (Configuration.RtpLocal != 0)
+          localEndpoint.Port = Configuration.RtpLocal;
+        else
+          localEndpoint.Port = Configuration.Port;
+        NetworkPlaySocket.Bind(localEndpoint);
+        // Await incoming traffic
+        NetworkPlayOffsetSet = false;
+        NetworkPlayWait();
+      }
       // Enable inbound data
       IPEndPoint endpoint = (IPEndPoint)NetworkPlaySocket.LocalEndPoint;
       string address = endpoint.Address.ToString();
@@ -347,12 +348,8 @@ namespace DisOrderClient
 
     private void StopNetworkPlay()
     {
-      if (NetworkPlaySocket == null)
-        return;
       Connection.RtpCancelAsync();
-      NetworkPlaySocket.Close(0);
-      NetworkPlaySocket = null;
-      dxbridge.dxbridgeStop();
+      RtpPlayMenuItem.IsChecked = false;
     }
 
     #endregion
