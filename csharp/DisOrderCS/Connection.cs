@@ -188,14 +188,14 @@ namespace uk.org.greenend.DisOrder
     #endregion
 
     #region Protocol IO
-    private int Transact(out string response, params object[] command)
+    private int Transact(out string response, out IList<string> lines, params object[] command)
     {
       lock (monitor) {
-        return TransactLocked(out response, command);
+        return TransactLocked(out response, out lines, command);
       }
     }
 
-    private int TransactLocked(out string response, object[] command)
+    private int TransactLocked(out string response, out IList<string> body, object[] command)
     {
       int rc;
       // Don't consume the request ID until after SendLocked has returned,
@@ -212,7 +212,7 @@ namespace uk.org.greenend.DisOrder
           // Automatic retries would need to be implemented in here somewhere
           throw new InvalidServerResponseException("lost connection");
         }
-        rc = WaitLocked(out response);
+        rc = WaitLocked(out response, out body);
       }
       finally {
         // Having consumed a request ID we must be sure to consume
@@ -297,6 +297,12 @@ namespace uk.org.greenend.DisOrder
 
     private int WaitLocked(out string response)
     {
+      IList<string> body;
+      return WaitLocked(out response, out body);
+    }
+
+    private int WaitLocked(out string response, out IList<string> body)
+    {
       string line = ReadLine();
       // Extract the initial code
       int rc;
@@ -305,45 +311,48 @@ namespace uk.org.greenend.DisOrder
           throw new InvalidStringException("error from server: " + line);
         else
           response = line.Substring(4);
+        if (rc % 100 == 3)
+          body = WaitBody();
+        else
+          body = null;
         return rc;
       } 
       else
         throw new InvalidServerResponseException("malformed line received from server");
     }
 
-    private void WaitBody(IList<string> body)
+    private IList<string> WaitBody()
     {
-      body.Clear();
+      List<string> lines = new List<string>();
       string line;
       while ((line = ReadLine()) != ".") {
         if (line[0] != '.')
-          body.Add(line);
+          lines.Add(line);
         else
-          body.Add(line.Substring(1));
+          lines.Add(line.Substring(1));
       }
+      return lines;
     }
 
-    private void WaitBodyQueue(IList<QueueEntry> queue)
+    static private IList<QueueEntry> BodyToQueue(IList<string> lines)
     {
-      queue.Clear();
-      List<string> lines = new List<string>();
-      WaitBody(lines);
+      List<QueueEntry> queue = new List<QueueEntry>();
       foreach (string line in lines) {
         queue.Add(new QueueEntry(line));
       }
+      return queue;
     }
 
-    private void WaitBodyPairs(IDictionary<string,string> pairs)
+    static private IDictionary<string, string> BodyToPairs(IList<string> lines)
     {
-      pairs.Clear();
-      List<string> lines = new List<string>();
-      WaitBody(lines);
+      Dictionary<string, string> pairs = new Dictionary<string, string>();
       foreach (string line in lines) {
         IList<string> bits = Utils.Split(line, false);
         if(bits.Count != 2)
           throw new InvalidServerResponseException("malformed pair received from server");
         pairs.Add(bits[0], bits[1]);
       }
+      return pairs;
     }
     #endregion
 
@@ -359,7 +368,8 @@ namespace uk.org.greenend.DisOrder
       lock (monitor) {
         try {
           string response;
-          TransactLocked(out response, new object[] { "log" });
+          IList<string> body;
+          TransactLocked(out response, out body, new object[] { "log" });
           for (; ; ) {
             string line = ReadLine();
             IList<string> bits;

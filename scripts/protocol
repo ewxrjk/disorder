@@ -473,7 +473,7 @@ sub simple {
 	    push(@csretsdecl, "out string $name");
 	    push(@cscbtype,   "string");
 	    push(@cscbinit,   "          string $name;\n");
-	    push(@csretspass,   "out $name");
+	    push(@csretspass, "out $name");
 	    push(@csretparse, "      $name = bits[$retno];\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'integer') {
@@ -481,7 +481,7 @@ sub simple {
 	    push(@csretsdecl, "out int $name");
 	    push(@cscbtype,   "int");
 	    push(@cscbinit,   "          int $name;\n");
-	    push(@csretspass,   "out $name");
+	    push(@csretspass, "out $name");
 	    push(@csretparse, "      $name = int.Parse(bits[$retno]);\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'boolean') {
@@ -489,7 +489,7 @@ sub simple {
 	    push(@csretsdecl, "out bool $name");
 	    push(@cscbtype,   "bool");
 	    push(@cscbinit,   "          bool $name;\n");
-	    push(@csretspass,   "out $name");
+	    push(@csretspass, "out $name");
 	    push(@csretparse, "      $name = (bits[$retno] == \"yes\");\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'string-raw') {
@@ -497,7 +497,7 @@ sub simple {
 	    push(@csretsdecl, "out string $name");
 	    push(@cscbtype,   "string");
 	    push(@cscbinit,   "          string $name;\n");
-	    push(@csretspass,   "out $name");
+	    push(@csretspass, "out $name");
 	    push(@csretparse, "      $name = response;\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'queue-one') {
@@ -505,30 +505,30 @@ sub simple {
 	    push(@csretsdecl, "QueueEntry $name");
 	    push(@cscbtype,   "QueueEntry");
 	    push(@cscbinit,   "          QueueEntry $name = new QueueEntry();\n");
-	    push(@csretspass,   "$name");
+	    push(@csretspass, "$name");
 	    push(@csretparse,
 		 "      $name.Set(response);\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'body') {
-	    push(@csretsdecl, "IList<string> $name");
+	    push(@csretsdecl, "out IList<string> $name");
 	    push(@cscbtype,   "IList<string>");
 	    push(@cscbinit,   "          IList<string> $name = new List<string>();\n");
-	    push(@csretspass,   "$name");
-	    push(@csretparse, "      WaitBody($name);\n");
+	    push(@csretspass, "out $name");
+	    push(@csretparse, "      $name = lines;\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'pair-list') {
-	    push(@csretsdecl, "IDictionary<string,string> $name");
+	    push(@csretsdecl, "out IDictionary<string,string> $name");
 	    push(@cscbtype,   "IDictionary<string,string>");
 	    push(@cscbinit,   "          IDictionary<string,string> $name = new Dictionary<string,string>();\n");
-	    push(@csretspass,   "$name");
-	    push(@csretparse, "      WaitBodyPairs($name);\n");
+	    push(@csretspass, "out $name");
+	    push(@csretparse, "      $name = BodyToPairs(lines);\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'queue') {
-	    push(@csretsdecl, "IList<QueueEntry> $name");
+	    push(@csretsdecl, "out IList<QueueEntry> $name");
 	    push(@cscbtype,   "IList<QueueEntry>");
 	    push(@cscbinit,   "          IList<QueueEntry> $name = new List<QueueEntry>();\n");
-	    push(@csretspass,   "$name");
-	    push(@csretparse, "      WaitBodyQueue($name);\n");
+	    push(@csretspass, "out $name");
+	    push(@csretparse, "      $name = BodyToQueue(lines);\n");
 	    push(@csretsfwd,  $name)
 	} elsif($type eq 'user') {
 	    # ignored
@@ -582,13 +582,20 @@ sub simple {
 	push(@cs, "    public int $cmdcs(",
 	     join(", ", @csretsdecl, @csargsdecl), ") {\n",
 	     @csinit,
+	     "      IList<string> lines;\n",
 	     "      string response;\n");
 	if($retno == 0) {
-	    push(@cs, "      return Transact(", join(", ", "out response", @csargspass), ");\n");
+	    push(@cs, "      return Transact(", join(", ",
+						     "out response",
+						     "out lines",
+						     @csargspass),
+		 ");\n");
 	} else {
 	    push(@cs,
 		 "      int rc = Transact(", join(", ",
-						  "out response", @csargspass),
+						  "out response",
+						  "out lines",
+						  @csargspass),
 					  ");\n",
 		 @csretparse,
 		 "      return rc;\n");

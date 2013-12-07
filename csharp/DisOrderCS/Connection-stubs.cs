@@ -35,8 +35,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Makes the calling user owner of a randomly picked track.</para>
     /// </remarks>
     public int Adopt(string id) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "adopt", id);
+      return Transact(out response, out lines, "adopt", id);
     }
 
     /// <summary>Adopt a track (asynchronous)</summary>
@@ -66,8 +67,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Create a new user.  Requires the 'admin' right.  Email addresses etc must be filled in in separate commands.</para>
     /// </remarks>
     public int Adduser(string user, string password, string rights) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "adduser", user, password, rights);
+      return Transact(out response, out lines, "adduser", user, password, rights);
     }
 
     /// <summary>Create a user (asynchronous)</summary>
@@ -96,10 +98,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>See 'files' and 'dirs' for more specific lists.</para>
     /// </remarks>
-    public int Allfiles(IList<string> files, string dir, string re) {
+    public int Allfiles(out IList<string> files, string dir, string re) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "allfiles", dir, re);
-      WaitBody(files);
+      int rc = Transact(out response, out lines, "allfiles", dir, re);
+      files = lines;
       return rc;
     }
 
@@ -113,7 +116,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
-          int rc = Allfiles(files, dir, re);
+          int rc = Allfiles(out files, dir, re);
           if(callback != null) {
             try {
               callback(rc, files);
@@ -131,8 +134,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>The confirmation string must have been created with 'register'.  The username is returned so the caller knows who they are.</para>
     /// </remarks>
     public int Confirm(string confirmation) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "confirm", confirmation);
+      int rc = Transact(out response, out lines, "confirm", confirmation);
       return rc;
     }
 
@@ -163,8 +167,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>The cookie must have been created with 'make-cookie'.  The username is returned so the caller knows who they are.</para>
     /// </remarks>
     public int Cookie(string cookie) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "cookie", cookie);
+      int rc = Transact(out response, out lines, "cookie", cookie);
       return rc;
     }
 
@@ -195,8 +200,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'admin' right.</para>
     /// </remarks>
     public int Deluser(string user) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "deluser", user);
+      return Transact(out response, out lines, "deluser", user);
     }
 
     /// <summary>Delete user (asynchronous)</summary>
@@ -225,10 +231,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Dirs(IList<string> files, string dir, string re) {
+    public int Dirs(out IList<string> files, string dir, string re) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "dirs", dir, re);
-      WaitBody(files);
+      int rc = Transact(out response, out lines, "dirs", dir, re);
+      files = lines;
       return rc;
     }
 
@@ -242,7 +249,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
-          int rc = Dirs(files, dir, re);
+          int rc = Dirs(out files, dir, re);
           if(callback != null) {
             try {
               callback(rc, files);
@@ -260,8 +267,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Play will stop at the end of the current track, if one is playing.  Requires the 'global prefs' right.</para>
     /// </remarks>
     public int Disable() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "disable");
+      return Transact(out response, out lines, "disable");
     }
 
     /// <summary>Disable play (asynchronous)</summary>
@@ -291,8 +299,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>With the 'admin' right you can do anything.  Otherwise you need the 'userinfo' right and can only set 'email' and 'password'.</para>
     /// </remarks>
     public int Edituser(string username, string property, string value) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "edituser", username, property, value);
+      return Transact(out response, out lines, "edituser", username, property, value);
     }
 
     /// <summary>Set a user property (asynchronous)</summary>
@@ -322,8 +331,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'global prefs' right.</para>
     /// </remarks>
     public int Enable() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "enable");
+      return Transact(out response, out lines, "enable");
     }
 
     /// <summary>Enable play (asynchronous)</summary>
@@ -353,8 +363,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int Enabled(out bool enabled) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "enabled");
+      int rc = Transact(out response, out lines, "enabled");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'enabled'");
@@ -390,8 +401,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int Exists(out bool exists, string track) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "exists", track);
+      int rc = Transact(out response, out lines, "exists", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'exists'");
@@ -426,10 +438,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Files(IList<string> files, string dir, string re) {
+    public int Files(out IList<string> files, string dir, string re) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "files", dir, re);
-      WaitBody(files);
+      int rc = Transact(out response, out lines, "files", dir, re);
+      files = lines;
       return rc;
     }
 
@@ -443,7 +456,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> files = new List<string>();
-          int rc = Files(files, dir, re);
+          int rc = Files(out files, dir, re);
           if(callback != null) {
             try {
               callback(rc, files);
@@ -461,8 +474,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the track does not exist that is an error.  If the track exists but the preference does not then a null value is returned.</para>
     /// </remarks>
     public int Get(out string value, string track, string pref) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "get", track, pref);
+      int rc = Transact(out response, out lines, "get", track, pref);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'get'");
@@ -498,8 +512,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the preference does exist not then a null value is returned.</para>
     /// </remarks>
     public int GetGlobal(out string value, string pref) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "get-global", pref);
+      int rc = Transact(out response, out lines, "get-global", pref);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'get-global'");
@@ -535,8 +550,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the track does not exist an error is returned.</para>
     /// </remarks>
     public int Length(out int length, string track) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "length", track);
+      int rc = Transact(out response, out lines, "length", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'length'");
@@ -572,8 +588,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>The cookie may be redeemed via the 'cookie' command</para>
     /// </remarks>
     public int MakeCookie(out string cookie) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "make-cookie");
+      int rc = Transact(out response, out lines, "make-cookie");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'make-cookie'");
@@ -609,8 +626,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
     /// </remarks>
     public int Move(string track, int delta) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "move", track, delta);
+      return Transact(out response, out lines, "move", track, delta);
     }
 
     /// <summary>Move a track (asynchronous)</summary>
@@ -640,8 +658,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires one of the 'move mine', 'move random' or 'move any' rights depending on how the track came to be added to the queue.</para>
     /// </remarks>
     public int Moveafter(string target, IList<string> ids) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "moveafter", target, ids);
+      return Transact(out response, out lines, "moveafter", target, ids);
     }
 
     /// <summary>Move multiple tracks (asynchronous)</summary>
@@ -670,10 +689,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int NewTracks(IList<string> tracks, int max) {
+    public int NewTracks(out IList<string> tracks, int max) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "new", max);
-      WaitBody(tracks);
+      int rc = Transact(out response, out lines, "new", max);
+      tracks = lines;
       return rc;
     }
 
@@ -687,7 +707,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
-          int rc = NewTracks(tracks, max);
+          int rc = NewTracks(out tracks, max);
           if(callback != null) {
             try {
               callback(rc, tracks);
@@ -705,8 +725,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Used as a keepalive.  No authentication required.</para>
     /// </remarks>
     public int Nop() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "nop");
+      return Transact(out response, out lines, "nop");
     }
 
     /// <summary>Do nothing (asynchronous)</summary>
@@ -736,8 +757,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the name part cannot be constructed an empty string is returned.</para>
     /// </remarks>
     public int Part(out string part, string track, string context, string namepart) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "part", track, context, namepart);
+      int rc = Transact(out response, out lines, "part", track, context, namepart);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'part'");
@@ -773,8 +795,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'pause' right.</para>
     /// </remarks>
     public int Pause() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "pause");
+      return Transact(out response, out lines, "pause");
     }
 
     /// <summary>Pause the currently playing track (asynchronous)</summary>
@@ -804,8 +827,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right.</para>
     /// </remarks>
     public int Play(out string id, string track) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "play", track);
+      int rc = Transact(out response, out lines, "play", track);
       id = response;
       return rc;
     }
@@ -838,8 +862,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right.</para>
     /// </remarks>
     public int Playafter(string target, IList<string> tracks) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playafter", target, tracks);
+      return Transact(out response, out lines, "playafter", target, tracks);
     }
 
     /// <summary>Play multiple tracks (asynchronous)</summary>
@@ -869,8 +894,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int Playing(QueueEntry playing) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "playing");
+      int rc = Transact(out response, out lines, "playing");
       playing.Set(response);
       return rc;
     }
@@ -903,8 +929,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right and permission to modify the playlist.</para>
     /// </remarks>
     public int PlaylistDelete(string playlist) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playlist-delete", playlist);
+      return Transact(out response, out lines, "playlist-delete", playlist);
     }
 
     /// <summary>Delete a playlist (asynchronous)</summary>
@@ -933,10 +960,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>Requires the 'read' right and oermission to read the playlist.</para>
     /// </remarks>
-    public int PlaylistGet(IList<string> tracks, string playlist) {
+    public int PlaylistGet(out IList<string> tracks, string playlist) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "playlist-get", playlist);
-      WaitBody(tracks);
+      int rc = Transact(out response, out lines, "playlist-get", playlist);
+      tracks = lines;
       return rc;
     }
 
@@ -950,7 +978,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
-          int rc = PlaylistGet(tracks, playlist);
+          int rc = PlaylistGet(out tracks, playlist);
           if(callback != null) {
             try {
               callback(rc, tracks);
@@ -968,8 +996,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'read' right and permission to read the playlist.</para>
     /// </remarks>
     public int PlaylistGetShare(out string share, string playlist) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "playlist-get-share", playlist);
+      int rc = Transact(out response, out lines, "playlist-get-share", playlist);
       share = response;
       return rc;
     }
@@ -1002,8 +1031,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right and permission to modify the playlist.  A given connection may lock at most one playlist.</para>
     /// </remarks>
     public int PlaylistLock(string playlist) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playlist-lock", playlist);
+      return Transact(out response, out lines, "playlist-lock", playlist);
     }
 
     /// <summary>Lock a playlist (asynchronous)</summary>
@@ -1033,8 +1063,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right and permission to modify the playlist, which must be locked.</para>
     /// </remarks>
     public int PlaylistSet(string playlist, IList<string> tracks) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playlist-set", playlist, new SendAsBody(tracks));
+      return Transact(out response, out lines, "playlist-set", playlist, new SendAsBody(tracks));
     }
 
     /// <summary>Set the contents of a playlist (asynchronous)</summary>
@@ -1064,8 +1095,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'play' right and permission to modify the playlist.</para>
     /// </remarks>
     public int PlaylistSetShare(string playlist, string share) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playlist-set-share", playlist, share);
+      return Transact(out response, out lines, "playlist-set-share", playlist, share);
     }
 
     /// <summary>Set a playlist's sharing status (asynchronous)</summary>
@@ -1095,8 +1127,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>The playlist to unlock is implicit in the connection.</para>
     /// </remarks>
     public int PlaylistUnlock() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "playlist-unlock");
+      return Transact(out response, out lines, "playlist-unlock");
     }
 
     /// <summary>Unlock the locked playlist playlist (asynchronous)</summary>
@@ -1125,10 +1158,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>Requires the 'read' right.  Only playlists that you have permission to read are returned.</para>
     /// </remarks>
-    public int Playlists(IList<string> playlists) {
+    public int Playlists(out IList<string> playlists) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "playlists");
-      WaitBody(playlists);
+      int rc = Transact(out response, out lines, "playlists");
+      playlists = lines;
       return rc;
     }
 
@@ -1142,7 +1176,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> playlists = new List<string>();
-          int rc = Playlists(playlists);
+          int rc = Playlists(out playlists);
           if(callback != null) {
             try {
               callback(rc, playlists);
@@ -1159,10 +1193,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Prefs(IDictionary<string,string> prefs, string track) {
+    public int Prefs(out IDictionary<string,string> prefs, string track) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "prefs", track);
-      WaitBodyPairs(prefs);
+      int rc = Transact(out response, out lines, "prefs", track);
+      prefs = BodyToPairs(lines);
       return rc;
     }
 
@@ -1176,7 +1211,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IDictionary<string,string> prefs = new Dictionary<string,string>();
-          int rc = Prefs(prefs, track);
+          int rc = Prefs(out prefs, track);
           if(callback != null) {
             try {
               callback(rc, prefs);
@@ -1193,10 +1228,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Queue(IList<QueueEntry> queue) {
+    public int Queue(out IList<QueueEntry> queue) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "queue");
-      WaitBodyQueue(queue);
+      int rc = Transact(out response, out lines, "queue");
+      queue = BodyToQueue(lines);
       return rc;
     }
 
@@ -1210,7 +1246,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<QueueEntry> queue = new List<QueueEntry>();
-          int rc = Queue(queue);
+          int rc = Queue(out queue);
           if(callback != null) {
             try {
               callback(rc, queue);
@@ -1228,8 +1264,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'global prefs' right.</para>
     /// </remarks>
     public int RandomDisable() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "random-disable");
+      return Transact(out response, out lines, "random-disable");
     }
 
     /// <summary>Disable random play (asynchronous)</summary>
@@ -1259,8 +1296,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'global prefs' right.</para>
     /// </remarks>
     public int RandomEnable() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "random-enable");
+      return Transact(out response, out lines, "random-enable");
     }
 
     /// <summary>Enable random play (asynchronous)</summary>
@@ -1290,8 +1328,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Random play counts as enabled even if play is disabled.</para>
     /// </remarks>
     public int RandomEnabled(out bool enabled) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "random-enabled");
+      int rc = Transact(out response, out lines, "random-enabled");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'random-enabled'");
@@ -1326,10 +1365,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Recent(IList<QueueEntry> recent) {
+    public int Recent(out IList<QueueEntry> recent) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "recent");
-      WaitBodyQueue(recent);
+      int rc = Transact(out response, out lines, "recent");
+      recent = BodyToQueue(lines);
       return rc;
     }
 
@@ -1343,7 +1383,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<QueueEntry> recent = new List<QueueEntry>();
-          int rc = Recent(recent);
+          int rc = Recent(out recent);
           if(callback != null) {
             try {
               callback(rc, recent);
@@ -1361,8 +1401,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'admin' right.</para>
     /// </remarks>
     public int Reconfigure() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "reconfigure");
+      return Transact(out response, out lines, "reconfigure");
     }
 
     /// <summary>Re-read configuraiton file. (asynchronous)</summary>
@@ -1392,8 +1433,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'register' right which is usually only available to the 'guest' user.  Redeem the confirmation string via 'confirm' to complete registration.</para>
     /// </remarks>
     public int Register(out string confirmation, string username, string password, string email) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "register", username, password, email);
+      int rc = Transact(out response, out lines, "register", username, password, email);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'register'");
@@ -1429,8 +1471,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the user has no valid email address, or no password, or a reminder has been sent too recently, then no reminder will be sent.</para>
     /// </remarks>
     public int Reminder(string username) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "reminder", username);
+      return Transact(out response, out lines, "reminder", username);
     }
 
     /// <summary>Send a password reminder. (asynchronous)</summary>
@@ -1460,8 +1503,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires one of the 'remove mine', 'remove random' or 'remove any' rights depending on how the track came to be added to the queue.</para>
     /// </remarks>
     public int Remove(string id) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "remove", id);
+      return Transact(out response, out lines, "remove", id);
     }
 
     /// <summary>Remove a track form the queue. (asynchronous)</summary>
@@ -1491,8 +1535,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'rescan' right.</para>
     /// </remarks>
     public int Rescan() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "rescan");
+      return Transact(out response, out lines, "rescan");
     }
 
     /// <summary>Rescan all collections for new or obsolete tracks. (asynchronous)</summary>
@@ -1522,8 +1567,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Converts aliases to non-alias track names</para>
     /// </remarks>
     public int Resolve(out string resolved, string track) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "resolve", track);
+      int rc = Transact(out response, out lines, "resolve", track);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'resolve'");
@@ -1559,8 +1605,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'pause' right.</para>
     /// </remarks>
     public int Resume() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "resume");
+      return Transact(out response, out lines, "resume");
     }
 
     /// <summary>Resume the currently playing track (asynchronous)</summary>
@@ -1590,8 +1637,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>It will not subsequently be possible to log in with the cookie.</para>
     /// </remarks>
     public int Revoke() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "revoke");
+      return Transact(out response, out lines, "revoke");
     }
 
     /// <summary>Revoke a cookie. (asynchronous)</summary>
@@ -1621,8 +1669,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int RtpAddress(out string address, out string port) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "rtp-address");
+      int rc = Transact(out response, out lines, "rtp-address");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
         throw new InvalidServerResponseException("wrong number of fields in response to 'rtp-address'");
@@ -1660,8 +1709,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int RtpCancel() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "rtp-cancel");
+      return Transact(out response, out lines, "rtp-cancel");
     }
 
     /// <summary>Cancel RTP stream (asynchronous)</summary>
@@ -1691,8 +1741,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int RtpRequest(string address, string port) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "rtp-request", address, port);
+      return Transact(out response, out lines, "rtp-request", address, port);
     }
 
     /// <summary>Request a unicast RTP stream (asynchronous)</summary>
@@ -1722,8 +1773,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires one of the 'scratch mine', 'scratch random' or 'scratch any' rights depending on how the track came to be added to the queue.</para>
     /// </remarks>
     public int Scratch(string id) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "scratch", id);
+      return Transact(out response, out lines, "scratch", id);
     }
 
     /// <summary>Terminate the playing track. (asynchronous)</summary>
@@ -1753,8 +1805,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int ScheduleAddPlay(DateTime when, string priority, string track) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "schedule-add", when, priority, "play", track);
+      return Transact(out response, out lines, "schedule-add", when, priority, "play", track);
     }
 
     /// <summary>Schedule a track to play in the future (asynchronous)</summary>
@@ -1784,8 +1837,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int ScheduleAddSetGlobal(DateTime when, string priority, string pref, string value) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "schedule-add", when, priority, "set-global", pref, value);
+      return Transact(out response, out lines, "schedule-add", when, priority, "set-global", pref, value);
     }
 
     /// <summary>Schedule a global setting to be changed in the future (asynchronous)</summary>
@@ -1815,8 +1869,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int ScheduleAddUnsetGlobal(DateTime when, string priority, string pref) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "schedule-add", when, priority, "set-global", pref);
+      return Transact(out response, out lines, "schedule-add", when, priority, "set-global", pref);
     }
 
     /// <summary>Schedule a global setting to be unset in the future (asynchronous)</summary>
@@ -1846,8 +1901,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Users can always delete their own scheduled events; with the admin right you can delete any event.</para>
     /// </remarks>
     public int ScheduleDel(string id) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "schedule-del", id);
+      return Transact(out response, out lines, "schedule-del", id);
     }
 
     /// <summary>Delete a scheduled event. (asynchronous)</summary>
@@ -1876,10 +1932,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int ScheduleGet(IDictionary<string,string> actiondata, string id) {
+    public int ScheduleGet(out IDictionary<string,string> actiondata, string id) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "schedule-get", id);
-      WaitBodyPairs(actiondata);
+      int rc = Transact(out response, out lines, "schedule-get", id);
+      actiondata = BodyToPairs(lines);
       return rc;
     }
 
@@ -1893,7 +1950,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IDictionary<string,string> actiondata = new Dictionary<string,string>();
-          int rc = ScheduleGet(actiondata, id);
+          int rc = ScheduleGet(out actiondata, id);
           if(callback != null) {
             try {
               callback(rc, actiondata);
@@ -1910,10 +1967,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>This just lists IDs.  Use 'schedule-get' to retrieve more detail</para>
     /// </remarks>
-    public int ScheduleList(IList<string> ids) {
+    public int ScheduleList(out IList<string> ids) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "schedule-list");
-      WaitBody(ids);
+      int rc = Transact(out response, out lines, "schedule-list");
+      ids = lines;
       return rc;
     }
 
@@ -1927,7 +1985,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> ids = new List<string>();
-          int rc = ScheduleList(ids);
+          int rc = ScheduleList(out ids);
           if(callback != null) {
             try {
               callback(rc, ids);
@@ -1944,10 +2002,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>Terms are either keywords or tags formatted as 'tag:TAG-NAME'.</para>
     /// </remarks>
-    public int Search(IList<string> tracks, string terms) {
+    public int Search(out IList<string> tracks, string terms) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "search", terms);
-      WaitBody(tracks);
+      int rc = Transact(out response, out lines, "search", terms);
+      tracks = lines;
       return rc;
     }
 
@@ -1961,7 +2020,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tracks = new List<string>();
-          int rc = Search(tracks, terms);
+          int rc = Search(out tracks, terms);
           if(callback != null) {
             try {
               callback(rc, tracks);
@@ -1979,8 +2038,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'prefs' right.</para>
     /// </remarks>
     public int Set(string track, string pref, string value) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "set", track, pref, value);
+      return Transact(out response, out lines, "set", track, pref, value);
     }
 
     /// <summary>Set a track preference (asynchronous)</summary>
@@ -2010,8 +2070,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'global prefs' right.</para>
     /// </remarks>
     public int SetGlobal(string pref, string value) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "set-global", pref, value);
+      return Transact(out response, out lines, "set-global", pref, value);
     }
 
     /// <summary>Set a global preference (asynchronous)</summary>
@@ -2041,8 +2102,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'admin' right.</para>
     /// </remarks>
     public int Shutdown() {
+      IList<string> lines;
       string response;
-      return Transact(out response, "shutdown");
+      return Transact(out response, out lines, "shutdown");
     }
 
     /// <summary>Request server shutdown (asynchronous)</summary>
@@ -2071,10 +2133,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>The details of what the server reports are not really defined.  The returned strings are intended to be printed out one to a line.</para>
     /// </remarks>
-    public int Stats(IList<string> stats) {
+    public int Stats(out IList<string> stats) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "stats");
-      WaitBody(stats);
+      int rc = Transact(out response, out lines, "stats");
+      stats = lines;
       return rc;
     }
 
@@ -2088,7 +2151,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> stats = new List<string>();
-          int rc = Stats(stats);
+          int rc = Stats(out stats);
           if(callback != null) {
             try {
               callback(rc, stats);
@@ -2105,10 +2168,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para>Only tags which apply to at least one track are returned.</para>
     /// </remarks>
-    public int Tags(IList<string> tags) {
+    public int Tags(out IList<string> tags) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "tags");
-      WaitBody(tags);
+      int rc = Transact(out response, out lines, "tags");
+      tags = lines;
       return rc;
     }
 
@@ -2122,7 +2186,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> tags = new List<string>();
-          int rc = Tags(tags);
+          int rc = Tags(out tags);
           if(callback != null) {
             try {
               callback(rc, tags);
@@ -2140,8 +2204,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'prefs' right.</para>
     /// </remarks>
     public int Unset(string track, string pref) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "unset", track, pref);
+      return Transact(out response, out lines, "unset", track, pref);
     }
 
     /// <summary>Unset a track preference (asynchronous)</summary>
@@ -2171,8 +2236,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>Requires the 'global prefs' right.</para>
     /// </remarks>
     public int UnsetGlobal(string pref) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "unset-global", pref);
+      return Transact(out response, out lines, "unset-global", pref);
     }
 
     /// <summary>Set a global preference (asynchronous)</summary>
@@ -2202,8 +2268,9 @@ namespace uk.org.greenend.DisOrder
     /// <para>If the user does not exist an error is returned, if the user exists but the property does not then a null value is returned.</para>
     /// </remarks>
     public int Userinfo(out string value, string username, string property) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "userinfo", username, property);
+      int rc = Transact(out response, out lines, "userinfo", username, property);
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'userinfo'");
@@ -2238,10 +2305,11 @@ namespace uk.org.greenend.DisOrder
     /// <remarks>
     /// <para></para>
     /// </remarks>
-    public int Users(IList<string> users) {
+    public int Users(out IList<string> users) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "users");
-      WaitBody(users);
+      int rc = Transact(out response, out lines, "users");
+      users = lines;
       return rc;
     }
 
@@ -2255,7 +2323,7 @@ namespace uk.org.greenend.DisOrder
       ThreadPool.QueueUserWorkItem((_) => {
         try {
           IList<string> users = new List<string>();
-          int rc = Users(users);
+          int rc = Users(out users);
           if(callback != null) {
             try {
               callback(rc, users);
@@ -2273,8 +2341,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int Version(out string version) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "version");
+      int rc = Transact(out response, out lines, "version");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 1)
         throw new InvalidServerResponseException("wrong number of fields in response to 'version'");
@@ -2310,8 +2379,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int SetVolume(int left, int right) {
+      IList<string> lines;
       string response;
-      return Transact(out response, "volume", left, right);
+      return Transact(out response, out lines, "volume", left, right);
     }
 
     /// <summary>Set the volume (asynchronous)</summary>
@@ -2341,8 +2411,9 @@ namespace uk.org.greenend.DisOrder
     /// <para></para>
     /// </remarks>
     public int GetVolume(out int left, out int right) {
+      IList<string> lines;
       string response;
-      int rc = Transact(out response, "volume");
+      int rc = Transact(out response, out lines, "volume");
       IList<string> bits = Utils.Split(response, false);
       if(bits.Count != 2)
         throw new InvalidServerResponseException("wrong number of fields in response to 'volume'");
