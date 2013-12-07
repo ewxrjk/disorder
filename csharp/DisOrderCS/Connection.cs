@@ -39,6 +39,7 @@ namespace uk.org.greenend.DisOrder
     private DateTime lastConnect = new DateTime();
     // Careful - nextRequest and nextResponse cannot safely be compared for order;
     // only for equality.  The ID after 0xffffffffffffffff is 0.
+    private bool waiting = false; // Some thread is block in Wait()
 
     private Dictionary<string, string> Hashes = new Dictionary<string, string>()
     {
@@ -92,7 +93,7 @@ namespace uk.org.greenend.DisOrder
         writer = new StreamWriter(inputStream, Encoding);
         // Get protocol version and challenge
         string response;
-        int rc = WaitLocked(out response);
+        int rc = Wait(out response);
         IList<string> greeting;
         try {
           greeting = Utils.Split(response, false);
@@ -115,7 +116,7 @@ namespace uk.org.greenend.DisOrder
           string hashed = Utils.ToHex(hash.ComputeHash(input.ToArray()));
           // Send the response, WaitLocked will throw if user or password wrong
           SendLocked(new object[] { "user", Configuration.Username, hashed });
-          WaitLocked(out response);
+          Wait(out response);
         }
       } catch {
         // If anything went wrong, tear it all down
@@ -133,12 +134,17 @@ namespace uk.org.greenend.DisOrder
     /// </remarks>
     public void Disconnect()
     {
-      inputCancel.Cancel();
-      inputCancel = new CancellationTokenSource();
       lock (monitor) {
-        while (nextRequest != nextResponse) {
+        // If some thread is blocked in input, interrupt it
+        if (waiting) {
+          inputCancel.Cancel();
+          inputCancel = new CancellationTokenSource();
+        }
+        // Wait until nothing is waiting or queued
+        while (waiting || nextRequest != nextResponse) {
           Monitor.Wait(monitor);
         }
+        // Actually close the connection
         DisconnectLocked();
       }
     }
@@ -212,7 +218,15 @@ namespace uk.org.greenend.DisOrder
           // Automatic retries would need to be implemented in here somewhere
           throw new InvalidServerResponseException("lost connection");
         }
-        rc = WaitLocked(out response, out body);
+        waiting = true;
+        Monitor.Exit(monitor);
+        try {
+          rc = Wait(out response, out body);
+        }
+        finally {
+          Monitor.Enter(monitor);
+          waiting = false;
+        }
       }
       finally {
         // Having consumed a request ID we must be sure to consume
@@ -295,13 +309,13 @@ namespace uk.org.greenend.DisOrder
       }
     }
 
-    private int WaitLocked(out string response)
+    private int Wait(out string response)
     {
       IList<string> body;
-      return WaitLocked(out response, out body);
+      return Wait(out response, out body);
     }
 
-    private int WaitLocked(out string response, out IList<string> body)
+    private int Wait(out string response, out IList<string> body)
     {
       string line = ReadLine();
       // Extract the initial code
