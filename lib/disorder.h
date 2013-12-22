@@ -25,6 +25,12 @@
 extern "C" {
 #endif
 
+#ifdef __GNUC__
+# define DISORDER_IFGNUC(x) x
+#else
+# define DISORDER_IFGNUC(x)
+#endif
+
 /* memory allocation **********************************************************/
 
 void *disorder_malloc(size_t);
@@ -47,34 +53,24 @@ char *disorder_strndup(const char *, size_t);
  * {xmalloc,xrealloc}_noptr don't promise to clear the new space
  */
 
-#ifdef __GNUC__
-
 int disorder_snprintf(char buffer[], size_t bufsize, const char *fmt, ...)
-  __attribute__((format (printf, 3, 4)));
+  DISORDER_IFGNUC(__attribute__((format (printf, 3, 4))));
 /* like snprintf */
   
 int disorder_asprintf(char **rp, const char *fmt, ...)
-  __attribute__((format (printf, 2, 3)));
+  DISORDER_IFGNUC(__attribute__((format (printf, 2, 3))));
 /* like asprintf but uses xmalloc_noptr() */
-
-#else
-
-int disorder_snprintf(char buffer[], size_t bufsize, const char *fmt, ...);
-/* like snprintf */
-  
-int disorder_asprintf(char **rp, const char *fmt, ...);
-/* like asprintf but uses xmalloc_noptr() */
-
-#endif
- 
 
 /* logging ********************************************************************/
 
-void disorder_error(int errno_value, const char *fmt, ...);
+void disorder_error(int errno_value, const char *fmt, ...)
+  DISORDER_IFGNUC(__attribute__((format (printf, 2, 3))));
 /* report an error.  If errno_value is nonzero then the errno string
  * is included. */
   
-void disorder_fatal(int errno_value, const char *fmt, ...);
+void disorder_fatal(int errno_value, const char *fmt, ...)
+  DISORDER_IFGNUC(__attribute__((noreturn))
+                  __attribute__((format (printf, 2, 3))));
 /* report an error and terminate.  If errno_value is nonzero then the
  * errno string is included.  This is the only safe way to terminate
  * the process. */
