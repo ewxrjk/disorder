@@ -20,6 +20,12 @@ cgiexecdir=/usr/lib/cgi-bin
 httpdir=/var/www
 browser=x-www-browser
 
+CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
+CFLAGS:=$(shell dpkg-buildflags --get CFLAGS)
+CXXFLAGS:=$(shell dpkg-buildflags --get CXXFLAGS)
+LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
+export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS
+
 # Options to configure.  This can be overridden by the caller if necessary.
 CONFIGURE=--prefix=/usr --sysconfdir=/etc --localstatedir=/var/lib --mandir=/usr/share/man --with-browser=${browser} cgiexecdir="${cgiexecdir}" httpdir="${httpdir}"
 
