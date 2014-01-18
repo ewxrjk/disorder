@@ -124,7 +124,7 @@ static void test_printf(void) {
   {
     /* bizarre workaround for compiler checking of format strings */
     char f[] = "xyzzy %";
-    i = byte_asprintf(&cp, f);
+    i = byte_asprintf(&cp, f, 0);
     insist(i == -1);
   }
 
@@ -151,13 +151,13 @@ static void test_printf(void) {
   check_integer(byte_snprintf(buffer, sizeof buffer, L("%zp"), (void *)0), -1);
   check_integer(byte_snprintf(buffer, sizeof buffer, L("%tp"), (void *)0), -1);
   check_integer(byte_snprintf(buffer, sizeof buffer, L("%Lp"), (void *)0), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%h%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%l%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%q%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%j%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%z%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%t%")), -1);
-  check_integer(byte_snprintf(buffer, sizeof buffer, L("%L%")), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%h%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%l%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%q%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%j%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%z%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%t%"), 0), -1);
+  check_integer(byte_snprintf(buffer, sizeof buffer, L("%L%"), 0), -1);
   check_integer(byte_snprintf(buffer, sizeof buffer, "%2147483647s%2147483647s", "", ""), -1);
   check_integer(byte_sinkprintf(sink_error(), ""), 0);
   check_integer(byte_sinkprintf(sink_error(), "%5s", ""), -1);
