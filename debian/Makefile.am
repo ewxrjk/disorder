@@ -26,4 +26,5 @@ EXTRA_DIST=README.Debian config.disorder-server control \
 	   templates.disorder-server conffiles.disorder-server \
 	   rules changelog usr.share.menu.disobedience \
 	   disorder.daily \
+	   overrides.disorder overrides.disorder-playrtp \
 	   postinst.disobedience disobedience-manual
