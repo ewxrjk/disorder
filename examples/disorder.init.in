@@ -29,6 +29,8 @@
 
 set -e
 
+. /lib/lsb/init-functions
+
 DAEMON=sbindir/disorderd
 CLIENT="bindir/disorder --local"
 
