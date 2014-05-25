@@ -1182,6 +1182,7 @@ static int compute_alias(char **aliasp,
     }
     return 0;
   default:
+    *aliasp = 0;
     return err;
   }
 }
