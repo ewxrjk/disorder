@@ -280,7 +280,7 @@ fi
 if test $want_cgi = yes; then
   if test -z "$httpdir"; then
     AC_CACHE_CHECK([for httpd document root],[rjk_cv_httpdir],[
-      rjk_cv_httpdir="not found"
+      rjk_cv_httpdir="/usr/local/apache/htdocs"
       for dir in /var/www/html \
                  /var/www/htdocs \
                  /var/www/localhost/htdocs \
@@ -296,9 +296,6 @@ if test $want_cgi = yes; then
         fi
       done
     ])
-    if test "$rjk_cv_httpdir" = "not found"; then
-      AC_MSG_ERROR([cannot identify httpd documentroot.  Set httpdir on configure command line])
-    fi
     httpdir="$rjk_cv_httpdir"
   fi
   if test ! -z "$cgidir"; then
@@ -307,7 +304,7 @@ if test $want_cgi = yes; then
   fi
   if test -z "$cgiexecdir"; then
     AC_CACHE_CHECK([for CGI directory],[rjk_cv_cgiexecdir],[
-      rjk_cv_cgiexecdir="not found"
+      rjk_cv_cgiexecdir="/usr/lib/cgi-bin"
       for dir in /usr/lib/cgi-bin \
                  /Library/WebServer/CGI-Executables \
                  /srv/www/cgi-bin \
@@ -323,9 +320,6 @@ if test $want_cgi = yes; then
         fi
       done
     ])
-    if test "$rjk_cv_cgiexecdir" = "not found"; then
-      AC_MSG_ERROR([cannot identify CGI install directory.  Set cgiexecdir on configure command line])
-    fi
     cgiexecdir="$rjk_cv_cgiexecdir"
   fi
 fi
