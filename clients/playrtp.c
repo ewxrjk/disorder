@@ -647,10 +647,12 @@ static int compare_flags(const struct ifaddrs *a,
   unsigned aup = aflags & IFF_UP, bup = bflags & IFF_UP;
   if(aup != bup)
     return aup > bup ? 1 : -1;
+#if IFF_DYNAMIC
   /* Static addresses are better than dynamic */
   unsigned adynamic = aflags & IFF_DYNAMIC, bdynamic = bflags & IFF_DYNAMIC;
   if(adynamic != bdynamic)
     return adynamic < bdynamic ? 1 : -1;
+#endif
   unsigned aloopback = aflags & IFF_LOOPBACK, bloopback = bflags & IFF_LOOPBACK;
   /* Static addresses are better than dynamic */
   if(aloopback != bloopback)
