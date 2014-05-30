@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 # This file is part of DisOrder.
-# Copyright (C) 2004-2013 Richard Kettlewell
+# Copyright (C) 2004-2014 Richard Kettlewell
 # Portions copyright (C) 2007 Ross Younger
 #
 # This program is free software: you can redistribute it and/or modify
@@ -164,7 +164,7 @@ case "$host" in
   # Look for a suitable version of libdb among the versions found in FreeBSD 7.0
   AC_CACHE_CHECK([looking for a libdb install],[rjk_cv_libdb],[
     rjk_cv_libdb="none"
-    for db in db43 db44 db45 db47; do
+    for db in db43 db44 db45 db47 db48; do
       if test -e /usr/local/lib/$db; then
         rjk_cv_libdb=$db
         break
@@ -175,6 +175,8 @@ case "$host" in
     LDFLAGS="${LDFLAGS} -L/usr/local/lib/$rjk_cv_libdb"
     CPPFLAGS="${CPPFLAGS} -isystem /usr/local/include/$rjk_cv_libdb"
   fi
+  # iconv needs bodging
+  AC_SUBST(LIBICONV,[-liconv])
   ;;
 * )
   AC_MSG_RESULT([unknown, winging it])
