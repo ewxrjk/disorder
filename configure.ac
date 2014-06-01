@@ -572,24 +572,6 @@ fi
 old_CFLAGS="${CFLAGS}"
 CFLAGS="${CFLAGS} $gcc_werror"
 AC_CHECK_TYPES([long long,uint32_t,uint16_t,uint8_t,intmax_t,uintmax_t])
-
-# Some GCC invocations warn for converting function pointers to void *.
-# This is fair enough, as it's technically forbidden, but we use dlsym()
-# which can pretty much only exist if object and function pointers are
-# interconvertable.  So we disable -Werror if need be.
-if test ! -z "$gcc_werror"; then
-  AC_CACHE_CHECK([whether function pointers can be converted to void * without a warning],
-		 [rjk_cv_function_pointer_cast],[
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT
-  void somefunction(void);],
-		      [(void *)somefunction])],
-		      [rjk_cv_function_pointer_cast=yes],
-		      [rjk_cv_function_pointer_cast=no])])
-  if test $rjk_cv_function_pointer_cast = no; then
-    gcc_werror=""
-  fi
-fi
-
 CFLAGS="${old_CFLAGS}"
 
 # gcrypt maintainers keep changing everything.  Design your interface
@@ -657,6 +639,13 @@ AC_CHECK_FUNCS([fdatasync],[:],[
 if test ! -z "$missing_functions"; then
   AC_MSG_ERROR([missing functions:$missing_functions])
 fi
+# dlsym will do if dlfunc not available
+AC_CHECK_FUNCS([dlfunc],[:],[
+  AC_DEFINE([dlfunc],[dlsym],[define dlfunc to dlsym if not available])
+])
+if test ! -z "$missing_functions"; then
+  AC_MSG_ERROR([missing functions:$missing_functions])
+fi
 
 # Functions we can take or leave
 AC_CHECK_FUNCS([fls getfsstat closesocket])
@@ -706,6 +695,25 @@ if test $want_gtk = yes; then
   AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
 fi
 AM_CONDITIONAL([GTK], [test x$want_gtk = xyes])
+
+# Some GCC invocations warn for converting function pointers to void *.
+# This is fair enough, as it's technically forbidden, but we use dlsym()
+# which can pretty much only exist if object and function pointers are
+# interconvertable.  So we disable -Werror if need be.
+if test ! -z "$gcc_werror" && test "$ac_cv_func_dlfunc" != yes; then
+  CFLAGS="${CFLAGS} $gcc_werror"
+  AC_CACHE_CHECK([whether function pointers can be converted to void * without a warning],
+		 [rjk_cv_function_pointer_cast],[
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT
+  void somefunction(void);],
+		      [(void *)somefunction])],
+		      [rjk_cv_function_pointer_cast=yes],
+		      [rjk_cv_function_pointer_cast=no])])
+  if test $rjk_cv_function_pointer_cast = no; then
+    gcc_werror=""
+  fi
+  CFLAGS="${old_CFLAGS}"
+fi
 
 if test "x$GCC" = xyes; then
   # We need LLONG_MAX and annoyingly GCC doesn't always give it to us

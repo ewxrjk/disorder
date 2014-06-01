@@ -75,7 +75,7 @@ static void checkabort(void) {
     exit(0);
   }
   if(signalled) {
-    disorder_info("received signal %d", signalled);
+    disorder_info("received signal %ju", (uintmax_t)signalled);
     trackdb_abort_transaction(global_tid);
     exit(0);
   }

@@ -1254,7 +1254,7 @@ int trackdb_notice(const char *track,
   for(;;) {
     tid = trackdb_begin_transaction();
     err = trackdb_notice_tid(track, path, tid);
-    if((err == DB_LOCK_DEADLOCK)) goto fail;
+    if(err == DB_LOCK_DEADLOCK) goto fail;
     break;
   fail:
     trackdb_abort_transaction(tid);

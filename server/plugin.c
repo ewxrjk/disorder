@@ -80,7 +80,7 @@ function_t *get_plugin_function(const struct plugin *pl,
 				const char *symbol) {
   function_t *f;
 
-  f = (function_t *)dlsym(pl->dlhandle, symbol);
+  f = (function_t *)dlfunc(pl->dlhandle, symbol);
   if(!f)
     disorder_fatal(0, "error looking up function '%s' in '%s': %s",
 		   symbol, pl->name, dlerror());

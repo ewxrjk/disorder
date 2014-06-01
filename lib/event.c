@@ -311,7 +311,8 @@ int ev_fd(ev_source *ev,
 
   D(("registering %s fd %d callback %p %p", modenames[mode], fd,
      (void *)callback, u));
-  if(fd >= FD_SETSIZE)
+  /* FreeBSD defines FD_SETSIZE as 1024u for some reason */
+  if((unsigned)fd >= FD_SETSIZE)
     return -1;
   assert(mode < ev_nmodes);
   if(ev->mode[mode].nfds >= ev->mode[mode].fdslots) {

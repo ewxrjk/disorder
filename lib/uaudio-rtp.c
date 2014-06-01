@@ -75,9 +75,6 @@ static uint16_t rtp_sequence;
  */
 static int rtp_errors;
 
-/** @brief Set while paused */
-static volatile int rtp_paused;
-
 /** @brief RTP mode */
 static int rtp_mode;
 
