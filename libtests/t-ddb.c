@@ -56,9 +56,11 @@ static void test_users(void) {
   assert(email == NULL);
   assert(confirm == NULL);
   assert(rights == RIGHTS__MASK);
-  email = "fred@invalid";
-  confirm = "confirmation";
-  assert(ddb_set_user("fred", NULL, &email, &confirm, NULL) == DDB_OK);
+  email = (char *)"fred@invalid";
+  confirm = (char *)"confirmation";
+  assert(ddb_set_user("fred", NULL,
+                      (const char **)&email,
+                      (const char **)&confirm, NULL) == DDB_OK);
   password = email = confirm = NULL; rights = 0;
   assert(ddb_get_user("fred", &password, &email, &confirm, &rights) == DDB_OK);
   assert(!strcmp(password, "fredpw"));
