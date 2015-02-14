@@ -1,6 +1,6 @@
 #! /usr/bin/make -f
 #
-# Copyright (C) 2004-2008 Richard Kettlewell
+# Copyright (C) 2004-2008, 2015 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ pkg-disorder: build
 		debian/disorder/usr/share/doc/disorder/copyright
 	$(INSTALL_DATA) debian/changelog \
 		debian/disorder/usr/share/doc/disorder/changelog
-	gzip -9 debian/disorder/usr/share/doc/disorder/changelog*
+	gzip -9n debian/disorder/usr/share/doc/disorder/changelog*
 	@for f in conffiles templates; do\
 	  if test -e debian/$$f.disorder; then\
 	    echo $(INSTALL_DATA) debian/$$f.disorder debian/disorder/DEBIAN/$$f; \
@@ -120,7 +120,7 @@ pkg-disorder: build
 	$(INSTALL_DATA) CHANGES.html README debian/README.Debian \
 		BUGS README.* docs.css \
 		debian/disorder/usr/share/doc/disorder/.
-	gzip -9f debian/disorder/usr/share/doc/disorder/README \
+	gzip -9nf debian/disorder/usr/share/doc/disorder/README \
 		 debian/disorder/usr/share/doc/disorder/README.* \
 		 debian/disorder/usr/share/doc/disorder/BUGS \
 		 debian/disorder/usr/share/man/man*/*
@@ -145,7 +145,7 @@ pkg-disorder-server: build
 		debian/disorder-server/usr/share/doc/disorder-server/copyright
 	$(INSTALL_DATA) debian/changelog \
 		debian/disorder-server/usr/share/doc/disorder-server/changelog
-	gzip -9 debian/disorder-server/usr/share/doc/disorder-server/changelog*
+	gzip -9n debian/disorder-server/usr/share/doc/disorder-server/changelog*
 	@for f in preinst postinst prerm postrm config; do\
 	  if test -e debian/$$f.disorder-server; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disorder-server debian/disorder-server/DEBIAN/$$f; \
@@ -193,7 +193,7 @@ pkg-disorder-server: build
 	$(INSTALL_SCRIPT) debian/disorder.daily debian/disorder-server/etc/cron.daily/disorder
 	$(LIBTOOL) --mode=install $(INSTALL_PROGRAM) cgi/disorder \
 		$(shell pwd)/debian/disorder-server${cgiexecdir}/disorder
-	gzip -9f debian/disorder-server/usr/share/man/man*/*
+	gzip -9nf debian/disorder-server/usr/share/man/man*/*
 	dpkg-shlibdeps -Tdebian/substvars.disorder-server \
 		debian/disorder-server${cgiexecdir}/disorder \
 		debian/disorder-server/usr/sbin/* \
@@ -223,7 +223,7 @@ pkg-disorder-playrtp: build
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/copyright
 	$(INSTALL_DATA) debian/changelog \
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog
-	gzip -9 debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog*
+	gzip -9n debian/disorder-playrtp/usr/share/doc/disorder-playrtp/changelog*
 	@for f in preinst postinst prerm postrm conffiles templates config; do\
 	  if test -e debian/$$f.disorder-playrtp; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disorder-playrtp debian/disorder-playrtp/DEBIAN/$$f; \
@@ -244,7 +244,7 @@ pkg-disorder-playrtp: build
 	$(INSTALL_DATA) debian/README.RTP \
 		debian/disorder-playrtp/usr/share/doc/disorder-playrtp/README
 	$(INSTALL_DATA) CHANGES.html debian/disorder-playrtp/usr/share/doc/disorder-playrtp/CHANGES.html
-	gzip -9f debian/disorder-playrtp/usr/share/man/man*/*
+	gzip -9nf debian/disorder-playrtp/usr/share/man/man*/*
 	cd debian/disorder-playrtp && \
 		find -name DEBIAN -prune -o -type f -print \
 			| sed 's/^\.\///' \
@@ -263,7 +263,7 @@ pkg-disobedience: build
 		debian/disobedience/usr/share/doc/disobedience/copyright
 	$(INSTALL_DATA) debian/changelog \
 		debian/disobedience/usr/share/doc/disobedience/changelog
-	gzip -9 debian/disobedience/usr/share/doc/disobedience/changelog*
+	gzip -9n debian/disobedience/usr/share/doc/disobedience/changelog*
 	@for f in preinst postinst prerm postrm conffiles templates config; do\
 	  if test -e debian/$$f.disobedience; then\
 	    echo $(INSTALL_SCRIPT) debian/$$f.disobedience debian/disobedience/DEBIAN/$$f; \
@@ -286,7 +286,7 @@ pkg-disobedience: build
 		debian/disobedience/usr/share/menu/disobedience
 	$(INSTALL_DATA) debian/disobedience-manual \
 		debian/disobedience/usr/share/doc-base/disobedience-manual
-	gzip -9f debian/disobedience/usr/share/man/man*/*
+	gzip -9nf debian/disobedience/usr/share/man/man*/*
 	dpkg-shlibdeps -Tdebian/substvars.disobedience \
 		debian/disobedience/usr/bin/*
 	rm -rf debian/disobedience/usr/share/doc/disobedience
