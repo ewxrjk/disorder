@@ -1,0 +1,1 @@
+Please see http://www.greenend.org.uk/rjk/disorder for downloads.  This includes a tarball of the source code and i386/amd64 .deb files for Debian.  They might work on Ubuntu too.
