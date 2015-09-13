@@ -134,12 +134,13 @@ int main(int argc, char **argv) {
       disorder_fatal(0, "getnameinfo: %s", gai_strerror(err));
     xprintf("from host %s service %s: %d bytes\n", h, s, n);
     for(i = 0; i < n; i += 16) {
-      for(j = i; j < n && j < i + 16; ++j)
+      const int limit = n > i + 16 ? i + 16 : n;
+      for(j = i; j < limit; ++j)
 	xprintf(" %02x", buffer[j]);
       for(; j < i + 16; ++j)
 	xprintf("   ");
       xprintf("  ");
-      for(j = i; j < n && j < i + 16; ++j)
+      for(j = i; j < limit; ++j)
 	xprintf("%c", buffer[j] < 128 && isprint(buffer[j]) ? buffer[j] : '.');
       xprintf("\n");
       if(fflush(stdout) < 0)
