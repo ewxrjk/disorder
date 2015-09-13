@@ -45,25 +45,26 @@ struct netaddress {
 
 struct addrinfo *get_address(const struct stringlist *a,
 			     const struct addrinfo *pref,
-			     char **namep);
+			     char **namep)
+  attribute((nonnull (1)));
 
 int addrinfocmp(const struct addrinfo *a,
-		const struct addrinfo *b);
+		const struct addrinfo *b) attribute((nonnull (1, 2)));
 int sockaddrcmp(const struct sockaddr *a,
-		const struct sockaddr *b);
+		const struct sockaddr *b) attribute((nonnull (1, 2)));
 
-int multicast(const struct sockaddr *sa);
-char *format_sockaddr(const struct sockaddr *sa);
+int multicast(const struct sockaddr *sa) attribute((nonnull (1)));
+char *format_sockaddr(const struct sockaddr *sa) attribute((nonnull (1)));
 
 int netaddress_parse(struct netaddress *na,
 		     int nvec,
-		     char **vec);
+		     char **vec) attribute((nonnull (1)));
 void netaddress_format(const struct netaddress *na,
 		       int *nvecp,
-		       char ***vecp);
+		       char ***vecp) attribute((nonnull (1)));
 struct addrinfo *netaddress_resolve(const struct netaddress *na,
 				    int passive,
-				    int protocol);
+				    int protocol) attribute((nonnull (1)));
 
 #endif /* ADDR_H */
 

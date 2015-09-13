@@ -41,25 +41,26 @@ struct eventlog_output {
 /** @brief Add an event log output
  * @param lo Pointer to output to add
  */
-void eventlog_add(struct eventlog_output *lo);
+void eventlog_add(struct eventlog_output *lo) attribute((nonnull(1)));
 
 /** @brief Remove an event log output
  * @param lo Pointer to output to remove
  */
-void eventlog_remove(struct eventlog_output *lo);
+void eventlog_remove(struct eventlog_output *lo) attribute((nonnull(1)));
 
 /** @brief Send a message to the event log
  * @param keyword Distinguishing keyword for event
  * @param ... Extra data, terminated by (char *)0
  */
-void eventlog(const char *keyword, ...);
+void eventlog(const char *keyword, ...) attribute((nonnull(1)));
 
 /** @brief Send a message to the event log
  * @param keyword Distinguishing keyword for event
  * @param raw Unformatted data
  * @param ... Extra data, terminated by (char *)0
  */
-void eventlog_raw(const char *keyword, const char *raw, ...);
+void eventlog_raw(const char *keyword, const char *raw, ...)
+  attribute((nonnull(1, 2)));
 
 #endif /* EVENTLOG_H */
 
