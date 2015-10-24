@@ -72,7 +72,7 @@ void mem_init(void) {
     do_free = free;
   } else {
     GC_init();
-    assert(GC_all_interior_pointers);
+    assert(GC_get_all_interior_pointers());
   }
 #endif
 }
