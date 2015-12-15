@@ -75,7 +75,7 @@ static void cgi__input(char **ptrp, size_t *np) {
   }
   if(memchr(q, 0, n))
     disorder_fatal(0, "null character in request body");
-  q[n + 1] = 0;
+  q[n] = 0;
   *ptrp = q;
   if(np)
     *np = n;
