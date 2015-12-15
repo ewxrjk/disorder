@@ -33,6 +33,7 @@ want_gtk=yes
 want_python=yes
 want_tests=yes
 want_server=yes
+want_gstdecode=whatever
 want_cgi=yes
 
 # APIs we want
@@ -250,9 +251,14 @@ AC_ARG_WITH([python],
 	    [AS_HELP_STRING([--without-python],
 			    [do not build Python support])],
 	    [want_python=$withval])
+AC_ARG_WITH([gstdecode],
+            [AS_HELP_STRING([--with-gstdecode],
+			    [require GStreamer-based decoder])],
+            [want_gstdecode=$withval])
 
 if test $want_server = no; then
   want_cgi=no
+  want_gstdecode=no
 fi
 
 #
@@ -431,6 +437,38 @@ else
 fi
 AC_SUBST([finkdir])
 AC_SUBST([finkbindir])
+
+# Checks for packages.
+case $want_gstdecode in
+  yes | whatever)
+    PKG_CHECK_MODULES([GSTREAMER], [gstreamer-0.10],
+        [have_gstreamer=yes], [have_gstreamer=no])
+    PKG_CHECK_MODULES([GSTREAMER_PLUGINS_BASE],
+        [gstreamer-plugins-base-0.10],
+        [have_gst_plugins_base=yes], [have_gst_plugins_base=no])
+    ;;
+esac
+case $want_gstdecode,$have_gstreamer,$have_gst_plugins_base in
+  whatever,yes,yes | yes,yes,yes) want_gstdecode=yes ;;
+  whatever,*) want_gstdecode=no ;;
+  yes,*)
+    case $have_gstreamer in
+      no) missing_libraries="$missing_libraries gstreamer-0.10" ;;
+    esac
+    case $have_gst_plugins_base in
+      no) missing_libraries="$missing_libraries gstreamer-plugins-base-0.10" ;;
+    esac
+esac
+
+mdw_SAVE_CFLAGS=$CFLAGS
+mdw_SAVE_LIBS=$LIBS
+CFLAGS="$CFLAGS $GSTREAMER_CFLAGS $GSTREAMER_PLUGINS_BASE_CFLAGS"
+LIBS="$LIBS \
+        $GSTREAMER_LIBS $GSTREAMER_PLUGINS_BASE_LIBS
+        -lgstaudio-0.10 -lgstapp-0.10"
+AC_CHECK_FUNCS([gst_audio_info_from_caps])
+CFLAGS=$mdw_SAVE_CFLAGS
+LIBS=$mdw_SAVE_LIBS
 
 # Checks for libraries.
 # We save up a list of missing libraries that we can't do without
@@ -696,6 +734,7 @@ if test $want_gtk = yes; then
   AC_DEFINE([WITH_GTK], [1], [define if using GTK+])
 fi
 AM_CONDITIONAL([GTK], [test x$want_gtk = xyes])
+AM_CONDITIONAL([GSTDECODE], [test x$want_gstdecode = xyes])
 
 # Some GCC invocations warn for converting function pointers to void *.
 # This is fair enough, as it's technically forbidden, but we use dlsym()

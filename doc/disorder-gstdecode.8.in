@@ -1,0 +1,110 @@
+.\" -*-nroff-*-
+.\"
+.\" Copyright (C) 2007, 2008 Richard Kettlewell
+.\" Copyright (C) 2016 Mark Wooding
+.\"
+.\" This program is free software: you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation, either version 3 of the License, or
+.\" (at your option) any later version.
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
+.\"
+.TH disorder-gstdecode 8
+.SH NAME
+disorder-gstdecode \- DisOrder audio decoder using GStreamer
+.SH SYNOPSIS
+.B disorder\-gstdecode
+.RB [ -c
+.IR CONFIGFILE ]
+.RB [ -d
+.IR DITHER ]
+.RB [ -f
+.IR GAIN ]
+.br
+\h'8n'\c
+.RB [ -n
+.IR SHAPE ]
+.RB [ -q
+.IR QUALITY ]
+.RB [ -r
+.IR MODE ]
+.I PATH
+.SH DESCRIPTION
+.B disorder\-gstdecode
+converts encoded audio files into DisOrder's "raw" format.
+It uses the GStreamer library for conversion,
+and can decode any kind of audio file
+for which the necessary GStreamer plugins are available.
+.PP
+It is suitable for use as an
+.B execraw
+player.
+.PP
+It is not intended to be used from the command line,
+but command-line options can usefully be provided
+in DisOrder's configuration file.
+.SH OPTIONS
+.TP
+.B \-\-help\fR, \fB\-h
+Display a usage message.
+.TP
+.B \-\-version\fR, \fB\-V
+Display version number.
+.TP
+.B \-\-config \fICONFIGFILE\fR, \fB\-c \fICONFIGFILE
+Set the configuration file.
+.TP
+.B \-\-dither \fITYPE\fR, \fB\-d \fIDITHER
+Set the dither type used during audio format conversion.
+This can be \fBnone\fR,
+\fBrpdf\fR for rectangular dithering,
+\fBtpdf\fR for triangular dithering, or
+\fBtpdf-hf\fR for high-frequency triangular dithering.
+Maybe the GStreamer documentation will explain what these mean.
+The default is to leave the decision
+to GStreamer's \fBaudioconvert\fR plugin.
+.TP
+.B \-\-fallback-gain \fIGAIN\fR, \fB\-f \fIGAIN
+Set the gain to be applied to tracks
+which don't have ReplayGain information.
+This is in decibels, and will usually be negative.
+The default is zero, which is probably wrong.
+.TP
+.B \-\-noise-shape \fITYPE\fR, \fB-n \fITYPE
+Set the noise shaping type used during audio format conversion.
+This can be \fBnone\fR,
+\fBerror-feedback\fR,
+\fBsimple\fR for 2-pole noise shaping,
+\fBmedium\fR for 5-pole noise shaping, or
+\fBhigh\fR for 8-pole noise shaping.
+Maybe the GStreamer documentation will explain what these mean.
+The default is to leave the decision
+to GStreamer's \fBaudioconvert\fR plugin.
+.TP
+.B \-\-quality \fIQUALITY\fR, \fB\-q \fIQUALITY
+Set the quality level to be used for resampling.
+This should be an integer between
+0 (poor, but fast) and
+10 (good, but slow).
+See the GStreamer documentation for more information.
+The default is to leave the decision
+to GStreamer's \fBaudioresample\fR plugin.
+.TP
+.B \-\-replay-gain \fIMODE\fR, \fB\-r \fIMODE
+Set the ReplayGain mode.
+This can be \fBoff\fR to not bother with ReplayGain at all,
+\fBtrack\fR to use the per-track gain setting, or
+\fBalbum\fR to use the per-album gain setting
+(so that the volume level sounds consistent
+when playing an entire album).
+The default is \fBalbum\fR.
+.SH "SEE ALSO"
+.BR disorderd (8),
+.BR disorder_config (5)

@@ -207,6 +207,8 @@ libtests/test-suite.log
 /GRTAGS
 /GSYMS
 /GTAGS
+debian/disorder-gstdecode
+server/disorder-gstdecode
 /Debug
 /lib/Debug
 /clients/Debug
