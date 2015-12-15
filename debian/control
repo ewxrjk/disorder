@@ -3,7 +3,7 @@ Maintainer: Richard Kettlewell <rjk@greenend.org.uk>
 Section: sound
 Priority: optional
 Standards-Version: 3.8.1.0
-Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev | libdb4.5-dev | libdb4.7-dev | libdb4.8-dev | libdb5.1-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, python, libflac-dev, libgtk2.0-dev (>= 2.12.12)
+Build-Depends: libgc6-dev | libgc-dev, libgcrypt-dev, libdb4.3-dev | libdb4.5-dev | libdb4.7-dev | libdb4.8-dev | libdb5.1-dev, libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libpulse-dev, python, libflac-dev, libgtk2.0-dev (>= 2.12.12)
 Vcs-Git: https://code.google.com/p/disorder/
 Homepage: http://www.greenend.org.uk/rjk/disorder/
 
