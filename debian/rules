@@ -274,14 +274,16 @@ pkg-disorder-gstdecode: build
 	  fi;\
 	done
 	$(MKDIR) debian/disorder-gstdecode/usr/sbin
-	: $(MKDIR) debian/disorder-gstdecode/usr/share/man/man1
+	$(MKDIR) debian/disorder-gstdecode/usr/share/man/man8
 	$(INSTALL_PROGRAM) server/disorder-gstdecode \
 		debian/disorder-gstdecode/usr/sbin/disorder-gstdecode
 	strip --remove-section=.comment debian/disorder-gstdecode/usr/sbin/disorder-gstdecode
+	$(INSTALL_DATA) doc/disorder-gstdecode.8 \
+		debian/disorder-gstdecode/usr/share/man/man8/disorder-gstdecode.8
 	dpkg-shlibdeps -Tdebian/substvars.disorder-gstdecode \
 		debian/disorder-gstdecode/usr/sbin/*
 	$(INSTALL_DATA) CHANGES.html debian/disorder-gstdecode/usr/share/doc/disorder-gstdecode/CHANGES.html
-	: gzip -9f debian/disorder-gstdecode/usr/share/man/man*/*
+	gzip -9f debian/disorder-gstdecode/usr/share/man/man*/*
 	cd debian/disorder-gstdecode && \
 		find -name DEBIAN -prune -o -type f -print \
 			| sed 's/^\.\///' \

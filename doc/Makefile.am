@@ -24,14 +24,15 @@ man_MANS=disorderd.8 disorder.1 disorder.3 disorder_config.5 disorder-dump.8 \
 	disorder-playrtp.1 disorder-normalize.8 disorder-decode.8 \
 	disorder-stats.8 disorder-dbupgrade.8 disorder_templates.5 \
 	disorder_actions.5 disorder_options.5 disorder.cgi.8 \
-	disorder_preferences.5 disorder-choose.8
+	disorder_preferences.5 disorder-choose.8 disorder-gstdecode.8
 
 SEDFILES=disorder.1 disorderd.8 disorder_config.5 \
 	disorder-dump.8 disorder_protocol.5 disorder-deadlock.8 \
 	disorder-rescan.8 disobedience.1 disorderfm.1 disorder-playrtp.1 \
 	disorder-decode.8 disorder-stats.8 disorder-dbupgrade.8 \
 	disorder_options.5 disorder.cgi.8 disorder_templates.5 \
-	disorder_actions.5 disorder_preferences.5 disorder-choose.8
+	disorder_actions.5 disorder_preferences.5 disorder-choose.8 \
+	disorder-gstdecode.8
 
 include ${top_srcdir}/scripts/sedfiles.make
 
@@ -42,7 +43,8 @@ disorderfm.1.html disorder-speaker.8.html disorder-playrtp.1.html	\
 disorder-normalize.8.html disorder-decode.8.html disorder-stats.8.html	\
 disorder-dbupgrade.8.html disorder_templates.5.html			\
 disorder_actions.5.html disorder_options.5.html disorder.cgi.8.html	\
-disorder_preferences.5.html disorder-choose.8.html
+disorder_preferences.5.html disorder-choose.8.html			\
+disorder-gstdecode.8.html
 
 $(wordlist 2,9999,$(HTMLMAN)): disorderd.8.html
 disorderd.8.html: $(man_MANS)
@@ -55,7 +57,8 @@ disorderfm.1.tmpl disorder-speaker.8.tmpl disorder-playrtp.1.tmpl	\
 disorder-normalize.8.tmpl disorder-decode.8.tmpl disorder-stats.8.tmpl	\
 disorder-dbupgrade.8.tmpl disorder_templates.5.tmpl			\
 disorder_actions.5.tmpl disorder_options.5.tmpl disorder.cgi.8.tmpl	\
-disorder_preferences.5.tmpl disorder-choose.8.tmpl
+disorder_preferences.5.tmpl disorder-choose.8.tmpl			\
+disorder-gstdecode.8.tmpl
 
 $(wordlist 2,9999,$(TMPLMAN)): disorderd.8.tmpl
 disorderd.8.tmpl: $(man_MANS)
@@ -101,7 +104,7 @@ EXTRA_DIST=disorderd.8.in disorder.1.in disorder_config.5.in \
 	   disorder_actions.5.head disorder_templates.5.head \
 	   disorder_actions.5.tail disorder_templates.5.tail \
 	   disorder_options.5.in disorder.cgi.8.in disorder_preferences.5.in \
-	   disorder-choose.8.in
+	   disorder-choose.8.in disorder-gstdecode.8.in
 
 CLEANFILES=$(SEDFILES) $(HTMLMAN) $(TMPLMAN) \
 	disorder_actions.5.in disorder_templates.5.in

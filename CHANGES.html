@@ -67,6 +67,42 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
 
   </div>
 
+  <h3>GStreamer support</h3>
+
+  <div class=section>
+
+    <p>If it's detected at <tt>configure</tt> time, a new decoder
+    program <tt>disorder-gstdecode</tt> is built.  It uses the GStreamer
+    library for audio decoding and sample-rate conversion, among other
+    features.
+
+    <p>The decoder has a number of options for controlling the sample-rate and
+    audio format conversion, allowing various tradeoffs between quality and
+    processor time.  (High-quality conversion can consume more processor time
+    than decoding, so this is potentially useful on very a small device such as
+    a Raspberry Pi.</p>
+
+    <p>The GStreamer decoder can also use ReplayGain information stored in
+    audio files' metadata to adjust playback volume, so that tracks with very
+    wide dynamic range don't sound really quiet in comparison.  This
+    information can be added using tools such as <tt>mp3gain</tt>,
+    <tt>vorbisgain</tt>, or <tt>metaflac</tt>.  This is turned on by default if
+    you use the decoder; you can choose between per-album or per-track
+    settings, or turn it off entirely, using command-line options.</p> 
+
+    <p>The GStreamer decoder is not used by default, but it can be enabled
+    easily enough by dropping something like the following into the server
+    configuration file:
+      <pre>
+        player
+        player *.flac execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+        player *.mp2 execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+        player *.mp3 execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+        player *.ogg execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+        player *.wav execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+      </pre>
+    </p>
+
   <h3>General</h3>
 
   <div class=section>
