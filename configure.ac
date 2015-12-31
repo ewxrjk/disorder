@@ -437,6 +437,7 @@ AC_SUBST([finkbindir])
 # and report them all at once.
 AC_CHECK_LIB(gc, GC_malloc,            [AC_SUBST(LIBGC,[-lgc])],
             [missing_libraries="$missing_libraries libgc"])
+AC_CHECK_FUNCS(GC_get_all_interior_pointers)
 AC_CHECK_LIB(gcrypt, gcry_md_open,
              [AC_SUBST(LIBGCRYPT,[-lgcrypt])],
             [missing_libraries="$missing_libraries libgcrypt"])

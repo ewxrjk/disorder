@@ -72,7 +72,11 @@ void mem_init(void) {
     do_free = free;
   } else {
     GC_init();
+#ifdef HAVE_GC_GET_ALL_INTERIOR_POINTERS
     assert(GC_get_all_interior_pointers());
+#else
+    assert(GC_all_interior_pointers);
+#endif
   }
 #endif
 }
