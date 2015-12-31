@@ -85,6 +85,8 @@ struct disorder_client {
   int open;
   /** @brief Socket I/O context */
   struct socketio sio;
+  /** @brief Whether to try to open a privileged connection */
+  int trypriv;
 };
 
 /** @brief Create a new client
@@ -100,7 +102,19 @@ disorder_client *disorder_new(int verbose) {
 
   c->verbose = verbose;
   c->family = -1;
+  c->trypriv = 1;
   return c;
+}
+
+/** @brief Don't try to make a privileged connection
+ * @param c Client
+ *
+ * You must call this before any of the connection functions (e.g.,
+ * disorder_connect(), disorder_connect_user()), if at all.
+ */
+void disorder_force_unpriv(disorder_client *c) {
+  assert(!c->open);
+  c->trypriv = 0;
 }
 
 /** @brief Return the address family used by this client */
@@ -432,7 +446,9 @@ int disorder_connect_generic(struct config *conf,
   socklen_t salen;
   char errbuf[1024];
 
-  if((salen = find_server(conf, &sa, &c->ident)) == (socklen_t)-1)
+  if((salen = disorder_find_server(conf,
+				   (c->trypriv ? 0 : DISORDER_FS_NOTPRIV),
+				   &sa, &c->ident)) == (socklen_t)-1)
     return -1;
   c->input = 0;
   c->output = 0;

@@ -46,12 +46,13 @@
 
 /** @brief Figure out what address to connect to
  * @param c Configuration to honor
+ * @param flags Flags to guide the choice
  * @param sap Where to store pointer to sockaddr
  * @param namep Where to store socket name
  * @return Socket length, or (socklen_t)-1
  */
-socklen_t find_server(struct config *c,
-                      struct sockaddr **sap, char **namep) {
+socklen_t disorder_find_server(struct config *c, unsigned flags,
+                               struct sockaddr **sap, char **namep) {
   struct sockaddr *sa;
 #if !_WIN32
   struct sockaddr_un su;
@@ -71,10 +72,12 @@ socklen_t find_server(struct config *c,
     disorder_fatal(0, "local connections are not supported on Windows");
 #else
     /* use the private socket if possible (which it should be) */
-    name = config_get_file2(c, "private/socket");
-    if(access(name, R_OK) != 0) {
-      xfree(name);
-      name = NULL;
+    if (!(flags & DISORDER_FS_NOTPRIV)) {
+      name = config_get_file2(c, "private/socket");
+      if(access(name, R_OK) != 0) {
+        xfree(name);
+        name = NULL;
+      }
     }
     if(!name)
       name = config_get_file2(c, "socket");
@@ -97,6 +100,21 @@ socklen_t find_server(struct config *c,
   if(res)
     freeaddrinfo(res);
   return len;
+}
+
+/** @brief Figure out what address to connect to
+ * @param c Configuration to honor
+ * @param sap Where to store pointer to sockaddr
+ * @param namep Where to store socket name
+ * @return Socket length, or (socklen_t)-1
+ *
+ * The function disorder_find_server() isn't a namespace violation, and has
+ * more functionality.  This function is equivalent, to disorder_find_server()
+ * with a zero @c flags argument.
+ */
+socklen_t find_server(struct config *c,
+                      struct sockaddr **sap, char **namep) {
+  return disorder_find_server(c, 0, sap, namep);
 }
 
 const char disorder__body[1];

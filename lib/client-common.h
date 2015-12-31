@@ -27,6 +27,10 @@
 # include <sys/socket.h>
 #endif
 
+#define DISORDER_FS_NOTPRIV 1u
+
+socklen_t disorder_find_server(struct config *c, unsigned flags,
+                               struct sockaddr **sap, char **namep);
 socklen_t find_server(struct config *c, struct sockaddr **sap, char **namep);
 
 /** @brief Marker for a command body */

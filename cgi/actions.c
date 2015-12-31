@@ -307,8 +307,12 @@ static int login_as(const char *username, const char *password) {
 
   if(dcgi_cookie && dcgi_client)
     disorder_revoke(dcgi_client);
-  /* We'll need a new connection as we are going to stop being guest */
+  /* We'll need a new connection as we are going to stop being guest.
+   * Make sure it's unprivileged, so that the server actually bothers checking
+   * the password we supply.
+   */
   c = disorder_new(0);
+  disorder_force_unpriv(c);
   if(disorder_connect_user(c, username, password)) {
     login_error("loginfailed");
     return -1;
