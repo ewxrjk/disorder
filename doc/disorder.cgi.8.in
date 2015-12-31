@@ -34,10 +34,7 @@ See \fBdisorder_options\fR(5) for CGI-specific configuration and
 .PP
 See \fBdisorder_templates\fR(5) for the template language used.
 .SH "WHERE IS IT?"
-The DisOrder makefiles don't know where to install the CGI, or indeed
-whether you wanted it installed, so they do not install it at all.
-You must copy it into the right location according to your web
-server's configuration.
+The DisOrder makefiles installed it in \fBcgiexecdir\fR.
 .SH "SEE ALSO"
 .BR disorder_config (5),
 .BR disorder_options (5),

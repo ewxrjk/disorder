@@ -24,6 +24,7 @@ $(SEDFILES) : % : %.in Makefile
 	    -e 's!pkgstatedir!${localstatedir}/disorder!g;' \
 	    -e 's!pkgdatadir!${pkgdatadir}!g;' \
 	    -e 's!dochtmldir!${dochtmldir}!g;' \
+	    -e 's!cgiexecdir!${cgiexecdir}!g;' \
 	    -e 's!SENDMAIL!${SENDMAIL}!g;' \
 	    -e 's!_version_!${VERSION}!g;' \
 	        < $< > $@.new
