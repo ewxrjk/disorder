@@ -289,6 +289,11 @@ static void choose_search_completed(void attribute((unused)) *v,
    * left over from the old search. */
   choose_auto_collapse();
   choose_search_hash = hash_new(1);
+  /* If we were still setting up the chooser to show previous search results
+   * then turn that off now.  We'll turn it back on again if necessary. */
+  event_cancel(choose_inserted_handle);
+  choose_inserted_handle = 0;
+  /* Start showing the results of our search. */
   if(nvec) {
     for(int n = 0; n < nvec; ++n)
       hash_add(choose_search_hash, vec[n], "", HASH_INSERT);
