@@ -228,6 +228,37 @@ static void check_toplevel_size(const char attribute((unused)) *event,
   toplevel_size_allocate(NULL, &a, NULL);
 }
 
+static void hack_window_title(const char attribute((unused)) *event,
+                              void attribute((unused)) *eventdata,
+                              void attribute((unused)) *callbackdata) {
+  char *p;
+  const char *note;
+  static const char *last_note = 0;
+
+  if(!(last_state & DISORDER_CONNECTED))
+    note = "(disconnected)";
+  else if(last_state & DISORDER_TRACK_PAUSED)
+    note = "(paused)";
+  else if(playing_track) {
+    byte_asprintf(&p, "'%s' by %s, from '%s'",
+                  namepart(playing_track->track, "display", "title"),
+                  namepart(playing_track->track, "display", "artist"),
+                  namepart(playing_track->track, "display", "album"));
+    note = p;
+  } else if(!(last_state & DISORDER_PLAYING_ENABLED))
+    note = "(playing disabled)";
+  else if(!(last_state & DISORDER_RANDOM_ENABLED))
+    note = "(random play disabled)";
+  else
+    note = "(nothing to play for unknown reason)";
+
+  if(last_note && !strcmp(note, last_note))
+    return;
+  last_note = xstrdup(note);
+  byte_asprintf(&p, "Disobedience: %s", note);
+  gtk_window_set_title(GTK_WINDOW(toplevel), p);
+}
+
 /** @brief Create and populate the main window */
 static void make_toplevel_window(void) {
   GtkWidget *const vbox = gtk_vbox_new(FALSE/*homogeneous*/, 1/*spacing*/);
@@ -245,7 +276,7 @@ static void make_toplevel_window(void) {
   g_signal_connect(G_OBJECT(toplevel), "size-allocate",
                    G_CALLBACK(toplevel_size_allocate), NULL);
   /* lay out the window */
-  gtk_window_set_title(GTK_WINDOW(toplevel), "Disobedience");
+  hack_window_title(0, 0, 0);
   gtk_container_add(GTK_CONTAINER(toplevel), vbox);
   /* lay out the vbox */
   gtk_box_pack_start(GTK_BOX(vbox),
@@ -275,6 +306,13 @@ static void make_toplevel_window(void) {
   gtk_widget_set_style(toplevel, tool_style);
   event_register("mini-mode-changed", main_minimode, 0);
   event_register("periodic-fast", check_toplevel_size, 0);
+  event_register("playing-track-changed", hack_window_title, 0);
+  event_register("enabled-changed", hack_window_title, 0);
+  event_register("random-changed", hack_window_title, 0);
+  event_register("pause-changed", hack_window_title, 0);
+  event_register("playing-changed", hack_window_title, 0);
+  event_register("connected-changed", hack_window_title, 0);
+  event_register("lookups-completed", hack_window_title, 0);
 }
 
 static void userinfo_rights_completed(void attribute((unused)) *v,
