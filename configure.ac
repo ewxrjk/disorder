@@ -341,7 +341,7 @@ if test -z "$dochtmldir"; then
 fi
 AC_SUBST([dochtmldir])
 
-subdirs="scripts lib"
+subdirs="scripts common lib"
 if test $want_tests = yes; then
   subdirs="${subdirs} libtests"
 fi
@@ -892,6 +892,7 @@ AH_BOTTOM([#ifdef __GNUC__
 AC_CONFIG_FILES([Makefile
 		 images/Makefile
 		 scripts/Makefile
+		 common/Makefile
 		 lib/Makefile
 		 server/Makefile
 		 cgi/Makefile

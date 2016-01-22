@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 pkglib_LTLIBRARIES=disorder-tracklength.la fs.la notify.la exec.la shell.la \
 		   execraw.la
 AUTOMAKE_OPTIONS=subdir-objects
@@ -26,8 +28,8 @@ notify_la_LDFLAGS=-module
 
 disorder_tracklength_la_SOURCES=tracklength.c tracklength.h	\
 tracklength-mp3.c tracklength-ogg.c tracklength-wav.c		\
-tracklength-flac.c mad.c madshim.h ../lib/wav.h ../lib/wav.c	\
-../lib/hreader.h ../lib/hreader.c
+tracklength-flac.c mad.c madshim.h
+nodist_disorder_tracklength_la_SOURCES=wav.c hreader.c
 disorder_tracklength_la_LDFLAGS=-module
 disorder_tracklength_la_LIBADD=$(LIBVORBISFILE) $(LIBMAD) $(LIBFLAC) -lm
 

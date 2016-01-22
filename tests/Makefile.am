@@ -16,12 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 noinst_PROGRAMS=disorder-udplog
 
 AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorder_udplog_SOURCES=udplog.c ../lib/memgc.c
+disorder_udplog_SOURCES=udplog.c
+nodist_disorder_udplog_SOURCES=memgc.c
 disorder_udplog_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC)
 disorder_udplog_DEPENDENCIES=../lib/libdisorder.a
 

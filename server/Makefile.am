@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 sbin_PROGRAMS=disorderd disorder-deadlock disorder-rescan disorder-dump \
 	      disorder-speaker disorder-decode disorder-normalize \
 	      disorder-stats disorder-dbupgrade disorder-choose
@@ -28,7 +30,8 @@ AM_CFLAGS=
 disorderd_SOURCES=disorderd.c api.c api-server.c daemonize.c play.c	\
 	server.c server-queue.c queue-ops.c state.c plugin.c		\
 	schedule.c dbparams.c background.c mount.c \
-	exports.c ../lib/memgc.c disorder-server.h
+	exports.c disorder-server.h
+nodist_disorderd_SOURCES=memgc.c
 disorderd_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBGC) $(LIBGCRYPT) $(LIBICONV) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBPTHREAD) $(LIBDL) \
@@ -70,14 +73,16 @@ disorder_normalize_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 disorder_normalize_DEPENDENCIES=../lib/libdisorder.a
 
 disorder_rescan_SOURCES=rescan.c plugin.c api.c api-server.c exports.c	\
-	../lib/memgc.c disorder-server.h
+	disorder-server.h
+nodist_disorder_rescan_SOURCES=memgc.c
 disorder_rescan_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT) $(LIBDL)
 disorder_rescan_LDFLAGS=-export-dynamic
 disorder_rescan_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_choose_SOURCES=choose.c server-queue.c ../lib/memgc.c	\
+disorder_choose_SOURCES=choose.c server-queue.c \
 			disorder-server.h
+nodist_disorder_choose_SOURCES=memgc.c
 disorder_choose_LDADD=$(LIBOBJS) ../lib/libdisorder.a   \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_choose_LDFLAGS=-export-dynamic
@@ -88,12 +93,14 @@ disorder_stats_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_stats_DEPENDENCIES=../lib/libdisorder.a
 
-disorder_dump_SOURCES=dump.c disorder-server.h ../lib/memgc.c
+disorder_dump_SOURCES=dump.c disorder-server.h
+nodist_disorder_dump_SOURCES=memgc.c
 disorder_dump_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBPCRE) $(LIBDB) $(LIBICONV) $(LIBGC) $(LIBGCRYPT)
 disorder_dump_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
-disorder_dbupgrade_SOURCES=dbupgrade.c ../lib/memgc.c disorder-server.h
+disorder_dbupgrade_SOURCES=dbupgrade.c disorder-server.h
+nodist_disorder_dbupgrade_SOURCES=memgc.c
 disorder_dbupgrade_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBDB) $(LIBGC) $(LIBPCRE) $(LIBICONV) $(LIBGCRYPT)
 disorder_dbupgrade_DEPENDENCIES=../lib/libdisorder.a

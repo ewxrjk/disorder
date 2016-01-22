@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 noinst_LIBRARIES=libdisorder.a
 include_HEADERS=disorder.h
 
@@ -52,7 +54,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	heap.h						\
 	hex.c hex.h					\
 	hostname.c hostname.h				\
-	hreader.c hreader.h				\
+	hreader.h					\
 	ifreq.c ifreq.h					\
 	inputline.c inputline.h				\
 	kvp.c kvp.h					\
@@ -98,9 +100,11 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	vector.c vector.h				\
 	version.c version.h				\
 	versionstring.c					\
-	wav.h wav.c					\
+	wav.h						\
 	wstat.c wstat.h					\
 	disorder.h
+nodist_libdisorder_a_SOURCES=hreader.c			\
+	wav.c
 
 version-string: ../config.status ${top_srcdir}/scripts/make-version-string
 	CC="${CC}" ${top_srcdir}/scripts/make-version-string > $@.new
@@ -142,7 +146,7 @@ client.o: client-stubs.c
 rebuild-unicode:
 	cd ${srcdir} && ${top_srcdir}/scripts/make-unidata
 
-CLEANFILES=definitions.h definitions.h.new version-string versionstring.h \
+CLEANFILES=definitions.h definitions.h.new version-string versionstring.[ch] \
 	   *.gcda *.gcov *.gcno *.c.html index.html
 
 EXTRA_DIST=trackdb.c trackdb-stub.c client-stubs.c eclient-stubs.c \

@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 bin_PROGRAMS=disobedience
 SUBDIRS=manual
 
@@ -27,9 +29,10 @@ disobedience_SOURCES=disobedience.h disobedience.c client.c queue.c	\
 	recent.c added.c queue-generic.c queue-generic.h queue-menu.c	\
 	choose.c choose-menu.c choose-search.c popup.c misc.c		\
 	control.c properties.c menu.c log.c progress.c login.c rtp.c	\
-	help.c ../lib/memgc.c settings.c users.c lookup.c choose.h      \
+	help.c settings.c users.c lookup.c choose.h			\
 	popup.h playlists.c multidrag.c multidrag.h autoscroll.c	\
 	autoscroll.h globals.c
+nodist_disobedience_SOURCES=memgc.c
 disobedience_LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBGC) $(LIBGCRYPT) \
 	$(LIBASOUND) $(COREAUDIO) $(LIBICONV) -lm \
 	$(PULSEAUDIO_SIMPLE_LIBS) $(PULSEAUDIO_LIBS)
@@ -51,6 +54,13 @@ install-data-local:
 	$(MKDIR_P) ${DESTDIR}${datarootdir}/icons/hicolor/256x256/apps
 	$(INSTALL) -m 644 ${top_srcdir}/images/disobedience256x256.png \
 		${DESTDIR}${datarootdir}/icons/hicolor/256x256/apps/disobedience.png
+
+uninstall-local:
+	rm -f ${DESTDIR}${datarootdir}/applications/disobedience.desktop
+	rm -f ${DESTDIR}${datarootdir}/icons/hicolor/48x48/apps/disobedience.png
+	rm -f ${DESTDIR}${datarootdir}/icons/hicolor/64x64/apps/disobedience.png
+	rm -f ${DESTDIR}${datarootdir}/icons/hicolor/128x128/apps/disobedience.png
+	rm -f ${DESTDIR}${datarootdir}/icons/hicolor/256x256/apps/disobedience.png
 
 check: check-help
 

@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+VPATH+=${top_srcdir}/common
+
 bin_PROGRAMS=disorder disorderfm disorder-playrtp
 noinst_PROGRAMS=filename-bytes rtpmon resample
 noinst_SCRIPTS=dump2wav
@@ -23,14 +25,14 @@ noinst_SCRIPTS=dump2wav
 AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 
-disorder_SOURCES=disorder.c authorize.c authorize.h \
-	../lib/memgc.c
+disorder_SOURCES=disorder.c authorize.c authorize.h
+nodist_disorder_SOURCES=memgc.c
 disorder_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(LIBGC) $(LIBGCRYPT) $(LIBPCRE) $(LIBICONV) $(LIBPTHREAD)
 disorder_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
-disorderfm_SOURCES=disorderfm.c \
-	../lib/memgc.c
+disorderfm_SOURCES=disorderfm.c
+nodist_disorderfm_SOURCES=memgc.c
 disorderfm_LDADD=$(LIBOBJS) ../lib/libdisorder.a $(LIBGC) $(LIBICONV)
 disorderfm_DEPENDENCIES=$(LIBOBJS) ../lib/libdisorder.a
 
