@@ -54,6 +54,8 @@ doc/disorderd.8.html
 doc/disorderfm.1
 doc/disorderfm.1.html
 doc/tkdisorder.1.html
+doc/disorder-gstdecode.8
+doc/disorder-gstdecode.8.html
 driver/Makefile
 examples/Makefile
 examples/config.sample
@@ -218,3 +220,4 @@ server/disorder-gstdecode
 *.vcxproj.user
 .dirstamp
 tests/*.trs
+/common/Makefile
