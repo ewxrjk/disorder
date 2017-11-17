@@ -475,7 +475,10 @@ LIBS=$mdw_SAVE_LIBS
 # and report them all at once.
 AC_CHECK_LIB(gc, GC_malloc,            [AC_SUBST(LIBGC,[-lgc])],
             [missing_libraries="$missing_libraries libgc"])
+mdw_SAVE_LIBS=$LIBS
+LIBS="$LIBS $LIBGC"
 AC_CHECK_FUNCS(GC_get_all_interior_pointers)
+LIBS=$mdw_SAVE_LIBS
 AC_CHECK_LIB(gcrypt, gcry_md_open,
              [AC_SUBST(LIBGCRYPT,[-lgcrypt])],
             [missing_libraries="$missing_libraries libgcrypt"])
