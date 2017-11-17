@@ -267,22 +267,6 @@ static int set_string(const struct config_state *cs,
   return 0;
 }
 
-static int set_stringlist(const struct config_state *cs,
-			  const struct conf *whoami,
-			  int nvec, char **vec) {
-  int n;
-  struct stringlist *sl;
-
-  sl = ADDRESS(cs->config, struct stringlist);
-  sl->n = 0;
-  for(n = 0; n < nvec; ++n) {
-    sl->n++;
-    sl->s = xrealloc(sl->s, (sl->n * sizeof (char *)));
-    sl->s[sl->n - 1] = xstrdup(vec[n]);
-  }
-  return 0;
-}
-
 static int set_integer(const struct config_state *cs,
 		       const struct conf *whoami,
 		       int nvec, char **vec) {
@@ -634,7 +618,6 @@ static const struct conftype
   type_collections = { set_collections, free_collectionlist },
   type_boolean = { set_boolean, free_none },
   type_string = { set_string, free_string },
-  type_stringlist = { set_stringlist, free_stringlist },
   type_integer = { set_integer, free_none },
   type_stringlist_accum = { set_stringlist_accum, free_stringlistlist },
   type_string_accum = { set_string_accum, free_stringlist },
