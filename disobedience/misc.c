@@ -110,7 +110,10 @@ GdkPixbuf *find_image(const char *name) {
   if(!(pb = (GdkPixbuf *)cache_get(&image_cache_type, name))) {
     if((n = TABLE_FIND(images, name, name)) >= 0) {
       /* Use the built-in copy */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
       if(!(pb = gdk_pixbuf_new_from_inline(-1, images[n].data, FALSE, &err))) {
+#pragma GCC diagnostic pop
         disorder_error(0, "%s", err->message);
         return 0;
       }
