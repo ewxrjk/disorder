@@ -63,7 +63,7 @@ sbin_PROGRAMS+=disorder-gstdecode
 disorder_gstdecode_SOURCES=gstdecode.c disorder-server.h
 disorder_gstdecode_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
 	$(GSTREAMER_PLUGINS_BASE_LIBS) -lgstaudio-0.10 -lgstapp-0.10 \
-	$(GSTREAMER_LIBS) $(LIBGCRYPT)
+	$(GSTREAMER_LIBS) $(LIBGCRYPT) $(LIBPCRE)
 disorder_gstdecode_DEPENDENCIES=../lib/libdisorder.a
 endif
 
