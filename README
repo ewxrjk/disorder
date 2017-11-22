@@ -34,6 +34,7 @@ Build dependencies:
   libasound        1.0.16
   libFLAC          1.2.1
   libsamplerate    0.1.4       currently optional
+  GStreamer        0.10        currently optional
   GNU C            4.2.1       }
   GNU Make         3.81        } Non-GNU versions will NOT work
   GNU Sed          4.1.5       }
