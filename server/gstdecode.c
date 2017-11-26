@@ -51,6 +51,8 @@ static const char *file;
 static GstAppSink *appsink;
 static GstElement *pipeline;
 static GMainLoop *loop;
+static unsigned flags = 0;
+#define f_stream 1u
 
 #define MODES(_) _("off", OFF) _("track", TRACK) _("album", ALBUM)
 enum {
@@ -338,7 +340,7 @@ static GstFlowReturn cb_buffer(GstAppSink *sink, gpointer UNUSED u)
 
   /* Write out a frame of audio data. */
   hdr.nbytes = GST_BUFFER_SIZE(buf);
-  if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1 ||
+  if((!(flags&f_stream) && fwrite(&hdr, sizeof(hdr), 1, fp) != 1) ||
      fwrite(GST_BUFFER_DATA(buf), 1, hdr.nbytes, fp) != hdr.nbytes)
     disorder_fatal(errno, "output");
 
@@ -419,6 +421,7 @@ static const struct option options[] = {
   { "noise-shape", required_argument, 0, 'n' },
   { "quality", required_argument, 0, 'q' },
   { "replay-gain", required_argument, 0, 'r' },
+  { "stream", no_argument, 0, 's' },
   { 0, 0, 0, 0 }
 };
 
@@ -437,6 +440,7 @@ static void help(void)
           "                                     `simple', `medium' or `high'\n"
           "  --quality QUAL, -q QUAL    Resampling quality: 0 poor, 10 good\n"
           "  --replay-gain MODE, -r MODE  MODE is `off', `track' or `album'\n"
+          "  --stream, -s               Output raw samples, without framing\n"
           "\n"
           "Alternative audio decoder for DisOrder.  Only intended to be\n"
           "used by speaker process, not for normal users.\n");
@@ -455,7 +459,7 @@ int main(int argc, char *argv[])
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "calling setlocale");
 
   /* Parse command line. */
-  while((n = getopt_long(argc, argv, "hVc:d:f:n:q:r:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:d:f:n:q:r:s", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-gstdecode");
@@ -465,6 +469,7 @@ int main(int argc, char *argv[])
     case 'n': shape = getenum("noise-shaping type", optarg, shapes); break;
     case 'q': quality = getint("resample quality", optarg, 0, 10); break;
     case 'r': mode = getenum("ReplayGain mode", optarg, modes); break;
+    case 's': flags |= f_stream; break;
     default: disorder_fatal(0, "invalid option");
     }
   }

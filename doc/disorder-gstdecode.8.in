@@ -21,6 +21,7 @@
 disorder-gstdecode \- DisOrder audio decoder using GStreamer
 .SH SYNOPSIS
 .B disorder\-gstdecode
+.RB [ \-s ]
 .RB [ -c
 .IR CONFIGFILE ]
 .RB [ \-d
@@ -105,6 +106,11 @@ This can be \fBoff\fR to not bother with ReplayGain at all,
 (so that the volume level sounds consistent
 when playing an entire album).
 The default is \fBalbum\fR.
+.TP
+.B \-\-stream\fR, \fB\-s
+Write a stream of raw samples to the output,
+instead of including DisOrder's usual framing.
+This is useful for testing the program on its own.
 .SH "SEE ALSO"
 .BR disorderd (8),
 .BR disorder_config (5)
