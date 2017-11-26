@@ -23,17 +23,17 @@ disorder-gstdecode \- DisOrder audio decoder using GStreamer
 .B disorder\-gstdecode
 .RB [ -c
 .IR CONFIGFILE ]
-.RB [ -d
+.RB [ \-d
 .IR DITHER ]
-.RB [ -f
+.RB [ \-f
 .IR GAIN ]
 .br
 \h'8n'\c
-.RB [ -n
+.RB [ \-n
 .IR SHAPE ]
-.RB [ -q
+.RB [ \-q
 .IR QUALITY ]
-.RB [ -r
+.RB [ \-r
 .IR MODE ]
 .I PATH
 .SH DESCRIPTION
