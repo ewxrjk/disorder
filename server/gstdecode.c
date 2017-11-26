@@ -91,17 +91,37 @@ static void report_element_pads(const char *what, GstElement *elt,
                                 GstIterator *it)
 {
   gchar *cs;
+#ifdef HAVE_GSTREAMER_0_10
   gpointer pad;
+#else
+  GValue gv;
+  GstPad *pad;
+  GstCaps *caps;
+#endif
 
   for(;;) {
+#ifdef HAVE_GSTREAMER_0_10
     switch(gst_iterator_next(it, &pad)) {
+#else
+    switch(gst_iterator_next(it, &gv)) {
+#endif
     case GST_ITERATOR_DONE:
       goto done;
     case GST_ITERATOR_OK:
+#ifdef HAVE_GSTREAMER_0_10
       cs = gst_caps_to_string(gst_pad_get_caps(pad));
+#else
+      assert(G_VALUE_HOLDS(&gv, GST_TYPE_PAD));
+      pad = g_value_get_object(&gv);
+      caps = gst_pad_query_caps(pad, 0);
+      cs = gst_caps_to_string(caps);
+      g_object_unref(caps);
+#endif
       disorder_error(0, "  `%s' %s pad: %s", GST_OBJECT_NAME(elt), what, cs);
       g_free(cs);
+#ifdef HAVE_GSTREAMER_0_10
       g_object_unref(pad);
+#endif
       break;
     case GST_ITERATOR_RESYNC:
       gst_iterator_resync(it);
@@ -142,7 +162,11 @@ static void link_elements(GstElement *left, GstElement *right)
 static void decoder_pad_arrived(GstElement *decode, GstPad *pad, gpointer u)
 {
   GstElement *tail = u;
+#ifdef HAVE_GSTREAMER_0_10
   GstCaps *caps = gst_pad_get_caps(pad);
+#else
+  GstCaps *caps = gst_pad_get_current_caps(pad);
+#endif
   GstStructure *s;
   guint i, n;
   const gchar *name;
@@ -153,8 +177,16 @@ static void decoder_pad_arrived(GstElement *decode, GstPad *pad, gpointer u)
   for(i = 0, n = gst_caps_get_size(caps); i < n; i++) {
     s = gst_caps_get_structure(caps, i);
     name = gst_structure_get_name(s);
-    if(strncmp(name, "audio/x-raw-", 12) == 0) goto match;
+#ifdef HAVE_GSTREAMER_0_10
+    if(strncmp(name, "audio/x-raw-", 12) == 0)
+#else
+    if(strcmp(name, "audio/x-raw") == 0)
+#endif
+      goto match;
   }
+#ifndef HAVE_GSTREAMER_0_10
+  g_object_unref(caps);
+#endif
   return;
 
 match:
@@ -185,6 +217,21 @@ static void prepare_pipeline(void)
   GstCaps *caps;
   const struct stream_header *fmt = &config->sample_format;
 
+#ifndef HAVE_GSTREAMER_0_10
+  static const struct fmttab {
+    const char *fmt;
+    unsigned bits;
+    unsigned endian;
+  } fmttab[] = {
+    { "S8", 8, ENDIAN_BIG },
+    { "S8", 8, ENDIAN_LITTLE },
+    { "S16BE", 16, ENDIAN_BIG },
+    { "S16LE", 16, ENDIAN_LITTLE },
+    { 0 }
+  };
+  const struct fmttab *ft;
+#endif
+
   /* Set up the global variables. */
   pipeline = gst_pipeline_new("pipe");
   appsink = GST_APP_SINK(sink);
@@ -201,6 +248,7 @@ static void prepare_pipeline(void)
   if(shape >= 0) g_object_set(convert, "noise-shaping", shape, END);
 
   /* Set up the sink's capabilities from the configuration. */
+#ifdef HAVE_GSTREAMER_0_10
   caps = gst_caps_new_simple("audio/x-raw-int",
                              "width", G_TYPE_INT, fmt->bits,
                              "depth", G_TYPE_INT, fmt->bits,
@@ -211,6 +259,19 @@ static void prepare_pipeline(void)
                                fmt->endian == ENDIAN_BIG ?
                                  G_BIG_ENDIAN : G_LITTLE_ENDIAN,
                              END);
+#else
+  for (ft = fmttab; ft->fmt; ft++)
+    if (ft->bits == fmt->bits && ft->endian == fmt->endian) break;
+  if(!ft->fmt) {
+    disorder_fatal(0, "unsupported sample format: bits=%"PRIu32", endian=%u",
+                   fmt->bits, fmt->endian);
+  }
+  caps = gst_caps_new_simple("audio/x-raw",
+                             "format", G_TYPE_STRING, ft->fmt,
+                             "channels", G_TYPE_INT, fmt->channels,
+                             "rate", G_TYPE_INT, fmt->rate,
+                             END);
+#endif
   gst_app_sink_set_caps(appsink, caps);
 
   /* Add the various elements into the pipeline.  We'll stitch them together
@@ -256,8 +317,14 @@ static void bus_message(GstBus UNUSED *bus, GstMessage *msg,
 {
   switch(msg->type) {
   case GST_MESSAGE_ERROR:
+#ifdef HAVE_GSTREAMER_0_10
     disorder_fatal(0, "%s",
                    gst_structure_get_string(msg->structure, "debug"));
+#else
+    disorder_fatal(0, "%s",
+                   gst_structure_get_string(gst_message_get_structure(msg),
+                                            "debug"));
+#endif
   default:
     break;
   }
@@ -275,8 +342,13 @@ static void cb_eos(GstAppSink UNUSED *sink, gpointer UNUSED u)
  */
 static GstFlowReturn cb_preroll(GstAppSink *sink, gpointer UNUSED u)
 {
+#ifdef HAVE_GSTREAMER_0_10
   GstBuffer *buf = gst_app_sink_pull_preroll(sink);
   GstCaps *caps = GST_BUFFER_CAPS(buf);
+#else
+  GstSample *samp = gst_app_sink_pull_preroll(sink);
+  GstCaps *caps = gst_sample_get_caps(samp);
+#endif
 
 #ifdef HAVE_GST_AUDIO_INFO_FROM_CAPS
 
@@ -324,7 +396,11 @@ static GstFlowReturn cb_preroll(GstAppSink *sink, gpointer UNUSED u)
 
 #endif
 
+#ifdef HAVE_GSTREAMER_0_10
   gst_buffer_unref(buf);
+#else
+  gst_sample_unref(samp);
+#endif
   return GST_FLOW_OK;
 }
 
@@ -333,26 +409,55 @@ static GstFlowReturn cb_preroll(GstAppSink *sink, gpointer UNUSED u)
  */
 static GstFlowReturn cb_buffer(GstAppSink *sink, gpointer UNUSED u)
 {
+#ifdef HAVE_GSTREAMER_0_10
   GstBuffer *buf = gst_app_sink_pull_buffer(sink);
+#else
+  GstSample *samp = gst_app_sink_pull_sample(sink);
+  GstBuffer *buf = gst_sample_get_buffer(samp);
+  GstMemory *mem;
+  GstMapInfo map;
+  gint i, n;
+#endif
 
   /* Make sure we actually have a grip on the sample format here. */
   if(!hdr.rate) disorder_fatal(0, "format unset");
 
   /* Write out a frame of audio data. */
+#ifdef HAVE_GSTREAMER_0_10
   hdr.nbytes = GST_BUFFER_SIZE(buf);
   if((!(flags&f_stream) && fwrite(&hdr, sizeof(hdr), 1, fp) != 1) ||
      fwrite(GST_BUFFER_DATA(buf), 1, hdr.nbytes, fp) != hdr.nbytes)
     disorder_fatal(errno, "output");
+#else
+  for(i = 0, n = gst_buffer_n_memory(buf); i < n; i++) {
+    mem = gst_buffer_peek_memory(buf, i);
+    if(!gst_memory_map(mem, &map, GST_MAP_READ))
+      disorder_fatal(0, "failed to map sample buffer");
+    hdr.nbytes = map.size;
+    if((!(flags&f_stream) && fwrite(&hdr, sizeof(hdr), 1, fp) != 1) ||
+       fwrite(map.data, 1, map.size, fp) != map.size)
+      disorder_fatal(errno, "output");
+    gst_memory_unmap(mem, &map);
+  }
+#endif
 
   /* And we're done. */
+#ifdef HAVE_GSTREAMER_0_10
   gst_buffer_unref(buf);
+#else
+  gst_sample_unref(samp);
+#endif
   return GST_FLOW_OK;
 }
 
 static GstAppSinkCallbacks callbacks = {
   .eos = cb_eos,
   .new_preroll = cb_preroll,
+#ifdef HAVE_GSTREAMER_0_10
   .new_buffer = cb_buffer
+#else
+  .new_sample = cb_buffer
+#endif
 };
 
 /* Decode the audio file.  We're already set up for everything. */

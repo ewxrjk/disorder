@@ -447,11 +447,13 @@ case $want_gstdecode,$want_gstreamer in
   yes,no) AC_MSG_ERROR([gstdecode requires GStreamer]) ;;
   whatever,no) want_gstdecode=no ;;
   no,*) want_gstreamer=no ;;
-  *,yes) want_gstreamer="0.10" ;;
+  *,yes) want_gstreamer="1.0 0.10" ;;
 esac
 
 AH_TEMPLATE([HAVE_GSTREAMER_0_10],
     [Define if building against GStreamer 0.10])
+AH_TEMPLATE([HAVE_GSTREAMER_1_0],
+    [Define if building against GStreamer 1.0])
 
 for i in $want_gstreamer; do
   case $i in
