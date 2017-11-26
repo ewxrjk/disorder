@@ -366,6 +366,8 @@ static void decode(void)
   g_signal_connect(bus, "message", G_CALLBACK(bus_message), 0);
 
   /* Tell the sink to call us when interesting things happen. */
+  gst_app_sink_set_max_buffers(appsink, 16);
+  gst_app_sink_set_drop(appsink, FALSE);
   gst_app_sink_set_callbacks(appsink, &callbacks, 0, 0);
 
   /* Set the ball rolling. */
