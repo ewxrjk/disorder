@@ -41,6 +41,7 @@ want_alsa=yes
 want_oss=yes
 want_coreaudio=yes
 want_pulseaudio=yes
+want_gstreamer=yes
 
 # By default we don't want gtk-osx.  But if you ask for --with-gtk-osx...
 #
@@ -101,6 +102,9 @@ AC_ARG_WITH([gtk-osx],
 	    [AS_HELP_STRING([--with-gtk-osx],
 			    [use native GTK+ (OS X only)])],
 	    [want_gtkosx=$withval])
+AC_ARG_WITH([gstreamer],
+            [AS_HELP_STRING([--with-gstreamer], [select GStreamer version])],
+            [want_gstreamer=$withval])
 
 AC_MSG_CHECKING([for a known target platform])
 case "$host" in
@@ -439,33 +443,48 @@ AC_SUBST([finkdir])
 AC_SUBST([finkbindir])
 
 # Checks for packages.
-case $want_gstdecode in
-  yes | whatever)
-    PKG_CHECK_MODULES([GSTREAMER], [gstreamer-0.10],
-        [have_gstreamer=yes], [have_gstreamer=no])
-    PKG_CHECK_MODULES([GSTREAMER_PLUGINS_BASE],
-        [gstreamer-plugins-base-0.10],
-        [have_gst_plugins_base=yes], [have_gst_plugins_base=no])
-    ;;
+case $want_gstdecode,$want_gstreamer in
+  yes,no) AC_MSG_ERROR([gstdecode requires GStreamer]) ;;
+  whatever,no) want_gstdecode=no ;;
+  no,*) want_gstreamer=no ;;
+  *,yes) want_gstreamer="0.10" ;;
 esac
+
+AH_TEMPLATE([HAVE_GSTREAMER_0_10],
+    [Define if building against GStreamer 0.10])
+
+for i in $want_gstreamer; do
+  case $i in
+    0.10) v=0.10 V=0_10 ;;
+    1.0) v=1.0 V=1_0 ;;
+    *) AC_MSG_ERROR([unrecognized GStreamer version]) ;;
+  esac
+  PKG_CHECK_MODULES([GSTREAMER],
+      [gstreamer-$v gstreamer-app-$v gstreamer-audio-$v],
+      [have_gstreamer=$v], [have_gstreamer=no])
+  case $have_gstreamer in no) continue ;; esac
+  AC_DEFINE_UNQUOTED([HAVE_GSTREAMER_$V], [1])
+  break
+done
+
 case $want_gstdecode,$have_gstreamer,$have_gst_plugins_base in
-  whatever,yes,yes | yes,yes,yes) want_gstdecode=yes ;;
-  whatever,*) want_gstdecode=no ;;
-  yes,*)
+  whatever,no,* | whatever,*,no)
+    want_gstdecode=no
+    ;;
+  yes,no,* | yes,*,no)
     case $have_gstreamer in
-      no) missing_libraries="$missing_libraries gstreamer-0.10" ;;
+      no) missing_libraries="$missing_libraries gstreamer" ;;
     esac
-    case $have_gst_plugins_base in
-      no) missing_libraries="$missing_libraries gstreamer-plugins-base-0.10" ;;
-    esac
+    ;;
+  *)
+    want_gstdecode=yes
+    ;;
 esac
 
 mdw_SAVE_CFLAGS=$CFLAGS
 mdw_SAVE_LIBS=$LIBS
-CFLAGS="$CFLAGS $GSTREAMER_CFLAGS $GSTREAMER_PLUGINS_BASE_CFLAGS"
-LIBS="$LIBS \
-        $GSTREAMER_LIBS $GSTREAMER_PLUGINS_BASE_LIBS
-        -lgstaudio-0.10 -lgstapp-0.10"
+CFLAGS="$CFLAGS $GSTREAMER_CFLAGS"
+LIBS="$LIBS $GSTREAMER_LIBS"
 AC_CHECK_FUNCS([gst_audio_info_from_caps])
 CFLAGS=$mdw_SAVE_CFLAGS
 LIBS=$mdw_SAVE_LIBS
