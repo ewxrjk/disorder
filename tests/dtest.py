@@ -20,11 +20,19 @@
 """Utility module used by tests"""
 
 import os,os.path,subprocess,sys,re,time,unicodedata,random,socket,traceback
+import atexit,base64,errno
+
+homelink = None
 
 def fatal(s):
     """Write an error message and exit"""
     sys.stderr.write("ERROR: %s\n" % s)
     sys.exit(1)
+
+@atexit.register
+def cleanup():
+    if homelink is not None:
+        os.unlink(homelink)
 
 # Identify the top build directory
 cwd = os.getcwd()
@@ -167,7 +175,7 @@ def bindable(p):
 def default_config(encoding="UTF-8"):
     """Write the default config"""
     open("%s/config" % testroot, "w").write(
-    """home %s/home
+    """home %s
 collection fs %s %s/tracks
 scratch %s/scratch.ogg
 queue_pad 5
@@ -193,12 +201,33 @@ api rtp
 broadcast 127.0.0.1 %d
 broadcast_from 127.0.0.1 %d
 mail_sender no.such.user.sorry@greenend.org.uk
-""" % (testroot, encoding, testroot, testroot, top_builddir, top_builddir,
+""" % (homelink, encoding, testroot, testroot, top_builddir, top_builddir,
        port, port + 1))
 
 def common_setup():
+    global homelink
     remove_dir(testroot)
     os.makedirs(testroot)
+    os.makedirs("%s/home" % testroot)
+    # Establish a symlink to the home directory, to keep the socket pathnames
+    # short enough.
+    tmpdir = "/tmp"
+    for v in ["TMPDIR", "TMP"]:
+        try: tmpdir = os.environ[v]
+        except KeyError: pass
+        else: break
+    for i in xrange(1024):
+        r = base64.b64encode(os.urandom(9)).replace("/", "_")
+        f = "%s/disorder-home.%s" % (tmpdir, r)
+        try:
+            os.symlink("%s/home" % testroot, f)
+        except OSError, e:
+            if e.errno != errno.EEXIST: raise
+        else:
+            homelink = f
+            break
+    else:
+        fatal("failed to make home link")
     # Choose a port
     global port
     port = random.randint(49152, 65530)
@@ -228,7 +257,7 @@ Start the daemon."""
             time.sleep(1)
     print " starting daemon"
     # remove the socket if it exists
-    socket = "%s/home/socket" % testroot
+    socket = "%s/socket" % homelink
     if os.path.exists(socket):
         os.remove(socket)
     daemon = subprocess.Popen(["disorderd",
