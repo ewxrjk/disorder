@@ -198,7 +198,7 @@ mail_sender no.such.user.sorry@greenend.org.uk
 
 def common_setup():
     remove_dir(testroot)
-    os.mkdir(testroot)
+    os.makedirs(testroot)
     # Choose a port
     global port
     port = random.randint(49152, 65530)
@@ -410,5 +410,6 @@ def command(args):
 tests = 0
 failures = 0
 daemon = None
-testroot = "%s/tests/testroot" % top_builddir
+testroot = "%s/tests/testroot/%s" % \
+           (top_builddir, os.path.basename(sys.argv[0]))
 tracks = "%s/tracks" % testroot
