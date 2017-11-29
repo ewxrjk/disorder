@@ -1,6 +1,6 @@
 /*
- * This file is part of DisOrder 
-* Copyright (C) 2004, 2005, 2007, 2008 Richard Kettlewell
+ * This file is part of DisOrder
+ * Copyright (C) 2017 Mark Wooding
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,29 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-/** @file lib/regsub.h
- * @brief Regexp substitution
+/** @file lib/regexp.h
+ * @brief Regular expressions
  */
-#ifndef REGSUB_H
-#define REGSUB_H
+#ifndef REGEXP_H
+#define REGEXP_H
 
-#include "regexp.h"
+#if defined(HAVE_PCRE_H)
+# include <pcre.h>
+  typedef pcre regexp;
+# define RXF_CASELESS PCRE_CASELESS
+# define RXERR_NOMATCH PCRE_ERROR_NOMATCH
+#else
+# error "no supported regular expression library found"
+#endif
 
-#define REGSUB_GLOBAL 		0x0001	/* global replace */
-#define REGSUB_MUST_MATCH	0x0002	/* return 0 if no match */
-#define REGSUB_CASE_INDEPENDENT	0x0004	/* case independent */
-#define REGSUB_REPLACE          0x0008  /* replace whole, not match */
+void regexp_setup(void);
 
-unsigned regsub_flags(const char *flags);
-/* parse a flag string */
+#define RXCERR_LEN 128
+regexp *regexp_compile(const char *pat, unsigned f,
+		       char *errbuf, size_t errlen, size_t *erroff_out);
 
-int regsub_compile_options(unsigned flags);
-/* convert compile-time options */
+int regexp_match(const regexp *re, const char *s, size_t n, unsigned f,
+		 size_t *ov, size_t on);
 
-const char *regsub(const regexp *re, const char *subject,
-		   const char *replace, unsigned flags);
+void regexp_free(regexp *re);
 
-#endif /* REGSUB_H */
+#endif /* REGEXP_H */
 
 /*
 Local Variables:

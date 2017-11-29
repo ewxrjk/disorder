@@ -36,7 +36,7 @@
 #if HAVE_LANGINFO_H
 # include <langinfo.h>
 #endif
-#include <pcre.h>
+
 #if HAVE_SHLOBJ_H
 # include <Shlobj.h>
 #endif
@@ -53,6 +53,7 @@
 #include "charset.h"
 #include "defs.h"
 #include "printf.h"
+#include "regexp.h"
 #include "regsub.h"
 #include "signame.h"
 #include "authhash.h"
@@ -402,9 +403,10 @@ static int set_namepart(const struct config_state *cs,
 			int nvec, char **vec) {
   struct namepartlist *npl = ADDRESS(cs->config, struct namepartlist);
   unsigned reflags;
-  const char *errstr;
-  int erroffset, n;
-  pcre *re;
+  regexp *re;
+  char errstr[RXCERR_LEN];
+  size_t erroffset;
+  int n;
 
   if(nvec < 3) {
     disorder_error(0, "%s:%d: namepart needs at least 3 arguments",
@@ -417,11 +419,10 @@ static int set_namepart(const struct config_state *cs,
     return -1;
   }
   reflags = nvec >= 5 ? regsub_flags(vec[4]) : 0;
-  if(!(re = pcre_compile(vec[1],
-			 PCRE_UTF8
-			 |regsub_compile_options(reflags),
-			 &errstr, &erroffset, 0))) {
-    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %d)",
+  if(!(re = regexp_compile(vec[1], regsub_compile_options(reflags),
+			   errstr, sizeof(errstr), &erroffset)))
+  {
+    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %zu)",
 		   cs->path, cs->line, vec[1], errstr, erroffset);
     return -1;
   }
@@ -449,10 +450,10 @@ static int set_transform(const struct config_state *cs,
 			 const struct conf *whoami,
 			 int nvec, char **vec) {
   struct transformlist *tl = ADDRESS(cs->config, struct transformlist);
-  pcre *re;
+  regexp *re;
+  char errstr[RXCERR_LEN];
   unsigned reflags;
-  const char *errstr;
-  int erroffset;
+  size_t erroffset;
 
   if(nvec < 3) {
     disorder_error(0, "%s:%d: transform needs at least 3 arguments",
@@ -465,11 +466,10 @@ static int set_transform(const struct config_state *cs,
     return -1;
   }
   reflags = (nvec >= 5 ? regsub_flags(vec[4]) : 0);
-  if(!(re = pcre_compile(vec[1],
-			 PCRE_UTF8
-			 |regsub_compile_options(reflags),
-			 &errstr, &erroffset, 0))) {
-    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %d)",
+  if(!(re = regexp_compile(vec[1], regsub_compile_options(reflags),
+			   errstr, sizeof(errstr), &erroffset)))
+  {
+    disorder_error(0, "%s:%d: compiling regexp /%s/: %s (offset %zu)",
 		   cs->path, cs->line, vec[1], errstr, erroffset);
     return -1;
   }
@@ -572,7 +572,7 @@ static void free_namepartlist(struct config *c,
   for(n = 0; n < npl->n; ++n) {
     np = &npl->s[n];
     xfree(np->part);
-    pcre_free(np->re);			/* ...whatever pcre_free is set to. */
+    regexp_free(np->re);
     xfree(np->res);
     xfree(np->replace);
     xfree(np->context);
@@ -589,7 +589,7 @@ static void free_transformlist(struct config *c,
   for(n = 0; n < tl->n; ++n) {
     t = &tl->t[n];
     xfree(t->type);
-    pcre_free(t->re);			/* ...whatever pcre_free is set to. */
+    regexp_free(t->re);
     xfree(t->replace);
     xfree(t->context);
   }

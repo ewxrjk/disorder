@@ -208,8 +208,7 @@ int main(int argc, char **argv) {
   if(!setlocale(LC_CTYPE, ""))
     disorder_fatal(errno, "error calling setlocale");
   /* garbage-collect PCRE's memory */
-  pcre_malloc = xmalloc;
-  pcre_free = xfree;
+  regexp_setup();
   while((n = getopt_long(argc, argv, "hVc:dfP:NsW", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();

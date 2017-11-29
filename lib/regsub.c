@@ -20,8 +20,7 @@
  */
 #include "common.h"
 
-#include <pcre.h>
-
+#include "regexp.h"
 #include "regsub.h"
 #include "mem.h"
 #include "vector.h"
@@ -30,9 +29,9 @@
 #define PREMATCH (-1)			/* fictitious pre-match substring */
 #define POSTMATCH (-2)			/* fictitious post-match substring */
 
-static inline int substring_start(const char attribute((unused)) *subject,
-				  const int *ovector,
-				  int n) {
+static inline size_t substring_start(const char attribute((unused)) *subject,
+				     const size_t *ovector,
+				     size_t n) {
   switch(n) {
   case PREMATCH: return 0;
   case POSTMATCH: return ovector[1];
@@ -40,9 +39,9 @@ static inline int substring_start(const char attribute((unused)) *subject,
   }
 }
 
-static inline int substring_end(const char *subject,
-				const int *ovector,
-				int n) {
+static inline size_t substring_end(const char *subject,
+				   const size_t *ovector,
+				   size_t n) {
   switch(n) {
   case PREMATCH: return ovector[0];
   case POSTMATCH: return strlen(subject);
@@ -52,8 +51,8 @@ static inline int substring_end(const char *subject,
 
 static void transform_append(struct dynstr *d,
 			     const char *subject,
-			     const int *ovector,
-			     int n) {
+			     const size_t *ovector,
+			     size_t n) {
   int start = substring_start(subject, ovector, n);
   int end = substring_end(subject, ovector, n);
 
@@ -64,9 +63,9 @@ static void transform_append(struct dynstr *d,
 static void replace_core(struct dynstr *d,
 			 const char *subject,
 			 const char *replace,
-			 int rc,
-			 const int *ovector) {
-  int substr;
+			 size_t rc,
+			 const size_t *ovector) {
+  size_t substr;
   
   while(*replace) {
     if(*replace == '$')
@@ -113,20 +112,21 @@ int regsub_compile_options(unsigned flags) {
   int options = 0;
 
   if(flags & REGSUB_CASE_INDEPENDENT)
-    options |= PCRE_CASELESS;
+    options |= RXF_CASELESS;
   return options;
 }
 
-const char *regsub(const pcre *re, const char *subject, const char *replace,
-		   unsigned flags) {
-  int rc, ovector[99], matches;
+const char *regsub(const regexp *re, const char *subject,
+		   const char *replace, unsigned flags) {
+  int rc, matches;
+  size_t ovector[99];
   struct dynstr d;
 
   dynstr_init(&d);
   matches = 0;
   /* find the next match */
-  while((rc = pcre_exec(re, 0, subject, strlen(subject), 0,
-		     0, ovector, sizeof ovector / sizeof (int))) > 0) {
+  while((rc = regexp_match(re, subject, strlen(subject), 0,
+			   ovector, sizeof ovector / sizeof (ovector[0]))) > 0) {
     /* text just before the match */
     if(!(flags & REGSUB_REPLACE))
       transform_append(&d, subject, ovector, PREMATCH);
@@ -142,8 +142,8 @@ const char *regsub(const pcre *re, const char *subject, const char *replace,
     if(!(flags & REGSUB_GLOBAL))
       break;
   }
-  if(rc <= 0 && rc != PCRE_ERROR_NOMATCH) {
-    disorder_error(0, "pcre_exec returned %d, subject '%s'", rc, subject);
+  if(rc <= 0 && rc != RXERR_NOMATCH) {
+    disorder_error(0, "regexp_match returned %d, subject '%s'", rc, subject);
     return 0;
   }
   if((flags & REGSUB_MUST_MATCH) && matches == 0)

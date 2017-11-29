@@ -684,9 +684,10 @@ static int files_dirs(struct conn *c,
 		      char **vec,
 		      int nvec,
 		      enum trackdb_listable what) {
-  const char *dir, *re, *errstr;
-  int erroffset;
-  pcre *rec;
+  const char *dir, *re;
+  char errstr[RXCERR_LEN];
+  size_t erroffset;
+  regexp *rec;
   char **fvec, *key;
   
   switch(nvec) {
@@ -717,8 +718,8 @@ static int files_dirs(struct conn *c,
     } else {
       /* Cache miss, we'll do the lookup and key != 0 so we'll store the answer
        * in the cache. */
-      if(!(rec = pcre_compile(re, PCRE_CASELESS|PCRE_UTF8,
-			      &errstr, &erroffset, 0))) {
+      if(!(rec = regexp_compile(re, RXF_CASELESS,
+				errstr, sizeof(errstr), &erroffset))) {
 	sink_printf(ev_writer_sink(c->w), "550 Error compiling regexp: %s\n",
 		    errstr);
 	return 1;

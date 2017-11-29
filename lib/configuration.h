@@ -22,9 +22,8 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#include <pcre.h>
-
 #include "speaker-protocol.h"
+#include "regexp.h"
 #include "rights.h"
 #include "addr.h"
 
@@ -71,7 +70,7 @@ struct collectionlist {
 /** @brief A track name part */
 struct namepart {
   char *part;				/* part */
-  pcre *re;				/* compiled regexp */
+  regexp *re;				/* compiled regexp */
   char *res;                            /* regexp as a string */
   char *replace;			/* replacement string */
   char *context;			/* context glob */
@@ -89,7 +88,7 @@ struct transform {
   char *type;				/* track or dir */
   char *context;			/* sort or choose */
   char *replace;			/* substitution string */
-  pcre *re;				/* compiled re */
+  regexp *re;				/* compiled re */
   unsigned flags;			/* regexp flags */
 };
 

@@ -25,7 +25,6 @@
 
 #include <db.h>
 #include <sys/socket.h>
-#include <pcre.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stddef.h>
@@ -39,6 +38,7 @@
 
 #include "event.h"
 #include "mem.h"
+#include "regexp.h"
 #include "kvp.h"
 #include "log.h"
 #include "vector.h"
@@ -2239,18 +2239,19 @@ fail:
  * If @p re is NULL then always matches.
  */
 static int track_matches(size_t dl, const char *track, size_t tl,
-			 const pcre *re) {
-  int ovec[3], rc;
+			 const regexp *re) {
+  size_t ovec[3];
+  int rc;
 
   if(!re)
     return 1;
   track += dl + 1;
   tl -= (dl + 1);
-  switch(rc = pcre_exec(re, 0, track, tl, 0, 0, ovec, 3)) {
-  case PCRE_ERROR_NOMATCH: return 0;
+  switch(rc = regexp_match(re, track, tl, 0, ovec, 3)) {
+  case RXERR_NOMATCH: return 0;
   default:
     if(rc < 0) {
-      disorder_error(0, "pcre_exec returned %d, subject '%s'", rc, track);
+      disorder_error(0, "regexp_match returned %d, subject '%s'", rc, track);
       return 0;
     }
     return 1;
@@ -2266,7 +2267,7 @@ static int track_matches(size_t dl, const char *track, size_t tl,
  * @return 0 or DB_LOCK_DEADLOCK
  */
 static int do_list(struct vector *v, const char *dir,
-                   enum trackdb_listable what, const pcre *re, DB_TXN *tid) {
+                   enum trackdb_listable what, const regexp *re, DB_TXN *tid) {
   DBC *cursor;
   DBT k, d;
   size_t dl;
@@ -2364,7 +2365,7 @@ deadlocked:
  * @return List of tracks
  */
 char **trackdb_list(const char *dir, int *np, enum trackdb_listable what,
-                    const pcre *re) {
+                    const regexp *re) {
   DB_TXN *tid;
   int n;
   struct vector v;

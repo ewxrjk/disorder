@@ -21,9 +21,8 @@
 #ifndef TRACKDB_H
 #define TRACKDB_H
 
-#include <pcre.h>
-
 #include "event.h"
+#include "regexp.h"
 #include "rights.h"
 
 extern const struct cache_type cache_files_type;
@@ -125,7 +124,7 @@ enum trackdb_listable {
 };
 
 char **trackdb_list(const char *dir, int *np, enum trackdb_listable what,
-                    const pcre *rec);
+                    const regexp *rec);
 /* Return the directories and/or files below DIR.  If DIR is a null pointer
  * then concatenate the listing of all collections.
  *

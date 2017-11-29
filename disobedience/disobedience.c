@@ -20,11 +20,11 @@
  */
 
 #include "disobedience.h"
+#include "regexp.h"
 #include "version.h"
 
 #include <getopt.h>
 #include <locale.h>
-#include <pcre.h>
 #include <gcrypt.h>
 
 /* Apologies for the numerous de-consting casts, but GLib et al do not seem to
@@ -547,8 +547,7 @@ int main(int argc, char **argv) {
 
   mem_init();
   /* garbage-collect PCRE's memory */
-  pcre_malloc = xmalloc;
-  pcre_free = xfree;
+  regexp_setup();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
   while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {

@@ -18,9 +18,9 @@
 #include "test.h"
 
 static void test_regsub(void) {
-  pcre *re;
-  const char *errstr;
-  int erroffset;
+  regexp *re;
+  char errstr[RXCERR_LEN];
+  size_t erroffset;
 
   check_integer(regsub_flags(""), 0);
   check_integer(regsub_flags("g"), REGSUB_GLOBAL);
@@ -28,11 +28,11 @@ static void test_regsub(void) {
   check_integer(regsub_flags("gi"), REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT);
   check_integer(regsub_flags("iiggxx"), REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT);
   check_integer(regsub_compile_options(0), 0);
-  check_integer(regsub_compile_options(REGSUB_CASE_INDEPENDENT), PCRE_CASELESS);
-  check_integer(regsub_compile_options(REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT), PCRE_CASELESS);
+  check_integer(regsub_compile_options(REGSUB_CASE_INDEPENDENT), RXF_CASELESS);
+  check_integer(regsub_compile_options(REGSUB_GLOBAL|REGSUB_CASE_INDEPENDENT), RXF_CASELESS);
   check_integer(regsub_compile_options(REGSUB_GLOBAL), 0);
 
-  re = pcre_compile("foo", PCRE_UTF8, &errstr, &erroffset, 0);
+  re = regexp_compile("foo", 0, errstr, sizeof(errstr), &erroffset);
   assert(re != 0);
   check_string(regsub(re, "wibble-foo-foo-bar", "spong", 0),
                "wibble-spong-foo-bar");
@@ -42,7 +42,7 @@ static void test_regsub(void) {
                "wibble-x-x-bar");
   insist(regsub(re, "wibble-x-x-bar", "spong", REGSUB_MUST_MATCH) == 0);
 
-  re = pcre_compile("a+", PCRE_UTF8, &errstr, &erroffset, 0);
+  re = regexp_compile("a+", 0, errstr, sizeof(errstr), &erroffset);
   assert(re != 0);
   check_string(regsub(re, "baaaaa", "spong", 0),
                "bspong");
@@ -53,7 +53,8 @@ static void test_regsub(void) {
   check_string(regsub(re, "baaaaa", "foo-$&-bar$x", 0),
                "bfoo-aaaaa-bar$x");
 
-  re = pcre_compile("(a+)(b+)", PCRE_UTF8|PCRE_CASELESS, &errstr, &erroffset, 0);
+  re = regexp_compile("(a+)(b+)", RXF_CASELESS,
+                      errstr, sizeof(errstr), &erroffset);
   assert(re != 0);
   check_string(regsub(re, "foo-aaaabbb-bar", "spong", 0),
                "foo-spong-bar");

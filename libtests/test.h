@@ -33,7 +33,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/un.h>
-#include <pcre.h>
 #include <setjmp.h>
 
 #include "mem.h"
@@ -61,6 +60,7 @@
 #include "addr.h"
 #include "base64.h"
 #include "url.h"
+#include "regexp.h"
 #include "regsub.h"
 
 extern long long tests, errors;
