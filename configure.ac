@@ -503,9 +503,18 @@ LIBS=$mdw_SAVE_LIBS
 AC_CHECK_LIB(gcrypt, gcry_md_open,
              [AC_SUBST(LIBGCRYPT,[-lgcrypt])],
             [missing_libraries="$missing_libraries libgcrypt"])
-AC_CHECK_LIB(pcre, pcre_compile,
-	     [AC_SUBST(LIBPCRE,[-lpcre])],
-	     [missing_libraries="$missing_libraries libpcre"])
+PKG_CHECK_MODULES([PCRE2], [libpcre2-8], [have_pcre2=yes], [have_pcre2=no])
+case $have_pcre2 in
+  yes)
+    CFLAGS="$CFLAGS $PCRE2_CFLAGS" LIBPCRE=$PCRE2_LIBS
+    AC_DEFINE([HAVE_LIBPCRE2], [1], [Define if building with libpcre2.])
+    ;;
+  no)
+    AC_CHECK_LIB(pcre, pcre_compile,
+                 [AC_SUBST(LIBPCRE,[-lpcre])],
+                 [missing_libraries="$missing_libraries libpcre"])
+    ;;
+esac
 if test $want_alsa = yes; then
   AC_CHECK_LIB([asound], [snd_pcm_open],
                [AC_SUBST(LIBASOUND,[-lasound])])
@@ -586,7 +595,7 @@ if test $want_coreaudio = yes; then
   AC_CHECK_HEADERS([CoreAudio/AudioHardware.h])
 fi
 AC_CHECK_HEADERS([inttypes.h sys/time.h sys/socket.h netinet/in.h \
-                  arpa/inet.h sys/un.h netdb.h pcre.h pwd.h langinfo.h])
+                  arpa/inet.h sys/un.h netdb.h pwd.h langinfo.h])
 # We don't bother checking very standard stuff
 # Compilation will fail if any of these headers are missing, so we
 # check for them here and fail early.
@@ -597,10 +606,16 @@ if test $want_server = yes; then
 fi
 AC_CHECK_HEADERS([dlfcn.h gcrypt.h \
 		 getopt.h iconv.h langinfo.h \
-		 pcre.h sys/ioctl.h \
+		 sys/ioctl.h \
 	         syslog.h unistd.h],[:],[
   missing_headers="$missing_headers $ac_header"
 ])
+case $have_pcre2 in
+  no)
+    AC_CHECK_HEADERS([pcre.h], [:],
+        [missing_headers="$missing_headers $ac_header"])
+    ;;
+esac
 AC_CHECK_HEADERS([samplerate.h])
 
 if test ! -z "$missing_headers"; then
@@ -608,7 +623,10 @@ if test ! -z "$missing_headers"; then
 fi
 
 # We require that libpcre support UTF-8
-RJK_REQUIRE_PCRE_UTF8([-lpcre])
+case $have_pcre2 in
+  yes) RJK_REQUIRE_PCRE2_UTF8([$PCRE2_CFLAGS], [$PCRE2_LIBS]) ;;
+  no) RJK_REQUIRE_PCRE_UTF8([-lpcre]) ;;
+esac
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

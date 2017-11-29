@@ -101,6 +101,44 @@ AC_DEFUN([RJK_REQUIRE_PCRE_UTF8],[
   fi
 ])
 
+AC_DEFUN([RJK_REQUIRE_PCRE2_UTF8],[
+  AC_CACHE_CHECK([whether libpcre2 was built with UTF-8 support],
+                 [rjk_cv_pcre_utf8],[
+    save_CFLAGS="$CFLAGS" save_LIBS="$LIBS"
+    CFLAGS="$CFLAGS $1" LIBS="$LIBS $2"
+    AC_RUN_IFELSE([AC_LANG_PROGRAM([
+                    #define PCRE2_CODE_UNIT_WIDTH 8
+                    #include <pcre2.h>
+                    #include <stdio.h>
+                  ],
+                  [
+                    pcre2_code *r;
+                    int errcode;
+                    int erroffset;
+                    char errbuf[[128]];
+
+                    r = pcre2_compile("\x80\x80", 2, PCRE2_UTF,
+                                     &errcode, &erroffset, 0);
+                    if(!r) {
+                      pcre2_get_error_message(errcode, errbuf, sizeof(errbuf));
+                      fprintf(stderr, "pcre2_compile: %s at %d",
+                              errbuf, erroffset);
+                      exit(0);
+                    } else {
+                      fprintf(stderr, "accepted bogus UTF-8 string\n");
+                      exit(1);
+                    }
+                  ])],
+                  [rjk_cv_pcre_utf8=yes],
+                  [rjk_cv_pcre_utf8=no],
+                  [AC_MSG_WARN([cross-compiling, cannot check libpcre2 behaviour])])
+    CFLAGS="$save_CFLAGS" LIBS="$save_LIBS"
+  ])
+  if test $rjk_cv_pcre_utf8 = no; then
+    AC_MSG_ERROR([please rebuild your pcre library with --enable-utf8])
+  fi
+])
+
 AC_DEFUN([RJK_GCOV],[
   GCOV=${GCOV:-true}
   AC_ARG_WITH([gcov],

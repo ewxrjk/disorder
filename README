@@ -28,7 +28,7 @@ Build dependencies:
   libdb            4.5.20      not 4.6; 4.[78] seem to be ok
   libgc            6.8
   libvorbisfile    1.2.0
-  libpcre          7.6         need UTF-8 support
+  libpcre          10.22 or 7.6 need UTF-8 support
   libmad           0.15.1b
   libgcrypt        1.4.1
   libasound        1.0.16

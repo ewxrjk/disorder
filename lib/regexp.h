@@ -21,7 +21,15 @@
 #ifndef REGEXP_H
 #define REGEXP_H
 
-#if defined(HAVE_PCRE_H)
+#if defined(HAVE_LIBPCRE2)
+# ifndef PCRE2_CODE_UNIT_WIDTH
+#   define PCRE2_CODE_UNIT_WIDTH 8
+# endif
+# include <pcre2.h>
+  typedef pcre2_code regexp;
+# define RXF_CASELESS PCRE2_CASELESS
+# define RXERR_NOMATCH PCRE2_ERROR_NOMATCH
+#elif defined(HAVE_PCRE_H)
 # include <pcre.h>
   typedef pcre regexp;
 # define RXF_CASELESS PCRE_CASELESS
