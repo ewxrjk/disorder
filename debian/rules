@@ -169,6 +169,7 @@ pkg-disorder-server: build
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_config.5
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_preferences.5
 	rm -f debian/disorder-server/usr/share/man/man5/disorder_protocol.5
+	rm -f debian/disorder-server/usr/share/man/man8/disorder-gstdecode.8
 	rm -f debian/disorder-server/usr/sbin/disorder-gstdecode
 	find debian/disorder-server -name '*.la' -print0 | xargs -r0 rm -f
 	find debian/disorder-server -name '*.so.0' -print0 | xargs -r0 rm -f
