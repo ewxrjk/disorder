@@ -33,7 +33,6 @@
 #include <grp.h>
 #include <locale.h>
 #include <netinet/in.h>
-#include <pcre.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stddef.h>

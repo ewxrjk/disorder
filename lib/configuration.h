@@ -22,9 +22,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#if HAVE_PCRE_H
-# include <pcre.h>
-#endif
+#include <pcre.h>
 
 #include "speaker-protocol.h"
 #include "rights.h"
@@ -70,7 +68,6 @@ struct collectionlist {
   struct collection *s;
 };
 
-#if HAVE_PCRE_H
 /** @brief A track name part */
 struct namepart {
   char *part;				/* part */
@@ -101,7 +98,6 @@ struct transformlist {
   int n;
   struct transform *t;
 };
-#endif
 
 /** @brief System configuration */
 struct config {
@@ -220,9 +216,7 @@ struct config {
   /** @brief Minimum time between a track being played again */
   long replay_min;
   
-#if HAVE_PCRE_H
   struct namepartlist namepart;		/* transformations */
-#endif
 
   /** @brief Termination signal for subprocesses */
   int signal;
@@ -230,9 +224,7 @@ struct config {
   /** @brief ALSA output device */
   const char *device;
 
-#if HAVE_PCRE_H
   struct transformlist transform;	/* path name transformations */
-#endif
 
   /** @brief Address to send audio data to */
   struct netaddress broadcast;

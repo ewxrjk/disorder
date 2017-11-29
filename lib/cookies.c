@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <time.h>
 #include <gcrypt.h>
-#include <pcre.h>
 
 #include "cookies.h"
 #include "hash.h"

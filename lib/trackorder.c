@@ -20,7 +20,6 @@
  */
 #include "common.h"
 
-#include <pcre.h>
 #include <fnmatch.h>
 
 #include "trackname.h"

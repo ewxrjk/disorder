@@ -41,9 +41,6 @@
 #if HAVE_NETDB_H
 # include <netdb.h>
 #endif
-#if HAVE_PCRE_H
-# include <pcre.h>
-#endif
 
 #include "log.h"
 #include "mem.h"

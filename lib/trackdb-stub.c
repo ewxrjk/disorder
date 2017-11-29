@@ -23,8 +23,6 @@
 
 #include "common.h"
 
-#include <pcre.h>
-
 #include "rights.h"
 #include "trackdb.h"
 

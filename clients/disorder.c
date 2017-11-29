@@ -36,9 +36,7 @@
 #if HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#if HAVE_PCRE_H
-# include <pcre.h>
-#endif
+#include <pcre.h>
 #include <ctype.h>
 #if HAVE_GCRYPT_H
 # include <gcrypt.h>
@@ -881,11 +879,9 @@ int main(int argc, char **argv) {
 
   mem_init();
   network_init();
-#if HAVE_PCRE_H
   /* garbage-collect PCRE's memory */
   pcre_malloc = xmalloc;
   pcre_free = xfree;
-#endif
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
