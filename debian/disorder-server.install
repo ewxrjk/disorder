@@ -1,0 +1,42 @@
+#! /usr/bin/dh-exec
+
+debian/etc.disorder.config	     => /etc/disorder/config
+templates/options			/etc/disorder
+debian/etc.disorder.options.user     => /etc/disorder/options.user
+debian/build/examples/disorder.init  => /etc/init.d/disorder
+usr/lib/cgi-bin/disorder
+usr/lib/disorder/disorder-tracklength.so.0.0.0 => /usr/lib/disorder/disorder-tracklength.so
+usr/lib/disorder/exec.so.0.0.0	     => /usr/lib/disorder/exec.so
+usr/lib/disorder/execraw.so.0.0.0    => /usr/lib/disorder/execraw.so
+usr/lib/disorder/fs.so.0.0.0	     => /usr/lib/disorder/fs.so
+usr/lib/disorder/notify.so.0.0.0     => /usr/lib/disorder/notify.so
+usr/lib/disorder/shell.so.0.0.0	     => /usr/lib/disorder/shell.so
+usr/sbin/disorder-choose
+usr/sbin/disorder-dbupgrade
+usr/sbin/disorder-deadlock
+usr/sbin/disorder-decode
+usr/sbin/disorder-dump
+usr/sbin/disorder-normalize
+usr/sbin/disorder-rescan
+usr/sbin/disorder-speaker
+usr/sbin/disorder-stats
+usr/sbin/disorderd
+usr/share/disorder/options
+usr/share/disorder/options.labels
+usr/share/disorder/*.ogg
+usr/share/disorder/*.tmpl
+usr/share/man/man5/disorder_actions.5
+usr/share/man/man5/disorder_options.5
+usr/share/man/man5/disorder_templates.5
+usr/share/man/man8/disorder-choose.8
+usr/share/man/man8/disorder-dbupgrade.8
+usr/share/man/man8/disorder-deadlock.8
+usr/share/man/man8/disorder-decode.8
+usr/share/man/man8/disorder-dump.8
+usr/share/man/man8/disorder-normalize.8
+usr/share/man/man8/disorder-rescan.8
+usr/share/man/man8/disorder-speaker.8
+usr/share/man/man8/disorder-stats.8
+usr/share/man/man8/disorder.cgi.8
+usr/share/man/man8/disorderd.8
+var/www/disorder

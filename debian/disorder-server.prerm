@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # This file is part of DisOrder
-# Copyright (C) 2007 Richard Kettlewell
+# Copyright (C) 2008 Richard Kettlewell
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,13 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 set -e
-
 case "$1" in
-remove )
-  if command -v update-menus >/dev/null 2>&1; then
-    update-menus
-  fi
+upgrade )
+  invoke-rc.d disorder stop
+  ;;
+failed-upgrade )
+  # Upgrading from 2.0 to 3.0.x can provoke this problem.  The 2.0
+  # init script attempts to run disorder(1) but that isn't ready to go
+  # get as users.db has not been created.  Therefore old-prerm upgrade
+  # fails and dpkg tries new-prerm failed-upgrade instead.
+  start-stop-daemon -K -q -n disorderd
   ;;
 esac
+#DEBHELPER#

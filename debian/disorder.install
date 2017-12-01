@@ -1,0 +1,12 @@
+#! /usr/bin/dh-exec
+
+scripts/completion.bash		     => /etc/bash_completion.d/disorder
+usr/bin/disorder
+usr/bin/disorderfm
+usr/include/disorder.h
+usr/share/man/man1/disorder.1
+usr/share/man/man1/disorderfm.1
+usr/share/man/man3/disorder.3
+usr/share/man/man5/disorder_config.5
+usr/share/man/man5/disorder_preferences.5
+usr/share/man/man5/disorder_protocol.5

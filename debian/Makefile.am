@@ -16,15 +16,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-noinst_SCRIPTS=rules
+noinst_SCRIPTS = rules
 
-EXTRA_DIST=README.Debian config.disorder-server control \
-	   copyright README.RTP \
-	   etc.disorder.options.user etc.disorder.config \
-	   postinst.disorder-server prerm.disorder-server \
-	   postrm.disorder-server overrides.disorder-server \
-	   templates.disorder-server conffiles.disorder-server \
-	   rules changelog usr.share.menu.disobedience \
-	   disorder.daily \
-	   overrides.disorder overrides.disorder-playrtp \
-	   postinst.disobedience disobedience-manual
+EXTRA_DIST = \
+	changelog compat control copyright rules README.Debian
+
+EXTRA_DIST += \
+	disorder.docs disorder.install disorder.dirs \
+	disorder.lintian-overrides
+
+EXTRA_DIST += \
+	disorder-server.config disorder-server.cron.daily \
+	disorder-server.install disorder-server.dirs \
+	disorder-server.lintian-overrides disorder-server.maintscript \
+	disorder-server.postinst disorder-server.postrm \
+	disorder-server.prerm \
+	etc.disorder.config etc.disorder.options.user
+
+EXTRA_DIST += \
+	disorder-playrtp.docs disorder-playrtp.install \
+	disorder-playrtp.lintian-overrides \
+	README.RTP
+
+EXTRA_DIST += \
+	disorder-gstdecode.docs disorder-gstdecode.install
+
+EXTRA_DIST += \
+	disobedience.doc-base disobedience.install disobedience.menu

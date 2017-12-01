@@ -52,12 +52,9 @@ remove )
   cleanup_remove
   ;;
 purge )
-  if [ -e /usr/share/debconf/confmodule ]; then
-    . /usr/share/debconf/confmodule
-    db_purge
-  fi
   update-rc.d disorder remove > /dev/null
   cleanup_remove
   cleanup_purge
   ;;
 esac
+#DEBHELPER#

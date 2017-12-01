@@ -1,0 +1,5 @@
+#! /usr/bin/dh-exec
+
+usr/bin/disorder-playrtp
+debian/README.RTP		     => /usr/share/doc/disorder-playrtp/README
+usr/share/man/man1/disorder-playrtp.1

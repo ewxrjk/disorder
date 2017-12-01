@@ -1,0 +1,6 @@
+usr/bin/disobedience
+usr/share/applications/disobedience.desktop
+usr/share/doc/disorder/html
+usr/share/icons
+images/disobedience*.xpm		/usr/share/pixmaps
+usr/share/man/man1/disobedience.1
