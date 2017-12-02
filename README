@@ -282,6 +282,8 @@ Portions extracted from MPG321, http://mpg321.sourceforge.net/
   Copyright (C) 2000-2001 Robert Leslie
 Portions Copyright (C) 1997-2006 Free Software Foundation, Inc.
 Portions Copyright (C) 2000 Red Hat, Inc., Jonathan Blandford <jrb@redhat.com>
+Unicode test files Copyright (C) 1991-2017 Unicode Inc.; see
+  libtests/COPYING.unicode-tests for details.
 Binaries may derive extra copyright owners through linkage (binary distributors
 are expected to do their own legwork)
 

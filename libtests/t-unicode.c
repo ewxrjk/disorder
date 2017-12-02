@@ -17,28 +17,28 @@
  */
 #include "test.h"
 
+#ifndef SRCDIR
+# define SRCDIR "."
+#endif
+
 /** @brief Open a Unicode test file */
 static FILE *open_unicode_test(const char *path) {
-  const char *base;
   FILE *fp;
   char buffer[1024];
+
+  snprintf(buffer, sizeof buffer, "gzip -dc " SRCDIR "/%s.gz", path);
+  if(!(fp = popen(buffer, "r")))
+    disorder_fatal(errno, "decompressing %s", path);
+  return fp;
+}
+
+/** @brief Close a Unicode test file */
+static void close_unicode_test(const char *path, FILE *fp)
+{
   int w;
 
-  if((base = strrchr(path, '/')))
-    ++base;
-  else
-    base = path;
-  if(!(fp = fopen(base, "r"))) {
-    snprintf(buffer, sizeof buffer,
-             "wget http://www.unicode.org/Public/6.0.0/ucd/%s", path);
-    if((w = system(buffer)))
-      disorder_fatal(0, "%s: %s", buffer, wstat(w));
-    if(chmod(base, 0444) < 0)
-      disorder_fatal(errno, "chmod %s", base);
-    if(!(fp = fopen(base, "r")))
-      disorder_fatal(errno, "%s", base);
-  }
-  return fp;
+  if((w = pclose(fp)))
+    disorder_fatal(0, "decompressing %s: %s", path, wstat(w));
 }
 
 /** @brief Run breaking tests for utf32_grapheme_boundary() etc */
@@ -94,7 +94,7 @@ static void breaktest(const char *path,
     }
     xfree(l);
   }
-  fclose(fp);
+  close_unicode_test(path, fp);
 }
 
 /** @brief Tests for @ref lib/unicode.h */
@@ -179,9 +179,9 @@ static void test_unicode(void) {
     }
     xfree(l);
   }
-  fclose(fp);
-  breaktest("auxiliary/GraphemeBreakTest.txt", utf32_is_grapheme_boundary);
-  breaktest("auxiliary/WordBreakTest.txt", utf32_is_word_boundary);
+  close_unicode_test("NormalizationTest.txt", fp);
+  breaktest("GraphemeBreakTest.txt", utf32_is_grapheme_boundary);
+  breaktest("WordBreakTest.txt", utf32_is_word_boundary);
   insist(utf32_combining_class(0x40000) == 0);
   insist(utf32_combining_class(0xE0000) == 0);
 }

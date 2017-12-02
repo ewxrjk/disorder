@@ -56,6 +56,7 @@ t_split_SOURCES=t-split.c test.c test.h
 t_syscalls_SOURCES=t-syscalls.c test.c test.h
 t_trackname_SOURCES=t-trackname.c test.c test.h
 t_unicode_SOURCES=t-unicode.c test.c test.h
+t_unicode_CFLAGS=$(AM_CFLAGS) -DSRCDIR=\"$(srcdir)\"
 t_url_SOURCES=t-url.c test.c test.h
 t_utf8_SOURCES=t-utf8.c test.c test.h
 t_vector_SOURCES=t-vector.c test.c test.h
@@ -74,9 +75,22 @@ before-check:
 make-coverage-reports: check
 	cd ../lib && ${GCOV} *.c | ${PYTHON} ../scripts/format-gcov-report --html . *.c
 
-EXTRA_DIST=t-macros-1.tmpl t-macros-2
+UNICODE_TEST_FILES=GraphemeBreakTest NormalizationTest WordBreakTest
+UNICODE_TEST_BASE_URL=http://www.unicode.org/Public/6.0.0/ucd/
+GraphemeBreakTest_URL=$(UNICODE_TEST_BASE_URL)/auxiliary/GraphemeBreakTest.txt
+NormalizationTest_URL=$(UNICODE_TEST_BASE_URL)/NormalizationTest.txt
+WordBreakTest_URL=$(UNICODE_TEST_BASE_URL)/auxiliary/WordBreakTest.txt
+update-unicode-tests:
+	set -e; \
+	for t in $(foreach t,$(UNICODE_TEST_FILES),$t:$($t_URL)); do \
+	  f=$${t%%:*} u=$${t#*:}; \
+	  echo $$f $$u; \
+	  rm -f $$f.new $$f.new.gz; wget -O$$f.new $$u; \
+	  gzip -9cv $$f.new >$$f.new.gz; \
+	  mv -f $$f.new.gz $(srcdir)/$$f.txt.gz; rm -f $$f.new; \
+	done
+
+EXTRA_DIST=t-macros-1.tmpl t-macros-2 \
+	COPYING.unicode-tests $(addsuffix .txt.gz, $(UNICODE_TEST_FILES))
 
 CLEANFILES=*.gcda *.gcov *.gcno *.c.html index.html
-
-DISTCLEANFILES=GraphemeBreakTest.txt NormalizationTest.txt	\
-	       WordBreakTest.txt
