@@ -115,13 +115,11 @@ static void report_element_pads(const char *what, GstElement *elt,
       pad = g_value_get_object(&gv);
       caps = gst_pad_query_caps(pad, 0);
       cs = gst_caps_to_string(caps);
-      g_object_unref(caps);
+      gst_caps_unref(caps);
 #endif
       disorder_error(0, "  `%s' %s pad: %s", GST_OBJECT_NAME(elt), what, cs);
       g_free(cs);
-#ifdef HAVE_GSTREAMER_0_10
-      g_object_unref(pad);
-#endif
+      gst_object_unref(pad);
       break;
     case GST_ITERATOR_RESYNC:
       gst_iterator_resync(it);
@@ -184,10 +182,7 @@ static void decoder_pad_arrived(GstElement *decode, GstPad *pad, gpointer u)
 #endif
       goto match;
   }
-#ifndef HAVE_GSTREAMER_0_10
-  g_object_unref(caps);
-#endif
-  return;
+  goto end;
 
 match:
   /* Yes, it's audio.  Link the two elements together. */
@@ -199,6 +194,9 @@ match:
   GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline),
                             GST_DEBUG_GRAPH_SHOW_ALL,
                             "disorder-gstdecode");
+
+end:
+  gst_caps_unref(caps);
 }
 
 /* Prepare the GStreamer pipeline, ready to decode the given FILE.  This sets
@@ -273,6 +271,7 @@ static void prepare_pipeline(void)
                              END);
 #endif
   gst_app_sink_set_caps(appsink, caps);
+  gst_caps_unref(caps);
 
   /* Add the various elements into the pipeline.  We'll stitch them together
    * in pieces, because the pipeline is somewhat dynamic.
