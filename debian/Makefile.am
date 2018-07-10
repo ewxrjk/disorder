@@ -39,7 +39,7 @@ EXTRA_DIST += \
 	README.RTP
 
 EXTRA_DIST += \
-	disorder-gstdecode.docs disorder-gstdecode.install
+	disorder-gstreamer.docs disorder-gstreamer.install
 
 EXTRA_DIST += \
 	disobedience.doc-base disobedience.install disobedience.menu

@@ -53,7 +53,7 @@ Description: Network play client for DisOrder
  This package contains the RTP player.  It can play audio streams generated
  by the server, received over a LAN.
 
-Package: disorder-gstdecode
+Package: disorder-gstreamer
 Architecture: any
 Section: sound
 Priority: extra

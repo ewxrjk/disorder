@@ -209,7 +209,7 @@ libtests/test-suite.log
 /GRTAGS
 /GSYMS
 /GTAGS
-debian/disorder-gstdecode
+debian/disorder-gstreamer
 server/disorder-gstdecode
 /Debug
 /lib/Debug
