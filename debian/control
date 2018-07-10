@@ -68,7 +68,8 @@ Description: GStreamer-based audio decoder for DisOrder
  .
  This package contains a GStreamer-based audio decoder.  This can (with
  appropriate GStreamer plugins) decode different kinds of audio files, and
- also apply ReplayGain to the decoded audio.
+ also apply ReplayGain to the decoded audio.  It also includes a GStreamer-
+ based track length plugin.
 
 Package: disobedience
 Architecture: any

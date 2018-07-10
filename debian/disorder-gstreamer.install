@@ -1,2 +1,5 @@
+#! /usr/bin/dh-exec
+
+usr/lib/disorder/tracklength-gstreamer.so.0.0.0 => /usr/lib/disorder/tracklength-gstreamer.so
 usr/sbin/disorder-gstdecode
 usr/share/man/man8/disorder-gstdecode.8

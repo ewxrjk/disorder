@@ -22,6 +22,7 @@ pkglib_LTLIBRARIES=disorder-tracklength.la fs.la notify.la exec.la shell.la \
 		   execraw.la
 AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib
+AM_CFLAGS=
 
 notify_la_SOURCES=notify.c
 notify_la_LDFLAGS=-module
@@ -44,3 +45,13 @@ execraw_la_LDFLAGS=-module
 
 shell_la_SOURCES=shell.c
 shell_la_LDFLAGS=-module
+
+if GSTDECODE
+AM_CFLAGS+=$(GSTREAMER_CFLAGS)
+pkglib_LTLIBRARIES+=tracklength-gstreamer.la
+tracklength_gstreamer_la_SOURCES=tracklength-gstreamer.c
+tracklength_gstreamer_la_LDFLAGS=-module
+tracklength_gstreamer_la_LIBADD=$(LIBOBJS) \
+	$(GSTREAMER_PLUGINS_BASE_LIBS) \
+	$(GSTREAMER_LIBS)
+endif
