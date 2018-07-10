@@ -149,7 +149,7 @@ static void link_elements(GstElement *left, GstElement *right)
   disorder_error(0, "failed to link GStreamer elements `%s' and `%s'",
                  GST_OBJECT_NAME(left), GST_OBJECT_NAME(right));
   report_element_pads("source", left, gst_element_iterate_src_pads(left));
-  report_element_pads("source", right, gst_element_iterate_sink_pads(right));
+  report_element_pads("dest", right, gst_element_iterate_sink_pads(right));
   disorder_fatal(0, "can't decode `%s'", file);
 }
 
