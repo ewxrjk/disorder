@@ -43,3 +43,5 @@ EXTRA_DIST += \
 
 EXTRA_DIST += \
 	disobedience.doc-base disobedience.install disobedience.menu
+
+DISTCLEANFILES = substvars.auto substvars.auto.new

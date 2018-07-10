@@ -41,6 +41,12 @@ override_dh_installdocs:
 	dh_installdocs $(addprefix -N, $(DOCLINK_PKGS))
 
 ###--------------------------------------------------------------------------
+### Set up the proper dependencies for `disorder-gstreamer'.
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Tdebian/build/debian/substvars.auto
+
+###--------------------------------------------------------------------------
 ### And just let Debhelper do the rest of the work.
 
 %:; dh $@ $(DH_OPTIONS)

@@ -455,6 +455,7 @@ AH_TEMPLATE([HAVE_GSTREAMER_0_10],
 AH_TEMPLATE([HAVE_GSTREAMER_1_0],
     [Define if building against GStreamer 1.0])
 
+mdw_gstreamer_version=nil
 for i in $want_gstreamer; do
   case $i in
     0.10) v=0.10 V=0_10 ;;
@@ -466,6 +467,7 @@ for i in $want_gstreamer; do
       [have_gstreamer=$v], [have_gstreamer=no])
   case $have_gstreamer in no) continue ;; esac
   AC_DEFINE_UNQUOTED([HAVE_GSTREAMER_$V], [1])
+  mdw_gstreamer_version=$v
   break
 done
 
@@ -951,6 +953,16 @@ AC_CONFIG_FILES([Makefile
 		 libtests/Makefile
 		 tests/Makefile])
 AC_OUTPUT
+
+# A hack: communicate our selection of GStreamer version back to the
+# Debian packaging machinery so that it can build the right dependencies.
+echo '### extra control substitutions for Debian' >debian/substvars.auto.new
+case $mdw_gstreamer_version in
+  nil) ;;
+  *) echo >>debian/substvars.auto.new \
+        "disorder:GstVersion=gstreamer$mdw_gstreamer_version" ;;
+esac
+mv debian/substvars.auto.new debian/substvars.auto
 
 if test $GCC = yes && test "$gcc_werror" = ''; then
   AC_MSG_WARN([building without -Werror])

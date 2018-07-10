@@ -57,7 +57,8 @@ Package: disorder-gstreamer
 Architecture: any
 Section: sound
 Priority: extra
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${disorder:GstVersion}-plugins-base, ${disorder:GstVersion}-plugins-good
+Recommends: ${disorder:GstVersion}-plugins-ugly
 Enhances: disorder-server
 Description: GStreamer-based audio decoder for DisOrder
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
