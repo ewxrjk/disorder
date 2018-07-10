@@ -109,7 +109,7 @@ static void report_element_pads(const char *what, GstElement *elt,
       goto done;
     case GST_ITERATOR_OK:
 #ifdef HAVE_GSTREAMER_0_10
-      cs = gst_caps_to_string(gst_pad_get_caps(pad));
+      cs = gst_caps_to_string(GST_PAD_CAPS(pad));
 #else
       assert(G_VALUE_HOLDS(&gv, GST_TYPE_PAD));
       pad = g_value_get_object(&gv);
