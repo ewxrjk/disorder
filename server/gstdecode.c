@@ -215,6 +215,10 @@ static void prepare_pipeline(void)
   GstCaps *caps;
   const struct stream_header *fmt = &config->sample_format;
 
+  if(!source || !decode || !resample || !convert || !sink)
+    disorder_fatal(0, "failed to create GStreamer elements: "
+                   "need base and good plugins");
+
 #ifndef HAVE_GSTREAMER_0_10
   static const struct fmttab {
     const char *fmt;
@@ -291,6 +295,9 @@ static void prepare_pipeline(void)
    */
   if(mode != OFF) {
     gain = gst_element_factory_make("rgvolume", "gain");
+    if(!gain)
+      disorder_fatal(0, "failed to create GStreamer elements: "
+                     "need base and good plugins");
     g_object_set(gain,
                  "album-mode", mode == ALBUM,
                  "fallback-gain", fallback,
