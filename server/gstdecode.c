@@ -314,16 +314,11 @@ static void prepare_pipeline(void)
 static void bus_message(GstBus UNUSED *bus, GstMessage *msg,
                         gpointer UNUSED u)
 {
-  switch(msg->type) {
+  switch(GST_MESSAGE_TYPE(msg)) {
   case GST_MESSAGE_ERROR:
-#ifdef HAVE_GSTREAMER_0_10
-    disorder_fatal(0, "%s",
-                   gst_structure_get_string(msg->structure, "debug"));
-#else
     disorder_fatal(0, "%s",
                    gst_structure_get_string(gst_message_get_structure(msg),
                                             "debug"));
-#endif
   default:
     break;
   }
