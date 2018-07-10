@@ -477,7 +477,7 @@ static void decode(void)
   gst_app_sink_set_callbacks(appsink, &callbacks, 0, 0);
 
   /* Set the ball rolling. */
-  gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_PLAYING);
+  gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
   /* And wait for the miracle to come. */
   g_main_loop_run(loop);
@@ -485,7 +485,7 @@ static void decode(void)
   /* Shut down the pipeline.  This isn't strictly necessary, since we're
    * about to exit very soon, but it's kind of polite.
    */
-  gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_NULL);
+  gst_element_set_state(pipeline, GST_STATE_NULL);
 }
 
 static int getenum(const char *what, const char *s, const char *const *tags)
