@@ -20,6 +20,7 @@ VPATH+=${top_srcdir}/common
 
 pkglib_LTLIBRARIES=disorder-tracklength.la fs.la notify.la exec.la shell.la \
 		   execraw.la
+check_PROGRAMS=
 AUTOMAKE_OPTIONS=subdir-objects
 AM_CPPFLAGS=-I${top_srcdir}/lib
 AM_CFLAGS=
@@ -54,4 +55,10 @@ tracklength_gstreamer_la_LDFLAGS=-module
 tracklength_gstreamer_la_LIBADD=$(LIBOBJS) \
 	$(GSTREAMER_PLUGINS_BASE_LIBS) \
 	$(GSTREAMER_LIBS)
+check_PROGRAMS+=tracklength-gstreamer-test
+tracklength_gstreamer_test_SOURCES=tracklength-gstreamer.c
+tracklength_gstreamer_test_LDADD=$(LIBOBJS) ../lib/libdisorder.a \
+	$(GSTREAMER_PLUGINS_BASE_LIBS) \
+	$(GSTREAMER_LIBS)
+tracklength_gstreamer_test_CFLAGS=$(AM_CFLAGS) $(CFLAGS) -DSTANDALONE
 endif
