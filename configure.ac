@@ -463,7 +463,7 @@ for i in $want_gstreamer; do
     *) AC_MSG_ERROR([unrecognized GStreamer version]) ;;
   esac
   PKG_CHECK_MODULES([GSTREAMER],
-      [gstreamer-$v gstreamer-app-$v gstreamer-audio-$v],
+      [gstreamer-$v gstreamer-app-$v gstreamer-audio-$v gstreamer-pbutils-$v],
       [have_gstreamer=$v], [have_gstreamer=no])
   case $have_gstreamer in no) continue ;; esac
   AC_DEFINE_UNQUOTED([HAVE_GSTREAMER_$V], [1])
