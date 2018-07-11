@@ -30,7 +30,7 @@ EXTRA_DIST += \
 	disorder-server.install disorder-server.dirs \
 	disorder-server.lintian-overrides disorder-server.maintscript \
 	disorder-server.postinst disorder-server.postrm \
-	disorder-server.prerm \
+	disorder-server.prerm disorder-server.templates \
 	etc.disorder.config etc.disorder.options.user
 
 EXTRA_DIST += \
