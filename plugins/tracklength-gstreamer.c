@@ -20,8 +20,6 @@
  */
 #include "tracklength.h"
 
-#include "speaker-protocol.h"
-
 /* Ugh.  It turns out that libxml tries to define a function called
  * `attribute', and it's included by GStreamer for some unimaginable reason.
  * So undefine it here.  We'll want GCC attributes for special effects, but
