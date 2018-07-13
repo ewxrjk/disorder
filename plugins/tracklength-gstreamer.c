@@ -72,7 +72,7 @@ long disorder_tracklength(const char UNUSED *track, const char *path) {
   switch(gst_discoverer_info_get_result(info)) {
   case GST_DISCOVERER_OK:
     t = gst_discoverer_info_get_duration(info);
-    length = (t + 500000000)/1000000000;
+    length = (t + GST_SECOND/2)/GST_SECOND;
     break;
   case GST_DISCOVERER_TIMEOUT:
     disorder_info("discovery timed out probing `%s'", path);
