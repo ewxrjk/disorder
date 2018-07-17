@@ -29,7 +29,6 @@ endif
 
 libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	addr.c addr.h					\
-	arcfour.c arcfour.h				\
 	authhash.c authhash.h				\
 	basen.c basen.h					\
 	base64.c base64.h				\
@@ -72,6 +71,7 @@ libdisorder_a_SOURCES=charset.c charsetf.c charset.h	\
 	resample.c resample.h				\
 	rights.c queue-rights.c rights.h		\
 	rtp.h						\
+	salsa208.c salsa208.h				\
 	selection.c selection.h				\
 	sendmail.c sendmail.h				\
 	signame.c signame.h				\

@@ -29,20 +29,20 @@
 
 #include "random.h"
 #include "log.h"
-#include "arcfour.h"
+#include "salsa208.h"
 #include "basen.h"
 #include "mem.h"
 
 static int random_count;
 static int random_fd = -1;
-static arcfour_context random_ctx[1];
+static salsa208_context random_ctx[1];
 
 /** @brief Rekey the RNG
  *
  * Resets the RNG's key to a random one read from /dev/urandom
  */
 static void random__rekey(void) {
-  char key[128];
+  char key[32];
   int n;
 
   if(random_fd < 0) {
@@ -53,8 +53,8 @@ static void random__rekey(void) {
     disorder_fatal(errno, "reading from /dev/urandom");
   if((size_t)n < sizeof key)
     disorder_fatal(0, "reading from /dev/urandom: short read");
-  arcfour_setkey(random_ctx, key, sizeof key);
-  random_count = 8 * 1024 * 1024;
+  salsa208_setkey(random_ctx, key, sizeof key);
+  random_count = 256 * 1024 * 1024;
 }
 
 /** @brief Get random bytes
@@ -64,9 +64,7 @@ static void random__rekey(void) {
 void random_get(void *ptr, size_t bytes) {
   if(random_count == 0)
     random__rekey();
-  /* Encrypting 0s == just returning the keystream */
-  memset(ptr, 0, bytes);
-  arcfour_stream(random_ctx, (char *)ptr, (char *)ptr, bytes);
+  salsa208_stream(random_ctx, 0, ptr, bytes);
   if(bytes > (size_t)random_count)
     random_count = 0;
   else

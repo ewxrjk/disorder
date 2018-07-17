@@ -16,12 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-TESTS=t-addr t-arcfour t-basen t-bits t-cache t-casefold t-charset	\
+TESTS=t-addr t-basen t-bits t-cache t-casefold t-charset		\
 	t-cookies t-dateparse t-event t-filepart t-hash t-heap t-hex	\
 	t-kvp t-mime t-printf t-regsub t-selection t-signame t-sink	\
 	t-split t-syscalls t-trackname t-unicode t-url t-utf8 t-vector	\
 	t-words t-wstat t-macros t-cgi t-eventdist t-resample 		\
-	t-configuration t-timeval
+	t-configuration t-timeval t-salsa208
 
 noinst_PROGRAMS=$(TESTS)
 
@@ -29,7 +29,6 @@ AM_CPPFLAGS=-I${top_srcdir}/lib -I../lib
 LDADD=../lib/libdisorder.a $(LIBPCRE) $(LIBICONV) $(LIBGC)
 
 t_addr_SOURCES=t-addr.c test.c test.h
-t_arcfour_SOURCES=t-arcfour.c test.c test.h
 t_basen_SOURCES=t-basen.c test.c test.h
 t_bits_SOURCES=t-bits.c test.c test.h
 t_cache_SOURCES=t-cache.c test.c test.h
@@ -68,6 +67,7 @@ t_resample_LDADD=$(LDADD) $(LIBSAMPLERATE)
 t_configuration_SOURCES=t-configuration.c test.c test.h
 t_configuration_LDADD=$(LDADD) $(LIBGCRYPT)
 t_timeval_SOURCES=t-timeval.c test.c test.h
+t_salsa208_SOURCES=t-salsa208.c test.c test.h
 
 check-report: before-check check make-coverage-reports
 before-check:

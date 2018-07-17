@@ -178,7 +178,6 @@ doc/disorder_options.5
 doc/disorder_options.5.html
 doc/disorder_actions.5.in
 doc/disorder_templates.5.in
-libtests/t-arcfour
 libtests/t-charset
 libtests/t-event
 libtests/t-dateparse
@@ -221,3 +220,4 @@ server/disorder-gstdecode
 .dirstamp
 tests/*.trs
 /common/Makefile
+libtests/t-salsa208
