@@ -271,8 +271,8 @@ GtkWidget *control_widget(void) {
    * sliders hang down from the toolbar so it unavoidably gets the whole width
    * of the window to play with. */
   gtk_toolbar_set_show_arrow(GTK_TOOLBAR(toolbar), FALSE);
-  gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), 
-                        full_mode ? GTK_TOOLBAR_BOTH : GTK_TOOLBAR_ICONS);
+  if(full_mode) gtk_toolbar_unset_style(GTK_TOOLBAR(toolbar));
+  else gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
   for(n = 0; n < NICONS; ++n) {
     struct icon *const icon = &icons[n];
     icon->button = (icon->toggle
@@ -617,8 +617,8 @@ static void control_minimode(const char attribute((unused)) *event,
     gtk_widget_hide(balance_widget);
     gtk_scale_set_value_pos(GTK_SCALE(volume_widget), GTK_POS_RIGHT);
   }
-  gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), 
-                        full_mode ? GTK_TOOLBAR_BOTH : GTK_TOOLBAR_ICONS);
+  if(full_mode) gtk_toolbar_unset_style(GTK_TOOLBAR(toolbar));
+  else gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
 }
 
 /*
