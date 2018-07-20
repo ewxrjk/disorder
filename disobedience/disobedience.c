@@ -71,9 +71,6 @@ int volume_l;
 /** @brief Right channel volume */
 int volume_r;
 
-/** @brief Audio backend */
-const struct uaudio *backend;
-
 double goesupto = 10;                   /* volume upper bound */
 
 /** @brief True if a NOP is in flight */
@@ -379,10 +376,9 @@ static gboolean periodic_fast(gpointer attribute((unused)) data) {
   }
   last = now;
 #endif
-  if(rtp_supported && backend && backend->get_volume) {
+  if(rtp_supported) {
     int nl, nr;
-    backend->get_volume(&nl, &nr);
-    if(nl != volume_l || nr != volume_r) {
+    if (!rtp_getvol(&nl, &nr) && (nl != volume_l || nr != volume_r)) {
       volume_l = nl;
       volume_r = nr;
       event_raise("volume-changed", 0);
@@ -574,12 +570,6 @@ int main(int argc, char **argv) {
   D(("create main loop"));
   mainloop = g_main_loop_new(0, 0);
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
-  /* we'll need mixer support */
-  backend = uaudio_default(uaudio_apis, UAUDIO_API_CLIENT);
-  if(backend->configure)
-    backend->configure();
-  if(backend->open_mixer)
-    backend->open_mixer();
   /* create the clients */
   if(!(client = gtkclient())
      || !(logclient = gtkclient()))

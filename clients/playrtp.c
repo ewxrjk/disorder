@@ -243,6 +243,7 @@ static void *control_thread(void attribute((unused)) *arg) {
   char *line;
   socklen_t salen;
   FILE *fp;
+  int vl, vr;
 
   assert(control_socket);
   unlink(control_socket);
@@ -276,9 +277,21 @@ static void *control_thread(void attribute((unused)) *arg) {
       if(!strcmp(line, "stop")) {
         disorder_info("stopped via %s", control_socket);
         exit(0);                          /* terminate immediately */
-      }
-      if(!strcmp(line, "query"))
+      } else if(!strcmp(line, "query"))
         fprintf(fp, "running");
+      else if(!strcmp(line, "getvol")) {
+        if(backend->get_volume) backend->get_volume(&vl, &vr);
+        else vl = vr = 0;
+        fprintf(fp, "%d %d\n", vl, vr);
+      } else if(!strncmp(line, "setvol ", 7)) {
+        if(!backend->set_volume)
+          vl = vr = 0;
+        else if(sscanf(line + 7, "%d %d", &vl, &vr) == 2)
+          backend->set_volume(&vl, &vr);
+        else
+          backend->get_volume(&vl, &vr);
+        fprintf(fp, "%d %d\n", vl, vr);
+      }
       xfree(line);
     }
     if(fclose(fp) < 0)
@@ -954,6 +967,7 @@ int main(int argc, char **argv) {
                     16/*bits/channel*/, 1/*signed*/);
   uaudio_set("application", "disorder-playrtp");
   backend->start(playrtp_callback, NULL);
+  if(backend->open_mixer) backend->open_mixer();
   /* We receive and convert audio data in a background thread */
   if((err = pthread_create(&ltid, 0, listen_thread, 0)))
     disorder_fatal(err, "pthread_create listen_thread");

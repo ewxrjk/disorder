@@ -110,7 +110,6 @@ extern int choosealpha;                 /* break up choose by letter */
 extern int rtp_supported;
 extern int rtp_is_running;
 extern GtkItemFactory *mainmenufactory;
-extern const struct uaudio *backend;
 
 extern const disorder_eclient_log_callbacks log_callbacks;
 
@@ -252,6 +251,8 @@ void load_rtp_config(void);
 void save_rtp_config(void);
 void change_rtp_api(const char *api);
 const char *rtp_api;
+int rtp_setvol(int *l, int *r);
+int rtp_getvol(int *l, int *r);
 
 /* Settings */
 

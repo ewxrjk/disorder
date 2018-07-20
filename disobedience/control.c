@@ -364,8 +364,7 @@ GtkWidget *control_widget(void) {
 static int volume_supported(void) {
   /* TODO: if the server doesn't know how to set the volume [but isn't using
    * network play] then we should have volume_supported = FALSE */
-  return (!rtp_supported
-          || (rtp_supported && backend && backend->set_volume));
+  return 1;
 }
 
 /** @brief Update the volume control when it changes */
@@ -493,8 +492,7 @@ static void volume_adjusted(GtkAdjustment attribute((unused)) *a,
    * from the log. */
   if(rtp_supported) {
     int l = nearbyint(left(v, b) * 100), r = nearbyint(right(v, b) * 100);
-    if(backend && backend->set_volume)
-      backend->set_volume(&l, &r);
+    rtp_setvol(&l, &r);
   } else
     disorder_eclient_set_volume(client, volume_completed,
                                 nearbyint(left(v, b) * 100),

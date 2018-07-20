@@ -97,6 +97,27 @@ int rtp_running(void) {
   return 1;
 }
 
+int rtp_getvol(int *l, int *r) {
+  FILE *fp;
+  int rc = -1;
+
+  fp = rtp_connect(); if(!fp) goto end;
+  fprintf(fp, "getvol\n"); fflush(fp);
+  if(fscanf(fp, "%d %d\n", l, r) != 2) goto end;
+  rc = 0;
+end:
+  if(fp) fclose(fp);
+  return rc;
+}
+
+int rtp_setvol(int *l, int *r) {
+  FILE *fp = rtp_connect(); if(!fp) return -1;
+  fprintf(fp, "setvol %d %d\n", *l, *r); fflush(fp);
+  if(fscanf(fp, "%d %d\n", l, r) != 2) { /* do nothing */ }
+  fclose(fp);
+  return 0;
+}
+
 /** @brief Activate the RTP player if it is not running */
 void start_rtp(void) {
   pid_t pid;
