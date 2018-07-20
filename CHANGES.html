@@ -54,9 +54,11 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
   <div class=section>
 
     <p>If it's detected at <tt>configure</tt> time, a new decoder
-    program <tt>disorder-gstdecode</tt> is built.  It uses the GStreamer
-    library for audio decoding and sample-rate conversion, among other
-    features.
+    program <tt>disorder-gstdecode</tt> and a new tracklength
+    plugin <tt>tracklength-gstreamer</tt> are built.  These use the GStreamer
+    library for filetype detection, audio decoding and sample-rate conversion,
+    among other features.  Using these, DisOrder can play any audio file
+    supported by GStreamer.
 
     <p>The decoder has a number of options for controlling the sample-rate and
     audio format conversion, allowing various tradeoffs between quality and
@@ -82,6 +84,13 @@ href="README.upgrades.html">README.upgrades</a> before upgrading.</p>
         player *.mp3 execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
         player *.ogg execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
         player *.wav execraw /usr/sbin/disorder-gstdecode -ralbum -f-8.0
+
+        tracklength
+        tracklength *.flac tracklength-gstreamer
+        tracklength *.mp2 tracklength-gstreamer
+        tracklength *.mp3 tracklength-gstreamer
+        tracklength *.ogg tracklength-gstreamer
+        tracklength *.wav tracklength-gstreamer
       </pre>
     </p>
 
