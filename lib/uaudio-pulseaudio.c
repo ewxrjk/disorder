@@ -23,6 +23,7 @@
 
 #include <pulse/context.h>
 #include <pulse/error.h>
+#include <pulse/introspect.h>
 #include <pulse/thread-mainloop.h>
 #include <pulse/stream.h>
 
@@ -39,6 +40,8 @@ static const char *const pulseaudio_options[] = {
 static pa_threaded_mainloop *loop;
 static pa_context *ctx;
 static pa_stream *str;
+static pa_channel_map cmap;
+static uint32_t strix;
 
 #define PAERRSTR pa_strerror(pa_context_errno(ctx))
 
@@ -75,6 +78,19 @@ static void cb_wakeup(attribute((unused)) pa_stream *xstr,
                       attribute((unused)) size_t sz,
                       attribute((unused)) void *p)
   { pa_threaded_mainloop_signal(loop, 0); }
+
+struct simpleop {
+  const char *what;
+  int donep;
+};
+
+/** @brief Callback: wake up main loop when a simple operation completes. */
+static void cb_success(attribute((unused)) pa_context *xctx,
+                       int winp, void *p) {
+  struct simpleop *sop = p;
+  if(!winp) disorder_fatal(0, "%s failed: %s", sop->what, PAERRSTR);
+  sop->donep = 1; pa_threaded_mainloop_signal(loop, 0);
+}
 
 /** @brief Open the PulseAudio sound device */
 static void pulseaudio_open() {
@@ -130,6 +146,7 @@ static void pulseaudio_open() {
     pa_threaded_mainloop_wait(loop);
 
   /* All done. */
+  strix = pa_stream_get_index(str);
   pa_threaded_mainloop_unlock(loop);
 }
 
@@ -177,18 +194,89 @@ static void pulseaudio_stop(void) {
 }
 
 static void pulseaudio_open_mixer(void) {
-  disorder_error(0, "no pulseaudio mixer support yet");
+  if(!str)
+    disorder_fatal(0, "won't open pulseaudio mixer with no stream open");
+  switch(uaudio_channels) {
+  case 1: pa_channel_map_init_mono(&cmap); break;
+  case 2: pa_channel_map_init_stereo(&cmap); break;
+  default: disorder_error(0, "no pulseaudio mixer support for %d channels",
+                          uaudio_channels);
+  }
 }
 
 static void pulseaudio_close_mixer(void) {
 }
 
+struct getvol {
+  pa_cvolume vol;
+  int donep;
+};
+
+/** @brief Callback: pick out our stream's volume. */
+static void cb_getvol(attribute((unused)) pa_context *xctx,
+                      const pa_sink_input_info *info, int flag, void *p) {
+  struct getvol *gv = p;
+
+  if(flag < 0)
+    disorder_fatal(0, "failed to read own pulseaudio sink-input volume: %s",
+                   PAERRSTR);
+  else if(!flag) {
+    gv->vol = info->volume;
+    gv->donep = -1;
+  } else if (!gv->donep)
+    disorder_fatal(0, "no answer reading own pulseaudio sink-input volume");
+  else {
+    gv->donep = 1;
+    pa_threaded_mainloop_signal(loop, 0);
+  }
+}
+
 static void pulseaudio_get_volume(int *left, int *right) {
-  *left = *right = 0;
+  pa_operation *op;
+  struct getvol gv;
+  double l, r;
+
+  pa_threaded_mainloop_lock(loop);
+  gv.donep = 0;
+  op = pa_context_get_sink_input_info(ctx, strix, cb_getvol, &gv);
+  while(gv.donep <= 0) pa_threaded_mainloop_wait(loop);
+  pa_threaded_mainloop_unlock(loop);
+  pa_operation_unref(op);
+
+  switch(uaudio_channels) {
+  case 1: l = r = gv.vol.values[0]; break;
+  case 2: l = gv.vol.values[0]; r = gv.vol.values[1]; break;
+  default: l = r = 0; break;
+  }
+
+  *left = 100.0*l/PA_VOLUME_NORM + 0.5;
+  *right = 100.0*r/PA_VOLUME_NORM + 0.5;
 }
 
 static void pulseaudio_set_volume(int *left, int *right) {
-  *left = *right = 0;
+  pa_operation *op;
+  struct simpleop sop;
+  pa_cvolume vol;
+  double r, l;
+
+  l = *left*PA_VOLUME_NORM/100.0 + 0.5;
+  r = *right*PA_VOLUME_NORM/100.0 + 0.5;
+
+  pa_cvolume_init(&vol); vol.channels = uaudio_channels;
+  switch(uaudio_channels) {
+  case 1: if(r < l) r = l; vol.values[0] = vol.values[1] = r; break;
+  case 2: vol.values[0] = l; vol.values[1] = r; break;
+  default: return;
+  }
+
+  pa_threaded_mainloop_lock(loop);
+  sop.what = "set pulseaudio volume"; sop.donep = 0;
+  op = pa_context_set_sink_input_volume(ctx, strix, &vol, cb_success, &sop);
+  while(!sop.donep) pa_threaded_mainloop_wait(loop);
+  pa_threaded_mainloop_unlock(loop);
+  pa_operation_unref(op);
+
+  pulseaudio_get_volume(left, right);
 }
 
 static void pulseaudio_configure(void) {
