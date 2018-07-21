@@ -348,6 +348,7 @@ static void cf_set_volume(char **argv) {
 }
 
 static void cf_log(char attribute((unused)) **argv) {
+  setvbuf(stdout, 0, _IOLBF, BUFSIZ);
   if(disorder_log(getclient(), sink_stdio("stdout", stdout))) exit(EXIT_FAILURE);
 }
 
