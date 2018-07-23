@@ -28,6 +28,7 @@
 #include <time.h>
 #include <errno.h>
 #include <ctype.h>
+#include <locale.h>
 #include <stddef.h>
 
 #include "log.h"

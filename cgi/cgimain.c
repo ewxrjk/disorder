@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     progname = argv[0];
   /* RFC 3875 s8.2 recommends rejecting PATH_INFO if we don't make use of
    * it. */
+  if(!setlocale(LC_CTYPE, "")) disorder_error(errno, "error calling setlocale");
   /* TODO we could make disorder/ACTION equivalent to disorder?action=ACTION */
   if(getenv("PATH_INFO")) {
     /* TODO it might be nice to link back to the right place... */
