@@ -20,6 +20,7 @@ $(SEDFILES) : % : %.in Makefile
 	rm -f $@.new
 	$(GNUSED) -e 's!sbindir!${sbindir}!g;' \
 	    -e 's!bindir!${bindir}!g;' \
+	    -e 's!sysconfdir!${sysconfdir}!g;' \
 	    -e 's!pkgconfdir!${sysconfdir}/disorder!g;' \
 	    -e 's!pkgstatedir!${localstatedir}/disorder!g;' \
 	    -e 's!pkgdatadir!${pkgdatadir}!g;' \

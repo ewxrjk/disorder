@@ -36,6 +36,10 @@ CLIENT="bindir/disorder --local"
 
 PATH="$PATH:sbindir"
 
+if [ -r /etc/default/disorder ]; then
+  . sysconfdir/default/disorder
+fi
+
 start_debian() {
   printf "Starting DisOrder server: disorderd"
   start-stop-daemon -S -q -x ${DAEMON}
