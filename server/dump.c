@@ -377,6 +377,8 @@ int main(int argc, char **argv) {
   FILE *fp;
 
   mem_init();
+  if(!setlocale(LC_CTYPE, ""))
+    disorder_error(errno, "error calling setlocale");
   while((n = getopt_long(argc, argv, "hVc:dDurRaPR", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
