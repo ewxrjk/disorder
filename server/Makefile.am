@@ -141,7 +141,7 @@ check-decode: check-wav check-flac check-mp3
 check-mp3: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
 	  ./disorder-normalize --config ${srcdir}/test-config > mp3ed.raw
-	$(top_srcdir)/scripts/compare-raw 0 \
+	$(top_srcdir)/scripts/compare-raw 64 \
 		mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
 	rm -f mp3ed.raw
 
@@ -150,7 +150,7 @@ check-mp3: disorder-decode disorder-normalize
 check-ogg: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
 	  ./disorder-normalize --config ${srcdir}/test-config > ogged.raw
-	$(top_srcdir)/scripts/compare-raw 0 \
+	$(top_srcdir)/scripts/compare-raw 64 \
 		ogged.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f ogged.raw
 
