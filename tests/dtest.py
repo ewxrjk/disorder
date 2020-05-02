@@ -54,6 +54,13 @@ ospath.insert(0, os.path.join(top_builddir, "clients"))
 ospath.insert(0, os.path.join(top_builddir, "tests"))
 os.environ["PATH"] = os.pathsep.join(ospath)
 
+# Some of our track names contain non-ASCII characters, and the server will
+# be sad if it can't convert them according to the current locale.  Make sure
+# we have something plausible.
+locale = os.environ.get("LANG")
+if locale is None or locale == "C" or locale == "POSIX":
+    os.environ["LANG"] = "C.UTF-8"
+
 # Parse the makefile in the current directory to identify the source directory
 top_srcdir = None
 for l in file("Makefile"):
