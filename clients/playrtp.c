@@ -966,6 +966,7 @@ int main(int argc, char **argv) {
   uaudio_set_format(44100/*Hz*/, 2/*channels*/,
                     16/*bits/channel*/, 1/*signed*/);
   uaudio_set("application", "disorder-playrtp");
+  backend->configure();
   backend->start(playrtp_callback, NULL);
   if(backend->open_mixer) backend->open_mixer();
   /* We receive and convert audio data in a background thread */
