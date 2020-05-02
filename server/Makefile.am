@@ -141,7 +141,8 @@ check-decode: check-wav check-flac check-mp3
 check-mp3: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.mp3 | \
 	  ./disorder-normalize --config ${srcdir}/test-config > mp3ed.raw
-	cmp mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
+	$(top_srcdir)/scripts/compare-raw 0 \
+		mp3ed.raw ${top_srcdir}/sounds/scratch-mp3.raw
 	rm -f mp3ed.raw
 
 # TODO ogg decoding comes out OK but different depending on platform, version
@@ -149,19 +150,22 @@ check-mp3: disorder-decode disorder-normalize
 check-ogg: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.ogg | \
 	  ./disorder-normalize --config ${srcdir}/test-config > ogged.raw
-	cmp ogged.raw ${top_srcdir}/sounds/scratch.raw
+	$(top_srcdir)/scripts/compare-raw 0 \
+		ogged.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f ogged.raw
 
 check-wav: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.wav | \
 	  ./disorder-normalize --config ${srcdir}/test-config > waved.raw
-	cmp waved.raw ${top_srcdir}/sounds/scratch.raw
+	$(top_srcdir)/scripts/compare-raw 0 \
+		waved.raw ${top_srcdir}/sounds/scratch.raw
 	rm -rf waved.raw
 
 check-flac: disorder-decode disorder-normalize
 	./disorder-decode ${top_srcdir}/sounds/scratch.flac | \
 	  ./disorder-normalize --config ${srcdir}/test-config > flacced.raw
-	cmp flacced.raw ${top_srcdir}/sounds/scratch.raw
+	$(top_srcdir)/scripts/compare-raw 0 \
+		flacced.raw ${top_srcdir}/sounds/scratch.raw
 	rm -f flacced.raw
 
 EXTRA_DIST=README.dbversions test-config
