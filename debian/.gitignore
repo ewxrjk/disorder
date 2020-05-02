@@ -1,3 +1,8 @@
+Makefile
+disorder
+files
+rules
+substvars.disorder
 build
 tmp
 *.debhelper.log

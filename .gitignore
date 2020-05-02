@@ -25,11 +25,6 @@ clients/disorder
 clients/disorderfm
 clients/filename-bytes
 clients/test-eclient
-debian/Makefile
-debian/disorder
-debian/files
-debian/rules
-debian/substvars.disorder
 disobedience/Makefile
 disobedience/disobedience
 disobedience/style.h
