@@ -21,7 +21,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-void version(const char *name);
+void attribute((noreturn)) version(const char *name);
 
 #endif /* VERSION_H */
 

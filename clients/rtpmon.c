@@ -77,7 +77,7 @@ static const struct option options[] = {
   { 0, 0, 0, 0 }
 };
 
-static void help(void) {
+static void attribute((noreturn)) help(void) {
   xprintf("Usage:\n"
 	  "  rtpmon [OPTIONS] [ADDRESS] PORT\n"
 	  "Options:\n"

@@ -235,7 +235,7 @@ static const struct option options[] = {
 };
 
 /* Display usage message and terminate. */
-static void help(void) {
+static void attribute((noreturn)) help(void) {
   xprintf("Usage:\n"
 	  "  disorder-speaker [OPTIONS]\n"
 	  "Options:\n"

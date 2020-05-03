@@ -35,11 +35,13 @@
 #include <gst/app/gstappsink.h>
 #include <gst/audio/audio.h>
 
-/* The only application we have for `attribute' is declaring function
+/* The only applications we have for `attribute' is declaring function
  * arguments as being unused, because we have a lot of callback functions
- * which are meant to comply with an externally defined interface.
+ * which are meant to comply with an externally defined interface; and
+ * marking `help' as not returning.
  */
 #ifdef __GNUC__
+#  define NORETURN __attribute__((noreturn))
 #  define UNUSED __attribute__((unused))
 #endif
 
@@ -533,7 +535,7 @@ static const struct option options[] = {
   { 0, 0, 0, 0 }
 };
 
-static void help(void)
+static void NORETURN help(void)
 {
   xprintf("Usage:\n"
           "  disorder-gstdecode [OPTIONS] PATH\n"

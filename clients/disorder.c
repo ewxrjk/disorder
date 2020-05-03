@@ -83,7 +83,7 @@ static const struct option options[] = {
 };
 
 /* display usage message and terminate */
-static void help(void) {
+static void attribute((noreturn)) help(void) {
   xprintf("Usage:\n"
 	  "  disorder [OPTIONS] COMMAND ...\n"
 	  "Options:\n"
@@ -498,7 +498,7 @@ static const struct option setup_guest_options[] = {
   { 0, 0, 0, 0 }
 };
 
-static void help_setup_guest(void) {
+static void attribute((noreturn)) help_setup_guest(void) {
   xprintf("Usage:\n"
 	  "  disorder setup-guest [OPTIONS]\n"
 	  "Options:\n"
@@ -844,7 +844,7 @@ static const struct client_command {
                       "Display the server version" },
 };
 
-static void help_commands(void) {
+static void attribute((noreturn)) help_commands(void) {
   unsigned n, max = 0, l;
 
   xprintf("Command summary:\n");

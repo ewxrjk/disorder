@@ -500,7 +500,7 @@ struct packet *playrtp_next_packet(void) {
 }
 
 /* display usage message and terminate */
-static void help(void) {
+static void attribute((noreturn)) help(void) {
   xprintf("Usage:\n"
 	  "  disorder-playrtp [OPTIONS] [[ADDRESS] PORT]\n"
 	  "Options:\n"

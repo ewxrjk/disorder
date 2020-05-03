@@ -49,7 +49,7 @@ static const struct option options[] = {
 };
 
 /* display usage message and terminate */
-static void help(void) {
+static void attribute((noreturn)) help(void) {
   xprintf("Usage:\n"
 	  "  disorder-udplog [OPTIONS] ADDRESS PORT\n"
 	  "Options:\n"
@@ -63,7 +63,7 @@ static void help(void) {
 }
 
 /* display version number and terminate */
-static void version(void) {
+static void attribute((noreturn)) version(void) {
   xprintf("%s", disorder_version_string);
   xfclose(stdout);
   exit(0);
