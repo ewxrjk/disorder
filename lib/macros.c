@@ -63,7 +63,7 @@ struct expansion {
   /** @brief Callback (cast to appropriate type)
    *
    * Cast to @ref mx_simple_callback or @ref mx_magic_callback as required. */
-  void (*callback)();
+  void (*callback)(void);
 
   /** @brief Macro definition
    *
@@ -332,7 +332,7 @@ static int mx__register(unsigned flags,
                         int min,
                         int max,
                         char **args,
-                        void (*callback)(),
+                        void (*callback)(void),
                         const struct mx_node *definition) {
   struct expansion e[1];
 
@@ -357,7 +357,7 @@ void mx_register(const char *name,
                  int min,
                  int max,
                  mx_simple_callback *callback) {
-  mx__register(EXP_SIMPLE,  name, min, max, 0, (void (*)())callback, 0);
+  mx__register(EXP_SIMPLE,  name, min, max, 0, (void (*)(void))callback, 0);
 }
 
 /** @brief Register a magic expansion rule
@@ -370,7 +370,7 @@ void mx_register_magic(const char *name,
                        int min,
                        int max,
                        mx_magic_callback *callback) {
-  mx__register(EXP_MAGIC, name, min, max, 0, (void (*)())callback, 0);
+  mx__register(EXP_MAGIC, name, min, max, 0, (void (*)(void))callback, 0);
 }
 
 /** @brief Register a macro
