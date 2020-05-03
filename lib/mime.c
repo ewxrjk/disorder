@@ -174,6 +174,7 @@ const char *mime_parse_word(const char *s, char **valuep,
       case '\\':
 	if(!(c = *s++))
 	  return 0;
+	/* else fall through ... */
       default:
 	dynstr_append(value, c);
 	break;
