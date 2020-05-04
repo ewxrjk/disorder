@@ -209,23 +209,23 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
     uaudio_schedule_sent(nsamples);
     return nsamples;
   }
-  if(rtp_mode == RTP_REQUEST) {
-    struct rtp_recipient *r;
-    struct msghdr m;
-    memset(&m, 0, sizeof m);
-    m.msg_iov = vec;
-    m.msg_iovlen = 2;
-    pthread_mutex_lock(&rtp_lock);
-    for(r = rtp_recipient_list; r; r = r->next) {
-      m.msg_name = &r->sa;
-      m.msg_namelen = r->sa.ss_family == AF_INET ? 
-        sizeof(struct sockaddr_in) : sizeof (struct sockaddr_in6);
-      sendmsg(r->sa.ss_family == AF_INET ? rtp_fd4 : rtp_fd6,
-              &m, MSG_DONTWAIT|MSG_NOSIGNAL);
-      // TODO similar error handling to other case?
-    }
-    pthread_mutex_unlock(&rtp_lock);
-  } else {
+  /* Send stuff to explicitly registerd unicast addresses unconditionally */
+  struct rtp_recipient *r;
+  struct msghdr m;
+  memset(&m, 0, sizeof m);
+  m.msg_iov = vec;
+  m.msg_iovlen = 2;
+  pthread_mutex_lock(&rtp_lock);
+  for(r = rtp_recipient_list; r; r = r->next) {
+    m.msg_name = &r->sa;
+    m.msg_namelen = r->sa.ss_family == AF_INET ? 
+      sizeof(struct sockaddr_in) : sizeof (struct sockaddr_in6);
+    sendmsg(r->sa.ss_family == AF_INET ? rtp_fd4 : rtp_fd6,
+            &m, MSG_DONTWAIT|MSG_NOSIGNAL);
+    // TODO similar error handling to other case?
+  }
+  pthread_mutex_unlock(&rtp_lock);
+  if(rtp_mode != RTP_REQUEST) {
     int written_bytes;
     do {
       written_bytes = writev(rtp_fd, vec, 2);
