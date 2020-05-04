@@ -754,6 +754,7 @@ int main(int argc, char **argv) {
     }
   }
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
+  /* Choose a sensible default audio backend */
   if(!backend) {
     backend = uaudio_default(uaudio_apis, UAUDIO_API_CLIENT);
     if(!backend)
