@@ -782,8 +782,7 @@ int main(int argc, char **argv) {
     sl.s[0] = address;
     sl.s[1] = port;
     break;
-  case 1:
-  case 2:
+  case 1: case 2: case 3:
     /* Use command-line ADDRESS+PORT or just PORT */
     sl.n = argc;
     sl.s = argv;
@@ -796,35 +795,84 @@ int main(int argc, char **argv) {
   struct sockaddr *addr;
   socklen_t addr_len;
   if(!strcmp(sl.s[0], "-")) {
+    /* Syntax: - [[ADDRESS] PORT].  Here, the PORT may be `-' to get the local
+     * kernel to choose.  The ADDRESS may be omitted or `-' to pick something
+     * suitable. */
+    const char *node, *svc;
+    struct sockaddr *sa = 0;
+    switch (sl.n) {
+#define NULLDASH(s) (strcmp((s), "-") ? (s) : 0)
+      case 1: node = 0; svc = 0; break;
+      case 2: node = 0; svc = NULLDASH(sl.s[1]); break;
+      case 3: node = NULLDASH(sl.s[1]); svc = NULLDASH(sl.s[2]); break;
+      default: disorder_fatal(0, "too many listening-address compoennts");
+#undef NULLDASH
+    }
     /* We'll need a connection to request the incoming stream, so open one if
      * we don't have one already */
     if(!c) {
       if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
       if(disorder_connect(c)) exit(EXIT_FAILURE);
     }
-    /* Pick address family to match known-working connectivity to the server */
-    int family = disorder_client_af(c);
-    /* Get a list of interfaces */
-    struct ifaddrs *ifa, *bestifa = NULL;
-    if(getifaddrs(&ifa) < 0)
-      disorder_fatal(errno, "error calling getifaddrs");
-    /* Try to pick a good one */
-    for(; ifa; ifa = ifa->ifa_next) {
-      if(!ifa->ifa_addr) continue;
-      if(bestifa == NULL
-         || compare_interfaces(ifa, bestifa, family) > 0)
-        bestifa = ifa;
+    /* If no address was given, pick something sensible based on the known-
+     * working connectivity to the server */
+    if(!node) {
+      int family = disorder_client_af(c);
+      /* Get a list of interfaces */
+      struct ifaddrs *ifa, *bestifa = NULL;
+      if(getifaddrs(&ifa) < 0)
+        disorder_fatal(errno, "error calling getifaddrs");
+      /* Try to pick a good one */
+      for(; ifa; ifa = ifa->ifa_next) {
+        if(!ifa->ifa_addr) continue;
+        if(bestifa == NULL
+           || compare_interfaces(ifa, bestifa, family) > 0)
+          bestifa = ifa;
+      }
+      if(!bestifa)
+        disorder_fatal(0, "failed to select a network interface");
+      sa = bestifa->ifa_addr;
+      switch(sa->sa_family) {
+        case AF_INET: ((struct sockaddr_in *)sa)->sin_port = 0; break;
+        case AF_INET6: ((struct sockaddr_in6 *)sa)->sin6_port = 0; break;
+        default: assert(!"unexpected address family");
+      }
+      prefs.ai_family = sa->sa_family;
     }
-    if(!bestifa)
-      disorder_fatal(0, "failed to select a network interface");
-    family = bestifa->ifa_addr->sa_family;
-    if((rtpfd = socket(family,
-                       SOCK_DGRAM,
-                       IPPROTO_UDP)) < 0)
-      disorder_fatal(errno, "error creating socket (family %d)", family);
+    /* If we have an address or port to resolve then do that now */
+    if (node || svc) {
+      struct addrinfo *ai;
+      char errbuf[1024];
+      int rc;
+      if((rc = getaddrinfo(node, svc, &prefs, &ai)))
+        disorder_fatal(0, "failed to resolve address `%s' and service `%s': %s",
+                       node ? node : "-", svc ? svc : "-",
+                       format_error(ec_getaddrinfo, rc,
+                                    errbuf, sizeof(errbuf)));
+      if(!sa)
+        sa = ai->ai_addr;
+      else {
+        assert(sa->sa_family == ai->ai_addr->sa_family);
+        switch(sa->sa_family) {
+          case AF_INET:
+            ((struct sockaddr_in *)sa)->sin_port =
+              ((struct sockaddr_in *)ai->ai_addr)->sin_port;
+            break;
+          case AF_INET6:
+            ((struct sockaddr_in6 *)sa)->sin6_port =
+              ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port;
+            break;
+          default:
+            assert(!"unexpected address family");
+        }
+      }
+    }
+    if((rtpfd = socket(sa->sa_family, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+      disorder_fatal(errno, "error creating socket (family %d)",
+                     sa->sa_family);
     /* Bind the address */
-    if(bind(rtpfd, bestifa->ifa_addr,
-            family == AF_INET
+    if(bind(rtpfd, sa,
+            sa->sa_family == AF_INET
             ? sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6)) < 0)
       disorder_fatal(errno, "error binding socket");
     static struct sockaddr_storage bound_address;
@@ -844,6 +892,7 @@ int main(int argc, char **argv) {
     /* Report what we did */
     disorder_info("listening on %s", format_sockaddr(addr));
   } else {
+    if(sl.n > 2) disorder_fatal(0, "too many address components");
     /* Look up address and port */
     if(!(res = get_address(&sl, &prefs, &sockname)))
       exit(1);

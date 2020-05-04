@@ -36,6 +36,17 @@ broadcast to that port.
 .PP
 If an address and a port are specified then the RTP stream is assumed to be
 multicast to that group address and port.
+.PP
+Alternatively, the
+.I ADDRESS
+can start with a
+.RB ` \- ',
+in which case
+.B disorder-playrtp
+will request a dedicated unicast stream from the server.  The
+.RB ` \- '
+may be followed by an optional port, or address/port pair, which will be the
+local address/port to bind to and announce to the server.
 .SH OPTIONS
 .TP
 .B \-\-api\fR, -\fB-A\fR \fIAPI\fR
