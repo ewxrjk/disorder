@@ -809,6 +809,7 @@ int main(int argc, char **argv) {
       disorder_fatal(errno, "error calling getifaddrs");
     /* Try to pick a good one */
     for(; ifa; ifa = ifa->ifa_next) {
+      if(!ifa->ifa_addr) continue;
       if(bestifa == NULL
          || compare_interfaces(ifa, bestifa, family) > 0)
         bestifa = ifa;
