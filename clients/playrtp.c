@@ -795,6 +795,12 @@ int main(int argc, char **argv) {
   struct sockaddr *addr;
   socklen_t addr_len;
   if(!strcmp(sl.s[0], "-")) {
+    /* We'll need a connection to request the incoming stream, so open one if
+     * we don't have one already */
+    if(!c) {
+      if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
+      if(disorder_connect(c)) exit(EXIT_FAILURE);
+    }
     /* Pick address family to match known-working connectivity to the server */
     int family = disorder_client_af(c);
     /* Get a list of interfaces */
