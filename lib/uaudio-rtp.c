@@ -391,6 +391,7 @@ static void rtp_open(void) {
   }
   /* Enlarge the socket buffers */
   hack_send_buffer_size(rtp_fd, "master socket");
+  hack_send_buffer_size(rtp_fd6, "IPv6 on-demand socket");
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
   if(rtp_mode != RTP_REQUEST) {
