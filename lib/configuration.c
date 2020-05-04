@@ -723,15 +723,14 @@ static int validate_tracklength(const struct config_state *cs,
   return 0;
 }
 
-/** @brief Validate a non-negative (@c long) integer
+/** @brief Common code for validating integer values
  * @param cs Configuration state
  * @param nvec Length of (proposed) new value
  * @param vec Elements of new value
- * @return 0 on success, non-0 on error
+ * @param n_out Where to put the value
  */
-static int validate_non_negative(const struct config_state *cs,
-				 int nvec, char **vec) {
-  long n;
+static int common_validate_integer(const struct config_state *cs,
+				   int nvec, char **vec, long *n_out) {
   char errbuf[1024];
 
   if(nvec < 1) {
@@ -742,11 +741,24 @@ static int validate_non_negative(const struct config_state *cs,
     disorder_error(0, "%s:%d: too many arguments", cs->path, cs->line);
     return -1;
   }
-  if(xstrtol(&n, vec[0], 0, 0)) {
+  if(xstrtol(n_out, vec[0], 0, 0)) {
     disorder_error(0, "%s:%d: %s", cs->path, cs->line,
                    format_error(ec_errno, errno, errbuf, sizeof errbuf));
     return -1;
   }
+  return 0;
+}
+
+/** @brief Validate a non-negative (@c long) integer
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
+static int validate_non_negative(const struct config_state *cs,
+				 int nvec, char **vec) {
+  long n;
+  if(common_validate_integer(cs, nvec, vec, &n)) return -1;
   if(n < 0) {
     disorder_error(0, "%s:%d: must not be negative", cs->path, cs->line);
     return -1;
@@ -763,21 +775,7 @@ static int validate_non_negative(const struct config_state *cs,
 static int validate_positive(const struct config_state *cs,
 			  int nvec, char **vec) {
   long n;
-  char errbuf[1024];
-
-  if(nvec < 1) {
-    disorder_error(0, "%s:%d: missing argument", cs->path, cs->line);
-    return -1;
-  }
-  if(nvec > 1) {
-    disorder_error(0, "%s:%d: too many arguments", cs->path, cs->line);
-    return -1;
-  }
-  if(xstrtol(&n, vec[0], 0, 0)) {
-    disorder_error(0, "%s:%d: %s", cs->path, cs->line,
-                   format_error(ec_errno, errno, errbuf, sizeof errbuf));
-    return -1;
-  }
+  if(common_validate_integer(cs, nvec, vec, &n)) return -1;
   if(n <= 0) {
     disorder_error(0, "%s:%d: must be positive", cs->path, cs->line);
     return -1;
