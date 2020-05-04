@@ -448,12 +448,8 @@ static void rtp_start(uaudio_callback *callback,
 
 static void rtp_stop(void) {
   uaudio_thread_stop();
-  close(rtp_fd);
-  rtp_fd = -1;
-  if(rtp_fd6 >= 0) {
-    close(rtp_fd6);
-    rtp_fd6 = -1;
-  }
+  close(rtp_fd); rtp_fd = -1;
+  if(rtp_fd6 >= 0) { close(rtp_fd6); rtp_fd6 = -1; }
 }
 
 static void rtp_configure(void) {
