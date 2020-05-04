@@ -55,10 +55,12 @@
 static int rtp_payload;
 
 /** @brief RTP output socket */
-static int rtp_fd;
+static int rtp_fd = -1;
 
 /** @brief RTP output socket (IPv6) */
 static int rtp_fd6;
+/** @brief RTP unicast output socket (IPv6) */
+static int rtp_fd6 = -1;
 
 /** @brief RTP SSRC */
 static uint32_t rtp_id;
