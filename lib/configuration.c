@@ -1010,6 +1010,32 @@ static int validate_destaddr(const struct config_state attribute((unused)) *cs,
   return 0;
 }
 
+/** @brief Validate an internet address
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ *
+ * By a destination address, it is meant that it must be either IPv4 or IPv6.
+ */
+static int validate_inetaddr(const struct config_state *cs,
+			     int nvec, char **vec) {
+  struct netaddress na[1];
+
+  if(netaddress_parse(na, nvec, vec)) {
+    disorder_error(0, "%s:%d: invalid network address", cs->path, cs->line);
+    return -1;
+  }
+  switch(na->af) {
+    case AF_INET: case AF_INET6: case AF_UNSPEC: break;
+    default:
+      disorder_error(0, "%s:%d: must be an intenet address",
+		     cs->path, cs->line);
+      return -1;
+  }
+  return 0;
+}
+
 /** @brief Item name and and offset */
 #define C(x) #x, offsetof(struct config, x)
 /** @brief Item name and and offset */
@@ -1065,8 +1091,13 @@ static const struct conf conf[] = {
   { C(reminder_interval), &type_integer,         validate_positive },
   { C(remote_userman),   &type_boolean,          validate_any },
   { C(replay_min),       &type_integer,          validate_non_negative },
+  { C(rtp_always_request), &type_boolean,	 validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_maxbuffer),	 &type_integer,		 validate_non_negative },
+  { C(rtp_minbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_mode),         &type_string,           validate_any },
+  { C(rtp_rcvbuf),	 &type_integer,		 validate_non_negative },
+  { C(rtp_request_address), &type_netaddress,	 validate_inetaddr },
   { C(rtp_verbose),      &type_boolean,          validate_any },
   { C(sample_format),    &type_sample_format,    validate_sample_format },
   { C(scratch),          &type_string_accum,     validate_isreg },

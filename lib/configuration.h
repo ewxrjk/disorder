@@ -234,6 +234,22 @@ struct config {
   /** @brief RTP delay threshold */
   long rtp_delay_threshold;
 
+  /** @brief Whether to ignore the server's suggested RTP arrangement and
+   * always request a unicast stream */
+  int rtp_always_request;
+
+  /** @brief RTP buffer low-water mark */
+  long rtp_minbuffer;
+
+  /** @brief RTP buffer maximum size */
+  long rtp_maxbuffer;
+
+  /* @brief RTP receive buffer size */
+  long rtp_rcvbuf;
+
+  /** @brief Fixed RTP listening address */
+  struct netaddress rtp_request_address;
+
   /** @brief Verbose RTP transmission logging */
   int rtp_verbose;
   

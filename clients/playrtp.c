@@ -74,6 +74,7 @@
 #include "configuration.h"
 #include "addr.h"
 #include "syscalls.h"
+#include "printf.h"
 #include "rtp.h"
 #include "defs.h"
 #include "vector.h"
@@ -99,7 +100,7 @@ static FILE *logfp;
 /** @brief Output device */
 
 /** @brief Buffer low watermark in samples */
-unsigned minbuffer = 4 * (2 * 44100) / 10;  /* 0.4 seconds */
+unsigned minbuffer;
 
 /** @brief Maximum buffer size in samples
  *
@@ -686,7 +687,7 @@ int main(int argc, char **argv) {
   struct addrinfo *res;
   struct stringlist sl;
   char *sockname;
-  int rcvbuf, target_rcvbuf = 0;
+  int rcvbuf, target_rcvbuf = -1;
   socklen_t len;
   struct ip_mreq mreq;
   struct ipv6_mreq mreq6;
@@ -767,20 +768,45 @@ int main(int argc, char **argv) {
      * CoreAudio/AudioHardware.h). */
     disorder_fatal(0, "cannot play RTP through RTP");
   }
-  if(!maxbuffer)
-    maxbuffer = 2 * minbuffer;
+  /* Set buffering parameters if not overridden */
+  if(!minbuffer) {
+    minbuffer = config->rtp_minbuffer;
+    if(!minbuffer) minbuffer = (2*44100)*4/10;
+  }
+  if(!maxbuffer) {
+    maxbuffer = config->rtp_maxbuffer;
+    if(!maxbuffer) maxbuffer = 2 * minbuffer;
+  }
+  if(target_rcvbuf < 0) target_rcvbuf = config->rtp_rcvbuf;
   argc -= optind;
   argv += optind;
   switch(argc) {
   case 0:
-    /* Get configuration from server */
-    if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
-    if(disorder_connect(c)) exit(EXIT_FAILURE);
-    if(disorder_rtp_address(c, &address, &port)) exit(EXIT_FAILURE);
-    sl.n = 2;
-    sl.s = xcalloc(2, sizeof *sl.s);
-    sl.s[0] = address;
-    sl.s[1] = port;
+    sl.s = xcalloc(3, sizeof *sl.s);
+    if(config->rtp_always_request) {
+      sl.s[0] = sl.s[1] = (/*unconst*/ char *)"-";
+      sl.n = 2;
+    } else {
+      /* Get configuration from server */
+      if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
+      if(disorder_connect(c)) exit(EXIT_FAILURE);
+      if(disorder_rtp_address(c, &address, &port)) exit(EXIT_FAILURE);
+      sl.s[0] = address;
+      sl.s[1] = port;
+      sl.n = 2;
+    }
+    /* If we're requesting a new stream then apply the local network address
+     * overrides.
+     */
+    if(!strcmp(sl.s[0], "-")) {
+      if(config->rtp_request_address.port)
+        byte_xasprintf(&sl.s[1], "%d", config->rtp_request_address.port);
+      if(config->rtp_request_address.address) {
+        sl.s[2] = sl.s[1];
+        sl.s[1] = config->rtp_request_address.address;
+        sl.n = 3;
+      }
+    }
     break;
   case 1: case 2: case 3:
     /* Use command-line ADDRESS+PORT or just PORT */
@@ -817,7 +843,8 @@ int main(int argc, char **argv) {
     /* If no address was given, pick something sensible based on the known-
      * working connectivity to the server */
     if(!node) {
-      int family = disorder_client_af(c);
+      int family = config->rtp_request_address.af;
+      if(family == AF_UNSPEC) family = disorder_client_af(c);
       /* Get a list of interfaces */
       struct ifaddrs *ifa, *bestifa = NULL;
       if(getifaddrs(&ifa) < 0)

@@ -654,6 +654,56 @@ anything currently listed in the recently-played list.
 New values of this option may be picked up from the configuration file even
 without a reload.
 .TP
+.B rtp_always_request yes\fR|\fBno
+If
+.B yes
+then
+.BR disorder-playrtp (1)
+will always request a dedicated RTP stream,
+rather than contacting the server to discover
+a broadcast or multicast address.
+(This behaviour can be overridden by
+setting a suitable address on the command-line.)
+The default is
+.BR no .
+.IP
+This option is experimental,
+and may change or be removed in a future release.
+.TP
+.B rtp_maxbuffer \fIFRAMES\fR
+Set
+.BR disorder-playrtp (1)'s
+buffer size to the given number of
+.IR FRAMES .
+If this is zero, then
+.B disorder-playrtp
+will select a default buffer size.
+(This setting can be overridden by passing
+a suitable command-line option.)
+The default value is
+.BR 0 .
+.IP
+This option is experimental,
+and may change or be removed in a future release.
+.TP
+.B rtp_minbuffer \fIFRAMES\fR
+Set
+.BR disorder-playrtp (1)'s
+buffer low-water-mark to the given number of
+.IR FRAMES .
+If this is zero, then
+.B disorder-playrtp
+will select a default low-water-mark.
+(This setting can be overridden by passing
+a suitable command-line option.)
+.IP
+This option is experimental,
+and may change or be removed in a future release.
+The default value is
+.BR 0 .
+.IP
+This option is experimental, and may change or be removed in a future release.
+.TP
 .B rtp_mode \fIMODE\fR
 The network transmission mode for the \fBrtp\fR backend.
 Possible values are:
@@ -675,6 +725,46 @@ Unicast transmission to addresses requested by clients.
 Choose one of the above based on the destination address.
 This is the default, for backwards compatibility reasons.
 .RE
+.TP
+.B rtp_rcvbuf \fISIZE\fR
+Set
+.BR disorder-playrtp (1)'s
+socket receive buffer to at least
+.IB SIZE .
+(This setting can be overridden by passing
+a suitable command-line option.)
+The default value is
+.BR 0 .
+.IP
+This option is experimental,
+and may change or be removed in a future release.
+.TP
+.B rtp_request_address \fR[\fIFAMILY\fR] \fR[\fIHOST\fR] \fISERVICE\fR
+If
+.BR disorder-playrtp (1)
+is to request a unicast RTP stream,
+then it should establish its receiving socket
+to listen on the given address.
+The
+.I FAMILY
+and
+.I HOST
+may be omitted, in which case
+.B disorder-playrtp
+uses heuristics to determine suitable values.
+The
+.I PORT
+may be omitted, in which case
+.B disorder-playrtp
+uses a kernel-allocated port.
+(This setting can be overridden by passing
+a suitable address on the command line.)
+The default is
+.RB ` "\- 0" ',
+which uses a heuristically-chosen address and a kernel-allocated port.
+.IP
+This option is experimental,
+and may change or be removed in a future release.
 .TP
 .B sample_format \fIBITS\fB/\fIRATE\fB/\fICHANNELS
 Describes the sample format expected by the \fBspeaker_command\fR (below).

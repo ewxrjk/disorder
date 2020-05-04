@@ -126,18 +126,27 @@ You should consult the source code for details of their effects.
 .B \-\-min \fIFRAMES\fR, \fB\-m \fIFRAMES\fR
 Specifies the buffer low watermark in frames.
 This also acts as the target buffer occupancy.
+The default is taken from the
+.B rtp_minbuffer
+configuration parameter.
 .TP
 .B \-\-max \fIFRAMES\fR, \fB\-x \fIFRAMES\fR
 Specifies the maximum buffer size in frames.
 If there are this many frames in the buffer then reading from the
 network socket will be suspended.
 The default is twice the \fB\-\-min\fR value.
+The default is taken from the
+.B rtp_maxbuffer
+configuration parameter.
 .TP
 .B \-\-rcvbuf \fIBYTES\fR, \fB\-R \fIBYTES\fR
 Specifies socket receive buffer size.
 The default is not to change the buffer size, i.e. you get whatever the
 local operating system chooses.
 The buffer size will not be reduced below the operating system's default.
+The default is taken from the
+.B rtp_rcvbuf
+configuration parameter.
 .TP
 .B \-\-monitor\fR, \fB\-M
 Periodically report how close to the buffer low watermark the buffer is.
