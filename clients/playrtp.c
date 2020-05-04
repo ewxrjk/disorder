@@ -704,7 +704,7 @@ int main(int argc, char **argv) {
   int monitor = 0;
   static const int one = 1;
 
-  static const struct addrinfo prefs = {
+  struct addrinfo prefs = {
     .ai_flags = AI_PASSIVE,
     .ai_family = PF_INET,
     .ai_socktype = SOCK_DGRAM,
