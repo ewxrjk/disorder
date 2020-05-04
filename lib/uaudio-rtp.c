@@ -242,11 +242,29 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
   return nsamples;
 }
 
+static void hack_send_buffer_size(int fd, const char *what) {
+  int sndbuf, target_sndbuf = 131072;
+  socklen_t len = sizeof sndbuf;
+
+  if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF,
+                &sndbuf, &len) < 0)
+    disorder_fatal(errno, "error getting SO_SNDBUF on %s socket", what);
+  if(target_sndbuf > sndbuf) {
+    if(setsockopt(fd, SOL_SOCKET, SO_SNDBUF,
+                  &target_sndbuf, sizeof target_sndbuf) < 0)
+      disorder_error(errno, "error setting SO_SNDBUF on %s socket to %d",
+                     what, target_sndbuf);
+    else
+      disorder_info("changed socket send buffer size on %socket from %d to %d",
+                    what, sndbuf, target_sndbuf);
+  } else
+    disorder_info("default socket send buffer on %s socket is %d",
+                  what, sndbuf);
+}
+
 static void rtp_open(void) {
   struct addrinfo *dres, *sres;
   static const int one = 1;
-  int sndbuf, target_sndbuf = 131072;
-  socklen_t len;
   struct netaddress dst[1], src[1];
   const char *mode;
   
@@ -369,20 +387,8 @@ static void rtp_open(void) {
     break;
   }
   }
-  /* Enlarge the socket buffer */
-  len = sizeof sndbuf;
-  if(getsockopt(rtp_fd, SOL_SOCKET, SO_SNDBUF,
-                &sndbuf, &len) < 0)
-    disorder_fatal(errno, "error getting SO_SNDBUF");
-  if(target_sndbuf > sndbuf) {
-    if(setsockopt(rtp_fd, SOL_SOCKET, SO_SNDBUF,
-                  &target_sndbuf, sizeof target_sndbuf) < 0)
-      disorder_error(errno, "error setting SO_SNDBUF to %d", target_sndbuf);
-    else
-      disorder_info("changed socket send buffer size from %d to %d",
-                    sndbuf, target_sndbuf);
-  } else
-    disorder_info("default socket send buffer is %d", sndbuf);
+  /* Enlarge the socket buffers */
+  hack_send_buffer_size(rtp_fd, "master socket");
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
   if(rtp_mode != RTP_REQUEST) {
