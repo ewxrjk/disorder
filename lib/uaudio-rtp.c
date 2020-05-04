@@ -54,11 +54,12 @@
 /** @brief RTP payload type */
 static int rtp_payload;
 
-/** @brief RTP output socket */
+/** @brief RTP broadcast/multicast output socket */
 static int rtp_fd = -1;
 
-/** @brief RTP output socket (IPv6) */
-static int rtp_fd6;
+/** @brief RTP unicast output socket (IPv4) */
+static int rtp_fd4 = -1;
+
 /** @brief RTP unicast output socket (IPv6) */
 static int rtp_fd6 = -1;
 
@@ -219,7 +220,7 @@ static size_t rtp_play(void *buffer, size_t nsamples, unsigned flags) {
       m.msg_name = &r->sa;
       m.msg_namelen = r->sa.ss_family == AF_INET ? 
         sizeof(struct sockaddr_in) : sizeof (struct sockaddr_in6);
-      sendmsg(r->sa.ss_family == AF_INET ? rtp_fd : rtp_fd6,
+      sendmsg(r->sa.ss_family == AF_INET ? rtp_fd4 : rtp_fd6,
               &m, MSG_DONTWAIT|MSG_NOSIGNAL);
       // TODO similar error handling to other case?
     }
@@ -325,22 +326,17 @@ static void rtp_open(void) {
         rtp_mode = RTP_UNICAST;
     }
   }
-  /* Create the socket */
+  /* Create the sockets */
   if(rtp_mode != RTP_REQUEST) {
     if((rtp_fd = socket(dres->ai_family,
                         dres->ai_socktype,
                         dres->ai_protocol)) < 0)
       disorder_fatal(errno, "error creating RTP transmission socket");
-  } else {                              /* request mode slightly different */
-    if((rtp_fd = socket(AF_INET,
-                        SOCK_DGRAM,
-                        IPPROTO_UDP)) < 0)
-      disorder_fatal(errno, "error creating v4 RTP transmission socket");
-    if((rtp_fd6 = socket(AF_INET6,
-                         SOCK_DGRAM,
-                         IPPROTO_UDP)) < 0)
-      disorder_fatal(errno, "error creating v6 RTP transmission socket");
   }
+  if((rtp_fd4 = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+    disorder_fatal(errno, "error creating v4 RTP transmission socket");
+  if((rtp_fd6 = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+    disorder_fatal(errno, "error creating v6 RTP transmission socket");
   /* Configure the socket according to the desired mode */
   switch(rtp_mode) {
   case RTP_MULTICAST: {
@@ -390,7 +386,8 @@ static void rtp_open(void) {
   }
   }
   /* Enlarge the socket buffers */
-  hack_send_buffer_size(rtp_fd, "master socket");
+  if (rtp_fd != -1) hack_send_buffer_size(rtp_fd, "master socket");
+  hack_send_buffer_size(rtp_fd4, "IPv4 on-demand socket");
   hack_send_buffer_size(rtp_fd6, "IPv6 on-demand socket");
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
@@ -449,7 +446,8 @@ static void rtp_start(uaudio_callback *callback,
 
 static void rtp_stop(void) {
   uaudio_thread_stop();
-  close(rtp_fd); rtp_fd = -1;
+  if(rtp_fd >= 0) { close(rtp_fd); rtp_fd = -1; }
+  if(rtp_fd4 >= 0) { close(rtp_fd4); rtp_fd4 = -1; }
   if(rtp_fd6 >= 0) { close(rtp_fd6); rtp_fd6 = -1; }
 }
 
