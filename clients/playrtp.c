@@ -890,7 +890,8 @@ int main(int argc, char **argv) {
     /* Ask for audio data */
     if(disorder_rtp_request(c, addrname, portname)) exit(EXIT_FAILURE);
     /* Report what we did */
-    disorder_info("listening on %s", format_sockaddr(addr));
+    disorder_info("listening on %s (stream requested)",
+                  format_sockaddr(addr));
   } else {
     if(sl.n > 2) disorder_fatal(0, "too many address components");
     /* Look up address and port */
