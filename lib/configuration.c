@@ -1487,8 +1487,10 @@ static void config_postdefaults(struct config *c,
   if(server) {
     if(!strcmp(c->api, "command") && !c->speaker_command)
       disorder_fatal(0, "'api command' but speaker_command is not set");
-    if((!strcmp(c->api, "rtp")) && c->broadcast.af == -1)
-      disorder_fatal(0, "'api rtp' but broadcast is not set");
+    if((!strcmp(c->api, "rtp")) &&
+       c->broadcast.af == -1 && strcmp(c->rtp_mode, "request"))
+      disorder_fatal(0, "'api rtp' but broadcast is not set "
+		     "and mode is not not 'request'");
   }
   /* Override sample format */
   if(!strcmp(c->api, "rtp")) {
