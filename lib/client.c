@@ -114,11 +114,6 @@ void disorder_force_unpriv(disorder_client *c) {
   c->trypriv = 0;
 }
 
-/** @brief Return the address family used by this client */
-int disorder_client_af(disorder_client *c) {
-  return c->family;
-}
-
 /** @brief Determine the local socket address of this client */
 int disorder_client_sockname(disorder_client *c,
 			     struct sockaddr *sa, socklen_t *len_inout) {
