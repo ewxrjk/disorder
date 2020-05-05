@@ -41,7 +41,10 @@ int byte_snprintf(char buffer[],
 		  size_t bufsize,
 		  const char *fmt,
 		  ...)
-  attribute((format (printf, 3, 4)));
+#ifndef INHIBIT_PRINTF_FORMAT_CHECKING
+  attribute((format (printf, 3, 4)))
+#endif
+  ;
 /* analogues of [v]snprintf */
 
 int byte_vasprintf(char **ptrp,
@@ -50,7 +53,10 @@ int byte_vasprintf(char **ptrp,
 int byte_asprintf(char **ptrp,
 		  const char *fmt,
 		  ...)
-  attribute((format (printf, 2, 3)));
+#ifndef INHIBIT_PRINTF_FORMAT_CHECKING
+  attribute((format (printf, 2, 3)))
+#endif
+  ;
 /* analogues of [v]asprintf (uses xmalloc/xrealloc) */
 
 int byte_xvasprintf(char **ptrp,
@@ -59,12 +65,18 @@ int byte_xvasprintf(char **ptrp,
 int byte_xasprintf(char **ptrp,
 		   const char *fmt,
 		   ...)
-  attribute((format (printf, 2, 3)));
+#ifndef INHIBIT_PRINTF_FORMAT_CHECKING
+  attribute((format (printf, 2, 3)))
+#endif
+  ;
 /* same but terminate on error */
 
 int byte_vfprintf(FILE *fp, const char *fmt, va_list ap);
 int byte_fprintf(FILE *fp, const char *fmt, ...)
-  attribute((format (printf, 2, 3)));
+#ifndef INHIBIT_PRINTF_FORMAT_CHECKING
+  attribute((format (printf, 2, 3)))
+#endif
+  ;
 /* analogues of [v]fprintf */
 
 #endif /* PRINTF_H */
