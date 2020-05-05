@@ -359,6 +359,7 @@ static void schedule_play(ev_source *ev,
 			  const char *who,
 			  struct kvp *actiondata) {
   const char *track = kvp_get(actiondata, "track");
+  const char *rtrack = 0;
   struct queue_entry *q;
 
   /* This stuff has rather a lot in common with c_play() */
@@ -370,12 +371,12 @@ static void schedule_play(ev_source *ev,
     disorder_error(0, "scheduled event %s: no such track as %s", id, track);
     return;
   }
-  if(!(track = trackdb_resolve(track))) {
+  if(!(rtrack = trackdb_resolve(track))) {
     disorder_error(0, "scheduled event %s: cannot resolve track %s", id, track);
     return;
   }
-  disorder_info("scheduled event %s: %s play %s", id,  who, track);
-  q = queue_add(track, who, WHERE_START, NULL, origin_scheduled);
+  disorder_info("scheduled event %s: %s play %s", id,  who, rtrack);
+  q = queue_add(rtrack, who, WHERE_START, NULL, origin_scheduled);
   queue_write();
   if(q == qhead.next && playing)
     prepare(ev, q);

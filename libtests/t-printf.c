@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define INHIBIT_PRINTF_FORMAT_CHECKING
 #include "test.h"
 
 /* launder a string constant to stop gcc warnings */
