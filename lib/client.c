@@ -119,6 +119,24 @@ int disorder_client_af(disorder_client *c) {
   return c->family;
 }
 
+/** @brief Determine the local socket address of this client */
+int disorder_client_sockname(disorder_client *c,
+			     struct sockaddr *sa, socklen_t *len_inout) {
+  int rc;
+  if((rc = getsockname(c->sio.sd, sa, len_inout)))
+    disorder_error(errno, "failed to read client socket name");
+  return rc;
+}
+
+/** @brief Determine the remote peer address for this client */
+int disorder_client_peername(disorder_client *c,
+			     struct sockaddr *sa, socklen_t *len_inout) {
+  int rc;
+  if((rc = getpeername(c->sio.sd, sa, len_inout)))
+    disorder_error(errno, "failed to read client socket name");
+  return rc;
+}
+
 /** @brief Read a response line
  * @param c Client
  * @param rp Where to store response, or NULL (UTF-8)

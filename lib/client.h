@@ -41,6 +41,10 @@ struct sink;
 disorder_client *disorder_new(int verbose);
 void disorder_force_unpriv(disorder_client *c);
 int disorder_client_af(disorder_client *c);
+int disorder_client_sockname(disorder_client *c,
+			     struct sockaddr *sa, socklen_t *len_inout);
+int disorder_client_peername(disorder_client *c,
+			     struct sockaddr *sa, socklen_t *len_inout);
 int disorder_connect(disorder_client *c);
 int disorder_connect_user(disorder_client *c,
 			  const char *username,
