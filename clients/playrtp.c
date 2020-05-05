@@ -635,53 +635,6 @@ static size_t playrtp_callback(void *buffer,
   return samples;
 }
 
-static int compare_family(const struct ifaddrs *a,
-                          const struct ifaddrs *b,
-                          int family) {
-  int afamily = a->ifa_addr->sa_family;
-  int bfamily = b->ifa_addr->sa_family;
-  if(afamily != bfamily) {
-    /* Preferred family wins */
-    if(afamily == family) return 1;
-    if(bfamily == family) return -1;
-    /* Either there's no preference or it doesn't help.  Prefer IPv4 */
-    if(afamily == AF_INET) return 1;
-    if(bfamily == AF_INET) return -1;
-    /* Failing that prefer IPv6 */
-    if(afamily == AF_INET6) return 1;
-    if(bfamily == AF_INET6) return -1;
-  }
-  return 0;
-}
-
-static int compare_flags(const struct ifaddrs *a,
-                         const struct ifaddrs *b) {
-  unsigned aflags = a->ifa_flags, bflags = b->ifa_flags;
-  /* Up interfaces are better than down ones */
-  unsigned aup = aflags & IFF_UP, bup = bflags & IFF_UP;
-  if(aup != bup)
-    return aup > bup ? 1 : -1;
-#if IFF_DYNAMIC
-  /* Static addresses are better than dynamic */
-  unsigned adynamic = aflags & IFF_DYNAMIC, bdynamic = bflags & IFF_DYNAMIC;
-  if(adynamic != bdynamic)
-    return adynamic < bdynamic ? 1 : -1;
-#endif
-  unsigned aloopback = aflags & IFF_LOOPBACK, bloopback = bflags & IFF_LOOPBACK;
-  /* Static addresses are better than dynamic */
-  if(aloopback != bloopback)
-    return aloopback < bloopback ? 1 : -1;
-  return 0;
-}
-
-static int compare_interfaces(const struct ifaddrs *a,
-                              const struct ifaddrs *b,
-                              int family) {
-  int c;
-  if((c = compare_family(a, b, family))) return c;
-  return compare_flags(a, b);
-}
-
 int main(int argc, char **argv) {
   int n, err;
   struct addrinfo *res;
@@ -840,30 +793,22 @@ int main(int argc, char **argv) {
       if(!(c = disorder_new(1))) exit(EXIT_FAILURE);
       if(disorder_connect(c)) exit(EXIT_FAILURE);
     }
-    /* If no address was given, pick something sensible based on the known-
-     * working connectivity to the server */
+    /* If no address was given, we need to pick one.  But we already have a
+     * connection to the server, so we can probably use the address from that.
+     */
+    struct sockaddr_storage ss;
     if(!node) {
-      int family = config->rtp_request_address.af;
-      if(family == AF_UNSPEC) family = disorder_client_af(c);
-      /* Get a list of interfaces */
-      struct ifaddrs *ifa, *bestifa = NULL;
-      if(getifaddrs(&ifa) < 0)
-        disorder_fatal(errno, "error calling getifaddrs");
-      /* Try to pick a good one */
-      for(; ifa; ifa = ifa->ifa_next) {
-        if(!ifa->ifa_addr) continue;
-        if(bestifa == NULL
-           || compare_interfaces(ifa, bestifa, family) > 0)
-          bestifa = ifa;
+      addr_len = sizeof ss;
+      if(disorder_client_sockname(c, (struct sockaddr *)&ss, &addr_len))
+        exit(EXIT_FAILURE);
+      if(ss.ss_family != AF_INET && ss.ss_family != AF_INET6) {
+        /* We're using a Unix-domain socket, so use a loopback address.  I'm
+         * cowardly using IPv4 here. */
+        struct sockaddr_in *sin = (struct sockaddr_in *)&ss;
+        sin->sin_family = AF_INET;
+        sin->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       }
-      if(!bestifa)
-        disorder_fatal(0, "failed to select a network interface");
-      sa = bestifa->ifa_addr;
-      switch(sa->sa_family) {
-        case AF_INET: ((struct sockaddr_in *)sa)->sin_port = 0; break;
-        case AF_INET6: ((struct sockaddr_in6 *)sa)->sin6_port = 0; break;
-        default: assert(!"unexpected address family");
-      }
+      sa = (struct sockaddr *)&ss;
       prefs.ai_family = sa->sa_family;
     }
     /* If we have an address or port to resolve then do that now */
