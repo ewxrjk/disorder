@@ -20,6 +20,8 @@
 
 #include "common.h"
 
+#include <stddef.h>
+
 #include <sys/types.h>
 #if HAVE_SYS_SOCKET_H
 # include <sys/socket.h>
@@ -347,22 +349,45 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
 				    int passive,
 				    int protocol) {
   struct addrinfo *res, hints[1];
+  struct sockaddr_un *sun;
   char service[64];
   int rc;
   char errbuf[1024];
 
-  memset(hints, 0, sizeof hints);
-  hints->ai_family = na->af;
-  hints->ai_protocol = protocol;
-  hints->ai_flags = passive ? AI_PASSIVE : 0;
-  byte_snprintf(service, sizeof service, "%d", na->port);
-  rc = getaddrinfo(na->address, service, hints, &res);
-  if(rc) {
-    disorder_error(0, "getaddrinfo %s %d: %s",
-		   na->address ? na->address : "*",
-                   na->port,
-                   format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
-    return NULL;
+#if HAVE_SYS_UN_H
+  if (na->af == AF_UNIX) {
+    /* `getaddrinfo' won't work, so we make our own one */
+    res = xmalloc(sizeof(*res));
+    res->ai_flags = 0;
+    res->ai_family = AF_UNIX;
+    res->ai_socktype = (protocol == IPPROTO_UDP ? SOCK_DGRAM : SOCK_STREAM);
+    res->ai_protocol = 0;
+    res->ai_addrlen = offsetof(struct sockaddr_un, sun_path) +
+      strlen(na->address) + 1;
+    sun = xmalloc(res->ai_addrlen);
+    sun->sun_family = AF_UNIX;
+    strcpy(sun->sun_path, na->address);
+    res->ai_addr = (struct sockaddr *)sun;
+    res->ai_canonname = sun->sun_path;
+    res->ai_next = 0;
+  } else
+#endif
+  {
+    /* get the system to do the heavy lifting */
+    memset(hints, 0, sizeof hints);
+    hints->ai_family = na->af;
+    hints->ai_protocol = protocol;
+    hints->ai_flags = passive ? AI_PASSIVE : 0;
+    byte_snprintf(service, sizeof service, "%d", na->port);
+    rc = getaddrinfo(na->address, service, hints, &res);
+    if(rc) {
+      disorder_error(0, "getaddrinfo %s %d: %s",
+		     na->address ? na->address : "*",
+		     na->port,
+		     format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
+      return NULL;
+    }
+    assert(res->ai_family != AF_UNIX);
   }
   return res;
 }
@@ -371,7 +396,13 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
  * @param res Address-info list
  */
 void netaddress_freeaddrinfo(struct addrinfo *res) {
-  freeaddrinfo(res);
+#if HAVE_SYS_UN_H
+  if(res->ai_family == AF_UNIX) {
+    xfree(res->ai_addr);
+    xfree(res);
+  } else
+#endif
+    freeaddrinfo(res);
 }
 
 /*
