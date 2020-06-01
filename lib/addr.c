@@ -339,6 +339,9 @@ void netaddress_format(const struct netaddress *na,
  * @param passive True if passive (bindable) address is desired
  * @param protocol Protocol number desired (e.g. @c IPPROTO_TCP)
  * @return List of suitable addresses or NULL
+ *
+ * Free the address using netaddress_freeaddrinfo() because it might not
+ * have come from getaddrinfo() directly.
  */
 struct addrinfo *netaddress_resolve(const struct netaddress *na,
 				    int passive,
@@ -362,6 +365,13 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
     return NULL;
   }
   return res;
+}
+
+/** @brief Free an address-info list from netaddress_resovle()
+ * @param res Address-info list
+ */
+void netaddress_freeaddrinfo(struct addrinfo *res) {
+  freeaddrinfo(res);
 }
 
 /*

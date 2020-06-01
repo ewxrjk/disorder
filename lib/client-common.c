@@ -98,7 +98,7 @@ socklen_t disorder_find_server(struct config *c, unsigned flags,
   if(namep)
     *namep = format_sockaddr(sa);
   if(res)
-    freeaddrinfo(res);
+    netaddress_freeaddrinfo(res);
   return len;
 }
 

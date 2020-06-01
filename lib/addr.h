@@ -65,6 +65,7 @@ void netaddress_format(const struct netaddress *na,
 struct addrinfo *netaddress_resolve(const struct netaddress *na,
 				    int passive,
 				    int protocol) attribute((nonnull (1)));
+void netaddress_freeaddrinfo(struct addrinfo *res) attribute((nonnull (1)));
 
 #endif /* ADDR_H */
 

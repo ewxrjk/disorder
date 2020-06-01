@@ -171,7 +171,7 @@ void reset_sockets(ev_source *ev) {
   }
   /* if res is still set it needs freeing */
   if(res)
-    freeaddrinfo(res);
+    netaddress_freeaddrinfo(res);
 }
 
 /** @brief Reconfigure the server
