@@ -140,7 +140,7 @@ static gboolean playing_periodic(gpointer attribute((unused)) data) {
    * do it once a minute then the rest of the queue can get out of date too
    * easily.) */
   struct queue_entry *q = ql_queue.q;
-  if(q) {
+  if(q && playing_track && !(last_state&(DISORDER_TRACK_PAUSED))) {
     if(q == playing_track)
       q = q->next;
     if(q) {
