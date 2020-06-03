@@ -984,6 +984,24 @@ static int validate_pausemode(const struct config_state attribute((unused)) *cs,
   return -1;
 }
 
+/** @brief Validate an MTU-discovery setting
+ * @param cs Configuration state
+ * @param nvec Length of (proposed) new value
+ * @param vec Elements of new value
+ * @return 0 on success, non-0 on error
+ */
+static int validate_mtu_discovery(const struct config_state attribute((unused)) *cs,
+				  int nvec,
+				  char **vec) {
+  if (nvec == 1 &&
+      (!strcmp(vec[0], "default") ||
+       !strcmp(vec[0], "yes") ||
+       !strcmp(vec[0], "no")))
+    return 0;
+  disorder_error(0, "%s:%d: invalid MTU-discovery setting", cs->path, cs->line);
+  return -1;
+}
+
 /** @brief Validate a destination network address
  * @param cs Configuration state
  * @param nvec Length of (proposed) new value
@@ -1097,6 +1115,7 @@ static const struct conf conf[] = {
   { C(rtp_maxbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_minbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_mode),         &type_string,           validate_any },
+  { C(rtp_mtu_discovery), &type_string,		 validate_mtu_discovery },
   { C(rtp_rcvbuf),	 &type_integer,		 validate_non_negative },
   { C(rtp_request_address), &type_netaddress,	 validate_inetaddr },
   { C(rtp_verbose),      &type_boolean,          validate_any },
@@ -1411,6 +1430,7 @@ static struct config *config_default(void) {
   c->connect.af = -1;
   c->rtp_mode = xstrdup("auto");
   c->rtp_max_payload = -1;
+  c->rtp_mtu_discovery = xstrdup("default");
   return c;
 }
 

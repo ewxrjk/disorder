@@ -101,6 +101,7 @@ static const char *const rtp_options[] = {
   "multicast-loop",
   "rtp-mode",
   "rtp-max-payload",
+  "rtp-mtu-discovery",
   NULL
 };
 
@@ -264,6 +265,10 @@ static void rtp_open(void) {
   static const int one = 1;
   struct netaddress dst[1], src[1];
   const char *mode;
+#ifdef IP_MTU_DISCOVER
+  const char *mtu_disc;
+  int opt;
+#endif
   
   /* Get the mode */
   mode = uaudio_get("rtp-mode", "auto");
@@ -396,6 +401,19 @@ static void rtp_open(void) {
       disorder_fatal(errno, "error connecting broadcast socket to %s", 
                      format_sockaddr(dres->ai_addr));
   }
+#ifdef IP_MTU_DISCOVER
+  mtu_disc = uaudio_get("rtp-mtu-discovery", "default");
+  do {
+    if(!strcmp(mtu_disc, "yes")) opt = IP_PMTUDISC_DO;
+    else if(!strcmp(mtu_disc, "no")) opt = IP_PMTUDISC_DONT;
+    else break;
+    if(setsockopt(rtp_fd4, IPPROTO_IP, IP_MTU_DISCOVER, &opt, sizeof opt))
+      disorder_fatal(errno, "error setting MTU discovery");
+    if(sres->ai_family == AF_INET &&
+        setsockopt(rtp_fd, IPPROTO_IP, IP_MTU_DISCOVER, &opt, sizeof opt))
+      disorder_fatal(errno, "error setting MTU discovery");
+  } while (0);
+#endif
   if(config->rtp_verbose)
     disorder_info("RTP: prepared socket");
 }
@@ -463,6 +481,7 @@ static void rtp_configure(void) {
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
   snprintf(buffer, sizeof buffer, "%ld", config->rtp_max_payload);
   uaudio_set("rtp-max-payload", buffer);
+  uaudio_set("rtp-mtu-discovery", config->rtp_mtu_discovery);
   if(config->rtp_verbose)
     disorder_info("RTP: configured");
 }

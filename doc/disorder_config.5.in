@@ -736,6 +736,28 @@ Choose one of the above based on the destination address.
 This is the default, for backwards compatibility reasons.
 .RE
 .TP
+.B rtp_mtu_discovery \fIOPTION\fR
+Control whether the system attemps path-MTU discovery using RTP packets
+transmitted over IPv4.  (This is not configurable in IPv6.)  Possible values
+are:
+.RS
+.TP
+.B default
+Do whatever the kernel usually does with UDP packets.  This is, err, the
+default.
+.TP
+.B yes
+Force path-MTU disocvery.  The `don't fragment' bit is set on outgoing packets
+and we assume that the kernel will handle ICMP `fragmentation needed' errors
+coming back and fragment accordingly.
+.TP
+.B no
+Disable path-MTU discovery.  Packets will be sent without the `don't fragment'
+bit, and routers will be expected to fragment packets as necessary.
+.RE
+.IP
+This option is experimental, and may change or be removed in a future release.
+.TP
 .B rtp_rcvbuf \fISIZE\fR
 Set
 .BR disorder-playrtp (1)'s

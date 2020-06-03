@@ -269,6 +269,15 @@ struct config {
    */
   long rtp_max_payload;
 
+  /** @brief Whether to allow MTU discovery
+   *
+   * This is `yes' to force it on, `no' to force it off, or `default' to do
+   * whatever the system is configured to do.  Note that this only has a
+   * useful effect in IPv4, since IPv6 doesn't permit hop-by-hop
+   * fragmentation.
+   */
+  char *rtp_mtu_discovery;
+
   /** @brief Login lifetime in seconds */
   long cookie_login_lifetime;
 
