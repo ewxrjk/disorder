@@ -34,21 +34,45 @@ static char *rtp_socket;
 /** @brief Path to RTP player's logfile */
 static char *rtp_log;
 
+static char *substitute_instance_name(void) {
+  const char *p = config->rtp_instance_name;
+  struct utsname uts;
+  size_t n;
+  int ok;
+  struct dynstr z;
+
+  ok = (uname(&uts) >= 0);
+  if(!p) p = "%h-rtp";
+  dynstr_init(&z);
+  for(;;) {
+    n = strcspn(p, "%");
+    if(n) { dynstr_append_bytes(&z, p, n); p += n; }
+    if(!*p) break;
+    p++;
+    switch(*p) {
+    case '%': dynstr_append_bytes(&z, "%", 1); p++; break;
+    case 'h':
+      if(ok) { dynstr_append_string(&z, uts.nodename); p++; }
+      else { p++; if(*p) p++; }
+    case 0: break;
+    default: dynstr_append_bytes(&z, p - 1, 2); p++; break;
+    }
+  }
+  dynstr_terminate(&z);
+  return z.vec;
+}
+
 /** @brief Initialize @ref rtp_socket and @ref rtp_log if necessary */
 static void rtp_init(void) {
   if(!rtp_socket) {
     const char *home = getenv("HOME");
-    char *dir, *base;
-    struct utsname uts;
+    char *dir, *instance;
 
     byte_xasprintf(&dir, "%s/.disorder/", home);
     mkdir(dir, 02700);
-    if(uname(&uts) < 0)
-      byte_xasprintf(&base, "%s/", dir);
-    else
-      byte_xasprintf(&base, "%s/%s-", dir, uts.nodename);
-    byte_xasprintf(&rtp_socket, "%srtp", base);
-    byte_xasprintf(&rtp_log, "%srtp.log", base);
+    instance = substitute_instance_name();
+    byte_xasprintf(&rtp_socket, "%s%s", dir, instance);
+    byte_xasprintf(&rtp_log, "%s%s.log", dir, instance);
   }
 }
 

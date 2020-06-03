@@ -244,11 +244,14 @@ struct config {
   /** @brief RTP buffer maximum size */
   long rtp_maxbuffer;
 
-  /* @brief RTP receive buffer size */
+  /** @brief RTP receive buffer size */
   long rtp_rcvbuf;
 
   /** @brief Fixed RTP listening address */
   struct netaddress rtp_request_address;
+
+  /** @brief @c disorder-playrtp instance name (for naming sockets etc.) */
+  char *rtp_instance_name;
 
   /** @brief Verbose RTP transmission logging */
   int rtp_verbose;

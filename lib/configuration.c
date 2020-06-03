@@ -1111,6 +1111,7 @@ static const struct conf conf[] = {
   { C(replay_min),       &type_integer,          validate_non_negative },
   { C(rtp_always_request), &type_boolean,	 validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_instance_name), &type_string,		 validate_any },
   { C(rtp_max_payload),	 &type_integer,		 validate_positive },
   { C(rtp_maxbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_minbuffer),	 &type_integer,		 validate_non_negative },
