@@ -259,6 +259,16 @@ struct config {
   /** @brief Whether to loop back multicast packets */
   int multicast_loop;
 
+  /** @brief Maximum size of RTP payload to send
+   *
+   * This is the maximum number of bytes we pass to write(2); to determine
+   * actual packet sizes, add a UDP header and an IP header (and a link layer
+   * header if it's the link layer size you care about).
+   *
+   * Don't make this too big or arithmetic will start to overflow.
+   */
+  long rtp_max_payload;
+
   /** @brief Login lifetime in seconds */
   long cookie_login_lifetime;
 

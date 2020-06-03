@@ -686,6 +686,16 @@ The default value is
 This option is experimental,
 and may change or be removed in a future release.
 .TP
+.B rtp_max_payload \fBYTES\fR
+Don't send RTP packets with a UDP payload larger than
+.I BYTES
+(including the 12-byte RTP header).  If you know that you will be transmitting
+RTP over networks with an unusually low MTU size, then it is probably useful to
+set this option.
+.IP
+This option is experimental,
+and may change or be removed in a future release.
+.TP
 .B rtp_minbuffer \fIFRAMES\fR
 Set
 .BR disorder-playrtp (1)'s

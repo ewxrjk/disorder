@@ -1093,6 +1093,7 @@ static const struct conf conf[] = {
   { C(replay_min),       &type_integer,          validate_non_negative },
   { C(rtp_always_request), &type_boolean,	 validate_any },
   { C(rtp_delay_threshold), &type_integer,       validate_positive },
+  { C(rtp_max_payload),	 &type_integer,		 validate_positive },
   { C(rtp_maxbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_minbuffer),	 &type_integer,		 validate_non_negative },
   { C(rtp_mode),         &type_string,           validate_any },
@@ -1409,6 +1410,7 @@ static struct config *config_default(void) {
   c->listen.af = -1;
   c->connect.af = -1;
   c->rtp_mode = xstrdup("auto");
+  c->rtp_max_payload = -1;
   return c;
 }
 

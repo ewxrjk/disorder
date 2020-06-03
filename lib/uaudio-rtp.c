@@ -41,15 +41,8 @@
 #include "timeval.h"
 #include "configuration.h"
 
-/** @brief Bytes to send per network packet
- *
- * This is the maximum number of bytes we pass to write(2); to determine actual
- * packet sizes, add a UDP header and an IP header (and a link layer header if
- * it's the link layer size you care about).
- *
- * Don't make this too big or arithmetic will start to overflow.
- */
-#define NETWORK_BYTES (1500-8/*UDP*/-40/*IP*/-8/*conservatism*/)
+/** @brief Bytes to send per network packet */
+static int rtp_max_payload;
 
 /** @brief RTP payload type */
 static int rtp_payload;
@@ -107,6 +100,7 @@ static const char *const rtp_options[] = {
   "multicast-ttl",
   "multicast-loop",
   "rtp-mode",
+  "rtp-max-payload",
   NULL
 };
 
@@ -326,6 +320,9 @@ static void rtp_open(void) {
         rtp_mode = RTP_UNICAST;
     }
   }
+  rtp_max_payload = atoi(uaudio_get("rtp-max-payload", "-1"));
+  if(rtp_max_payload < 0)
+    rtp_max_payload = 1500 - 8/*UDP*/ - 40/*IP*/ - 8/*conservatism*/;
   /* Create the sockets */
   if(rtp_mode != RTP_REQUEST) {
     if((rtp_fd = socket(dres->ai_family,
@@ -437,7 +434,7 @@ static void rtp_start(uaudio_callback *callback,
                       userdata,
                       rtp_play,
                       256 / uaudio_sample_size,
-                      (NETWORK_BYTES - sizeof(struct rtp_header))
+                      (rtp_max_payload - sizeof(struct rtp_header))
                       / uaudio_sample_size,
                       0);
   if(config->rtp_verbose)
@@ -464,6 +461,8 @@ static void rtp_configure(void) {
   snprintf(buffer, sizeof buffer, "%ld", config->multicast_ttl);
   uaudio_set("multicast-ttl", buffer);
   uaudio_set("multicast-loop", config->multicast_loop ? "yes" : "no");
+  snprintf(buffer, sizeof buffer, "%ld", config->rtp_max_payload);
+  uaudio_set("rtp-max-payload", buffer);
   if(config->rtp_verbose)
     disorder_info("RTP: configured");
 }
