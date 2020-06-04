@@ -1606,7 +1606,7 @@ int config_read(int server,
     xfree(privconf);
 #endif
     /* if we have a password file, read it */
-    if((privconf = config_userconf(0, pw))
+    if((privconf = config_userconf())
        && access(privconf, F_OK) == 0
        && config_include(c, privconf))
       return -1;
@@ -1672,7 +1672,7 @@ char *config_private(void) {
 }
 
 /** @brief Return the path to user's personal configuration file */
-char *config_userconf(const char *home, const struct passwd *pw) {
+char *config_userconf(void) {
   char *s;
 #if _WIN32
   wchar_t *wpath = 0;
@@ -1683,9 +1683,10 @@ char *config_userconf(const char *home, const struct passwd *pw) {
   CoTaskMemFree(wpath);
   byte_xasprintf(&s, "%s\\DisOrder\\passwd", appdata);
 #else
-  if(!home && !pw && !(pw = getpwuid(getuid())))
+  struct passwd *pw;
+  if(!(pw = getpwuid(getuid())))
     disorder_fatal(0, "cannot determine our username");
-  byte_xasprintf(&s, "%s/.disorder/passwd", home ? home : pw->pw_dir);
+  byte_xasprintf(&s, "%s/.disorder/passwd", pw->pw_dir);
 #endif
   return s;
 }

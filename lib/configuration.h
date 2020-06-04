@@ -342,9 +342,8 @@ char *config_get_file(const char *name);
 
 struct passwd;
 
-char *config_userconf(const char *home, const struct passwd *pw);
-/* get the user's own private conffile, assuming their home dir is
- * @home@ if not null and using @pw@ otherwise */
+char *config_userconf(void);
+/* get the user's own private conffile */
 
 char *config_usersysconf(const struct passwd *pw );
 /* get the user's conffile in /etc */

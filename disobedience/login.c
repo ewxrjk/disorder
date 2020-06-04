@@ -156,7 +156,7 @@ static void login_update_config(struct config *c) {
 
 /** @brief Save current login details */
 static void login_save_config(void) {
-  char *path = config_userconf(0, 0), *tmp;
+  char *path = config_userconf(), *tmp;
   FILE *fp;
 
   byte_xasprintf(&tmp, "%s.tmp", path);
