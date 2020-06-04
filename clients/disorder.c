@@ -77,8 +77,8 @@ static const struct option options[] = {
   { "local", no_argument, 0, 'l' },
   { "no-per-user-config", no_argument, 0, 'N' },
   { "help-commands", no_argument, 0, 'H' },
-  { "user", required_argument, 0, 'u' },
-  { "password", required_argument, 0, 'p' },
+  { "user", required_argument, 0, 'U' },
+  { "password", required_argument, 0, 'P' },
   { 0, 0, 0, 0 }
 };
 
@@ -883,7 +883,7 @@ int main(int argc, char **argv) {
   regexp_setup();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "+hVc:dHlNu:p:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "+hVc:dHl", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
@@ -892,8 +892,8 @@ int main(int argc, char **argv) {
     case 'd': debugging = 1; break;
     case 'l': local = 1; break;
     case 'N': config_per_user = 0; break;
-    case 'u': user = optarg; break;
-    case 'p': password = optarg; break;
+    case 'U': user = optarg; break;
+    case 'P': password = optarg; break;
     default: disorder_fatal(0, "invalid option");
     }
   }
