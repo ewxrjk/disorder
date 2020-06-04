@@ -1452,8 +1452,11 @@ char *config_get_file2(struct config *c, const char *name) {
 /** @brief Set the default configuration file */
 static void set_configfile(void) {
 #if !_WIN32
-  if(!configfile)
-    byte_xasprintf(&configfile, "%s/config", pkgconfdir);
+  if(!configfile) {
+    configfile = getenv("DISORDER_CONFIG");
+    if(!configfile)
+      byte_xasprintf(&configfile, "%s/config", pkgconfdir);
+  }
 #endif
 }
 
@@ -1671,6 +1674,8 @@ char *config_private(void) {
 
 /** @brief Return the path to user's personal configuration file */
 char *config_userconf(void) {
+  char *t;
+  if((t = getenv("DISORDER_USERCONFIG"))) return xstrdup(t);
   return profile_filename("passwd");
 }
 
@@ -1680,7 +1685,9 @@ char *config_usersysconf(const struct passwd *pw) {
   char *s;
 
   set_configfile();
-  if(!strchr(pw->pw_name, '/')) {
+  if((s = getenv("DISORDER_USERCONFIG_SYS")))
+    return xstrdup(s);
+  else if(!strchr(pw->pw_name, '/')) {
     byte_xasprintf(&s, "%s.%s", configfile, pw->pw_name);
     return s;
   } else

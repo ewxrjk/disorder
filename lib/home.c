@@ -56,25 +56,29 @@ const char *profile_directory(void) {
   char *t;
 
   if(profiledir) return profiledir;
+  if((t = getenv("DISORDER_HOME")))
+    profiledir = t;
+  else {
 #if _WIN32
-  wchar_t *wpath = 0;
-  char *appdata;
-  if(SHGetKnownFolderPath(&FOLDERID_RoamingAppData, 0, NULL, &wpath) != S_OK) {
-    disorder_error(0, "error calling SHGetKnownFolderPath");
-    return 0;
-  }
-  t = win_wtomb(wpath);
-  CoTaskMemFree(wpath);
-  byte_xasprintf(&profiledir, "%s\\DisOrder", appdata);
+    wchar_t *wpath = 0;
+    char *appdata;
+    if(SHGetKnownFolderPath(&FOLDERID_RoamingAppData, 0, NULL, &wpath) != S_OK) {
+      disorder_error(0, "error calling SHGetKnownFolderPath");
+      return 0;
+    }
+    t = win_wtomb(wpath);
+    CoTaskMemFree(wpath);
+    byte_xasprintf(&profiledir, "%s\\DisOrder", appdata);
 #else
-  struct passwd *pw;
-  if(!(t = getenv("HOME"))) {
-    if(!(pw = getpwuid(getuid())))
-      disorder_error(0, "user not found in password database");
-    t = pw->pw_dir;
-  }
-  byte_xasprintf(&profiledir, "%s/.disorder", t);
+    struct passwd *pw;
+    if(!(t = getenv("HOME"))) {
+      if(!(pw = getpwuid(getuid())))
+	disorder_error(0, "user not found in password database");
+      t = pw->pw_dir;
+    }
+    byte_xasprintf(&profiledir, "%s/.disorder", t);
 #endif
+  }
   return profiledir;
 }
 

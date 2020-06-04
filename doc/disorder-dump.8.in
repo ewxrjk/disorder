@@ -58,6 +58,8 @@ In normal use such tracks are all aliases.
 .B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
+.B DISORDER_CONFIG
+environment variable, defaulting to
 .IR /etc/disorder/config .
 .TP
 .B \-\-no\-setuid

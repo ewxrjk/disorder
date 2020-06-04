@@ -199,17 +199,38 @@ as it cannot start up without a valid config file.)
 Configuration files are read in the following order:
 .TP
 .I pkgconfdir/config
+Or
+.BR $DISORDER_CONFIG ,
+if that's set; overridden by
+.B \-c
+.RB ( \-\-config )
+command line option, except in
+.BR disrder-playrtp (1),
+which uses
+.BR \-C .
 .TP
 .I pkgconfdir/config.private
+Or
+.BR $DISORDER_PRIVCONFIG ,
+if that's set, else
+.BR $DISORDER_CONFIG.private .
 Should be readable only by the jukebox group.
 Not really useful any more and will be abolished in future.
 .TP
 .I ~\fRUSERNAME\fI/.disorder/passwd
+Or
+.BR $DISORDER_USERCONFIG ,
+if that's set; else
+.BR $DISORDER_HOME/passwd .
 Per-user client configuration.
 Optional but if it exists must be readable only by the relevant user.
 Would normally contain a \fBpassword\fR directive.
 .TP
 .I pkgconfdir/config.\fRUSERNAME
+(Or
+.BR $DISORDER_USERCONFIG_SYS ,
+if that's set; else
+.BR $DISORDER_CONFIG.\fIUSERNAME .)
 Per-user system-controlled client configuration.
 Optional but if it exists must be readable only by the relevant user.
 Would normally contain a \fBpassword\fR directive.

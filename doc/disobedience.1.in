@@ -31,6 +31,9 @@ be found at dochtmldir/index.html.
 .B \-\-config \fIPATH\fR, \fB\-c \fIPATH
 Set the configuration file.
 The default is
+given by the
+.B DISORDER_CONFIG
+environment variable, defaulting to
 .IR pkgconfdir/config .
 .TP
 .B \-\-debug\fR, \fB\-d
