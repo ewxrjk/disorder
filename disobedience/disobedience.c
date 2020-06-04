@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
   regexp_setup();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
-  while((n = getopt_long(argc, argv, "hVc:dtHC", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dt", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disobedience");
