@@ -37,9 +37,6 @@
 # include <langinfo.h>
 #endif
 
-#if HAVE_SHLOBJ_H
-# include <Shlobj.h>
-#endif
 #include <signal.h>
 
 #include "rights.h"
@@ -48,6 +45,7 @@
 #include "log.h"
 #include "split.h"
 #include "syscalls.h"
+#include "home.h"
 #include "table.h"
 #include "inputline.h"
 #include "charset.h"
@@ -1673,22 +1671,7 @@ char *config_private(void) {
 
 /** @brief Return the path to user's personal configuration file */
 char *config_userconf(void) {
-  char *s;
-#if _WIN32
-  wchar_t *wpath = 0;
-  char *appdata;
-  if(SHGetKnownFolderPath(&FOLDERID_RoamingAppData, 0, NULL, &wpath) != S_OK)
-    disorder_fatal(0, "error calling SHGetKnownFolderPath");
-  appdata = win_wtomb(wpath);
-  CoTaskMemFree(wpath);
-  byte_xasprintf(&s, "%s\\DisOrder\\passwd", appdata);
-#else
-  struct passwd *pw;
-  if(!(pw = getpwuid(getuid())))
-    disorder_fatal(0, "cannot determine our username");
-  byte_xasprintf(&s, "%s/.disorder/passwd", pw->pw_dir);
-#endif
-  return s;
+  return profile_filename("passwd");
 }
 
 #if !_WIN32

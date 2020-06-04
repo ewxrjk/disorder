@@ -65,14 +65,13 @@ static char *substitute_instance_name(void) {
 /** @brief Initialize @ref rtp_socket and @ref rtp_log if necessary */
 static void rtp_init(void) {
   if(!rtp_socket) {
-    const char *home = getenv("HOME");
-    char *dir, *instance;
-
-    byte_xasprintf(&dir, "%s/.disorder/", home);
+    const char *dir, *instance;
+    if(!(dir = profile_directory()))
+      disorder_fatal(0, "failed to find profile directory");
     mkdir(dir, 02700);
     instance = substitute_instance_name();
-    byte_xasprintf(&rtp_socket, "%s%s", dir, instance);
-    byte_xasprintf(&rtp_log, "%s%s.log", dir, instance);
+    byte_xasprintf(&rtp_socket, "%s/%s", dir, instance);
+    byte_xasprintf(&rtp_log, "%s/%s.log", dir, instance);
   }
 }
 
@@ -202,9 +201,8 @@ void stop_rtp(void) {
 
 static char *rtp_config_file(void) {
   static char *rtp_config;
-  const char *home = getenv("HOME");
   if(!rtp_config)
-    byte_xasprintf(&rtp_config, "%s/.disorder/api", home);
+    rtp_config = profile_filename("api");
   return rtp_config;
 }
 

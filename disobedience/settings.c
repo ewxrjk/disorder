@@ -150,11 +150,15 @@ void init_styles(void) {
 }
 
 void save_settings(void) {
-  char *dir, *path, *tmp;
+  const char *dir;
+  char *path, *tmp;
   FILE *fp = 0;
   size_t n, m, c;
 
-  byte_xasprintf(&dir, "%s/.disorder", getenv("HOME"));
+  if(!(dir = profile_directory())) {
+    fpopup_msg(GTK_MESSAGE_ERROR, "failed to find home directory");
+    goto done;
+  }
   byte_xasprintf(&path, "%s/disobedience", dir);
   byte_xasprintf(&tmp, "%s.tmp", path);
   mkdir(dir, 02700);                    /* make sure directory exists */
@@ -206,8 +210,9 @@ void load_settings(void) {
   int nvec;
   size_t n, m, c;
 
-  byte_xasprintf(&path, "%s/.disorder/disobedience", getenv("HOME"));
-  if(!(fp = fopen(path, "r"))) {
+  if(!(path = profile_filename("disobedience")))
+    fpopup_msg(GTK_MESSAGE_ERROR, "failed to find home directory");
+  else if(!(fp = fopen(path, "r"))) {
     if(errno != ENOENT)
       fpopup_msg(GTK_MESSAGE_ERROR, "error opening %s: %s",
                  path, strerror(errno));

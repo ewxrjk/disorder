@@ -42,6 +42,7 @@
 #include "defs.h"
 #include "configuration.h"
 #include "hash.h"
+#include "home.h"
 #include "selection.h"
 #include "kvp.h"
 #include "eventdist.h"
