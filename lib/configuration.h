@@ -342,9 +342,6 @@ char *config_get_file(const char *name);
 
 struct passwd;
 
-char *config_userconf(void);
-/* get the user's own private conffile */
-
 char *config_usersysconf(const struct passwd *pw );
 /* get the user's conffile in /etc */
 
@@ -355,7 +352,7 @@ int config_verify(void);
 
 void config_free(struct config *c);
 
-extern char *configfile;
+extern char *configfile, *userconfigfile;
 extern int config_per_user;
 
 extern const struct uaudio *const *config_uaudio_apis;

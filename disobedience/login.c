@@ -156,10 +156,10 @@ static void login_update_config(struct config *c) {
 
 /** @brief Save current login details */
 static void login_save_config(void) {
-  char *path = config_userconf(), *tmp;
+  char *tmp;
   FILE *fp;
 
-  byte_xasprintf(&tmp, "%s.tmp", path);
+  byte_xasprintf(&tmp, "%s.tmp", userconfigfile);
   /* Make sure the directory exists; don't care if it already exists. */
   mkdir(d_dirname(tmp), 02700);
   /* Write out the file */
@@ -190,7 +190,7 @@ static void login_save_config(void) {
     goto done;
   }
   /* Rename into place */
-  if(rename(tmp, path) < 0) {
+  if(rename(tmp, userconfigfile) < 0) {
     fpopup_msg(GTK_MESSAGE_ERROR, "error renaming %s: %s",
                tmp, strerror(errno));
     goto done;

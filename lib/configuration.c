@@ -66,6 +66,12 @@
  */
 char *configfile;
 
+/** @brief Path to user's config file
+ *
+ * set_configfile() sets the default if it is null.
+ */
+char *userconfigfile;
+
 /** @brief Read user configuration
  *
  * If clear, the user-specific configuration is not read.
@@ -1451,6 +1457,8 @@ char *config_get_file2(struct config *c, const char *name) {
 
 /** @brief Set the default configuration file */
 static void set_configfile(void) {
+  char *t;
+
 #if !_WIN32
   if(!configfile) {
     configfile = getenv("DISORDER_CONFIG");
@@ -1458,6 +1466,11 @@ static void set_configfile(void) {
       byte_xasprintf(&configfile, "%s/config", pkgconfdir);
   }
 #endif
+  if(!userconfigfile && config_per_user) {
+    if((t = getenv("DISORDER_USERCONFIG"))) userconfigfile = xstrdup(t);
+    else if(!(userconfigfile = profile_filename("passwd")))
+      disorder_fatal(0, "failed to find user profile directory");
+  }
 }
 
 /** @brief Free a configuration object
@@ -1607,11 +1620,9 @@ int config_read(int server,
     xfree(privconf);
 #endif
     /* if we have a password file, read it */
-    if((privconf = config_userconf())
-       && access(privconf, F_OK) == 0
-       && config_include(c, privconf))
+    if(access(userconfigfile, F_OK) == 0
+       && config_include(c, userconfigfile))
       return -1;
-    xfree(privconf);
   }
   /* install default namepart and transform settings */
   config_postdefaults(c, server);
@@ -1666,17 +1677,11 @@ char *config_private(void) {
 #else
   char *s;
 
+  if((s = getenv("DISORDER_PRIVCONFIG"))) return xstrdup(s);
   set_configfile();
   byte_xasprintf(&s, "%s.private", configfile);
   return s;
 #endif
-}
-
-/** @brief Return the path to user's personal configuration file */
-char *config_userconf(void) {
-  char *t;
-  if((t = getenv("DISORDER_USERCONFIG"))) return xstrdup(t);
-  return profile_filename("passwd");
 }
 
 #if !_WIN32
