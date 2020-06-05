@@ -176,6 +176,8 @@ void start_rtp(void) {
 	     "disorder-playrtp",
              "--socket", rtp_socket,
              "--api", rtp_api,
+             "--config", configfile,
+             "--user-config", userconfigfile,
              (char *)0);
       disorder_fatal(errno, "disorder-playrtp");
     } else {
