@@ -75,6 +75,7 @@ static const struct option options[] = {
   { "config", required_argument, 0, 'c' },
   { "debug", no_argument, 0, 'd' },
   { "local", no_argument, 0, 'l' },
+  { "user-config", required_argument, 0, 'u' },
   { "no-per-user-config", no_argument, 0, 'N' },
   { "help-commands", no_argument, 0, 'H' },
   { "user", required_argument, 0, 'U' },
@@ -90,7 +91,8 @@ static void attribute((noreturn)) help(void) {
 	  "  --help, -h              Display usage message\n"
 	  "  --help-commands, -H     List commands\n"
 	  "  --version, -V           Display version number\n"
-	  "  --config PATH, -c PATH  Set configuration file\n"
+	  "  --config PATH, -c PATH  Set system configuration file\n"
+	  "  --user-config PATH, -u PATH  Set user configuration file\n"
 	  "  --local, -l             Force connection to local server\n"
 	  "  --debug, -d             Turn on debugging\n");
   xfclose(stdout);
@@ -883,12 +885,13 @@ int main(int argc, char **argv) {
   regexp_setup();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   if(!setlocale(LC_TIME, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "+hVc:dHl", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "+hVc:dHlu:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'H': help_commands();
     case 'V': version("disorder");
     case 'c': configfile = optarg; break;
+    case 'u': userconfigfile = optarg; break;
     case 'd': debugging = 1; break;
     case 'l': local = 1; break;
     case 'N': config_per_user = 0; break;

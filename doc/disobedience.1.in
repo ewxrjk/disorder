@@ -36,6 +36,13 @@ given by the
 environment variable, defaulting to
 .IR pkgconfdir/config .
 .TP
+.B \-\-user-config \fIPATH\fR, \fB\-u \fIPATH
+Set the user configuration file.
+THe default is given by the
+.B DISORDER_USERCONFIG
+environment variable, defaulting to
+.IR $HOME/.disorder/passwd .
+.TP
 .B \-\-debug\fR, \fB\-d
 Enable debugging.
 .TP

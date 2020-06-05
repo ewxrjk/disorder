@@ -217,6 +217,7 @@ static const struct option options[] = {
   { "pause-mode", required_argument, 0, 'P' },
   { "socket", required_argument, 0, 's' },
   { "config", required_argument, 0, 'C' },
+  { "user-config", required_argument, 0, 'u' },
   { "monitor", no_argument, 0, 'M' },
   { 0, 0, 0, 0 }
 };
@@ -509,7 +510,8 @@ static void attribute((noreturn)) help(void) {
           "  --min, -m FRAMES        Buffer low water mark\n"
           "  --max, -x FRAMES        Buffer maximum size\n"
           "  --rcvbuf, -R BYTES      Socket receive buffer size\n"
-          "  --config, -C PATH       Set configuration file\n"
+          "  --config, -C PATH       Set system configuration file\n"
+          "  --user-config, -u PATH  Set user configuration file\n"
           "  --api, -A API           Select audio API.  Possibilities:\n"
           "                            ");
   int first = 1;
@@ -670,7 +672,7 @@ int main(int argc, char **argv) {
   logdate = 1;
   mem_init();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
-  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:re:P:MA:", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVdD:m:x:L:R:aocC:u:re:P:MA:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disorder-playrtp");
@@ -699,6 +701,7 @@ int main(int argc, char **argv) {
 #endif
     case 'A': backend = uaudio_find(optarg); break;
     case 'C': configfile = optarg; break;
+    case 'u': userconfigfile = optarg; break;
     case 's': control_socket = optarg; break;
     case 'r': dumpfile = optarg; break;
     case 'e': backend = &uaudio_command; uaudio_set("command", optarg); break;

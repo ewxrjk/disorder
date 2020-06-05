@@ -466,6 +466,7 @@ static const struct option options[] = {
   { "help", no_argument, 0, 'h' },
   { "version", no_argument, 0, 'V' },
   { "config", required_argument, 0, 'c' },
+  { "user-config", required_argument, 0, 'u' },
   { "tufnel", no_argument, 0, 't' },
   { "debug", no_argument, 0, 'd' },
   { 0, 0, 0, 0 }
@@ -480,7 +481,8 @@ static void attribute((noreturn)) help(void) {
 	  "Options:\n"
 	  "  --help, -h              Display usage message\n"
 	  "  --version, -V           Display version number\n"
-	  "  --config PATH, -c PATH  Set configuration file\n"
+	  "  --config PATH, -c PATH  Set system configuration file\n"
+	  "  --user-config PATH, -u PATH  Set user configuration file\n"
 	  "  --debug, -d             Turn on debugging\n"
           "\n"
           "Also GTK+ options will work.\n");
@@ -546,11 +548,12 @@ int main(int argc, char **argv) {
   regexp_setup();
   if(!setlocale(LC_CTYPE, "")) disorder_fatal(errno, "error calling setlocale");
   gtkok = gtk_init_check(&argc, &argv);
-  while((n = getopt_long(argc, argv, "hVc:dt", options, 0)) >= 0) {
+  while((n = getopt_long(argc, argv, "hVc:dtu:", options, 0)) >= 0) {
     switch(n) {
     case 'h': help();
     case 'V': version("disobedience");
     case 'c': configfile = optarg; break;
+    case 'u': userconfigfile = optarg; break;
     case 'd': debugging = 1; break;
     case 't': goesupto = 11; break;
     default: disorder_fatal(0, "invalid option");

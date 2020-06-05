@@ -221,7 +221,11 @@ Not really useful any more and will be abolished in future.
 Or
 .BR $DISORDER_USERCONFIG ,
 if that's set; else
-.BR $DISORDER_HOME/passwd .
+.BR $DISORDER_HOME/passwd ;
+overridden by
+.B \-u
+.RB ( \-\-user-config )
+command-line option.
 Per-user client configuration.
 Optional but if it exists must be readable only by the relevant user.
 Would normally contain a \fBpassword\fR directive.

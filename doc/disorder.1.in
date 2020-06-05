@@ -40,12 +40,19 @@ and \fBdisorder_config\fR (5) for documentation of the configuration file.
 .SH OPTIONS
 .TP
 .B \-\-config \fIPATH\fR, \fB\-c \fIPATH
-Set the configuration file.
+Set the system configuration file.
 The default is
 given by the
 .B DISORDER_CONFIG
 environment variable, defaulting to
 .IR pkgconfdir/config .
+.TP
+.B \-\-user-config \fIPATH\fR, \fB\-u \fIPATH
+Set the user configuration file.
+THe default is given by the
+.B DISORDER_USERCONFIG
+environment variable, defaulting to
+.IR $HOME/.disorder/passwd .
 .TP
 .B \-\-debug\fR, \fB\-d
 Enable debugging.
@@ -402,6 +409,10 @@ Private configuration file to use instead of
 .B DISORDER_USERCONFIG
 Per-user configuration file to use instead of
 .BR $DISORDER_HOME/passwd .
+Overridden by the
+.B \-u
+.RB ( \-\-user-config )
+command-line option.
 .TP
 .B DISORDER_USERCONFIG_SYS
 System-provided per-user configuration file to use instead of
