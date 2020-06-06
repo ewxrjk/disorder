@@ -339,16 +339,18 @@ void netaddress_format(const struct netaddress *na,
 /** @brief Resolve a network address
  * @param na Address structure
  * @param passive True if passive (bindable) address is desired
- * @param protocol Protocol number desired (e.g. @c IPPROTO_TCP)
- * @return List of suitable addresses or NULL
+ * @param type Socket type (e.g., @c SOCK_STREAM, @c SOCK_DGRAM)
+ * @param[out] raddr_out Vector of address/length pairs
+ * @param[out] nraddr_out Length of output vector
+ * @return Zero on success, -1 on error
  *
- * Free the address using netaddress_freeaddrinfo() because it might not
- * have come from getaddrinfo() directly.
+ * Call netaddress_free_resolved() to free the resolved addresses.
  */
-struct addrinfo *netaddress_resolve(const struct netaddress *na,
-				    int passive,
-				    int protocol) {
-  struct addrinfo *res, hints[1];
+int netaddress_resolve(const struct netaddress *na, int passive, int type,
+		       struct resolved **raddr_out, size_t *nraddr_out) {
+  struct resolved *raddr;
+  size_t i, nraddr;
+  struct addrinfo *res, *ai, hints[1];
   struct sockaddr_un *sun;
   char service[64];
   int rc;
@@ -357,26 +359,21 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
 #if HAVE_SYS_UN_H
   if (na->af == AF_UNIX) {
     /* `getaddrinfo' won't work, so we make our own one */
-    res = xmalloc(sizeof(*res));
-    res->ai_flags = 0;
-    res->ai_family = AF_UNIX;
-    res->ai_socktype = (protocol == IPPROTO_UDP ? SOCK_DGRAM : SOCK_STREAM);
-    res->ai_protocol = 0;
-    res->ai_addrlen = offsetof(struct sockaddr_un, sun_path) +
+    raddr = xmalloc(sizeof(*raddr));
+    raddr->len = offsetof(struct sockaddr_un, sun_path) +
       strlen(na->address) + 1;
-    sun = xmalloc(res->ai_addrlen);
+    sun = xmalloc_noptr(raddr->len);
     sun->sun_family = AF_UNIX;
     strcpy(sun->sun_path, na->address);
-    res->ai_addr = (struct sockaddr *)sun;
-    res->ai_canonname = sun->sun_path;
-    res->ai_next = 0;
+    raddr->sa = (struct sockaddr *)sun;
+    nraddr = 1;
   } else
 #endif
   {
     /* get the system to do the heavy lifting */
     memset(hints, 0, sizeof hints);
     hints->ai_family = na->af;
-    hints->ai_protocol = protocol;
+    hints->ai_socktype = type;
     hints->ai_flags = passive ? AI_PASSIVE : 0;
     byte_snprintf(service, sizeof service, "%d", na->port);
     rc = getaddrinfo(na->address, service, hints, &res);
@@ -385,24 +382,33 @@ struct addrinfo *netaddress_resolve(const struct netaddress *na,
 		     na->address ? na->address : "*",
 		     na->port,
 		     format_error(ec_getaddrinfo, rc, errbuf, sizeof errbuf));
-      return NULL;
+      return -1;
     }
-    assert(res->ai_family != AF_UNIX);
+    /* copy the addresses into an output vector */
+    for(ai = res, nraddr = 0; ai; ai = ai->ai_next, nraddr++);
+    raddr = xmalloc(nraddr*sizeof(*raddr));
+    for(ai = res, i = 0; ai; ai = ai->ai_next, i++) {
+      raddr[i].sa = xmalloc_noptr(ai->ai_addrlen);
+      raddr[i].len = ai->ai_addrlen;
+      memcpy(raddr[i].sa, ai->ai_addr, ai->ai_addrlen);
+    }
+    freeaddrinfo(res);
   }
-  return res;
+  *raddr_out = raddr;
+  *nraddr_out = nraddr;
+  return 0;
 }
 
-/** @brief Free an address-info list from netaddress_resovle()
- * @param res Address-info list
- */
-void netaddress_freeaddrinfo(struct addrinfo *res) {
-#if HAVE_SYS_UN_H
-  if(res->ai_family == AF_UNIX) {
-    xfree(res->ai_addr);
-    xfree(res);
-  } else
-#endif
-    freeaddrinfo(res);
+/** @brief Free a vector of resolved addresses */
+void netaddress_free_resolved(struct resolved *raddr, size_t nraddr)
+{
+  size_t i;
+
+  if (!raddr)
+    return;
+  for(i = 0; i < nraddr; i++)
+    xfree(raddr[i].sa);
+  xfree(raddr);
 }
 
 /*

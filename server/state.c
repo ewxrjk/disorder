@@ -73,9 +73,9 @@ void quit(ev_source *ev) {
 }
 
 /** @brief Create a copy of an @c addrinfo structure */
-static struct sockaddr *copy_sockaddr(const struct addrinfo *addr) {
-  struct sockaddr *sa = xmalloc_noptr(addr->ai_addrlen);
-  memcpy(sa, addr->ai_addr, addr->ai_addrlen);
+static struct sockaddr *copy_sockaddr(const struct resolved *raddr) {
+  struct sockaddr *sa = xmalloc_noptr(raddr->len);
+  memcpy(sa, raddr->sa, raddr->len);
   return sa;
 }
 
@@ -114,7 +114,8 @@ static void reset_unix_socket(ev_source *ev,
 
 /** @brief Create and destroy sockets to set current configuration */
 void reset_sockets(ev_source *ev) {
-  struct addrinfo *res, *r;
+  struct resolved *res;
+  size_t i, nres;
   struct listener *l, **ll;
   const char *private_dir = config_get_file("private");
   
@@ -128,18 +129,17 @@ void reset_sockets(ev_source *ev) {
   reset_unix_socket(ev, priv_socket, config_get_file("private/socket"), 1);
 
   /* get the new listen config */
-  if(config->listen.af != -1)
-    res = netaddress_resolve(&config->listen, 1, IPPROTO_TCP);
-  else
-    res = 0;
+  res = 0; nres = 0;
+  if(config->listen.af != -1) 
+    netaddress_resolve(&config->listen, 1, SOCK_STREAM, &res, &nres);
 
   /* Close any current listeners that aren't required any more */
   ll = &listeners;
   while((l = *ll)) {
-    for(r = res; r; r = r->ai_next)
-      if(!sockaddrcmp(r->ai_addr, l->sa))
+    for(i = 0; i < nres; i++)
+      if(!sockaddrcmp(res[i].sa, l->sa))
 	break;
-    if(!r) {
+    if(i >= nres) {
       /* Didn't find a match, remove this one */
       server_stop(ev, l->fd);
       *ll = l->next;
@@ -150,18 +150,18 @@ void reset_sockets(ev_source *ev) {
   }
 
   /* Open any new listeners that are required */
-  for(r = res; r; r = r->ai_next) {
+  for(i = 0; i < nres; i++) {
     for(l = listeners; l; l = l->next)
-      if(!sockaddrcmp(r->ai_addr, l->sa))
+      if(!sockaddrcmp(res[i].sa, l->sa))
 	break;
     if(!l) {
       /* Didn't find a match, need a new listener */
-      int fd = server_start(ev, r->ai_family, r->ai_addrlen, r->ai_addr,
-			    format_sockaddr(r->ai_addr), 0);
+      int fd = server_start(ev, res[i].sa->sa_family, res[i].len, res[i].sa,
+			    format_sockaddr(res[i].sa), 0);
       if(fd >= 0) {
 	l = xmalloc(sizeof *l);
 	l->next = listeners;
-	l->sa = copy_sockaddr(r);
+	l->sa = copy_sockaddr(&res[i]);
 	l->fd = fd;
 	listeners = l;
       }
@@ -171,7 +171,7 @@ void reset_sockets(ev_source *ev) {
   }
   /* if res is still set it needs freeing */
   if(res)
-    netaddress_freeaddrinfo(res);
+    netaddress_free_resolved(res, nres);
 }
 
 /** @brief Reconfigure the server

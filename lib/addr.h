@@ -43,6 +43,16 @@ struct netaddress {
   int port;
 };
 
+/** @brief A socket address and length */
+struct resolved {
+
+  /** @brief Pointer to the address */
+  struct sockaddr *sa;
+
+  /** @brief Length of the address */
+  socklen_t len;
+};
+
 struct addrinfo *get_address(const struct stringlist *a,
 			     const struct addrinfo *pref,
 			     char **namep)
@@ -62,10 +72,10 @@ int netaddress_parse(struct netaddress *na,
 void netaddress_format(const struct netaddress *na,
 		       int *nvecp,
 		       char ***vecp) attribute((nonnull (1)));
-struct addrinfo *netaddress_resolve(const struct netaddress *na,
-				    int passive,
-				    int protocol) attribute((nonnull (1)));
-void netaddress_freeaddrinfo(struct addrinfo *res) attribute((nonnull (1)));
+int netaddress_resolve(const struct netaddress *na, int passive, int type,
+		       struct resolved **raddr_out, size_t *nraddr_out)
+  attribute((nonnull (1, 4, 5)));
+void netaddress_free_resolved(struct resolved *raddr, size_t nraddr);
 
 #endif /* ADDR_H */
 

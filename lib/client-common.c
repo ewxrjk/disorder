@@ -57,16 +57,16 @@ socklen_t disorder_find_server(struct config *c, unsigned flags,
 #if !_WIN32
   struct sockaddr_un su;
 #endif
-  struct addrinfo *res = 0;
+  struct resolved *res;
+  size_t nres;
   char *name = NULL;
   socklen_t len;
 
   if(c->connect.af != -1) {
-    res = netaddress_resolve(&c->connect, 0, IPPROTO_TCP);
-    if(!res) 
+    if(netaddress_resolve(&c->connect, 0, SOCK_STREAM, &res, &nres))
       return -1;
-    sa = res->ai_addr;
-    len = res->ai_addrlen;
+    sa = res->sa;
+    len = res->len;
   } else {
 #if _WIN32
     disorder_fatal(0, "local connections are not supported on Windows");
@@ -90,6 +90,7 @@ socklen_t disorder_find_server(struct config *c, unsigned flags,
     strcpy(su.sun_path, name);
     sa = (struct sockaddr *)&su;
     len = sizeof su;
+    res = 0;
     xfree(name);
 #endif
   }
@@ -98,7 +99,7 @@ socklen_t disorder_find_server(struct config *c, unsigned flags,
   if(namep)
     *namep = format_sockaddr(sa);
   if(res)
-    netaddress_freeaddrinfo(res);
+    netaddress_free_resolved(res, nres);
   return len;
 }
 

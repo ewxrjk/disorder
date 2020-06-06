@@ -261,7 +261,8 @@ static void hack_send_buffer_size(int fd, const char *what) {
 }
 
 static void rtp_open(void) {
-  struct addrinfo *dres, *sres;
+  struct resolved *dres, *sres;
+  size_t ndres, nsres;
   static const int one = 1;
   struct netaddress dst[1], src[1];
   const char *mode;
@@ -287,22 +288,24 @@ static void rtp_open(void) {
                     "rtp-source-port",
                     src);
   if(dst->af != -1) {
-    dres = netaddress_resolve(dst, 0, IPPROTO_UDP);
-    if(!dres)
+    if(netaddress_resolve(dst, 0, SOCK_DGRAM, &dres, &ndres))
       exit(-1);
-  } else
+  } else {
     dres = 0;
+    ndres = 0;
+  }
   if(src->af != -1) {
-    sres = netaddress_resolve(src, 1, IPPROTO_UDP);
-    if(!sres)
+    if(netaddress_resolve(src, 0, SOCK_DGRAM, &sres, &nsres))
       exit(-1);
-  } else
+  } else {
     sres = 0;
+    nsres = 0;
+  }
   /* _AUTO inspects the destination address and acts accordingly */
   if(rtp_mode == RTP_AUTO) {
     if(!dres)
       rtp_mode = RTP_REQUEST;
-    else if(multicast(dres->ai_addr))
+    else if(multicast(dres->sa))
       rtp_mode = RTP_MULTICAST;
     else {
       struct ifaddrs *ifs;
@@ -315,7 +318,7 @@ static void rtp_open(void) {
          * for he same interface which _does_ have ifa_broadaddr though... */
         if((ifs->ifa_flags & IFF_BROADCAST)
            && ifs->ifa_broadaddr
-           && sockaddr_equal(ifs->ifa_broadaddr, dres->ai_addr))
+           && sockaddr_equal(ifs->ifa_broadaddr, dres->sa))
           break;
         ifs = ifs->ifa_next;
       }
@@ -330,9 +333,7 @@ static void rtp_open(void) {
     rtp_max_payload = 1500 - 8/*UDP*/ - 40/*IP*/ - 8/*conservatism*/;
   /* Create the sockets */
   if(rtp_mode != RTP_REQUEST) {
-    if((rtp_fd = socket(dres->ai_family,
-                        dres->ai_socktype,
-                        dres->ai_protocol)) < 0)
+    if((rtp_fd = socket(dres->sa->sa_family, SOCK_DGRAM, IPPROTO_UDP)) < 0)
       disorder_fatal(errno, "error creating RTP transmission socket");
   }
   if((rtp_fd4 = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
@@ -345,7 +346,7 @@ static void rtp_open(void) {
     /* Enable multicast options */
     const int ttl = atoi(uaudio_get("multicast-ttl", "1"));
     const int loop = !strcmp(uaudio_get("multicast-loop", "yes"), "yes");
-    switch(dres->ai_family) {
+    switch(dres->sa->sa_family) {
     case PF_INET: {
       if(setsockopt(rtp_fd, IPPROTO_IP, IP_MULTICAST_TTL,
                     &ttl, sizeof ttl) < 0)
@@ -365,21 +366,21 @@ static void rtp_open(void) {
       break;
     }
     default:
-      disorder_fatal(0, "unsupported address family %d", dres->ai_family);
+      disorder_fatal(0, "unsupported address family %d", dres->sa->sa_family);
     }
     disorder_info("multicasting on %s TTL=%d loop=%s", 
-                  format_sockaddr(dres->ai_addr), ttl, loop ? "yes" : "no");
+                  format_sockaddr(dres->sa), ttl, loop ? "yes" : "no");
     break;
   }
   case RTP_UNICAST: {
-    disorder_info("unicasting on %s", format_sockaddr(dres->ai_addr));
+    disorder_info("unicasting on %s", format_sockaddr(dres->sa));
     break;
   }
   case RTP_BROADCAST: {
     if(setsockopt(rtp_fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one) < 0)
       disorder_fatal(errno, "error setting SO_BROADCAST on broadcast socket");
     disorder_info("broadcasting on %s", 
-                  format_sockaddr(dres->ai_addr));
+                  format_sockaddr(dres->sa));
     break;
   }
   case RTP_REQUEST: {
@@ -394,12 +395,12 @@ static void rtp_open(void) {
   /* We might well want to set additional broadcast- or multicast-related
    * options here */
   if(rtp_mode != RTP_REQUEST) {
-    if(sres && bind(rtp_fd, sres->ai_addr, sres->ai_addrlen) < 0)
+    if(sres && bind(rtp_fd, sres->sa, sres->len) < 0)
       disorder_fatal(errno, "error binding broadcast socket to %s", 
-                     format_sockaddr(sres->ai_addr));
-    if(connect(rtp_fd, dres->ai_addr, dres->ai_addrlen) < 0)
+                     format_sockaddr(sres->sa));
+    if(connect(rtp_fd, dres->sa, dres->len) < 0)
       disorder_fatal(errno, "error connecting broadcast socket to %s", 
-                     format_sockaddr(dres->ai_addr));
+                     format_sockaddr(dres->sa));
   }
 #ifdef IP_MTU_DISCOVER
   mtu_disc = uaudio_get("rtp-mtu-discovery", "default");
@@ -409,7 +410,7 @@ static void rtp_open(void) {
     else break;
     if(setsockopt(rtp_fd4, IPPROTO_IP, IP_MTU_DISCOVER, &opt, sizeof opt))
       disorder_fatal(errno, "error setting MTU discovery");
-    if(sres->ai_family == AF_INET &&
+    if(sres->sa->sa_family == AF_INET &&
         setsockopt(rtp_fd, IPPROTO_IP, IP_MTU_DISCOVER, &opt, sizeof opt))
       disorder_fatal(errno, "error setting MTU discovery");
   } while (0);
