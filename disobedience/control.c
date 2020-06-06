@@ -31,6 +31,24 @@ static void toggled_icon(GtkToggleToolButton *button,
 static void clicked_menu(GtkMenuItem *, gpointer userdata);
 static void toggled_menu(GtkCheckMenuItem *, gpointer userdata);
 
+static int enable_playing(disorder_eclient *c,
+                          disorder_eclient_no_response *completed,
+                          void *v);
+static int disable_playing(disorder_eclient *c,
+                           disorder_eclient_no_response *completed,
+                           void *v);
+static int enable_random(disorder_eclient *c,
+                         disorder_eclient_no_response *completed,
+                         void *v);
+static int disable_random(disorder_eclient *c,
+                          disorder_eclient_no_response *completed,
+                          void *v);
+static int pause_track(disorder_eclient *c,
+                       disorder_eclient_no_response *completed,
+                       void *v);
+static int resume_track(disorder_eclient *c,
+                        disorder_eclient_no_response *completed,
+                        void *v);
 static int enable_rtp(disorder_eclient *c,
                       disorder_eclient_no_response *completed,
                       void *v);
@@ -64,6 +82,20 @@ int suppress_actions = 1;
 
 /** @brief Toolbar widget */
 static GtkWidget *toolbar;
+
+/** @brief Old state to restore on error
+ *
+ * Here's the problem we're trying to solve.  Suppose the user clicks the
+ * `pause' button.  Immediately, Gtk toggles the button's state.  There's also
+ * a menu item which is @i not yet updated, so we hack @c last_state and call
+ * icon_changed() by hand.  We send a `pause' command to the server.  If all is
+ * well, then we're done: we'll get a state update in the server log which will
+ * match what we're already doing and everything is fine.  If there's an error,
+ * though, we must put @c last_state back the way we found it since there will
+ * be no change reported in the server log to correct the wrong state
+ * information.  Also, we must untoggle the icon and menu items.
+ */
+static unsigned long restore_state;
 
 /** @brief Definition of an icon
  *
@@ -192,8 +224,8 @@ static struct icon icons[] = {
     .menuitem = "<GdisorderMain>/Control/Playing",
     .on = pause_resume_on,
     .sensitive = pause_resume_sensitive,
-    .action_go_on = disorder_eclient_pause,
-    .action_go_off = disorder_eclient_resume,
+    .action_go_on = pause_track,
+    .action_go_off = resume_track,
     .events = "pause-changed playing-changed rights-changed playing-track-changed",
     .menu_invert = TRUE,
   },
@@ -217,8 +249,8 @@ static struct icon icons[] = {
     .menuitem = "<GdisorderMain>/Control/Random play",
     .on = random_enabled,
     .sensitive = random_sensitive,
-    .action_go_on = disorder_eclient_random_enable,
-    .action_go_off = disorder_eclient_random_disable,
+    .action_go_on = enable_random,
+    .action_go_off = disable_random,
     .events = "random-changed rights-changed",
   },
   {
@@ -230,8 +262,8 @@ static struct icon icons[] = {
     .tip_off = "Enable play",
     .on = playing_enabled,
     .sensitive = playing_sensitive,
-    .action_go_on = disorder_eclient_enable,
-    .action_go_off = disorder_eclient_disable,
+    .action_go_on = enable_playing,
+    .action_go_off = disable_playing,
     .events = "enabled-changed rights-changed",
   },
   {
@@ -428,10 +460,12 @@ static void icon_changed(const char attribute((unused)) *event,
   --suppress_actions;
 }
 
-static void icon_action_completed(void attribute((unused)) *v,
-                                  const char *err) {
-  if(err)
+static void icon_action_completed(void *v, const char *err) {
+  if(err) {
+    last_state = restore_state;
     popup_protocol_error(0, err);
+    icon_changed(0, 0, v);
+  }
 }
 
 static void clicked_icon(GtkToolButton attribute((unused)) *button,
@@ -449,10 +483,12 @@ static void toggled_icon(GtkToggleToolButton attribute((unused)) *button,
 
   if(suppress_actions)
     return;
+  restore_state = last_state;
   if(icon->on())
     icon->action_go_off(client, icon_action_completed, 0);
   else
     icon->action_go_on(client, icon_action_completed, 0);
+  icon_changed(0, 0, user_data);
 }
 
 static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
@@ -583,6 +619,48 @@ static double balance(double l, double r) {
     return 0;
 }
 
+/** @brief Called to enable jukebox playback */
+static int enable_playing(disorder_eclient *c,
+                          disorder_eclient_no_response *completed, void *v) {
+  last_state |= DISORDER_PLAYING;
+  return disorder_eclient_enable(c, completed, v);
+}
+
+/** @brief Called to disable jukebox playback */
+static int disable_playing(disorder_eclient *c,
+                           disorder_eclient_no_response *completed, void *v) {
+  last_state &= ~DISORDER_PLAYING;
+  return disorder_eclient_disable(c, completed, v);
+}
+
+/** @brief Called to enable random selection */
+static int enable_random(disorder_eclient *c,
+                         disorder_eclient_no_response *completed, void *v) {
+  last_state |= DISORDER_RANDOM_ENABLED;
+  return disorder_eclient_random_enable(c, completed, v);
+}
+
+/** @brief Called to disable random selection */
+static int disable_random(disorder_eclient *c,
+                          disorder_eclient_no_response *completed, void *v) {
+  last_state &= ~DISORDER_RANDOM_ENABLED;
+  return disorder_eclient_random_disable(c, completed, v);
+}
+
+/** @brief Called to pause the current track */
+static int pause_track(disorder_eclient *c,
+                       disorder_eclient_no_response *completed, void *v) {
+  last_state |= DISORDER_TRACK_PAUSED;
+  return disorder_eclient_pause(c, completed, v);
+}
+
+/** @brief Called to resume the current track */
+static int resume_track(disorder_eclient *c,
+                        disorder_eclient_no_response *completed, void *v) {
+  last_state &= ~DISORDER_TRACK_PAUSED;
+  return disorder_eclient_resume(c, completed, v);
+}
+
 /** @brief Called to enable RTP play
  *
  * Rather odd signature is to fit in with the other icons which all call @ref
@@ -592,6 +670,7 @@ static int enable_rtp(disorder_eclient attribute((unused)) *c,
                       disorder_eclient_no_response attribute((unused)) *completed,
                       void attribute((unused)) *v) {
   start_rtp();
+  rtp_is_running = 1;
   return 0;
 }
 
@@ -604,6 +683,7 @@ static int disable_rtp(disorder_eclient attribute((unused)) *c,
                        disorder_eclient_no_response attribute((unused)) *completed,
                        void attribute((unused)) *v) {
   stop_rtp();
+  rtp_is_running = 0;
   return 0;
 }
 
