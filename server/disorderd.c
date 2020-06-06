@@ -223,6 +223,7 @@ int main(int argc, char **argv) {
     default: disorder_fatal(0, "invalid option");
     }
   }
+  config_per_user = 0;
   if(wfr) {
     if(config_read(1,  NULL))
       disorder_fatal(0, "cannot read configuration");

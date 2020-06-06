@@ -408,6 +408,7 @@ int main(int argc, char **argv) {
       disorder_fatal(0, "specify only a dump file name");
     path = argv[optind];
   }
+  config_per_user = 0;
   if(config_read(0, NULL))
     disorder_fatal(0, "cannot read configuration");
   if(dump) {

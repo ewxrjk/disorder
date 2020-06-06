@@ -135,9 +135,6 @@ See \fBdisorder_config\fR(5).
 .TP
 .I pkgconfdir/config.private
 Private configuration (now largely obsolete).
-.TP
-.I ~/.disorder/passwd
-Per-user password file.
 .SS "Communication"
 .TP
 .I pkgstatedir/socket

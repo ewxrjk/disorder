@@ -71,6 +71,7 @@ int main(int argc, char **argv) {
     openlog(progname, LOG_PID, LOG_DAEMON);
     log_default = &log_syslog;
   }
+  config_per_user = 0;
   if(config_read(0, NULL)) disorder_fatal(0, "cannot read configuration");
   disorder_info("started");
   trackdb_init(TRACKDB_NO_RECOVER);

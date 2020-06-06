@@ -586,6 +586,7 @@ int main(int argc, char *argv[])
   if(optind >= argc) disorder_fatal(0, "missing filename");
   file = argv[optind++];
   if(optind < argc) disorder_fatal(0, "excess arguments");
+  config_per_user = 0;
   if(config_read(1, 0)) disorder_fatal(0, "cannot read configuration");
 
   /* Set up the GStreamer machinery. */

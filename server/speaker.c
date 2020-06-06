@@ -769,6 +769,7 @@ int main(int argc, char **argv) {
     log_default = &log_syslog;
   }
   config_uaudio_apis = uaudio_apis;
+  config_per_user = 0;
   if(config_read(1, NULL)) disorder_fatal(0, "cannot read configuration");
   /* ignore SIGPIPE */
   signal(SIGPIPE, SIG_IGN);
