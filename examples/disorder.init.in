@@ -36,6 +36,18 @@ CLIENT="bindir/disorder --local"
 
 PATH="$PATH:sbindir"
 
+if [ -r /etc/default/locale ]; then
+  . /etc/default/locale
+  for var in \
+    LANG LANGUAGE LC_ALL \
+    LC_ADDRESS LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT \
+    LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME
+  do
+    eval p=\${$var+t}
+    case ${p+t} in t) export $var ;; esac
+  done
+fi
+
 if [ -r /etc/default/disorder ]; then
   . sysconfdir/default/disorder
 fi
