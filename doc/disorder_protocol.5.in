@@ -649,6 +649,9 @@ In the queue, hasn't been played yet.
 The track was terminated because the server is shutting down.
 .RE
 .TP
+.B sofar
+The number of seconds of the track that have been played so far.
+.TP
 .B submitter
 The user that submitted the track.
 .TP
