@@ -25,6 +25,10 @@ AC_CONFIG_SRCDIR([server/disorderd.c])
 AM_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+m4_ifdef([AM_SILENT_RULES],
+           [AM_SILENT_RULES([yes])],
+           [AC_SUBST([AM_DEFAULT_VERBOSITY], [1])])
+
 # Find host type
 AC_CANONICAL_HOST
 
