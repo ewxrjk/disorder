@@ -167,7 +167,7 @@ void all_update(void);
 
 GtkWidget *menubar(GtkWidget *w);
 /* Create the menu bar */
-int full_mode;
+extern int full_mode;
 
 void users_set_sensitive(int sensitive);
 
@@ -228,7 +228,7 @@ extern const GtkTargetEntry choose_targets[];
 
 void login_box(void);
 
-GtkWidget *login_window;
+extern GtkWidget *login_window;
 
 /* User management */
 
@@ -251,7 +251,7 @@ void stop_rtp(void);
 void load_rtp_config(void);
 void save_rtp_config(void);
 void change_rtp_api(const char *api);
-const char *rtp_api;
+extern const char *rtp_api;
 int rtp_setvol(int *l, int *r);
 int rtp_getvol(int *l, int *r);
 
