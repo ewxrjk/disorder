@@ -133,6 +133,9 @@ struct icon {
   /** @brief Events that change this icon, separated by spaces */
   const char *events;
 
+  /** @brief Event to raise when the icon is frobbed */
+  const char *raise;
+
   /** @brief @ref eclient.h function to call to go from off to on
    *
    * For action buttons, this should be NULL.
@@ -227,6 +230,7 @@ static struct icon icons[] = {
     .action_go_on = pause_track,
     .action_go_off = resume_track,
     .events = "pause-changed playing-changed rights-changed playing-track-changed",
+    .raise = "pause-changed",
     .menu_invert = TRUE,
   },
   {
@@ -252,6 +256,7 @@ static struct icon icons[] = {
     .action_go_on = enable_random,
     .action_go_off = disable_random,
     .events = "random-changed rights-changed",
+    .raise = "random-changed",
   },
   {
     .toggle = TRUE,
@@ -265,6 +270,7 @@ static struct icon icons[] = {
     .action_go_on = enable_playing,
     .action_go_off = disable_playing,
     .events = "enabled-changed rights-changed",
+    .raise = "playing-changed",
   },
   {
     .toggle = TRUE,
@@ -475,6 +481,8 @@ static void clicked_icon(GtkToolButton attribute((unused)) *button,
   if(suppress_actions)
     return;
   icon->action_go_off(client, icon_action_completed, 0);
+  if(icon->raise)
+    event_raise(icon->raise, 0);
 }
 
 static void toggled_icon(GtkToggleToolButton attribute((unused)) *button,
@@ -489,6 +497,8 @@ static void toggled_icon(GtkToggleToolButton attribute((unused)) *button,
   else
     icon->action_go_on(client, icon_action_completed, 0);
   icon_changed(0, 0, user_data);
+  if(icon->raise)
+    event_raise(icon->raise, 0);
 }
 
 static void clicked_menu(GtkMenuItem attribute((unused)) *menuitem,
