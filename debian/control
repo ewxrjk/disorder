@@ -21,6 +21,7 @@ Build-Depends:
  libvorbis-dev,
  netbase,
  pkg-config,
+ procps,
  python,
 Vcs-Git: https://github.com/ewxrjk/disorder/
 Homepage: http://www.greenend.org.uk/rjk/disorder/
