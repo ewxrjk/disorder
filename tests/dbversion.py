@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,time,disorder,sys,re,subprocess
 
 def test():
@@ -31,14 +32,14 @@ def test():
     dtest.stop_daemon()
     # Revert to default configuration
     dtest.copyfile(configsave, config)
-    print " testing daemon manages to upgrade..."
+    print(" testing daemon manages to upgrade...")
     dtest.start_daemon()
     assert dtest.check_files() == 0, "dtest.check_files"
-    print " getting server version"
+    print(" getting server version")
     c = disorder.client()
     v = c.version()
-    print "Server version: %s" % v
-    print " getting server stats"
+    print("Server version: %s" % v)
+    print(" getting server stats")
     s = c.stats()
 
 if __name__ == '__main__':

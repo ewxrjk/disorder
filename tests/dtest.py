@@ -19,6 +19,7 @@
 
 """Utility module used by tests"""
 
+from __future__ import print_function
 import os,os.path,subprocess,sys,re,time,unicodedata,random,socket,traceback
 import atexit,base64,errno
 
@@ -239,7 +240,7 @@ def common_setup():
     global port
     port = random.randint(49152, 65530)
     while not bindable(port + 1):
-        print "port %d is not bindable, trying another" % (port + 1)
+        print("port %d is not bindable, trying another" % (port + 1))
         port = random.randint(49152, 65530)
     # Log anything sent to that port
     packetlog = "%s/packetlog" % testroot
@@ -258,11 +259,11 @@ Start the daemon."""
     global daemon, errs, port
     assert daemon == None, "no daemon running"
     if not bindable(port + 1):
-        print "waiting for port %d to become bindable again..." % (port + 1)
+        print("waiting for port %d to become bindable again..." % (port + 1))
         time.sleep(1)
         while not bindable(port + 1):
             time.sleep(1)
-    print " starting daemon"
+    print(" starting daemon")
     # remove the socket if it exists
     socket = "%s/socket" % homelink
     if os.path.exists(socket):
@@ -277,19 +278,19 @@ Start the daemon."""
     while not os.path.exists(socket):
         rc = daemon.poll()
         if rc is not None:
-            print "FATAL: daemon failed to start up"
+            print("FATAL: daemon failed to start up")
             sys.exit(1)
         waited += sleep_resolution
         if sleep_resolution < 1:
             sleep_resolution *= 2
         if waited == 1:
-            print "  waiting for socket..."
+            print("  waiting for socket...")
         elif waited >= 60:
-            print "FATAL: took too long for socket to appear"
+            print("FATAL: took too long for socket to appear")
             sys.exit(1)
         time.sleep(sleep_resolution)
     if waited > 0:
-        print "  took about %ss for socket to appear" % waited
+        print("  took about %ss for socket to appear" % waited)
     # Wait for root user to be created
     command(["disorderd",
              "--config", disorder._configfile,
@@ -300,7 +301,7 @@ def create_user(username="fred", password="fredpass"):
 
     Create a user, abusing direct database access to do so.  Gives the
     user rights 'all', allowing them to do anything."""
-    print " creating user %s" % username
+    print(" creating user %s" % username)
     command(["disorder",
              "--config", disorder._configfile, "--no-per-user-config",
              "--user", "root", "adduser", username, password])
@@ -309,11 +310,11 @@ def create_user(username="fred", password="fredpass"):
              "--user", "root", "edituser", username, "rights", "all"])
 
 def rescan(c=None):
-    print " initiating rescan"
+    print(" initiating rescan")
     if c is None:
         c = disorder.client()
     c.rescan('wait')
-    print " rescan completed"
+    print(" rescan completed")
 
 def stop_daemon():
     """stop_daemon()
@@ -321,17 +322,17 @@ def stop_daemon():
 Stop the daemon if it has not stopped already"""
     global daemon
     if daemon == None:
-        print " (daemon not running)"
+        print(" (daemon not running)")
         return
     rc = daemon.poll()
     if rc == None:
-        print " stopping daemon"
+        print(" stopping daemon")
         os.kill(daemon.pid, 15)
-        print "  waiting for daemon"
+        print("  waiting for daemon")
         rc = daemon.wait()
-        print "  daemon has stopped (rc=%d)" % rc
+        print("  daemon has stopped (rc=%d)" % rc)
     else:
-        print "  daemon already stopped"
+        print("  daemon already stopped")
     daemon = None
 
 def run(module=None, report=True):
@@ -352,7 +353,7 @@ def run(module=None, report=True):
         if type(module) == str:
             module = __import__(module)
         name = module.__name__
-    print "--- %s ---" % name
+    print("--- %s ---" % name)
     # Open the error log
     global errs
     logfile = "%s.log" % name
@@ -378,10 +379,10 @@ def run(module=None, report=True):
         os.system("ps -ef | grep disorderd")
     if report:
         if failures:
-            print " FAILED"
+            print(" FAILED")
             sys.exit(1)
         else:
-            print " OK"
+            print(" OK")
 
 def remove_dir(d):
     """remove_dir(D)
@@ -415,20 +416,20 @@ def check_files(chatty=True):
         dirs = c.directories(d)
         if not lists_have_same_contents(xdirs, dirs):
             if chatty:
-                print
-                print "directory: %s" % d
-                print "expected:  %s" % xdirs
-                print "got:       %s" % dirs
+                print()
+                print("directory: %s" % d)
+                print("expected:  %s" % xdirs)
+                print("got:       %s" % dirs)
             failures += 1
     for d in files_by_dir:
         xfiles = files_by_dir[d]
         files = c.files(d)
         if not lists_have_same_contents(xfiles, files):
             if chatty:
-                print
-                print "directory: %s" % d
-                print "expected:  %s" % xfiles
-                print "got:       %s" % files
+                print()
+                print("directory: %s" % d)
+                print("expected:  %s" % xfiles)
+                print("got:       %s" % files)
             failures += 1
     return failures
 

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,disorder,sys,os,unicodedata
 
 def recode(name, f, t):
@@ -25,7 +26,7 @@ def recode(name, f, t):
   b = os.path.basename(name)
   nb = unicodedata.normalize("NFC", unicode(b, f)).encode(t)
   if b != nb:
-    print "  %s -> %s" % (repr(b), repr(nb))
+    print("  %s -> %s" % (repr(b), repr(nb)))
     name = os.path.join(d, nb)
     os.rename(os.path.join(d, b), name)
     recoded += 1
@@ -38,7 +39,7 @@ def recode(name, f, t):
 def test():
     """Test encoding conversion"""
     if sys.platform == "darwin":
-      print "Sorry, cannot run this test on Darwin"
+      print("Sorry, cannot run this test on Darwin")
       # ...because local fs is always UTF-8
       sys.exit(77)
     dtest.start_daemon()
@@ -46,22 +47,22 @@ def test():
     dtest.rescan()
     dtest.check_files()
     dtest.stop_daemon()
-    print " recoding as ISO-8859-1"
+    print(" recoding as ISO-8859-1")
     recoded = recode(dtest.tracks, "UTF-8", "ISO-8859-1")
-    print " ...recoded %d filenames" % recoded
-    print " regenerating config"
+    print(" ...recoded %d filenames" % recoded)
+    print(" regenerating config")
     dtest.default_config(encoding="ISO-8859-1")
-    print " checking recoded files"
+    print(" checking recoded files")
     dtest.start_daemon()
     dtest.rescan()
     dtest.check_files()
     dtest.stop_daemon()
-    print " recoding as UTF-8"
+    print(" recoding as UTF-8")
     recoded = recode(dtest.tracks, "ISO-8859-1", "UTF-8")
-    print " ...recoded %d filenames" % recoded
-    print " regenerating config"
+    print(" ...recoded %d filenames" % recoded)
+    print(" regenerating config")
     dtest.default_config(encoding="UTF-8")
-    print " checking recoded files"
+    print(" checking recoded files")
     dtest.start_daemon()
     dtest.rescan()
     dtest.check_files()

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,disorder,re
 
 def set_auth_algo(h):
@@ -31,17 +32,17 @@ def test():
     created = False
     for h in ['sha1', 'SHA1', 'sha256', 'SHA256',
               'sha384', 'SHA384', 'sha512', "SHA512" ]:
-        print " setting authorization hash to %s" % h
+        print(" setting authorization hash to %s" % h)
         set_auth_algo(h)
         dtest.start_daemon()
         if not created:
             dtest.create_user()
             created = True
-        print " exercising C implementation"
+        print(" exercising C implementation")
         dtest.command(["disorder",
                        "--config", disorder._configfile, "--no-per-user-config",
                        "--user", "root", "version"])
-        print " exercising Python implementation"
+        print(" exercising Python implementation")
         c = disorder.client()
         c.version()
         dtest.stop_daemon()

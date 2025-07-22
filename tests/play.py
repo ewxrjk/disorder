@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,time,disorder,re,sys
 
 def test():
@@ -29,18 +30,18 @@ def test():
     track = u"%s/Joe Bloggs/First Album/02:Second track.ogg" % dtest.tracks
     track2 = u"%s/Joe Bloggs/First Album/04:Fourth track.ogg" % dtest.tracks
     track3 = u"%s/Joe Bloggs/First Album/05:Fifth track.ogg" % dtest.tracks
-    print " adding track to queue"
+    print(" adding track to queue")
     c.disable()
     assert c.enabled() == False
     c.play(track)
-    print " checking track turned up in queue"
+    print(" checking track turned up in queue")
     q = c.queue()
     ts = filter(lambda t: t['track'] == track and 'submitter' in t, q)
     assert len(ts) == 1, "checking track appears exactly once in queue"
     t = ts[0]
     assert t['submitter'] == u'fred', "check queue submitter"
     i = t['id']
-    print " waiting for track"
+    print(" waiting for track")
     c.enable()
     assert c.enabled() == True
     p = c.playing()
@@ -54,7 +55,7 @@ def test():
         r = c.recent()
         limit -= 1
     assert limit > 0, "check track did complete in a reasonable time"
-    print " checking track turned up in recent list"
+    print(" checking track turned up in recent list")
     while (p is not None and p['id'] == i):
         time.sleep(1)
         p = c.playing()
@@ -64,7 +65,7 @@ def test():
     t = ts[0]
     assert t['submitter'] == u'fred', "check recent entry submitter"
 
-    print " ensuring queue is clear"
+    print(" ensuring queue is clear")
     c.disable()
     while c.playing() is not None:
         time.sleep(1)
@@ -72,36 +73,36 @@ def test():
     for qe in q:
         c.remove(qe["id"])
 
-    print " testing playafter"
-    print "  adding to empty queue"
+    print(" testing playafter")
+    print("  adding to empty queue")
     c.playafter(None, [track])
     q = c.queue()
-    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
-                        range(0, len(q))))
+    print('\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q)))))
     assert len(q) == 1
     assert q[0]['track'] == track
-    print "  insert at start of queue"
+    print("  insert at start of queue")
     c.playafter(None, [track2])
     q = c.queue()
-    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
-                        range(0, len(q))))
+    print('\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q)))))
     assert len(q) == 2
     assert q[0]['track'] == track2
     assert q[1]['track'] == track
-    print "  insert in middle of queue"
+    print("  insert in middle of queue")
     c.playafter(q[0]['id'], [track3])
     q = c.queue()
-    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
-                        range(0, len(q))))
+    print('\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q)))))
     assert len(q) == 3
     assert q[0]['track'] == track2
     assert q[1]['track'] == track3
     assert q[2]['track'] == track
-    print "  insert multiple tracks at end of queue"
+    print("  insert multiple tracks at end of queue")
     c.playafter(q[2]['id'], [track2, track])
     q = c.queue()
-    print '\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
-                        range(0, len(q))))
+    print('\n'.join(map(lambda n: "%d: %s" % (n, q[n]["track"]),
+                        range(0, len(q)))))
     assert len(q) == 5
     assert q[0]['track'] == track2
     assert q[1]['track'] == track3
@@ -109,27 +110,27 @@ def test():
     assert q[3]['track'] == track2
     assert q[4]['track'] == track
 
-    print " clearing queue"
+    print(" clearing queue")
     for qe in q:
         c.remove(qe["id"])
 
-    print " testing scratches"
+    print(" testing scratches")
     retry = False
     scratchlimit = 5
     while scratchlimit > 0:
         scratchlimit -= 1
         c.disable()
-        print " starting a track"
+        print(" starting a track")
         c.play(track)
         c.enable()
         p = c.playing()
         if p is None:
-            print " track played too quickly, trying again..."
+            print(" track played too quickly, trying again...")
             continue
-        print " scratching track"
+        print(" scratching track")
         i = p['id']
         c.scratch(i)
-        print " waiting for track to finish"
+        print(" waiting for track to finish")
         p = c.playing()
         limit = 60
         while (p is not None and p['id'] == i) and limit > 0:
@@ -137,20 +138,20 @@ def test():
             p = c.playing()
             limit -= 1
         assert limit > 0, "check track finishes in a reasonable period"
-        print " checking scratched track turned up in recent list"
+        print(" checking scratched track turned up in recent list")
         r = c.recent()
         ts = filter(lambda t: t['id'] == i, r)
         assert len(ts) == 1, "check scratched track appears exactly once in recent"
         if ts[0]['state'] == 'ok':
-            print " track played too quickly, trying again..."
+            print(" track played too quickly, trying again...")
             continue
         assert ts[0]['state'] == 'scratched', "checking track scratched"
         break
     if scratchlimit == 0:
         # TODO this is really not a great approach!
-        print " didn't complete in a reasonable time"
+        print(" didn't complete in a reasonable time")
         sys.exit(77)
-    print " waiting for scratch to complete"
+    print(" waiting for scratch to complete")
     p = c.recent()
     while p is not None:
         time.sleep(1)
