@@ -3,7 +3,25 @@ Maintainer: Mark Wooding <mdw@distorted.org.uk>
 Section: sound
 Priority: optional
 Standards-Version: 3.8.1.0
-Build-Depends: debhelper (>= 9), dh-exec, netbase, libgc-dev | libgc6-dev, libgcrypt-dev, libdb5.3-dev | libdb5.1-dev | libdb4.8-dev | libdb4.7-dev | libdb4.5-dev | libdb4.3-dev, libpcre2-dev | libpcre3-dev, libvorbis-dev, libmad0-dev, libasound2-dev, libpulse-dev, python, libflac-dev, libgtk2.0-dev (>= 2.12.12), pkg-config, libgstreamer1.0-dev | libgstreamer0.10-dev, libgstreamer-plugins-base1.0-dev | libgstreamer-plugins-base0.10-dev, libsamplerate0-dev
+Build-Depends:
+ debhelper (>= 9),
+ dh-exec,
+ libasound2-dev,
+ libdb5.3-dev | libdb5.1-dev | libdb4.8-dev | libdb4.7-dev | libdb4.5-dev | libdb4.3-dev,
+ libflac-dev,
+ libgc-dev | libgc6-dev,
+ libgcrypt-dev,
+ libgstreamer-plugins-base1.0-dev | libgstreamer-plugins-base0.10-dev,
+ libgstreamer1.0-dev | libgstreamer0.10-dev,
+ libgtk2.0-dev (>= 2.12.12),
+ libmad0-dev,
+ libpcre2-dev | libpcre3-dev,
+ libpulse-dev,
+ libsamplerate0-dev,
+ libvorbis-dev,
+ netbase,
+ pkg-config,
+ python,
 Vcs-Git: https://github.com/ewxrjk/disorder/
 Homepage: http://www.greenend.org.uk/rjk/disorder/
 
@@ -11,8 +29,11 @@ Package: disorder
 Architecture: any
 Section: sound
 Priority: extra
-Depends: ${shlibs:Depends}
-Suggests: disorder-playrtp,disobedience
+Depends:
+ ${shlibs:Depends},
+Suggests:
+ disobedience,
+ disorder-playrtp,
 Description: Play random or selected digital audio files continuously
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
  and other formats with suitable configuration.  It is capable of playing
@@ -28,9 +49,17 @@ Package: disorder-server
 Architecture: any
 Section: sound
 Priority: extra
-Depends: disorder,debconf,${shlibs:Depends},exim4|mail-transport-agent,adduser
-Recommends: httpd-cgi
-Suggests: disorder-playrtp,disobedience
+Depends:
+ adduser,
+ debconf,
+ disorder,
+ exim4 | mail-transport-agent,
+ ${shlibs:Depends},
+Recommends:
+ httpd-cgi,
+Suggests:
+ disobedience,
+ disorder-playrtp,
 Description: Play random or selected digital audio files continuously
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
  and other formats with suitable configuration.  It is capable of playing
@@ -44,7 +73,8 @@ Package: disorder-playrtp
 Architecture: any
 Section: sound
 Priority: extra
-Depends: ${shlibs:Depends}
+Depends:
+ ${shlibs:Depends},
 Description: Network play client for DisOrder
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
  and other formats with suitable configuration.  It is capable of playing
@@ -58,9 +88,14 @@ Package: disorder-gstreamer
 Architecture: any
 Section: sound
 Priority: extra
-Depends: ${shlibs:Depends}, ${disorder:GstVersion}-plugins-base, ${disorder:GstVersion}-plugins-good
-Recommends: ${disorder:GstVersion}-plugins-ugly
-Enhances: disorder-server
+Depends:
+ ${disorder:GstVersion}-plugins-base,
+ ${disorder:GstVersion}-plugins-good,
+ ${shlibs:Depends},
+Recommends:
+ ${disorder:GstVersion}-plugins-ugly,
+Enhances:
+ disorder-server,
 Description: GStreamer-based audio decoder for DisOrder
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
  and other formats with suitable configuration.  It is capable of playing
@@ -76,8 +111,11 @@ Package: disobedience
 Architecture: any
 Section: sound
 Priority: extra
-Depends: disorder,${shlibs:Depends}
-Suggests: disorder-playrtp
+Depends:
+ disorder,
+ ${shlibs:Depends},
+Suggests:
+ disorder-playrtp,
 Description: Controller GUI for DisOrder
  DisOrder is a software jukebox.  It can play OGG, MP3, WAV and FLAC files,
  and other formats with suitable configuration.  It is capable of playing
