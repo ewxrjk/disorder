@@ -38,7 +38,7 @@ Build dependencies:
   GNU C            6.4.0       }
   GNU Make         4.1         } Non-GNU versions will NOT work
   GNU Sed          4.4         }
-  Python           2.7.13      (optional, 2.5.2 onwards OK; 2.4 won't work)
+  Python           2.7.13      (optional, 2.6 onwards OK; 2.5 won't work)
   GTK+             2.12.12     (for the GTK+ client; 2.10 & older will NOT work)
   GLIB             2.16.6      (for the GTK+ client)
 

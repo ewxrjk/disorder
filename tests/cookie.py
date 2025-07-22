@@ -16,41 +16,42 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,disorder
 
 def test():
     """Exercise cookie protocol"""
     dtest.start_daemon()
     dtest.create_user()
-    print " connecting"
+    print(" connecting")
     c = disorder.client()
     v = c.version()
-    print " getting cookie"
+    print(" getting cookie")
     k = c.make_cookie()
-    print " cookie value is %s" % k
-    print " connecting with cookie"
+    print(" cookie value is %s" % k)
+    print(" connecting with cookie")
     c = disorder.client()
     c.connect(k)
     v = c.version()
-    print " it worked"
-    print " connecting with cookie again"
+    print(" it worked")
+    print(" connecting with cookie again")
     c = disorder.client()
     c.connect(k)
     v = c.version()
-    print " it worked"
-    print " revoking cookie"
+    print(" it worked")
+    print(" revoking cookie")
     c.revoke()
     v = c.version()
-    print " connection still works"
-    print " connecting with revoked cookie"
+    print(" connection still works")
+    print(" connecting with revoked cookie")
     c = disorder.client()
     try:
       c.connect(k)
-      print "*** should not be able to connect with revoked cookie ***"
+      print("*** should not be able to connect with revoked cookie ***")
       assert False
     except disorder.operationError:
       pass                              # good
-    print " revoked cookie was rejected"
+    print(" revoked cookie was rejected")
 
 if __name__ == '__main__':
     dtest.run()

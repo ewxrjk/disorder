@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,time,disorder,sys
 
 failures = 0
@@ -23,7 +24,7 @@ failures = 0
 def check_search_results(terms, expected):
     global failures
     # We want a consistent encoding and ordering
-    print "terms:    %s" % terms
+    print("terms:    %s" % terms)
     got = client.search(terms)
     got = map(dtest.nfc, got)
     expected = map(lambda s: "%s/%s" % (dtest.tracks, s), expected)
@@ -31,9 +32,9 @@ def check_search_results(terms, expected):
     got.sort()
     expected.sort()
     if got != expected:
-        print "expected: %s" % expected
-        print "got:      %s" % got
-        print
+        print("expected: %s" % expected)
+        print("got:      %s" % got)
+        print()
         failures += 1
 
 def test():

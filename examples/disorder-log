@@ -19,47 +19,48 @@
 
 # Example use of disorder.monitor class
 
+from __future__ import print_function
 import disorder
 
 class mymonitor(disorder.monitor):
   def completed(self, track):
-    print "completed %s" % track
+    print("completed %s" % track)
     return True
 
   def failed(self, track, error):
-    print "failed %s (%s)" % (track, error)
+    print("failed %s (%s)" % (track, error))
     return True
 
   def moved(self, id, offset, user):
-    print "%s moved by %s (%s)" % (id, offset, user)
+    print("%s moved by %s (%s)" % (id, offset, user))
     return True
 
   def playing(self, track, user):
-    print "%s playing" % track
+    print("%s playing" % track)
     return True
 
   def queue(self, q):
-    print "queued %s" % str(q)
+    print("queued %s" % str(q))
     return True
 
   def recent_added(self, q):
-    print "recent_added %s" % str(q)
+    print("recent_added %s" % str(q))
     return True
 
   def recent_removed(self, id):
-    print "recent_removed %s" % id
+    print("recent_removed %s" % id)
     return True
 
   def removed(self, id, user):
-    print "removed %s" % id
+    print("removed %s" % id)
     return True
 
   def scratched(self, track, user):
-    print "%s scratched %s" % (track, user)
+    print("%s scratched %s" % (track, user))
     return True
 
   def invalid(self, line):
-    print "invalid line: %s" % line
+    print("invalid line: %s" % line)
     return True
 
 m = mymonitor()

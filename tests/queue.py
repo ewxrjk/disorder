@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from __future__ import print_function
 import dtest,time,disorder,re
 
 class wait_monitor(disorder.monitor):
@@ -27,60 +28,60 @@ def test():
     dtest.start_daemon()
     dtest.create_user()
     c = disorder.client()
-    print " disabling play"
+    print(" disabling play")
     c.disable()
-    print " waiting for queue to be populated..."
+    print(" waiting for queue to be populated...")
     q = c.queue()
     while len(q) < 5:
-        print "  queue at %d tracks" % len(q)
+        print("  queue at %d tracks" % len(q))
         wait_monitor().run()
         q = c.queue()
-    print " getting queue via disorder(1)"
+    print(" getting queue via disorder(1)")
     q = dtest.command(["disorder",
                        "--config", disorder._configfile, "--no-per-user-config",
                        "queue"])
     tracks = filter(lambda s: re.match("^track", s), q)
     assert len(tracks) == 5, "queue is at proper length"
-    print " disabling random play"
+    print(" disabling random play")
     c.random_disable()
-    print " emptying queue"
+    print(" emptying queue")
     for t in c.queue():
         c.remove(t['id'])
-    print " checking queue is now empty"
+    print(" checking queue is now empty")
     q = c.queue()
     assert q == [], "checking queue is empty"
-    print " enabling random play"
+    print(" enabling random play")
     c.random_enable()
-    print " waiting for queue to refill..."
+    print(" waiting for queue to refill...")
     q = c.queue()
     while len(q) < 5:
-        print "  queue at %d tracks" % len(q)
+        print("  queue at %d tracks" % len(q))
         wait_monitor().run()
         q = c.queue()
-    print " disabling all play"
+    print(" disabling all play")
     c.random_disable()
     c.disable()
-    print " emptying queue"
+    print(" emptying queue")
     for t in c.queue():
         c.remove(t['id'])
     t1 = "%s/Joe Bloggs/Third Album/01:First_track.ogg" % dtest.tracks
     t2 = "%s/Joe Bloggs/Third Album/02:Second_track.ogg" % dtest.tracks
     t3 = "%s/Joe Bloggs/Third Album/02:Second_track.ogg" % dtest.tracks
-    print " adding tracks"
+    print(" adding tracks")
     i1 = c.play(t1)
     i2 = c.play(t2)
     i3 = c.play(t3)
     q = c.queue()
     assert map(lambda e:e['id'], q) == [i1, i2, i3], "checking queue order(1)"
-    print " moving last track to start"
+    print(" moving last track to start")
     c.moveafter(None, [i3])
     q = c.queue()
     assert map(lambda e:e['id'], q) == [i3, i1, i2], "checking queue order(2)"
-    print " moving two tracks"
+    print(" moving two tracks")
     c.moveafter(i1, [i2, i3])
     q = c.queue()
     assert map(lambda e:e['id'], q) == [i1, i2 ,i3], "checking queue order(3)"
-    print " removing a track"
+    print(" removing a track")
     c.remove(i2)
     q = c.queue()
     assert map(lambda e:e['id'], q) == [i1 ,i3], "checking queue order(4)"
